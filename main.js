@@ -1,13 +1,11 @@
-var restify = require('restify');
+var express = require('express');
 
 /**
  * Fires up a tenant server
  * @param {Object} tenantObj Data on the tenant
  **/
 var startTenant = function(tenantObj) {
-    var tenant = restify.createServer({
-        'name': tenantObj.name
-    });
+    var tenant = express();
 
     tenant.listen(tenantObj.port);
 
@@ -22,13 +20,12 @@ var startTenant = function(tenantObj) {
  * @param {Array} tenantArr Array of tenants
  **/
 var startOAE = function(tenantArr) {
-    var server = restify.createServer({
-        'name': 'Sakai OAE Global Admin Interface'
-    });
-    server.use(restify.queryParser());
+    var server = express();
     server.listen(2000);
 
     console.log('Start global server on port 2000');
+
+    server.use("/static", express.static(__dirname + '/static'));
 
     server.get('/whoami', function(req, res, next) {
         res.send('Sakai OAE Global Admin Interface');

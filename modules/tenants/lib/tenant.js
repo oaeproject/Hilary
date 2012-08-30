@@ -55,6 +55,6 @@ var registerAPI = function(tenant) {
         res.send(tenant.name);
     });
     
-    users.registerAPI(tenant);
+    users.UserService(tenant);
     
 };

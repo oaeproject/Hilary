@@ -1,0 +1,11 @@
+{
+  "name": "OAE",
+  "author": "Sakai Foundation",
+  "version": "0.1.0",
+  "dependencies": {
+    "restify": "latest",
+    "passport": "latest",
+    "cassandra-client": "latest"
+  },
+  "node": "0.6.19"
+}

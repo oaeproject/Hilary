@@ -1,6 +1,7 @@
 var express = require('express');
 
 var users = require('../../users');
+var messages = require('../../messages');
 
 var tenants = [];
 
@@ -55,6 +56,7 @@ var registerAPI = function(tenant) {
         res.send(tenant.name);
     });
     
-    users.UserService(tenant);
+    var userService = users.startUserService(tenant);
+    var messageService = messages.startMessageService(tenant);
     
 };

@@ -2,9 +2,12 @@ var express = require('express');
 
 var userModel = require('./user.model.js');
 
+var userServices = {};
 var userCache = {};
 
-module.exports.UserService = function(tenant) {
+module.exports.startUserService = function(tenant) {
+    
+    var that = {};
     
     // Do some random people
     userCache[tenant.id] = userCache[tenant.id] || [];
@@ -12,18 +15,56 @@ module.exports.UserService = function(tenant) {
     userCache[tenant.id].push(new userModel.User(tenant, "John", tenant.name));
     userCache[tenant.id].push(new userModel.User(tenant, "Erik", tenant.name));
 
-    // API calls
+    // API functions
+    that.listUsers = function() {
+        return userCache[tenant.id];
+    };
+
+    that.listAllUsers = function() {
+        return userCache;
+    };
+
+    that.createUser = function(firstName, lastName) {
+        userCache[tenant.id].push(new userModel.User(tenant, firstName, lastName));
+    };
+
+    that.getUser = function(userId) {
+        for (var t in userCache) {
+            for (var u = 0; u < userCache[t].length; u++) {
+                if (userCache[t][u].id === userId) {
+                    return userCache[t][u];
+                }
+            };
+        }
+    };
+
+    // REST calls
     tenant.server.get('/users/list', function(req, res) {
-        res.send(userCache[tenant.id]);
+        res.send(that.listUsers());
     });
 
     tenant.server.get('/users/listall', function(req, res) {
-        res.send(userCache);
+        res.send(that.listAllUsers());
     });
 
     tenant.server.get('/users/create', function(req, res) {
-        userCache[tenant.id].push(new userModel.User(tenant, req.query.firstName, req.query.lastName));
+        that.createUser(req.query.firstName, req.query.lastName);
         res.send(200);
     });
 
+    tenant.server.get('/users/get', function(req, res) {
+        res.send(that.getUser(req.query.userId));
+    });
+
+    userServices[tenant.id] = that;
+    return that;
+
+};
+
+module.exports.getUserService = function(tenant) {
+    if (userServices[tenant.id]) {
+        return userServices[tenant.id];
+    } else {
+        return null;
+    }
 };

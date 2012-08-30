@@ -15,4 +15,9 @@ module.exports.registerAPI = function(tenant) {
         res.send(userCache);
     });
 
+    tenant.server.get('/users/create', function(req, res) {
+        userCache.push(new userModel.User(tenant, req.query.firstName, req.query.lastName));
+        res.send(200);
+    });
+
 };

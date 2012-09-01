@@ -6,7 +6,7 @@ var users = require('../../users');
 var messageServices = {};
 var messageCache = {};
 
-module.exports.startMessageService = function(tenant) {
+module.exports.init = function(tenant) {
     
     var that = {};
     var UserService = users.getUserService(tenant);

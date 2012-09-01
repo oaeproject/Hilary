@@ -1,0 +1,1 @@
+CREATE TABLE users (KEY uuid PRIMARY KEY, tenantId text, institutionalId text, firstName text, lastName text, email text, picture text) WITH comment='user information' AND read_repair_chance = 1.0 AND comparator=UTF8Type AND default_validation_class=UTF8Type AND key_validation_class=UTF8Type;

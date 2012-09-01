@@ -5,7 +5,7 @@ var userModel = require('./user.model.js');
 var userServices = {};
 var userCache = {};
 
-module.exports.startUserService = function(tenant) {
+module.exports.init = function(tenant) {
     
     var that = {};
     
@@ -54,6 +54,17 @@ module.exports.startUserService = function(tenant) {
 
     tenant.server.get('/users/get', function(req, res) {
         res.send(that.getUser(req.query.userId));
+    });
+
+    tenant.server.get('/users/updateProfile', function(req, res) {
+        var user = that.getUser(req.query.userId);
+        if (req.query.firstName) {
+            user.firstName = req.query.firstName;
+        }
+        if (req.query.lastName) {
+            user.lastName = req.query.lastName;
+        }
+        res.send(200);
     });
 
     userServices[tenant.id] = that;

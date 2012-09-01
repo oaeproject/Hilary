@@ -1,23 +1,20 @@
 var express = require('express');
 
-var tenants = require('./modules/tenants');
+var OAE = require('./util/OAE')
+var tenantUtil = require('./util/Tenant');
 
 var tenantArr = [];
 
 var startOAE = function(tenantArr) {
     var server = express();
     server.listen(2000);
-    registerAPI(server);
+    registerAPI(server, tenantArr);
 
     console.log('Start global server on port 2000');
-
-    for (var i = 0; i < tenantArr.length; i++) {
-        createNewTenant(tenantArr[i].id, tenantArr[i].name, tenantArr[i].port);
-    }
     
 };
 
-var registerAPI = function(server) {
+var registerAPI = function(server, tennantArr) {
     server.use("/static", express.static(__dirname + '/static'));
 
     server.get('/whoami', function(req, res, next) {
@@ -33,11 +30,19 @@ var registerAPI = function(server) {
         res.send(tenantArr);
     });
 
+    OAE.initializeKeySpace(function() {
+        OAE.getAvailableModules(function(modules) {
+            for (var m = 0; m < modules.length; m++) {
+                
+            }
+        });
+    });
+
 };
 
 var createNewTenant = function(id, name, port) {
-    var tenant = new tenants.Tenant(id, name, port);
+    var tenant = new tenantUtil.Tenant(id, name, port);
     tenantArr.push(tenant);
 }
 
-startOAE([{"id": "cambridge", "name": "Cambridge University", "port": 2001}, {"id": "gt", "name": "Georgia Tech", "port": 2002}]);
+startOAE([]);

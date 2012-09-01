@@ -5,7 +5,8 @@
   "dependencies": {
     "express": "latest",
     "passport": "latest",
-    "cassandra-client": "latest"
+    "cassandra-client": "latest",
+    "admin-ui": "git://github.com/bp323/Admin-UI.git"
   },
   "node": "0.6.19"
 }

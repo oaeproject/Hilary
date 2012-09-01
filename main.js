@@ -15,8 +15,7 @@ var startOAE = function(tenantArr) {
 };
 
 var registerAPI = function(server, tennantArr) {
-    server.use("/static", express.static(__dirname + '/static'));
-
+    
     server.get('/whoami', function(req, res, next) {
         res.send('Sakai OAE Global Admin Interface');
     });

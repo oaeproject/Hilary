@@ -1,4 +1,0 @@
-{
-    "name" : "tenants",
-    "main" : "./lib/tenant.js"
-}

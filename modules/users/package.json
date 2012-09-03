@@ -1,4 +1,0 @@
-{
-    "name" : "users",
-    "main" : "./lib/user.api.js"
-}

@@ -3,9 +3,11 @@
   "author": "Sakai Foundation",
   "version": "0.1.0",
   "dependencies": {
+    "underscore": "latest",
     "express": "latest",
     "passport": "latest",
-    "cassandra-client": "latest"
+    "cassandra-client": "latest",
+    "oae-messages": "git://github.com/nicolaasmatthijs/oae-messages.git"
   },
   "node": "0.6.19"
 }

@@ -34,13 +34,13 @@ var registerAPI = function(server, tennantArr) {
         OAE.getAvailableModules(function(modules) {
             console.log(modules);
             for (var m = 0; m < modules.length; m++) {
-                //runModuleStore(modules[m]);
+                runModuleStore(modules[m]);
             }
         });
     });
 
     var runModuleStore = function(module) {
-        var path = "oae-core/" + module + "/install/install.js";
+        var path = "node_modules/" + module + "/install/install.js";
         IO.pathExists(path, function(exists) {
             if (exists) {
                 require("./" + path);

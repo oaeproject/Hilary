@@ -53,6 +53,7 @@ var registerAPI = function(server, tennantArr) {
 var createNewTenant = function(id, name, port) {
     var tenant = new tenantUtil.Tenant(id, name, port);
     tenantArr.push(tenant);
-}
+    tenantUtil.startTenant(tenant);
+};
 
 startOAE([]);

@@ -6,7 +6,8 @@
     "underscore": "latest",
     "express": "latest",
     "passport": "latest",
-    "cassandra-client": "latest"
+    "cassandra-client": "latest",
+    "bcrypt": "latest"
   },
   "devDependencies": {
     "nodeunit": "latest",

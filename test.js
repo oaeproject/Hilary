@@ -23,31 +23,37 @@ var config = {
     'system': '127.0.0.1:9160',
     'type': 'simple'
 };
+var setUpTests = function(err, created) {
+    if (err) {
+        throw "Error on keyspace creation. Aborting unit tests.";
+    }
 
-// Use the default test runner output.
-testrunner = reporters['default'];
+    console.log("Cassandra set up, running tests.");
 
-// Runs a set of tests.
-var runTests = function(files) {
-    var options = {
-        "error_prefix": "\u001B[31m",
-        "error_suffix": "\u001B[39m",
-        "ok_prefix": "\u001B[32m",
-        "ok_suffix": "\u001B[39m",
-        "bold_prefix": "\u001B[1m",
-        "bold_suffix": "\u001B[22m",
-        "assertion_prefix": "\u001B[35m",
-        "assertion_suffix": "\u001B[39m"
+    // Use the default test runner output.
+    testrunner = reporters['nested'];
+
+    // Runs a set of tests.
+    var runTests = function(files) {
+        var options = {
+            "error_prefix": "\u001B[31m",
+            "error_suffix": "\u001B[39m",
+            "ok_prefix": "\u001B[32m",
+            "ok_suffix": "\u001B[39m",
+            "bold_prefix": "\u001B[1m",
+            "bold_suffix": "\u001B[22m",
+            "assertion_prefix": "\u001B[35m",
+            "assertion_suffix": "\u001B[39m"
+        };
+
+        testrunner.run(files, options, function(err) {
+            if (err) {
+                process.exit(1);
+            }
+        });
     };
 
-    testrunner.run(files, options, function(err) {
-        if (err) {
-            process.exit(1);
-        }
-    });
-};
 
-var setUpTests = function() {
     if (argv['module']) {
         // Single module.
         var file = 'node_modules/' + argv['module'] + '/tests';

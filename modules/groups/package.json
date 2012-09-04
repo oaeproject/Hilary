@@ -1,0 +1,11 @@
+{
+    "name" : "groups",
+    "main" : "./lib/group.api.js",
+    "devDependencies": {
+	    "mocha": "latest",
+	    "should": "latest"
+	},
+    "scripts": {
+    	"test" : "./tests/*.js"
+    }
+}

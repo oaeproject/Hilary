@@ -1,9 +1,22 @@
 var express = require('express');
-
+var OAE = require('../../../util/OAE');
 var userModel = require('./user.model.js');
 
 var userServices = {};
 var userCache = {};
+
+module.exports.createUser = function(tenant, firstName, lastName, callback) {
+    var id = "u:" + tenant.id + ":" + firstName.toLowerCase();
+
+    // Create the group.
+    OAE.runQuery('INSERT INTO Principals (principal_id, tenant, user_first_name, user_last_name) VALUES (?, ?, ?, ?)', [id, tenant.id, firstName, lastName], function (err) {
+        if (err) {
+            callback({'code': 500, 'msg': err}, null);
+        } else {
+            callback(false, id);
+        }
+    });
+};
 
 module.exports.init = function(tenant) {
     
@@ -24,8 +37,17 @@ module.exports.init = function(tenant) {
         return userCache;
     };
 
-    that.createUser = function(firstName, lastName) {
-        userCache[tenant.id].push(new userModel.User(tenant, firstName, lastName));
+    that.createUser = function(firstName, lastName, callback) {
+        var id = "u:" + tenant.id + ":" + name;
+
+        // Create the group.
+        OAE.runQuery('INSERT INTO Principals (principal_id, tenant, user_first_name, user_last_name) VALUES (?, ?, ?, ?)', [id, tenant.id, firstName, lastName], function (err) {
+            if (err) {
+                callback({'code': 500, 'msg': err}, null);
+            } else {
+                callback(false, id);
+            }
+        });
     };
 
     that.getUser = function(userId) {

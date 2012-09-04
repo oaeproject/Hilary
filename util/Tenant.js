@@ -1,4 +1,5 @@
 var express = require('express');
+var fs = require("fs");
 
 var OAE = require('./OAE');
 
@@ -16,7 +17,15 @@ module.exports.Tenant = function(id, name, port) {
     that.name = name;
     that.port = isNaN(port) ? parseInt(port) : port;
 
-    module.exports.startTenant(that);
+    that.isItemInTenant = function(item_id, item_type) {
+        if (!item_id) {
+            return false;
+        }
+        var prefix = item_type + ":" + that.id + ":";
+        return (item_id.slice(0, prefix.length) ===  prefix);
+    };
+
+    //module.exports.startTenant(that);
     tenants.push(that);
     return that;
     
@@ -55,9 +64,12 @@ var registerAPI = function(tenant) {
         res.send(tenant.name);
     });
     
-    var modules = OAE.getAvailableModules(function(modules) {
+    OAE.getAvailableModules(function(modules) {
         for (var m = 0; m < modules.length; m++) {
-            require("../modules/" + modules[m]).init(tenant);
+            var restPath = 'modules/' + modules[m] + '/lib/rest.js';
+            if (fs.existsSync(restPath)) {
+                require('../' + restPath)(tenant);
+            }
         }
     });
     

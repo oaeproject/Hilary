@@ -1,7 +1,8 @@
 var express = require('express');
 
-var OAE = require('./util/OAE')
-var tenantUtil = require('./util/Tenant');
+var IO = require('oae-util/lib/IO');
+var OAE = require('oae-util/lib/OAE');
+var tenantUtil = require('oae-util/lib/Tenant');
 
 var tenantArr = [];
 
@@ -31,17 +32,28 @@ var registerAPI = function(server, tennantArr) {
 
     OAE.initializeKeySpace(function() {
         OAE.getAvailableModules(function(modules) {
+            console.log(modules);
             for (var m = 0; m < modules.length; m++) {
-                
+                runModuleStore(modules[m]);
             }
         });
     });
+
+    var runModuleStore = function(module) {
+        var path = "node_modules/" + module + "/install/install.js";
+        IO.pathExists(path, function(exists) {
+            if (exists) {
+                require("./" + path);
+            }
+        });
+    };
 
 };
 
 var createNewTenant = function(id, name, port) {
     var tenant = new tenantUtil.Tenant(id, name, port);
     tenantArr.push(tenant);
-}
+    tenantUtil.startTenant(tenant);
+};
 
 startOAE([]);

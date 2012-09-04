@@ -1,4 +1,0 @@
-{
-    "name" : "messages",
-    "main" : "./lib/message.api.js"
-}

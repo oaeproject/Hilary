@@ -3,4 +3,5 @@ node_modules/*
 !node_modules/oae-users
 !node_modules/oae-groups
 !node_modules/oae-util
+!node_modules/oae-roles
 npm-debug.log

@@ -1,8 +1,11 @@
 var express = require('express');
 
-var IO = require('oae-util/lib/IO');
-var OAE = require('oae-util/lib/OAE');
 var tenantUtil = require('oae-util/lib/Tenant');
+var cassandra = require('oae-util/lib/cassandra');
+
+var config = require('./config').config;
+
+
 
 var tenantArr = [];
 
@@ -30,24 +33,6 @@ var registerAPI = function(server, tennantArr) {
         res.send(tenantArr);
     });
 
-    OAE.initializeKeySpace(function() {
-        OAE.getAvailableModules(function(modules) {
-            console.log(modules);
-            for (var m = 0; m < modules.length; m++) {
-                runModuleStore(modules[m]);
-            }
-        });
-    });
-
-    var runModuleStore = function(module) {
-        var path = "node_modules/" + module + "/install/install.js";
-        IO.pathExists(path, function(exists) {
-            if (exists) {
-                require("./" + path);
-            }
-        });
-    };
-
 };
 
 var createNewTenant = function(id, name, port) {
@@ -56,4 +41,8 @@ var createNewTenant = function(id, name, port) {
     tenantUtil.startTenant(tenant);
 };
 
+// Create Cassandra database.
+cassandra.init(config.cassandra);
+
 startOAE([]);
+createNewTenant('cam', 'Cambridge', 2001);

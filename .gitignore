@@ -1,6 +1,8 @@
 .DS_STORE
 node_modules/*
-!node_modules/oae-users
 !node_modules/oae-groups
+!node_modules/oae-roles
+!node_modules/oae-tenants
+!node_modules/oae-users
 !node_modules/oae-util
 npm-debug.log

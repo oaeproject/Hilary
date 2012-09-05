@@ -8,5 +8,9 @@
     "passport": "latest",
     "cassandra-client": "latest"
   },
+  "devDependencies": {
+    "nodeunit": "latest",
+    "optimist": "latest"
+  },
   "node": "0.6.19"
 }

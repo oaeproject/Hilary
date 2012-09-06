@@ -12,5 +12,9 @@
     "nodeunit": "latest",
     "optimist": "latest"
   },
-  "node": "0.6.19"
+  "engines": {
+    "node": "0.6.x",
+    "npm": "1.0.x"
+  }
+
 }

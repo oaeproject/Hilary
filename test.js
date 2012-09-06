@@ -5,7 +5,7 @@ var argv = require('optimist')
     .argv;
 
 
-var fs = require('fs');
+var path = require('path');
 var nodeunit = require('nodeunit');
 var reporters = require('nodeunit/lib/reporters');
 
@@ -23,7 +23,6 @@ var config = {
     'system': '127.0.0.1:9160',
     'type': 'simple'
 };
-cassandra.init(config);
 
 // Use the default test runner output.
 testrunner = reporters['default'];
@@ -48,32 +47,35 @@ var runTests = function(files) {
     });
 };
 
-
-if (argv['module']) {
-    // Single module.
-    var file = 'node_modules/' + argv['module'] + '/tests';
-    console.log(file);
-    if (fs.existsSync(file)) {
-        console.log("Running the tests for just the " + argv['module'] + " module.");
-        runTests([file]);
-    } else {
-        console.log("\u001B[1m\u001B[31mCouldn't find that module.\u001B[39m\u001B[22m");
-    }
-}
-else {
-    // Run the tests for all the modules.
-    OAE.getAvailableModules(function(modules) {
-        var files = [];
-        for (var i = 0; i < modules.length; i++) {
-            var file = 'node_modules/' + modules[i] + '/tests';
-            if (fs.existsSync(file)) {
-                files.push(file);
-            } else {
-                console.warn("\u001B[1m\u001B[31mModule '" + modules[i] + "' has no tests.\u001B[39m\u001B[22m");
-            }
+var setUpTests = function() {
+    if (argv['module']) {
+        // Single module.
+        var file = 'node_modules/' + argv['module'] + '/tests';
+        console.log(file);
+        if (path.existsSync(file)) {
+            console.log("Running the tests for just the " + argv['module'] + " module.");
+            runTests([file]);
+        } else {
+            console.log("\u001B[1m\u001B[31mCouldn't find that module.\u001B[39m\u001B[22m");
         }
+    }
+    else {
+        // Run the tests for all the modules.
+        OAE.getAvailableModules(function(modules) {
+            var files = [];
+            for (var i = 0; i < modules.length; i++) {
+                var file = 'node_modules/' + modules[i] + '/tests';
+                if (path.existsSync(file)) {
+                    files.push(file);
+                } else {
+                    console.warn("\u001B[1m\u001B[31mModule '" + modules[i] + "' has no tests.\u001B[39m\u001B[22m");
+                }
+            }
+    
+            // Run them.
+            runTests(files);
+        });
+    }
+};
 
-        // Run them.
-        runTests(files);
-    });
-}
+cassandra.init(config, setUpTests);

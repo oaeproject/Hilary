@@ -3,8 +3,9 @@ var express = require('express');
 var IO = require('oae-util/lib/io');
 var OAE = require('oae-util/lib/oae');
 var Cassandra = require('oae-util/lib/cassandra');
-
 var tenantAPI = require('oae-tenants');
+
+var config = require('./config').config;
 
 /**
  * Start OAE and run the global administrative interface
@@ -45,13 +46,9 @@ var registerAPI = function(server) {
         });
     });
 
-    Cassandra.createKeyspace('oae', function() {
-        OAE.getAvailableModules(function(modules) {
-            for (var m = 0; m < modules.length; m++) {
-                runModuleStore(modules[m]);
-            }
-            startTenants();
-        });
+    // Create Cassandra database.
+    Cassandra.init(config.cassandra, function() {
+        startTenants();
     });
 
 };

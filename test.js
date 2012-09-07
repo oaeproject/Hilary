@@ -17,7 +17,7 @@ var cassandra = require('oae-util/lib/cassandra');
 var config = {
     'host': '127.0.0.1',
     'port': 9160,
-    'keyspace': 'unittests',
+    'keyspace': 'oae-test',
     'user': '',
     'pass': '',
     'system': '127.0.0.1:9160',
@@ -64,8 +64,7 @@ var setUpTests = function(err, created) {
         } else {
             console.log("\u001B[1m\u001B[31mCouldn't find that module.\u001B[39m\u001B[22m");
         }
-    }
-    else {
+    } else {
         // Run the tests for all the modules.
         OAE.getAvailableModules(function(modules) {
             var files = [];
@@ -84,4 +83,4 @@ var setUpTests = function(err, created) {
     }
 };
 
-cassandra.init(config, setUpTests);
+//cassandra.init(config, setUpTests);

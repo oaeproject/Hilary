@@ -8,8 +8,9 @@ var fs = require('fs');
 var nodeunit = require('nodeunit');
 var reporters = require('nodeunit/lib/reporters');
 
-var OAE = require('oae-util/lib/OAE');
 var cassandra = require('oae-util/lib/cassandra');
+var OAE = require('oae-util/lib/OAE');
+var tenantAPI = require('oae-tenants');
 
 // The Cassandra connection config that should be used for unit tests, using
 // a custom keyspace for just the tests
@@ -22,6 +23,16 @@ var config = {
     'system': '127.0.0.1:9160',
     'type': 'simple'
 };
+
+/**
+ * Whenever an uncaught exception is encountered, we catch this here and
+ * make sure that the process only quits when all of the necessary clean-up
+ * has been done 
+ */
+process.on('uncaughtException', function(err) {
+  finishTests(err);
+  return false;
+});
 
 /**
  * This is executed once all of the tests for all of the different modules have finished
@@ -45,19 +56,27 @@ var finishTests = function(testErr) {
 };
 
 /**
- * Check whether or not we want to run the tests for 1 specific module or
- * all modules at the same time and then run the actual test(s)
+ * Create 2 default tenants that can be used for testing our REST endpoints
  * @param {Object}      err     Standard error object, containing the error message for the
  *                              keyspace creation
  */
-var setUpTests = function(err) {
+var setUpTenants = function(err) {
     if (err) {
         console.error(err);
         throw "Error on keyspace creation. Aborting unit tests.";
     }
-
     console.log("Cassandra set up, running tests.");
+    
+    tenantAPI.createTenant("camtest", "Cambridge University Test", "Cambridge University Description", 2001, function() {
+        tenantAPI.createTenant("gttest", "Georgia Tech Test", "Georgia Tech Description", 2002, setUpTests);
+    });
+};
 
+/**
+ * Check whether or not we want to run the tests for 1 specific module or
+ * all modules at the same time and then run the actual test(s)
+ */
+var setUpTests = function() {
     // Use the default test runner output.
     testrunner = reporters['default'];
 
@@ -73,14 +92,7 @@ var setUpTests = function(err) {
             "assertion_prefix": "\u001B[35m",
             "assertion_suffix": "\u001B[39m"
         };
-        var finishedTests = 0;
-
-        testrunner.run(files, options, function(err) {
-            finishedTests++;
-            if (finishedTests === files.length || err) {
-                finishTests(err);
-            }
-        });
+        testrunner.run(files, options, finishTests);
     };
 
 
@@ -114,4 +126,4 @@ var setUpTests = function(err) {
 
 // First set up the keyspace and all of the column families required
 // for all of the different OAE modules
-cassandra.init(config, setUpTests);
+OAE.init(config, setUpTenants);

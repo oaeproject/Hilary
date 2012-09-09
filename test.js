@@ -4,7 +4,7 @@ var argv = require('optimist')
     .describe('m', 'Only run a specific module. Just specify the module name.')
     .argv;
 
-var path = require('path');
+var fs = require('fs');
 var nodeunit = require('nodeunit');
 var reporters = require('nodeunit/lib/reporters');
 
@@ -29,15 +29,21 @@ var config = {
  * @param {Object}      err     Standard error object, containing the error message
  */
 var finishTests = function(err) {
+    // Log the error that has caused the scripts to fail
     if (err) {
         console.error(err);
     }
+    // Clean up after ourselves
+    // TODO
+    // Finish the process
     process.exit(err ? 1 : 0);
 };
 
 /**
- * 
- * @param {Object} err
+ * Check whether or not we want to run the tests for 1 specific module or
+ * all modules at the same time and then run the actual test(s)
+ * @param {Object}      err     Standard error object, containing the error message for the
+ *                              keyspace creation
  */
 var setUpTests = function(err) {
     if (err) {
@@ -76,7 +82,7 @@ var setUpTests = function(err) {
     if (argv['module']) {
         // Single module.
         var file = 'node_modules/' + argv['module'] + '/tests';
-        if (path.existsSync(file)) {
+        if (fs.existsSync(file)) {
             console.log("Running the tests for just the " + argv['module'] + " module.");
             runTests([file]);
         } else {
@@ -88,7 +94,7 @@ var setUpTests = function(err) {
             var files = [];
             for (var i = 0; i < modules.length; i++) {
                 var file = 'node_modules/' + modules[i] + '/tests';
-                if (path.existsSync(file)) {
+                if (fs.existsSync(file)) {
                     files.push(file);
                 } else {
                     console.warn("\u001B[1m\u001B[31mModule '" + modules[i] + "' has no tests.\u001B[39m\u001B[22m");

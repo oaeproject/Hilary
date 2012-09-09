@@ -17,7 +17,7 @@ var cassandra = require('oae-util/lib/cassandra');
 var config = {
     'host': '127.0.0.1',
     'port': 9160,
-    'keyspace': 'oae-test',
+    'keyspace': 'oaeTest',
     'user': '',
     'pass': '',
     'system': '127.0.0.1:9160',
@@ -25,13 +25,14 @@ var config = {
 };
 var setUpTests = function(err, created) {
     if (err) {
+        console.error(err);
         throw "Error on keyspace creation. Aborting unit tests.";
     }
 
     console.log("Cassandra set up, running tests.");
 
     // Use the default test runner output.
-    testrunner = reporters['nested'];
+    testrunner = reporters['default'];
 
     // Runs a set of tests.
     var runTests = function(files) {
@@ -83,4 +84,4 @@ var setUpTests = function(err, created) {
     }
 };
 
-//cassandra.init(config, setUpTests);
+cassandra.init(config, setUpTests);

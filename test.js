@@ -4,7 +4,6 @@ var argv = require('optimist')
     .describe('m', 'Only run a specific module. Just specify the module name.')
     .argv;
 
-
 var path = require('path');
 var nodeunit = require('nodeunit');
 var reporters = require('nodeunit/lib/reporters');
@@ -12,8 +11,8 @@ var reporters = require('nodeunit/lib/reporters');
 var OAE = require('oae-util/lib/OAE');
 var cassandra = require('oae-util/lib/cassandra');
 
-
-// The Cassandra connection config that should be used for unit tests.
+// The Cassandra connection config that should be used for unit tests, using
+// a custom keyspace for just the tests
 var config = {
     'host': '127.0.0.1',
     'port': 9160,
@@ -23,7 +22,24 @@ var config = {
     'system': '127.0.0.1:9160',
     'type': 'simple'
 };
-var setUpTests = function(err, created) {
+
+/**
+ * This is executed once all of the tests for all of the different modules have finished
+ * running or when one of the tests has caused an error. It cleans up the test keypsace.
+ * @param {Object}      err     Standard error object, containing the error message
+ */
+var finishTests = function(err) {
+    if (err) {
+        console.error(err);
+    }
+    process.exit(err ? 1 : 0);
+};
+
+/**
+ * 
+ * @param {Object} err
+ */
+var setUpTests = function(err) {
     if (err) {
         console.error(err);
         throw "Error on keyspace creation. Aborting unit tests.";
@@ -46,10 +62,12 @@ var setUpTests = function(err, created) {
             "assertion_prefix": "\u001B[35m",
             "assertion_suffix": "\u001B[39m"
         };
+        var finishedTests = 0;
 
         testrunner.run(files, options, function(err) {
-            if (err) {
-                process.exit(1);
+            finishedTests++;
+            if (finishedTests === files.length || err) {
+                finishTests(err);
             }
         });
     };
@@ -58,7 +76,6 @@ var setUpTests = function(err, created) {
     if (argv['module']) {
         // Single module.
         var file = 'node_modules/' + argv['module'] + '/tests';
-        console.log(file);
         if (path.existsSync(file)) {
             console.log("Running the tests for just the " + argv['module'] + " module.");
             runTests([file]);
@@ -84,4 +101,6 @@ var setUpTests = function(err, created) {
     }
 };
 
+// First set up the keyspace and all of the column families required
+// for all of the different OAE modules
 cassandra.init(config, setUpTests);

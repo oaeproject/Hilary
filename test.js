@@ -28,15 +28,20 @@ var config = {
  * running or when one of the tests has caused an error. It cleans up the test keypsace.
  * @param {Object}      err     Standard error object, containing the error message
  */
-var finishTests = function(err) {
+var finishTests = function(testErr) {
     // Log the error that has caused the scripts to fail
-    if (err) {
-        console.error(err);
+    if (testErr) {
+        console.error(testErr);
     }
     // Clean up after ourselves
-    // TODO
-    // Finish the process
-    process.exit(err ? 1 : 0);
+    cassandra.dropKeyspace(config.keyspace, function(err) {
+        if (err) {
+            console.error(err);
+        }
+        // Finish the process
+        process.exit(err || testErr ? 1 : 0);
+    });
+    
 };
 
 /**

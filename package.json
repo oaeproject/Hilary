@@ -7,7 +7,16 @@
     "express": "latest",
     "passport": "latest",
     "cassandra-client": "latest",
-    "bcrypt": "latest"
+    "bcrypt": "latest",
+    "connect": "latest",
+    "passport": "latest",
+    "passport-local": "latest",
+    "passport-http": "latest",
+    "passport-google": "latest",
+    "passport-openid": "latest",
+    "passport-twitter": "latest",
+    "passport-facebook": "latest",
+    "request": "latest"
   },
   "devDependencies": {
     "nodeunit": "latest",

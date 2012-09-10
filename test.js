@@ -80,8 +80,8 @@ var setUpTenants = function(err) {
     }
     console.log("Cassandra set up, running tests.");
     
-    tenantAPI.createTenant("camtest", "Cambridge University Test", "Cambridge University Description", 2001, function() {
-        tenantAPI.createTenant("gttest", "Georgia Tech Test", "Georgia Tech Description", 2002, setUpTests);
+    tenantAPI.createTenant("camtest", "Cambridge University Test", "Cambridge University Description", 2001, "oae.cam.ac.uk", function() {
+        tenantAPI.createTenant("gttest", "Georgia Tech Test", "Georgia Tech Description", 2002, "oae.gatech.edu", setUpTests);
     });
 };
 

@@ -30,13 +30,11 @@ var tenantAPI = require('oae-tenants');
 // The Cassandra connection config that should be used for unit tests, using
 // a custom keyspace for just the tests
 var config = {
-    'host': '127.0.0.1',
-    'port': 9160,
+    'hosts': ['127.0.0.1:9160'],
     'keyspace': 'oaeTest',
     'user': '',
     'pass': '',
-    'system': '127.0.0.1:9160',
-    'type': 'simple'
+    'system': '127.0.0.1:9160'
 };
 
 /**

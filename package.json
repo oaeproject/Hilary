@@ -16,7 +16,9 @@
     "passport-openid": "latest",
     "passport-twitter": "latest",
     "passport-facebook": "latest",
-    "request": "latest"
+    "request": "latest",
+    "shortid": "latest",
+    "validator": "latest"
   },
   "devDependencies": {
     "nodeunit": "latest",

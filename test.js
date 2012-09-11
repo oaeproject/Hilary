@@ -55,7 +55,7 @@ process.on('uncaughtException', function(err) {
 var finishTests = function(testErr) {
     // Log the error that has caused the scripts to fail
     if (testErr) {
-        console.error(testErr);
+        console.error(testErr.stack);
     }
     // Clean up after ourselves
     cassandra.dropKeyspace(config.keyspace, function(err) {
@@ -65,7 +65,7 @@ var finishTests = function(testErr) {
         // Finish the process
         process.exit(err || testErr ? 1 : 0);
     });
-    
+
 };
 
 /**

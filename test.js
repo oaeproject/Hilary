@@ -24,7 +24,7 @@ var nodeunit = require('nodeunit');
 var reporters = require('nodeunit/lib/reporters');
 
 var cassandra = require('oae-util/lib/cassandra');
-var OAE = require('oae-util/lib/OAE');
+var OAE = require('oae-util/lib/oae');
 var tenantAPI = require('oae-tenants');
 
 // The Cassandra connection config that should be used for unit tests, using

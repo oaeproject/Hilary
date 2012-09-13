@@ -16,7 +16,8 @@
     "passport-openid": "latest",
     "passport-twitter": "latest",
     "passport-facebook": "latest",
-    "request": "latest"
+    "request": "latest",
+    "time"
   },
   "devDependencies": {
     "nodeunit": "latest",

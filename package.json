@@ -3,12 +3,10 @@
   "author": "Sakai Foundation",
   "version": "0.1.0",
   "dependencies": {
-    "underscore": "latest",
-    "express": "latest",
-    "passport": "latest",
-    "cassandra-client": "latest",
     "bcrypt": "latest",
+    "cassandra-client": "latest",
     "connect": "latest",
+    "express": "latest",
     "passport": "latest",
     "passport-local": "latest",
     "passport-http": "latest",
@@ -18,11 +16,14 @@
     "passport-facebook": "latest",
     "request": "latest",
     "shortid": "latest",
+    "underscore": "latest",
     "validator": "latest"
   },
   "devDependencies": {
     "nodeunit": "latest",
     "optimist": "latest"
   },
-  "node": "0.8.8"
+  "engines": {
+    "node": ">=0.8"
+  }
 }

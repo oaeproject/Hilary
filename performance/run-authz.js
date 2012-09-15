@@ -34,6 +34,7 @@ oae.init(config, function(err) {
         var results = {};
         var model = {};
 
+        // read the data from the model-loader scripts and build the model
         readScript(scriptsDir+'/users/0.txt', 'users', model, function() {
             readScript(scriptsDir+'/worlds/0.txt', 'groups', model, function() {
                 extractGroups(model);
@@ -51,6 +52,7 @@ oae.init(config, function(err) {
                 var numPhases = tenantGroups.length;
                 var phasesComplete = 0;
 
+                // tracks the phase completion to signal when the process is over and output results.
                 var trackPhases = function(err) {
                     if (!err) {
                         phasesComplete++;
@@ -73,6 +75,9 @@ oae.init(config, function(err) {
     }
 });
 
+/**
+ * Runs all the phases provided by multi-dimensional array 'phases'.
+ */
 var runPhases = function(phaseId, phases, model, results, callback) {
     var phaseResults = results['phase-'+phaseId] = {};
     var phase = phases.pop();
@@ -95,6 +100,9 @@ var runPhases = function(phaseId, phases, model, results, callback) {
 
 };
 
+/**
+ * Read the provided jsonFile as a list of new-line-delimited JSON objects
+ */
 var readScript = function(jsonFile, name, model, callback) {
     model[name] = [];
     io.loadJSONFileIntoArray(jsonFile, function(items) {
@@ -105,6 +113,12 @@ var readScript = function(jsonFile, name, model, callback) {
     });
 }
 
+/**
+ * Extract / expand all groups in the given model. The reason they need expanding is to create "role groups" for each
+ * top-level group. For example, if group my-group has a set of users that are managers, then there will be a role-group
+ * called "my-group-managers" that holds all those users as members. This is to form a group hierarchy for performance
+ * testing checks.
+ */
 var extractGroups = function(model) {
     var subGroups = [];
 
@@ -123,6 +137,9 @@ var extractGroups = function(model) {
     })
 }
 
+/**
+ * Extract all the group memberships from the model.
+ */
 var extractMemberships = function(model) {
     var groups = model['groups'];
     var membershipsHash = {}

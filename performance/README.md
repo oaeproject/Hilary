@@ -1,6 +1,8 @@
 # Performance Test Scripts
 
-### run-authz.js
+## run-authz.js
+
+### Description
 
 This script sets up data according to the model-loader output (only one batch), and hammers permissions/membership checks out of the data.
 
@@ -66,3 +68,68 @@ The results look like the following:
 **phase:** The tenants that were run concurrently with eachother
 **dataload:** The data-loading timing metrics
 **performanceTest:** The performance test timing metrics
+
+### Base-line metrics
+
+The following metrics were run on my MacBook Air, running one cassandra instance with one node.js process locally.
+
+<table>
+  <tr>
+    <th>Phase</th>
+    <th>Users/s</th>
+    <th>Groups/s</th>
+    <th>Memberships/s</th>
+    <th>Positive Checks / sec</th>
+    <th>Checks Sweep #1 (checks/s)</th>
+  </tr>
+  <tr>
+    <th colspan="6">Test #1: 1 phase; 1 concurrent tenant per phase</th>
+  </tr>
+  <tr>
+    <td>0</td>
+    <td>7.9</td>
+    <td>266.4</td>
+    <td>186.5</td>
+    <td>1133.6</td>
+    <td>245.9</td>
+  </tr>
+  <tr>
+    <th colspan="6">Test #2: 1 phase, 4 concurrent tenants per phase</th>
+  </tr>
+  <tr>
+    <td>0</td>
+    <td>3.63</td>
+    <td>84.4</td>
+    <td>57.58</td>
+    <td>1893.2</td>
+    <td>298.5</td>
+  </tr>
+  <tr>
+    <th colspan="6">Test #3: 3 phases, 4 concurrent tenants per phase</th>
+  </tr>
+  <tr>
+    <td>0</td>
+    <td>3.57</td>
+    <td>86.2</td>
+    <td>61.5</td>
+    <td>692</td>
+    <td>94.3</td>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>2.6</td>
+    <td>32.6</td>
+    <td>23.3</td>
+    <td>232.8</td>
+    <td>95.1</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>2.4</td>
+    <td>20</td>
+    <td>14.7</td>
+    <td>393.4</td>
+    <td>99.3</td>
+  </tr>
+</table>
+

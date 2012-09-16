@@ -14,8 +14,10 @@
     "passport-openid": "latest",
     "passport-twitter": "latest",
     "passport-facebook": "latest",
+    "recaptcha-async": "latest"
     "request": "latest",
     "shortid": "latest",
+    "time": "latest",
     "underscore": "latest",
     "validator": "latest"
   },

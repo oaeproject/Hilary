@@ -6,15 +6,14 @@ MODULES:=`find node_modules -maxdepth 2 | grep 'node_modules/oae-.*/tests' | tr 
 test: test-unit
 
 test-module:
-	@NODE_ENV=test node_modules/.bin/mocha --ignore-leaks --timeout $(TIMEOUT) --reporter $(REPORTER) $(MOCHA_OPTS) tests/beforeTests.js node_modules/$(module)/tests
+	@NODE_ENV=test ../node_modules/.bin/mocha --ignore-leaks --timeout $(TIMEOUT) --reporter $(REPORTER) $(MOCHA_OPTS) tests/beforeTests.js node_modules/$(module)/tests
 
 test-unit:
-	@NODE_ENV=test node_modules/.bin/mocha --ignore-leaks --timeout $(TIMEOUT) --reporter $(REPORTER) $(MOCHA_OPTS) tests/beforeTests.js $(MODULES)
+	@NODE_ENV=test ../node_modules/.bin/mocha --ignore-leaks --timeout $(TIMEOUT) --reporter $(REPORTER) $(MOCHA_OPTS) tests/beforeTests.js $(MODULES)
 
 test-coverage: lib-cov
-	@cd target
 	@echo "Running tests"
-	@cd target; export OAE_COVERING=true; node_modules/.bin/mocha --ignore-leaks --reporter html-cov $(MOCHA_OPTS) tests/beforeTests.js $(MODULES) > coverage.html
+	@cd target; export OAE_COVERING=true; ../node_modules/.bin/mocha --ignore-leaks --reporter html-cov $(MOCHA_OPTS) tests/beforeTests.js $(MODULES) > coverage.html
 	@echo "Code Coverage report generated at target/coverage.html"
 	@open target/coverage.html
 

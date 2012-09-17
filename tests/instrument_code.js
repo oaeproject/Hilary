@@ -25,12 +25,7 @@ var oae = require('oae-util/lib/oae');
 
 oae.getAvailableModules(function(modules) {
 
-    var total_modules = modules.length;
-    var instrumented_modules = 0;
-
-    var instrumented = function(error, stdout, stderr) {
-        instrumented_modules++;
-
+    var abortIfError = function(error, stdout, stderr) {
         if (error) {
             console.log(stdout);
             console.log(stderr);
@@ -40,10 +35,13 @@ oae.getAvailableModules(function(modules) {
 
     var instrument = function(dir, module) {
         exec('jscoverage --no-highlight target/' + dir + '/lib target/' + dir + '/lib-cov', function(error, stdout, stderr) {
+            abortIfError(error, stdout, stderr);
             // Replace filenames in instrumentation with entire path.
-            exec('find target/' + dir + '/lib-cov/ -type f -exec ./replace.py {} "' + module + '/lib" \\;', function(error, stdout, stderr) {
+            exec('find target/' + dir + '/lib-cov/ -type f -exec node tests/replace.js {} "' + module + '/lib" \\;', function(error, stdout, stderr) {
+                abortIfError(error, stdout, stderr);
                 exec('rm -r target/' + dir + '/lib', function(error, stdout, stderr) {
-                    exec('mv target/' + dir + '/lib-cov target/' + dir + '/lib', instrumented);
+                    abortIfError(error, stdout, stderr);
+                    exec('mv target/' + dir + '/lib-cov target/' + dir + '/lib', abortIfError);
                 });
             });
         });

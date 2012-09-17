@@ -22,10 +22,8 @@
     "validator": "latest"
   },
   "devDependencies": {
-    "optimist": "latest"
-  },
-  "scripts": {
-    "preinstall": "npm i -g mocha"
+    "optimist": "latest",
+    "mocha": "latest"
   },
   "engines": {
     "node": ">=0.8"

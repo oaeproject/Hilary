@@ -7,7 +7,7 @@ Third Party Contributions:
 
 This product includes software licensed under the Apache License, version 2.0 (http://www.apache.org/licenses/LICENSE-2.0.html).
 
-This product includes software licensed under the MIT License (http://http://opensource.org/licenses/mit-license.php).
+This product includes software licensed under the MIT License (http://opensource.org/licenses/mit-license.php).
 
 Portions Copyright (c) 2009-2012 Jeremy Ashkenas, DocumentCloud Inc.  All Rights Reserved (http://www.documentcloud.org).
 
@@ -23,6 +23,6 @@ Portions Copyright (c) 2011-2012 TJ Holowaychuk.  All Rights Reserved (http://tj
 
 Portions Copyright (c) 2010 Chris O'Hara.  All Rights Reserved (cohara87@gmail.com).
 
-Portions Copyright (c) 2011 LearnBoost  All Rights Reserved (learnboost.com/)
+Portions Copyright (c) 2011 LearnBoost  All Rights Reserved (http://learnboost.com/)
 
 Portions Copyright (c) 2010 Sencha Inc.  All Rights Reserved (http://www.sencha.com/).

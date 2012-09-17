@@ -35,16 +35,6 @@ var config = {
 };
 
 /**
- * Whenever an uncaught exception is encountered, we catch this here and
- * make sure that the process only quits when all of the necessary clean-up
- * has been done
- */
-process.on('uncaughtException', function(err) {
-  finishTests(function() {});
-  return false;
-});
-
-/**
  * This is executed once all of the tests for all of the different modules have finished
  * running or when one of the tests has caused an error. It cleans up the test keypsace.
  * @param {Object}      err     Standard error object, containing the error message

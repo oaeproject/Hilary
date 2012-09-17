@@ -9,8 +9,6 @@ This product includes software licensed under the Apache License, version 2.0 (h
 
 This product includes software licensed under the MIT License (http://http://opensource.org/licenses/mit-license.php).
 
-Portions Copyright (c) 2009 Acknack Ltd.  All Rights Reserved (https://github.com/waveto/node-crypto).
-
 Portions Copyright (c) 2009-2012 Jeremy Ashkenas, DocumentCloud Inc.  All Rights Reserved (http://www.documentcloud.org).
 
 Portions Copyright (c) 2010 Nicholas Campbell.  All Rights Reserved (http://digitaltumbleweed.com/).

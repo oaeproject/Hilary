@@ -26,3 +26,5 @@ Portions Copyright (c) 2010 Chris O'Hara.  All Rights Reserved (cohara87@gmail.c
 Portions Copyright (c) 2011 LearnBoost  All Rights Reserved (http://learnboost.com/)
 
 Portions Copyright (c) 2010 Sencha Inc.  All Rights Reserved (http://www.sencha.com/).
+
+Portions Copyright (c) 2011 SimpleReach. All Rights Reserved (http://www.simplereach.com).

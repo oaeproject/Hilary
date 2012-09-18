@@ -24,7 +24,7 @@ lib-cov:
 	@echo "Copying all files."
 	@cp -r `find . -maxdepth 1 -not -name "*target*" -a -not -name "*git*" -a -not -name "."` target
 	@echo "Instrumenting all files."
-	@node node_modules/oae-tests/runner/instrument_code.js `pwd`
+	@node node_modules/oae-tests/runner/instrument_code.js "`pwd`"
 	@echo "Code instrumented"
 
 

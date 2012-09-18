@@ -22,8 +22,8 @@
     "validator": "latest"
   },
   "devDependencies": {
-    "nodeunit": "latest",
-    "optimist": "latest"
+    "optimist": "latest",
+    "mocha": "latest"
   },
   "engines": {
     "node": ">=0.8"

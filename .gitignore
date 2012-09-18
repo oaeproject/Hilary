@@ -1,4 +1,5 @@
 .DS_STORE
+target/
 node_modules/*
 !node_modules/oae-authentication
 !node_modules/oae-content
@@ -7,5 +8,6 @@ node_modules/*
 !node_modules/oae-principals
 !node_modules/oae-roles
 !node_modules/oae-tenants
+!node_modules/oae-tests
 !node_modules/oae-util
 npm-debug.log

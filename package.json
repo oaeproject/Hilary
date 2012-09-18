@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "dependencies": {
     "bcrypt": "latest",
-    "cassandra-client": "latest",
+    "helenus": "latest",
     "connect": "latest",
     "express": "latest",
     "passport": "latest",
@@ -22,8 +22,8 @@
     "validator": "latest"
   },
   "devDependencies": {
-    "nodeunit": "latest",
-    "optimist": "latest"
+    "optimist": "latest",
+    "mocha": "latest"
   },
   "engines": {
     "node": ">=0.8"

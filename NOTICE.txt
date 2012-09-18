@@ -1,0 +1,30 @@
+Copyright 2012 The Sakai Foundation. All rights reserved. This version of the Open Academic Environment (OAE) is
+licensed under the terms of the Educational Community License, Version 2.0 <http://www.opensource.org/licenses/ecl2.php>. 
+OAE distributions include a number of 3rd-party libraries which are acknowledged below.  Questions about licensing should 
+be directed to licensing@sakaifoundation.org.
+
+Third Party Contributions:
+
+This product includes software licensed under the Apache License, version 2.0 (http://www.apache.org/licenses/LICENSE-2.0.html).
+
+This product includes software licensed under the MIT License (http://opensource.org/licenses/mit-license.php).
+
+Portions Copyright (c) 2009-2012 Jeremy Ashkenas, DocumentCloud Inc.  All Rights Reserved (http://www.documentcloud.org).
+
+Portions Copyright (c) 2010 Nicholas Campbell.  All Rights Reserved (http://digitaltumbleweed.com/).
+
+Portions Copyright (c) 2011 Felix Gertz .  All Rights Reserved (nihil.baxter.dev@gmail.com).
+
+Portions Copyright (c) 2010 James Halliday.  All Rights Reserved (http://substack.net/).
+
+Portions Copyright (c) 2011 Jared Hanson.  All Rights Reserved (http://www.jaredhanson.net/).
+
+Portions Copyright (c) 2011-2012 TJ Holowaychuk.  All Rights Reserved (http://tjholowaychuk.com).
+
+Portions Copyright (c) 2010 Chris O'Hara.  All Rights Reserved (cohara87@gmail.com).
+
+Portions Copyright (c) 2011 LearnBoost  All Rights Reserved (http://learnboost.com/)
+
+Portions Copyright (c) 2010 Sencha Inc.  All Rights Reserved (http://www.sencha.com/).
+
+Portions Copyright (c) 2011 SimpleReach. All Rights Reserved (http://www.simplereach.com).

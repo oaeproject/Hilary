@@ -1,6 +1,6 @@
 MOCHA_OPTS=
 REPORTER = spec
-TIMEOUT = 4000
+TIMEOUT = 20000
 MODULES:=`find node_modules -maxdepth 2 | grep 'node_modules/oae-.*/tests' | tr "\\n" " "`
 
 test: test-unit

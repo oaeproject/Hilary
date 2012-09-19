@@ -19,9 +19,9 @@ var config = {};
 config.cassandra = {
     'hosts': ['127.0.0.1:9160'], 
     'keyspace': 'oae',
-    'system': '127.0.0.1:9160',
     'user': '', 
-    'pass': ''
+    'pass': '',
+    'timeout': 3000
 };
 
 

@@ -14,7 +14,7 @@ var argv = require('optimist')
 
 var oae = require('oae-util/lib/oae');
 var io = require('oae-util/lib/io');
-var performance = require('oae-permissions/lib/performance');
+var performance = require('./lib/performance');
 
 var config = {
     'hosts': ['127.0.0.1:9160'],

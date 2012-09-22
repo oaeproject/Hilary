@@ -33,16 +33,6 @@ The results look like the following:
       "perf-test-1347714329374-4-1"
     ],
     "dataload": {
-      "users": {
-        "num": 50,
-        "time": 138,
-        "perSecond": 362.3188405797101
-      },
-      "groups": {
-        "num": 5,
-        "time": 58,
-        "perSecond": 86.20689655172414
-      },
       "memberships": {
         "num": 52,
         "time": 495,
@@ -76,60 +66,50 @@ The following metrics were run on my MacBook Air, running one cassandra instance
 <table>
   <tr>
     <th>Phase</th>
-    <th>Users/s</th>
-    <th>Groups/s</th>
-    <th>Memberships/s</th>
+    <th>Created Memberships</th>
     <th>Positive Checks / sec</th>
-    <th>Checks Sweep #1 (checks/s)</th>
+    <th>Checks Sweep #1 (checks / sec)</th>
   </tr>
   <tr>
-    <th colspan="6">Test #1: 1 phase; 1 concurrent tenant per phase</th>
-  </tr>
-  <tr>
-    <td>0</td>
-    <td>7.9</td>
-    <td>266.4</td>
-    <td>186.5</td>
-    <td>1133.6</td>
-    <td>245.9</td>
-  </tr>
-  <tr>
-    <th colspan="6">Test #2: 1 phase, 4 concurrent tenants per phase</th>
+    <th colspan="4">Test #1: 1 phase; 1 concurrent tenant per phase</th>
   </tr>
   <tr>
     <td>0</td>
-    <td>3.63</td>
-    <td>84.4</td>
-    <td>57.58</td>
-    <td>1893.2</td>
-    <td>298.5</td>
+    <td>594 @ 1350/s</td>
+    <td>594 @ 1036/s</td>
+    <td>125000 @ 715/s</td>
   </tr>
   <tr>
-    <th colspan="6">Test #3: 3 phases, 4 concurrent tenants per phase</th>
+    <th colspan="4">Test #2: 1 phase, 4 concurrent tenants per phase</th>
   </tr>
   <tr>
     <td>0</td>
-    <td>3.57</td>
-    <td>86.2</td>
-    <td>61.5</td>
-    <td>692</td>
-    <td>94.3</td>
+    <td>2376 @ 1126/s</td>
+    <td>2376 @ 718/s</td>
+    <td>500000 @ 925/s</td>
+  </tr>
+  <tr>
+    <th colspan="4">Test #3: 3 phases, 4 concurrent tenants per phase</th>
+  </tr>
+  <tr>
+    <td>0</td>
+    <td>2376 @ 2136/s</td>
+    <td>2376 @ 786/s</td>
+    <td>500000 @ 363/s</td>
   </tr>
   <tr>
     <td>1</td>
-    <td>2.6</td>
-    <td>32.6</td>
-    <td>23.3</td>
-    <td>232.8</td>
-    <td>95.1</td>
+    <td>2376 @ 787/s</td>
+    <td>2376 @ 556/s</td>
+    <td>500000 @ 363/s</td>
   </tr>
   <tr>
     <td>2</td>
-    <td>2.4</td>
-    <td>20</td>
-    <td>14.7</td>
-    <td>393.4</td>
-    <td>99.3</td>
+    <td>2376 @ 556/s</td>
+    <td>2376 @ 481/s</td>
+    <td>500000 @ 364/s</td>
   </tr>
 </table>
+
+In **Test #3**, it's important to note that since the Check Sweep step takes so long, that after about 15 seconds, the remainder of the ~22min of test was just the "Invalid Permissions Checks".. which is actually a throughput of 363+363+364 = 1090 checks / s.
 

@@ -1,9 +1,7 @@
-var principalsAPI = require('oae-principals');
-var permissionsAPI = require('oae-permissions');
-var rolesUtil = require('oae-roles/lib/util');
 var Context = require('oae-context').Context;
 var Tenant = require('oae-tenants/lib/model').Tenant;
-
+var AuthzAPI = require('oae-authz');
+var AuthzUtil = require('oae-authz/lib/util');
 
 /**
  * Load the user, group and membership data from the model-loader scripts specified in scriptsDir.
@@ -33,6 +31,14 @@ module.exports.dataload = function(tenantIds, model, results, callback) {
         } else {
             tenantsFinished++;
             if (tenantsFinished === numTenants) {
+
+                var numMemberships = model.memberships.length * numTenants;
+                var duration = new Date().getTime() - start;
+                results.dataload.memberships = {};
+                results.dataload.memberships.num = numMemberships;
+                results.dataload.memberships.duration = duration;
+                results.dataload.memberships.perSecond = (numMemberships*1000) / duration;
+
                 callback();
             }
         }
@@ -142,11 +148,11 @@ var checkPermissionsForTenant = function(tenantId, checks, expect, callback) {
     }
 
     var check = checks.pop();
-    var groupUuid = rolesUtil.toUuid('g', tenantId, check.groupId);
-    var principalUuid = rolesUtil.toUuid(check.principalType, tenantId, check.principalId);
+    var groupUuid = AuthzUtil.toUuid('g', tenantId, check.groupId);
+    var principalUuid = AuthzUtil.toUuid(check.principalType, tenantId, check.principalId);
     var permission = check.permission;
 
-    permissionsAPI.isAllowed(principalUuid, permission, groupUuid, function(err, isAllowed) {
+    AuthzAPI.isAllowed(principalUuid, permission, groupUuid, function(err, isAllowed) {
         if (!err) {
             if (expect === null || expect === isAllowed) {
                 checkPermissionsForTenant(tenantId, checks, expect, callback);
@@ -163,44 +169,10 @@ var checkPermissionsForTenant = function(tenantId, checks, expect, callback) {
 // persist the given model for the given tenant.
 var persistModel = function(tenant, model, results, callback) {
 
-    results.users = {};
-    results.groups = {};
-    results.memberships = {};
-
     var start = new Date().getTime();
-    var now = null;
-    persistUsers(tenant, model.users.slice(0), function(err) {
+    persistMemberships(tenant, model.memberships.slice(0), function(err) {
         if (!err) {
-            now = new Date().getTime();
-            results.users.num = model.users.length;
-            results.users.time = now - start;
-            results.users.perSecond = (model.users.length*1000) / results.users.time;
-
-            start = now;
-            persistGroups(tenant, model.groups.slice(0), function(err) {
-                if (!err) {
-                    now = new Date().getTime();
-                    results.groups.num = model.groups.length;
-                    results.groups.time = now - start;
-                    results.groups.perSecond = (model.groups.length*1000) / results.groups.time;
-
-                    start = now;
-                    return persistMemberships(tenant, model.memberships.slice(0), function(err) {
-                        if (!err) {
-                            now = new Date().getTime();
-                            results.memberships.num = model.memberships.length;
-                            results.memberships.time = now - start;
-                            results.memberships.perSecond = (model.memberships.length*1000) / results.memberships.time;
-
-                            callback();
-                        } else {
-                            return callback(err);
-                        }
-                    });
-                } else {
-                    return callback(err);
-                }
-            });
+            return callback();
         } else {
             return callback(err);
         }
@@ -218,22 +190,14 @@ var persistMemberships = function(tenant, memberships, callback) {
     }
 
     var membership = memberships.pop();
-    var creatorUuid = rolesUtil.toUuid('u', tenant.alias, membership.creatorId);
-    var groupUuid = rolesUtil.toUuid('g', tenant.alias, membership.groupId);
-    var memberUuid = rolesUtil.toUuid(membership.memberType, tenant.alias, membership.memberId);
+    var creatorUuid = AuthzUtil.toUuid('u', tenant.alias, membership.creatorId);
+    var groupUuid = AuthzUtil.toUuid('g', tenant.alias, membership.groupId);
+    var memberUuid = AuthzUtil.toUuid(membership.memberType, tenant.alias, membership.memberId);
 
     if (creatorUuid !== memberUuid && groupUuid !== memberUuid) {
-        principalsAPI.getUser(creatorUuid, function(err, creator) {
+        AuthzAPI.addGroupMember(groupUuid, memberUuid, membership.role, function(err) {
             if (!err) {
-                var ctx = new Context(tenant, creator);
-
-                principalsAPI.addGroupMember(ctx, groupUuid, memberUuid, membership.role, function(err) {
-                    if (!err) {
-                        return persistMemberships(tenant, memberships, callback);
-                    } else {
-                        return callback(err);
-                    }
-                })
+                return persistMemberships(tenant, memberships, callback);
             } else {
                 return callback(err);
             }
@@ -241,54 +205,6 @@ var persistMemberships = function(tenant, memberships, callback) {
     } else {
         return persistMemberships(tenant, memberships, callback);
     }
-}
-
-// persist the given array of groups
-var persistGroups = function(tenant, groups, callback) {
-    if (groups.length === 0) {
-        return callback();
-    }
-
-    if (groups.length % 100 === 0) {
-        console.log('[%s] GROUPS - %s remaining.', tenant.alias, groups.length);
-    }
-
-    var group = groups.pop();
-    principalsAPI.getTenantUser(tenant, group.creator, function(err, creator) {
-        if (!err) {
-            var ctx = new Context(tenant, creator);
-            principalsAPI.createGroup(ctx, group.id, 'performance-testing', function(err, groupUuid) {
-                if (!err) {
-                    // record persistent information into the hash
-                    return persistGroups(tenant, groups, callback);
-                } else {
-                    return callback(err);
-                }
-            });
-        } else {
-            return callback(err);
-        }
-    });
-}
-
-// persist the given array of users
-var persistUsers = function(tenant, users, callback) {
-    if (users.length === 0) {
-        return callback();
-    }
-
-    if (users.length % 10 === 0) {
-        console.log('[%s] USERS - %s remaining.', tenant.alias, users.length);
-    }
-
-    var user = users.pop();
-    principalsAPI.createUser(tenant, user.userid, user.userid, user.userAccountPrivacy, user.firstName, user.lastName, user.basicInfo.displayName, function(err, userUuid) {
-        if (!err) {
-            return persistUsers(tenant, users, callback);
-        } else {
-            return callback(err);
-        }
-    });
 }
 
 // Get all possible combinations of membership permission checks for the given model

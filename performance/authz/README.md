@@ -124,7 +124,7 @@ In **Test #3**, it's important to note that since the Check Sweep step takes so 
     <th>Checks Sweep (checks / sec)</th>
   </tr>
   <tr>
-    <th colspan="4">Test #1: 1 phase; 1 concurrent tenant per phase</th>
+    <th colspan="5">Test #1: 1 phase; 1 concurrent tenant per phase</th>
   </tr>
   <tr>
     <td>0</td>
@@ -134,7 +134,7 @@ In **Test #3**, it's important to note that since the Check Sweep step takes so 
     <td>15000 @ 539/s</td>
   </tr>
   <tr>
-    <th colspan="4">Test #2: 1 phase, 4 concurrent tenants per phase</th>
+    <th colspan="5">Test #2: 1 phase, 4 concurrent tenants per phase</th>
   </tr>
   <tr>
     <td>0</td>
@@ -144,7 +144,7 @@ In **Test #3**, it's important to note that since the Check Sweep step takes so 
     <td>60000 @ 788/s</td>
   </tr>
   <tr>
-    <th colspan="4">Test #3: 3 phases, 4 concurrent tenants per phase</th>
+    <th colspan="5">Test #3: 3 phases, 4 concurrent tenants per phase</th>
   </tr>
   <tr>
     <td>0</td>

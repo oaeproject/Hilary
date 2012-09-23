@@ -113,3 +113,60 @@ The following metrics were run on my MacBook Air, running one cassandra instance
 
 In **Test #3**, it's important to note that since the Check Sweep step takes so long, that after about 15 seconds, the remainder of the ~22min of test was just the "Invalid Permissions Checks".. which is actually a throughput of 363+363+364 = 1090 checks / s.
 
+### After caching
+
+<table>
+  <tr>
+    <th>Phase</th>
+    <th>Created Memberships</th>
+    <th>Positive Checks / sec #1</th>
+    <th>Positive Checks / sec #2</th>
+    <th>Checks Sweep (checks / sec)</th>
+  </tr>
+  <tr>
+    <th colspan="4">Test #1: 1 phase; 1 concurrent tenant per phase</th>
+  </tr>
+  <tr>
+    <td>0</td>
+    <td>594 @ 375/s</td>
+    <td>594 @ 580/s</td>
+    <td>594 @ 1181/s</td>
+    <td>15000 @ 539/s</td>
+  </tr>
+  <tr>
+    <th colspan="4">Test #2: 1 phase, 4 concurrent tenants per phase</th>
+  </tr>
+  <tr>
+    <td>0</td>
+    <td>2376 @ 657/s</td>
+    <td>2376 @ 804/s</td>
+    <td>2376 @ 1980/s</td>
+    <td>60000 @ 788/s</td>
+  </tr>
+  <tr>
+    <th colspan="4">Test #3: 3 phases, 4 concurrent tenants per phase</th>
+  </tr>
+  <tr>
+    <td>0</td>
+    <td>2376 @ 676/s</td>
+    <td>2376 @ 456/s</td>
+    <td>2376 @ 967/s</td>
+    <td>60000 @ 267/s</td>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>2376 @ 310/s</td>
+    <td>2376 @ 313/s</td>
+    <td>2376 @ 658/s</td>
+    <td>60000 @ 272/s</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>2376 @ 212/s</td>
+    <td>2376 @ 357/s</td>
+    <td>2376 @ 755/s</td>
+    <td>60000 @ 280/s</td>
+  </tr>
+</table>
+
+In **Test #3**, it's important to note that since the Check Sweep step takes so long, that after about 15 seconds, the remainder of the test was just the "Invalid Permissions Checks".. which is actually a throughput of 267+272+280=819 checks / s.

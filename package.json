@@ -3,7 +3,6 @@
   "author": "Sakai Foundation",
   "version": "0.1.0",
   "dependencies": {
-    "async": "latest",
     "bcrypt": "latest",
     "helenus": "latest",
     "connect": "latest",

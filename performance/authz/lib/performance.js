@@ -67,26 +67,38 @@ module.exports.performanceTest = function(tenantIds, model, results, callback) {
 
     performanceTestValidPermissions(tenantIds, model, function(err, duration, totalChecks) {
         if (!err) {
-            performance['valid-permissions'] = {
+            performance['valid-permissions-1'] = {
                 'duration': duration,
                 'checks': totalChecks,
                 'checksPerSecond': (totalChecks*1000)/duration
-
             };
 
-            performanceTestAllPermissions(tenantIds, model, function(err, duration, totalChecks) {
+            performanceTestValidPermissions(tenantIds, model, function(err, duration, totalChecks) {
                 if (!err) {
-                    performance['all-permissions'] = {
+                    performance['valid-permissions-2'] = {
                         'duration': duration,
                         'checks': totalChecks,
                         'checksPerSecond': (totalChecks*1000)/duration
                     };
 
-                    callback();
+                    performanceTestAllPermissions(tenantIds, model, 15000, function(err, duration, totalChecks) {
+                        if (!err) {
+                            performance['all-permissions'] = {
+                                'duration': duration,
+                                'checks': totalChecks,
+                                'checksPerSecond': (totalChecks*1000)/duration
+                            };
+
+                            callback();
+                        } else {
+                            callback(err);
+                        }
+                    });
                 } else {
                     callback(err);
                 }
             });
+
         } else {
             callback(err);
         }
@@ -101,10 +113,10 @@ var performanceTestValidPermissions = function(tenantIds, model, callback) {
 }
 
 // Performance test all potential membership checks. This will result in a lot of failures
-var performanceTestAllPermissions = function(tenantIds, model, callback) {
+var performanceTestAllPermissions = function(tenantIds, model, limit, callback) {
     // aggregate all potential checks
-    var checks = getAllPermissionChecks(model);
-    console.log('Checking all potential %s membership permissions.', checks.length);
+    var checks = getAllPermissionChecks(model, limit);
+    console.log('Checking %s potential membership permissions', checks.length);
     checkPermissionsForTenants(tenantIds.slice(0), checks, null, callback);
 }
 
@@ -208,21 +220,30 @@ var persistMemberships = function(tenant, memberships, callback) {
 }
 
 // Get all possible combinations of membership permission checks for the given model
-var getAllPermissionChecks = function(model) {
+var getAllPermissionChecks = function(model, limit) {
     var checks = [];
-    model.groups.forEach(function(group) {
+    var numChecks = 0;
+
+    for (var i = 0, numGroups = model.groups.length; i < numGroups; i++) {
         // only include groups that have roles
+        var group = model.groups[i];
         if (group.roles) {
-            model.users.forEach(function(user) {
+            for (var j = 0, numUsers = model.users.length; j < numUsers; j++) {
+                var user = model.users[i];
                 checks.push({
                     principalId: user.userid,
                     principalType: 'u',
                     permission: 'member',
                     groupId: group.id
-                })
-            });
+                });
+
+                if (numChecks++ === limit) {
+                    return checks;
+                }
+            }
         }
-    });
+    }
+
     return checks;
 }
 

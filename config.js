@@ -21,7 +21,8 @@ config.cassandra = {
     'keyspace': 'oae',
     'user': '', 
     'pass': '',
-    'timeout': 3000
+    'timeout': 3000,
+    'replication': 1
 };
 
 config.redis = {

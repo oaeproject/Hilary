@@ -4,9 +4,10 @@
   "version": "0.1.0",
   "dependencies": {
     "bcrypt": "latest",
-    "helenus": "latest",
+    "bunyan": "latest",
     "connect": "latest",
     "express": "latest",
+    "helenus": "latest",
     "passport": "latest",
     "passport-local": "latest",
     "passport-http": "latest",

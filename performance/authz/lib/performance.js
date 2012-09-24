@@ -74,7 +74,7 @@ module.exports.performanceTest = function(tenantIds, model, results, callback) {
 
             };
 
-            performanceTestAllPermissions(tenantIds, model, function(err, duration, totalChecks) {
+            performanceTestAllPermissions(tenantIds, model, 15000, function(err, duration, totalChecks) {
                 if (!err) {
                     performance['all-permissions'] = {
                         'duration': duration,
@@ -101,9 +101,9 @@ var performanceTestValidPermissions = function(tenantIds, model, callback) {
 }
 
 // Performance test all potential membership checks. This will result in a lot of failures
-var performanceTestAllPermissions = function(tenantIds, model, callback) {
+var performanceTestAllPermissions = function(tenantIds, model, limit, callback) {
     // aggregate all potential checks
-    var checks = getAllPermissionChecks(model);
+    var checks = getAllPermissionChecks(model, limit);
     console.log('Checking all potential %s membership permissions.', checks.length);
     checkPermissionsForTenants(tenantIds.slice(0), checks, null, callback);
 }
@@ -208,18 +208,22 @@ var persistMemberships = function(tenant, memberships, callback) {
 }
 
 // Get all possible combinations of membership permission checks for the given model
-var getAllPermissionChecks = function(model) {
+var getAllPermissionChecks = function(model, limit) {
     var checks = [];
+    var numAdded = 0;
     model.groups.forEach(function(group) {
         // only include groups that have roles
         if (group.roles) {
             model.users.forEach(function(user) {
-                checks.push({
-                    principalId: user.userid,
-                    principalType: 'u',
-                    permission: 'member',
-                    groupId: group.id
-                })
+                if (numAdded <= limit) {
+                    checks.push({
+                        principalId: user.userid,
+                        principalType: 'u',
+                        permission: 'member',
+                        groupId: group.id
+                    });
+                    numAdded++;
+                }
             });
         }
     });

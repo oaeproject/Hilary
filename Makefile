@@ -13,7 +13,7 @@ test-unit:
 
 test-coverage: lib-cov
 	@echo "Running tests"
-	@cd target; export OAE_COVERING=true; ../node_modules/.bin/mocha --ignore-leaks --reporter html-cov $(MOCHA_OPTS) node_modules/oae-tests/runner/beforeTests.js $(MODULES) > coverage.html
+	@cd target; export OAE_COVERING=true; ../node_modules/.bin/mocha --ignore-leaks --timeout $(TIMEOUT) --reporter html-cov $(MOCHA_OPTS) node_modules/oae-tests/runner/beforeTests.js $(MODULES) > coverage.html
 	@echo "Code Coverage report generated at target/coverage.html"
 	@open target/coverage.html
 

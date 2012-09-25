@@ -19,7 +19,8 @@
     "shortid": "latest",
     "time": "latest",
     "underscore": "latest",
-    "validator": "latest"
+    "validator": "latest",
+    "redis": "latest"
   },
   "devDependencies": {
     "optimist": "latest",

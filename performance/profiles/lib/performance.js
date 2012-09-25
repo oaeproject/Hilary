@@ -108,7 +108,19 @@ module.exports.performanceTest = function(tenantIds, model, results, callback) {
     });
 };
 
-
+/**
+ * This method will get a full profile for each user that is defined in
+ * `model.users` concurrently for each tenant defined in `tenantIds`.
+ *
+ * @param {String}                              tenantIds           A unique alias for a tenant.
+ * @param {Object}                              model               An object that holds the data necessary for running this
+ *                                                                  performance benchmark. In this case, only a key `users` with
+ *                                                                  an array of user objects is required.
+ * @param {Function(err, duration, profiles)}   callback            A callback method.
+ * @param {Object}                              callback.err        An error object (if any)
+ * @param {Number}                              callback.duration   The time in milliseconds it took to run the performance benchmark for all the tenants.
+ * @param {Number}                              callback.profiles   The number of profiles that have been retrieved per tenant.
+ */
 var performanceTestGetFullProfile = function(tenantIds, model, callback) {
     var tenantsToRun = tenantIds.length;
     var tenantsRun = 0;
@@ -136,7 +148,14 @@ var performanceTestGetFullProfile = function(tenantIds, model, callback) {
     });
 };
 
-
+/**
+ * Retrieve a gull profile each users as defined in the `users` array in the provided tenant.
+ * A full profile exists out of the retrieval of a basic profile and 2 profile sections.
+ * @param {Tenant}          tenant          A tenant object.
+ * @param {Array<Object>}   users           A users array that needs to be retrieved.
+ * @param {Function(err)}   callback        A callback method
+ * @param {Object}          callback.err    An error object (if any)
+ */
 var getFullProfileForTenant = function(tenant, users, callback) {
     if (users.length === 0) {
         return callback();
@@ -163,7 +182,18 @@ var getFullProfileForTenant = function(tenant, users, callback) {
     });
 };
 
-// persist the given model for the given tenant.
+/**
+ * Persists the model that is pertinant to his profile benchmark.
+ * In this case that would be the profiles for each user for the given tenant.
+ *
+ * @param {Tenant}         tenant           Tenant object.
+ * @param {Object}         model            An object that holds the data necessary for running this
+ *                                          performance benchmark. In this case, only a key `users` with
+ *                                          an array of user objects is required.
+ * @param {[type]}         results          An object that can be used to store the results (time) in.
+ * @param {Function(err)}  callback         A callback method
+ * @param {Object}         callback.err     An error object (if any)
+ */
 var persistModel = function(tenant, model, results, callback) {
     results.profileSections = {};
 
@@ -183,7 +213,14 @@ var persistModel = function(tenant, model, results, callback) {
     });
 };
 
-// persist the profiles for the given array of users
+/**
+ * Persist the profiles for each user in the `users` array.
+ *
+ * @param {Tenant}         tenant           Tenant object.
+ * @param {Object}         users            An array of user objects.
+ * @param {Function(err)}  callback         A callback method
+ * @param {Object}         callback.err     An error object (if any)
+ */
 var persistProfiles = function(tenant, users, callback) {
     if (users.length === 0) {
         return callback();
@@ -191,33 +228,33 @@ var persistProfiles = function(tenant, users, callback) {
 
     var user = users.pop();
     var ctx = new Context(tenant, null);
-    //principalsAPI.getTenantUser(ctx, user.userid, function(err, userObj) {
-        //if (!err) {
-        //    ctx = new Context(tenant, userObj);
-            var principalUuid = rolesUtil.toUuid('u', tenant.alias, user.userid);
-            var ctx = new Context(tenant, new User(tenant.alias, principalUuid));
-            ProfileAPI.setSection(ctx, principalUuid, 'aboutme', user.aboutMe.aboutMePrivacy, user.aboutMe, true, function(err) {
-                if (!err) {
-                    ProfileAPI.setSection(ctx, principalUuid, 'publications', user.publications.publicationsPrivacy, user.publications, true, function(err) {
-                        if(!err) {
-                            return persistProfiles(tenant, users, callback);
-                        } else {
-                            console.log(err);
-                            return callback(err);
-                        }
-                    });
+    var principalUuid = rolesUtil.toUuid('u', tenant.alias, user.userid);
+    var ctx = new Context(tenant, new User(tenant.alias, principalUuid));
+    ProfileAPI.setSection(ctx, principalUuid, 'aboutme', user.aboutMe.aboutMePrivacy, user.aboutMe, true, function(err) {
+        if (!err) {
+            ProfileAPI.setSection(ctx, principalUuid, 'publications', user.publications.publicationsPrivacy, user.publications, true, function(err) {
+                if(!err) {
+                    return persistProfiles(tenant, users, callback);
                 } else {
                     console.log(err);
                     return callback(err);
                 }
             });
-        //} else {
-        //    return callback(err);
-        //}
-    //});
+        } else {
+            console.log(err);
+            return callback(err);
+        }
+    });
 };
 
-// persist the given array of users
+/**
+ * Create an account for each user in the `users` array.
+ *
+ * @param {Tenant}         tenant           Tenant object.
+ * @param {Object}         users            An array of user objects.
+ * @param {Function(err)}  callback         A callback method
+ * @param {Object}         callback.err     An error object (if any)
+ */
 var persistUsers = function(tenant, users, callback) {
     if (users.length === 0) {
         return callback();

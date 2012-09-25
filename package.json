@@ -15,12 +15,12 @@
     "passport-twitter": "latest",
     "passport-facebook": "latest",
     "recaptcha-async": "latest",
+    "redis": "latest",
     "request": "latest",
     "shortid": "latest",
     "time": "latest",
     "underscore": "latest",
-    "validator": "latest",
-    "redis": "latest"
+    "validator": "latest"
   },
   "devDependencies": {
     "optimist": "latest",

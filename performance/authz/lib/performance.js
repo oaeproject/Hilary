@@ -195,7 +195,9 @@ var persistMemberships = function(tenant, memberships, callback) {
     var memberUuid = AuthzUtil.toUuid(membership.memberType, tenant.alias, membership.memberId);
 
     if (creatorUuid !== memberUuid && groupUuid !== memberUuid) {
-        AuthzAPI.addGroupMember(groupUuid, memberUuid, membership.role, function(err) {
+        var change = {};
+        change[memberUuid] = membership.role;
+        AuthzAPI.applyGroupMembershipChanges(groupUuid, change, function(err) {
             if (!err) {
                 return persistMemberships(tenant, memberships, callback);
             } else {

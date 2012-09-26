@@ -14,6 +14,7 @@ var argv = require('optimist')
 
 var oae = require('oae-util/lib/oae');
 var io = require('oae-util/lib/io');
+var log = require('oae-logger').logger('authz-performance');
 var performance = require('./lib/performance');
 var config = require('../../config').config;
 
@@ -53,11 +54,12 @@ oae.init(config, function(err) {
                     if (!err) {
                         phasesComplete++;
                         if (phasesComplete === numPhases) {
-                            console.log(JSON.stringify(results));
+                            log().info({results: results}, 'Performance testing complete.');
                             process.exit(0);
                         }
                     } else {
-                        console.log(err);
+                        console.log('Error running performance testing phases. Please see the log for more information.');
+                        log().error({err: err}, 'Error running performance testing phases.');
                         process.exit(0);
                     }
                 }
@@ -66,7 +68,8 @@ oae.init(config, function(err) {
             });
         });
     } else {
-        console.log(err);
+        console.log('Error initializing OAE for performance tests. Please see the log for more information.');
+        log().error({err: err}, 'Error initializing OAE for performance tests.');
         process.exit(0);
     }
 });

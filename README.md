@@ -35,6 +35,12 @@ sudo mkdir -p /var/lib/cassandra
 sudo chown -R `whoami` /var/lib/cassandra
 ```
 
+### Download and install the latest version of Redis
+
+Download and install (or compile) the latest version of [redis](http://redis.io/download).
+
+Once installed, start the server by running the `redis-server` binary.
+
 ### Running the server
 
 All that remains now is booting the server.

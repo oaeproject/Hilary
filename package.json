@@ -15,6 +15,7 @@
     "passport-twitter": "latest",
     "passport-facebook": "latest",
     "recaptcha-async": "latest",
+    "redis": "latest",
     "request": "latest",
     "shortid": "latest",
     "time": "latest",

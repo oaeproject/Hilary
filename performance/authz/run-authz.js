@@ -17,6 +17,7 @@ var io = require('oae-util/lib/io');
 var performance = require('./lib/performance');
 var config = require('../../config').config;
 
+
 config.cassandra.keyspace = 'oaePerformanceAuthz';
 
 var scriptsDir = argv['s'];

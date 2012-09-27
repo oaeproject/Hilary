@@ -31,13 +31,10 @@ var oae = require('oae-util/lib/oae');
 var io = require('oae-util/lib/io');
 var performance = require('./lib/performance');
 
-var config = {
-    'hosts': ['127.0.0.1:9160'],
-    'keyspace': 'oaePerformanceProfiles',
-    'user': '',
-    'pass': '',
-    'system': '127.0.0.1:9160'
-};
+var config = require('../../config').config;
+
+
+config.cassandra.keyspace = 'oaePerformanceProfiles';
 
 var scriptsDir = argv['s'];
 var numberOfRuns = argv['n'];

@@ -98,7 +98,7 @@ module.exports.performanceTest = function(tenantIds, model, results, callback) {
             performance['get-full-profile'] = {
                 'duration': duration,
                 'profiles': totalProfiles,
-                'profilesPerSecond': (totalProfiles*1000)/duration,
+                'profilesPerSecond': (totalProfiles*1000 * tenantIds.length)/duration,
                 'msg': 'Each profile consists out of a basic profile (in Principals) and 2 profile sections'
             };
             callback();
@@ -204,7 +204,7 @@ var persistModel = function(tenant, model, results, callback) {
             now = new Date().getTime();
             results.profileSections.num = model.users.length * 2;
             results.profileSections.time = now - start;
-            results.profileSections.perSecond = (model.users.length*1000*2) / results.profileSections.time;
+            results.profileSections.perSecond = (results.profileSections.num * 1000) / results.profileSections.time;
 
             callback();
         } else {

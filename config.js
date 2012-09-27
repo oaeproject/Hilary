@@ -45,12 +45,8 @@ config.redis = {
 config.log = {
     'streams': [
         {
-            'level': 'info',
-            'stream': process.stdout
-        },
-        {
             'level': 'debug',
-            'path': './debug.log'
+            'stream': process.stdout
         }
     ],
     'serializers': {

@@ -13,4 +13,4 @@ node_modules/*
 !node_modules/oae-tenants
 !node_modules/oae-tests
 !node_modules/oae-util
-npm-debug.log
+*.log

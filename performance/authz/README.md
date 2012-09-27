@@ -61,55 +61,72 @@ The results look like the following:
 
 ### Base-line metrics
 
-The following metrics were run on my MacBook Air, running one cassandra instance with one node.js process locally.
+The following metrics were run on an app server pointed at an OOTB 3-node Cassandra ring. The keyspace is configured with a replication factor of 3, and all queries (reads and writes) were performed with a consistency of quorum.
 
 <table>
   <tr>
     <th>Phase</th>
     <th>Created Memberships</th>
     <th>Positive Checks / sec</th>
-    <th>Checks Sweep #1 (checks / sec)</th>
+    <th>Negative Checks / sec</th>
   </tr>
   <tr>
     <th colspan="4">Test #1: 1 phase; 1 concurrent tenant per phase</th>
   </tr>
   <tr>
     <td>0</td>
-    <td>594 @ 1350/s</td>
-    <td>594 @ 1036/s</td>
-    <td>125000 @ 715/s</td>
+    <td>3573 @ 765/s</td>
+    <td>3573 @ 758/s</td>
+    <td>15000 @ 420/s</td>
   </tr>
   <tr>
     <th colspan="4">Test #2: 1 phase, 4 concurrent tenants per phase</th>
   </tr>
   <tr>
     <td>0</td>
-    <td>2376 @ 1126/s</td>
-    <td>2376 @ 718/s</td>
-    <td>500000 @ 925/s</td>
+    <td>14292 @ 1523/s</td>
+    <td>14292 @ 1635/s</td>
+    <td>60000 @ 1008/s</td>
   </tr>
   <tr>
-    <th colspan="4">Test #3: 3 phases, 4 concurrent tenants per phase</th>
+    <th colspan="4">Test #3: 1 phase; 6 concurrent tenants per phase</th>
   </tr>
   <tr>
     <td>0</td>
-    <td>2376 @ 2136/s</td>
-    <td>2376 @ 786/s</td>
-    <td>500000 @ 363/s</td>
+    <td>21438 @ 1906/s</td>
+    <td>21438 @ 1776/s</td>
+    <td>90000 @ 1040/s</td>
+  </tr>
+  <tr>
+    <th colspan="4">Test #4: 1 phase; 8 concurrent tenants per phase</th>
+  </tr>
+  <tr>
+    <td>0</td>
+    <td>21438 @ 1547/s</td>
+    <td>21438 @ 1788/s</td>
+    <td>120000 @ 1046/s</td>
+  </tr>
+  <tr>
+    <th colspan="4">Test #5: 3 phases, 4 concurrent tenants per phase</th>
+  </tr>
+  <tr>
+    <td>0</td>
+    <td>14292 @ 1878/s</td>
+    <td>14292 @ 1041/s</td>
+    <td>60000 @ 357/s</td>
   </tr>
   <tr>
     <td>1</td>
-    <td>2376 @ 787/s</td>
-    <td>2376 @ 556/s</td>
-    <td>500000 @ 363/s</td>
+    <td>14292 @ 968/s</td>
+    <td>14292 @ 718/s</td>
+    <td>60000 @ 373/s</td>
   </tr>
   <tr>
     <td>2</td>
-    <td>2376 @ 556/s</td>
-    <td>2376 @ 481/s</td>
-    <td>500000 @ 364/s</td>
+    <td>14292 @ 678/s</td>
+    <td>14292 @ 680/s</td>
+    <td>60000 @ 411/s</td>
   </tr>
 </table>
 
-In **Test #3**, it's important to note that since the Check Sweep step takes so long, that after about 15 seconds, the remainder of the ~22min of test was just the "Invalid Permissions Checks".. which is actually a throughput of 363+363+364 = 1090 checks / s.
 

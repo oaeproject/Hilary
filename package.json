@@ -6,6 +6,7 @@
     "bcrypt": "latest",
     "bunyan": "latest",
     "connect": "latest",
+    "connect-redis": "latest",
     "express": "latest",
     "helenus": "latest",
     "passport": "latest",

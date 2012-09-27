@@ -21,7 +21,23 @@ config.cassandra = {
     'keyspace': 'oae',
     'user': '', 
     'pass': '',
-    'timeout': 3000
+    'timeout': 3000,
+    'replication': 1,
+    'strategyClass': 'SimpleStrategy'
+};
+
+// The redis related configuration information.
+// The `dbIndex` key allows for seperation of actual and unit test data.
+// By default redis starts up with 16 DB indexes so there should
+// be no need to create one.
+// We'll assume that:
+//  0 = production
+//  1 = unit tests
+config.redis = {
+    'host': '127.0.0.1',
+    'port': 6379,
+    'pass': '',
+    'dbIndex': 0
 };
 
 

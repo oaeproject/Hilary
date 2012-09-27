@@ -15,14 +15,10 @@ var argv = require('optimist')
 var oae = require('oae-util/lib/oae');
 var io = require('oae-util/lib/io');
 var performance = require('./lib/performance');
+var config = require('../../config').config;
 
-var config = {
-    'hosts': ['127.0.0.1:9160'],
-    'keyspace': 'oaePerformanceAuthz',
-    'user': '',
-    'pass': '',
-    'system': '127.0.0.1:9160'
-};
+
+config.cassandra.keyspace = 'oaePerformanceAuthz';
 
 var scriptsDir = argv['s'];
 var numberOfRuns = argv['n'];

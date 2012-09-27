@@ -17,6 +17,10 @@ var OAE = require('oae-util/lib/oae');
 
 var config = require('./config').config;
 
-OAE.init(config.cassandra, function() {
+OAE.init(config, function(err) {
+    if (err) {
+        console.error('Error initializing server.');
+        console.error(err.stack);
+    }
     console.log("All done ... Enjoy!");
 });

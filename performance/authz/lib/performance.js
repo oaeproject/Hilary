@@ -44,12 +44,13 @@ module.exports.dataload = function(tenantIds, model, results, callback) {
         }
     };
 
-    tenantIds.forEach(function(tenantId) {
-        var tenant = new Tenant(tenantId, 'load-test', 'load-test', 2001, 'google.ca');
-        persistModel(tenant, model, results.dataload, function(err) {
-            trackModelLoading(err, tenant);
-        });
-    });
+    var errorPersisting = function(err) {
+        trackModelLoading(err, tenant);
+    };
+    for (var i=0; i < tenantIds.length; i++) {
+        var tenant = new Tenant(tenantIds[i], 'load-test', 'load-test', 2001, 'google.ca');
+        persistModel(tenant, model, results.dataload, errorPersisting);
+    }
 };
 
 /**
@@ -128,13 +129,13 @@ var checkPermissionsForTenants = function(tenantIds, checks, expect, callback) {
                 return callback(null, duration, tenantsToRun*checks.length);
             }
         }
-    }
+    };
 
     // sweep permissions checks for all tenants
-    tenantIds.forEach(function(tenantId) {
-        checkPermissionsForTenant(tenantId, checks.slice(0), expect, checkStatus);
-    });
-}
+    for (var i=0; i < tenantIds.length; i++) {
+        checkPermissionsForTenant(tenantIds[i], checks.slice(0), expect, checkStatus);
+    }
+};
 
 // perform all the checks in the provided 'checks' array for the given tenant
 var checkPermissionsForTenant = function(tenantId, checks, expect, callback) {
@@ -207,16 +208,18 @@ var persistMemberships = function(tenant, memberships, callback) {
     } else {
         return persistMemberships(tenant, memberships, callback);
     }
-}
+};
 
 // Get all possible combinations of membership permission checks for the given model
 var getAllPermissionChecks = function(model, limit) {
     var checks = [];
     var numAdded = 0;
-    model.groups.forEach(function(group) {
+    for (var i=0; i < model.groups.length; i++) {
+        var group = model.groups[i];
         // only include groups that have roles
         if (group.roles) {
-            model.users.forEach(function(user) {
+            for (var j=0; j < model.users.length; j++) {
+                var user = model.users[j];
                 if (numAdded <= limit) {
                     checks.push({
                         principalId: user.userid,
@@ -226,22 +229,23 @@ var getAllPermissionChecks = function(model, limit) {
                     });
                     numAdded++;
                 }
-            });
+            }
         }
-    });
+    }
     return checks;
-}
+};
 
 // Get all the positive membership permission checks for the given model
 var getValidPermissionChecks = function(model) {
     var checks = [];
-    model.memberships.forEach(function(membership) {
+    for (var i=0; i < model.memberships.length; i++) {
+        var membership = model.memberships[i];
         checks.push({
             principalId: membership.memberId,
             principalType: membership.memberType,
             permission: membership.role,
             groupId: membership.groupId
         });
-    });
+    }
     return checks;
-}
+};

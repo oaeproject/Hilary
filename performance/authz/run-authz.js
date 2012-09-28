@@ -14,6 +14,7 @@ var argv = require('optimist')
 
 var oae = require('oae-util/lib/oae');
 var io = require('oae-util/lib/io');
+var log = require('oae-logger').logger('authz-performance');
 var performance = require('./lib/performance');
 var config = require('../../config').config;
 
@@ -53,11 +54,12 @@ oae.init(config, function(err) {
                     if (!err) {
                         phasesComplete++;
                         if (phasesComplete === numPhases) {
-                            console.log(JSON.stringify(results));
+                            log().info({results: results}, 'Performance testing complete.');
                             process.exit(0);
                         }
                     } else {
-                        console.log(err);
+                        console.log('Error running performance testing phases. Please see the log for more information.');
+                        log().error({err: err}, 'Error running performance testing phases.');
                         process.exit(0);
                     }
                 }
@@ -66,7 +68,8 @@ oae.init(config, function(err) {
             });
         });
     } else {
-        console.log(err);
+        console.log('Error initializing OAE for performance tests. Please see the log for more information.');
+        log().error({err: err}, 'Error initializing OAE for performance tests.');
         process.exit(0);
     }
 });
@@ -92,7 +95,7 @@ var runPhases = function(phaseId, phases, model, results, callback) {
         } else {
             callback(err);
         }
-    })
+    });
 
 };
 
@@ -102,12 +105,12 @@ var runPhases = function(phaseId, phases, model, results, callback) {
 var readScript = function(jsonFile, name, model, callback) {
     model[name] = [];
     io.loadJSONFileIntoArray(jsonFile, function(items) {
-        items.forEach(function(item) {
-            model[name].push(item);
-        });
+        for (var i = 0; i < items.length; i++) {
+            model[name].push(items[i]);
+        }
         callback();
     });
-}
+};
 
 /**
  * Extract / expand all groups in the given model. The reason they need expanding is to create "role groups" for each
@@ -119,31 +122,35 @@ var extractGroups = function(model) {
     var subGroups = [];
 
     // extract the role-based groups, e.g., manager, lecturer, etc...
-    model.groups.forEach(function(group) {
-        Object.keys(group.roles).forEach(function(role) {
+    for (var i = 0; i < model.groups.length; i++) {
+        var group = model.groups[i];
+        for (var j = 0; j < Object.keys(group.roles).length; j++) {
+            var role = Object.keys(group.roles)[j];
             subGroups.push({
                 creator: group.creator,
                 id: group.id+'-'+role
-            })
-        });
-    });
+            });
+        }
+    }
 
-    subGroups.forEach(function(subGroup) {
-        model.groups.push(subGroup);
-    })
-}
+    for(var k=0; k < subGroups.length; k++) {
+        model.groups.push(subGroups[k]);
+    }
+};
 
 /**
  * Extract all the group memberships from the model.
  */
 var extractMemberships = function(model) {
     var groups = model['groups'];
-    var membershipsHash = {}
+    var membershipsHash = {};
 
-    groups.forEach(function(group) {
+    for (var i = 0; i < groups.length; i++) {
+        var group = groups[i];
         membershipsHash[group.id] = {};
         if (group.roles) {
-            Object.keys(group.roles).forEach(function(role) {
+            for (var j = 0; j < Object.keys(group.roles).length; j++) {
+                var role = Object.keys(group.roles)[j];
 
                 var roleGroupId = group.id+'-'+role;
 
@@ -160,7 +167,8 @@ var extractMemberships = function(model) {
                 membershipsHash[roleGroupId] = {};
 
                 // add all the user memberships to the role-group
-                group.roles[role].users.forEach(function(memberId) {
+                for (var k=0; k < group.roles[role].users.length; k++) {
+                    var memberId = group.roles[role].users[k];
                     if (memberId !== group.creator) {
                         if (!membershipsHash[roleGroupId][memberId]) {
                             membershipsHash[roleGroupId][memberId] = {
@@ -172,18 +180,20 @@ var extractMemberships = function(model) {
                             };
                         }
                     }
-                });
-            });
+                }
+            }
         }
 
-    });
+    }
 
     var memberships = model['memberships'] = [];
-    Object.keys(membershipsHash).forEach(function(groupId) {
-        Object.keys(membershipsHash[groupId]).forEach(function(memberId) {
-            var membership = membershipsHash[groupId][memberId];
+    for (var m=0; m < Object.keys(membershipsHash).length; m++) {
+        var groupId = Object.keys(membershipsHash)[m];
+        for (var n=0; n < Object.keys(membershipsHash[groupId]).length; n++) {
+            var memId = Object.keys(membershipsHash[groupId])[n];
+            var membership = membershipsHash[groupId][memId];
             memberships.push(membership);
-        });
-    });
+        }
+    }
 
-}
+};

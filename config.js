@@ -13,7 +13,9 @@
  * permissions and limitations under the License.
  */
 
-var config = {};
+var bunyan = require('bunyan');
+
+var config = module.exports.config = {};
 
 // Cassandra related config information.
 config.cassandra = {
@@ -40,6 +42,16 @@ config.redis = {
     'dbIndex': 0
 };
 
-
-
-module.exports.config = config;
+config.log = {
+    'streams': [
+        {
+            'level': 'debug',
+            'stream': process.stdout
+        }
+    ],
+    'serializers': {
+        'err': bunyan.stdSerializers.err,
+        'req': bunyan.stdSerializers.req,
+        'res': bunyan.stdSerializers.res
+    }
+};

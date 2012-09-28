@@ -47,7 +47,7 @@ module.exports.dataload = function(tenantIds, model, results, callback) {
     var errorPersisting = function(err) {
         trackModelLoading(err, tenant);
     };
-    for (var i=0; i < tenantIds.length; i++) {
+    for (var i = 0; i < tenantIds.length; i++) {
         var tenant = new Tenant(tenantIds[i], 'load-test', 'load-test', 2001, 'google.ca');
         persistModel(tenant, model, results.dataload, errorPersisting);
     }
@@ -132,7 +132,7 @@ var checkPermissionsForTenants = function(tenantIds, checks, expect, callback) {
     };
 
     // sweep permissions checks for all tenants
-    for (var i=0; i < tenantIds.length; i++) {
+    for (var i = 0; i < tenantIds.length; i++) {
         checkPermissionsForTenant(tenantIds[i], checks.slice(0), expect, checkStatus);
     }
 };
@@ -214,11 +214,11 @@ var persistMemberships = function(tenant, memberships, callback) {
 var getAllPermissionChecks = function(model, limit) {
     var checks = [];
     var numAdded = 0;
-    for (var i=0; i < model.groups.length; i++) {
+    for (var i = 0; i < model.groups.length; i++) {
         var group = model.groups[i];
         // only include groups that have roles
         if (group.roles) {
-            for (var j=0; j < model.users.length; j++) {
+            for (var j = 0; j < model.users.length; j++) {
                 var user = model.users[j];
                 if (numAdded <= limit) {
                     checks.push({
@@ -238,7 +238,7 @@ var getAllPermissionChecks = function(model, limit) {
 // Get all the positive membership permission checks for the given model
 var getValidPermissionChecks = function(model) {
     var checks = [];
-    for (var i=0; i < model.memberships.length; i++) {
+    for (var i = 0; i < model.memberships.length; i++) {
         var membership = model.memberships[i];
         checks.push({
             principalId: membership.memberId,

@@ -105,7 +105,7 @@ var runPhases = function(phaseId, phases, model, results, callback) {
 var readScript = function(jsonFile, name, model, callback) {
     model[name] = [];
     io.loadJSONFileIntoArray(jsonFile, function(items) {
-        for (var i=0; i < items.length; i++) {
+        for (var i = 0; i < items.length; i++) {
             model[name].push(items[i]);
         }
         callback();
@@ -122,9 +122,9 @@ var extractGroups = function(model) {
     var subGroups = [];
 
     // extract the role-based groups, e.g., manager, lecturer, etc...
-    for (var i=0; i < model.groups.length; i++) {
+    for (var i = 0; i < model.groups.length; i++) {
         var group = model.groups[i];
-        for (var j=0; j < Object.keys(group.roles).length; j++) {
+        for (var j = 0; j < Object.keys(group.roles).length; j++) {
             var role = Object.keys(group.roles)[j];
             subGroups.push({
                 creator: group.creator,
@@ -145,11 +145,11 @@ var extractMemberships = function(model) {
     var groups = model['groups'];
     var membershipsHash = {};
 
-    for (var i=0; i < groups.length; i++) {
+    for (var i = 0; i < groups.length; i++) {
         var group = groups[i];
         membershipsHash[group.id] = {};
         if (group.roles) {
-            for (var j=0; j < Object.keys(group.roles).length; j++) {
+            for (var j = 0; j < Object.keys(group.roles).length; j++) {
                 var role = Object.keys(group.roles)[j];
 
                 var roleGroupId = group.id+'-'+role;

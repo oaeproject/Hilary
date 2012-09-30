@@ -22,5 +22,5 @@ OAE.init(config, function(err) {
     if (err) {
         log().error({err: err}, 'Error initializing server.');
     }
-    log().info("All done ... Enjoy!");
+    log().info("Initialization all done ... Firing up tenants ... Enjoy!");
 });

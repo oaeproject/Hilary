@@ -32,8 +32,8 @@ oae.init(config, function(err) {
         var model = {};
 
         // read the data from the model-loader scripts and build the model
-        readScript(scriptsDir+'/users/0.txt', 'users', model, function() {
-            readScript(scriptsDir+'/worlds/0.txt', 'groups', model, function() {
+        readScript(scriptsDir + '/users/0.txt', 'users', model, function() {
+            readScript(scriptsDir + '/worlds/0.txt', 'groups', model, function() {
                 extractGroups(model);
                 extractMemberships(model);
 

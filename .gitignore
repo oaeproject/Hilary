@@ -10,6 +10,7 @@ node_modules/*
 !node_modules/oae-logger
 !node_modules/oae-principals
 !node_modules/oae-profiles
+!node_modules/oae-telemetry
 !node_modules/oae-tenants
 !node_modules/oae-tests
 !node_modules/oae-util

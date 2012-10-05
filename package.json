@@ -33,7 +33,6 @@
     "oae-tenants": "",
     "oae-tests": "",
     "oae-util": "",
-    "optimist": "latest",
     "passport": "latest",
     "passport-local": "latest",
     "passport-http": "latest",

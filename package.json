@@ -24,7 +24,7 @@
     "node-tsung": "latest",
     "oae-authentication": "",
     "oae-authz": "",
-    "oae-config-aggregator": "",
+    "oae-config": "",
     "oae-content": "",
     "oae-context": "",
     "oae-logger": "",
@@ -56,7 +56,7 @@
   "bundleDependencies": [
     "oae-authentication",
     "oae-authz",
-    "oae-config-aggregator",
+    "oae-config",
     "oae-content",
     "oae-context",
     "oae-logger",

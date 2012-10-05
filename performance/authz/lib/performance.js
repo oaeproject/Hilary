@@ -48,7 +48,7 @@ module.exports.dataload = function(tenantIds, model, results, callback) {
         trackModelLoading(err, tenant);
     };
     for (var i = 0; i < tenantIds.length; i++) {
-        var tenant = new Tenant(tenantIds[i], 'load-test', 'load-test', 2001, 'google.ca');
+        var tenant = new Tenant(tenantIds[i], 'load-test', 2001, 'google.ca');
         persistModel(tenant, model, results.dataload, errorPersisting);
     }
 };

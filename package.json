@@ -15,7 +15,6 @@
        }
   ],
   "dependencies": {
-    "bcrypt": "latest",
     "bunyan": "latest",
     "connect": "latest",
     "connect-redis": "latest",

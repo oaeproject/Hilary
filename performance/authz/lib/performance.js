@@ -222,7 +222,7 @@ var getAllPermissionChecks = function(model, limit) {
                 var user = model.users[j];
                 if (numAdded <= limit) {
                     checks.push({
-                        principalId: user.userid,
+                        principalId: user.userId,
                         principalType: 'u',
                         permission: 'member',
                         groupId: group.id

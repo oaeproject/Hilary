@@ -55,3 +55,21 @@ config.log = {
         'res': bunyan.stdSerializers.res
     }
 };
+
+// This object holds the configuration for the telemetry monitoring.
+// By default telemetry is disabled.
+// We currently support two types of publishers:
+// * displaying data on the console
+// * pushing data to circonus (via httptrap and redis)
+config.telemetry = {
+    'enabled': false,
+    'publisher': 'console',
+    'circonus': {
+        'url': 'https://trap.noit.circonus.net/module/httptrap/check-uuid/secret-here',
+        'circonusInterval': 30000,
+        'redisInterval': 20000
+    },
+    'console': {
+        'interval': 5000
+    }
+};

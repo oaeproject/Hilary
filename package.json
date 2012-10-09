@@ -15,13 +15,13 @@
        }
   ],
   "dependencies": {
-    "bcrypt": "latest",
     "bunyan": "latest",
     "connect": "latest",
     "connect-redis": "latest",
     "dox": "latest",
     "express": "latest",
     "helenus": "latest",
+    "node-tsung": "latest",
     "oae-authentication": "",
     "oae-authz": "",
     "oae-config": "",

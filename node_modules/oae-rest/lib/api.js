@@ -13,6 +13,22 @@
  * permissions and limitations under the License.
  */
 
+/*
+ * Note: Most of the REST wrappers will take a Context (ctx) object as the first parameter. This context
+ * parameter specifies the tenant we're working on, as well as the user making the request. It will be of
+ * the following form:
+ * 
+ * ctx.tenant() = {
+ *  'baseUrl': 
+ * };
+ * ctx.user() = {
+ *  'id': <uniqueUserId>,
+ *  'password': <userPassword>
+ * };
+ * 
+ * For anonymous users, ctx.user() will be null 
+ */
+
 // User REST wrappers
 module.exports.User = require('./api.user');
 // Group REST wrappers

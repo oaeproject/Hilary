@@ -55,22 +55,6 @@ var createGroup = module.exports.createGroup = function (restCtx, alias, name, d
     }
     RestUtil.RestRequest(restCtx, '/api/group/create', 'POST', postData, callback);
 };
-
-
-/*    RestUtil.switchUser(context, function(err, response, body) {
-        request.post({
-            'url': 'http://' + context.baseUrl + ,
-            'method': 'POST',
-            'form': postData
-        }, function(err, response, body) {
-            if (err) {
-                return callback(new RestUtil.OaeError('Something went wrong trying to contact the server: ' + err, response));
-            } else if (response.statusCode !== 201) {
-                return callback(new RestUtil.RestError('Could not create group: ' + body, response));
-            }
-            RestUtil.parseResponse(body, response, callback);
-        });
-    }); */
    
 /**
  * Get a group trough the REST API.

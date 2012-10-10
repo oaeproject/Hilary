@@ -13,3 +13,69 @@
  * permissions and limitations under the License.
  */
 
+/*var request = require('request');
+
+var TestUserAPI = require('./api.user');
+var TenantAPI = require('oae-tenants');
+
+
+// Stopping a server is async, this variable
+// holds how long we should wait before returning on start/stop/delete
+// of a tenant.
+var WAIT_TIME = 1000;
+
+var createTenant = module.exports.createTenant = function(tenant, callback) {
+    // Todo: authentication once that gets merged in.
+    request.post({
+            'uri': 'http://localhost:2000/api/tenant/create',
+            'json': {
+                'id': tenant.alias,
+                'name': tenant.name,
+                'description': tenant.description,
+                'port': tenant.port,
+                'baseurl': tenant.baseUrl
+            }
+        }, callback);
+};
+
+var stopTenants = module.exports.stopTenants = function(tenants, callback) {
+    // Todo: authentication once that gets merged in.
+    request.post({
+        'uri': 'http://localhost:2000/api/tenant/stop',
+        'form': {
+            'tenants': tenants
+        }
+    }, function(err, response, body) {
+        setTimeout(function() {
+            callback(err, response, body);
+        }, WAIT_TIME);
+    });
+};
+
+var startTenants = module.exports.startTenants = function(tenants, callback) {
+    // Todo: authentication once that gets merged in.
+    request.post({
+        'uri': 'http://localhost:2000/api/tenant/start',
+        'form': {
+            'tenants': tenants
+        }
+    }, function(err, response, body) {
+        setTimeout(function() {
+            callback(err, response, body);
+        }, WAIT_TIME);
+    });
+};
+
+var deleteTenants = module.exports.deleteTenants = function(tenants, callback) {
+    // Todo: authentication once that gets merged in.
+    request.post({
+        'uri': 'http://localhost:2000/api/tenant/delete',
+        'form': {
+            'tenants': tenants
+        }
+    }, function(err, response, body) {
+        setTimeout(function() {
+            callback(err, response, body);
+        }, WAIT_TIME);
+    });
+}; */

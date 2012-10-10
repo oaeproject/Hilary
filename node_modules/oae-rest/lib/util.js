@@ -65,7 +65,16 @@ var RestRequest = module.exports.RestRequest = function(restCtx, url, method, da
 };
 
 /**
- * TODO
+ * Internal Function that will perform a REST request. If no user is provided, the request will be done anonymously
+ * @param {RestContext}                 restCtx             Standard REST Context object that contains the current tenant URL and the current
+ *                                                          user credentials
+ * @param {String}                      url                 The URL of the REST endpoint that should be called
+ * @param {String}                      method              The HTTP method that should be used for the request (i.e. GET or POST)
+ * @param {Object}                      data                The form data that should be passed into the request [optional]       
+ * @param {Function(err, response)}     callback            Standard callback function
+ * @param {Object}                      callback.err        Error object containing the error code and message
+ * @param {String|Object}               callback.response   The response received from the request. If this is JSON, a parsed JSON object
+ *                                                          will be returned, otherwise the response will be returned as a string
  */
 var _RestRequest = function(restCtx, url, method, data, callback) {
     var j = null;

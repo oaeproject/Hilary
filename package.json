@@ -9,10 +9,10 @@
      }
   ],
   "repositories": [
-       {
-            "type": "git", 
-            "url": "http://github.com/sakaiproject/Hilary"
-       }
+     {
+        "type": "git", 
+        "url": "http://github.com/sakaiproject/Hilary"
+     }
   ],
   "dependencies": {
     "bunyan": "latest",

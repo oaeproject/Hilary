@@ -81,12 +81,22 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
     if (restCtx.userId) {
         j = cookies[restCtx.userId];
     }
-    request({
+    var requestParams = {
         'url': restCtx.baseUrl + url,
         'method': method,
-        'form': data,
         'jar': j
-    }, function(error, response, body) {
+    }
+    // Add the request data, if there is any
+    if (data) {
+        // Add it to the querystring if it's a GET
+        if (method === 'GET') {
+            requestParams.qs = data;
+        // Add it as form data if it's a POST or a PUT
+        } else {
+            requestParams.form = data;
+        }
+    }
+    request(requestParams, function(error, response, body) {
         if (error) {
             return callback({'code': 500, 'msg': 'Something went wrong trying to contact the server: ' + error});
         } else if (errorCodes.indexOf(response.statusCode) !== -1) {
@@ -95,7 +105,7 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
         // Check if the response body is JSON
         try {
             body = JSON.parse(body);
-        } catch (err) {/* This can be ignored, response is not a JSON object */}
+        } catch (err) { /* This can be ignored, response is not a JSON object */ }
         callback(false, body);
     });
 };

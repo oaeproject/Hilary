@@ -14,19 +14,13 @@
  */
 
 /*
- * Note: Most of the REST wrappers will take a Context (ctx) object as the first parameter. This context
- * parameter specifies the tenant we're working on, as well as the user making the request. It will be of
- * the following form:
+ * Note: Most of the REST wrappers will take a RestContext (ctx) object as the first parameter. This context
+ * parameter specifies the tenant URL we're working on, as well as the user making the request and his password. 
+ * It will be of the following form:
  * 
- * ctx.tenant() = {
- *  'baseUrl': 
- * };
- * ctx.user() = {
- *  'id': <uniqueUserId>,
- *  'password': <userPassword>
- * };
+ * RestContext restCtx = {'baseUrl': http://oae.sakai.org, 'userId': 'janedoe', 'password': 'foo'}
  * 
- * For anonymous users, ctx.user() will be null 
+ * For anonymous users, userId and password will be null 
  */
 
 // User REST wrappers

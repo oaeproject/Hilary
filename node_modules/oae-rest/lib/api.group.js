@@ -29,7 +29,7 @@ var RestUtil = require('./util');
  * @param {Array<String>}          members             An array of userIds that should be made members (Optional)
  * @param {Function(err, resp)}    callback            Standard callback method
  * @param {Object}                 callback.err        Error object containing error code and error message
- * @param {Object}                 callback.response   The parsed server response.
+ * @param {Group}                  callback.response   A Group object representing the created group
  */
 var createGroup = module.exports.createGroup = function (restCtx, alias, name, description, visibility, joinable, managers, members, callback) {
     var postData = {
@@ -51,7 +51,7 @@ var createGroup = module.exports.createGroup = function (restCtx, alias, name, d
  * @param {String}                  groupId             The id of the group you wish to retrieve.
  * @param {Function(err, resp)}     callback            Standard callback method
  * @param {Object}                  callback.err        Error object containing error code and error message
- * @param {Object}                  callback.response   The parsed server response.
+ * @param {Group}                   callback.response   The group object representing the requested group
  */
 var getGroup = module.exports.getGroup = function(restCtx, groupId, callback) {
     RestUtil.RestRequest(restCtx, '/api/group/' + groupId, 'GET', null, callback);
@@ -66,9 +66,8 @@ var getGroup = module.exports.getGroup = function(restCtx, groupId, callback) {
  * @param {Object}                  profileFields       Object where the keys represent the profile fields that need to be updated and the
  *                                                      values represent the new values for those profile fields/
  *                                                      e.g. {'name': 'New group name', 'description': 'New group description', 'visibility': 'private', 'joinable': 'no'}
- * @param {Function(err, resp)}     callback            Standard callback method
+ * @param {Function(err)}           callback            Standard callback method
  * @param {Object}                  callback.err        Error object containing error code and error message
- * @param {Object}                  callback.response   The parsed server response.
  */
 var updateGroup = module.exports.updateGroup = function (restCtx, groupId, profileFields, callback) {
     RestUtil.RestRequest(restCtx, '/api/group/' + groupId, 'POST', profileFields, callback);
@@ -84,7 +83,7 @@ var updateGroup = module.exports.updateGroup = function (restCtx, groupId, profi
  * @param {Number}                  limit               The number of members to retrieve.
  * @param {Function(err, resp)}     callback            Standard callback method
  * @param {Object}                  callback.err        Error object containing error code and error message
- * @param {Object}                  callback.response   The parsed server response.
+ * @param {Array<User|Group>}       callback.response   Array of principals representing the group members
  */
 var getGroupMembers = module.exports.getGroupMembers = function(restCtx, groupId, start, limit, callback) {
     var params = {
@@ -94,70 +93,50 @@ var getGroupMembers = module.exports.getGroupMembers = function(restCtx, groupId
     RestUtil.RestRequest(restCtx, '/api/group/' + groupId + '/members', 'GET', params, callback);
 };
 
-
-
-
-
-
-
-
-
-
-
 /**
- * Update the members of a group.
- *
- * @param {Context}                 context             A context object with a valid Tenant and User object
+ * Update the members of a group through the REST API.
+ * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current
+ *                                                      user credentials
  * @param {String}                  groupId             The id of the group you wish to update
  * @param {Object}                  members             A hash object where each key is the id of a user or group and the value
  *                                                      is one of 'manager', 'member' or false. In case the value is false,
  *                                                      the member will be deleted.
- * @param {Function(err, resp)}     callback            A callback method
- * @param {Object}                  callback.err        Error object containing error message
- * @param {Object}                  callback.response   The parsed server response.
- *
-var setGroupMembers = module.exports.setGroupMembers = function(context, groupId, members, callback) {
-    RestUtil.switchUser(context, function(err, response, body) {
-        request.post({
-            'url': 'http://' + context.baseUrl + '/api/group/' + groupId + '/members',
-            'method': 'POST',
-            'form': members
-        }, function(err, response, body) {
-            if (err) {
-                return callback(new RestUtil.OaeError('Something went wrong trying to contact the server: ' + err, response));
-            } else if (response.statusCode !== 200) {
-                return callback(new RestUtil.RestError('Could not update the group members: ' + body, response));
-            }
-            callback(null);
-        });
-    });
+ * @param {Function(err)}           callback            Standard callback method
+ * @param {Object}                  callback.err        Error object containing error code and error message
+ */
+var setGroupMembers = module.exports.setGroupMembers = function(restCtx, groupId, members, callback) {
+    RestUtil.RestRequest(restCtx, '/api/group/' + groupId + '/members', 'POST', members, callback);
 };
 
 /**
- * Returns all of the groups that a user is a direct and indirect member of.
- *
- * @param {Context}                 context             A context object with a valid Tenant and User object
- * @param {String}                  userId              The id of the group you wish to update
- * @param {String}                  start               The principal id to start from (this will not be included in the response)
- *                                                      (NOT IMPLEMENTED YET)
- * @param {Number}                  limit               The amount of members to retrieve.
- *                                                      (NOT IMPLEMENTED YET)
- * @param {Function(err, resp)}     callback            A callback method
- * @param {Object}                  callback.err        Error object containing error message
- * @param {Object}                  callback.response   The parsed server response.
- *
+ * Returns all of the groups that a user is a direct and indirect member of through the REST API.
+ * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current
+ *                                                      user credentials
+ * @param {String}                  userId              The user id for which we want to get all of the memberships
+ * @param {String}                  start               The group id to start from (this will not be included in the response)
+ * @param {Number}                  limit               The number of members to retrieve
+ * @param {Function(err, resp)}     callback            Standard callback method
+ * @param {Object}                  callback.err        Error object containing error code and error message
+ * @param {Array<Group>}            callback.response   An array of groups representing the direct and indirect memberships of the provided user
+ */
 var getMembershipForUser = module.exports.getMembershipForUser = function(context, userId, start, limit, callback) {
-    RestUtil.switchUser(context, function(err, response, body) {
-        request.get('http://' + context.baseUrl + '/api/group/memberships/' + userId, function(err, response, body) {
-            if (err) {
-                return callback(new RestUtil.OaeError('Something went wrong trying to contact the server: ' + err, response));
-            } else if (response.statusCode !== 200) {
-                return callback(new RestUtil.RestError('Could not get the user his memberships: ' + body, response));
-            }
-            RestUtil.parseResponse(body, response, callback);
-        });
-    });
+    var params = {
+        'start': start,
+        'limit': limit
+    };
+    RestUtil.RestRequest(restCtx, '/api/group/memberships/' + userId, 'GET', params, callback);
 };
+
+
+
+
+
+
+
+
+
+
+
 
 /**
  * Checks whether a group alias exists.

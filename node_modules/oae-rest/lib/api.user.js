@@ -31,7 +31,7 @@ var RestUtil = require('./util');
  * @param {String}                 displayName         A display name, if this is left undefined the first and last name will be concatenated.
  * @param {Function(err, resp)}    callback            Standard callback method
  * @param {Object}                 callback.err        Error object containing error code and error message
- * @param {Object}                 callback.response   The parsed server response.
+ * @param {User}                   callback.response   A User object representing the created user
  */
 var createUser = module.exports.createUser = function (restCtx, username, password, visibility, locale, timezone, firstName, lastName, displayName, callback) {
     var postData = {

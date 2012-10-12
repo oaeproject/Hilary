@@ -61,4 +61,6 @@ node app.js
 
 And that's it, the server should now be up and running!
 
+You can access the admin page at http://localhost:2000/admin.html and login with `administrator - administrator`
+
 We're looking forward to seeing your contributions to the Sakai OAE project!

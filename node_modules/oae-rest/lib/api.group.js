@@ -119,7 +119,7 @@ var setGroupMembers = module.exports.setGroupMembers = function(restCtx, groupId
  * @param {Object}                  callback.err        Error object containing error code and error message
  * @param {Array<Group>}            callback.response   An array of groups representing the direct and indirect memberships of the provided user
  */
-var getMembershipForUser = module.exports.getMembershipForUser = function(context, userId, start, limit, callback) {
+var memberOf = module.exports.memberOf = function(restCtx, userId, start, limit, callback) {
     var params = {
         'start': start,
         'limit': limit
@@ -127,39 +127,21 @@ var getMembershipForUser = module.exports.getMembershipForUser = function(contex
     RestUtil.RestRequest(restCtx, '/api/group/memberships/' + userId, 'GET', params, callback);
 };
 
-
-
-
-
-
-
-
-
-
-
-
 /**
- * Checks whether a group alias exists.
- *
- * @param {Context}                 context             A context object with a valid Tenant and User object
- * @param {String}                  alias               The alias to check.
- * @param {Function(err, exists)}   callback            A callback method
- * @param {Object}                  callback.err        Error object containing error message
- * @param {Boolean}                 callback.exists     The parsed server response.
- *
-var exists = module.exports.exists = function(context, alias, callback) {
-    RestUtil.switchUser(context, function(err, response, body) {
-        request.get('http://' + context.baseUrl + '/api/group/exists/' + alias, function(err, response, body) {
-            if (err) {
-                return callback(new RestUtil.OaeError('Something went wrong trying to contact the server: ' + err, response));
-            } else if (response.statusCode !== 200 && response.statusCode !== 404) {
-                return callback(new RestUtil.RestError('Could not verify this group: ' + body, response));
-            }
-            if (response.statusCode === 200) {
-                callback(false, true);
-            } else {
-                callback(false, false);
-            }
-        });
+ * Checks whether a group alias exists through the REST API.
+ * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current
+ *                                                      user credentials
+ * @param {String}                  alias               The group alias to check.
+ * @param {Function(err, exists)}   callback            Standard callback method
+ * @param {Object}                  callback.err        Error object containing error code and error message
+ * @param {Boolean}                 callback.exists     True if the group already exists, false if it doesn't
+ */
+var exists = module.exports.exists = function(restCtx, alias, callback) {
+    RestUtil.RestRequest(restCtx, '/api/group/exists/' + alias, 'GET', null, function(err) {
+        if (err) {
+            callback(null, false);
+        } else {
+            callback(null, true);
+        }
     });
-}; */
+};

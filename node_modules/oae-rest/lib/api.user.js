@@ -33,7 +33,7 @@ var RestUtil = require('./util');
  * @param {Object}                 callback.err        Error object containing error code and error message
  * @param {User}                   callback.response   A User object representing the created user
  */
-var createUser = module.exports.createUser = function (restCtx, username, password, visibility, locale, timezone, firstName, lastName, displayName, callback) {
+var createUser = module.exports.createUser = function(restCtx, username, password, visibility, locale, timezone, firstName, lastName, displayName, callback) {
     var postData = {
         'username': username,
         'password': password,
@@ -45,4 +45,17 @@ var createUser = module.exports.createUser = function (restCtx, username, passwo
         'displayName': displayName
     };
     RestUtil.RestRequest(restCtx, '/api/user/create', 'POST', postData, callback);
+};
+
+/**
+ * Gets a user's me feed through the REST API.
+ * @param {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current
+ *                                                     user credentials. For this function to work, the passed in restCtx should either
+ *                                                     be for a global/tenant admin or for an anonymous user with reCaptcha disabled.
+ * @param {Function(err, resp)}    callback            Standard callback method
+ * @param {Object}                 callback.err        Error object containing error code and error message
+ * @param {Object}                 callback.response   The user's me feed
+ */
+var getMe = module.exports.getMe = function(restCtx, callback) {
+    RestUtil.RestRequest(restCtx, '/api/me', 'GET', null, callback);
 };

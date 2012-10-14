@@ -60,7 +60,7 @@ var getMe = module.exports.getMe = function(restCtx, callback) {
 };
 
 /**
- * Get a user profile through the REST API.
+ * Get a user basic profile through the REST API.
  * @param {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current
  *                                                     user credentials
  * @param {String}                 userId              User id of the profile you wish to retrieve
@@ -68,7 +68,7 @@ var getMe = module.exports.getMe = function(restCtx, callback) {
  * @param {Object}                 callback.err        Error object containing error code and error message
  * @param {Object}                 callback.response   The user's basic profile
  */
-var getProfile = module.exports.getProfile = function(restCtx, userId, callback) {
+var getUser = module.exports.getUser = function(restCtx, userId, callback) {
     RestUtil.RestRequest(restCtx, '/api/user/' + userId, 'GET', null, callback);
 };
 

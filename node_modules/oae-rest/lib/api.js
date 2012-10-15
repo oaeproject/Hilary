@@ -25,6 +25,8 @@
 
 // User REST wrappers
 module.exports.User = require('./api.user');
+// User profile REST wrappers
+module.exports.Profile = require('./api.profile');
 // Authentication REST wrappers
 module.exports.Authentication = require('./api.authentication');
 // Group REST wrappers

@@ -45,6 +45,20 @@ var getAllSections = module.exports.getAllSections = function(restCtx, userId, c
 };
 
 /**
+ * Get an overview of the visibility setting of all of the profile sections of a user through the REST API.
+ * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current
+ *                                                      user credentials
+ * @param {String}                  userId              User id of the user for who we want to retrieve the profile section visibility overview
+ * @param {Function(err, vis)}      callback            Standard callback method
+ * @param {Object}                  callback.err        Error object containing error code and error message
+ * @param {Object}                  callback.vis        JSON object representing all of the user's profile sections and their visibility. The keys
+ *                                                      are the profile section ids, and the values are the visibility settings for those sections
+ */
+var getAllSectionsVisibility = module.exports.getAllSectionsVisibility = function(restCtx, userId, callback) {
+    RestUtil.RestRequest(restCtx, '/api/user/' + userId + '/visibility', 'GET', null, callback);
+};
+
+/**
  * Set a profile section through the REST API.
  * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current
  *                                                      user credentials
@@ -69,7 +83,14 @@ var setSection = module.exports.setSection = function(restCtx, userId, sectionId
 };
 
 /**
- * TODO
+ * Update a profile section's visibility through the REST API.
+ * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current
+ *                                                      user credentials
+ * @param {String}                  userId              User id of the user for who we want to set the profile section visibility
+ * @param {String}                  sectionId           Id of the profile section we want to set visibility for
+ * @param {String}                  visibility          The profile section's new visibility. This can be public, loggedin or private
+ * @param {Function(err)}           callback            Standard callback method
+ * @param {Object}                  callback.err        Error object containing error code and error message
  */
 var updateVisibility = module.exports.updateVisibility = function(restCtx, userId, sectionId, visibility, callback) {
     RestUtil.RestRequest(restCtx, '/api/user/' + userId + '/profile/' + sectionId + '/visibility', 'POST', {'visibility': visibility}, callback);

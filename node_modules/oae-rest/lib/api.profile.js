@@ -66,4 +66,11 @@ var setSection = module.exports.setSection = function(restCtx, userId, sectionId
         'overwrite': overwrite
     };
     RestUtil.RestRequest(restCtx, '/api/user/' + userId + '/profile', 'POST', params, callback);
-};    
+};
+
+/**
+ * TODO
+ */
+var updateVisibility = module.exports.updateVisibility = function(restCtx, userId, sectionId, visibility, callback) {
+    RestUtil.RestRequest(restCtx, '/api/user/' + userId + '/profile/' + sectionId + '/visibility', 'POST', {'visibility': visibility}, callback);
+};

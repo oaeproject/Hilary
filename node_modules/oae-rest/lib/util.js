@@ -77,7 +77,7 @@ var RestRequest = module.exports.RestRequest = function(restCtx, url, method, da
  *                                                          will be returned, otherwise the response will be returned as a string
  */
 var _RestRequest = function(restCtx, url, method, data, callback) {
-    var j = null;
+    var j = request.jar();
     if (restCtx.userId) {
         j = cookies[restCtx.userId];
     }

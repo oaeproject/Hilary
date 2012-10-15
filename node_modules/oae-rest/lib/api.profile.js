@@ -27,7 +27,7 @@ var RestUtil = require('./util');
  *                                                      was saved by the user
  */
 var getSection = module.exports.getSection = function(restCtx, userId, sectionId, callback) {
-    RestUtil.RestRequest(restCtx, '/api/user/' + userId + '/profile/' + section, 'GET', null, callback);
+    RestUtil.RestRequest(restCtx, '/api/user/' + userId + '/profile/' + sectionId, 'GET', null, callback);
 };
 
 /**
@@ -53,14 +53,17 @@ var getAllSections = module.exports.getAllSections = function(restCtx, userId, c
  * @param {String}                  visibility          Visibility of the profile section. This can be public, loggedin or private
  * @param {Object}                  sectionData         JSON object representing the profile section that needs to be stored. The object
  *                                                      will be stored (and later on retrieved) as is
+ * @param {Boolean}                 overwrite           Whether or not values that are already in the profile section but or not in the updated
+ *                                                      values should be overwritten or not
  * @param {Function(err)}           callback            Standard callback method
  * @param {Object}                  callback.err        Error object containing error code and error message
  */
-var setSection = module.exports.setSection = function(restCtx, userId, sectionId, visibility, sectionData, callback) {
+var setSection = module.exports.setSection = function(restCtx, userId, sectionId, visibility, sectionData, overwrite, callback) {
     var params = {
         'section': sectionId,
         'data': JSON.stringify(sectionData),
-        'visibility': visibility
+        'visibility': visibility,
+        'overwrite': overwrite
     };
-    RestUtil.RestRequest(restCtx, 'api/user/' + userId + '/profile', 'POST', params, callback);
+    RestUtil.RestRequest(restCtx, '/api/user/' + userId + '/profile', 'POST', params, callback);
 };    

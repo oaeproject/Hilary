@@ -13,69 +13,121 @@
  * permissions and limitations under the License.
  */
 
-/*var request = require('request');
-
-var TestUserAPI = require('./api.user');
-var TenantAPI = require('oae-tenants');
-
+var RestUtil = require('./util');
 
 // Stopping a server is async, this variable
 // holds how long we should wait before returning on start/stop/delete
 // of a tenant.
 var WAIT_TIME = 1000;
 
-var createTenant = module.exports.createTenant = function(tenant, callback) {
-    // Todo: authentication once that gets merged in.
-    request.post({
-            'uri': 'http://localhost:2000/api/tenant/create',
-            'json': {
-                'id': tenant.alias,
-                'name': tenant.name,
-                'description': tenant.description,
-                'port': tenant.port,
-                'baseurl': tenant.baseUrl
-            }
-        }, callback);
+/**
+ * Retrieve all available tenants through the REST API.
+ * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user
+ *                                                      credentials. In order for this to work, a global admin rest context will need to passed in.
+ * @param {Function(err, tenants)}  callback            Standard callback method
+ * @param {Object}                  callback.err        Error object containing error code and error message
+ * @param {Array<Tenant>}           callback.tenants    Array containing a tenant object for each of the available tenants
+ *                                                          
+ */
+var getTenants = module.exports.getTenants = function(restCtx, callback) {
+    RestUtil.RestRequest(restCtx, '/api/tenants', 'GET', null, callback);
 };
 
-var stopTenants = module.exports.stopTenants = function(tenants, callback) {
-    // Todo: authentication once that gets merged in.
-    request.post({
-        'uri': 'http://localhost:2000/api/tenant/stop',
-        'form': {
-            'tenants': tenants
-        }
-    }, function(err, response, body) {
-        setTimeout(function() {
-            callback(err, response, body);
-        }, WAIT_TIME);
+/**
+ * Retrieve a tenant through the REST API.
+ * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user
+ *                                                      credentials. The tenant information that will be retrieved will be for the current tenant
+ * @param {Function(err, tenant)}   callback            Standard callback method
+ * @param {Object}                  callback.err        Error object containing error code and error message
+ * @param {Tenant}                  callback.tenants    Tenant object representing the retrieved tenant
+ */
+var getTenant = module.exports.getTenant = function(restCtx, callback) {
+    RestUtil.RestRequest(restCtx, '/api/tenant', 'GET', null, callback)
+};
+
+/**
+ * Create a new tenant through the REST API.
+ * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user
+ *                                                      credentials. In order for this to work, a global admin rest context will need to passed in.
+ * @param {String}                  tenantId            The tenant's unique identifier
+ * @param {Number}                  tenantPort          The port on which the tenant will run
+ * @param {String}                  tenantName          The new tenant's name
+ * @param {String}                  tenantBaseUrl       The base URL for the newly created tenant. This should include protocol as well (e.g. http://localhost:2001)
+ * @param {Function(err, tenant)}   callback            Standard callback method
+ * @param {Object}                  callback.err        Error object containing error code and error message
+ * @param {Tenant}                  callback.tenant     Tenant object representing the newly created tenant
+ */
+var createTenant = module.exports.createTenant = function(restCtx, tenantId, tenantPort, tenantName, tenantBaseUrl, callback) {
+    var params = {
+        'id': tenantId,
+        'port': tenantPort,
+        'name': tenantName,
+        'baseurl': tenantBaseUrl
+    }
+    RestUtil.RestRequest(restCtx, '/api/tenant/create', 'POST', params, function(err, tenant) {
+        // Give it some time to start up
+        setTimeout(callback, WAIT_TIME, err, tenant);
     });
 };
 
-var startTenants = module.exports.startTenants = function(tenants, callback) {
-    // Todo: authentication once that gets merged in.
-    request.post({
-        'uri': 'http://localhost:2000/api/tenant/start',
-        'form': {
-            'tenants': tenants
-        }
-    }, function(err, response, body) {
-        setTimeout(function() {
-            callback(err, response, body);
-        }, WAIT_TIME);
+/**
+ * Update a tenant's metadata through the REST API.
+ * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user
+ *                                                      credentials.
+ * @param {Number}                  tenantPort          The port on which the tenant that needs to be updated runs
+ * @param {String}                  tenantName          The new tenant name
+ * @param {Function(err)}           callback            Standard callback method
+ * @param {Object}                  callback.err        Error object containing error code and error message
+ */
+var updateTenant = module.exports.updateTenant = function(restCtx, tenantPort, tenantName, callback) {
+    var params = {
+        'port': tenantPort,
+        'name': tenantName
+    };
+    RestUtil.RestRequest(restCtx, '/api/tenant', 'POST', params, callback);
+};
+
+/**
+ * Stop a running tenant through the REST API.
+ * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user
+ *                                                      credentials. In order for this to work, a global admin rest context will need to passed in.
+ * @param {Number}                  tenantPort          The port on which the tenant that should be stopped is running
+ * @param {Function(err)}           callback            Standard callback method
+ * @param {Object}                  callback.err        Error object containing error code and error message
+ */
+var stopTenant = module.exports.stopTenant = function(restCtx, tenantPort, callback) {
+    RestUtil.RestRequest(restCtx, '/api/tenant/stop', 'POST', {'tenants': [tenantPort]}, function(err) {
+        // Give it some time to stop
+        setTimeout(callback, WAIT_TIME, err);
     });
 };
 
-var deleteTenants = module.exports.deleteTenants = function(tenants, callback) {
-    // Todo: authentication once that gets merged in.
-    request.post({
-        'uri': 'http://localhost:2000/api/tenant/delete',
-        'form': {
-            'tenants': tenants
-        }
-    }, function(err, response, body) {
-        setTimeout(function() {
-            callback(err, response, body);
-        }, WAIT_TIME);
+/**
+ * Start a stopped tenant through the REST API.
+ * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user
+ *                                                      credentials. In order for this to work, a global admin rest context will need to passed in.
+ * @param {Number}                  tenantPort          The port on which the tenant that should be started has been registered
+ * @param {Function(err)}           callback            Standard callback method
+ * @param {Object}                  callback.err        Error object containing error code and error message
+ */
+var startTenant = module.exports.startTenant = function(restCtx, tenantPort, callback) {
+    RestUtil.RestRequest(restCtx, '/api/tenant/start', 'POST', {'tenants': [tenantPort]}, function(err) {
+        // Give it some time to start
+        setTimeout(callback, WAIT_TIME, err);
     });
-}; */
+};
+
+/**
+ * Delete a tenant through the REST API.
+ * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user
+ *                                                      credentials. In order for this to work, a global admin rest context will need to passed in.
+ * @param {Number}                  tenantPort          The port on which the tenant that should be deleted has been registered
+ * @param {Function(err)}           callback            Standard callback method
+ * @param {Object}                  callback.err        Error object containing error code and error message
+ */     
+var deleteTenant = module.exports.deleteTenant = function(restCtx, tenantPort, callback) {
+    RestUtil.RestRequest(restCtx, '/api/tenant/delete', 'POST', {'tenants': [tenantPort]}, function(err) {
+        // Give it some time to stop
+        setTimeout(callback, WAIT_TIME, err);
+    });
+};

@@ -37,12 +37,12 @@ var getContent = module.exports.getContent = function(restCtx, contentId, callba
  * @param {String}                 visibility          The content item's visibility. This can be public, loggedin or private
  * @param {String}                 link                The URL that should be stored against this content item
  * @param {Array<String>}          managers            Array of user/group ids that should be added as managers to the content item
- * @param {Array<String>}          members             Array of user/group ids that should be added as members to the content item
+ * @param {Array<String>}          viewers             Array of user/group ids that should be added as viewers to the content item
  * @param {Function(err, content)} callback            Standard callback method
  * @param {Object}                 callback.err        Error object containing error code and error message
  * @param {Content}                callback.content    Content object representing the created content
  */
-var createLink = module.exports.createContent = function(restCtx, name, description, visibility, link, managers, members, callback) {
+var createLink = module.exports.createLink = function(restCtx, name, description, visibility, link, managers, viewers, callback) {
     var params = {
         'contentType': 'link',
         'name': name,
@@ -50,7 +50,7 @@ var createLink = module.exports.createContent = function(restCtx, name, descript
         'visibility': visibility,
         'link': link,
         'managers': managers,
-        'members': members
+        'viewers': viewers
     };
     RestUtil.RestRequest(restCtx, '/api/content/create', 'POST', params, callback);
 };
@@ -63,19 +63,19 @@ var createLink = module.exports.createContent = function(restCtx, name, descript
  * @param {String}                 description         The content item's description
  * @param {String}                 visibility          The content item's visibility. This can be public, loggedin or private
  * @param {Array<String>}          managers            Array of user/group ids that should be added as managers to the content item
- * @param {Array<String>}          members             Array of user/group ids that should be added as members to the content item
+ * @param {Array<String>}          viewers             Array of user/group ids that should be added as viewers to the content item
  * @param {Function(err, content)} callback            Standard callback method
  * @param {Object}                 callback.err        Error object containing error code and error message
  * @param {Content}                callback.content    Content object representing the created content
  */
-var createFile = module.exports.createFile = function(restCtx, name, description, visibility, managers, members, callback) {
+var createFile = module.exports.createFile = function(restCtx, name, description, visibility, managers, viewers, callback) {
     var params = {
         'contentType': 'file',
         'name': name,
         'description': description,
         'visibility': visibility,
         'managers': managers,
-        'members': members
+        'viewers': viewers
     };
     RestUtil.RestRequest(restCtx, '/api/content/create', 'POST', params, callback);
 };

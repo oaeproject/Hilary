@@ -16,7 +16,7 @@
 var request = require('request');
 
 // Array of response codes that are considered to be HTTP errors
-var errorCodes = [400, 401, 403, 404, 500];
+var errorCodes = [400, 401, 403, 404, 500, 503];
 // Variable that will keep track of a cookie jar per user, so we can continue to
 // use the user's session throughout the tests
 var cookies = {};

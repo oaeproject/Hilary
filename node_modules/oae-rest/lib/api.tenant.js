@@ -29,7 +29,7 @@ var WAIT_TIME = 1000;
  * @param {Array<Tenant>}           callback.tenants    Array containing a tenant object for each of the available tenants
  *                                                          
  */
-var getTenants = module.exports.getTenants = function(restCtx, callback) {
+var getAllTenants = module.exports.getAllTenants = function(restCtx, callback) {
     RestUtil.RestRequest(restCtx, '/api/tenants', 'GET', null, callback);
 };
 
@@ -65,8 +65,12 @@ var createTenant = module.exports.createTenant = function(restCtx, tenantId, ten
         'baseurl': tenantBaseUrl
     }
     RestUtil.RestRequest(restCtx, '/api/tenant/create', 'POST', params, function(err, tenant) {
-        // Give it some time to start up
-        setTimeout(callback, WAIT_TIME, err, tenant);
+        if (err) {
+            callback(err);
+        } else {
+            // Give it some time to start up
+            setTimeout(callback, WAIT_TIME, err, tenant);
+        }
     });
 };
 

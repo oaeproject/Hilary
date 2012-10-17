@@ -1,0 +1,5 @@
+{
+    "name": "oae-rest",
+    "main": "./lib/api.js",
+    "version": "0.0.1"
+}

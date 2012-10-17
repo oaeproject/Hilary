@@ -30,6 +30,7 @@
     "oae-logger": "",
     "oae-profiles": "",
     "oae-principals": "",
+    "oae-rest": "",
     "oae-tenants": "",
     "oae-tests": "",
     "oae-util": "",
@@ -62,6 +63,7 @@
     "oae-logger",
     "oae-principals",
     "oae-profiles",
+    "oae-rest",
     "oae-tenants",
     "oae-tests",
     "oae-util"

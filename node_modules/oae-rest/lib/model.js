@@ -1,0 +1,35 @@
+/*
+ * Copyright 2012 Sakai Foundation (SF) Licensed under the
+ * Educational Community License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may
+ * obtain a copy of the License at
+ *
+ *     http://www.osedu.org/licenses/ECL-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an "AS IS"
+ * BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing
+ * permissions and limitations under the License.
+ */
+
+/**
+ * REST Context object used to represent a tenant on which a REST request is done, as well as
+ * the user creditentials of the user performing the action.
+ * @param {String}      baseUrl         The URL of the tenant on which the request is done. This should
+ *                                      include the protocol (e.g. http://gt.oae.com) and should not have
+ *                                      a trailing slash
+ * @param {String}      userId          The user id of the user performing the REST request. This should be null
+ *                                      if the current user is anonymous.
+ * @param {String}      userPassword    The password of the user performing the REST request. This should be null
+ *                                      if the current user is anonymous.
+ */
+var RestContext = module.exports.RestContext = function(baseUrl, userId, userPassword) {
+    var that = {};
+    
+    that.baseUrl = baseUrl;
+    that.userId = userId;
+    that.userPassword = userPassword;
+    
+    return that;
+};

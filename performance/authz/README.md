@@ -102,8 +102,8 @@ The following metrics were run on an app server pointed at an OOTB 3-node Cassan
   </tr>
   <tr>
     <td>0</td>
-    <td>21438 @ 1547/s</td>
-    <td>21438 @ 1788/s</td>
+    <td>28584 @ 1547/s</td>
+    <td>28584 @ 1788/s</td>
     <td>120000 @ 1046/s</td>
   </tr>
   <tr>

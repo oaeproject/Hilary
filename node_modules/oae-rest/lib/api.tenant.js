@@ -101,8 +101,12 @@ var updateTenant = module.exports.updateTenant = function(restCtx, tenantPort, t
  */
 var stopTenant = module.exports.stopTenant = function(restCtx, tenantPort, callback) {
     RestUtil.RestRequest(restCtx, '/api/tenant/stop', 'POST', {'tenants': [tenantPort]}, function(err) {
-        // Give it some time to stop
-        setTimeout(callback, WAIT_TIME, err);
+        if (err) {
+            callback(err);
+        } else {
+            // Give it some time to stop
+            setTimeout(callback, WAIT_TIME, err);
+        }
     });
 };
 
@@ -116,8 +120,12 @@ var stopTenant = module.exports.stopTenant = function(restCtx, tenantPort, callb
  */
 var startTenant = module.exports.startTenant = function(restCtx, tenantPort, callback) {
     RestUtil.RestRequest(restCtx, '/api/tenant/start', 'POST', {'tenants': [tenantPort]}, function(err) {
-        // Give it some time to start
-        setTimeout(callback, WAIT_TIME, err);
+        if (err) {
+            callback(err);
+        } else {
+            // Give it some time to start
+            setTimeout(callback, WAIT_TIME, err);
+        }
     });
 };
 
@@ -131,7 +139,11 @@ var startTenant = module.exports.startTenant = function(restCtx, tenantPort, cal
  */     
 var deleteTenant = module.exports.deleteTenant = function(restCtx, tenantPort, callback) {
     RestUtil.RestRequest(restCtx, '/api/tenant/delete', 'POST', {'tenants': [tenantPort]}, function(err) {
-        // Give it some time to stop
-        setTimeout(callback, WAIT_TIME, err);
+        if (err) {
+            callback(err);
+        } else {
+            // Give it some time to stop
+            setTimeout(callback, WAIT_TIME, err);
+        }
     });
 };

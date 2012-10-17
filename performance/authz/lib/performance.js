@@ -16,7 +16,7 @@ module.exports.dataload = function(tenantIds, model, results, callback) {
     results.dataload = {};
 
     // status vars for loader tracking
-    var start = new Date().getTime();
+    var start = Date.now();
     var resultErr = false;
     var numTenants = tenantIds.length;
     var tenantsFinished = 0;
@@ -33,7 +33,7 @@ module.exports.dataload = function(tenantIds, model, results, callback) {
             if (tenantsFinished === numTenants) {
 
                 var numMemberships = model.memberships.length * numTenants;
-                var duration = new Date().getTime() - start;
+                var duration = Date.now() - start;
                 results.dataload.memberships = {};
                 results.dataload.memberships.num = numMemberships;
                 results.dataload.memberships.duration = duration;
@@ -114,7 +114,7 @@ var checkPermissionsForTenants = function(tenantIds, checks, expect, callback) {
     var tenantsToRun = tenantIds.length;
     var tenantsRun = 0;
     var resultErr = false;
-    var start = new Date().getTime();
+    var start = Date.now();
 
     var checkStatus = function(err) {
         if (resultErr) {
@@ -125,7 +125,7 @@ var checkPermissionsForTenants = function(tenantIds, checks, expect, callback) {
         } else {
             tenantsRun++;
             if (tenantsRun === tenantsToRun) {
-                var duration = new Date().getTime() - start;
+                var duration = Date.now() - start;
                 return callback(null, duration, tenantsToRun*checks.length);
             }
         }
@@ -170,7 +170,7 @@ var checkPermissionsForTenant = function(tenantId, checks, expect, callback) {
 // persist the given model for the given tenant.
 var persistModel = function(tenant, model, results, callback) {
 
-    var start = new Date().getTime();
+    var start = Date.now();
     persistMemberships(tenant, model.memberships.slice(0), function(err) {
         if (!err) {
             return callback();

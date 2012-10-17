@@ -54,7 +54,7 @@ var createGroup = module.exports.createGroup = function (restCtx, alias, name, d
  * @param {Group}                   callback.response   The group object representing the requested group
  */
 var getGroup = module.exports.getGroup = function(restCtx, groupId, callback) {
-    RestUtil.RestRequest(restCtx, '/api/group/' + groupId, 'GET', null, callback);
+    RestUtil.RestRequest(restCtx, '/api/group/' + encodeURIComponent(groupId), 'GET', null, callback);
 };
 
 /**
@@ -70,7 +70,7 @@ var getGroup = module.exports.getGroup = function(restCtx, groupId, callback) {
  * @param {Object}                  callback.err        Error object containing error code and error message
  */
 var updateGroup = module.exports.updateGroup = function (restCtx, groupId, profileFields, callback) {
-    RestUtil.RestRequest(restCtx, '/api/group/' + groupId, 'POST', profileFields, callback);
+    RestUtil.RestRequest(restCtx, '/api/group/' + encodeURIComponent(groupId), 'POST', profileFields, callback);
 };
 
 
@@ -90,7 +90,7 @@ var getGroupMembers = module.exports.getGroupMembers = function(restCtx, groupId
         'start': start,
         'limit': limit
     };
-    RestUtil.RestRequest(restCtx, '/api/group/' + groupId + '/members', 'GET', params, callback);
+    RestUtil.RestRequest(restCtx, '/api/group/' + encodeURIComponent(groupId) + '/members', 'GET', params, callback);
 };
 
 /**
@@ -105,7 +105,7 @@ var getGroupMembers = module.exports.getGroupMembers = function(restCtx, groupId
  * @param {Object}                  callback.err        Error object containing error code and error message
  */
 var setGroupMembers = module.exports.setGroupMembers = function(restCtx, groupId, members, callback) {
-    RestUtil.RestRequest(restCtx, '/api/group/' + groupId + '/members', 'POST', members, callback);
+    RestUtil.RestRequest(restCtx, '/api/group/' + encodeURIComponent(groupId) + '/members', 'POST', members, callback);
 };
 
 /**
@@ -124,7 +124,7 @@ var memberOf = module.exports.memberOf = function(restCtx, userId, start, limit,
         'start': start,
         'limit': limit
     };
-    RestUtil.RestRequest(restCtx, '/api/group/memberships/' + userId, 'GET', params, callback);
+    RestUtil.RestRequest(restCtx, '/api/group/memberships/' + encodeURIComponent(userId), 'GET', params, callback);
 };
 
 /**
@@ -137,7 +137,7 @@ var memberOf = module.exports.memberOf = function(restCtx, userId, start, limit,
  * @param {Boolean}                 callback.exists     True if the group already exists, false if it doesn't
  */
 var exists = module.exports.exists = function(restCtx, alias, callback) {
-    RestUtil.RestRequest(restCtx, '/api/group/exists/' + alias, 'GET', null, function(err) {
+    RestUtil.RestRequest(restCtx, '/api/group/exists/' + encodeURIComponent(alias), 'GET', null, function(err) {
         if (err) {
             callback(null, false);
         } else {

@@ -23,25 +23,25 @@ var RestUtil = require('./util');
  *                                                     be for a global/tenant admin or for an anonymous user with reCaptcha disabled.
  * @param {String}                 username            The username this user can login with.
  * @param {String}                 password            The password for this user.
- * @param {String}                 visibility          This user his visibility setting. This can be public, loggedin or private.
- * @param {String}                 locale              The user his locale
- * @param {String}                 timezone            The user his timezone
- * @param {String}                 firstName           This user his first name.
- * @param {String}                 lastName            This user his last name,
  * @param {String}                 displayName         A display name, if this is left undefined the first and last name will be concatenated.
+ * @param {Object}                 additionalOptions   Additional optional parameters that need to be passed. The following values are accepted:
+ *                                                      - visibility: The user's visibility setting. This can be public, loggedin or private.
+ *                                                      - locale: The user's locale
+ *                                                      - timezone: The user's timezone
  * @param {Function(err, resp)}    callback            Standard callback method
  * @param {Object}                 callback.err        Error object containing error code and error message
  * @param {User}                   callback.response   A User object representing the created user
  */
-var createUser = module.exports.createUser = function(restCtx, username, password, visibility, locale, timezone, firstName, lastName, displayName, callback) {
+var createUser = module.exports.createUser = function(restCtx, username, password, displayName, additionalOptions, callback) {
+    additionalOptions = additionalOptions || {};
     var postData = {
         'username': username,
         'password': password,
-        'visibility': visibility,
-        'locale': locale,
-        'timezone': timezone,
-        'firstName': firstName,
-        'lastName': lastName,
+        'visibility': additionalOptions.visibility,
+        'locale': additionalOptions.locale,
+        'timezone': additionalOptions.timezone,
+        'firstName': 'FirstName',
+        'lastName': 'LastName',
         'displayName': displayName
     };
     RestUtil.RestRequest(restCtx, '/api/user/create', 'POST', postData, callback);
@@ -69,7 +69,7 @@ var getMe = module.exports.getMe = function(restCtx, callback) {
  * @param {Object}                 callback.response   The user's basic profile
  */
 var getUser = module.exports.getUser = function(restCtx, userId, callback) {
-    RestUtil.RestRequest(restCtx, '/api/user/' + userId, 'GET', null, callback);
+    RestUtil.RestRequest(restCtx, '/api/user/' + encodeURIComponent(userId), 'GET', null, callback);
 };
 
 
@@ -84,7 +84,7 @@ var getUser = module.exports.getUser = function(restCtx, userId, callback) {
  * @param {Object}                 callback.err        Error object containing error code and error message
  */
 var updateUser = module.exports.updateUser = function(restCtx, userId, params, callback) {
-    RestUtil.RestRequest(restCtx, '/api/user/' + userId, 'POST', params, callback);
+    RestUtil.RestRequest(restCtx, '/api/user/' + encodeURIComponent(userId), 'POST', params, callback);
 };
 
 /**
@@ -102,5 +102,5 @@ var changePassword = module.exports.changePassword = function(restCtx, userId, o
         'oldPassword': oldPassword,
         'newPassword': newPassword
     };
-    RestUtil.RestRequest(restCtx, '/api/user/' + userId + '/password', 'POST', params, callback);
+    RestUtil.RestRequest(restCtx, '/api/user/' + encodeURIComponent(userId) + '/password', 'POST', params, callback);
 };

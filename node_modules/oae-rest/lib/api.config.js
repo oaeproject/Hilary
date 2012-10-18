@@ -1,4 +1,4 @@
-/*
+/*!
  * Copyright 2012 Sakai Foundation (SF) Licensed under the
  * Educational Community License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License. You may
@@ -17,6 +17,7 @@ var RestUtil = require('./util');
 
 /**
  * TODO: Remove this function once the global admin UI is no longer hosted through express
+ *
  * Get the global admin UI through the REST API.
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current
  *                                                     user credentials. For this function to work, the passed in restCtx should be the global

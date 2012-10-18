@@ -124,7 +124,7 @@ var memberOf = module.exports.memberOf = function(restCtx, userId, start, limit,
         'start': start,
         'limit': limit
     };
-    RestUtil.RestRequest(restCtx, '/api/group/memberships/' + encodeURIComponent(userId), 'GET', params, callback);
+    RestUtil.RestRequest(restCtx, '/api/user/' + encodeURIComponent(userId) + '/memberships', 'GET', params, callback);
 };
 
 /**

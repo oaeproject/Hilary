@@ -22,8 +22,8 @@ var RestUtil = require('./util');
  * The additionalOptions object takes
  *
  * * visibility: The user's visibility setting. This can be public, loggedin or private.
- * *  locale: The user's locale
- * *  timezone: The user's timezone
+ * * locale: The user's locale
+ * * timezone: The user's timezone
  *
  * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. For this function to work, the passed in restCtx should either be for a global/tenant admin or for an anonymous user with reCaptcha disabled.
  * @param  {String}                 username            The username this user can login with.

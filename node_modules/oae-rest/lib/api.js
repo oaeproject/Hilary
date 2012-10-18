@@ -26,13 +26,22 @@
 
 // User REST wrappers
 module.exports.User = require('./api.user');
-// User profile REST wrappers
-module.exports.Profile = require('./api.profile');
-// Authentication REST wrappers
-module.exports.Authentication = require('./api.authentication');
 // Group REST wrappers
 module.exports.Group = require('./api.group');
+
+// User profile REST wrappers
+module.exports.Profile = require('./api.profile');
+
+// Authentication REST wrappers
+module.exports.Authentication = require('./api.authentication');
+
 // Content REST wrappers
 module.exports.Content = require('./api.content');
+
 // Tenant REST wrappers
 module.exports.Tenant = require('./api.tenant');
+
+// Config REST wrappers
+module.exports.Config = require('./api.config');
+// Doc REST wrappers
+module.exports.Doc = require('./api.doc');

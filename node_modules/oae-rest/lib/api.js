@@ -1,4 +1,4 @@
-/*
+/*!
  * Copyright 2012 Sakai Foundation (SF) Licensed under the
  * Educational Community License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License. You may
@@ -16,11 +16,12 @@
 /*
  * Note: Most of the REST wrappers will take a RestContext (ctx) object as the first parameter. This context
  * parameter specifies the tenant URL we're working on, as well as the user making the request and his password. 
- * It will be of the following form:
+ *
+ * It will be of the following form
  * 
- * RestContext restCtx = {'baseUrl': http://oae.sakai.org, 'userId': 'janedoe', 'password': 'foo'}
+ *     RestContext restCtx = {'baseUrl': http://oae.sakai.org, 'userId': 'janedoe', 'password': 'foo'}
  * 
- * For anonymous users, userId and password will be null 
+ * For anonymous users, `userId` and `password` will be `null` 
  */
 
 // User REST wrappers

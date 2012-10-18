@@ -37,12 +37,13 @@ var getAllTenants = module.exports.getAllTenants = function(restCtx, callback) {
  * Retrieve a tenant through the REST API.
  * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user
  *                                                      credentials. The tenant information that will be retrieved will be for the current tenant
+ * @param {String}                  tenantId            The tenant's unique identifier
  * @param {Function(err, tenant)}   callback            Standard callback method
  * @param {Object}                  callback.err        Error object containing error code and error message
  * @param {Tenant}                  callback.tenants    Tenant object representing the retrieved tenant
  */
-var getTenant = module.exports.getTenant = function(restCtx, callback) {
-    RestUtil.RestRequest(restCtx, '/api/tenant', 'GET', null, callback)
+var getTenant = module.exports.getTenant = function(restCtx, tenantId, callback) {
+    RestUtil.RestRequest(restCtx, '/api/tenant/' + tenantId, 'GET', null, callback)
 };
 
 /**

@@ -22,10 +22,10 @@ var WAIT_TIME = 1000;
 
 /**
  * Retrieve all available tenants through the REST API.
- * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global admin rest context will need to passed in.
- * @param {Function}                callback            Standard callback method takes arguments `err` and `tenants`
- * @param {Object}                  callback.err        Error object containing error code and error message
- * @param {Tenant[]}                callback.tenants    Array containing a tenant object for each of the available tenants
+ * @param  {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global admin rest context will need to passed in.
+ * @param  {Function}                callback            Standard callback method takes arguments `err` and `tenants`
+ * @param  {Object}                  callback.err        Error object containing error code and error message
+ * @param  {Tenant[]}                callback.tenants    Array containing a tenant object for each of the available tenants
  *                                                          
  */
 var getAllTenants = module.exports.getAllTenants = function(restCtx, callback) {
@@ -34,10 +34,10 @@ var getAllTenants = module.exports.getAllTenants = function(restCtx, callback) {
 
 /**
  * Retrieve a tenant through the REST API.
- * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. The tenant information that will be retrieved will be for the current tenant
- * @param {Function}                callback            Standard callback method takes arguments `err` and `tenant`
- * @param {Object}                  callback.err        Error object containing error code and error message
- * @param {Tenant}                  callback.tenants    Tenant object representing the retrieved tenant
+ * @param  {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. The tenant information that will be retrieved will be for the current tenant
+ * @param  {Function}                callback            Standard callback method takes arguments `err` and `tenant`
+ * @param  {Object}                  callback.err        Error object containing error code and error message
+ * @param  {Tenant}                  callback.tenants    Tenant object representing the retrieved tenant
  */
 var getTenant = module.exports.getTenant = function(restCtx, callback) {
     RestUtil.RestRequest(restCtx, '/api/tenant', 'GET', null, callback);
@@ -45,14 +45,14 @@ var getTenant = module.exports.getTenant = function(restCtx, callback) {
 
 /**
  * Create a new tenant through the REST API.
- * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global admin rest context will need to passed in.
- * @param {String}                  tenantId            The tenant's unique identifier
- * @param {Number}                  tenantPort          The port on which the tenant will run
- * @param {String}                  tenantName          The new tenant's name
- * @param {String}                  tenantBaseUrl       The base URL for the newly created tenant. This should include protocol as well (e.g. http://localhost:2001)
- * @param {Function}                callback            Standard callback method takes arguments `err` and `tenant`
- * @param {Object}                  callback.err        Error object containing error code and error message
- * @param {Tenant}                  callback.tenant     Tenant object representing the newly created tenant
+ * @param  {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global admin rest context will need to passed in.
+ * @param  {String}                  tenantId            The tenant's unique identifier
+ * @param  {Number}                  tenantPort          The port on which the tenant will run
+ * @param  {String}                  tenantName          The new tenant's name
+ * @param  {String}                  tenantBaseUrl       The base URL for the newly created tenant. This should include protocol as well (e.g. http://localhost:2001)
+ * @param  {Function}                callback            Standard callback method takes arguments `err` and `tenant`
+ * @param  {Object}                  callback.err        Error object containing error code and error message
+ * @param  {Tenant}                  callback.tenant     Tenant object representing the newly created tenant
  */
 var createTenant = module.exports.createTenant = function(restCtx, tenantId, tenantPort, tenantName, tenantBaseUrl, callback) {
     var params = {
@@ -73,11 +73,11 @@ var createTenant = module.exports.createTenant = function(restCtx, tenantId, ten
 
 /**
  * Update a tenant's metadata through the REST API.
- * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials.
- * @param {Number}                  tenantPort          The port on which the tenant that needs to be updated runs
- * @param {String}                  tenantName          The new tenant name
- * @param {Function}                callback            Standard callback method takes argument `err`
- * @param {Object}                  callback.err        Error object containing error code and error message
+ * @param  {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials.
+ * @param  {Number}                  tenantPort          The port on which the tenant that needs to be updated runs
+ * @param  {String}                  tenantName          The new tenant name
+ * @param  {Function}                callback            Standard callback method takes argument `err`
+ * @param  {Object}                  callback.err        Error object containing error code and error message
  */
 var updateTenant = module.exports.updateTenant = function(restCtx, tenantPort, tenantName, callback) {
     var params = {
@@ -89,10 +89,10 @@ var updateTenant = module.exports.updateTenant = function(restCtx, tenantPort, t
 
 /**
  * Stop a running tenant through the REST API.
- * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global admin rest context will need to passed in.
- * @param {Number}                  tenantPort          The port on which the tenant that should be stopped is running
- * @param {Function}                callback            Standard callback method takes argument `err`
- * @param {Object}                  callback.err        Error object containing error code and error message
+ * @param  {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global admin rest context will need to passed in.
+ * @param  {Number}                  tenantPort          The port on which the tenant that should be stopped is running
+ * @param  {Function}                callback            Standard callback method takes argument `err`
+ * @param  {Object}                  callback.err        Error object containing error code and error message
  */
 var stopTenant = module.exports.stopTenant = function(restCtx, tenantPort, callback) {
     RestUtil.RestRequest(restCtx, '/api/tenant/stop', 'POST', {'tenants': [tenantPort]}, function(err) {
@@ -107,10 +107,10 @@ var stopTenant = module.exports.stopTenant = function(restCtx, tenantPort, callb
 
 /**
  * Start a stopped tenant through the REST API.
- * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global admin rest context will need to passed in.
- * @param {Number}                  tenantPort          The port on which the tenant that should be started has been registered
- * @param {Function}                callback            Standard callback method takes argument `err`
- * @param {Object}                  callback.err        Error object containing error code and error message
+ * @param  {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global admin rest context will need to passed in.
+ * @param  {Number}                  tenantPort          The port on which the tenant that should be started has been registered
+ * @param  {Function}                callback            Standard callback method takes argument `err`
+ * @param  {Object}                  callback.err        Error object containing error code and error message
  */
 var startTenant = module.exports.startTenant = function(restCtx, tenantPort, callback) {
     RestUtil.RestRequest(restCtx, '/api/tenant/start', 'POST', {'tenants': [tenantPort]}, function(err) {
@@ -125,10 +125,10 @@ var startTenant = module.exports.startTenant = function(restCtx, tenantPort, cal
 
 /**
  * Delete a tenant through the REST API.
- * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global admin rest context will need to passed in.
- * @param {Number}                  tenantPort          The port on which the tenant that should be deleted has been registered
- * @param {Function}                callback            Standard callback method takes argument `err`
- * @param {Object}                  callback.err        Error object containing error code and error message
+ * @param  {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global admin rest context will need to passed in.
+ * @param  {Number}                  tenantPort          The port on which the tenant that should be deleted has been registered
+ * @param  {Function}                callback            Standard callback method takes argument `err`
+ * @param  {Object}                  callback.err        Error object containing error code and error message
  */     
 var deleteTenant = module.exports.deleteTenant = function(restCtx, tenantPort, callback) {
     RestUtil.RestRequest(restCtx, '/api/tenant/delete', 'POST', {'tenants': [tenantPort]}, function(err) {

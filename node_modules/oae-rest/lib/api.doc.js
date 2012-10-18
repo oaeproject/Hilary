@@ -17,11 +17,11 @@ var RestUtil = require('./util');
 
 /**
  * Get a list of all of the available modules through the REST API.
- * @param {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current
+ * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current
  *                                                     user credentials
- * @param {Function(err, modules)} callback            Standard callback method
- * @param {Object}                 callback.err        Error object containing error code and error message 
- * @param {Array<String>}          callback.modules    Array containing the names of all of the available modules
+ * @param  {Function}  callback            Standard callback method
+ * @param  {Object}    callback.err        Error object containing error code and error message 
+ * @param  {String[]}  callback.modules    Array containing the names of all of the available modules
  */
 var getModules = module.exports.getModules = function(restCtx, callback) {
     RestUtil.RestRequest(restCtx, '/api/doc/modules', 'GET', null, callback);
@@ -29,11 +29,11 @@ var getModules = module.exports.getModules = function(restCtx, callback) {
 
 /**
  * Get the documentation of a particular module through the REST API.
- * @param {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current
+ * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current
  *                                                     user credentials
- * @param {Function(err, doc)}     callback            Standard callback method
- * @param {Object}                 callback.err        Error object containing error code and error message 
- * @param {Dox}                    callback.doc        Dox object containing the JSDoc information for the requested module
+ * @param  {Function}  callback            Standard callback method
+ * @param  {Object}    callback.err        Error object containing error code and error message 
+ * @param  {Dox}       callback.doc        Dox object containing the JSDoc information for the requested module
  */
 var getDoc = module.exports.getDoc = function(restCtx, moduleId, callback) {
     RestUtil.RestRequest(restCtx, '/api/doc/module/' + encodeURIComponent(moduleId), 'GET', null, callback);

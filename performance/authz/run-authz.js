@@ -13,10 +13,11 @@ var argv = require('optimist')
     .argv;
 
 var oae = require('oae-util/lib/oae');
-var io = require('oae-util/lib/io');
 var log = require('oae-logger').logger('authz-performance');
 var performance = require('./lib/performance');
 var config = require('../../config').config;
+
+var PerformanceUtil = require('../lib/util.js');
 
 
 config.cassandra.keyspace = 'oaePerformanceAuthz';
@@ -24,7 +25,7 @@ config.cassandra.keyspace = 'oaePerformanceAuthz';
 var scriptsDir = argv['s'];
 var numberOfRuns = argv['n'];
 var concurrent = argv['c'];
-var baseTenantId = 'perf-test-'+new Date().getTime();
+var baseTenantId = 'perf-test-'+Date.now();
 
 oae.init(config, function(err) {
     if (!err) {
@@ -104,7 +105,7 @@ var runPhases = function(phaseId, phases, model, results, callback) {
  */
 var readScript = function(jsonFile, name, model, callback) {
     model[name] = [];
-    io.loadJSONFileIntoArray(jsonFile, function(items) {
+    PerformanceUtil.loadJSONFileIntoArray(jsonFile, function(items) {
         for (var i = 0; i < items.length; i++) {
             model[name].push(items[i]);
         }

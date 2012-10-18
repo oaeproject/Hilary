@@ -25,7 +25,7 @@ config.cassandra.keyspace = 'oaePerformanceAuthz';
 var scriptsDir = argv['s'];
 var numberOfRuns = argv['n'];
 var concurrent = argv['c'];
-var baseTenantId = 'perf-test-'+new Date().getTime();
+var baseTenantId = 'perf-test-'+Date.now();
 
 oae.init(config, function(err) {
     if (!err) {

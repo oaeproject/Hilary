@@ -45,11 +45,11 @@ var createGroup = module.exports.createGroup = function (restCtx, alias, name, d
    
 /**
  * Get a group trough the REST API.
- * @param  {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {String}                  groupId             The id of the group you wish to retrieve.
- * @param  {Function}                callback            Standard callback method takes arguments `err` and `resp`
- * @param  {Object}                  callback.err        Error object containing error code and error message
- * @param  {Group}                   callback.response   The group object representing the requested group
+ * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}       groupId             The id of the group you wish to retrieve.
+ * @param  {Function}     callback            Standard callback method takes arguments `err` and `resp`
+ * @param  {Object}       callback.err        Error object containing error code and error message
+ * @param  {Group}        callback.response   The group object representing the requested group
  */
 var getGroup = module.exports.getGroup = function(restCtx, groupId, callback) {
     RestUtil.RestRequest(restCtx, '/api/group/' + encodeURIComponent(groupId), 'GET', null, callback);

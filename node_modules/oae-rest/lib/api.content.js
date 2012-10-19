@@ -88,7 +88,7 @@ var createFile = module.exports.createFile = function(restCtx, name, description
  * @param  {String[]}     viewers             Array of user/group ids that should be added as viewers to the content item
  * @param  {Function}     callback            Standard callback method
  * @param  {Object}       callback.err        Error object containing error code and error message
- * @param  {Content}   callback.content    Content object representing the created content
+ * @param  {Content}      callback.content    Content object representing the created content
  */
 var createSakaiDoc = module.exports.createSakaiDoc = function(restCtx, name, description, visibility, managers, viewers, callback) {
     var params = {
@@ -128,12 +128,12 @@ var deleteContent = module.exports.deleteContent = function(restCtx, contentId, 
 /**
  * Get the viewers and managers of a content item through the REST API.
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {String}       contentId           Content id of the content item we're trying to retrieve the members for
- * @param  {String}       start               The principal id to start from (this will not be included in the response)
- * @param  {Number}       limit               The number of members to retrieve.
- * @param  {Function}     callback            Standard callback method
- * @param  {Object}       callback.err        Error object containing error code and error message
- * @param  {Object[]}     callback.members    Array that contains an object for each member. Each object has a role property that contains the role of the member and a profile property that contains the principal profile of the member
+ * @param  {String}          contentId           Content id of the content item we're trying to retrieve the members for
+ * @param  {String}          start               The principal id to start from (this will not be included in the response)
+ * @param  {Number}          limit               The number of members to retrieve.
+ * @param  {Function}        callback            Standard callback method
+ * @param  {Object}          callback.err        Error object containing error code and error message
+ * @param  {User[]|Group[]}  callback.members    Array that contains an object for each member. Each object has a role property that contains the role of the member and a profile property that contains the principal profile of the member
  */
 var getMembers = module.exports.getMembers = function(restCtx, contentId, start, limit, callback) {
     var params = {

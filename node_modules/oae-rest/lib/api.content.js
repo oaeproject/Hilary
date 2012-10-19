@@ -17,12 +17,11 @@ var RestUtil = require('./util');
 
 /**
  * Get a full content profile through the REST API.
- * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current
- *                                                     user credentials
- * @param  {String}    contentId           Content id of the content item we're trying to retrieve
- * @param  {Function}  callback            Standard callback method
- * @param  {Object}    callback.err        Error object containing error code and error message
- * @param  {Content}   callback.content    Content object representing the retrieved content
+ * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}       contentId           Content id of the content item we're trying to retrieve
+ * @param  {Function}     callback            Standard callback method
+ * @param  {Object}       callback.err        Error object containing error code and error message
+ * @param  {Content}      callback.content    Content object representing the retrieved content
  */
 var getContent = module.exports.getContent = function(restCtx, contentId, callback) {
     RestUtil.RestRequest(restCtx, '/api/content/' + contentId, 'GET', null, callback);
@@ -57,16 +56,15 @@ var createLink = module.exports.createLink = function(restCtx, name, description
 
 /**
  * Create a new file through the REST API.
- * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current
- *                                                     user credentials
- * @param  {String}    name                Display title for the created content item
- * @param  {String}    description         The content item's description
- * @param  {String}    visibility          The content item's visibility. This can be public, loggedin or private
- * @param  {String[]}  managers            Array of user/group ids that should be added as managers to the content item
- * @param  {String[]}  viewers             Array of user/group ids that should be added as viewers to the content item
- * @param  {Function}  callback            Standard callback method
- * @param  {Object}    callback.err        Error object containing error code and error message
- * @param  {Content}   callback.content    Content object representing the created content
+ * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}       name                Display title for the created content item
+ * @param  {String}       description         The content item's description
+ * @param  {String}       visibility          The content item's visibility. This can be public, loggedin or private
+ * @param  {String[]}     managers            Array of user/group ids that should be added as managers to the content item
+ * @param  {String[]}     viewers             Array of user/group ids that should be added as viewers to the content item
+ * @param  {Function}     callback            Standard callback method
+ * @param  {Object}       callback.err        Error object containing error code and error message
+ * @param  {Content}      callback.content    Content object representing the created content
  */
 var createFile = module.exports.createFile = function(restCtx, name, description, visibility, managers, viewers, callback) {
     var params = {
@@ -82,15 +80,14 @@ var createFile = module.exports.createFile = function(restCtx, name, description
 
 /**
  * Create a new Sakai Doc through the REST API.
- * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current
- *                                                     user credentials
- * @param  {String}    name                Display title for the created content item
- * @param  {String}    description         The content item's description
- * @param  {String}    visibility          The content item's visibility. This can be public, loggedin or private
- * @param  {String[]}  managers            Array of user/group ids that should be added as managers to the content item
- * @param  {String[]}  viewers             Array of user/group ids that should be added as viewers to the content item
- * @param  {Function}  callback            Standard callback method
- * @param  {Object}    callback.err        Error object containing error code and error message
+ * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}       name                Display title for the created content item
+ * @param  {String}       description         The content item's description
+ * @param  {String}       visibility          The content item's visibility. This can be public, loggedin or private
+ * @param  {String[]}     managers            Array of user/group ids that should be added as managers to the content item
+ * @param  {String[]}     viewers             Array of user/group ids that should be added as viewers to the content item
+ * @param  {Function}     callback            Standard callback method
+ * @param  {Object}       callback.err        Error object containing error code and error message
  * @param  {Content}   callback.content    Content object representing the created content
  */
 var createSakaiDoc = module.exports.createSakaiDoc = function(restCtx, name, description, visibility, managers, viewers, callback) {
@@ -107,12 +104,11 @@ var createSakaiDoc = module.exports.createSakaiDoc = function(restCtx, name, des
 
 /**
  * Update a content item's metadata through the REST API.
- * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current
- *                                                     user credentials
- * @param  {String}     contentId           Content id of the content item we're trying to update
- * @param  {Object}     params              JSON object where the keys represent all of the profile field names we want to update and the values represent the new values for those fields
- * @param  {Function}   callback            Standard callback method
- * @param  {Object}     callback.err        Error object containing error code and error message
+ * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}       contentId           Content id of the content item we're trying to update
+ * @param  {Object}       params              JSON object where the keys represent all of the profile field names we want to update and the values represent the new values for those fields
+ * @param  {Function}     callback            Standard callback method
+ * @param  {Object}       callback.err        Error object containing error code and error message
  */
 var updateContent = module.exports.updateContent = function(restCtx, contentId, params, callback) {
     RestUtil.RestRequest(restCtx, '/api/content/' + contentId, 'POST', params, callback);
@@ -149,14 +145,12 @@ var getMembers = module.exports.getMembers = function(restCtx, contentId, start,
 
 /**
  * Change the members and managers of a content item through the REST API.
- * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current
+ * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current
  *                                                     user credentials
- * @param  {String}                 contentId           Content id of the content item we're trying to update the members for
- * @param  {Object}                 updatedMembers      JSON Object where the keys are the user/group ids we want to update membership for, and
- *                                                     the values are the roles these members should get (manager or viewer). If false is passed in
- *                                                     as a role, the principal will be removed as a member
- * @param  {Function}   callback            Standard callback method
- * @param  {Object}     callback.err        Error object containing error code and error message
+ * @param  {String}       contentId           Content id of the content item we're trying to update the members for
+ * @param  {Object}       updatedMembers      JSON Object where the keys are the user/group ids we want to update membership for, and the values are the roles these members should get (manager or viewer). If false is passed in as a role, the principal will be removed as a member
+ * @param  {Function}     callback            Standard callback method
+ * @param  {Object}       callback.err        Error object containing error code and error message
  */
 var updateMembers = module.exports.updateMembers = function(restCtx, contentId, updatedMembers, callback) {
     RestUtil.RestRequest(restCtx, '/api/content/' + contentId + '/members', 'POST', updatedMembers, callback);
@@ -164,12 +158,11 @@ var updateMembers = module.exports.updateMembers = function(restCtx, contentId, 
 
 /**
  * Share a content item through the REST API.
- * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current
- *                                                     user credentials
- * @param  {String}     contentId           Content id of the content item we're trying to share
- * @param  {String[]}   principals          Array of principal ids with who the content should be shared
- * @param  {Function}   callback            Standard callback method
- * @param  {Object}     callback.err        Error object containing error code and error message
+ * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}       contentId           Content id of the content item we're trying to share
+ * @param  {String[]}     principals          Array of principal ids with who the content should be shared
+ * @param  {Function}     callback            Standard callback method
+ * @param  {Object}       callback.err        Error object containing error code and error message
  */
 var share = module.exports.share = function(restCtx, contentId, principals, callback) {
     RestUtil.RestRequest(restCtx, '/api/content/' + contentId + '/share', 'POST', {'viewers': principals}, callback);

@@ -18,17 +18,17 @@ var RestUtil = require('./util');
 /**
  * Creates a group through the REST API.
  * Optional arguments will only be added if they are defined and will be sent as is.
- * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {String}                 alias               The alias for this group
- * @param  {String}                 name                The name for this group
- * @param  {String}                 description         The description for this group (Optional)
- * @param  {String}                 visibility          The visibility for this group (Optional)
- * @param  {String}                 joinable            Whether or not this group is joinable (Optional)
+ * @param  {RestContext}       restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}            alias               The alias for this group
+ * @param  {String}            name                The name for this group
+ * @param  {String}            description         The description for this group (Optional)
+ * @param  {String}            visibility          The visibility for this group (Optional)
+ * @param  {String}            joinable            Whether or not this group is joinable (Optional)
  * @param  {String[]}          managers            An array of userIds that should be made managers (Optional)
  * @param  {String[]}          members             An array of userIds that should be made members (Optional)
  * @param  {Function}          callback            Standard callback method takes arguments `err` and `resp`
- * @param  {Object}                 callback.err        Error object containing error code and error message
- * @param  {Group}                  callback.response   A Group object representing the created group
+ * @param  {Object}            callback.err        Error object containing error code and error message
+ * @param  {Group}             callback.response   A Group object representing the created group
  */
 var createGroup = module.exports.createGroup = function (restCtx, alias, name, description, visibility, joinable, managers, members, callback) {
     var postData = {
@@ -101,13 +101,13 @@ var setGroupMembers = module.exports.setGroupMembers = function(restCtx, groupId
 
 /**
  * Returns all of the groups that a user is a direct and indirect member of through the REST API.
- * @param  {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {String}                  userId              The user id for which we want to get all of the memberships
- * @param  {String}                  start               The group id to start from (this will not be included in the response)
- * @param  {Number}                  limit               The number of members to retrieve
- * @param  {Function}                callback            Standard callback method takes arguments `err` and `resp`
- * @param  {Object}                  callback.err        Error object containing error code and error message
- * @param  {Group[]}            callback.response   An array of groups representing the direct and indirect memberships of the provided user
+ * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}       userId              The user id for which we want to get all of the memberships
+ * @param  {String}       start               The group id to start from (this will not be included in the response)
+ * @param  {Number}       limit               The number of members to retrieve
+ * @param  {Function}     callback            Standard callback method takes arguments `err` and `resp`
+ * @param  {Object}       callback.err        Error object containing error code and error message
+ * @param  {Group[]}      callback.response   An array of groups representing the direct and indirect memberships of the provided user
  */
 var memberOf = module.exports.memberOf = function(restCtx, userId, start, limit, callback) {
     var params = {

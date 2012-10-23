@@ -39,8 +39,8 @@ var getGlobalAdminUI = module.exports.getGlobalAdminUI = function(restCtx, callb
  * @param {Object}                 callback.err        Error object containing error code and error message 
  * @param {String}                 callback.adminui    HTML representing the tenant admin UI
  */
-var getTenantAdminUI = module.exports.getTenantAdminUI = function(restCtx, tenantAlias, callback) {
-    RestUtil.RestRequest(restCtx, '/admin/tenant/' + encodeURIComponent(tenantAlias), 'GET', null, callback);
+var getTenantAdminUI = module.exports.getTenantAdminUI = function(restCtx, callback) {
+    RestUtil.RestRequest(restCtx, '/admin', 'GET', null, callback);
 };
 
 /**
@@ -52,7 +52,11 @@ var getTenantAdminUI = module.exports.getTenantAdminUI = function(restCtx, tenan
  * @param {Object}                 callback.config     JSON object representing the global/tenant config values
  */
 var getConfig = module.exports.getConfig = function(restCtx, tenantId, callback) {
-    RestUtil.RestRequest(restCtx, '/api/config/' + tenantId, 'GET', null, callback);
+    var url = '/api/config';
+    if (tenantId) {
+        url += '/' + encodeURIComponent(tenantId);
+    }
+    RestUtil.RestRequest(restCtx, url, 'GET', null, callback);
 };
 
 /**
@@ -67,7 +71,11 @@ var getConfig = module.exports.getConfig = function(restCtx, tenantId, callback)
 var setConfig = module.exports.setConfig = function(restCtx, tenantId, configField, configValue, callback) {
     var params = {};
     params[configField] = configValue;
-    RestUtil.RestRequest(restCtx, '/api/config/' + tenantId, 'POST', params, function(err) {
+    var url = '/api/config';
+    if (tenantId) {
+        url += '/' + encodeURIComponent(tenantId);
+    }
+    RestUtil.RestRequest(restCtx, url, 'POST', params, function(err) {
         // Give it a second to propogate to the app servers
         setTimeout(callback, 1000, err);
     });

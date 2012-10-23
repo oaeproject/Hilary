@@ -102,7 +102,6 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
         if (error) {
             return callback({'code': 500, 'msg': 'Something went wrong trying to contact the server: ' + error});
         } else if (errorCodes.indexOf(response.statusCode) !== -1) {
-            //console.log(response);
             return callback({'code': response.statusCode, 'msg': body});
         }
         // Check if the response body is JSON

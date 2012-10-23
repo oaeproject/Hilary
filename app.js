@@ -17,9 +17,9 @@ var cluster = require('cluster');
 
 if (cluster.isMaster) {
     //start up workers for each cpu
-    require('os').cpus().forEach(function() {
+    for (var c = 0; c < 2; c++) {
         cluster.fork();
-    });
+    }
     
     cluster.on('death', function(worker) {
         console.log('worker ' + worker.pid + ' died');

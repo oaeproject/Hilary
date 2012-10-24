@@ -29,17 +29,16 @@ var getContent = module.exports.getContent = function(restCtx, contentId, callba
 
 /**
  * Create a new link through the REST API.
- * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current
- *                                                     user credentials
- * @param  {String}    name                Display title for the created content item
- * @param  {String}    description         The content item's description
- * @param  {String}    visibility          The content item's visibility. This can be public, loggedin or private
- * @param  {String}    link                The URL that should be stored against this content item
- * @param  {String[]}  managers            Array of user/group ids that should be added as managers to the content item
- * @param  {String[]}  viewers             Array of user/group ids that should be added as viewers to the content item
- * @param  {Function}  callback            Standard callback method
- * @param  {Object}    callback.err        Error object containing error code and error message
- * @param  {Content}   callback.content    Content object representing the created content
+ * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}         name                Display title for the created content item
+ * @param  {String}         description         The content item's description
+ * @param  {String}         visibility          The content item's visibility. This can be public, loggedin or private
+ * @param  {String}         link                The URL that should be stored against this content item
+ * @param  {String[]}       managers            Array of user/group ids that should be added as managers to the content item
+ * @param  {String[]}       viewers             Array of user/group ids that should be added as viewers to the content item
+ * @param  {Function}       callback            Standard callback method
+ * @param  {Object}         callback.err        Error object containing error code and error message
+ * @param  {Content}        callback.content    Content object representing the created content
  */
 var createLink = module.exports.createLink = function(restCtx, name, description, visibility, link, managers, viewers, callback) {
     var params = {
@@ -127,7 +126,7 @@ var deleteContent = module.exports.deleteContent = function(restCtx, contentId, 
 
 /**
  * Get the viewers and managers of a content item through the REST API.
- * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {RestContext}     restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}          contentId           Content id of the content item we're trying to retrieve the members for
  * @param  {String}          start               The principal id to start from (this will not be included in the response)
  * @param  {Number}          limit               The number of members to retrieve.
@@ -145,8 +144,7 @@ var getMembers = module.exports.getMembers = function(restCtx, contentId, start,
 
 /**
  * Change the members and managers of a content item through the REST API.
- * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current
- *                                                     user credentials
+ * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}       contentId           Content id of the content item we're trying to update the members for
  * @param  {Object}       updatedMembers      JSON Object where the keys are the user/group ids we want to update membership for, and the values are the roles these members should get (manager or viewer). If false is passed in as a role, the principal will be removed as a member
  * @param  {Function}     callback            Standard callback method
@@ -170,14 +168,13 @@ var share = module.exports.share = function(restCtx, contentId, principals, call
 
 /**
  * Get a principal library through the REST API.
- * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current
- *                                                     user credentials
- * @param  {String}     principalId         User or group id for who we want to retrieve the library
- * @param  {String}     start               The content id to start from (this will not be included in the response)
- * @param  {Number}     limit               The number of content items to retrieve.
- * @param  {Function}   callback            Standard callback method
- * @param  {Object}     callback.err        Error object containing error code and error message
- * @param  {Content[]}  callback.items      Array of content items representing the content items present in the library
+ * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}         principalId         User or group id for who we want to retrieve the library
+ * @param  {String}         start               The content id to start from (this will not be included in the response)
+ * @param  {Number}         limit               The number of content items to retrieve.
+ * @param  {Function}       callback            Standard callback method
+ * @param  {Object}         callback.err        Error object containing error code and error message
+ * @param  {Content[]}      callback.items      Array of content items representing the content items present in the library
  */
 var getLibrary = module.exports.getLibrary = function(restCtx, principalId, start, limit, callback) {
     var params = {

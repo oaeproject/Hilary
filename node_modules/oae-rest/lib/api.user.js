@@ -19,17 +19,17 @@ var RestUtil = require('./util');
  * Creates a user through the REST API.
  * Optional arguments will only be added if they are defined and will be sent as is.
  *
- * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. For this function to work, the passed in restCtx should either be for a global/tenant admin or for an anonymous user with reCaptcha disabled.
- * @param  {String}   username                      The username this user can login with.
- * @param  {String}   password                      The password for this user.
- * @param  {String}   displayName                   A display name, if this is left undefined the first and last name will be concatenated.
- * @param  {Object}   additionalOptions             Additional optional parameters that need to be passed.
- * @param  {String}   additionalOptions.visibility  The user's visibility setting. This can be public, loggedin or private.
- * @param  {String}   additionalOptions.locale      The user's locale
- * @param  {String}   additionalOptions.timezone    The user's timezone
- * @param  {Function} callback                      Standard callback method takes arguments `err` and `resp`
- * @param  {Object}   callback.err                  Error object containing error code and error message
- * @param  {User}     callback.response             A User object representing the created user
+ * @param  {RestContext}    restCtx                       Standard REST Context object that contains the current tenant URL and the current user credentials. For this function to work, the passed in restCtx should either be for a global/tenant admin or for an anonymous user with reCaptcha disabled.
+ * @param  {String}         username                      The username this user can login with.
+ * @param  {String}         password                      The password for this user.
+ * @param  {String}         displayName                   A display name, if this is left undefined the first and last name will be concatenated.
+ * @param  {Object}         additionalOptions             Additional optional parameters that need to be passed.
+ * @param  {String}         additionalOptions.visibility  The user's visibility setting. This can be public, loggedin or private.
+ * @param  {String}         additionalOptions.locale      The user's locale
+ * @param  {String}         additionalOptions.timezone    The user's timezone
+ * @param  {Function}       callback                      Standard callback method takes arguments `err` and `resp`
+ * @param  {Object}         callback.err                  Error object containing error code and error message
+ * @param  {User}           callback.response             A User object representing the created user
  */
 var createUser = module.exports.createUser = function(restCtx, username, password, displayName, additionalOptions, callback) {
     additionalOptions = additionalOptions || {};

@@ -26,6 +26,7 @@
 
 // User REST wrappers
 module.exports.User = require('./api.user');
+
 // Group REST wrappers
 module.exports.Group = require('./api.group');
 
@@ -43,5 +44,9 @@ module.exports.Tenant = require('./api.tenant');
 
 // Config REST wrappers
 module.exports.Config = require('./api.config');
+
 // Doc REST wrappers
 module.exports.Doc = require('./api.doc');
+
+// Search REST wrappers
+module.exports.Search = require('./api.search');

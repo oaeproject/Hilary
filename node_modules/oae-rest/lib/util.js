@@ -14,6 +14,7 @@
  */
 
 var request = require('request');
+var log = require('oae-logger').logger('oae-rest');
 
 // Array of response codes that are considered to be HTTP errors
 var errorCodes = [400, 401, 403, 404, 500, 503];
@@ -36,6 +37,7 @@ var cookies = {};
  * @param  {String|Object}  callback.response   The response received from the request. If this is JSON, a parsed JSON object will be returned, otherwise the response will be returned as a string
  */
 var RestRequest = module.exports.RestRequest = function(restCtx, url, method, data, callback) {
+
     // Check if the request should be done by a logged in user
     if (restCtx.userId) {
         // Check if we already have a stored session for this user
@@ -80,6 +82,8 @@ var RestRequest = module.exports.RestRequest = function(restCtx, url, method, da
  * @api private
  */
 var _RestRequest = function(restCtx, url, method, data, callback) {
+    log().trace({ restCtx: restCtx, url: url, method: method, data: data }, 'REST Request executing.');
+
     var j = request.jar();
     if (restCtx.userId) {
         // Create a composite of URL and userid to make sure that userids
@@ -110,8 +114,11 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
             requestParams.form = data;
         }
     }
+    
     request(requestParams, function(error, response, body) {
+        log().trace({ res: response, body: body }, 'REST Request complete.');
         if (error) {
+            log().error({ err: error }, 'Error communicating with the server.');
             return callback({'code': 500, 'msg': 'Something went wrong trying to contact the server: ' + error});
         } else if (errorCodes.indexOf(response.statusCode) !== -1) {
             return callback({'code': response.statusCode, 'msg': body});

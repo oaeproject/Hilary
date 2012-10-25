@@ -83,3 +83,20 @@ config.telemetry = {
         'interval': 5000
     }
 };
+
+config.search = {
+    'index': {
+        'name': 'oae',
+        'settings': {
+            'number_of_shards': 1,
+            'number_of_replicas': 1
+        },
+        'allowRefresh': false,
+    },
+    'hosts': [
+        {
+            'host': 'localhost',
+            'port': 9200
+        }
+    ]
+};

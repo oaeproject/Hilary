@@ -45,6 +45,7 @@
     "recaptcha-async": "latest",
     "redis": "latest",
     "request": "latest",
+    "shelljs": "latest",
     "shortid": "latest",
     "time": "latest",
     "underscore": "latest",

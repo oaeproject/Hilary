@@ -6,10 +6,10 @@ var AuthzUtil = require('oae-authz/lib/util');
 /**
  * Load the user, group and membership data from the model-loader scripts specified in scriptsDir.
  *
- * @param {Array<String>}           tenantIds       The tenants to run concurrently. All tenants will have the same data loaded.
- * @param {Object}                  results         An object to which the dataload process can attach timing results
- * @param {Function(err, model)}    callback        The function invoked when dataloading is complete
- * @param {Object}                  callback.err    An error that occurred, if any
+ * @param  {String[]}    tenantIds       The tenants to run concurrently. All tenants will have the same data loaded.
+ * @param  {Object}      results         An object to which the dataload process can attach timing results
+ * @param  {Function}    callback        The function invoked when dataloading is complete
+ * @param  {Object}      callback.err    An error that occurred, if any
  */
 module.exports.dataload = function(tenantIds, model, results, callback) {
 
@@ -57,11 +57,11 @@ module.exports.dataload = function(tenantIds, model, results, callback) {
  * Run the performance test concurrently for the given tenants on the model. The performance test results
  * should be attached to the results parameter object.
  *
- * @param {Array<String>}   tenantIds       An array of tenant ids for which to run the tests
- * @param {Object}          model           The data model to test against
- * @param {Object}          results         A results object that aggregates resulting timing information
- * @param {Function(err)}   callback        The method invoked when the process completes
- * @param {Object}          callback.err    An error that occurred, if any
+ * @param  {String[]}   tenantIds       An array of tenant ids for which to run the tests
+ * @param  {Object}     model           The data model to test against
+ * @param  {Object}     results         A results object that aggregates resulting timing information
+ * @param  {Function}   callback        The method invoked when the process completes
+ * @param  {Object}     callback.err    An error that occurred, if any
  */
 module.exports.performanceTest = function(tenantIds, model, results, callback) {
     var performance = results.performanceTest = {};

@@ -13,20 +13,15 @@
  * permissions and limitations under the License.
  */
 
-var cluster = require('cluster');
+var OAE = require('oae-util/lib/oae');
+var log = require('oae-logger').logger();
 
-if (cluster.isMaster) {
-    //start up workers for each cpu
-    for (var c = 0; c < 2; c++) {
-        cluster.fork();
+var config = require('./config').config;
+
+// Start the server and all of its tenants
+OAE.init(config, function(err) {
+    if (err) {
+        log().error({err: err}, 'Error initializing server.');
     }
-    
-    cluster.on('death', function(worker) {
-        console.log('worker ' + worker.pid + ' died');
-        cluster.fork();
-    });
-
-} else {
-    //load up your application as a worker
-    require('./oae.js');
-}
+    log().info("Initialization all done ... Firing up tenants ... Enjoy!");
+});

@@ -13,14 +13,27 @@
  * permissions and limitations under the License.
  */
 
-var OAE = require('oae-util/lib/oae');
-var log = require('oae-logger').logger();
+var argv = require('optimist')
+    .alias('c', 'cpu')
+    .describe('c', 'The number of Node.js processes to start in a cluster')
+    .default('c', require('os').cpus().length)
+    .argv;
 
-var config = require('./config').config;
+var cluster = require('cluster');
 
-OAE.init(config, function(err) {
-    if (err) {
-        log().error({err: err}, 'Error initializing server.');
+if (cluster.isMaster) {
+    // Start up the right number of workers
+    for (var c = 0; c < argv['c']; c++) {
+        cluster.fork();
     }
-    log().info("Initialization all done ... Firing up tenants ... Enjoy!");
-});
+    
+    // When one of the worker dies, we respawn them
+    cluster.on('death', function(worker) {
+        console.log('worker ' + worker.pid + ' died');
+        cluster.fork();
+    });
+
+} else {
+    // Start up a worker
+    require('./app.js');
+}

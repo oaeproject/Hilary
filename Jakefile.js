@@ -36,11 +36,11 @@ task('lib-cov', [], function() {
     shell.echo('Creating target directory');
     shell.mkdir('-p', 'target');
     shell.echo('Copying all files.');
-  // List of filenames not containing 'git' or 'target'
-  var files = shell.ls('-A', '.').filter(function(value, index, ar) {
-    return (value.indexOf('target') === -1 &&
-        value.indexOf('git') === -1);
-  });
+    // List of filenames not containing 'git' or 'target'
+    var files = shell.ls('-A', '.').filter(function(value, index, ar) {
+        return (value.indexOf('target') === -1 &&
+            value.indexOf('git') === -1);
+    });
     shell.cp('-R', files, 'target');
     shell.echo('Instrumenting all files.');
     shell.exec('node node_modules/oae-tests/runner/instrument_code.js "' + shell.pwd() + '"');

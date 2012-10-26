@@ -29,6 +29,19 @@ task('test-coverage', ['lib-cov'], function() {
     var output = shell.exec('../node_modules/.bin/mocha --ignore-leaks --timeout ' + TIMEOUT + ' --reporter html-cov ' + MOCHA_OPTS + ' node_modules/oae-tests/runner/beforeTests.js ' + MODULES, {silent:true}).output;
     output.to('coverage.html');
     shell.echo('Code Coverage report generated at target/coverage.html');
+    var browser = shell.env['BROWSER'];
+    if (! browser) {
+        if (process.platform === 'linux') {
+            browser = 'xdg-open';
+        } else if (process.platform === 'darwin') {
+            browser = 'open';
+        } else if (process.platform === 'win32') {
+            browser = 'explorer.exe';
+        }
+    }
+    if (browser) {
+        shell.exec(browser + ' coverage.html');
+    }
 });
 
 task('lib-cov', [], function() {

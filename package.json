@@ -22,6 +22,7 @@
     "dox": "latest",
     "express": "latest",
     "helenus": "latest",
+    "hiredis": "latest",
     "oae-authentication": "",
     "oae-authz": "",
     "oae-config": "",

@@ -1,4 +1,4 @@
-/*
+/*!
  * Copyright 2012 Sakai Foundation (SF) Licensed under the
  * Educational Community License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License. You may
@@ -17,13 +17,14 @@ var RestUtil = require('./util');
 
 /**
  * TODO: Remove this function once the global admin UI is no longer hosted through express
+ *
  * Get the global admin UI through the REST API.
- * @param {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current
+ * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current
  *                                                     user credentials. For this function to work, the passed in restCtx should be the global
  *                                                     admin REST context
- * @param {Function(err, adminui)} callback            Standard callback method
- * @param {Object}                 callback.err        Error object containing error code and error message 
- * @param {String}                 callback.adminui    HTML representing the global admin UI
+ * @param  {Function}     callback            Standard callback method
+ * @param  {Object}       callback.err        Error object containing error code and error message 
+ * @param  {String}       callback.adminui    HTML representing the global admin UI
  */
 var getGlobalAdminUI = module.exports.getGlobalAdminUI = function(restCtx, callback) {
     RestUtil.RestRequest(restCtx, '/admin.html', 'GET', null, callback);
@@ -32,12 +33,12 @@ var getGlobalAdminUI = module.exports.getGlobalAdminUI = function(restCtx, callb
 /**
  * TODO: Remove this function once the global admin UI is no longer hosted through express
  * Get the tenant admin UI through the REST API.
- * @param {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current
+ * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current
  *                                                     user credentials
- * @param {String}                 tenantAlias         Alias of the tenant we're trying to get the admin UI for
- * @param {Function(err, adminui)} callback            Standard callback method
- * @param {Object}                 callback.err        Error object containing error code and error message 
- * @param {String}                 callback.adminui    HTML representing the tenant admin UI
+ * @param  {String}    tenantAlias         Alias of the tenant we're trying to get the admin UI for
+ * @param  {Function}  callback            Standard callback method
+ * @param  {Object}    callback.err        Error object containing error code and error message 
+ * @param  {String}    callback.adminui    HTML representing the tenant admin UI
  */
 var getTenantAdminUI = module.exports.getTenantAdminUI = function(restCtx, tenantAlias, callback) {
     RestUtil.RestRequest(restCtx, '/admin/tenant/' + encodeURIComponent(tenantAlias), 'GET', null, callback);
@@ -45,24 +46,24 @@ var getTenantAdminUI = module.exports.getTenantAdminUI = function(restCtx, tenan
 
 /**
  * Get the global or tenant config through the REST API.
- * @param {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current
+ * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current
  *                                                     user credentials
- * @param {Function(err, config)}  callback            Standard callback method
- * @param {Object}                 callback.err        Error object containing error code and error message 
- * @param {Object}                 callback.config     JSON object representing the global/tenant config values
+ * @param  {Function}  callback            Standard callback method
+ * @param  {Object}    callback.err        Error object containing error code and error message 
+ * @param  {Object}    callback.config     JSON object representing the global/tenant config values
  */
 var getConfig = module.exports.getConfig = function(restCtx, callback) {
     RestUtil.RestRequest(restCtx, '/api/config', 'GET', null, callback);
 };
 
 /**
- * @param {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current
+ * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current
  *                                                     user credentials. In order for this to work, a global/tenant admin context will
  *                                                     need to be passed in.
- * @param {String}                 configField         The identifier of the config value that needs to be set/updated (e.g. oae-authentication/twitter/enabled)
- * @param {String}                 configValue         The value of the config value that is being changed
- * @param {Function(err)}          callback            Standard callback method
- * @param {Object}                 callback.err        Error object containing error code and error message 
+ * @param  {String}    configField         The identifier of the config value that needs to be set/updated (e.g. oae-authentication/twitter/enabled)
+ * @param  {String}    configValue         The value of the config value that is being changed
+ * @param  {Function}  callback            Standard callback method
+ * @param  {Object}    callback.err        Error object containing error code and error message 
  */
 var setConfig = module.exports.setConfig = function(restCtx, configField, configValue, callback) {
     var params = {};

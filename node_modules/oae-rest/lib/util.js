@@ -14,6 +14,7 @@
  */
 
 var request = require('request');
+var log = require('oae-logger').logger('rest');
 
 // Array of response codes that are considered to be HTTP errors
 var errorCodes = [400, 401, 403, 404, 500, 503];
@@ -95,6 +96,7 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
             requestParams.form = data;
         }
     }
+
     request(requestParams, function(error, response, body) {
         if (error) {
             return callback({'code': 500, 'msg': 'Something went wrong trying to contact the server: ' + error});

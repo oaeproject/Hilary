@@ -22,11 +22,12 @@ var RestUtil = require('./util');
  * @param  {RestContext}    restCtx                       Standard REST Context object that contains the current tenant URL and the current user credentials. For this function to work, the passed in restCtx should either be for a global/tenant admin or for an anonymous user with reCaptcha disabled.
  * @param  {String}         username                      The username this user can login with.
  * @param  {String}         password                      The password for this user.
- * @param  {String}         displayName                   A display name, if this is left undefined the first and last name will be concatenated.
+ * @param  {String}         displayName                   The display name for the user
  * @param  {Object}         additionalOptions             Additional optional parameters that need to be passed.
  * @param  {String}         additionalOptions.visibility  The user's visibility setting. This can be public, loggedin or private.
  * @param  {String}         additionalOptions.locale      The user's locale
  * @param  {String}         additionalOptions.timezone    The user's timezone
+ * @param  {String}         additionalOptions.publicAlias The publically-available alias for users to see when the user's display name is protected
  * @param  {Function}       callback                      Standard callback method takes arguments `err` and `resp`
  * @param  {Object}         callback.err                  Error object containing error code and error message
  * @param  {User}           callback.response             A User object representing the created user
@@ -36,12 +37,11 @@ var createUser = module.exports.createUser = function(restCtx, username, passwor
     var postData = {
         'username': username,
         'password': password,
+        'displayName': displayName,
         'visibility': additionalOptions.visibility,
         'locale': additionalOptions.locale,
         'timezone': additionalOptions.timezone,
-        'firstName': 'FirstName',
-        'lastName': 'LastName',
-        'displayName': displayName
+        'publicAlias': additionalOptions.publicAlias
     };
     RestUtil.RestRequest(restCtx, '/api/user/create', 'POST', postData, callback);
 };

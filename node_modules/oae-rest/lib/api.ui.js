@@ -36,7 +36,7 @@ var getStaticFiles = module.exports.getStaticFiles = function(restCtx, files, ca
  * @param  {String}       jsonpCallback       An optional string which if used will ask the server to return jsonp output.
  * @param  {Function}     callback            Standard callback method
  * @param  {Object}       callback.err        Error object containing error code and error message
- * @param  {Object}          callback.configs    The widget configuration files.
+ * @param  {Object}       callback.configs    The widget configuration files.
  */
 var getWidgetConfigs = module.exports.getWidgetConfigs = function(restCtx, jsonpCallback, callback) {
     var url = '/api/widgets';

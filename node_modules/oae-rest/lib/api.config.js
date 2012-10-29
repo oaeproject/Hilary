@@ -50,7 +50,7 @@ var getTenantAdminUI = module.exports.getTenantAdminUI = function(restCtx, tenan
 /**
  * Get the global or tenant config through the REST API.
  * @param  {RestContext}   restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {[String]}      tenantId            Optional tenant id of the tenant to get configuration of. If no tenantId is passed the tenant config will be searched for at `/api/config` instead of `/api/config/tenantId`
+ * @param  {String}        [tenantId]          Optional tenant id of the tenant to get configuration of. If no tenantId is passed the tenant config will be searched for at `/api/config` instead of `/api/config/tenantId`
  * @param  {Function}      callback            Standard callback method
  * @param  {Object}        callback.err        Error object containing error code and error message
  * @param  {Object}        callback.config     JSON object representing the global/tenant config values

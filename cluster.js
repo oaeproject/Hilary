@@ -20,9 +20,8 @@ var argv = require('optimist')
     .argv;
 
 var cluster = require('cluster');
-var log = require('oae-logger').logger();
+var log = require('oae-logger').logger('cluster');
 var Validator = require('oae-util/lib/validator').Validator;
-var config = require('./config').config;
 
 // Check whether or not the passed in number of required Node.js processes is a valid number
 var validator = new Validator();

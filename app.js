@@ -18,6 +18,7 @@ var log = require('oae-logger').logger();
 
 var config = require('./config').config;
 
+// Start the server and all of its tenants
 OAE.init(config, function(err) {
     if (err) {
         log().error({err: err}, 'Error initializing server.');

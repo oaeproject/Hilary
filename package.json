@@ -23,6 +23,7 @@
     "express": "latest",
     "helenus": "latest",
     "hiredis": "latest",
+    "jake": "latest",
     "oae-authentication": "",
     "oae-authz": "",
     "oae-config": "",

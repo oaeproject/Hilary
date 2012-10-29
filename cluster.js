@@ -20,6 +20,16 @@ var argv = require('optimist')
     .argv;
 
 var cluster = require('cluster');
+var log = require('oae-logger').logger();
+var Validator = require('oae-util/lib/validator').Validator;
+var config = require('./config').config;
+
+// Check whether or not the passed in number of required Node.js processes is a valid number
+var validator = new Validator();
+validator.check(argv['c'], {'code': 400, 'msg': 'A valid number of Node.js proccesses needs to be supplied'}).isInt();
+if (validator.hasErrors()) {
+    return log().error(validator.getFirstError());
+}
 
 if (cluster.isMaster) {
     // Start up the right number of workers
@@ -29,7 +39,7 @@ if (cluster.isMaster) {
     
     // When one of the worker dies, we respawn it
     cluster.on('death', function(worker) {
-        console.log('worker ' + worker.pid + ' died');
+        log().error('Worker ' + worker.pid + ' died. Respawning worker.');
         cluster.fork();
     });
 

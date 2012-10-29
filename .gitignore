@@ -15,5 +15,6 @@ node_modules/*
 !node_modules/oae-telemetry
 !node_modules/oae-tenants
 !node_modules/oae-tests
+!node_modules/oae-ui
 !node_modules/oae-util
 *.log

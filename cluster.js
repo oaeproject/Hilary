@@ -27,7 +27,7 @@ if (cluster.isMaster) {
         cluster.fork();
     }
     
-    // When one of the worker dies, we respawn them
+    // When one of the worker dies, we respawn it
     cluster.on('death', function(worker) {
         console.log('worker ' + worker.pid + ' died');
         cluster.fork();

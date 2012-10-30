@@ -50,7 +50,8 @@
     "shortid": "latest",
     "time": "latest",
     "underscore": "latest",
-    "validator": "latest"
+    "validator": "latest",
+    "watch": "latest"
   },
   "devDependencies": {
     "optimist": "latest",

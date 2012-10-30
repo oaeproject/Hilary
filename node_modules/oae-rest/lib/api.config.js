@@ -27,7 +27,7 @@ var RestUtil = require('./util');
  * @param  {String}       callback.adminui    HTML representing the global admin UI
  */
 var getGlobalAdminUI = module.exports.getGlobalAdminUI = function(restCtx, callback) {
-    RestUtil.RestRequest(restCtx, '/admin.html', 'GET', null, callback);
+    RestUtil.RestRequest(restCtx, '/admin', 'GET', null, callback);
 };
 
 /**

@@ -22,7 +22,6 @@
     "express": "latest",
     "helenus": "latest",
     "hiredis": "latest",
-    "jake": "latest",
     "oae-authentication": "",
     "oae-authz": "",
     "oae-config": "",
@@ -53,8 +52,9 @@
     "validator": "latest"
   },
   "devDependencies": {
-    "optimist": "latest",
-    "mocha": "latest"
+    "jake": "latest",
+    "mocha": "latest",
+    "optimist": "latest"
   },
   "bundleDependencies": [
     "oae-authentication",

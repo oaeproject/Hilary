@@ -22,7 +22,6 @@
     "dox": "latest",
     "express": "latest",
     "helenus": "latest",
-    "hiredis": "latest",
     "oae-authentication": "",
     "oae-authz": "",
     "oae-config": "",
@@ -34,8 +33,10 @@
     "oae-principals": "",
     "oae-rest": "",
     "oae-tenants": "",
+    "oae-telemetry": "",
     "oae-tests": "",
     "oae-util": "",
+    "oae-ui": "",
     "passport": "latest",
     "passport-local": "latest",
     "passport-http": "latest",
@@ -48,7 +49,7 @@
     "request": "latest",
     "shelljs": "latest",
     "shortid": "latest",
-    "time": "latest",
+    "timezone-js": "latest",
     "underscore": "latest",
     "validator": "latest"
   },
@@ -56,6 +57,9 @@
     "jake": "latest",
     "mocha": "latest",
     "optimist": "latest"
+  },
+  "optionalDependencies": {
+    "hiredis": "latest"
   },
   "bundleDependencies": [
     "oae-authentication",
@@ -68,8 +72,10 @@
     "oae-principals",
     "oae-profiles",
     "oae-rest",
+    "oae-telemetry",
     "oae-tenants",
     "oae-tests",
+    "oae-ui",
     "oae-util"
   ],
   "engines": {

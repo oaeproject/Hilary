@@ -55,22 +55,24 @@ var createLink = module.exports.createLink = function(restCtx, name, description
 
 /**
  * Create a new file through the REST API.
- * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {String}       name                Display title for the created content item
- * @param  {String}       description         The content item's description
- * @param  {String}       visibility          The content item's visibility. This can be public, loggedin or private
- * @param  {String[]}     managers            Array of user/group ids that should be added as managers to the content item
- * @param  {String[]}     viewers             Array of user/group ids that should be added as viewers to the content item
- * @param  {Function}     callback            Standard callback method
- * @param  {Object}       callback.err        Error object containing error code and error message
- * @param  {Content}      callback.content    Content object representing the created content
+ * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}         name                Display title for the created content item
+ * @param  {String}         description         The content item's description
+ * @param  {String}         visibility          The content item's visibility. This can be public, loggedin or private
+ * @param  {Function}       file                A function that returns a stream which points to a file body.
+ * @param  {String[]}       managers            Array of user/group ids that should be added as managers to the content item
+ * @param  {String[]}       viewers             Array of user/group ids that should be added as viewers to the content item
+ * @param  {Function}       callback            Standard callback method
+ * @param  {Object}         callback.err        Error object containing error code and error message
+ * @param  {Content}        callback.content    Content object representing the created content
  */
-var createFile = module.exports.createFile = function(restCtx, name, description, visibility, managers, viewers, callback) {
+var createFile = module.exports.createFile = function(restCtx, name, description, visibility, file, managers, viewers, callback) {
     var params = {
         'contentType': 'file',
         'name': name,
         'description': description,
         'visibility': visibility,
+        'file': file,
         'managers': managers,
         'viewers': viewers
     };
@@ -182,4 +184,38 @@ var getLibrary = module.exports.getLibrary = function(restCtx, principalId, star
         'limit': limit
     };
     RestUtil.RestRequest(restCtx, '/api/content/library/' + encodeURIComponent(principalId), 'GET', params, callback);
+};
+
+/**
+ * Get the revisions for a piece of content.
+ * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}         contentId           Content id of the content item we're trying to retrieve the revisions for
+ * @param  {String}         start               The revision id to start from (this will not be included in the response)
+ * @param  {Number}         limit               The number of revisions to retrieve.
+ * @param  {Function}       callback            Standard callback method
+ * @param  {Object}         callback.err        Error object containing error code and error message
+ * @param  {Content[]}      callback.items      Array of revisions
+ */
+var getRevisions = module.exports.getRevisions = function(restCtx, contentId, start, limit, callback) {
+    var params = {
+        'start': start,
+        'limit': limit
+    };
+    RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId) + '/revisions', 'GET', params, callback);
+};
+
+/**
+ * Update the filebody for a sakai file.
+ * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}         contentId           Content id of the content item we're trying to update
+ * @param  {Function}       file                A function that returns a stream which points to a file body.
+ * @param  {Function}       callback            Standard callback method
+ * @param  {Object}         callback.err        Error object containing error code and error message
+ * @param  {Content[]}      callback.items      Array of revisions
+ */
+var updateFileBody = module.exports.updateFileBody = function(restCtx, contentId, file, callback) {
+    var params = {
+        'file': file
+    };
+    RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId) + '/newversion', 'POST', params, callback);
 };

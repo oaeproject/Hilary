@@ -14,6 +14,7 @@
  */
 
 var request = require('request');
+var Stream = require('stream').Stream
 
 // Array of response codes that are considered to be HTTP errors
 var errorCodes = [400, 401, 403, 404, 500, 503];
@@ -85,17 +86,35 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
         'method': method,
         'jar': j
     }
+
+    // Expand values and check if we're uploading something (with a stream.)
+    // API users need to pass in uploads (=streams) via a function as we do some other things
+    // *before* we reach this point.
+    // If we would simple pass in a stream the data might already be gone by the time
+    // we reach this point.
+    var hasStream = false;
+    if (data) {
+        var keys = Object.keys(data);
+        for (var i = 0; i < keys.length; i++) {
+            if (typeof data[keys[i]] === 'function') {
+                data[keys[i]] = data[keys[i]]();
+            }
+            if (data[keys[i]] instanceof Stream) {
+                hasStream = true;
+            }
+        }
+    }
+
     // Add the request data, if there is any
     if (data) {
-        // Add it to the querystring if it's a GET
         if (method === 'GET') {
             requestParams.qs = data;
-        // Add it as form data if it's a POST or a PUT
-        } else {
+        } else if (!hasStream && method === 'POST') {
             requestParams.form = data;
         }
     }
-    request(requestParams, function(error, response, body) {
+
+    var req = request(requestParams, function(error, response, body) {
         if (error) {
             return callback({'code': 500, 'msg': 'Something went wrong trying to contact the server: ' + error});
         } else if (errorCodes.indexOf(response.statusCode) !== -1) {
@@ -104,7 +123,34 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
         // Check if the response body is JSON
         try {
             body = JSON.parse(body);
-        } catch (err) { /* This can be ignored, response is not a JSON object */ }
+        } catch (err) {
+            /* This can be ignored, response is not a JSON object */
+        }
+
+        // Pass the response to the caller.
         callback(false, body);
     });
+    if (hasStream) {
+        // We append our data in a multi-part way.
+        // That way we can support buffer/streams as well.
+        var form = req.form();
+        for (var i = 0; i < keys.length; i++) {
+            var value = data[keys[i]];
+
+            // We can't append null values.
+            if (value) {
+                // If we're sending parts which have the same name
+                // we have to unroll them before appending them to the form.
+                if (Array.isArray(value)) {
+                    for (var v = 0; v < value.length; v++) {
+                        form.append(keys[i], value[v]);
+                    }
+
+                // All other value types (string, stream, ..)
+                } else {
+                    form.append(keys[i], data[keys[i]]);
+                }
+            }
+        }
+    }
 };

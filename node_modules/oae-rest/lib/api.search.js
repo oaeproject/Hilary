@@ -63,9 +63,9 @@ var _search = function(restCtx, path, method, opts, callback) {
 
         // when getAll is true, it means we want to get all records, regardless of how many. this requires two requests (below)
         var getAll = false;
-        if (opts.limit === -1) {
+        if (opts.size === -1) {
             getAll = true;
-            opts.limit = 1;
+            opts.size = 1;
         }
 
         RestUtil.RestRequest(restCtx, path, method, opts, function(err, result) {
@@ -73,13 +73,13 @@ var _search = function(restCtx, path, method, opts, callback) {
                 return callback(err);
             }
 
-            if (!getAll || result.total <= opts.limit) {
+            if (!getAll || result.total <= opts.size) {
                 // we are either only interested in the specified page, or we've exhausted the results, return what we have
                 return callback(null, result);
             } else {
                 // we want to get all the results and we did not exhaust them in the first request. query again with the
                 // actual total number of documents and return that result
-                opts.limit = result.total;
+                opts.size = result.total;
                 RestUtil.RestRequest(restCtx, path, method, opts, callback);
             }
         });

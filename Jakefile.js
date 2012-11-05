@@ -2,7 +2,7 @@ var shell = require('shelljs');
 var sys = require('sys');
 
 var MOCHA_CMD = process.platform === 'win32'? 'call node_modules/.bin/mocha' : 'node_modules/.bin/mocha';
-var MOCHA_OPTS = '';
+var MOCHA_OPTS = process.env.MOCHA_OPTS || '';
 var REPORTER = 'spec';
 var TIMEOUT = 20000;
 // List of tests directories from node_modules named oae-*  

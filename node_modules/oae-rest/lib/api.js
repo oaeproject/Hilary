@@ -19,7 +19,7 @@
  *
  * It will be of the following form
  * 
- *     RestContext restCtx = {'baseUrl': http://oae.sakai.org, 'userId': 'janedoe', 'password': 'foo'}
+ *     RestContext restCtx = {'host': http://oae.sakai.org, 'userId': 'janedoe', 'password': 'foo'}
  * 
  * For anonymous users, `userId` and `password` will be `null` 
  */

@@ -26,8 +26,7 @@ var cookies = {};
  * or not the request should be authenticated, for which it will check the presence of a Cookie Jar
  * for that user. If no cookie jar exists, the user will be logged in first. After that, the actual
  * request will be made by the internal _RestRequest function
- * @param  {RestContext}                 restCtx             Standard REST Context object that contains the current tenant URL and the current
- *                                                          user credentials
+ * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         url                 The URL of the REST endpoint that should be called
  * @param  {String}         method              The HTTP method that should be used for the request (i.e. GET or POST)
  * @param  {Object}         data                The form data that should be passed into the request [optional]       
@@ -39,12 +38,12 @@ var RestRequest = module.exports.RestRequest = function(restCtx, url, method, da
     // Check if the request should be done by a logged in user
     if (restCtx.userId) {
         // Check if we already have a stored session for this user
-        if (cookies[restCtx.baseUrl + '-' + restCtx.userId]) {
+        if (cookies[restCtx.host + '-' + restCtx.userId]) {
             _RestRequest(restCtx, url, method, data, callback);
         // Otherwise, we log the user in first
         } else {
             // Set up an empty cookie jar for this user
-            cookies[restCtx.baseUrl + '-' + restCtx.userId] = request.jar();
+            cookies[restCtx.host + '-' + restCtx.userId] = request.jar();
             // Log the user in
             _RestRequest(restCtx, '/api/auth/login', 'POST', {
                 'username': restCtx.userId,
@@ -78,10 +77,10 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
     if (restCtx.userId) {
         // Create a composite of URL and userid to make sure that userids
         // don't collide accross tenants
-        j = cookies[restCtx.baseUrl + '-' + restCtx.userId];
+        j = cookies[restCtx.host + '-' + restCtx.userId];
     }
     var requestParams = {
-        'url': restCtx.baseUrl + url,
+        'url': restCtx.host + url,
         'method': method,
         'jar': j
     }

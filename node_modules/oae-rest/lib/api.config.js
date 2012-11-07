@@ -41,7 +41,7 @@ var getGlobalAdminUI = module.exports.getGlobalAdminUI = function(restCtx, callb
  */
 var getTenantAdminUI = module.exports.getTenantAdminUI = function(restCtx, tenantId, callback) {
     var url = '/admin';
-    if (restCtx.baseUrl === 'http://localhost:2000' && tenantId) {
+    if (restCtx.host === 'http://localhost:2000' && tenantId) {
         url += '/' + encodeURIComponent(tenantId);
     }
     RestUtil.RestRequest(restCtx, url, 'GET', null, callback);

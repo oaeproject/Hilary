@@ -16,14 +16,14 @@
 /**
  * REST Context object used to represent a tenant on which a REST request is done, as well as
  * the user creditentials of the user performing the action.
- * @param  {String}      baseUrl         The URL of the tenant on which the request is done. This should include the protocol (e.g. http://gt.oae.com) and should not have a trailing slash
+ * @param  {String}      host            The URL of the tenant on which the request is done. This should include the protocol (e.g. http://gt.oae.com) and should not have a trailing slash
  * @param  {String}      userId          The user id of the user performing the REST request. This should be null if the current user is anonymous.
  * @param  {String}      userPassword    The password of the user performing the REST request. This should be null if the current user is anonymous.
  */
-var RestContext = module.exports.RestContext = function(baseUrl, userId, userPassword) {
+var RestContext = module.exports.RestContext = function(host, userId, userPassword) {
     var that = {};
     
-    that.baseUrl = baseUrl;
+    that.host = host;
     that.userId = userId;
     that.userPassword = userPassword;
     

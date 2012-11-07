@@ -18,8 +18,7 @@ var RestUtil = require('./util');
 /**
  * Perform a general search.
  *
- * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current
- *                                                      user credentials
+ * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param {String}                  resourceType        The type of resource to search on (all, content, group or user) (default: all)
  * @param {Object}                  opts                Options for the search
  * @param {String}                  opts.q              The full-text search term (default: *)
@@ -45,8 +44,7 @@ var searchGeneral = module.exports.searchGeneral = function(restCtx, resourceTyp
 /**
  * Perform a search.
  *
- * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current
- *                                                      user credentials
+ * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param {String}                  path                The path of the request
  * @param {String}                  method              The method of the request
  * @param {Object}                  opts                The additional query string parameters
@@ -56,7 +54,8 @@ var searchGeneral = module.exports.searchGeneral = function(restCtx, resourceTyp
  */
 var _search = function(restCtx, path, method, opts, callback) {
     // refresh first to ensure the index is up to date
-    RestUtil.RestRequest(restCtx, '/api/search/_refresh', 'POST', null, function(err) {
+    // pause for a little bit to ensure any asynchronous index updates in the event queue have had time to make it to elastic search
+    setTimeout(RestUtil.RestRequest, 50, restCtx, '/api/search/_refresh', 'POST', null, function(err) {
         if (err) {
             return callback(new Error('Refreshing the search index has failed. Has refreshing been enabled?'));
         }

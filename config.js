@@ -84,6 +84,18 @@ config.telemetry = {
     }
 };
 
+/**
+ * `config.search`
+ *
+ * Configuration namespace for search.
+ *
+ * @param   {Object}    index                   Holds configuration properties for the OAE search index.
+ * @param   {String}    index.name              The unique name of the index.
+ * @param   {Object}    index.settings          Holds the elastic search index configuration settings, as per http://www.elasticsearch.org/guide/reference/api/admin-indices-create-index.html
+ * @param   {Boolean}   index.allowRefresh      Whether or not to allow a force-refresh from the OAE REST API. Necessary for tests, but not recommended for production.
+ * @param   {Boolean}   index.destroyOnStartup  Whether or not the index should be destroyed when the server starts up. Do not enable this on a production server.
+ * @param   {Object[]}  hosts                   The elastic search hosts/ports with which to communicate. Each element of this array is a hash that has 2 keys: 'host' and 'port'.
+ */
 config.search = {
     'index': {
         'name': 'oae',

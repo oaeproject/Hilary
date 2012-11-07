@@ -34,7 +34,8 @@ var cookies = {};
  * @param  {Object}         data                The form data that should be passed into the request [optional]       
  * @param  {Function}       callback            Standard callback function
  * @param  {Object}         callback.err        Error object containing the error code and message
- * @param  {String|Object}  callback.response   The response received from the request. If this is JSON, a parsed JSON object will be returned, otherwise the response will be returned as a string
+ * @param  {String|Object}  callback.body       The response body received from the request. If this is JSON, a parsed JSON object will be returned, otherwise the response will be returned as a string
+ * @param  {Response}       callback.response   The response object that was returned by the node module requestjs.
  */
 var RestRequest = module.exports.RestRequest = function(restCtx, url, method, data, callback) {
     // Check if the request should be done by a logged in user
@@ -87,6 +88,11 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
         'jar': j
     }
 
+    if (requestParams.options && (requestParams.options['_followRedirects'] === true || requestParams.options['_followRedirects'] === false)) {
+        requestParams.followRedirect = requestParams.options['_followRedirects'];
+        delete requestParams.options;
+    }
+
     // Expand values and check if we're uploading something (with a stream.)
     // API users need to pass in uploads (=streams) via a function as we do some other things
     // *before* we reach this point.
@@ -128,7 +134,7 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
         }
 
         // Pass the response to the caller.
-        callback(false, body);
+        callback(false, body, response);
     });
     if (hasStream) {
         // We append our data in a multi-part way.

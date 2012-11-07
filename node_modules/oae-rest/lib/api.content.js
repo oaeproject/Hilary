@@ -219,3 +219,21 @@ var updateFileBody = module.exports.updateFileBody = function(restCtx, contentId
     };
     RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId) + '/newversion', 'POST', params, callback);
 };
+
+/**
+ * Download a file body
+ * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}         contentId           Content id of the content item we're trying to update
+ * @param  {Boolean}        followRedirects     Follow redirects that are sent back from the server, defaults to true.
+ * @param  {Function}       callback            Standard callback method
+ * @param  {Object}         callback.err        Error object containing error code and error message
+ */
+var download = module.exports.download = function(restCtx, contentId, followRedirects, callback) {
+    var params = {};
+    // Only pass in the follow redirects if it's true.
+    if (followRedirects === true || followRedirects === false) {
+        params.options = {};
+        params.options['_followRedirects'] = followRedirects;
+    }
+    RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId) + '/download', 'GET', params, callback);
+};

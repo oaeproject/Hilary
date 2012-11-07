@@ -20,11 +20,11 @@ var RestUtil = require('./util');
  *
  * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param {String}                  resourceType        The type of resource to search on (all, content, group or user) (default: all)
- * @param {Object}                  opts                Options for the search
- * @param {String}                  opts.q              The full-text search term (default: *)
- * @param {Number}                  opts.size           The number of items to retrieve. If -1, then return all. (default: -1)
- * @param {Number}                  opts.from           What item to start on in the results (default: 0)
- * @param {String}                  opts.sort           The direction of sorting: asc, or desc (default: asc)
+ * @param {Object}                  [opts]              Options for the search
+ * @param {String}                  [opts.q]            The full-text search term (default: *)
+ * @param {Number}                  [opts.size]         The number of items to retrieve. If -1, then return all. (default: -1)
+ * @param {Number}                  [opts.from]         What item to start on in the results (default: 0)
+ * @param {String}                  [opts.sort]         The direction of sorting: asc, or desc (default: asc)
  * @param {Function}                callback            Standard callback method
  * @param {Object}                  callback.err        Error object containing error code and error message
  * @param {SearchResult}            callback.result     SearchResult object representing the search result

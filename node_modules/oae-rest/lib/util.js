@@ -38,12 +38,16 @@ var RestRequest = module.exports.RestRequest = function(restCtx, url, method, da
     // Check if the request should be done by a logged in user
     if (restCtx.userId) {
         // Check if we already have a stored session for this user
-        if (cookies[restCtx.host + '-' + restCtx.userId]) {
+        var cookieIdentifier = restCtx.host + '-' + restCtx.userId;
+        if (restCtx.hostHeader) {
+            cookieIdentifier += '-' + restCtx.hostHeader;
+        }
+        if (cookies[cookieIdentifier]) {
             _RestRequest(restCtx, url, method, data, callback);
         // Otherwise, we log the user in first
         } else {
             // Set up an empty cookie jar for this user
-            cookies[restCtx.host + '-' + restCtx.userId] = request.jar();
+            cookies[cookieIdentifier] = request.jar();
             // Log the user in
             _RestRequest(restCtx, '/api/auth/login', 'POST', {
                 'username': restCtx.userId,
@@ -77,12 +81,21 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
     if (restCtx.userId) {
         // Create a composite of URL and userid to make sure that userids
         // don't collide accross tenants
-        j = cookies[restCtx.host + '-' + restCtx.userId];
+        var cookieIdentifier = restCtx.host + '-' + restCtx.userId;
+        if (restCtx.hostHeader) {
+            cookieIdentifier += '-' + restCtx.hostHeader;
+        }
+        j = cookies[cookieIdentifier];
     }
     var requestParams = {
         'url': restCtx.host + url,
         'method': method,
         'jar': j
+    }
+    if (restCtx.hostHeader) {
+        requestParams.headers = {
+            'host': restCtx.hostHeader
+        }
     }
     // Add the request data, if there is any
     if (data) {

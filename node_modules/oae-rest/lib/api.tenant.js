@@ -53,19 +53,17 @@ var getTenant = module.exports.getTenant = function(restCtx, tenantId, callback)
  * Create a new tenant through the REST API.
  * @param  {RestContext}      restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global admin rest context will need to passed in.
  * @param  {String}           tenantId            The tenant's unique identifier
- * @param  {Number}           tenantPort          The port on which the tenant will run
  * @param  {String}           tenantName          The new tenant's name
- * @param  {String}           tenantBaseUrl       The base URL for the newly created tenant. This should include protocol as well (e.g. http://localhost:2001)
+ * @param  {String}           tenantHost          The base URL for the newly created tenant (e.g. cambridge.oae.com)
  * @param  {Function}         callback            Standard callback method takes arguments `err` and `tenant`
  * @param  {Object}           callback.err        Error object containing error code and error message
  * @param  {Tenant}           callback.tenant     Tenant object representing the newly created tenant
  */
-var createTenant = module.exports.createTenant = function(restCtx, tenantId, tenantPort, tenantName, tenantBaseUrl, callback) {
+var createTenant = module.exports.createTenant = function(restCtx, tenantId, tenantName, tenantHost, callback) {
     var params = {
         'id': tenantId,
-        'port': tenantPort,
         'name': tenantName,
-        'baseurl': tenantBaseUrl
+        'host': tenantHost
     };
     RestUtil.RestRequest(restCtx, '/api/tenant/create', 'POST', params, function(err, tenant) {
         if (err) {

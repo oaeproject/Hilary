@@ -9,6 +9,7 @@ node_modules/*
 !node_modules/oae-context
 !node_modules/oae-doc
 !node_modules/oae-logger
+!node_modules/oae-preview-processor
 !node_modules/oae-principals
 !node_modules/oae-profiles
 !node_modules/oae-rest

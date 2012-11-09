@@ -64,34 +64,12 @@ module.exports.encodeURIComponent = function(uriComponent) {
  */
 var RestRequest = module.exports.RestRequest = function(restCtx, url, method, data, callback) {
     // Check if the request should be done by a logged in user
-    if (restCtx.userId) {
-        // Check if we already have a stored session for this user
-        var cookieIdentifier = restCtx.host + '-' + restCtx.userId;
-        if (restCtx.hostHeader) {
-            cookieIdentifier += '-' + restCtx.hostHeader;
+    getJar(restCtx, function(err) {
+        if (err) {
+            return callback(err);
         }
-        if (cookies[cookieIdentifier]) {
-            _RestRequest(restCtx, url, method, data, callback);
-        // Otherwise, we log the user in first
-        } else {
-            // Set up an empty cookie jar for this user
-            setupEmptyJar(restCtx);
-            // Log the user in
-            _RestRequest(restCtx, '/api/auth/login', 'POST', {
-                'username': restCtx.userId,
-                'password': restCtx.userPassword
-            }, function(err, response) {
-                if (err) {
-                    return callback(err);
-                }
-                // Execute the original REST request
-                _RestRequest(restCtx, url, method, data, callback);
-            });
-        }
-    // Just make the request
-    } else {
         _RestRequest(restCtx, url, method, data, callback);
-    }
+    });
 };
 
 /**
@@ -100,11 +78,59 @@ var RestRequest = module.exports.RestRequest = function(restCtx, url, method, da
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  */
 var setupEmptyJar = module.exports.setupEmptyJar = function(restCtx) {
+    var cookieIdentifier = _getCookieIdentifier(restCtx);
+    cookies[cookieIdentifier] = request.jar();
+};
+
+/**
+ * Returns the jar that is associated to a rest context.
+ * If no jar is found, an empty one will be returned.
+ *
+ * @param {RestContext}     restCtx         Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param {Function}        callback        Standard callback method.
+ * @param {Object}          callback.err    Standard error object (if any.)
+ * @param {Jar}             callback.jar    A cookie jar that can be used for performing HTTP requests with this Rest Context.
+ */
+var getJar = module.exports.getJar = function(restCtx, callback) {
+    // If we're performing the request anonymously, we don't need to do anything.
+    if (!restCtx.userId) {
+        return callback(null);
+    }
+
+    // Check if we already have a stored session for this user
+    var cookieIdentifier = _getCookieIdentifier(restCtx);
+    if (cookies[cookieIdentifier]) {
+        callback(null, cookies[cookieIdentifier]);
+    // Otherwise, we log the user in first
+    } else {
+        // Set up an empty cookie jar for this user
+        setupEmptyJar(restCtx);
+        // Log the user in
+        _RestRequest(restCtx, '/api/auth/login', 'POST', {
+            'username': restCtx.userId,
+            'password': restCtx.userPassword
+        }, function(err, response) {
+            if (err) {
+                return callback(err);
+            }
+            callback(null, cookies[cookieIdentifier]);
+        });
+    }
+};
+
+/**
+ * Given a RestContext, returns the identifier that can be used to retrieve the correct cookie jar.
+ *
+ * @param  {RestContext}    restCtx     Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @return {String}                     The identifier that can be used to look up a jar in the `cookies` variable.
+ * @api private
+ */
+var _getCookieIdentifier = function(restCtx) {
     var cookieIdentifier = restCtx.host + '-' + restCtx.userId;
     if (restCtx.hostHeader) {
         cookieIdentifier += '-' + restCtx.hostHeader;
     }
-    cookies[cookieIdentifier] = request.jar();
+    return cookieIdentifier;
 };
 
 /**
@@ -143,11 +169,6 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
         };
     }
 
-    if (data && data.options && (data.options['_followRedirects'] === true || data.options['_followRedirects'] === false)) {
-        requestParams.followRedirect = data.options['_followRedirects'];
-        delete data.options;
-    }
-
     // Expand values and check if we're uploading something (with a stream.)
     // API users need to pass in uploads (=streams) via a function as we do some other things
     // *before* we reach this point.
@@ -181,7 +202,7 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
             return callback({'code': 500, 'msg': 'Something went wrong trying to contact the server: ' + err});
         } else if (errorCodes.indexOf(response.statusCode) !== -1) {
             err = {'code': response.statusCode, 'msg': body};
-            emitter.emit('error', err, body, response);
+            //emitter.emit('error', err, body, response);
             return callback(err);
         }
 

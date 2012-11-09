@@ -12,7 +12,7 @@
  * or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-
+var _ = require('underscore');
 var RestUtil = require('./util');
 
 /**
@@ -231,7 +231,7 @@ var updateFileBody = module.exports.updateFileBody = function(restCtx, contentId
 var download = module.exports.download = function(restCtx, contentId, followRedirects, callback) {
     var params = {};
     // Only pass in the follow redirects if it's true.
-    if (followRedirects === true || followRedirects === false) {
+    if (_.isBoolean(followRedirects)) {
         params.options = {};
         params.options['_followRedirects'] = followRedirects;
     }

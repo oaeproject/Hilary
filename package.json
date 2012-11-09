@@ -15,6 +15,7 @@
      }
   ],
   "dependencies": {
+    "amqp": "latest",
     "awssum": "latest",
     "bunyan": "latest",
     "clone": "latest",

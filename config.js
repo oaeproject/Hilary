@@ -56,6 +56,10 @@ config.log = {
     }
 };
 
+config.rabbitmq = {
+    'host': 'localhost'
+};
+
 // This object holds the configuration for the telemetry monitoring.
 // By default telemetry is disabled.
 // We currently support two types of publishers:

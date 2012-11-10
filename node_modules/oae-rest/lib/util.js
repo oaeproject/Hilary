@@ -26,6 +26,7 @@ var cookies = {};
  * or not the request should be authenticated, for which it will check the presence of a Cookie Jar
  * for that user. If no cookie jar exists, the user will be logged in first. After that, the actual
  * request will be made by the internal _RestRequest function
+ * 
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         url                 The URL of the REST endpoint that should be called
  * @param  {String}         method              The HTTP method that should be used for the request (i.e. GET or POST)
@@ -68,6 +69,7 @@ var RestRequest = module.exports.RestRequest = function(restCtx, url, method, da
 
 /**
  * Internal Function that will perform a REST request. If no user is provided, the request will be done anonymously
+ * 
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         url                 The URL of the REST endpoint that should be called
  * @param  {String}         method              The HTTP method that should be used for the request (i.e. GET or POST)
@@ -75,6 +77,7 @@ var RestRequest = module.exports.RestRequest = function(restCtx, url, method, da
  * @param  {Function}       callback            Standard callback function
  * @param  {Object}         callback.err        Error object containing the error code and message
  * @param  {String|Object}  callback.response   The response received from the request. If this is JSON, a parsed JSON object will be returned, otherwise the response will be returned as a string
+ * @api private
  */
 var _RestRequest = function(restCtx, url, method, data, callback) {
     var j = request.jar();

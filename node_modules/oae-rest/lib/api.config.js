@@ -17,6 +17,7 @@ var RestUtil = require('./util');
 
 /**
  * Get the global or tenant config through the REST API.
+ * 
  * @param  {RestContext}   restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}        [tenantId]          Optional tenant id of the tenant to get configuration of. If no tenantId is passed the tenant config will be searched for at `/api/config` instead of `/api/config/tenantId`
  * @param  {Function}      callback            Standard callback method
@@ -33,8 +34,9 @@ var getConfig = module.exports.getConfig = function(restCtx, tenantId, callback)
 
 /**
  * Sets the configuration values for a specific tenant
+ * 
  * @param  {RestContext}   restCtx         Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global/tenant admin context will need to be passed in.
- * @param  {[String]}      tenantId            Optional tenant id of the tenant to get configuration of. If no tenantId is passed the tenant config will be posted to `/api/config` instead of `/api/config/tenantId`
+ * @param  {[String]}      tenantId        Optional tenant id of the tenant to get configuration of. If no tenantId is passed the tenant config will be posted to `/api/config` instead of `/api/config/tenantId`
  * @param  {String}        configField     The identifier of the config value that needs to be set/updated (e.g. oae-authentication/twitter/enabled)
  * @param  {String}        configValue     The value of the config value that is being changed
  * @param  {Function}      callback        Standard callback method

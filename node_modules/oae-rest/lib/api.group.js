@@ -18,6 +18,7 @@ var RestUtil = require('./util');
 /**
  * Creates a group through the REST API.
  * Optional arguments will only be added if they are defined and will be sent as is.
+ * 
  * @param  {RestContext}       restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}            alias               The alias for this group
  * @param  {String}            name                The name for this group
@@ -45,6 +46,7 @@ var createGroup = module.exports.createGroup = function (restCtx, alias, name, d
    
 /**
  * Get a group trough the REST API.
+ * 
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}       groupId             The id of the group you wish to retrieve.
  * @param  {Function}     callback            Standard callback method takes arguments `err` and `resp`
@@ -58,6 +60,7 @@ var getGroup = module.exports.getGroup = function(restCtx, groupId, callback) {
 /**
  * Updates a group through the REST API.
  * Optional arguments will only be added if they are defined and will be sent as is.
+ * 
  * @param  {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}                  groupId             The id of the group you wish to update
  * @param  {Object}                  profileFields       Object where the keys represent the profile fields that need to be updated and the values represent the new values for those profile fields e.g. {'name': 'New group name', 'description': 'New group description', 'visibility': 'private', 'joinable': 'no'}
@@ -71,6 +74,7 @@ var updateGroup = module.exports.updateGroup = function (restCtx, groupId, profi
 
 /**
  * Get the members of a group through the REST API.
+ * 
  * @param  {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}                  groupId             The id of the group you wish to update
  * @param  {String}                  start               The principal id to start from (this will not be included in the response)
@@ -89,6 +93,7 @@ var getGroupMembers = module.exports.getGroupMembers = function(restCtx, groupId
 
 /**
  * Update the members of a group through the REST API.
+ * 
  * @param  {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}                  groupId             The id of the group you wish to update
  * @param  {Object}                  members             A hash object where each key is the id of a user or group and the value is one of 'manager', 'member' or false. In case the value is false, the member will be deleted.
@@ -101,6 +106,7 @@ var setGroupMembers = module.exports.setGroupMembers = function(restCtx, groupId
 
 /**
  * Returns all of the groups that a user is a direct and indirect member of through the REST API.
+ * 
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}       userId              The user id for which we want to get all of the memberships
  * @param  {String}       start               The group id to start from (this will not be included in the response)
@@ -119,6 +125,7 @@ var memberOf = module.exports.memberOf = function(restCtx, userId, start, limit,
 
 /**
  * Checks whether a group alias exists through the REST API.
+ * 
  * @param  {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}                  alias               The group alias to check.
  * @param  {Function}                callback            Standard callback method takes arguments `err` and `exists`

@@ -17,6 +17,7 @@ var RestUtil = require('./util');
 
 /**
  * Get a list of all of the available modules through the REST API.
+ * 
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {Function}     callback            Standard callback method
  * @param  {Object}       callback.err        Error object containing error code and error message 
@@ -28,6 +29,7 @@ var getModules = module.exports.getModules = function(restCtx, callback) {
 
 /**
  * Get the documentation of a particular module through the REST API.
+ * 
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {Function}     callback            Standard callback method
  * @param  {Object}       callback.err        Error object containing error code and error message 

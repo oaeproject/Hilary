@@ -43,5 +43,9 @@ module.exports.Tenant = require('./api.tenant');
 
 // Config REST wrappers
 module.exports.Config = require('./api.config');
+
 // Doc REST wrappers
 module.exports.Doc = require('./api.doc');
+
+// UI REST wrappers
+module.exports.UI = require('./api.ui');

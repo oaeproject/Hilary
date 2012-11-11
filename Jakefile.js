@@ -1,6 +1,7 @@
 var shell = require('shelljs');
 var sys = require('sys');
 
+var MOCHA_CMD = process.platform === 'win32'? 'call node_modules/.bin/mocha' : 'node_modules/.bin/mocha';
 var MOCHA_OPTS = '';
 var REPORTER = 'spec';
 var TIMEOUT = 20000;
@@ -15,11 +16,11 @@ shell.env['NODE_ENV'] = 'test';
 task('test', ['test-unit']);
 
 task('test-module', [], function(module) {
-    shell.exec('node_modules/.bin/mocha -c --ignore-leaks --timeout ' + TIMEOUT + ' --reporter ' + REPORTER + ' ' + MOCHA_OPTS + ' node_modules/oae-tests/runner/beforeTests.js node_modules/' + module + '/tests');
+    shell.exec(MOCHA_CMD + ' -c --ignore-leaks --timeout ' + TIMEOUT + ' --reporter ' + REPORTER + ' ' + MOCHA_OPTS + ' node_modules/oae-tests/runner/beforeTests.js node_modules/' + module + '/tests');
 });
 
 task('test-unit', [], function() {
-    shell.exec('node_modules/.bin/mocha -c --ignore-leaks --timeout ' + TIMEOUT + ' --reporter ' + REPORTER + ' ' + MOCHA_OPTS + ' node_modules/oae-tests/runner/beforeTests.js ' + MODULES);
+    shell.exec(MOCHA_CMD + ' -c --ignore-leaks --timeout ' + TIMEOUT + ' --reporter ' + REPORTER + ' ' + MOCHA_OPTS + ' node_modules/oae-tests/runner/beforeTests.js ' + MODULES);
 });
 
 task('test-coverage', ['lib-cov'], function() {

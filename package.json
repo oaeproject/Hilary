@@ -16,7 +16,7 @@
   ],
   "dependencies": {
     "bunyan": "latest",
-    "clone": "latest",
+    "cloneextend": "latest",
     "connect": "latest",
     "connect-redis": "latest",
     "dox": "latest",

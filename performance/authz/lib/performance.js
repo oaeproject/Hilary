@@ -149,8 +149,8 @@ var checkPermissionsForTenant = function(tenantId, checks, expect, callback) {
     }
 
     var check = checks.pop();
-    var groupUuid = AuthzUtil.toUuid('g', tenantId, check.groupId);
-    var principalUuid = AuthzUtil.toUuid(check.principalType, tenantId, check.principalId);
+    var groupUuid = AuthzUtil.toId('g', tenantId, check.groupId);
+    var principalUuid = AuthzUtil.toId(check.principalType, tenantId, check.principalId);
     var permission = check.permission;
 
     AuthzAPI.isAllowed(principalUuid, permission, groupUuid, function(err, isAllowed) {
@@ -191,9 +191,9 @@ var persistMemberships = function(tenant, memberships, callback) {
     }
 
     var membership = memberships.pop();
-    var creatorUuid = AuthzUtil.toUuid('u', tenant.alias, membership.creatorId);
-    var groupUuid = AuthzUtil.toUuid('g', tenant.alias, membership.groupId);
-    var memberUuid = AuthzUtil.toUuid(membership.memberType, tenant.alias, membership.memberId);
+    var creatorUuid = AuthzUtil.toId('u', tenant.alias, membership.creatorId);
+    var groupUuid = AuthzUtil.toId('g', tenant.alias, membership.groupId);
+    var memberUuid = AuthzUtil.toId(membership.memberType, tenant.alias, membership.memberId);
 
     if (creatorUuid !== memberUuid && groupUuid !== memberUuid) {
         var change = {};

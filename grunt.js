@@ -45,7 +45,7 @@ module.exports = function(grunt) {
     // Make a task for running tests on a single module
     grunt.registerTask('test-module', 'Test a single module', function(module) {
         var config = {
-            src: ['node_modules/oae-tests/runner/beforeTests.js', 'target/node_modules/' + module + '/tests/**/*.js'],
+            src: ['node_modules/oae-tests/runner/beforeTests.js', 'node_modules/' + module + '/tests/**/*.js'],
             options: {
                 timeout: 20000,
                 ignoreLeaks: true,

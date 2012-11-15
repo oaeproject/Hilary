@@ -15,6 +15,10 @@
 
 var RestUtil = require('./util');
 
+// Changing a config value is async, this variable
+// holds how long we should wait before returning
+var WAIT_TIME = 100;
+
 /**
  * Get the global or tenant config through the REST API.
  * 
@@ -54,7 +58,7 @@ var setConfig = module.exports.setConfig = function(restCtx, tenantId, configFie
             callback(err);
         } else {
             // Give it a second to propogate to the app servers
-            setTimeout(callback, 1000, err);
+            setTimeout(callback, WAIT_TIME, err);
         }
     });
 };

@@ -18,7 +18,7 @@ var RestUtil = require('./util');
 // Stopping a server is async, this variable
 // holds how long we should wait before returning on start/stop/delete
 // of a tenant.
-var WAIT_TIME = 1000;
+var WAIT_TIME = 100;
 
 /**
  * Retrieve all available tenants through the REST API.

@@ -42,6 +42,16 @@ config.redis = {
     'dbIndex': 0
 };
 
+// Configuration for the ports on which the global admin express server and
+// the tenant express server need to be running. It also specifies the tenant
+// alias used for the global admin 
+config.servers = {
+    // Port on which the global admin server should be initialized
+    'globalAdminAlias': 'admin',
+    'globalAdminPort': 2000,
+    'tenantPort': 2001
+}
+
 config.log = {
     'streams': [
         {

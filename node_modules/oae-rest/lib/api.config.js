@@ -15,40 +15,13 @@
 
 var RestUtil = require('./util');
 
-/**
- * TODO: Remove this function once the global admin UI is no longer hosted through express
- *
- * Get the global admin UI through the REST API.
- * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current
- *                                                     user credentials. For this function to work, the passed in restCtx should be the global
- *                                                     admin REST context
- * @param  {Function}     callback            Standard callback method
- * @param  {Object}       callback.err        Error object containing error code and error message 
- * @param  {String}       callback.adminui    HTML representing the global admin UI
- */
-var getGlobalAdminUI = module.exports.getGlobalAdminUI = function(restCtx, callback) {
-    RestUtil.RestRequest(restCtx, '/admin', 'GET', null, callback);
-};
-
-/**
- * TODO: Remove this function once the global admin UI is no longer hosted through express
- * Get the tenant admin UI through the REST API.
- * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {String}         tenantId            Id of the tenant we're trying to get the admin UI for. Does not need to be specified when a tenant REST Context object is passed. When a global REST Context object is passed together with a tenantId the tenant server will be accessed through the global server.
- * @param  {Function}       callback            Standard callback method
- * @param  {Object}         callback.err        Error object containing error code and error message
- * @param  {String}         callback.adminui    HTML representing the tenant admin UI
- */
-var getTenantAdminUI = module.exports.getTenantAdminUI = function(restCtx, tenantId, callback) {
-    var url = '/admin';
-    if (restCtx.baseUrl === 'http://localhost:2000' && tenantId) {
-        url += '/' + encodeURIComponent(tenantId);
-    }
-    RestUtil.RestRequest(restCtx, url, 'GET', null, callback);
-};
+// Changing a config value is async, this variable
+// holds how long we should wait before returning
+var WAIT_TIME = 100;
 
 /**
  * Get the global or tenant config through the REST API.
+ * 
  * @param  {RestContext}   restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}        [tenantId]          Optional tenant id of the tenant to get configuration of. If no tenantId is passed the tenant config will be searched for at `/api/config` instead of `/api/config/tenantId`
  * @param  {Function}      callback            Standard callback method
@@ -65,8 +38,9 @@ var getConfig = module.exports.getConfig = function(restCtx, tenantId, callback)
 
 /**
  * Sets the configuration values for a specific tenant
+ * 
  * @param  {RestContext}   restCtx         Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global/tenant admin context will need to be passed in.
- * @param  {[String]}      tenantId            Optional tenant id of the tenant to get configuration of. If no tenantId is passed the tenant config will be posted to `/api/config` instead of `/api/config/tenantId`
+ * @param  {[String]}      tenantId        Optional tenant id of the tenant to get configuration of. If no tenantId is passed the tenant config will be posted to `/api/config` instead of `/api/config/tenantId`
  * @param  {String}        configField     The identifier of the config value that needs to be set/updated (e.g. oae-authentication/twitter/enabled)
  * @param  {String}        configValue     The value of the config value that is being changed
  * @param  {Function}      callback        Standard callback method
@@ -80,7 +54,11 @@ var setConfig = module.exports.setConfig = function(restCtx, tenantId, configFie
         url += '/' + encodeURIComponent(tenantId);
     }
     RestUtil.RestRequest(restCtx, url, 'POST', params, function(err) {
-        // Give it a second to propogate to the app servers
-        setTimeout(callback, 1000, err);
+        if (err) {
+            callback(err);
+        } else {
+            // Give it a second to propogate to the app servers
+            setTimeout(callback, WAIT_TIME, err);
+        }
     });
 };

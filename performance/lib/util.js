@@ -15,12 +15,14 @@
 
 var fs = require('fs');
 
+var IO = require('oae-util/lib/io');
+
 //////////////////////////
 // Reading file content //
 //////////////////////////
 
 module.exports.loadFileIntoArray = function(filename, callback) {
-    fs.readFile(filename, "utf8", function(err, content) { 
+    IO.readFile(filename, function(err, content) { 
         var finallines = [];
         var lines = content.split("\n");
         for (var i = 0; i < lines.length; i++) {

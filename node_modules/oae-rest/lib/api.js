@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
-/*
+/*!
  * Note: Most of the REST wrappers will take a RestContext (ctx) object as the first parameter. This context
  * parameter specifies the tenant URL we're working on, as well as the user making the request and his password. 
  *
  * It will be of the following form
  * 
- *     RestContext restCtx = {'baseUrl': http://oae.sakai.org, 'userId': 'janedoe', 'password': 'foo'}
+ *     RestContext restCtx = {'host': http://oae.sakai.org, 'userId': 'janedoe', 'password': 'foo'}
  * 
  * For anonymous users, `userId` and `password` will be `null` 
  */

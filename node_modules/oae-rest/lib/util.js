@@ -26,8 +26,8 @@ var cookies = {};
  * or not the request should be authenticated, for which it will check the presence of a Cookie Jar
  * for that user. If no cookie jar exists, the user will be logged in first. After that, the actual
  * request will be made by the internal _RestRequest function
- * @param  {RestContext}                 restCtx             Standard REST Context object that contains the current tenant URL and the current
- *                                                          user credentials
+ * 
+ * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         url                 The URL of the REST endpoint that should be called
  * @param  {String}         method              The HTTP method that should be used for the request (i.e. GET or POST)
  * @param  {Object}         data                The form data that should be passed into the request [optional]       
@@ -39,12 +39,16 @@ var RestRequest = module.exports.RestRequest = function(restCtx, url, method, da
     // Check if the request should be done by a logged in user
     if (restCtx.userId) {
         // Check if we already have a stored session for this user
-        if (cookies[restCtx.baseUrl + '-' + restCtx.userId]) {
+        var cookieIdentifier = restCtx.host + '-' + restCtx.userId;
+        if (restCtx.hostHeader) {
+            cookieIdentifier += '-' + restCtx.hostHeader;
+        }
+        if (cookies[cookieIdentifier]) {
             _RestRequest(restCtx, url, method, data, callback);
         // Otherwise, we log the user in first
         } else {
             // Set up an empty cookie jar for this user
-            cookies[restCtx.baseUrl + '-' + restCtx.userId] = request.jar();
+            cookies[cookieIdentifier] = request.jar();
             // Log the user in
             _RestRequest(restCtx, '/api/auth/login', 'POST', {
                 'username': restCtx.userId,
@@ -65,6 +69,7 @@ var RestRequest = module.exports.RestRequest = function(restCtx, url, method, da
 
 /**
  * Internal Function that will perform a REST request. If no user is provided, the request will be done anonymously
+ * 
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         url                 The URL of the REST endpoint that should be called
  * @param  {String}         method              The HTTP method that should be used for the request (i.e. GET or POST)
@@ -72,18 +77,28 @@ var RestRequest = module.exports.RestRequest = function(restCtx, url, method, da
  * @param  {Function}       callback            Standard callback function
  * @param  {Object}         callback.err        Error object containing the error code and message
  * @param  {String|Object}  callback.response   The response received from the request. If this is JSON, a parsed JSON object will be returned, otherwise the response will be returned as a string
+ * @api private
  */
 var _RestRequest = function(restCtx, url, method, data, callback) {
     var j = request.jar();
     if (restCtx.userId) {
         // Create a composite of URL and userid to make sure that userids
         // don't collide accross tenants
-        j = cookies[restCtx.baseUrl + '-' + restCtx.userId];
+        var cookieIdentifier = restCtx.host + '-' + restCtx.userId;
+        if (restCtx.hostHeader) {
+            cookieIdentifier += '-' + restCtx.hostHeader;
+        }
+        j = cookies[cookieIdentifier];
     }
     var requestParams = {
-        'url': restCtx.baseUrl + url,
+        'url': restCtx.host + url,
         'method': method,
         'jar': j
+    }
+    if (restCtx.hostHeader) {
+        requestParams.headers = {
+            'host': restCtx.hostHeader
+        }
     }
     // Add the request data, if there is any
     if (data) {

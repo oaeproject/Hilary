@@ -23,15 +23,15 @@ var WAIT_TIME = 100;
  * Get the global or tenant config through the REST API.
  * 
  * @param  {RestContext}   restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {String}        [tenantId]          Optional tenant id of the tenant to get configuration of. If no tenantId is passed the tenant config will be searched for at `/api/config` instead of `/api/config/tenantId`
+ * @param  {String}        [tenantAlias]       Optional tenant alias of the tenant to get configuration of. If no tenantAlias is passed the tenant config will be searched for at `/api/config` instead of `/api/config/tenantAlias`
  * @param  {Function}      callback            Standard callback method
  * @param  {Object}        callback.err        Error object containing error code and error message
  * @param  {Object}        callback.config     JSON object representing the global/tenant config values
  */
-var getConfig = module.exports.getConfig = function(restCtx, tenantId, callback) {
+var getConfig = module.exports.getConfig = function(restCtx, tenantAlias, callback) {
     var url = '/api/config';
-    if (tenantId) {
-        url += '/' + encodeURIComponent(tenantId);
+    if (tenantAlias) {
+        url += '/' + encodeURIComponent(tenantAlias);
     }
     RestUtil.RestRequest(restCtx, url, 'GET', null, callback);
 };
@@ -40,18 +40,18 @@ var getConfig = module.exports.getConfig = function(restCtx, tenantId, callback)
  * Sets the configuration values for a specific tenant
  * 
  * @param  {RestContext}   restCtx         Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global/tenant admin context will need to be passed in.
- * @param  {[String]}      tenantId        Optional tenant id of the tenant to get configuration of. If no tenantId is passed the tenant config will be posted to `/api/config` instead of `/api/config/tenantId`
+ * @param  {String}        [tenantAlias]   Optional tenant alias of the tenant to get configuration of. If no tenantAlias is passed the tenant config will be posted to `/api/config` instead of `/api/config/tenantAlias`
  * @param  {String}        configField     The identifier of the config value that needs to be set/updated (e.g. oae-authentication/twitter/enabled)
  * @param  {String}        configValue     The value of the config value that is being changed
  * @param  {Function}      callback        Standard callback method
  * @param  {Object}        callback.err    Error object containing error code and error message
  */
-var setConfig = module.exports.setConfig = function(restCtx, tenantId, configField, configValue, callback) {
+var setConfig = module.exports.setConfig = function(restCtx, tenantAlias, configField, configValue, callback) {
     var params = {};
     params[configField] = configValue;
     var url = '/api/config';
-    if (tenantId) {
-        url += '/' + encodeURIComponent(tenantId);
+    if (tenantAlias) {
+        url += '/' + encodeURIComponent(tenantAlias);
     }
     RestUtil.RestRequest(restCtx, url, 'POST', params, function(err) {
         if (err) {

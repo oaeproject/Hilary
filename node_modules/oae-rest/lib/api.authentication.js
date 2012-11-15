@@ -38,3 +38,21 @@ var login = module.exports.login = function(restCtx, username, password, callbac
 var logout = module.exports.logout = function(restCtx, callback) {
     RestUtil.RestRequest(restCtx, '/api/auth/logout', 'POST', null, callback);
 };
+
+/**
+ * Change a user's password through the REST API.
+ * 
+ * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}                 userId              The user id for which we want to update the password
+ * @param  {String}                 oldPassword         The user's current password
+ * @param  {String}                 newPassword         The user's new password
+ * @param  {Function}               callback            Standard callback method takes argument `err`
+ * @param  {Object}                 callback.err        Error object containing error code and error message
+ */
+var changePassword = module.exports.changePassword = function(restCtx, userId, oldPassword, newPassword, callback) {
+    var params = {
+        'oldPassword': oldPassword,
+        'newPassword': newPassword
+    };
+    RestUtil.RestRequest(restCtx, '/api/user/' + encodeURIComponent(userId) + '/password', 'POST', params, callback);
+};

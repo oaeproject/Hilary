@@ -120,6 +120,6 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
         try {
             body = JSON.parse(body);
         } catch (err) { /* This can be ignored, response is not a JSON object */ }
-        callback(false, body);
+        callback(null, body);
     });
 };

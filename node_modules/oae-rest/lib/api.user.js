@@ -65,7 +65,7 @@ var getMe = module.exports.getMe = function(restCtx, callback) {
  * @param  {String}                 userId              User id of the profile you wish to retrieve
  * @param  {Function}               callback            Standard callback method takes arguments `err` and `resp`
  * @param  {Object}                 callback.err        Error object containing error code and error message
- * @param  {Object}                 callback.response   The user's basic profile
+ * @param  {User}                   callback.response   The user's basic profile
  */
 var getUser = module.exports.getUser = function(restCtx, userId, callback) {
     RestUtil.RestRequest(restCtx, '/api/user/' + encodeURIComponent(userId), 'GET', null, callback);

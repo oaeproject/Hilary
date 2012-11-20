@@ -176,6 +176,38 @@ var share = module.exports.share = function(restCtx, contentId, principals, call
 };
 
 /**
+ * Posts a comment on a content item
+ *
+ * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}       contentId           Content id of the content item we're trying to share
+ * @param  {String}       comment             The comment to be placed on the content item
+ * @param  {Function}     callback            Standard callback method
+ * @param  {Object}       callback.err        Error object containing error code and error message
+ */
+var postComment = module.exports.postComment = function(restCtx, contentId, comment, callback) {
+    RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId) + '/comment', 'POST', {'comment': comment}, callback);
+};
+
+/**
+ * Gets the comments on a content item
+ *
+ * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}       contentId           Content id of the content item we're trying to share
+ * @param  {String}       start               Determines the point at which content items are returned for paging purposed.
+ * @param  {Integer}      limit               Number of items to return.
+ * @param  {Function}     callback            Standard callback method
+ * @param  {Object}       callback.err        Error object containing error code and error message
+ * @param  {Content[]}    callback.comments   Array of comments on the content item
+ */
+var getComments = module.exports.getComments = function(restCtx, contentId, start, limit, callback) {
+    var params = {
+        'start': start,
+        'limit': limit
+    };
+    RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId) + '/comment', 'GET', params, callback);
+};
+
+/**
  * Get a principal library through the REST API.
  * 
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials

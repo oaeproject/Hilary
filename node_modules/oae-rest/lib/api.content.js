@@ -17,6 +17,7 @@ var RestUtil = require('./util');
 
 /**
  * Get a full content profile through the REST API.
+ * 
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}       contentId           Content id of the content item we're trying to retrieve
  * @param  {Function}     callback            Standard callback method
@@ -29,6 +30,7 @@ var getContent = module.exports.getContent = function(restCtx, contentId, callba
 
 /**
  * Create a new link through the REST API.
+ * 
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         name                Display title for the created content item
  * @param  {String}         description         The content item's description
@@ -81,6 +83,7 @@ var createFile = module.exports.createFile = function(restCtx, name, description
 
 /**
  * Create a new Sakai Doc through the REST API.
+ * 
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}       name                Display title for the created content item
  * @param  {String}       description         The content item's description
@@ -105,6 +108,7 @@ var createSakaiDoc = module.exports.createSakaiDoc = function(restCtx, name, des
 
 /**
  * Update a content item's metadata through the REST API.
+ * 
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}       contentId           Content id of the content item we're trying to update
  * @param  {Object}       params              JSON object where the keys represent all of the profile field names we want to update and the values represent the new values for those fields
@@ -117,6 +121,7 @@ var updateContent = module.exports.updateContent = function(restCtx, contentId, 
 
 /**
  * Delete a content item through the REST API.
+ * 
  * @param  {RestContext}   restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}        contentId           Content id of the content item we're trying to delete
  * @param  {Function}      callback            Standard callback method
@@ -128,6 +133,7 @@ var deleteContent = module.exports.deleteContent = function(restCtx, contentId, 
 
 /**
  * Get the viewers and managers of a content item through the REST API.
+ * 
  * @param  {RestContext}     restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}          contentId           Content id of the content item we're trying to retrieve the members for
  * @param  {String}          start               The principal id to start from (this will not be included in the response)
@@ -146,6 +152,7 @@ var getMembers = module.exports.getMembers = function(restCtx, contentId, start,
 
 /**
  * Change the members and managers of a content item through the REST API.
+ * 
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}       contentId           Content id of the content item we're trying to update the members for
  * @param  {Object}       updatedMembers      JSON Object where the keys are the user/group ids we want to update membership for, and the values are the roles these members should get (manager or viewer). If false is passed in as a role, the principal will be removed as a member
@@ -158,6 +165,7 @@ var updateMembers = module.exports.updateMembers = function(restCtx, contentId, 
 
 /**
  * Share a content item through the REST API.
+ * 
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}       contentId           Content id of the content item we're trying to share
  * @param  {String[]}     principals          Array of principal ids with who the content should be shared
@@ -170,6 +178,7 @@ var share = module.exports.share = function(restCtx, contentId, principals, call
 
 /**
  * Get a principal library through the REST API.
+ * 
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         principalId         User or group id for who we want to retrieve the library
  * @param  {String}         start               The content id to start from (this will not be included in the response)

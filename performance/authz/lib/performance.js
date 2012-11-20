@@ -6,19 +6,19 @@ var AuthzUtil = require('oae-authz/lib/util');
 /**
  * Load the user, group and membership data from the model-loader scripts specified in scriptsDir.
  *
- * @param  {String[]}    tenantIds       The tenants to run concurrently. All tenants will have the same data loaded.
+ * @param  {String[]}    tenantAliases   The tenants to run concurrently. All tenants will have the same data loaded.
  * @param  {Object}      results         An object to which the dataload process can attach timing results
  * @param  {Function}    callback        The function invoked when dataloading is complete
  * @param  {Object}      callback.err    An error that occurred, if any
  */
-module.exports.dataload = function(tenantIds, model, results, callback) {
+module.exports.dataload = function(tenantAliases, model, results, callback) {
 
     results.dataload = {};
 
     // status vars for loader tracking
     var start = Date.now();
     var resultErr = false;
-    var numTenants = tenantIds.length;
+    var numTenants = tenantAliases.length;
     var tenantsFinished = 0;
 
     var trackModelLoading = function(err, tenant) {
@@ -47,8 +47,8 @@ module.exports.dataload = function(tenantIds, model, results, callback) {
     var errorPersisting = function(err) {
         trackModelLoading(err, tenant);
     };
-    for (var i = 0; i < tenantIds.length; i++) {
-        var tenant = new Tenant(tenantIds[i], 'load-test', 2001, 'google.ca');
+    for (var i = 0; i < tenantAliases.length; i++) {
+        var tenant = new Tenant(tenantAliases[i], 'load-test', 2001, 'google.ca');
         persistModel(tenant, model, results.dataload, errorPersisting);
     }
 };
@@ -57,16 +57,16 @@ module.exports.dataload = function(tenantIds, model, results, callback) {
  * Run the performance test concurrently for the given tenants on the model. The performance test results
  * should be attached to the results parameter object.
  *
- * @param  {String[]}   tenantIds       An array of tenant ids for which to run the tests
+ * @param  {String[]}   tenantAliases   An array of tenant ids for which to run the tests
  * @param  {Object}     model           The data model to test against
  * @param  {Object}     results         A results object that aggregates resulting timing information
  * @param  {Function}   callback        The method invoked when the process completes
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-module.exports.performanceTest = function(tenantIds, model, results, callback) {
+module.exports.performanceTest = function(tenantAliases, model, results, callback) {
     var performance = results.performanceTest = {};
 
-    performanceTestValidPermissions(tenantIds, model, function(err, duration, totalChecks) {
+    performanceTestValidPermissions(tenantAliases, model, function(err, duration, totalChecks) {
         if (!err) {
             performance['valid-permissions'] = {
                 'duration': duration,
@@ -75,7 +75,7 @@ module.exports.performanceTest = function(tenantIds, model, results, callback) {
 
             };
 
-            performanceTestAllPermissions(tenantIds, model, 15000, function(err, duration, totalChecks) {
+            performanceTestAllPermissions(tenantAliases, model, 15000, function(err, duration, totalChecks) {
                 if (!err) {
                     performance['all-permissions'] = {
                         'duration': duration,
@@ -95,23 +95,23 @@ module.exports.performanceTest = function(tenantIds, model, results, callback) {
 }
 
 // Performance test known membership permission checks
-var performanceTestValidPermissions = function(tenantIds, model, callback) {
+var performanceTestValidPermissions = function(tenantAliases, model, callback) {
     var checks = getValidPermissionChecks(model);
     console.log('Checking all valid %s membership permissions.', checks.length);
-    checkPermissionsForTenants(tenantIds.slice(0), checks, true, callback);
+    checkPermissionsForTenants(tenantAliases.slice(0), checks, true, callback);
 }
 
 // Performance test all potential membership checks. This will result in a lot of failures
-var performanceTestAllPermissions = function(tenantIds, model, limit, callback) {
+var performanceTestAllPermissions = function(tenantAliases, model, limit, callback) {
     // aggregate all potential checks
     var checks = getAllPermissionChecks(model, limit);
     console.log('Checking all potential %s membership permissions.', checks.length);
-    checkPermissionsForTenants(tenantIds.slice(0), checks, null, callback);
+    checkPermissionsForTenants(tenantAliases.slice(0), checks, null, callback);
 }
 
 // perform all the checks provided in the 'checks' array, concurrently for all provided tenants
-var checkPermissionsForTenants = function(tenantIds, checks, expect, callback) {
-    var tenantsToRun = tenantIds.length;
+var checkPermissionsForTenants = function(tenantAliases, checks, expect, callback) {
+    var tenantsToRun = tenantAliases.length;
     var tenantsRun = 0;
     var resultErr = false;
     var start = Date.now();
@@ -132,31 +132,31 @@ var checkPermissionsForTenants = function(tenantIds, checks, expect, callback) {
     };
 
     // sweep permissions checks for all tenants
-    for (var i = 0; i < tenantIds.length; i++) {
-        checkPermissionsForTenant(tenantIds[i], checks.slice(0), expect, checkStatus);
+    for (var i = 0; i < tenantAliases.length; i++) {
+        checkPermissionsForTenant(tenantAliases[i], checks.slice(0), expect, checkStatus);
     }
 };
 
 // perform all the checks in the provided 'checks' array for the given tenant
-var checkPermissionsForTenant = function(tenantId, checks, expect, callback) {
+var checkPermissionsForTenant = function(tenantAlias, checks, expect, callback) {
 
     if (checks.length === 0) {
         return callback();
     }
 
     if (checks.length % 100 === 0) {
-        console.log('[%s] %s permission checks remaining.', tenantId, checks.length);
+        console.log('[%s] %s permission checks remaining.', tenantAlias, checks.length);
     }
 
     var check = checks.pop();
-    var groupUuid = AuthzUtil.toId('g', tenantId, check.groupId);
-    var principalUuid = AuthzUtil.toId(check.principalType, tenantId, check.principalId);
+    var groupUuid = AuthzUtil.toId('g', tenantAlias, check.groupId);
+    var principalUuid = AuthzUtil.toId(check.principalType, tenantAlias, check.principalId);
     var permission = check.permission;
 
     AuthzAPI.isAllowed(principalUuid, permission, groupUuid, function(err, isAllowed) {
         if (!err) {
             if (expect === null || expect === isAllowed) {
-                checkPermissionsForTenant(tenantId, checks, expect, callback);
+                checkPermissionsForTenant(tenantAlias, checks, expect, callback);
             } else {
                 callback("Check "+JSON.stringify(check)+" failed with isAllowed: "+isAllowed);
             }

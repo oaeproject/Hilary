@@ -19,35 +19,36 @@ var RestUtil = require('./util');
  * Creates a user through the REST API.
  * Optional arguments will only be added if they are defined and will be sent as is.
  *
- * @param  {RestContext}    restCtx                       Standard REST Context object that contains the current tenant URL and the current user credentials. For this function to work, the passed in restCtx should either be for a global/tenant admin or for an anonymous user with reCaptcha disabled.
- * @param  {String}         username                      The username this user can login with.
- * @param  {String}         password                      The password for this user.
- * @param  {String}         displayName                   A display name, if this is left undefined the first and last name will be concatenated.
- * @param  {Object}         additionalOptions             Additional optional parameters that need to be passed.
- * @param  {String}         additionalOptions.visibility  The user's visibility setting. This can be public, loggedin or private.
- * @param  {String}         additionalOptions.locale      The user's locale
- * @param  {String}         additionalOptions.timezone    The user's timezone
- * @param  {Function}       callback                      Standard callback method takes arguments `err` and `resp`
- * @param  {Object}         callback.err                  Error object containing error code and error message
- * @param  {User}           callback.response             A User object representing the created user
+ * @param  {RestContext}    restCtx                         Standard REST Context object that contains the current tenant URL and the current user credentials. For this function to work, the passed in restCtx should either be for a global/tenant admin or for an anonymous user with reCaptcha disabled.
+ * @param  {String}         username                        The username this user can login with.
+ * @param  {String}         password                        The password for this user.
+ * @param  {String}         displayName                     The display name for the user
+ * @param  {Object}         [additionalOptions]             Additional optional parameters that need to be passed.
+ * @param  {String}         [additionalOptions.visibility]  The user's visibility setting. This can be public, loggedin or private.
+ * @param  {String}         [additionalOptions.locale]      The user's locale
+ * @param  {String}         [additionalOptions.timezone]    The user's timezone
+ * @param  {String}         [additionalOptions.publicAlias] The publically-available alias for users to see when the user's display name is protected
+ * @param  {Function}       callback                        Standard callback method takes arguments `err` and `resp`
+ * @param  {Object}         callback.err                    Error object containing error code and error message
+ * @param  {User}           callback.response               A User object representing the created user
  */
 var createUser = module.exports.createUser = function(restCtx, username, password, displayName, additionalOptions, callback) {
     additionalOptions = additionalOptions || {};
     var postData = {
         'username': username,
         'password': password,
+        'displayName': displayName,
         'visibility': additionalOptions.visibility,
         'locale': additionalOptions.locale,
         'timezone': additionalOptions.timezone,
-        'firstName': 'FirstName',
-        'lastName': 'LastName',
-        'displayName': displayName
+        'publicAlias': additionalOptions.publicAlias
     };
     RestUtil.RestRequest(restCtx, '/api/user/create', 'POST', postData, callback);
 };
 
 /**
  * Gets a user's me feed through the REST API.
+ * 
  * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {Function}               callback            Standard callback method takes arguments `err` and `resp`
  * @param  {Object}                 callback.err        Error object containing error code and error message
@@ -59,11 +60,12 @@ var getMe = module.exports.getMe = function(restCtx, callback) {
 
 /**
  * Get a user basic profile through the REST API.
+ * 
  * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}                 userId              User id of the profile you wish to retrieve
  * @param  {Function}               callback            Standard callback method takes arguments `err` and `resp`
  * @param  {Object}                 callback.err        Error object containing error code and error message
- * @param  {Object}                 callback.response   The user's basic profile
+ * @param  {User}                   callback.response   The user's basic profile
  */
 var getUser = module.exports.getUser = function(restCtx, userId, callback) {
     RestUtil.RestRequest(restCtx, '/api/user/' + encodeURIComponent(userId), 'GET', null, callback);
@@ -72,6 +74,7 @@ var getUser = module.exports.getUser = function(restCtx, userId, callback) {
 
 /**
  * Update a user's basic profile through the REST API.
+ * 
  * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}                 userId              The user id of the user we're trying to update
  * @param  {Object}                 params              Object representing the profile fields that need to be updated. The keys are the profile fields, the values are the profile field values
@@ -82,19 +85,3 @@ var updateUser = module.exports.updateUser = function(restCtx, userId, params, c
     RestUtil.RestRequest(restCtx, '/api/user/' + encodeURIComponent(userId), 'POST', params, callback);
 };
 
-/**
- * Change a user's password through the REST API.
- * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {String}                 userId              The user id for which we want to update the password
- * @param  {String}                 oldPassword         The user's current password
- * @param  {String}                 newPassword         The user's new password
- * @param  {Function}               callback            Standard callback method takes argument `err`
- * @param  {Object}                 callback.err        Error object containing error code and error message
- */
-var changePassword = module.exports.changePassword = function(restCtx, userId, oldPassword, newPassword, callback) {
-    var params = {
-        'oldPassword': oldPassword,
-        'newPassword': newPassword
-    };
-    RestUtil.RestRequest(restCtx, '/api/user/' + encodeURIComponent(userId) + '/password', 'POST', params, callback);
-};

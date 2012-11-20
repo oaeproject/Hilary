@@ -23,6 +23,7 @@
     "dox": "latest",
     "express": "latest",
     "helenus": "latest",
+    "mkdirp": "latest",
     "oae-authentication": "",
     "oae-authz": "",
     "oae-config": "",

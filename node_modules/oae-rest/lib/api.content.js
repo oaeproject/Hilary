@@ -61,20 +61,20 @@ var createLink = module.exports.createLink = function(restCtx, name, description
  * @param  {String}         name                Display title for the created content item
  * @param  {String}         description         The content item's description
  * @param  {String}         visibility          The content item's visibility. This can be public, loggedin or private
- * @param  {Function}       file                A function that returns a stream which points to a file body.
+ * @param  {Function}       fileGenerator       A function that returns a stream which points to a file body.
  * @param  {String[]}       managers            Array of user/group ids that should be added as managers to the content item
  * @param  {String[]}       viewers             Array of user/group ids that should be added as viewers to the content item
  * @param  {Function}       callback            Standard callback method
  * @param  {Object}         callback.err        Error object containing error code and error message
  * @param  {Content}        callback.content    Content object representing the created content
  */
-var createFile = module.exports.createFile = function(restCtx, name, description, visibility, file, managers, viewers, callback) {
+var createFile = module.exports.createFile = function(restCtx, name, description, visibility, fileGenerator, managers, viewers, callback) {
     var params = {
         'contentType': 'file',
         'name': name,
         'description': description,
         'visibility': visibility,
-        'file': file,
+        'file': fileGenerator,
         'managers': managers,
         'viewers': viewers
     };
@@ -233,16 +233,21 @@ var updateFileBody = module.exports.updateFileBody = function(restCtx, contentId
  * Download a file body
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         contentId           Content id of the content item we're trying to update
+ * @param  {String}         revisionId          Revision id of the content you wish to download, leave null to download the latest version.
  * @param  {Boolean}        followRedirects     Follow redirects that are sent back from the server, defaults to true.
  * @param  {Function}       callback            Standard callback method
  * @param  {Object}         callback.err        Error object containing error code and error message
  */
-var download = module.exports.download = function(restCtx, contentId, followRedirects, callback) {
+var download = module.exports.download = function(restCtx, contentId, revisionId, followRedirects, callback) {
     var params = {};
     // Only pass in the follow redirects if it's true.
     if (_.isBoolean(followRedirects)) {
         params.options = {};
         params.options['_followRedirects'] = followRedirects;
     }
-    RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId) + '/download', 'GET', params, callback);
+    var url = '/api/content/' + encodeURIComponent(contentId) + '/download';
+    if (revisionId) {
+        url += '/' + revisionId;
+    }
+    RestUtil.RestRequest(restCtx, url, 'GET', params, callback);
 };

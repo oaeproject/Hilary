@@ -189,6 +189,19 @@ var postComment = module.exports.postComment = function(restCtx, contentId, comm
 };
 
 /**
+ * Posts a reply to a comment on a content item
+ *
+ * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}       contentId           Content id of the content item we're trying to comment on
+ * @param  {String}       created             The creation date of the comment to reply to
+ * @param  {Function}     callback            Standard callback method
+ * @param  {Object}       callback.err        Error object containing error code and error message
+ */
+var postReply = module.exports.postReply = function(restCtx, contentId, created, comment, callback) {
+    RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId) + '/comment/' + encodeURIComponent(created) + '/reply', 'POST', {'comment': comment}, callback);
+};
+
+/**
  * Deletes a comment from a content item
  *
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials

@@ -189,6 +189,19 @@ var postComment = module.exports.postComment = function(restCtx, contentId, comm
 };
 
 /**
+ * Deletes a comment from a content item
+ *
+ * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}       contentId           Content id of the content item we're trying to share
+ * @param  {String}       created             The creation date of the comment
+ * @param  {Function}     callback            Standard callback method
+ * @param  {Object}       callback.err        Error object containing error code and error message
+ */
+var deleteComment = module.exports.deleteComment = function(restCtx, contentId, created, callback) {
+    RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId) + '/comment/' + encodeURIComponent(created) + '/delete', 'DELETE', null, callback);
+};
+
+/**
  * Gets the comments on a content item
  *
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials

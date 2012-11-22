@@ -12,35 +12,47 @@
  * or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-
+var _ = require('underscore');
 var RestUtil = require('./util');
 
 /**
- * Perform a general search.
+ * Perform a search.
  *
  * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param {String}                  resourceType        The type of resource to search on (all, content, group or user) (default: all)
+ * @param {String}                  searchType          The type of search to perform (e.g., general)
+ * @oaram {String[]}                [params]            The parameters (i.e., path parameters) for the search. These are given as the `opts.params` value in the custom search. While these are optional for this API call, they may be required by the particular search type you are executing.
  * @param {Object}                  [opts]              Options for the search
  * @param {String}                  [opts.q]            The full-text search term (default: *)
- * @param {Number}                  [opts.size]         The number of items to retrieve. If -1, then return all. (default: -1)
+ * @param {Number}                  [opts.limit]        The number of items to retrieve. If -1, then return all. (default: -1)
  * @param {Number}                  [opts.from]         What item to start on in the results (default: 0)
  * @param {String}                  [opts.sort]         The direction of sorting: asc, or desc (default: asc)
  * @param {Function}                callback            Standard callback method
  * @param {Object}                  callback.err        Error object containing error code and error message
  * @param {SearchResult}            callback.result     SearchResult object representing the search result
  */
-var searchGeneral = module.exports.searchGeneral = function(restCtx, resourceType, opts, callback) {
+var search = module.exports.search = function(restCtx, searchType, params, opts, callback) {
+    params = params || [];
     opts = opts || {};
-    resourceType = resourceType || 'all';
+
+    // url-encode and join the path parameters into a path string
+    params = _.map(params, function(param) {
+        return encodeURIComponent(param);
+    });
+    params = params.join('/');
 
     opts.q = opts.q || '*';
-    opts.size = (opts.size >= 0) ? opts.size : -1;
+    opts.limit = (opts.limit >= 0) ? opts.limit : -1;
     opts.from = opts.from || 0;
     opts.sort = opts.sort || 'asc';
 
-    _search(restCtx, '/api/search/general/' + encodeURIComponent(resourceType), 'GET', opts, callback);
+    var path = '/api/search/' + encodeURIComponent(searchType);
+    if (params) {
+        path += '/' + params;
+    }
+
+    _search(restCtx, path, 'GET', opts, callback);
 };
- 
+
 /**
  * Perform a search.
  *
@@ -62,9 +74,9 @@ var _search = function(restCtx, path, method, opts, callback) {
 
         // when getAll is true, it means we want to get all records, regardless of how many. this requires two requests (below)
         var getAll = false;
-        if (opts.size === -1) {
+        if (opts.limit === -1) {
             getAll = true;
-            opts.size = 1;
+            opts.limit = 1;
         }
 
         RestUtil.RestRequest(restCtx, path, method, opts, function(err, result) {
@@ -72,13 +84,13 @@ var _search = function(restCtx, path, method, opts, callback) {
                 return callback(err);
             }
 
-            if (!getAll || result.total <= opts.size) {
+            if (!getAll || result.total <= opts.limit) {
                 // we are either only interested in the specified page, or we've exhausted the results, return what we have
                 return callback(null, result);
             } else {
                 // we want to get all the results and we did not exhaust them in the first request. query again with the
                 // actual total number of documents and return that result
-                opts.size = result.total;
+                opts.limit = result.total;
                 RestUtil.RestRequest(restCtx, path, method, opts, callback);
             }
         });

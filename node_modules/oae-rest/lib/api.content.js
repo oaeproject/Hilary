@@ -194,6 +194,7 @@ var postComment = module.exports.postComment = function(restCtx, contentId, comm
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}       contentId           Content id of the content item we're trying to update a comment on
  * @param  {String}       created             The creation date of the comment to update
+ * @param  {String}       comment             The comment to be placed on the content item
  * @param  {Function}     callback            Standard callback method
  * @param  {Object}       callback.err        Error object containing error code and error message
  */
@@ -207,6 +208,7 @@ var updateComment = module.exports.updateComment = function(restCtx, contentId, 
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}       contentId           Content id of the content item we're trying to comment on
  * @param  {String}       created             The creation date of the comment to reply to
+ * @param  {String}       comment             The comment to be placed on the content item
  * @param  {Function}     callback            Standard callback method
  * @param  {Object}       callback.err        Error object containing error code and error message
  */

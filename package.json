@@ -15,6 +15,7 @@
      }
   ],
   "dependencies": {
+    "amqp": "latest",
     "bunyan": "latest",
     "clone": "latest",
     "connect": "latest",

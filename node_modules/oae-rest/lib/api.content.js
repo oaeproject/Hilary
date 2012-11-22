@@ -189,6 +189,19 @@ var postComment = module.exports.postComment = function(restCtx, contentId, comm
 };
 
 /**
+ * Posts an update on a comment
+ *
+ * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}       contentId           Content id of the content item we're trying to update a comment on
+ * @param  {String}       created             The creation date of the comment to update
+ * @param  {Function}     callback            Standard callback method
+ * @param  {Object}       callback.err        Error object containing error code and error message
+ */
+var updateComment = module.exports.updateComment = function(restCtx, contentId, created, comment, callback) {
+    RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId) + '/comment/' + encodeURIComponent(created) + '/update', 'POST', {'comment': comment}, callback);
+};
+
+/**
  * Posts a reply to a comment on a content item
  *
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials

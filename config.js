@@ -107,9 +107,6 @@ config.search = {
     'index': {
         'name': 'oae',
         'settings': {
-            '_source': {
-                'enabled' : false
-            },
             'number_of_shards': 5,
             'number_of_replicas': 1
         },

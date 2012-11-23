@@ -171,7 +171,7 @@ var updateMembers = module.exports.updateMembers = function(restCtx, contentId, 
  * @param  {Function}     callback            Standard callback method
  * @param  {Object}       callback.err        Error object containing error code and error message
  */
-var share = module.exports.share = function(restCtx, contentId, principals, callback) {
+var shareContent = module.exports.shareContent = function(restCtx, contentId, principals, callback) {
     RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId) + '/share', 'POST', {'viewers': principals}, callback);
 };
 

@@ -61,27 +61,30 @@ var getGroup = module.exports.getGroup = function(restCtx, groupId, callback) {
  * Updates a group through the REST API.
  * Optional arguments will only be added if they are defined and will be sent as is.
  * 
- * @param  {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {String}                  groupId             The id of the group you wish to update
- * @param  {Object}                  profileFields       Object where the keys represent the profile fields that need to be updated and the values represent the new values for those profile fields e.g. {'name': 'New group name', 'description': 'New group description', 'visibility': 'private', 'joinable': 'no'}
- * @param  {Function}                callback            Standard callback method takes argument `err`
- * @param  {Object}                  callback.err        Error object containing error code and error message
+ * @param  {RestContext}    restCtx                       Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}         groupId                       The id of the group you wish to update
+ * @param  {Object}         profileFields                 Object where the keys represent the profile fields that need to be updated and the values represent the new values for those profile fieldss
+ * @param  {String}         [profileFields.name]          New name for the group
+ * @param  {String}         [profileFields.description]   New description for the group
+ * @param  {String}         [profileFields.visibility]    New visibility setting for the group. The possible values are 'private', 'loggedin' and 'public'
+ * @param  {String}         [profileFields.joinable]      New joinability setting for the group. The possible values are 'yes', 'no' and 'request'
+ * @param  {Function}       callback                      Standard callback method takes argument `err`
+ * @param  {Object}         callback.err                  Error object containing error code and error message
  */
 var updateGroup = module.exports.updateGroup = function (restCtx, groupId, profileFields, callback) {
     RestUtil.RestRequest(restCtx, '/api/group/' + encodeURIComponent(groupId), 'POST', profileFields, callback);
 };
 
-
 /**
  * Get the members of a group through the REST API.
  * 
- * @param  {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {String}                  groupId             The id of the group you wish to update
- * @param  {String}                  start               The principal id to start from (this will not be included in the response)
- * @param  {Number}                  limit               The number of members to retrieve.
- * @param  {Function}                callback            Standard callback method takes arguments `err` and `resp`
- * @param  {Object}                  callback.err        Error object containing error code and error message
- * @param  {User[]|Group[]}          callback.response   Array of principals representing the group members
+ * @param  {RestContext}        restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}             groupId             The id of the group you wish to update
+ * @param  {String}             start               The principal id to start from (this will not be included in the response)
+ * @param  {Number}             limit               The number of members to retrieve.
+ * @param  {Function}           callback            Standard callback method takes arguments `err` and `resp`
+ * @param  {Object}             callback.err        Error object containing error code and error message
+ * @param  {User[]|Group[]}     callback.response   Array of principals representing the group members
  */
 var getGroupMembers = module.exports.getGroupMembers = function(restCtx, groupId, start, limit, callback) {
     var params = {
@@ -94,11 +97,11 @@ var getGroupMembers = module.exports.getGroupMembers = function(restCtx, groupId
 /**
  * Update the members of a group through the REST API.
  * 
- * @param  {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {String}                  groupId             The id of the group you wish to update
- * @param  {Object}                  members             A hash object where each key is the id of a user or group and the value is one of 'manager', 'member' or false. In case the value is false, the member will be deleted.
- * @param  {Function}                callback            Standard callback method takes argument `err`
- * @param  {Object}                  callback.err        Error object containing error code and error message
+ * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}         groupId             The id of the group you wish to update
+ * @param  {Object}         members             A hash object where each key is the id of a user or group and the value is one of 'manager', 'member' or false. In case the value is false, the member will be deleted.
+ * @param  {Function}       callback            Standard callback method takes argument `err`
+ * @param  {Object}         callback.err        Error object containing error code and error message
  */
 var setGroupMembers = module.exports.setGroupMembers = function(restCtx, groupId, members, callback) {
     RestUtil.RestRequest(restCtx, '/api/group/' + encodeURIComponent(groupId) + '/members', 'POST', members, callback);
@@ -126,11 +129,11 @@ var memberOf = module.exports.memberOf = function(restCtx, userId, start, limit,
 /**
  * Checks whether a group alias exists through the REST API.
  * 
- * @param  {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {String}                  alias               The group alias to check.
- * @param  {Function}                callback            Standard callback method takes arguments `err` and `exists`
- * @param  {Object}                  callback.err        Error object containing error code and error message
- * @param  {Boolean}                 callback.exists     True if the group already exists, false if it doesn't
+ * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}         alias               The group alias to check.
+ * @param  {Function}       callback            Standard callback method takes arguments `err` and `exists`
+ * @param  {Object}         callback.err        Error object containing error code and error message
+ * @param  {Boolean}        callback.exists     True if the group already exists, false if it doesn't
  */
 var exists = module.exports.exists = function(restCtx, alias, callback) {
     RestUtil.RestRequest(restCtx, '/api/group/exists/' + encodeURIComponent(alias), 'GET', null, function(err) {

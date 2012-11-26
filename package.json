@@ -58,7 +58,6 @@
     "grunt-simple-mocha": "latest",
     "grunt-clean": "latest",
     "grunt-contrib-copy": "latest",
-    "jake": "latest",
     "mocha": "latest",
     "optimist": "latest"
   },

@@ -94,11 +94,11 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
         'url': restCtx.host + url,
         'method': method,
         'jar': j
-    }
+    };
     if (restCtx.hostHeader) {
         requestParams.headers = {
             'host': restCtx.hostHeader
-        }
+        };
     }
     // Add the request data, if there is any
     if (data) {

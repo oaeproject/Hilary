@@ -52,6 +52,21 @@ config.servers = {
     'tenantPort': 2001
 }
 
+// Configuration regarding file uploads.
+// Where and how the end files will be stored can be configured in the
+// administrator panel.
+// This configuration only deals with where temp files should be stored.
+config.files = {
+    'uploadDir': process.env.TMP || process.env.TMPDIR || process.env.TEMP || '/tmp' || process.cwd()
+};
+
+// The configuration that can be used to generate secure HTTP cookies.
+// It's strongly recommended that you change this value.
+// Make sure that this value is the same accross each app server.
+config.cookie = {
+    'secret': 'this secret will be used so sign your cookies, change me!'
+};
+
 config.log = {
     'streams': [
         {

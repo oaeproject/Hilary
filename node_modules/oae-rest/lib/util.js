@@ -22,6 +22,18 @@ var errorCodes = [400, 401, 403, 404, 500, 503];
 var cookies = {};
 
 /**
+ * Utility wrapper around the native JS encodeURIComponent function, to make sure that
+ * encoding null doesn't return "null". In tests, null will often be passed in to validate
+ * validation, and there's no need to catch the "null" string everywhere.
+ * 
+ * @param  {String}     uriComponent        The URL part to encode and make URL safe
+ * @return {String}                         The encoded URL part. When null was passed in, this will return ''
+ */
+module.exports.encodeURIComponent = function(uriComponent) {
+    return uriComponent === null ? '' : encodeURIComponent(uriComponent);
+};
+
+/**
  * Function that will perform a REST request using the Node.js request module. It will check whether
  * or not the request should be authenticated, for which it will check the presence of a Cookie Jar
  * for that user. If no cookie jar exists, the user will be logged in first. After that, the actual

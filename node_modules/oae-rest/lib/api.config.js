@@ -43,7 +43,7 @@ var getSchema = module.exports.getSchema = function(restCtx, callback) {
 var getTenantConfig = module.exports.getTenantConfig = function(restCtx, tenantAlias, callback) {
     var url = '/api/config';
     if (tenantAlias) {
-        url += '/' + encodeURIComponent(tenantAlias);
+        url += '/' + RestUtil.encodeURIComponent(tenantAlias);
     }
     RestUtil.RestRequest(restCtx, url, 'GET', null, callback);
 };
@@ -63,7 +63,7 @@ var updateConfig = module.exports.updateConfig = function(restCtx, tenantAlias, 
     params[configField] = configValue;
     var url = '/api/config';
     if (tenantAlias) {
-        url += '/' + encodeURIComponent(tenantAlias);
+        url += '/' + RestUtil.encodeURIComponent(tenantAlias);
     }
     RestUtil.RestRequest(restCtx, url, 'POST', params, function(err) {
         if (err) {

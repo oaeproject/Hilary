@@ -54,7 +54,10 @@
     "validator": "latest"
   },
   "devDependencies": {
-    "jake": "latest",
+    "grunt": "latest",
+    "grunt-simple-mocha": "latest",
+    "grunt-clean": "latest",
+    "grunt-contrib-copy": "latest",
     "mocha": "latest",
     "optimist": "latest"
   },

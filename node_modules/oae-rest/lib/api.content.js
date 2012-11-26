@@ -176,7 +176,7 @@ var share = module.exports.share = function(restCtx, contentId, principals, call
 };
 
 /**
- * Posts a comment on a content item
+ * Creates a comment on a content item
  *
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}       contentId           Content id of the content item we're trying to share
@@ -184,36 +184,22 @@ var share = module.exports.share = function(restCtx, contentId, principals, call
  * @param  {Function}     callback            Standard callback method
  * @param  {Object}       callback.err        Error object containing error code and error message
  */
-var postComment = module.exports.postComment = function(restCtx, contentId, body, callback) {
-    RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId) + '/comment', 'POST', {'body': body}, callback);
+var createComment = module.exports.createComment = function(restCtx, contentId, body, callback) {
+    RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId) + '/comments', 'POST', {'body': body}, callback);
 };
 
 /**
- * Posts an update on a comment
- *
- * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {String}       contentId           Content id of the content item we're trying to update a comment on
- * @param  {String}       created             The creation date of the comment to update
- * @param  {String}       body                The comment to be placed on the content item
- * @param  {Function}     callback            Standard callback method
- * @param  {Object}       callback.err        Error object containing error code and error message
- */
-var updateComment = module.exports.updateComment = function(restCtx, contentId, created, body, callback) {
-    RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId) + '/comment/' + encodeURIComponent(created) + '/update', 'POST', {'body': body}, callback);
-};
-
-/**
- * Posts a reply to a comment on a content item
+ * Creates a reply to a comment on a content item
  *
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}       contentId           Content id of the content item we're trying to comment on
- * @param  {String}       created             The creation date of the comment to reply to
+ * @param  {String}       commentId           The ID of the comment to reply to
  * @param  {String}       body                The comment to be placed on the content item
  * @param  {Function}     callback            Standard callback method
  * @param  {Object}       callback.err        Error object containing error code and error message
  */
-var postReply = module.exports.postReply = function(restCtx, contentId, created, body, callback) {
-    RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId) + '/comment/' + encodeURIComponent(created) + '/reply', 'POST', {'body': body}, callback);
+var createReply = module.exports.createReply = function(restCtx, contentId, commentId, body, callback) {
+    RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId) + '/comments/' + encodeURIComponent(commentId) + '/reply', 'POST', {'body': body}, callback);
 };
 
 /**
@@ -221,12 +207,12 @@ var postReply = module.exports.postReply = function(restCtx, contentId, created,
  *
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}       contentId           Content id of the content item we're trying to share
- * @param  {String}       created             The creation date of the comment
+ * @param  {String}       commentId           The ID of the comment to delete
  * @param  {Function}     callback            Standard callback method
  * @param  {Object}       callback.err        Error object containing error code and error message
  */
-var deleteComment = module.exports.deleteComment = function(restCtx, contentId, created, callback) {
-    RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId) + '/comment/' + encodeURIComponent(created) + '/delete', 'DELETE', null, callback);
+var deleteComment = module.exports.deleteComment = function(restCtx, contentId, commentId, callback) {
+    RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId) + '/comments/' + encodeURIComponent(commentId), 'DELETE', null, callback);
 };
 
 /**
@@ -245,7 +231,7 @@ var getComments = module.exports.getComments = function(restCtx, contentId, star
         'start': start,
         'limit': limit
     };
-    RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId) + '/comment', 'GET', params, callback);
+    RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId) + '/comments', 'GET', params, callback);
 };
 
 /**

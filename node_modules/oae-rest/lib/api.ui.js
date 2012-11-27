@@ -16,32 +16,29 @@
 var RestUtil = require('./util');
 
 /**
- * Get a list of all of the available modules through the REST API.
+ * Get all of the widget configuration files through the REST API.
+ * 
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {String[]}     files               An Array of URLs that should be requested.
  * @param  {Function}     callback            Standard callback method
  * @param  {Object}       callback.err        Error object containing error code and error message
- * @param  {String[]}     callback.data       Array containing data file objects for the requests static file URLs.
+ * @param  {Object}       callback.configs    The aggregated widget configuration files where the keys represent the widget ids and the values contain the widget config.
  */
-var getStaticFiles = module.exports.getStaticFiles = function(restCtx, files, callback) {
-    if (!Array.isArray(files)) {
-        files = [ files ];
-    }
-    RestUtil.RestRequest(restCtx, '/api/staticfiles', 'GET', {'files': files}, callback);
+var getWidgetConfigs = module.exports.getWidgetConfigs = function(restCtx, callback) {
+    RestUtil.RestRequest(restCtx, '/api/ui/widgets', 'GET', null, callback);
 };
 
 /**
- * Get all the widget configuration files.
- * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {String}       jsonpCallback       An optional string which if used will ask the server to return jsonp output.
- * @param  {Function}     callback            Standard callback method
- * @param  {Object}       callback.err        Error object containing error code and error message
- * @param  {Object}       callback.configs    The widget configuration files.
+ * Get the file content for a number of static files through the REST API.
+ * 
+ * @param  {RestContext}        restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String|String[]}    files               A path or array of paths relative to the 3akai-ux folder that need to be retrieved.
+ * @param  {Function}           callback            Standard callback method
+ * @param  {Object}             callback.err        Error object containing error code and error message
+ * @param  {String[]}           callback.data       Array containing the file content for the requested static files.
  */
-var getWidgetConfigs = module.exports.getWidgetConfigs = function(restCtx, jsonpCallback, callback) {
-    var url = '/api/widgets';
-    if (jsonpCallback) {
-        url += '?callback=' + jsonpCallback;
+var staticBatch = module.exports.staticBatch = function(restCtx, files, callback) {
+    if (!Array.isArray(files)) {
+        files = [files];
     }
-    RestUtil.RestRequest(restCtx, url, 'GET', null, callback);
+    RestUtil.RestRequest(restCtx, '/api/ui/staticBatch', 'GET', {'files': files}, callback);
 };

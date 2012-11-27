@@ -1,6 +1,7 @@
 module.exports = function(grunt) {
 
     var shell = require('shelljs');
+    var grep = process.env['MOCHA_GREP'] || undefined;
 
     // Project configuration.
     grunt.initConfig({
@@ -49,26 +50,12 @@ module.exports = function(grunt) {
             options: {
                 timeout: 20000,
                 ignoreLeaks: true,
-                reporter: 'spec'
-            }
-        };
-        grunt.config.set('simplemocha.' + module, config);
-        grunt.task.run('simplemocha:' + module);
-    });
-
-    // Make a task for running tests that match a regex
-    grunt.registerTask('test-grep', 'Run tests that match', function(grep) {
-        var config = {
-            src: ['node_modules/oae-tests/runner/beforeTests.js', 'node_modules/oae-*/tests/**/*.js'],
-            options: {
-                timeout: 20000,
-                ignoreLeaks: true,
                 reporter: 'spec',
                 grep: grep
             }
         };
-        grunt.config.set('simplemocha.grep-' + grep, config);
-        grunt.task.run('simplemocha:grep-' + grep);
+        grunt.config.set('simplemocha.' + module, config);
+        grunt.task.run('simplemocha:' + module);
     });
 
     // Make a task for running jscoverage

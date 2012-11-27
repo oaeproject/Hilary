@@ -96,12 +96,11 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
         'url': restCtx.host + url,
         'method': method,
         'jar': j
-    }
-
+    };
     if (restCtx.hostHeader) {
         requestParams.headers = {
             'host': restCtx.hostHeader
-        }
+        };
     }
 
     if (requestParams.options && (requestParams.options['_followRedirects'] === true || requestParams.options['_followRedirects'] === false)) {

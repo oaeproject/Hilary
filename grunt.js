@@ -1,6 +1,7 @@
 module.exports = function(grunt) {
 
     var shell = require('shelljs');
+    var mocha_grep = process.env['MOCHA_GREP'] || undefined;
 
     // Project configuration.
     grunt.initConfig({
@@ -26,7 +27,8 @@ module.exports = function(grunt) {
                 options: {
                     timeout: 20000,
                     ignoreLeaks: true,
-                    reporter: 'spec'
+                    reporter: 'spec',
+                    grep: mocha_grep
                 }
             }
         },
@@ -49,7 +51,8 @@ module.exports = function(grunt) {
             options: {
                 timeout: 20000,
                 ignoreLeaks: true,
-                reporter: 'spec'
+                reporter: 'spec',
+                grep: mocha_grep
             }
         };
         grunt.config.set('simplemocha.' + module, config);
@@ -59,6 +62,7 @@ module.exports = function(grunt) {
     // Make a task for running jscoverage
     grunt.registerTask('jscoverage', 'Run jscoverage on the `target` dir', function() {
         grunt.task.requires('copy:coverage');
+        process.env['OAE_COVERING'] = true;
         shell.exec('node node_modules/oae-tests/runner/instrument_code.js "' + __dirname + '"');
         grunt.log.writeln('Code instrumented'.green);
     });

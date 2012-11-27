@@ -56,6 +56,21 @@ module.exports = function(grunt) {
         grunt.task.run('simplemocha:' + module);
     });
 
+    // Make a task for running tests that match a regex
+    grunt.registerTask('test-grep', 'Run tests that match', function(grep) {
+        var config = {
+            src: ['node_modules/oae-tests/runner/beforeTests.js', 'node_modules/oae-*/tests/**/*.js'],
+            options: {
+                timeout: 20000,
+                ignoreLeaks: true,
+                reporter: 'spec',
+                grep: grep
+            }
+        };
+        grunt.config.set('simplemocha.grep-' + grep, config);
+        grunt.task.run('simplemocha:grep-' + grep);
+    });
+
     // Make a task for running jscoverage
     grunt.registerTask('jscoverage', 'Run jscoverage on the `target` dir', function() {
         grunt.task.requires('copy:coverage');

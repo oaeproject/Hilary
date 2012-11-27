@@ -93,7 +93,7 @@ config.telemetry = {
  * @param   {Object}    index                   Holds configuration properties for the OAE search index.
  * @param   {String}    index.name              The unique name of the index.
  * @param   {Object}    index.settings          Holds the elastic search index configuration settings, as per http://www.elasticsearch.org/guide/reference/api/admin-indices-create-index.html
- * @param   {Boolean}   index.allowRefresh      Whether or not to allow a force-refresh from the OAE REST API. Necessary for tests, but not recommended for production.
+ * @param   {Boolean}   index.allowAnonRefresh  Whether or not to allow the anonymous user to force-refresh the OAE index. Helpful for tests, but not recommended for production.
  * @param   {Boolean}   index.destroyOnStartup  Whether or not the index should be destroyed when the server starts up. Do not enable this on a production server.
  * @param   {Object}    schemaExtension         An ElasticSearch mapping definition that can be used to extend the existing resource mapping. Use this to add new properties to your schema if you need more control over the properties. For more information, see the ElasticSearch Put Mapping API.
  */
@@ -110,11 +110,21 @@ config.search = {
             'number_of_shards': 5,
             'number_of_replicas': 1
         },
-        'allowRefresh': false,
+        'allowAnonRefresh': false,
     },
     'schemaExtension': {}
 };
 
+/**
+ * `config.mq`
+ *
+ * Configuration namespace for the message queue (RabbitMQ).
+ *
+ * @param   {Object}    connection      The connection description
+ * @param   {String}    connection.host The host for the connection
+ * @param   {Number}    connection.port The port for the connection
+ * @param   {Number}    prefetchCount   The number of tasks that will be distributed locally to the machine at a time
+ */
 config.mq = {
     'connection': {
         'host': 'localhost',

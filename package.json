@@ -78,6 +78,7 @@
     "oae-principals",
     "oae-profiles",
     "oae-rest",
+    "oea-search",
     "oae-telemetry",
     "oae-tenants",
     "oae-tests",

@@ -55,7 +55,8 @@
     "shortid": "latest",
     "timezone-js": "latest",
     "underscore": "latest",
-    "validator": "latest"
+    "validator": "latest",
+    "watch": "latest"
   },
   "devDependencies": {
     "grunt": "latest",

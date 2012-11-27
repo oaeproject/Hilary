@@ -69,12 +69,11 @@ var getAllSectionsVisibility = module.exports.getAllSectionsVisibility = functio
  */
 var setSection = module.exports.setSection = function(restCtx, userId, sectionId, visibility, sectionData, overwrite, callback) {
     var params = {
-        'section': sectionId,
         'data': JSON.stringify(sectionData),
         'visibility': visibility,
         'overwrite': overwrite
     };
-    RestUtil.RestRequest(restCtx, '/api/user/' + RestUtil.encodeURIComponent(userId) + '/profile', 'POST', params, callback);
+    RestUtil.RestRequest(restCtx, '/api/user/' + RestUtil.encodeURIComponent(userId) + '/profile/' + RestUtil.encodeURIComponent(sectionId), 'POST', params, callback);
 };
 
 /**

@@ -14,8 +14,18 @@
  */
 
 var bunyan = require('bunyan');
+var fs = require('fs');
 
 var config = module.exports.config = {};
+
+config.ui = {};
+// The absolute path to the UI repository.
+// By default, we assume it's on the same level as the Hilary folder.
+if (process.env['OAE_COVERING']) {
+    config.ui.location = fs.realpathSync('../../3akai-ux');
+} else {
+    config.ui.location = fs.realpathSync('../3akai-ux');
+}
 
 // Cassandra related config information.
 config.cassandra = {

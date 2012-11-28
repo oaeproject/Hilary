@@ -38,7 +38,7 @@ var getSection = module.exports.getSection = function(restCtx, userId, sectionId
  * @param  {Object}                  callback.err        Error object containing error code and error message
  * @param  {Object}                  callback.vis        JSON object representing all of the user's profile sections and their visibility. The keys are the profile section ids, and the values are the visibility settings for those sections
  */
-var getAllSectionsVisibility = module.exports.getAllSectionsVisibility = function(restCtx, userId, callback) {
+var getSectionOverview = module.exports.getSectionOverview = function(restCtx, userId, callback) {
     RestUtil.RestRequest(restCtx, '/api/user/' + RestUtil.encodeURIComponent(userId) + '/profile/sections', 'GET', null, callback);
 };
 

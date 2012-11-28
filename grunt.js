@@ -62,7 +62,6 @@ module.exports = function(grunt) {
     // Make a task for running jscoverage
     grunt.registerTask('jscoverage', 'Run jscoverage on the `target` dir', function() {
         grunt.task.requires('copy:coverage');
-        process.env['OAE_COVERING'] = true;
         shell.exec('node node_modules/oae-tests/runner/instrument_code.js "' + __dirname + '"');
         grunt.log.writeln('Code instrumented'.green);
     });

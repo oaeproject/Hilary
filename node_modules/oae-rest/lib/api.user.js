@@ -68,7 +68,7 @@ var getMe = module.exports.getMe = function(restCtx, callback) {
  * @param  {User}                   callback.response   The user's basic profile
  */
 var getUser = module.exports.getUser = function(restCtx, userId, callback) {
-    RestUtil.RestRequest(restCtx, '/api/user/' + encodeURIComponent(userId), 'GET', null, callback);
+    RestUtil.RestRequest(restCtx, '/api/user/' + RestUtil.encodeURIComponent(userId), 'GET', null, callback);
 };
 
 
@@ -82,6 +82,6 @@ var getUser = module.exports.getUser = function(restCtx, userId, callback) {
  * @param  {Object}                 callback.err        Error object containing error code and error message
  */
 var updateUser = module.exports.updateUser = function(restCtx, userId, params, callback) {
-    RestUtil.RestRequest(restCtx, '/api/user/' + encodeURIComponent(userId), 'POST', params, callback);
+    RestUtil.RestRequest(restCtx, '/api/user/' + RestUtil.encodeURIComponent(userId), 'POST', params, callback);
 };
 

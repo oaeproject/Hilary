@@ -36,5 +36,5 @@ var getModules = module.exports.getModules = function(restCtx, callback) {
  * @param  {Dox}          callback.doc        Dox object containing the JSDoc information for the requested module
  */
 var getDoc = module.exports.getDoc = function(restCtx, moduleId, callback) {
-    RestUtil.RestRequest(restCtx, '/api/doc/module/' + encodeURIComponent(moduleId), 'GET', null, callback);
+    RestUtil.RestRequest(restCtx, '/api/doc/module/' + RestUtil.encodeURIComponent(moduleId), 'GET', null, callback);
 };

@@ -45,7 +45,7 @@ var getAllTenants = module.exports.getAllTenants = function(restCtx, callback) {
 var getTenant = module.exports.getTenant = function(restCtx, tenantAlias, callback) {
     var url = '/api/tenant';
     if (tenantAlias) {
-        url += '/' + encodeURIComponent(tenantAlias);
+        url += '/' + RestUtil.encodeURIComponent(tenantAlias);
     }
     RestUtil.RestRequest(restCtx, url, 'GET', null, callback);
 };

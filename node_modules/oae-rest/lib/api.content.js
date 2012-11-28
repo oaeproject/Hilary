@@ -25,7 +25,7 @@ var RestUtil = require('./util');
  * @param  {Content}      callback.content    Content object representing the retrieved content
  */
 var getContent = module.exports.getContent = function(restCtx, contentId, callback) {
-    RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId), 'GET', null, callback);
+    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId), 'GET', null, callback);
 };
 
 /**
@@ -116,7 +116,7 @@ var createSakaiDoc = module.exports.createSakaiDoc = function(restCtx, name, des
  * @param  {Object}       callback.err        Error object containing error code and error message
  */
 var updateContent = module.exports.updateContent = function(restCtx, contentId, params, callback) {
-    RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId), 'POST', params, callback);
+    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId), 'POST', params, callback);
 };
 
 /**
@@ -128,7 +128,7 @@ var updateContent = module.exports.updateContent = function(restCtx, contentId, 
  * @param  {Object}        callback.err        Error object containing error code and error message
  */
 var deleteContent = module.exports.deleteContent = function(restCtx, contentId, callback) {
-    RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId), 'DELETE', null, callback);
+    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId), 'DELETE', null, callback);
 };
 
 /**
@@ -147,7 +147,7 @@ var getMembers = module.exports.getMembers = function(restCtx, contentId, start,
         'start': start,
         'limit': limit
     };
-    RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId) + '/members', 'GET', params, callback);
+    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/members', 'GET', params, callback);
 };
 
 /**
@@ -160,7 +160,7 @@ var getMembers = module.exports.getMembers = function(restCtx, contentId, start,
  * @param  {Object}       callback.err        Error object containing error code and error message
  */
 var updateMembers = module.exports.updateMembers = function(restCtx, contentId, updatedMembers, callback) {
-    RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId) + '/members', 'POST', updatedMembers, callback);
+    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/members', 'POST', updatedMembers, callback);
 };
 
 /**
@@ -172,8 +172,8 @@ var updateMembers = module.exports.updateMembers = function(restCtx, contentId, 
  * @param  {Function}     callback            Standard callback method
  * @param  {Object}       callback.err        Error object containing error code and error message
  */
-var share = module.exports.share = function(restCtx, contentId, principals, callback) {
-    RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId) + '/share', 'POST', {'viewers': principals}, callback);
+var shareContent = module.exports.shareContent = function(restCtx, contentId, principals, callback) {
+    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/share', 'POST', {'viewers': principals}, callback);
 };
 
 /**
@@ -192,7 +192,7 @@ var getLibrary = module.exports.getLibrary = function(restCtx, principalId, star
         'start': start,
         'limit': limit
     };
-    RestUtil.RestRequest(restCtx, '/api/content/library/' + encodeURIComponent(principalId), 'GET', params, callback);
+    RestUtil.RestRequest(restCtx, '/api/content/library/' + RestUtil.encodeURIComponent(principalId), 'GET', params, callback);
 };
 
 /**

@@ -30,19 +30,6 @@ var getSection = module.exports.getSection = function(restCtx, userId, sectionId
 };
 
 /**
- * Get all of the profile sections of a user through the REST API.
- * 
- * @param  {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {String}                  userId              User id of the user for who we want to retrieve all of the profile section
- * @param  {Function}                callback            Standard callback method takes arguments `err` and `sections`
- * @param  {Object}                  callback.err        Error object containing error code and error message
- * @param  {Object}                  callback.sections   JSON object representing all of the user's profile sections. The keys will be the user profile section ids, the values will be the actual user profile sections
- */
-var getAllSections = module.exports.getAllSections = function(restCtx, userId, callback) {
-    RestUtil.RestRequest(restCtx, '/api/user/' + RestUtil.encodeURIComponent(userId) + '/profile', 'GET', null, callback);
-};
-
-/**
  * Get an overview of the visibility setting of all of the profile sections of a user through the REST API.
  * 
  * @param  {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
@@ -51,8 +38,8 @@ var getAllSections = module.exports.getAllSections = function(restCtx, userId, c
  * @param  {Object}                  callback.err        Error object containing error code and error message
  * @param  {Object}                  callback.vis        JSON object representing all of the user's profile sections and their visibility. The keys are the profile section ids, and the values are the visibility settings for those sections
  */
-var getAllSectionsVisibility = module.exports.getAllSectionsVisibility = function(restCtx, userId, callback) {
-    RestUtil.RestRequest(restCtx, '/api/user/' + RestUtil.encodeURIComponent(userId) + '/visibility', 'GET', null, callback);
+var getSectionOverview = module.exports.getSectionOverview = function(restCtx, userId, callback) {
+    RestUtil.RestRequest(restCtx, '/api/user/' + RestUtil.encodeURIComponent(userId) + '/profile/sections', 'GET', null, callback);
 };
 
 /**

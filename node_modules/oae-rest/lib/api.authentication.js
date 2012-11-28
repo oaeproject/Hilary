@@ -54,5 +54,5 @@ var changePassword = module.exports.changePassword = function(restCtx, userId, o
         'oldPassword': oldPassword,
         'newPassword': newPassword
     };
-    RestUtil.RestRequest(restCtx, '/api/user/' + encodeURIComponent(userId) + '/password', 'POST', params, callback);
+    RestUtil.RestRequest(restCtx, '/api/user/' + RestUtil.encodeURIComponent(userId) + '/password', 'POST', params, callback);
 };

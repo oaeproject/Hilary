@@ -36,7 +36,7 @@ var getWidgetConfigs = module.exports.getWidgetConfigs = function(restCtx, callb
  * @param  {Object}             callback.err        Error object containing error code and error message
  * @param  {String[]}           callback.data       Array containing the file content for the requested static files.
  */
-var staticBatch = module.exports.staticBatch = function(restCtx, files, callback) {
+var getStaticBatch = module.exports.getStaticBatch = function(restCtx, files, callback) {
     if (!Array.isArray(files)) {
         files = [files];
     }

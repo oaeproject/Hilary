@@ -1,22 +1,27 @@
 {
-  "name": "OAE",
-  "author": "Sakai Foundation",
+  "name": "Hilary",
+  "description": "Sakai OAE Back-end",
   "version": "0.1.0",
+  "homepage": "https://github.com/sakaiproject/Hilary",
+  "author": {
+     "name": "The Sakai Foundation",
+     "email": "oae-dev@collab.sakaiproject.org"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/sakaiproject/Hilary.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sakaiproject/Hilary/issues"
+  },
   "licenses": [
      {
        "type": "ECLv2",
        "url": "http://opensource.org/licenses/ecl2.php"
      }
   ],
-  "repositories": [
-     {
-        "type": "git", 
-        "url": "http://github.com/sakaiproject/Hilary"
-     }
-  ],
   "dependencies": {
     "bunyan": "latest",
-    "clone": "latest",
     "connect": "latest",
     "connect-redis": "latest",
     "dox": "latest",

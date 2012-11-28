@@ -26,7 +26,7 @@ var RestUtil = require('./util');
  * @param  {Object}                  callback.section    JSON object representing the user's profile section. This will be the same as what was saved by the user
  */
 var getSection = module.exports.getSection = function(restCtx, userId, sectionId, callback) {
-    RestUtil.RestRequest(restCtx, '/api/user/' + encodeURIComponent(userId) + '/profile/' + encodeURIComponent(sectionId), 'GET', null, callback);
+    RestUtil.RestRequest(restCtx, '/api/user/' + RestUtil.encodeURIComponent(userId) + '/profile/' + RestUtil.encodeURIComponent(sectionId), 'GET', null, callback);
 };
 
 /**
@@ -39,7 +39,7 @@ var getSection = module.exports.getSection = function(restCtx, userId, sectionId
  * @param  {Object}                  callback.sections   JSON object representing all of the user's profile sections. The keys will be the user profile section ids, the values will be the actual user profile sections
  */
 var getAllSections = module.exports.getAllSections = function(restCtx, userId, callback) {
-    RestUtil.RestRequest(restCtx, '/api/user/' + encodeURIComponent(userId) + '/profile', 'GET', null, callback);
+    RestUtil.RestRequest(restCtx, '/api/user/' + RestUtil.encodeURIComponent(userId) + '/profile', 'GET', null, callback);
 };
 
 /**
@@ -52,7 +52,7 @@ var getAllSections = module.exports.getAllSections = function(restCtx, userId, c
  * @param  {Object}                  callback.vis        JSON object representing all of the user's profile sections and their visibility. The keys are the profile section ids, and the values are the visibility settings for those sections
  */
 var getAllSectionsVisibility = module.exports.getAllSectionsVisibility = function(restCtx, userId, callback) {
-    RestUtil.RestRequest(restCtx, '/api/user/' + encodeURIComponent(userId) + '/visibility', 'GET', null, callback);
+    RestUtil.RestRequest(restCtx, '/api/user/' + RestUtil.encodeURIComponent(userId) + '/visibility', 'GET', null, callback);
 };
 
 /**
@@ -74,7 +74,7 @@ var setSection = module.exports.setSection = function(restCtx, userId, sectionId
         'visibility': visibility,
         'overwrite': overwrite
     };
-    RestUtil.RestRequest(restCtx, '/api/user/' + encodeURIComponent(userId) + '/profile', 'POST', params, callback);
+    RestUtil.RestRequest(restCtx, '/api/user/' + RestUtil.encodeURIComponent(userId) + '/profile', 'POST', params, callback);
 };
 
 /**
@@ -88,5 +88,5 @@ var setSection = module.exports.setSection = function(restCtx, userId, sectionId
  * @param  {Object}                  callback.err        Error object containing error code and error message
  */
 var updateVisibility = module.exports.updateVisibility = function(restCtx, userId, sectionId, visibility, callback) {
-    RestUtil.RestRequest(restCtx, '/api/user/' + encodeURIComponent(userId) + '/profile/' + encodeURIComponent(sectionId) + '/visibility', 'POST', {'visibility': visibility}, callback);
+    RestUtil.RestRequest(restCtx, '/api/user/' + RestUtil.encodeURIComponent(userId) + '/profile/' + RestUtil.encodeURIComponent(sectionId) + '/visibility', 'POST', {'visibility': visibility}, callback);
 };

@@ -176,30 +176,17 @@ var shareContent = module.exports.shareContent = function(restCtx, contentId, pr
 };
 
 /**
- * Creates a comment on a content item
+ * Creates a comment on a content item or a reply to another comment if the `replyTo` parameter is specified
  *
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}       contentId           Content id of the content item we're trying to comment on
  * @param  {String}       body                The comment to be placed on the content item
+ * @param  {String}       [commentId]         Id of the comment to reply to
  * @param  {Function}     callback            Standard callback method
  * @param  {Object}       callback.err        Error object containing error code and error message
  */
-var createComment = module.exports.createComment = function(restCtx, contentId, body, callback) {
-    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/comments', 'POST', {'body': body}, callback);
-};
-
-/**
- * Creates a reply to a comment on a content item
- *
- * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {String}       contentId           Content id of the content item we're trying to comment on
- * @param  {String}       commentId           The ID of the comment to reply to
- * @param  {String}       body                The comment to be placed on the content item
- * @param  {Function}     callback            Standard callback method
- * @param  {Object}       callback.err        Error object containing error code and error message
- */
-var createReply = module.exports.createReply = function(restCtx, contentId, commentId, body, callback) {
-    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/comments/' + RestUtil.encodeURIComponent(commentId) + '/reply', 'POST', {'body': body}, callback);
+var createComment = module.exports.createComment = function(restCtx, contentId, body, replyTo, callback) {
+    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/comments', 'POST', {'body': body, 'replyTo': replyTo}, callback);
 };
 
 /**

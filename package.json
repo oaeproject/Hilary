@@ -34,12 +34,13 @@
     "oae-context": "",
     "oae-doc": "",
     "oae-logger": "",
-    "oae-profiles": "",
     "oae-principals": "",
+    "oae-profiles": "",
     "oae-rest": "",
-    "oae-tenants": "",
     "oae-telemetry": "",
+    "oae-tenants": "",
     "oae-tests": "",
+    "oae-ui": "",
     "oae-util": "",
     "passport": "latest",
     "passport-local": "latest",
@@ -48,6 +49,7 @@
     "passport-openid": "latest",
     "passport-twitter": "latest",
     "passport-facebook": "latest",
+    "readdirp": "latest",
     "recaptcha-async": "latest",
     "redis": "latest",
     "request": "latest",
@@ -55,7 +57,8 @@
     "shortid": "latest",
     "timezone-js": "latest",
     "underscore": "latest",
-    "validator": "0.4.17"
+    "validator": "0.4.17",
+    "watch": "latest"
   },
   "devDependencies": {
     "grunt": "latest",
@@ -82,6 +85,7 @@
     "oae-telemetry",
     "oae-tenants",
     "oae-tests",
+    "oae-ui",
     "oae-util"
   ],
   "engines": {

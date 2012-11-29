@@ -17,6 +17,12 @@ var bunyan = require('bunyan');
 
 var config = module.exports.config = {};
 
+// UI related config information. By default, we assume that the UI repostory 
+// can be found on the same level as the Hilary folder.
+config.ui = {
+    'path': '../3akai-ux'
+};
+
 // Cassandra related config information.
 config.cassandra = {
     'hosts': ['127.0.0.1:9160'], 

@@ -176,6 +176,52 @@ var shareContent = module.exports.shareContent = function(restCtx, contentId, pr
 };
 
 /**
+ * Creates a comment on a content item or a reply to another comment if the `replyTo` parameter is specified
+ *
+ * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}       contentId           Content id of the content item we're trying to comment on
+ * @param  {String}       body                The comment to be placed on the content item
+ * @param  {String}       [replyTo]           Id of the comment to reply to
+ * @param  {Function}     callback            Standard callback method
+ * @param  {Object}       callback.err        Error object containing error code and error message
+ */
+var createComment = module.exports.createComment = function(restCtx, contentId, body, replyTo, callback) {
+    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/comments', 'POST', {'body': body, 'replyTo': replyTo}, callback);
+};
+
+/**
+ * Deletes a comment from a content item
+ *
+ * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}       contentId           Content id of the content item we're trying to delete a comment from
+ * @param  {String}       commentId           The ID of the comment to delete
+ * @param  {Function}     callback            Standard callback method
+ * @param  {Object}       callback.err        Error object containing error code and error message
+ */
+var deleteComment = module.exports.deleteComment = function(restCtx, contentId, commentId, callback) {
+    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/comments/' + RestUtil.encodeURIComponent(commentId), 'DELETE', null, callback);
+};
+
+/**
+ * Gets the comments on a content item
+ *
+ * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}       contentId           Content id of the content item we're trying to get comments for
+ * @param  {String}       start               Determines the point at which content items are returned for paging purposed.
+ * @param  {Integer}      limit               Number of items to return.
+ * @param  {Function}     callback            Standard callback method
+ * @param  {Object}       callback.err        Error object containing error code and error message
+ * @param  {Comment[]}    callback.comments   Array of comments on the content item
+ */
+var getComments = module.exports.getComments = function(restCtx, contentId, start, limit, callback) {
+    var params = {
+        'start': start,
+        'limit': limit
+    };
+    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/comments', 'GET', params, callback);
+};
+
+/**
  * Get a principal library through the REST API.
  * 
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials

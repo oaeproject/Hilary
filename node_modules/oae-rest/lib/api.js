@@ -48,5 +48,8 @@ module.exports.Config = require('./api.config');
 // Doc REST wrappers
 module.exports.Doc = require('./api.doc');
 
+// UI REST wrappers
+module.exports.UI = require('./api.ui');
+
 // Search REST wrappers
 module.exports.Search = require('./api.search');

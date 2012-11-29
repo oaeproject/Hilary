@@ -62,7 +62,6 @@ module.exports = function(grunt) {
     // Make a task for running jscoverage
     grunt.registerTask('jscoverage', 'Run jscoverage on the `target` dir', function() {
         grunt.task.requires('copy:coverage');
-        process.env['OAE_COVERING'] = true;
         shell.exec('node node_modules/oae-tests/runner/instrument_code.js "' + __dirname + '"');
         grunt.log.writeln('Code instrumented'.green);
     });
@@ -70,6 +69,8 @@ module.exports = function(grunt) {
     grunt.registerTask('test-instrumented', 'Runs mocha tests on the instrumented code', function() {
         // Mocha can't write to a file and simplemocha doesn't add that functionality, so we'll just shell.exec it here since we need the output :P
         shell.cd('target');
+        // Set a covering environment variable, as this will be used to determine where the UI resides relative to the Hilary folder.
+        shell.env['OAE_COVERING'] = true;
         var MODULES = grunt.file.expandDirs('node_modules/oae-*/tests').join(' ');
         var output = shell.exec('../node_modules/.bin/mocha --ignore-leaks --timeout 20000 --reporter html-cov node_modules/oae-tests/runner/beforeTests.js ' + MODULES, {silent:true}).output;
         output.to('coverage.html');

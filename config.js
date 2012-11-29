@@ -64,7 +64,7 @@ config.files = {
 // It's strongly recommended that you change this value.
 // Make sure that this value is the same accross each app server.
 config.cookie = {
-    'secret': 'this secret will be used so sign your cookies, change me!'
+    'secret': 'this secret will be used to sign your cookies, change me!'
 };
 
 config.log = {

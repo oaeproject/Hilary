@@ -21,6 +21,7 @@
      }
   ],
   "dependencies": {
+    "awssum": "latest",
     "bunyan": "latest",
     "clone": "latest",
     "connect": "latest",
@@ -28,6 +29,7 @@
     "dox": "latest",
     "express": "latest",
     "helenus": "latest",
+    "mkdirp": "latest",
     "oae-authentication": "",
     "oae-authz": "",
     "oae-config": "",

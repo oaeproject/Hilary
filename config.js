@@ -58,6 +58,22 @@ config.servers = {
     'tenantPort': 2001
 }
 
+// Configuration regarding file uploads.
+// The `uploadDir` key determines where upload files can be buffered before
+// moving them over to the configured storage backend.
+// The storage backend can be configured in the Admin UI and can be changed
+// at runtime.
+config.files = {
+    'uploadDir': process.env.TMP || process.env.TMPDIR || process.env.TEMP || '/tmp' || process.cwd()
+};
+
+// The configuration that can be used to generate secure HTTP cookies.
+// It's strongly recommended that you change this value.
+// Make sure that this value is the same accross each app server.
+config.cookie = {
+    'secret': 'this secret will be used to sign your cookies, change me!'
+};
+
 config.log = {
     'streams': [
         {

@@ -21,12 +21,14 @@
      }
   ],
   "dependencies": {
+    "awssum": "latest",
     "bunyan": "latest",
     "connect": "latest",
     "connect-redis": "latest",
     "dox": "latest",
     "express": "latest",
     "helenus": "latest",
+    "mkdirp": "latest",
     "oae-authentication": "",
     "oae-authz": "",
     "oae-config": "",

@@ -59,9 +59,10 @@ config.servers = {
 }
 
 // Configuration regarding file uploads.
-// Where and how the end files will be stored can be configured in the
-// administrator panel.
-// This configuration only deals with where temp files should be stored.
+// The `uploadDir` key determines where upload files can be buffered before
+// moving them over to the configured storage backend.
+// The storage backend can be configured in the Admin UI and can be changed
+// at runtime.
 config.files = {
     'uploadDir': process.env.TMP || process.env.TMPDIR || process.env.TEMP || '/tmp' || process.cwd()
 };

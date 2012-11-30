@@ -23,6 +23,7 @@
   "dependencies": {
     "awssum": "latest",
     "bunyan": "latest",
+    "clone": "latest",
     "connect": "latest",
     "connect-redis": "latest",
     "dox": "latest",

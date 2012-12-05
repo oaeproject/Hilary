@@ -22,11 +22,11 @@ var RestUtil = require('./util');
  * @param  {RestContext}       restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}            alias               The alias for this group
  * @param  {String}            name                The name for this group
- * @param  {String}            description         The description for this group (Optional)
- * @param  {String}            visibility          The visibility for this group (Optional)
- * @param  {String}            joinable            Whether or not this group is joinable. If specified, must be 'yes', 'no', or 'request' (Optional)
- * @param  {String[]}          managers            An array of userIds that should be made managers (Optional)
- * @param  {String[]}          members             An array of userIds that should be made members (Optional)
+ * @param  {String}            [description]       The description for this group
+ * @param  {String}            [visibility]        The visibility for this group. This can be 'public', 'loggedin' or 'private'
+ * @param  {String}            [joinable]          Whether or not this group is joinable. This can be 'yes', 'no', or 'request'
+ * @param  {String[]}          [managers]          An array of userIds that should be made managers
+ * @param  {String[]}          [members]           An array of userIds that should be made members
  * @param  {Function}          callback            Standard callback method takes arguments `err` and `resp`
  * @param  {Object}            callback.err        Error object containing error code and error message
  * @param  {Group}             callback.response   A Group object representing the created group

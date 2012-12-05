@@ -256,7 +256,7 @@ var getRevisions = module.exports.getRevisions = function(restCtx, contentId, st
         'start': start,
         'limit': limit
     };
-    RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId) + '/revisions', 'GET', params, callback);
+    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/revisions', 'GET', params, callback);
 };
 
 /**
@@ -272,7 +272,7 @@ var updateFileBody = module.exports.updateFileBody = function(restCtx, contentId
     var params = {
         'file': file
     };
-    RestUtil.RestRequest(restCtx, '/api/content/' + encodeURIComponent(contentId) + '/newversion', 'POST', params, callback);
+    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/newversion', 'POST', params, callback);
 };
 
 /**
@@ -291,7 +291,7 @@ var download = module.exports.download = function(restCtx, contentId, revisionId
         params.options = {};
         params.options['_followRedirects'] = followRedirects;
     }
-    var url = '/api/content/' + encodeURIComponent(contentId) + '/download';
+    var url = '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/download';
     if (revisionId) {
         url += '/' + revisionId;
     }

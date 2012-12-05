@@ -24,7 +24,7 @@ var RestUtil = require('./util');
  * @param  {String}            name                The name for this group
  * @param  {String}            description         The description for this group (Optional)
  * @param  {String}            visibility          The visibility for this group (Optional)
- * @param  {String}            joinable            Whether or not this group is joinable (Optional)
+ * @param  {String}            joinable            Whether or not this group is joinable. If specified, must be 'yes', 'no', or 'request' (Optional)
  * @param  {String[]}          managers            An array of userIds that should be made managers (Optional)
  * @param  {String[]}          members             An array of userIds that should be made members (Optional)
  * @param  {Function}          callback            Standard callback method takes arguments `err` and `resp`

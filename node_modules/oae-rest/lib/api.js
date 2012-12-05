@@ -53,3 +53,8 @@ module.exports.UI = require('./api.ui');
 
 // Search REST wrappers
 module.exports.Search = require('./api.search');
+
+// Activity REST wrappers
+module.exports.Activity = require('./api.activity');
+
+

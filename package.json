@@ -22,13 +22,16 @@
   ],
   "dependencies": {
     "amqp": "latest",
+    "awssum": "latest",
     "bunyan": "latest",
+    "clone": "latest",
     "connect": "latest",
     "connect-redis": "latest",
     "dox": "latest",
     "elasticsearchclient": "latest",
     "express": "latest",
     "helenus": "latest",
+    "mkdirp": "latest",
     "oae-authentication": "",
     "oae-authz": "",
     "oae-config": "",
@@ -60,7 +63,7 @@
     "shortid": "latest",
     "timezone-js": "latest",
     "underscore": "latest",
-    "validator": "0.4.17",
+    "validator": "latest",
     "watch": "latest"
   },
   "devDependencies": {

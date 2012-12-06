@@ -50,7 +50,7 @@ var getSectionOverview = module.exports.getSectionOverview = function(restCtx, u
  * @param  {String}                  sectionId           Id of the profile section we want to set
  * @param  {String}                  visibility          Visibility of the profile section. This can be public, loggedin or private
  * @param  {Object}                  sectionData         JSON object representing the profile section that needs to be stored. The object will be stored (and later on retrieved) as is
- * @param  {Boolean}                 overwrite           Whether or not values that are already in the profile section but or not in the updated values should be overwritten or not
+ * @param  {Boolean}                 overwrite           Whether or not values that are already in the profile section but are not in the updated values should be overwritten
  * @param  {Function}                callback            Standard callback method takes argument `err`
  * @param  {Object}                  callback.err        Error object containing error code and error message
  */

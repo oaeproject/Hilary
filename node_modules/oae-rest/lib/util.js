@@ -28,11 +28,9 @@ var cookies = {};
  *
  * The `RestUtil` emits the following events:
  *
- * * `createdUser(ctx, user)`: A new user was created. The `ctx` and the `user` object that was created are both provided.
- * * `updatedUser(ctx, userId)`: A user was updated. The `ctx` and the `userId` of the updated user are provided.
- * * `createdGroup(ctx, group)`: A group was created. The `ctx` and the `group` object that was created are both provided.
- * * `updatedGroup(ctx, groupId)`: A group was updated. The `ctx` and the `groupId` of the updated group are provided.
- * * `updatedGroupMembership(ctx, groupId, memberUpdates)`: A group's members list was updated. The `ctx`, `groupId` of the updated group, and the hash of principalId -> role that outlines the changes that were made are provided.
+ * * `error(err, [body, response])`: An error occurred with the HTTP request. `err` is the error, the body is the body of the response (if applicable), and the response is the response object (if applicable)
+ * * `request(restCtx, url, method, data)`: A request was sent. `restCtx` is the RestContext, `url` is the url of the request, `method` is the HTTP method, and `data` is the data that was sent (either in query string or POST body)
+ * * `response(body, response)`: A successful response was received from the server. `body` is the response body and `response` is the express Response object
  */
 var RestUtil = module.exports = new events.EventEmitter();
 var emitter = RestUtil;

@@ -34,9 +34,9 @@ var search = module.exports.search = function(restCtx, searchType, params, opts,
     params = params || [];
     opts = opts || {};
 
-    // url-encode and join the path parameters into a path string
+    // Url-encode and join the path parameters into a path string
     params = _.map(params, function(param) {
-        return encodeURIComponent(param);
+        return RestUtil.encodeURIComponent(param);
     });
     params = params.join('/');
 
@@ -45,7 +45,7 @@ var search = module.exports.search = function(restCtx, searchType, params, opts,
     opts.from = opts.from || 0;
     opts.sort = opts.sort || 'asc';
 
-    var path = '/api/search/' + encodeURIComponent(searchType);
+    var path = '/api/search/' + RestUtil.encodeURIComponent(searchType);
     if (params) {
         path += '/' + params;
     }
@@ -65,14 +65,14 @@ var search = module.exports.search = function(restCtx, searchType, params, opts,
  * @param {SearchResult}            callback.result     SearchResult object representing the search result
  */
 var _search = function(restCtx, path, method, opts, callback) {
-    // refresh first to ensure the index is up to date
-    // pause for a little bit to ensure any asynchronous index updates in the event queue have had time to make it to elastic search
+    // Refresh first to ensure the index is up to date
+    // Pause for a little bit to ensure any asynchronous index updates in the event queue have had time to make it to elastic search
     setTimeout(RestUtil.RestRequest, 50, restCtx, '/api/search/_refresh', 'POST', null, function(err) {
         if (err) {
-            return callback(new Error('Refreshing the search index has failed. Has refreshing been enabled?'));
+            return callback(err);
         }
 
-        // when getAll is true, it means we want to get all records, regardless of how many. this requires two requests (below)
+        // When getAll is true, it means we want to get all records, regardless of how many. this requires two requests (below)
         var getAll = false;
         if (opts.limit === -1) {
             getAll = true;
@@ -85,11 +85,11 @@ var _search = function(restCtx, path, method, opts, callback) {
             }
 
             if (!getAll || result.total <= opts.limit) {
-                // we are either only interested in the specified page, or we've exhausted the results, return what we have
+                // We are either only interested in the specified page, or we've exhausted the results, return what we have
                 return callback(null, result);
             } else {
-                // we want to get all the results and we did not exhaust them in the first request. query again with the
-                // actual total number of documents and return that result
+                // We want to get all the results and we did not exhaust them in the first request.
+                // Query again with the actual total number of documents and return that result
                 opts.limit = result.total;
                 RestUtil.RestRequest(restCtx, path, method, opts, callback);
             }

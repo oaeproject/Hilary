@@ -98,6 +98,7 @@ var updateUser = module.exports.updateUser = function(restCtx, userId, params, c
  * @param {Number}          [selectedArea.height]   The height of the rectangle
  * @param {Function}        callback                Standard callback method takes argument `err`
  * @param {Object}          callback.err            Error object containing error code and error message
+ * @param {Object}          callback.principal      The updated principal object.
  */
 var uploadPicture = module.exports.uploadPicture = function(restCtx, userId, file, selectedArea, callback) {
     var params = {

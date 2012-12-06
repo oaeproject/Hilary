@@ -20,13 +20,13 @@ var RestUtil = require('./util');
  *
  * @param {RestContext}     restCtx                 Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param {String}          principalId             The ID of the principal we're trying to crop a picture for.
- * @param {Object}          selectedArea            The topleft coordinates and size of the rectangle that should be cropped out
+ * @param {Object}          selectedArea            The topleft coordinates and size of the square that should be cropped out
  * @param {Number}          selectedArea.x          The top left x coordinate.
  * @param {Number}          selectedArea.y          The top left y coordinate.
- * @param {Number}          selectedArea.width      The width of the rectangle
- * @param {Number}          selectedArea.height     The height of the rectangle
+ * @param {Number}          selectedArea.width      The width of the square
  * @param {Function}        callback                Standard callback method takes argument `err`
  * @param {Object}          callback.err            Error object containing error code and error message
+ * @param {Object}          callback.principal      The updated principal object
  */
 
 var cropPicture = module.exports.cropPicture = function(restCtx, principalId, selectedArea, callback) {
@@ -34,8 +34,7 @@ var cropPicture = module.exports.cropPicture = function(restCtx, principalId, se
         'principalId': principalId,
         'x': selectedArea.x,
         'y': selectedArea.y,
-        'width': selectedArea.width,
-        'height': selectedArea.height,
-    }
+        'width': selectedArea.width
+    };
     RestUtil.RestRequest(restCtx, '/api/crop', 'POST', params, callback);
 };

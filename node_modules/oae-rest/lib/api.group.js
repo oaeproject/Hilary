@@ -159,6 +159,7 @@ var exists = module.exports.exists = function(restCtx, alias, callback) {
  * @param {Number}          [selectedArea.height]   The height of the rectangle
  * @param {Function}        callback                Standard callback method takes argument `err`
  * @param {Object}          callback.err            Error object containing error code and error message
+ * @param {Object}          callback.principal      The updated principal object.
  */
 var uploadPicture = module.exports.uploadPicture = function(restCtx, groupId, file, selectedArea, callback) {
     var params = {

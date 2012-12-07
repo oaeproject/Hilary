@@ -40,5 +40,5 @@ var getStaticBatch = module.exports.getStaticBatch = function(restCtx, files, ca
     if (!Array.isArray(files)) {
         files = [files];
     }
-    RestUtil.RestRequest(restCtx, '/api/ui/staticBatch', 'GET', {'files': files}, callback);
+    RestUtil.RestRequest(restCtx, '/api/ui/staticbatch', 'GET', {'files': files}, callback);
 };

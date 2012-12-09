@@ -56,3 +56,15 @@ var changePassword = module.exports.changePassword = function(restCtx, userId, o
     };
     RestUtil.RestRequest(restCtx, '/api/user/' + RestUtil.encodeURIComponent(userId) + '/password', 'POST', params, callback);
 };
+
+/**
+ * Check whether or not a login id exists
+ * 
+ * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}                 username            Username we're checking existence. This should not be the globally unique userid (e.g. u:cam:nm417), but the login id a user would actually use (e.g. nm417) to log in.
+ * @param  {Function}               callback            Standard callback method takes argument `err`
+ * @param  {Object}                 callback.err        Error object containing error code and error message
+ */
+var exists = module.exports.exists = function(restCtx, username, callback) {
+    RestUtil.RestRequest(restCtx, '/api/auth/' + RestUtil.encodeURIComponent(username), 'GET', null, callback);
+};

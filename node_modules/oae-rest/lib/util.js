@@ -12,15 +12,28 @@
  * or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-
+var events = require('events');
 var request = require('request');
 var Stream = require('stream').Stream
+var util = require('util');
 
 // Array of response codes that are considered to be HTTP errors
 var errorCodes = [400, 401, 403, 404, 500, 503];
 // Variable that will keep track of a cookie jar per user, so we can continue to
 // use the user's session throughout the tests
 var cookies = {};
+
+/**
+ * ### Events
+ *
+ * The `RestUtil` emits the following events:
+ *
+ * * `error(err, [body, response])`: An error occurred with the HTTP request. `err` is the error, the body is the body of the response (if applicable), and the response is the response object (if applicable)
+ * * `request(restCtx, url, method, data)`: A request was sent. `restCtx` is the RestContext, `url` is the url of the request, `method` is the HTTP method, and `data` is the data that was sent (either in query string or POST body)
+ * * `response(body, response)`: A successful response was received from the server. `body` is the response body and `response` is the express Response object
+ */
+var RestUtil = module.exports = new events.EventEmitter();
+var emitter = RestUtil;
 
 /**
  * Utility wrapper around the native JS encodeURIComponent function, to make sure that
@@ -50,6 +63,7 @@ module.exports.encodeURIComponent = function(uriComponent) {
  * @param  {Response}       callback.response   The response object that was returned by the node module requestjs.
  */
 var RestRequest = module.exports.RestRequest = function(restCtx, url, method, data, callback) {
+
     // Check if the request should be done by a logged in user
     if (restCtx.userId) {
         // Check if we already have a stored session for this user
@@ -94,6 +108,8 @@ var RestRequest = module.exports.RestRequest = function(restCtx, url, method, da
  * @api private
  */
 var _RestRequest = function(restCtx, url, method, data, callback) {
+    module.exports.emit('request', restCtx, url, method, data);
+
     var j = request.jar();
     if (restCtx.userId) {
         // Create a composite of URL and userid to make sure that userids
@@ -147,12 +163,16 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
         }
     }
 
-    var req = request(requestParams, function(error, response, body) {
-        if (error) {
-            return callback({'code': 500, 'msg': 'Something went wrong trying to contact the server: ' + error});
+    var req = request(requestParams, function(err, response, body) {
+        if (err) {
+            emitter.emit('error', err);
+            return callback({'code': 500, 'msg': 'Something went wrong trying to contact the server: ' + err});
         } else if (errorCodes.indexOf(response.statusCode) !== -1) {
-            return callback({'code': response.statusCode, 'msg': body});
+            err = {'code': response.statusCode, 'msg': body};
+            emitter.emit('error', err, body, response);
+            return callback(err);
         }
+
         // Check if the response body is JSON
         try {
             body = JSON.parse(body);
@@ -160,9 +180,10 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
             /* This can be ignored, response is not a JSON object */
         }
 
-        // Pass the response to the caller.
-        callback(false, body, response);
+        emitter.emit('response', body, response);
+        return callback(null, body, response);
     });
+
     if (hasStream) {
         // We append our data in a multi-part way.
         // That way we can support buffer/streams as well.

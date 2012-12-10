@@ -26,6 +26,7 @@
 
 // User REST wrappers
 module.exports.User = require('./api.user');
+
 // Group REST wrappers
 module.exports.Group = require('./api.group');
 
@@ -52,3 +53,6 @@ module.exports.UI = require('./api.ui');
 
 // Crop REST wrappers
 module.exports.Crop = require('./api.crop');
+
+// Search REST wrappers
+module.exports.Search = require('./api.search');

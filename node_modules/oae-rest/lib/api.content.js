@@ -33,11 +33,11 @@ var getContent = module.exports.getContent = function(restCtx, contentId, callba
  * 
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         name                Display title for the created content item
- * @param  {String}         description         The content item's description
- * @param  {String}         visibility          The content item's visibility. This can be public, loggedin or private
+ * @param  {String}         [description]       The content item's description
+ * @param  {String}         [visibility]        The content item's visibility. This can be public, loggedin or private
  * @param  {String}         link                The URL that should be stored against this content item
- * @param  {String[]}       managers            Array of user/group ids that should be added as managers to the content item
- * @param  {String[]}       viewers             Array of user/group ids that should be added as viewers to the content item
+ * @param  {String[]}       [managers]          Array of user/group ids that should be added as managers to the content item
+ * @param  {String[]}       [viewers]           Array of user/group ids that should be added as viewers to the content item
  * @param  {Function}       callback            Standard callback method
  * @param  {Object}         callback.err        Error object containing error code and error message
  * @param  {Content}        callback.content    Content object representing the created content
@@ -59,11 +59,11 @@ var createLink = module.exports.createLink = function(restCtx, name, description
  * Create a new file through the REST API.
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         name                Display title for the created content item
- * @param  {String}         description         The content item's description
- * @param  {String}         visibility          The content item's visibility. This can be public, loggedin or private
+ * @param  {String}         [description]       The content item's description (optional)
+ * @param  {String}         [visibility]        The content item's visibility. This can be public, loggedin or private and is optional.
  * @param  {Function}       fileGenerator       A function that returns a stream which points to a file body.
- * @param  {String[]}       managers            Array of user/group ids that should be added as managers to the content item
- * @param  {String[]}       viewers             Array of user/group ids that should be added as viewers to the content item
+ * @param  {String[]}       [managers]          An optional array of user/group ids that should be added as managers to the content item
+ * @param  {String[]}       [viewers]           An optional array of user/group ids that should be added as viewers to the content item
  * @param  {Function}       callback            Standard callback method
  * @param  {Object}         callback.err        Error object containing error code and error message
  * @param  {Content}        callback.content    Content object representing the created content
@@ -86,10 +86,10 @@ var createFile = module.exports.createFile = function(restCtx, name, description
  * 
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}       name                Display title for the created content item
- * @param  {String}       description         The content item's description
- * @param  {String}       visibility          The content item's visibility. This can be public, loggedin or private
- * @param  {String[]}     managers            Array of user/group ids that should be added as managers to the content item
- * @param  {String[]}     viewers             Array of user/group ids that should be added as viewers to the content item
+ * @param  {String}       [description]       The content item's description
+ * @param  {String}       [visibility]        The content item's visibility. This can be public, loggedin or private
+ * @param  {String[]}     [managers]          Array of user/group ids that should be added as managers to the content item
+ * @param  {String[]}     [viewers]           Array of user/group ids that should be added as viewers to the content item
  * @param  {Function}     callback            Standard callback method
  * @param  {Object}       callback.err        Error object containing error code and error message
  * @param  {Content}      callback.content    Content object representing the created content
@@ -293,7 +293,7 @@ var download = module.exports.download = function(restCtx, contentId, revisionId
     }
     var url = '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/download';
     if (revisionId) {
-        url += '/' + revisionId;
+        url += '/' + RestUtil.encodeURIComponent(revisionId);
     }
     RestUtil.RestRequest(restCtx, url, 'GET', params, callback);
 };

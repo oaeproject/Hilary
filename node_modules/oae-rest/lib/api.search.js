@@ -1,0 +1,98 @@
+/*!
+ * Copyright 2012 Sakai Foundation (SF) Licensed under the
+ * Educational Community License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may
+ * obtain a copy of the License at
+ *
+ *     http://www.osedu.org/licenses/ECL-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an "AS IS"
+ * BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing
+ * permissions and limitations under the License.
+ */
+var _ = require('underscore');
+var RestUtil = require('./util');
+
+/**
+ * Perform a search.
+ *
+ * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param {String}                  searchType          The type of search to perform (e.g., general)
+ * @oaram {String[]}                [params]            The parameters (i.e., path parameters) for the search. These are given as the `opts.params` value in the custom search. While these are optional for this API call, they may be required by the particular search type you are executing.
+ * @param {Object}                  [opts]              Options for the search
+ * @param {String}                  [opts.q]            The full-text search term (default: *)
+ * @param {Number}                  [opts.limit]        The number of items to retrieve. If -1, then return all. (default: -1)
+ * @param {Number}                  [opts.from]         What item to start on in the results (default: 0)
+ * @param {String}                  [opts.sort]         The direction of sorting: asc, or desc (default: asc)
+ * @param {Function}                callback            Standard callback method
+ * @param {Object}                  callback.err        Error object containing error code and error message
+ * @param {SearchResult}            callback.result     SearchResult object representing the search result
+ */
+var search = module.exports.search = function(restCtx, searchType, params, opts, callback) {
+    params = params || [];
+    opts = opts || {};
+
+    // Url-encode and join the path parameters into a path string
+    params = _.map(params, function(param) {
+        return RestUtil.encodeURIComponent(param);
+    });
+    params = params.join('/');
+
+    opts.q = opts.q || '*';
+    opts.limit = (opts.limit >= 0) ? opts.limit : -1;
+    opts.from = opts.from || 0;
+    opts.sort = opts.sort || 'asc';
+
+    var path = '/api/search/' + RestUtil.encodeURIComponent(searchType);
+    if (params) {
+        path += '/' + params;
+    }
+
+    _search(restCtx, path, 'GET', opts, callback);
+};
+
+/**
+ * Perform a search.
+ *
+ * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param {String}                  path                The path of the request
+ * @param {String}                  method              The method of the request
+ * @param {Object}                  opts                The additional query string parameters
+ * @param {Function}                callback            Standard callback method
+ * @param {Object}                  callback.err        Error object containing error code and error message
+ * @param {SearchResult}            callback.result     SearchResult object representing the search result
+ */
+var _search = function(restCtx, path, method, opts, callback) {
+    // Refresh first to ensure the index is up to date
+    // Pause for a little bit to ensure any asynchronous index updates in the event queue have had time to make it to elastic search
+    setTimeout(RestUtil.RestRequest, 50, restCtx, '/api/search/_refresh', 'POST', null, function(err) {
+        if (err) {
+            return callback(err);
+        }
+
+        // When getAll is true, it means we want to get all records, regardless of how many. this requires two requests (below)
+        var getAll = false;
+        if (opts.limit === -1) {
+            getAll = true;
+            opts.limit = 1;
+        }
+
+        RestUtil.RestRequest(restCtx, path, method, opts, function(err, result) {
+            if (err) {
+                return callback(err);
+            }
+
+            if (!getAll || result.total <= opts.limit) {
+                // We are either only interested in the specified page, or we've exhausted the results, return what we have
+                return callback(null, result);
+            } else {
+                // We want to get all the results and we did not exhaust them in the first request.
+                // Query again with the actual total number of documents and return that result
+                opts.limit = result.total;
+                RestUtil.RestRequest(restCtx, path, method, opts, callback);
+            }
+        });
+    })
+}

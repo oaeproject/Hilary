@@ -16,14 +16,14 @@
 var RestUtil = require('./util');
 
 /**
- * Get all of the widget configuration files through the REST API.
+ * Get all of the widget manifest files through the REST API.
  * 
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {Function}     callback            Standard callback method
  * @param  {Object}       callback.err        Error object containing error code and error message
- * @param  {Object}       callback.configs    The aggregated widget configuration files where the keys represent the widget ids and the values contain the widget config.
+ * @param  {Object}       callback.manifests  The aggregated widget manifest files where the keys represent the widget ids and the values contain the widget manifest.
  */
-var getWidgetConfigs = module.exports.getWidgetConfigs = function(restCtx, callback) {
+var getWidgetManifests = module.exports.getWidgetManifests = function(restCtx, callback) {
     RestUtil.RestRequest(restCtx, '/api/ui/widgets', 'GET', null, callback);
 };
 
@@ -40,5 +40,5 @@ var getStaticBatch = module.exports.getStaticBatch = function(restCtx, files, ca
     if (!Array.isArray(files)) {
         files = [files];
     }
-    RestUtil.RestRequest(restCtx, '/api/ui/staticBatch', 'GET', {'files': files}, callback);
+    RestUtil.RestRequest(restCtx, '/api/ui/staticbatch', 'GET', {'files': files}, callback);
 };

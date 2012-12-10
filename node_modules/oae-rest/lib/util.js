@@ -14,6 +14,7 @@
  */
 var events = require('events');
 var request = require('request');
+var Stream = require('stream').Stream
 var util = require('util');
 
 // Array of response codes that are considered to be HTTP errors
@@ -22,7 +23,17 @@ var errorCodes = [400, 401, 403, 404, 500, 503];
 // use the user's session throughout the tests
 var cookies = {};
 
-var emitter = module.exports = new events.EventEmitter();
+/**
+ * ### Events
+ *
+ * The `RestUtil` emits the following events:
+ *
+ * * `error(err, [body, response])`: An error occurred with the HTTP request. `err` is the error, the body is the body of the response (if applicable), and the response is the response object (if applicable)
+ * * `request(restCtx, url, method, data)`: A request was sent. `restCtx` is the RestContext, `url` is the url of the request, `method` is the HTTP method, and `data` is the data that was sent (either in query string or POST body)
+ * * `response(body, response)`: A successful response was received from the server. `body` is the response body and `response` is the express Response object
+ */
+var RestUtil = module.exports = new events.EventEmitter();
+var emitter = RestUtil;
 
 /**
  * Utility wrapper around the native JS encodeURIComponent function, to make sure that
@@ -48,7 +59,8 @@ module.exports.encodeURIComponent = function(uriComponent) {
  * @param  {Object}         data                The form data that should be passed into the request [optional]       
  * @param  {Function}       callback            Standard callback function
  * @param  {Object}         callback.err        Error object containing the error code and message
- * @param  {String|Object}  callback.response   The response received from the request. If this is JSON, a parsed JSON object will be returned, otherwise the response will be returned as a string
+ * @param  {String|Object}  callback.body       The response body received from the request. If this is JSON, a parsed JSON object will be returned, otherwise the response will be returned as a string
+ * @param  {Response}       callback.response   The response object that was returned by the node module requestjs.
  */
 var RestRequest = module.exports.RestRequest = function(restCtx, url, method, data, callback) {
 
@@ -118,35 +130,81 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
             'host': restCtx.hostHeader
         };
     }
+
+    if (requestParams.options && (requestParams.options['_followRedirects'] === true || requestParams.options['_followRedirects'] === false)) {
+        requestParams.followRedirect = requestParams.options['_followRedirects'];
+        delete requestParams.options;
+    }
+
+    // Expand values and check if we're uploading something (with a stream.)
+    // API users need to pass in uploads (=streams) via a function as we do some other things
+    // *before* we reach this point.
+    // If we would simple pass in a stream the data might already be gone by the time
+    // we reach this point.
+    var hasStream = false;
+    if (data) {
+        var keys = Object.keys(data);
+        for (var i = 0; i < keys.length; i++) {
+            if (typeof data[keys[i]] === 'function') {
+                data[keys[i]] = data[keys[i]]();
+            }
+            if (data[keys[i]] instanceof Stream) {
+                hasStream = true;
+            }
+        }
+    }
+
     // Add the request data, if there is any
     if (data) {
-        // Add it to the querystring if it's a GET
         if (method === 'GET') {
             requestParams.qs = data;
-        // Add it as form data if it's a POST or a PUT
-        } else {
+        } else if (!hasStream && method === 'POST') {
             requestParams.form = data;
         }
     }
-    
-    request(requestParams, function(err, response, body) {
+
+    var req = request(requestParams, function(err, response, body) {
         if (err) {
             emitter.emit('error', err);
-            return callback({ 'code': 500, 'msg': 'Something went wrong trying to contact the server: ' + err });
-        }
-
-        if (errorCodes.indexOf(response.statusCode) !== -1) {
+            return callback({'code': 500, 'msg': 'Something went wrong trying to contact the server: ' + err});
+        } else if (errorCodes.indexOf(response.statusCode) !== -1) {
             err = {'code': response.statusCode, 'msg': body};
-            emitter.emit('error', err, response, body);
+            emitter.emit('error', err, body, response);
             return callback(err);
         }
 
         // Check if the response body is JSON
         try {
             body = JSON.parse(body);
-        } catch (err) { /* This can be ignored, response is not a JSON object */ }
+        } catch (err) {
+            /* This can be ignored, response is not a JSON object */
+        }
 
-        emitter.emit('response', response, body);
-        callback(null, body);
+        emitter.emit('response', body, response);
+        return callback(null, body, response);
     });
+
+    if (hasStream) {
+        // We append our data in a multi-part way.
+        // That way we can support buffer/streams as well.
+        var form = req.form();
+        for (var i = 0; i < keys.length; i++) {
+            var value = data[keys[i]];
+
+            // We can't append null values.
+            if (value) {
+                // If we're sending parts which have the same name
+                // we have to unroll them before appending them to the form.
+                if (Array.isArray(value)) {
+                    for (var v = 0; v < value.length; v++) {
+                        form.append(keys[i], value[v]);
+                    }
+
+                // All other value types (string, stream, ..)
+                } else {
+                    form.append(keys[i], data[keys[i]]);
+                }
+            }
+        }
+    }
 };

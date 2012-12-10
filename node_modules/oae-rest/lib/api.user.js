@@ -85,3 +85,15 @@ var updateUser = module.exports.updateUser = function(restCtx, userId, params, c
     RestUtil.RestRequest(restCtx, '/api/user/' + RestUtil.encodeURIComponent(userId), 'POST', params, callback);
 };
 
+/**
+ * Set or unset a user as a tenant admin.
+ *
+ * @param   {RestContext}   restCtx         Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param   {String}        userId          The user id of the user we're going to update
+ * @param   {Boolean}       value           Whether or not the user should be tenant admin. `true` if they should, any other value if they should be unset
+ * @param   {Function}      callback        Standard callback method takes argument `err`
+ * @param   {Object}        callback.err    Error object containing error code and error message
+ */
+var setTenantAdmin = module.exports.setTenantAdmin = function(restCtx, userId, value, callback) {
+    RestUtil.RestRequest(restCtx, '/api/user/' + encodeURIComponent(userId) + '/admin', 'POST', {'admin': (value === true)}, callback);
+}

@@ -35,22 +35,39 @@ sudo mkdir -p /var/lib/cassandra
 sudo chown -R `whoami` /var/lib/cassandra
 ```
 
+When that is complete, you can start up Cassandra in the background:
+
+```
+cd your-cassandra-dir
+bin/cassandra -f
+```
+
 ### Download and install the latest version of Redis
 
 Download and install (or compile) the latest version of [redis](http://redis.io/download).
 
 Once installed, start the server by running the `redis-server` binary.
 
+### Download and install the latest version of ElasticSearch
+
+ElasticSearch can be downloaded [here](http://www.elasticsearch.org/download/). By default, Hilary will expect ElasticSearch to be available on its default port: 9200.
+
+Once you've installed ElasticSearch, you can start it up in the background:
+
+```
+cd your-elasticsearch-dir
+bin/elasticsearch
+```
+
+### Download and install the latest version of RabbitMQ
+
+RabbitMQ can be downloaded [here](http://www.rabbitmq.com/download.html). By default, Hilary will expect RabbitMQ to be available on its default port: 5672.
+
+Once installed, you can start up RabbitMQ in the background by running `rabbitmq-server -detached`, assuming rabbitmq-server is on your PATH.
+
 ### Running the server
 
 All that remains now is booting the server.
-
-#### Start Cassandra
-
-```
-cd your-cassandra-dir
-bin/cassandra -f
-```
 
 #### Start Hilary
 

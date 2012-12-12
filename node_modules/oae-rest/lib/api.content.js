@@ -198,6 +198,7 @@ var createComment = module.exports.createComment = function(restCtx, contentId, 
  * @param  {String}       commentId           The ID of the comment to delete
  * @param  {Function}     callback            Standard callback method
  * @param  {Object}       callback.err        Error object containing error code and error message
+ * @param  {Comment}      callback.comment    If the comment is not deleted, but instead flagged as deleted, the comment with properties stripped from it returns.
  */
 var deleteComment = module.exports.deleteComment = function(restCtx, contentId, commentId, callback) {
     RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/comments/' + RestUtil.encodeURIComponent(commentId), 'DELETE', null, callback);

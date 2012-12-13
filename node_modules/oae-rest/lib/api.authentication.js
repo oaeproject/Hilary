@@ -66,5 +66,5 @@ var changePassword = module.exports.changePassword = function(restCtx, userId, o
  * @param  {Object}                 callback.err        Error object containing error code and error message
  */
 var exists = module.exports.exists = function(restCtx, username, callback) {
-    RestUtil.RestRequest(restCtx, '/api/auth/' + RestUtil.encodeURIComponent(username), 'GET', null, callback);
+    RestUtil.RestRequest(restCtx, '/api/auth/exists/' + RestUtil.encodeURIComponent(username), 'GET', null, callback);
 };

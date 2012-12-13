@@ -67,7 +67,7 @@ var search = module.exports.search = function(restCtx, searchType, params, opts,
 var _search = function(restCtx, path, method, opts, callback) {
     // Refresh first to ensure the index is up to date
     // Pause for a little bit to ensure any asynchronous index updates in the event queue have had time to make it to elastic search
-    setTimeout(RestUtil.RestRequest, 50, restCtx, '/api/search/_refresh', 'POST', null, function(err) {
+    setTimeout(RestUtil.RestRequest, 250, restCtx, '/api/search/_refresh', 'POST', null, function(err) {
         if (err) {
             return callback(err);
         }

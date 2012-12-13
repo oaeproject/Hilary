@@ -137,13 +137,13 @@ config.search = {
                         'type': 'custom',
                         'char_filter': ['html_strip'],
                         'tokenizer': 'whitespace',
-                        'filter': ['general_edgengram']
+                        'filter': ['lowercase', 'general_edgengram']
                     }
                 },
                 'filter': {
                     'general_edgengram': {
                         'type': 'edgeNGram',
-                        'min_gram': 3,
+                        'min_gram': 1,
                         'max_gram': 15,
                         'side': 'front'
                     }

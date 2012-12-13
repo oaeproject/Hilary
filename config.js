@@ -130,7 +130,25 @@ config.search = {
         'name': 'oae',
         'settings': {
             'number_of_shards': 5,
-            'number_of_replicas': 1
+            'number_of_replicas': 1,
+            'analysis': {
+                'analyzer': {
+                    'general': {
+                        'type': 'custom',
+                        'char_filter': ['html_strip'],
+                        'tokenizer': 'whitespace',
+                        'filter': ['general_edgengram']
+                    }
+                },
+                'filter': {
+                    'general_edgengram': {
+                        'type': 'edgeNGram',
+                        'min_gram': 3,
+                        'max_gram': 15,
+                        'side': 'front'
+                    }
+                }
+            }
         },
         'allowAnonRefresh': false,
     },

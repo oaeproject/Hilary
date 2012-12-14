@@ -178,12 +178,14 @@ var uploadPicture = module.exports.uploadPicture = function(restCtx, groupId, fi
 };
 /**
  * Download a group's picture. Returns a 404 if the group has no picture.
+ * This will only return the image when it's run against the nginx server, as it's nginx who sends the picture stream.
  *
- * @param {RestContext}     restCtx         Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param {String}          groupId         The ID of the group we're trying to download a picture from.
- * @param {String}          size            The picture size. One of `small`, `medium` or `large`.
- * @param {Function}        callback        Standard callback method takes argument `err`
- * @param {Object}          callback.err    Error object containing error code and error message
+ * @param {RestContext}     restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param {String}          groupId             The ID of the group we're trying to download a picture from.
+ * @param {String}          size                The picture size. One of `small`, `medium` or `large`.
+ * @param {Function}        callback            Standard callback method takes argument `err`
+ * @param {Object}          callback.err        Error object containing error code and error message
+ * @param {Object}          callback.picture    The raw picture for this group.
  */
 var downloadPicture = module.exports.downloadPicture = function(restCtx, groupId, size, callback) {
     if (!size) {

@@ -24,7 +24,7 @@ var RestUtil = require('./util');
  * @param {Object}                  [opts]              Options for the search
  * @param {String}                  [opts.q]            The full-text search term (default: *)
  * @param {Number}                  [opts.limit]        The number of items to retrieve. If -1, then return all. (default: -1)
- * @param {Number}                  [opts.from]         What item to start on in the results (default: 0)
+ * @param {Number}                  [opts.start]        What item to start on in the results, for paging (default: 0)
  * @param {String}                  [opts.sort]         The direction of sorting: asc, or desc (default: asc)
  * @param {Function}                callback            Standard callback method
  * @param {Object}                  callback.err        Error object containing error code and error message
@@ -42,7 +42,7 @@ var search = module.exports.search = function(restCtx, searchType, params, opts,
 
     opts.q = opts.q || '*';
     opts.limit = (opts.limit >= 0) ? opts.limit : -1;
-    opts.from = opts.from || 0;
+    opts.start = opts.start || 0;
     opts.sort = opts.sort || 'asc';
 
     var path = '/api/search/' + RestUtil.encodeURIComponent(searchType);

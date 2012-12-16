@@ -22,10 +22,10 @@ var RestUtil = require('./util');
  * @param {String}                  searchType          The type of search to perform (e.g., general)
  * @oaram {String[]}                [params]            The parameters (i.e., path parameters) for the search. These are given as the `opts.params` value in the custom search. While these are optional for this API call, they may be required by the particular search type you are executing.
  * @param {Object}                  [opts]              Options for the search
- * @param {String}                  [opts.q]            The full-text search term (default: *)
+ * @param {String}                  [opts.q]            The full-text search term. If unspecified it will be the server-side default.
  * @param {Number}                  [opts.limit]        The number of items to retrieve. If -1, then return all. (default: -1)
- * @param {Number}                  [opts.from]         What item to start on in the results (default: 0)
- * @param {String}                  [opts.sort]         The direction of sorting: asc, or desc (default: asc)
+ * @param {Number}                  [opts.start]        What item to start on in the results, for paging. If unspecified it will be the server-side default.
+ * @param {String}                  [opts.sort]         The direction of sorting: asc, or desc. If unspecified it will be the server-side default.
  * @param {Function}                callback            Standard callback method
  * @param {Object}                  callback.err        Error object containing error code and error message
  * @param {SearchResult}            callback.result     SearchResult object representing the search result
@@ -40,10 +40,7 @@ var search = module.exports.search = function(restCtx, searchType, params, opts,
     });
     params = params.join('/');
 
-    opts.q = opts.q || '*';
     opts.limit = (opts.limit >= 0) ? opts.limit : -1;
-    opts.from = opts.from || 0;
-    opts.sort = opts.sort || 'asc';
 
     var path = '/api/search/' + RestUtil.encodeURIComponent(searchType);
     if (params) {

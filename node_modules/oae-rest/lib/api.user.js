@@ -95,5 +95,5 @@ var updateUser = module.exports.updateUser = function(restCtx, userId, params, c
  * @param   {Object}        callback.err    Error object containing error code and error message
  */
 var setTenantAdmin = module.exports.setTenantAdmin = function(restCtx, userId, value, callback) {
-    RestUtil.RestRequest(restCtx, '/api/user/' + encodeURIComponent(userId) + '/admin', 'POST', {'admin': (value === true)}, callback);
+    RestUtil.RestRequest(restCtx, '/api/user/' + RestUtil.encodeURIComponent(userId) + '/admin', 'POST', {'admin': (value === true)}, callback);
 }

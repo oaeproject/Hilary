@@ -85,7 +85,7 @@ var updateGroup = module.exports.updateGroup = function (restCtx, groupId, profi
  * @param  {Number}             limit               The number of members to retrieve.
  * @param  {Function}           callback            Standard callback method takes arguments `err` and `resp`
  * @param  {Object}             callback.err        Error object containing error code and error message
- * @param  {User[]|Group[]}     callback.response   Array of principals representing the group members
+ * @param  {Object}             callback.response   An object with key 'results', whose value is a mixed array of User and Group objects that are members of the group
  */
 var getGroupMembers = module.exports.getGroupMembers = function(restCtx, groupId, start, limit, callback) {
     var params = {

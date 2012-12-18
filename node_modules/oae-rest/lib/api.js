@@ -51,5 +51,8 @@ module.exports.Doc = require('./api.doc');
 // UI REST wrappers
 module.exports.UI = require('./api.ui');
 
+// Crop REST wrappers
+module.exports.Crop = require('./api.crop');
+
 // Search REST wrappers
 module.exports.Search = require('./api.search');

@@ -1,0 +1,23 @@
+language: node_js
+node_js:
+  - 0.8
+
+branches:
+  only:
+    - master
+
+before_install:
+  - ls -l /home
+  - git clone git://github.com/sakaiproject/3akai-ux.git ../3akai-ux
+  - cd ../3akai-ux
+  - git checkout Hilary
+  - cd ../Hilary
+
+services:
+  - cassandra
+  - elasticsearch
+  - rabbitmq
+  - redis-server
+
+script:
+  - grunt test

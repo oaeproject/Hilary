@@ -118,6 +118,7 @@ config.telemetry = {
  * @param   {Boolean}   index.allowAnonRefresh  Whether or not to allow the anonymous user to force-refresh the OAE index. Helpful for tests, but not recommended for production.
  * @param   {Boolean}   index.destroyOnStartup  Whether or not the index should be destroyed when the server starts up. Do not enable this on a production server.
  * @param   {Object}    schemaExtension         An ElasticSearch mapping definition that can be used to extend the existing resource mapping. Use this to add new properties to your schema if you need more control over the properties. For more information, see the ElasticSearch Put Mapping API.
+ * @param   {Boolean}   processIndexJobs        Whether or not this node should act as an indexing worker. Defaults to `true` if not specified. It is recommended in production that application nodes serving user requests do not have this enabled, but rather delegate to dedicated indexing workers. This reduces the impact of asynchronous search indexing on user request latency.
  */
 config.search = {
     'hosts': [
@@ -151,7 +152,8 @@ config.search = {
         },
         'allowAnonRefresh': false,
     },
-    'schemaExtension': {}
+    'schemaExtension': {},
+    'processIndexJobs': true
 };
 
 /**
@@ -171,3 +173,18 @@ config.mq = {
     },
     'prefetchCount': 15
 };
+
+/**
+ * `config.activity`
+ *
+ * Configuration namespace for activities.
+ *
+ * @param   {Boolean}   processActivityJobs     Whether or not this node should act as an activity worker. Defaults to `true`. It is recommended in production that application nodes serving user requests do not have this enabled, but rather delegate to dedicated activity workers. This reduces the impact of asynchronous activity routing on user request latency.
+ * @param   {Number}    activityTtl             How long (in seconds) an activity should live in a user's activity feed. After this time period has expired, the activity will be permanently gone. Note that changing this is not retro-active, the TTL that was configured to an activity at the time that it was created persists even after this changes. The default value is 2 weeks.
+ */
+config.activity = {
+    'processActivityJobs': true,
+    'activityTtl': 2 * 7 * 24 * 60 * 60
+};
+
+

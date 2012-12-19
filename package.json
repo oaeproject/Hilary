@@ -71,7 +71,7 @@
   },
   "devDependencies": {
     "grunt": "latest",
-    "grunt-simple-mocha": "latest",
+    "grunt-simple-mocha": "0.2",
     "grunt-clean": "latest",
     "grunt-contrib-copy": "latest",
     "mocha": "latest",

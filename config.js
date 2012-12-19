@@ -137,7 +137,7 @@ config.search = {
                     'general': {
                         'type': 'custom',
                         'char_filter': ['html_strip'],
-                        'tokenizer': 'whitespace',
+                        'tokenizer': 'letter',
                         'filter': ['lowercase', 'general_edgengram']
                     }
                 },
@@ -145,8 +145,7 @@ config.search = {
                     'general_edgengram': {
                         'type': 'edgeNGram',
                         'min_gram': 1,
-                        'max_gram': 15,
-                        'side': 'front'
+                        'max_gram': 15
                     }
                 }
             }

@@ -24,7 +24,6 @@
     "amqp": "latest",
     "awssum": "latest",
     "bunyan": "latest",
-    "canvas": "latest",
     "clone": "latest",
     "connect": "latest",
     "connect-redis": "latest",

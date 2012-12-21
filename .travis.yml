@@ -7,7 +7,7 @@ branches:
     - master
 
 before_install:
-  - sudo apt-get install -qq gm
+  - sudo apt-get install -qq graphicsmagick
   - git clone git://github.com/sakaiproject/3akai-ux.git --branch master --single-branch ../3akai-ux
   - cd ../3akai-ux
   - git checkout Hilary

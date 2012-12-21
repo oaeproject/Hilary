@@ -21,3 +21,8 @@ services:
 
 script:
   - grunt test
+
+notifications:
+  email:
+    - oae-team@collab.sakaiproject.org
+  irc: "irc.freenode.org#sakai"

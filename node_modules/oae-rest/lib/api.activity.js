@@ -15,31 +15,45 @@
 
 var RestUtil = require('./util');
 
+var COLLECTION_DELAY = 250;
+
 /**
  * Get the activity stream of the user in context.
- * 
+ *
  * @param   {RestContext}   restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. For this function to work, the passed in restCtx should be an anonymous REST context
  * @param   {Object}        [opts]              Optional parameters for the request
  * @param   {Number}        [opts.from]         The time since the epoch in millis from which to get activities. All activities after this time will have occurred after this time
  * @param   {Number}        [opts.limit]        The number of activities to return
  * @param   {Function}      callback            Standard callback method
- * @param   {Object}        callback.err        Error object containing error code and error message                        
+ * @param   {Object}        callback.err        Error object containing error code and error message
  */
 var getCurrentActivityStream = module.exports.getCurrentActivityStream = function(restCtx, opts, callback) {
-    RestUtil.RestRequest(restCtx, '/api/activity', 'GET', opts, callback);
+    setTimeout(RestUtil.RestRequest, COLLECTION_DELAY, restCtx, '/api/activity/collect', 'POST', opts, function(err) {
+        if (err) {
+            return callback(err);
+        }
+
+        RestUtil.RestRequest(restCtx, '/api/activity', 'GET', opts, callback);
+    });
 };
 
 /**
  * Get the activity stream by its id.
- * 
+ *
  * @param   {RestContext}   restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. For this function to work, the passed in restCtx should be an anonymous REST context
  * @param   {String}        activityStreamId    The ID of the activity stream to fetch
  * @param   {Object}        [opts]              Optional parameters for the request
  * @param   {Number}        [opts.from]         The time since the epoch in millis from which to get activities. All activities after this time will have occurred after this time
  * @param   {Number}        [opts.limit]        The number of activities to return
  * @param   {Function}      callback            Standard callback method
- * @param   {Object}        callback.err        Error object containing error code and error message                        
+ * @param   {Object}        callback.err        Error object containing error code and error message
  */
 var getActivityStream = module.exports.getActivityStream = function(restCtx, activityStreamId, opts, callback) {
-    RestUtil.RestRequest(restCtx, '/api/activity/' + RestUtil.encodeURIComponent(activityStreamId), 'GET', opts, callback);
+    setTimeout(RestUtil.RestRequest, COLLECTION_DELAY, restCtx, '/api/activity/collect', 'POST', opts, function(err) {
+        if (err) {
+            return callback(err);
+        }
+
+        RestUtil.RestRequest(restCtx, '/api/activity/' + RestUtil.encodeURIComponent(activityStreamId), 'GET', opts, callback);
+    });
 };

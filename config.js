@@ -179,12 +179,17 @@ config.mq = {
  *
  * Configuration namespace for activities.
  *
- * @param   {Boolean}   processActivityJobs     Whether or not this node should act as an activity worker. Defaults to `true`. It is recommended in production that application nodes serving user requests do not have this enabled, but rather delegate to dedicated activity workers. This reduces the impact of asynchronous activity routing on user request latency.
- * @param   {Number}    activityTtl             How long (in seconds) an activity should live in a user's activity feed. After this time period has expired, the activity will be permanently gone. Note that changing this is not retro-active, the TTL that was configured to an activity at the time that it was created persists even after this changes. The default value is 2 weeks.
+ * @param   {Boolean}   [processActivityJobs]        Whether or not this server node should produce and route activities. Defaults to `true`
+ * @param   {Number}    [activityTtl]                The time-to-live (in seconds) for generated activities. After this period of time, an activity in an activity feed is lost permanently. Defaults to 2 weeks
+ * @param   {Number}    [aggregateIdleExpiry]        The amount of time (in milliseconds) an aggregate can be idle until it expires. Defaults to 3 hours
+ * @param   {Number}    [aggregateMaxExpiry]         An upper-bound on the amount of time (in milliseconds) for which an aggregate can live. Defaults to 1 day
+ * @param   {Number}    [numberOfProcessingBuckets]  The number of buckets available for parallel processing of activities. Defaults to 5
+ * @param   {Number}    [collectionExpiry]           The maximum amount of time (in milliseconds) a processing bucket can be locked for at one time. Defaults to 1 minute
+ * @param   {Number}    [maxConcurrentCollections]   The maximum number of concurrent collection cycles that can be active on a process at once. Defaults to 3
+ * @param   {Number}    [collectionPollingFrequency] How often (in milliseconds) the processing buckets are polled for new activities. If -1, polling will be disabled. Defaults to 5 seconds
+ * @param   {Number}    [collectionBatchSize]        The number of items to process at a time when collecting bucketed activities. Defaults to 500
+ * @param   {Boolean}   [allowAnonCollection]        Determines whether or not an anonymous user can invoke a collection. Defaults to false.
  */
-config.activity = {
-    'processActivityJobs': true,
-    'activityTtl': 2 * 7 * 24 * 60 * 60
-};
+config.activity = {};
 
 

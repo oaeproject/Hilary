@@ -3,7 +3,7 @@
  * Educational Community License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License. You may
  * obtain a copy of the License at
- * 
+ *
  *     http://www.osedu.org/licenses/ECL-2.0
  *
  * Unless required by applicable law or agreed to in writing,
@@ -17,7 +17,7 @@ var bunyan = require('bunyan');
 
 var config = module.exports.config = {};
 
-// UI related config information. By default, we assume that the UI repostory 
+// UI related config information. By default, we assume that the UI repostory
 // can be found on the same level as the Hilary folder.
 config.ui = {
     'path': '../3akai-ux'
@@ -25,9 +25,9 @@ config.ui = {
 
 // Cassandra related config information.
 config.cassandra = {
-    'hosts': ['127.0.0.1:9160'], 
+    'hosts': ['127.0.0.1:9160'],
     'keyspace': 'oae',
-    'user': '', 
+    'user': '',
     'pass': '',
     'timeout': 3000,
     'replication': 1,
@@ -150,7 +150,7 @@ config.search = {
                 }
             }
         },
-        'allowAnonRefresh': false,
+        'allowAnonRefresh': false
     },
     'schemaExtension': {},
     'processIndexJobs': true

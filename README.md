@@ -2,6 +2,9 @@
 
 The NodeJS implementation of Sakai OAE
 
+## Build status
+[![Build Status](https://travis-ci.org/sakaiproject/Hilary.png?branch=master)](https://travis-ci.org/sakaiproject/Hilary)
+
 ## Quickstart guide
 
 The following guide will take you through the necessary steps to set up the back-end for Sakai OAE.
@@ -68,6 +71,12 @@ Once installed, you can start up RabbitMQ in the background by running `rabbitmq
 ### Running the server
 
 All that remains now is booting the server.
+
+### Download and install GraphicsMagick
+On OS X: sudo port install graphicsmagick
+On Linux: sudo apt-get install graphicsmagick
+GraphicsMagick is used to crop profile pictures and is a requirement if you wish to run the tests successfully.
+
 
 #### Start Hilary
 

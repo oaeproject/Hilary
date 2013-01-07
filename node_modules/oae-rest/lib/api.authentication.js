@@ -108,12 +108,7 @@ var getSignedToken = module.exports.getSignedToken = function(globalRestCtx, ten
  * @param  {String}         callback.body                   The body as returned by the endpoint.
  */
 var loginWithSignedToken = module.exports.loginWithSignedToken = function(restCtx, token, callback) {
-    var params = {
-        'expires': token.expires,
-        'signature': token.signature,
-        'userId': token.userId
-    };
-    RestUtil.RestRequest(restCtx, '/api/auth/signed', 'POST', params, callback);
+    RestUtil.RestRequest(restCtx, '/api/auth/signed', 'POST', token, callback);
 };
 
 /**

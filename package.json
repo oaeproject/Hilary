@@ -65,7 +65,7 @@
     "temp": "latest",
     "timezone-js": "latest",
     "underscore": "latest",
-    "validator": "latest",
+    "validator": "0.4.19",
     "watch": "latest"
   },
   "devDependencies": {

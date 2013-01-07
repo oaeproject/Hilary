@@ -23,6 +23,7 @@ script:
   - grunt test
 
 after_failure:
+  - cat bootstrap.log | node_modules/.bin/bunyan -l warn
   - cat tests.log | node_modules/.bin/bunyan -l warn
 
 notifications:

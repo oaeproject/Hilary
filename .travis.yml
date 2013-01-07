@@ -21,6 +21,7 @@ services:
 
 script:
   - grunt test
+  - if [[ "$0" -ne "0" ]] ; then  cat tests.log | node_modules/.bin/bunyan -l warn; fi
 
 notifications:
   email:

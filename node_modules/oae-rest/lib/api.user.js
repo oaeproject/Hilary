@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+var CropAPI = require('./api.crop');
 var RestUtil = require('./util');
 
 /**
@@ -71,7 +72,6 @@ var getUser = module.exports.getUser = function(restCtx, userId, callback) {
     RestUtil.RestRequest(restCtx, '/api/user/' + RestUtil.encodeURIComponent(userId), 'GET', null, callback);
 };
 
-
 /**
  * Update a user's basic profile through the REST API.
  * 
@@ -83,6 +83,65 @@ var getUser = module.exports.getUser = function(restCtx, userId, callback) {
  */
 var updateUser = module.exports.updateUser = function(restCtx, userId, params, callback) {
     RestUtil.RestRequest(restCtx, '/api/user/' + RestUtil.encodeURIComponent(userId), 'POST', params, callback);
+};
+
+/**
+ * Uploads a new profile picture for a user and optionally resize it.
+ *
+ * @param {RestContext}     restCtx                 Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param {String}          userId                  The user id of the user we're trying to upload a new image for.
+ * @param {Function}        fileGenerator           A method that returns an open stream to a file.
+ * @param {Object}          [selectedArea]          If specified, this will crop the picture to the required rectangle and generate the 2 sizes.
+ * @param {Number}          [selectedArea.x]        The top left x coordinate.
+ * @param {Number}          [selectedArea.y]        The top left y coordinate.
+ * @param {Number}          [selectedArea.width]    The width of the rectangle
+ * @param {Number}          [selectedArea.height]   The height of the rectangle
+ * @param {Function}        callback                Standard callback method takes argument `err`
+ * @param {Object}          callback.err            Error object containing error code and error message
+ * @param {Object}          callback.principal      The updated principal object.
+ */
+var uploadPicture = module.exports.uploadPicture = function(restCtx, userId, file, selectedArea, callback) {
+    var params = {
+        'file': file
+    };
+    if (!selectedArea) {
+        RestUtil.RestRequest(restCtx, '/api/user/' + RestUtil.encodeURIComponent(userId) + '/picture', 'POST', params, callback);
+    } else {
+        RestUtil.RestRequest(restCtx, '/api/user/' + RestUtil.encodeURIComponent(userId) + '/picture', 'POST', params, function(err){
+            if (err) {
+                return callback(err);
+            }
+            CropAPI.cropPicture(restCtx, userId, selectedArea, callback);
+        });
+    }
+};
+
+/**
+ * Download a user's picture. Returns a 404 if the user has no picture.
+ * This will only return the image when it's run against the nginx server, as it's nginx who sends the picture stream.
+ *
+ * @param {RestContext}     restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param {String}          userId              The ID of the user we're trying to download a picture from.
+ * @param {String}          size                The picture size. One of `small`, `medium` or `large`.
+ * @param {Function}        callback            Standard callback method takes argument `err`
+ * @param {Object}          callback.err        Error object containing error code and error message
+ * @param {Object}          callback.picture    The raw picture for this group.
+ */
+var downloadPicture = module.exports.downloadPicture = function(restCtx, userId, size, callback) {
+    if (!size) {
+        return callback({'code': 400, 'msg': 'Missing size parameter'});
+    }
+    RestUtil.RestRequest(restCtx, '/api/user/' + RestUtil.encodeURIComponent(userId), 'GET', null, function(err, user) {
+        if (err) {
+            return callback(err);
+        }
+        var type = size + 'Picture';
+        if (!user[type]) {
+            return callback({'code': 404, 'msg': 'This user has no picture.'});
+        }
+        var url = user[type];
+        RestUtil.RestRequest(restCtx, url, 'GET', null, callback);
+    });
 };
 
 /**

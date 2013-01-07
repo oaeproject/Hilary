@@ -89,13 +89,12 @@ var getSignedToken = module.exports.getSignedToken = function(globalRestCtx, ten
     var params = {
         'tenant': tenantAlias
     };
-    RestUtil.RestRequest(globalRestCtx, '/api/auth/signed', 'POST', params, callback);
+    RestUtil.RestRequest(globalRestCtx, '/api/auth/signed', 'GET', params, callback);
 };
 
 /**
- * Get a signed token from the global server that can be used to log onto a tenant.
- * By default, the endpoint will redirect the user.
- * This method will *NOT* follow redirects, if you wish to check for success, you'll need to do a request to /api/me
+ * Given a token that was request earlier, this method allows you to log in on a tenant.
+ * The passed in RestContext should already be associated with the tenant you wish to login on.
  *
  * @param  {RestContext}    restCtx                         Standard REST Context object associated to the tenant you wish to log onto.
  * @param  {RestContext}    token                           A token object that contains all the data to sign in.

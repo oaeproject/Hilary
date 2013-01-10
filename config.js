@@ -171,3 +171,14 @@ config.mq = {
     },
     'prefetchCount': 15
 };
+
+/**
+ * `config.keys`
+ *
+ * Configuration namespace for various keys in the system
+ *
+ * @param   {String}    signing     This key will be used to sign URLs like profile pictures, content previews, etc.. . It's vital to the security of the system that you change this in production.
+ */
+config.keys = {
+    'signing': 'The default signing key, please change me.'
+};

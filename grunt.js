@@ -15,7 +15,14 @@ module.exports = function(grunt) {
         },
         jshint: {
             options: {
-                sub: true
+                node: true,
+                sub: true,
+                indent: 4,
+                //trailing: true,
+                quotmark: 'single',
+                curly: true,
+                white: false,
+                strict: false
             },
             globals: {
                 exports: true

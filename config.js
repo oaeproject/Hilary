@@ -3,7 +3,7 @@
  * Educational Community License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License. You may
  * obtain a copy of the License at
- * 
+ *
  *     http://www.osedu.org/licenses/ECL-2.0
  *
  * Unless required by applicable law or agreed to in writing,
@@ -17,7 +17,7 @@ var bunyan = require('bunyan');
 
 var config = module.exports.config = {};
 
-// UI related config information. By default, we assume that the UI repostory 
+// UI related config information. By default, we assume that the UI repostory
 // can be found on the same level as the Hilary folder.
 config.ui = {
     'path': '../3akai-ux'
@@ -25,9 +25,9 @@ config.ui = {
 
 // Cassandra related config information.
 config.cassandra = {
-    'hosts': ['127.0.0.1:9160'], 
+    'hosts': ['127.0.0.1:9160'],
     'keyspace': 'oae',
-    'user': '', 
+    'user': '',
     'pass': '',
     'timeout': 3000,
     'replication': 1,
@@ -50,7 +50,7 @@ config.redis = {
 
 // Configuration for the ports on which the global admin express server and
 // the tenant express server need to be running. It also specifies the tenant
-// alias used for the global admin 
+// alias used for the global admin
 config.servers = {
     // Port on which the global admin server should be initialized
     'globalAdminAlias': 'admin',
@@ -94,7 +94,7 @@ config.log = {
 // * displaying data on the console
 // * pushing data to circonus (via httptrap and redis)
 config.telemetry = {
-    'enabled': false,
+    'enabled': true,
     'publisher': 'console',
     'circonus': {
         'url': 'https://trap.noit.circonus.net/module/httptrap/check-uuid/secret-here',
@@ -111,13 +111,37 @@ config.telemetry = {
  *
  * Configuration namespace for search.
  *
- * @param   {Object[]}  hosts                   The elastic search hosts/ports with which to communicate. Each element of this array is a hash that has 2 keys: 'host' and 'port'.
- * @param   {Object}    index                   Holds configuration properties for the OAE search index.
- * @param   {String}    index.name              The unique name of the index.
- * @param   {Object}    index.settings          Holds the elastic search index configuration settings, as per http://www.elasticsearch.org/guide/reference/api/admin-indices-create-index.html
- * @param   {Boolean}   index.allowAnonRefresh  Whether or not to allow the anonymous user to force-refresh the OAE index. Helpful for tests, but not recommended for production.
- * @param   {Boolean}   index.destroyOnStartup  Whether or not the index should be destroyed when the server starts up. Do not enable this on a production server.
- * @param   {Object}    schemaExtension         An ElasticSearch mapping definition that can be used to extend the existing resource mapping. Use this to add new properties to your schema if you need more control over the properties. For more information, see the ElasticSearch Put Mapping API.
+ * ## schemaExtension
+ *
+ * A little more information about the schemaExtension. This properly allows you to add advanced propery configuration to the base OAE
+ * search document schema. For example, lets say you plug in a new document type such as "car", and want to index on a field other than
+ * "q_high", such as "model". You can add a new property here:
+ *
+ * ```javascript
+ *  'schemaExtension': {
+ *      'car_model': {
+ *          'type': 'string',
+ *          'store': 'yes',
+ *          'index': 'not_analyzed'
+ *      }
+ *  }
+ * ```
+ *
+ * Then once you've created a document producer that will index a "car" resource, you can include a property called "car_model" that
+ * you can search on. For more information on mapping new ElasticSearch schema elements, see this link: http://www.elasticsearch.org/guide/reference/mapping/
+ *
+ * Updating mappings here will not take immediate effect, as these settings are not enforced if the OAE search index already exists. Instead,
+ * you can use the ElasticSearch Put Mapping API directly against the index to make the appropriate live changes.
+ *
+ *
+ * @param  {Object[]}  hosts                    The elastic search hosts/ports with which to communicate. Each element of this array is a hash that has 2 keys: 'host' and 'port'.
+ * @param  {Object}    index                    Holds configuration properties for the OAE search index.
+ * @param  {String}    index.name               The unique name of the index.
+ * @param  {Object}    index.settings           Holds the elastic search index configuration settings, as per http://www.elasticsearch.org/guide/reference/api/admin-indices-create-index.html
+ * @param  {Boolean}   [index.allowAnonRefresh] Whether or not to allow the anonymous user to force-refresh the OAE index. Helpful for tests, but not recommended for production. Defaults to `false`.
+ * @param  {Boolean}   [index.destroyOnStartup] Whether or not the index should be destroyed when the server starts up. Do not enable this on a production server. Defaults to `false`.
+ * @param  {Boolean}   [processIndexJobs]       Whether or not this node should act as an indexer. Only disable this if you have another dedicated set of machines performing index processing. Defaults to `true`.
+ * @param  {Object}    [schemaExtension]        An ElasticSearch mapping definition that can be used to extend the existing resource mapping. Use this to add new properties to your schema if you need more control over the properties. For more information, see the ElasticSearch Put Mapping API. If not specified, it applies no extension.
  */
 config.search = {
     'hosts': [
@@ -133,15 +157,15 @@ config.search = {
             'number_of_replicas': 1,
             'analysis': {
                 'analyzer': {
-                    'general': {
+                    'q': {
                         'type': 'custom',
                         'char_filter': ['html_strip'],
                         'tokenizer': 'letter',
-                        'filter': ['lowercase', 'general_edgengram']
+                        'filter': ['lowercase', 'q_edgengram']
                     }
                 },
                 'filter': {
-                    'general_edgengram': {
+                    'q_edgengram': {
                         'type': 'edgeNGram',
                         'min_gram': 1,
                         'max_gram': 15
@@ -150,7 +174,9 @@ config.search = {
             }
         },
         'allowAnonRefresh': false,
+        'destroyOnStartup': false
     },
+    'processIndexJobs': true,
     'schemaExtension': {}
 };
 

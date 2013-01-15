@@ -40,56 +40,23 @@ var search = module.exports.search = function(restCtx, searchType, params, opts,
     });
     params = params.join('/');
 
-    opts.limit = (opts.limit >= 0) ? opts.limit : -1;
-
     var path = '/api/search/' + RestUtil.encodeURIComponent(searchType);
     if (params) {
         path += '/' + params;
     }
 
-    _search(restCtx, path, 'GET', opts, callback);
+    RestUtil.RestRequest(restCtx, path, 'GET', opts, callback);
 };
 
 /**
- * Perform a search.
+ * Refresh the search index. This ensures that all documents that have been indexed up to this point will turn up in search
+ * queries.
  *
- * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param {String}                  path                The path of the request
- * @param {String}                  method              The method of the request
- * @param {Object}                  opts                The additional query string parameters
- * @param {Function}                callback            Standard callback method
- * @param {Object}                  callback.err        Error object containing error code and error message
- * @param {SearchResult}            callback.result     SearchResult object representing the search result
+ * @param  {RestContext}   restCtx          Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {Function}      callback         Invoked when the request completes
+ * @param  {Object}        callback.err     An error that occurred, if any
  */
-var _search = function(restCtx, path, method, opts, callback) {
-    // Refresh first to ensure the index is up to date
-    // Pause for a little bit to ensure any asynchronous index updates in the event queue have had time to make it to elastic search
-    setTimeout(RestUtil.RestRequest, 250, restCtx, '/api/search/_refresh', 'POST', null, function(err) {
-        if (err) {
-            return callback(err);
-        }
+var refresh = module.exports.refresh = function(restCtx, callback) {
+    RestUtil.RestRequest(restCtx, '/api/search/_refresh', 'POST', null, callback);
+};
 
-        // When getAll is true, it means we want to get all records, regardless of how many. this requires two requests (below)
-        var getAll = false;
-        if (opts.limit === -1) {
-            getAll = true;
-            opts.limit = 1;
-        }
-
-        RestUtil.RestRequest(restCtx, path, method, opts, function(err, result) {
-            if (err) {
-                return callback(err);
-            }
-
-            if (!getAll || result.total <= opts.limit) {
-                // We are either only interested in the specified page, or we've exhausted the results, return what we have
-                return callback(null, result);
-            } else {
-                // We want to get all the results and we did not exhaust them in the first request.
-                // Query again with the actual total number of documents and return that result
-                opts.limit = result.total;
-                RestUtil.RestRequest(restCtx, path, method, opts, callback);
-            }
-        });
-    })
-}

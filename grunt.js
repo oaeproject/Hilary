@@ -7,7 +7,7 @@ module.exports = function(grunt) {
     grunt.initConfig({
         pkg: '<json:package.json>',
         lint: {
-            files: ['grunt.js', 'node_modules/oae-*/lib/**/*.js', 'node_modules/oae-*/tests/**/*.js']
+            files: ['grunt.js', 'node_modules/oae-*/lib/**/*.js', 'node_modules/oae-*/tests/**/*.js', 'node_modules/oae-*/config/**/*.js']
         },
         watch: {
             files: '<config:lint.files>',

@@ -63,7 +63,6 @@ module.exports.encodeURIComponent = function(uriComponent) {
  * @param  {Response}       callback.response   The response object that was returned by the node module requestjs.
  */
 var RestRequest = module.exports.RestRequest = function(restCtx, url, method, data, callback) {
-
     // Check if the request should be done by a logged in user
     if (restCtx.userId) {
         // Check if we already have a stored session for this user
@@ -76,7 +75,7 @@ var RestRequest = module.exports.RestRequest = function(restCtx, url, method, da
         // Otherwise, we log the user in first
         } else {
             // Set up an empty cookie jar for this user
-            cookies[cookieIdentifier] = request.jar();
+            setupEmptyJar(restCtx);
             // Log the user in
             _RestRequest(restCtx, '/api/auth/login', 'POST', {
                 'username': restCtx.userId,
@@ -93,6 +92,19 @@ var RestRequest = module.exports.RestRequest = function(restCtx, url, method, da
     } else {
         _RestRequest(restCtx, url, method, data, callback);
     }
+};
+
+/**
+ * Creates an empty cookie jar and associates it to the user for the passed in REST context.
+ *
+ * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ */
+var setupEmptyJar = module.exports.setupEmptyJar = function(restCtx) {
+    var cookieIdentifier = restCtx.host + '-' + restCtx.userId;
+    if (restCtx.hostHeader) {
+        cookieIdentifier += '-' + restCtx.hostHeader;
+    }
+    cookies[cookieIdentifier] = request.jar();
 };
 
 /**
@@ -131,9 +143,9 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
         };
     }
 
-    if (requestParams.options && (requestParams.options['_followRedirects'] === true || requestParams.options['_followRedirects'] === false)) {
-        requestParams.followRedirect = requestParams.options['_followRedirects'];
-        delete requestParams.options;
+    if (data && data.options && (data.options['_followRedirects'] === true || data.options['_followRedirects'] === false)) {
+        requestParams.followRedirect = data.options['_followRedirects'];
+        delete data.options;
     }
 
     // Expand values and check if we're uploading something (with a stream.)

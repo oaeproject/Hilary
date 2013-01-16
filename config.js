@@ -111,29 +111,6 @@ config.telemetry = {
  *
  * Configuration namespace for search.
  *
- * ## schemaExtension
- *
- * A little more information about the schemaExtension. This properly allows you to add advanced propery configuration to the base OAE
- * search document schema. For example, lets say you plug in a new document type such as "car", and want to index on a field other than
- * "q_high", such as "model". You can add a new property here:
- *
- * ```javascript
- *  'schemaExtension': {
- *      'car_model': {
- *          'type': 'string',
- *          'store': 'yes',
- *          'index': 'not_analyzed'
- *      }
- *  }
- * ```
- *
- * Then once you've created a document producer that will index a "car" resource, you can include a property called "car_model" that
- * you can search on. For more information on mapping new ElasticSearch schema elements, see this link: http://www.elasticsearch.org/guide/reference/mapping/
- *
- * Updating mappings here will not take immediate effect, as these settings are not enforced if the OAE search index already exists. Instead,
- * you can use the ElasticSearch Put Mapping API directly against the index to make the appropriate live changes.
- *
- *
  * @param  {Object[]}  hosts                    The elastic search hosts/ports with which to communicate. Each element of this array is a hash that has 2 keys: 'host' and 'port'.
  * @param  {Object}    index                    Holds configuration properties for the OAE search index.
  * @param  {String}    index.name               The unique name of the index.
@@ -141,7 +118,6 @@ config.telemetry = {
  * @param  {Boolean}   [index.allowAnonRefresh] Whether or not to allow the anonymous user to force-refresh the OAE index. Helpful for tests, but not recommended for production. Defaults to `false`.
  * @param  {Boolean}   [index.destroyOnStartup] Whether or not the index should be destroyed when the server starts up. Do not enable this on a production server. Defaults to `false`.
  * @param  {Boolean}   [processIndexJobs]       Whether or not this node should act as an indexer. Only disable this if you have another dedicated set of machines performing index processing. Defaults to `true`.
- * @param  {Object}    [schemaExtension]        An ElasticSearch mapping definition that can be used to extend the existing resource mapping. Use this to add new properties to your schema if you need more control over the properties. For more information, see the ElasticSearch Put Mapping API. If not specified, it applies no extension.
  */
 config.search = {
     'hosts': [
@@ -176,8 +152,7 @@ config.search = {
         'allowAnonRefresh': false,
         'destroyOnStartup': false
     },
-    'processIndexJobs': true,
-    'schemaExtension': {}
+    'processIndexJobs': true
 };
 
 /**

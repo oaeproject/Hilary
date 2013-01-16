@@ -195,11 +195,10 @@ var downloadPicture = module.exports.downloadPicture = function(restCtx, groupId
         if (err) {
             return callback(err);
         }
-        var type = size + 'Picture';
-        if (!group[type]) {
+        if (!group.picture[size]) {
             return callback({'code': 404, 'msg': 'This group has no picture.'});
         }
-        var url = group[type];
+        var url = group.picture[size];
         RestUtil.RestRequest(restCtx, url, 'GET', null, callback);
     });
 };

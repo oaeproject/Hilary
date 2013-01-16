@@ -173,12 +173,13 @@ config.mq = {
 };
 
 /**
- * `config.keys`
+ * `config.signing`
  *
- * Configuration namespace for various keys in the system
+ * Configuration namespace for the signing logic
+ * FIXME: once https://github.com/sakaiproject/Hilary/issues/331 is addressed, this config can move to the Global Admin Config.
  *
- * @param   {String}    signing     This key will be used to sign URLs like profile pictures, content previews, etc.. . It's vital to the security of the system that you change this in production.
+ * @param   {String}    key     This key will be used to sign URLs like profile pictures, content previews, etc.. . It's vital to the security of the system that you change this in production.
  */
-config.keys = {
-    'signing': 'The default signing key, please change me.'
+config.signing = {
+    'key': 'The default signing key, please change me.'
 };

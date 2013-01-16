@@ -35,7 +35,7 @@ var getContent = module.exports.getContent = function(restCtx, contentId, callba
  * Create a new link through the REST API.
  * 
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {String}         name                Display title for the created content item
+ * @param  {String}         displayName         Display name for the created content item
  * @param  {String}         [description]       The content item's description
  * @param  {String}         [visibility]        The content item's visibility. This can be public, loggedin or private
  * @param  {String}         link                The URL that should be stored against this content item
@@ -45,10 +45,10 @@ var getContent = module.exports.getContent = function(restCtx, contentId, callba
  * @param  {Object}         callback.err        Error object containing error code and error message
  * @param  {Content}        callback.content    Content object representing the created content
  */
-var createLink = module.exports.createLink = function(restCtx, name, description, visibility, link, managers, viewers, callback) {
+var createLink = module.exports.createLink = function(restCtx, displayName, description, visibility, link, managers, viewers, callback) {
     var params = {
         'contentType': 'link',
-        'name': name,
+        'displayName': displayName,
         'description': description,
         'visibility': visibility,
         'link': link,
@@ -61,7 +61,7 @@ var createLink = module.exports.createLink = function(restCtx, name, description
 /**
  * Create a new file through the REST API.
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {String}         name                Display title for the created content item
+ * @param  {String}         displayName         Display name for the created content item
  * @param  {String}         [description]       The content item's description (optional)
  * @param  {String}         [visibility]        The content item's visibility. This can be public, loggedin or private and is optional.
  * @param  {Function}       fileGenerator       A function that returns a stream which points to a file body.
@@ -71,10 +71,10 @@ var createLink = module.exports.createLink = function(restCtx, name, description
  * @param  {Object}         callback.err        Error object containing error code and error message
  * @param  {Content}        callback.content    Content object representing the created content
  */
-var createFile = module.exports.createFile = function(restCtx, name, description, visibility, fileGenerator, managers, viewers, callback) {
+var createFile = module.exports.createFile = function(restCtx, displayName, description, visibility, fileGenerator, managers, viewers, callback) {
     var params = {
         'contentType': 'file',
-        'name': name,
+        'displayName': displayName,
         'description': description,
         'visibility': visibility,
         'file': fileGenerator,
@@ -88,7 +88,7 @@ var createFile = module.exports.createFile = function(restCtx, name, description
  * Create a new Sakai Doc through the REST API.
  * 
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {String}       name                Display title for the created content item
+ * @param  {String}       displayName         Display name for the created content item
  * @param  {String}       [description]       The content item's description
  * @param  {String}       [visibility]        The content item's visibility. This can be public, loggedin or private
  * @param  {String[]}     [managers]          Array of user/group ids that should be added as managers to the content item
@@ -97,10 +97,10 @@ var createFile = module.exports.createFile = function(restCtx, name, description
  * @param  {Object}       callback.err        Error object containing error code and error message
  * @param  {Content}      callback.content    Content object representing the created content
  */
-var createSakaiDoc = module.exports.createSakaiDoc = function(restCtx, name, description, visibility, managers, viewers, callback) {
+var createSakaiDoc = module.exports.createSakaiDoc = function(restCtx, displayName, description, visibility, managers, viewers, callback) {
     var params = {
         'contentType': 'sakaidoc',
-        'name': name,
+        'displayName': displayName,
         'description': description,
         'visibility': visibility,
         'managers': managers,

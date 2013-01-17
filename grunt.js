@@ -57,7 +57,7 @@ module.exports = function(grunt) {
                 overwrite: true,
                 replacements: [
                     {
-                        from: /@param \S/,
+                        from: /@param (\S|\s\s)/,
                         to: function(matchedWord, index, fullText, regexMatches) {
                             var msg ='@param should be followed by 2 spaces';
                             return logMatch(msg, matchedWord, index, fullText, regexMatches);
@@ -91,8 +91,8 @@ module.exports = function(grunt) {
 
     // Utility function for logging regex matches
     var logMatch = function(msg, matchedWord, index, fullText, regexMatches) {
-        var lineNum = fullText.substring(0, index).match(/\n/g).length;
-        var line = fullText.split('\n')[lineNum];
+        var lineNum = fullText.substring(0, index).match(/\n/g).length + 1;
+        var line = fullText.split('\n')[lineNum - 1];
         grunt.log.writeln(msg.red + ': ' + lineNum + ': ' + line);
         regexErrors = true;
         return matchedWord;
@@ -173,6 +173,6 @@ module.exports = function(grunt) {
     // Run test coverage and open the report
     grunt.registerTask('test-coverage', 'clean copy:coverage jscoverage test-instrumented showFile:target/coverage.html');
     // Default task.
-    grunt.registerTask('default', 'lint test');
+    grunt.registerTask('default', 'check-style test');
 
 };

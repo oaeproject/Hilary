@@ -3,6 +3,8 @@ module.exports = function(grunt) {
     var shell = require('shelljs');
     var mocha_grep = process.env['MOCHA_GREP'] || undefined;
 
+    var regexErrors = false;
+
     // Project configuration.
     grunt.initConfig({
         pkg: '<json:package.json>',
@@ -48,6 +50,64 @@ module.exports = function(grunt) {
                     'target/': '**'
                 }
             }
+        },
+        replace: {
+            jsdoc: {
+                src: ['node_modules/oae-*/**/*.js'],
+                overwrite: true,
+                replacements: [
+                    {
+                        from: /@param \S/,
+                        to: function(matchedWord, index, fullText, regexMatches) {
+                            var msg ='@param should be followed by 2 spaces';
+                            return logMatch(msg, matchedWord, index, fullText, regexMatches);
+                        }
+                    },
+                    {
+                        from: /@return \s/,
+                        to: function(matchedWord, index, fullText, regexMatches) {
+                            var msg ='@return should be followed by 1 space';
+                            return logMatch(msg, matchedWord, index, fullText, regexMatches);
+                        }
+                    },
+                    {
+                        from: /@returns/,
+                        to: function(matchedWord, index, fullText, regexMatches) {
+                            var msg ='Use @return instead of @returns';
+                            return logMatch(msg, matchedWord, index, fullText, regexMatches);
+                        }
+                    },
+                    {
+                        from: /@throws \s/,
+                        to: function(matchedWord, index, fullText, regexMatches) {
+                            var msg ='@throws should be followed by 1 space';
+                            return logMatch(msg, matchedWord, index, fullText, regexMatches);
+                        }
+                    }
+                ]
+            }
+        }
+    });
+
+    // Utility function for logging regex matches
+    var logMatch = function(msg, matchedWord, index, fullText, regexMatches) {
+        var lineNum = fullText.substring(0, index).match(/\n/g).length;
+        var line = fullText.split('\n')[lineNum];
+        grunt.log.writeln(msg.red + ': ' + lineNum + ': ' + line);
+        regexErrors = true;
+        return matchedWord;
+    };
+
+    // Task to run the regex task and fail if it matches anything
+    grunt.registerTask('check-style', function() {
+        grunt.task.run('replace');
+        grunt.task.run('lint');
+        grunt.task.run('checkRegexErrors');
+    });
+    grunt.registerTask('checkRegexErrors', function() {
+        grunt.task.requires('replace');
+        if (regexErrors) {
+            grunt.warn('Style rule validation failed');
         }
     });
 
@@ -106,6 +166,7 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-simple-mocha');
     grunt.loadNpmTasks('grunt-clean');
     grunt.loadNpmTasks('grunt-contrib-copy');
+    grunt.loadNpmTasks('grunt-text-replace');
 
     // Override default test task to use simplemocha
     grunt.registerTask('test', 'simplemocha');

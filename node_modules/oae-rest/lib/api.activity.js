@@ -28,13 +28,7 @@ var COLLECTION_DELAY = 250;
  * @param   {Object}        callback.err        Error object containing error code and error message
  */
 var getCurrentActivityStream = module.exports.getCurrentActivityStream = function(restCtx, opts, callback) {
-    setTimeout(RestUtil.RestRequest, COLLECTION_DELAY, restCtx, '/api/activity/collect', 'POST', opts, function(err) {
-        if (err) {
-            return callback(err);
-        }
-
-        RestUtil.RestRequest(restCtx, '/api/activity', 'GET', opts, callback);
-    });
+    RestUtil.RestRequest(restCtx, '/api/activity', 'GET', opts, callback);
 };
 
 /**
@@ -49,11 +43,16 @@ var getCurrentActivityStream = module.exports.getCurrentActivityStream = functio
  * @param   {Object}        callback.err        Error object containing error code and error message
  */
 var getActivityStream = module.exports.getActivityStream = function(restCtx, activityStreamId, opts, callback) {
-    setTimeout(RestUtil.RestRequest, COLLECTION_DELAY, restCtx, '/api/activity/collect', 'POST', opts, function(err) {
-        if (err) {
-            return callback(err);
-        }
+    RestUtil.RestRequest(restCtx, '/api/activity/' + RestUtil.encodeURIComponent(activityStreamId), 'GET', opts, callback);
+};
 
-        RestUtil.RestRequest(restCtx, '/api/activity/' + RestUtil.encodeURIComponent(activityStreamId), 'GET', opts, callback);
-    });
+/**
+ * Manually perform a collection of the current activities that have been queued for aggregation.
+ *
+ * @param  {RestContext}   restCtx              The REST context with which to perform the collection request
+ * @param  {Function}      callback             Standard callback method
+ * @param  {Object}        callback.err         Error object containing error code and error message
+ */
+var collect = module.exports.collect = function(restCtx, callback) {
+    RestUtil.RestRequest(restCtx, '/api/activity/collect', 'POST', null, callback);
 };

@@ -202,7 +202,7 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
             return callback({'code': 500, 'msg': 'Something went wrong trying to contact the server: ' + err});
         } else if (errorCodes.indexOf(response.statusCode) !== -1) {
             err = {'code': response.statusCode, 'msg': body};
-            //emitter.emit('error', err, body, response);
+            emitter.emit('error', err, body, response);
             return callback(err);
         }
 

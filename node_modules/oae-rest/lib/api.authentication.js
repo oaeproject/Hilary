@@ -123,8 +123,6 @@ var loginWithSignedToken = module.exports.loginWithSignedToken = function(restCt
 var loginOnTenant = module.exports.loginOnTenant = function(globalRestCtx, tenantAlias, callback) {
     getSignedToken(globalRestCtx, tenantAlias, function(err, token) {
         if (err) {
-            console.log('token error');
-            console.log(err);
             return callback(err);
         }
 
@@ -136,8 +134,6 @@ var loginOnTenant = module.exports.loginOnTenant = function(globalRestCtx, tenan
         // Perform the actual login.
         loginWithSignedToken(restCtx, token, function(err, body, response) {
             if (err) {
-                console.log('login error');
-                console.log(err);
                 return callback(err);
             } else if (response.statusCode !== 302) {
                 return callback({'code': response.statusCode, 'msg': 'Unexpected response code'});

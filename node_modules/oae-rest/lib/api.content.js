@@ -369,27 +369,26 @@ var download = module.exports.download = function(restCtx, contentId, revisionId
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         contentId           Content id of the content item we're trying to retrieve the list of preview items from.
  * @param  {String}         status              The status of the preview generation. One of 'error', 'done' or 'pending'.
- * @param  {Object}         files               A hash where the key is the filename and the value is a sub-object which has 2 keys. A sub-object should have a key 'file' which maps to a function that returns a stream for a preview item and a key 'size' which has a value 'small', 'normal', 'large' or 'thumbnail'.
+ * @param  {Object}         files               A hash where the key is the filename and the value is a function that returns a stream for a preview item.
+ * @param  {Object}         sizes               A hash where the key is the filename and the value is a string that represents the preview size of the item. It should be one of 'small', 'medium', 'large' or 'thumbnail'.
  * @param  {Object}         [metadata]          Extra optional metadata.
  * @param  {Function}       callback            Standard callback method
  * @param  {Object}         callback.err        Error object containing error code and error message
  */
-var addPreviewItems = module.exports.addPreviewItems = function(restCtx, contentId, status, files, metadata, callback) {
+var addPreviewItems = module.exports.addPreviewItems = function(restCtx, contentId, status, files, sizes, metadata, callback) {
     metadata = metadata || {};
     var params = {
-        'status': status
+        'status': status,
+        'sizes': {},
+        'metadata': JSON.stringify(metadata)
     };
-    // The files
-    var keys = Object.keys(files);
-    for (var i = 0; i < keys.length; i++) {
-        params[keys[i]] = files[keys[i]].file;
-        params['size_' + keys[i]] = files[keys[i]].size;
-    }
-    // any extra metadata.
-    var meta_keys = Object.keys(metadata);
-    for (var i = 0; i < meta_keys.length; i++) {
-        params[meta_keys[i]] = metadata[meta_keys[i]];
-    }
+
+    // Add the files and their sizes to the parameters.
+    Object.keys(files).forEach(function(filename) {
+        params[filename] = files[filename];
+        params.sizes[filename] = sizes[filename];
+    });
+    params.sizes = JSON.stringify(params.sizes);
     RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/previews', 'POST', params, callback);
 };
 

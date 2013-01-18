@@ -22,7 +22,7 @@ var RestUtil = require('./util');
  * 
  * @param  {RestContext}       restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}            alias               The alias for this group
- * @param  {String}            name                The name for this group
+ * @param  {String}            displayName         The display name for this group
  * @param  {String}            [description]       The description for this group
  * @param  {String}            [visibility]        The visibility for this group. This can be 'public', 'loggedin' or 'private'
  * @param  {String}            [joinable]          Whether or not this group is joinable. This can be 'yes', 'no', or 'request'
@@ -32,10 +32,10 @@ var RestUtil = require('./util');
  * @param  {Object}            callback.err        Error object containing error code and error message
  * @param  {Group}             callback.response   A Group object representing the created group
  */
-var createGroup = module.exports.createGroup = function (restCtx, alias, name, description, visibility, joinable, managers, members, callback) {
+var createGroup = module.exports.createGroup = function (restCtx, alias, displayName, description, visibility, joinable, managers, members, callback) {
     var postData = {
         'alias': alias,
-        'name': name,
+        'displayName': displayName,
         'description': description,
         'visibility': visibility,
         'joinable': joinable,
@@ -65,7 +65,7 @@ var getGroup = module.exports.getGroup = function(restCtx, groupId, callback) {
  * @param  {RestContext}    restCtx                       Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         groupId                       The id of the group you wish to update
  * @param  {Object}         profileFields                 Object where the keys represent the profile fields that need to be updated and the values represent the new values for those profile fieldss
- * @param  {String}         [profileFields.name]          New name for the group
+ * @param  {String}         [profileFields.displayName]   New display name for the group
  * @param  {String}         [profileFields.description]   New description for the group
  * @param  {String}         [profileFields.visibility]    New visibility setting for the group. The possible values are 'private', 'loggedin' and 'public'
  * @param  {String}         [profileFields.joinable]      New joinability setting for the group. The possible values are 'yes', 'no' and 'request'

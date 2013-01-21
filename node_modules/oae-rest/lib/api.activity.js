@@ -27,7 +27,7 @@ var COLLECTION_DELAY = 250;
  * @param   {Function}      callback            Standard callback method
  * @param   {Object}        callback.err        Error object containing error code and error message
  */
-var getCurrentActivityStream = module.exports.getCurrentActivityStream = function(restCtx, opts, callback) {
+var getCurrentUserActivityStream = module.exports.getCurrentUserActivityStream = function(restCtx, opts, callback) {
     RestUtil.RestRequest(restCtx, '/api/activity', 'GET', opts, callback);
 };
 

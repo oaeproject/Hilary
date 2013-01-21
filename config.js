@@ -200,10 +200,10 @@ config.mq = {
  * @param {String}      credentials.password    The password to login with on the global admin server.
  */
 config.previews = {
-    'enabled': true,
+    'enabled': false,
     'dir': tmpDir + '/previews',
     'office': {
-        'binary': '/Applications/LibreOffice.app/Contents/MacOS/soffice.bin',
+        'binary': 'soffice.bin',
         'timeout': 120000 
     },
     'pdf': {

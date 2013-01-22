@@ -71,13 +71,17 @@ Once you've downloaded and unpacked both, you can configure and install:
 ```
 cd your-nginx-dir
 ./configure --with-pcre=/path/to/pcre
-sudo make
+make
 sudo make install
 cd /usr/local/nginx
 sudo sbin/nginx
 ```
 
-Once the installation has completed you will need to replace the Nginx config with the default provided in 3akai-ux.
+Once the installation has completed you will need to replace the Nginx config with the default provided in 3akai-ux and reload nginx.
+
+```
+sudo sbin/nginx -s reload
+```
 
 ### Download and install the latest version of RabbitMQ
 
@@ -98,10 +102,10 @@ PDFTK is used to process PDF files and create previews of them. PDFTK is optiona
 
 ```
 cd your-sakai-repo-dir
-node app.js
+node app.js | node_modules/.bin/bunyan
 ```
 
-And that's it, the server should now be up and running! You can optionally install bunyan for pretty-printed logs.
+You can install bunyan as a global depency with `npm install -g bunyan` so you can start the app with 'node app | bunyan'. And that's it, the server should now be up and running!
 
 You can access the admin page at http://localhost:2000/admin.html and login with `administrator - administrator`
 

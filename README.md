@@ -73,6 +73,8 @@ cd your-nginx-dir
 ./configure --with-pcre=/path/to/pcre
 sudo make
 sudo make install
+cd /usr/local/nginx
+sudo sbin/nginx
 ```
 
 Once the installation has completed you will need to replace the Nginx config with the default provided in 3akai-ux.

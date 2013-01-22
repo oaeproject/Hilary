@@ -363,8 +363,9 @@ var download = module.exports.download = function(restCtx, contentId, revisionId
 
 
 /**
- * Add one or multiple preview items.
+ * Set one or multiple preview items.
  * Note: This method is only useful to a global administrator and should be performed against the global server.
+ * The previous previews will be removed.
  *
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         contentId           Content id of the content item we're trying to retrieve the list of preview items from.
@@ -375,7 +376,7 @@ var download = module.exports.download = function(restCtx, contentId, revisionId
  * @param  {Function}       callback            Standard callback method
  * @param  {Object}         callback.err        Error object containing error code and error message
  */
-var addPreviewItems = module.exports.addPreviewItems = function(restCtx, contentId, status, files, sizes, metadata, callback) {
+var setPreviewItems = module.exports.setPreviewItems = function(restCtx, contentId, status, files, sizes, metadata, callback) {
     metadata = metadata || {};
     var params = {
         'status': status,

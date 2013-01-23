@@ -108,12 +108,12 @@ Windows has a few extra dependencies that are known to be needed:
 
 **Windows 7:**
 
-[Microsoft Visual Studio C++ 2010](http://go.microsoft.com/?linkid=9709949)
-[Microsoft Windows SDK for Windows](http://www.microsoft.com/en-us/download/details.aspx?id=8279)
+* [Microsoft Visual Studio C++ 2010](http://go.microsoft.com/?linkid=9709949); and
+* [Microsoft Windows SDK for Windows](http://www.microsoft.com/en-us/download/details.aspx?id=8279)
 
 **Windows 8:**
 
-[Microsoft Visual Studio C++ 2012](http://go.microsoft.com/?linkid=9816758)
+* [Microsoft Visual Studio C++ 2012](http://go.microsoft.com/?linkid=9816758)
 
 ### Deploying the server
 

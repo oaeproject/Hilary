@@ -25,7 +25,7 @@ module.exports = function(grunt) {
             all: {
                 src: ['node_modules/oae-tests/runner/beforeTests.js', 'node_modules/oae-*/tests/**/*.js'],
                 options: {
-                    timeout: 20000,
+                    timeout: 30000,
                     ignoreLeaks: true,
                     reporter: 'spec',
                     grep: mocha_grep
@@ -49,7 +49,7 @@ module.exports = function(grunt) {
         var config = {
             src: ['node_modules/oae-tests/runner/beforeTests.js', 'node_modules/' + module + '/tests/**/*.js'],
             options: {
-                timeout: 20000,
+                timeout: 30000,
                 ignoreLeaks: true,
                 reporter: 'spec',
                 grep: mocha_grep

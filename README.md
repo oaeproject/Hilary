@@ -102,6 +102,22 @@ sudo sbin/nginx
 
 Nginx is the most tested load balancer and web server used for Sakai OAE. A web server such as Nginx is necessary for file downloads to work properly.
 
+#### Windows Only
+
+Windows has a few extra dependencies that are known to be needed:
+
+##### Microsoft Visual Studio C++ 2010 (Windows 7 only)
+
+Microsoft Visual Studio C++ 2010 can be downloaded from [here](http://go.microsoft.com/?linkid=9709949)
+
+##### Microsoft Windows SDK for Windows 7 (Windows 7 only)
+
+Microsoft Windows SDK for Windows 7 can be downloaded from [here](http://www.microsoft.com/en-us/download/details.aspx?id=8279)
+
+##### Microsoft Visual Studio C++ 2012 (Windows 8 only)
+
+Microsoft Visual Studio C++ 2012 can be downloaded from [here](http://go.microsoft.com/?linkid=9816758)
+
 ### Deploying the server
 
 #### Get the code
@@ -119,7 +135,8 @@ By default, OAE assumes both the [Hilary repository](http://github.com/sakaiproj
 
 Please remember that filenames and directories that contain spaces can sometimes result in unstable side-effects. Please ensure all paths are space-free.
 
-#### Configuring the server
+
+#### Configuration
 
 ##### Hosts file
 

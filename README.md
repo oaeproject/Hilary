@@ -5,68 +5,91 @@ The NodeJS implementation of Sakai OAE
 ## Build status
 [![Build Status](https://travis-ci.org/sakaiproject/Hilary.png?branch=master)](https://travis-ci.org/sakaiproject/Hilary)
 
-## Quickstart guide
+## Quickstart Guide
 
-The following guide will take you through the necessary steps to set up the back-end for Sakai OAE.
-
-Start by forking and cloning the repository onto your local machine, instructions can be found [here](https://help.github.com/articles/fork-a-repo).
-
-### Installing node.js
-
-Download and install the latest version of [node.js](http://nodejs.org/).
+The following guide will take you through the necessary steps to get the back-end for Sakai OAE (Hilary) and its reference UI (3akai-ux) running.
 
 ### Installing dependencies
 
-Once you have successfully cloned the repository and installed node.js, run the following commands in order to install all required dependencies.
-More information about npm can be found [here](https://npmjs.org/).
+#### Node.js
+
+Download and install the latest version of [node.js](http://nodejs.org/). The Hilary back-end is written completely in JavaScript, powered by Node.js.
+
+#### Cassandra
+
+Download the latest version from [here](http://cassandra.apache.org/) and extract it to a directory of your choice. Then you can start it in the backround by running the following:
 
 ```
-cd your-sakai-repo-dir
-npm install -d
+cd my-cassandra-dir
+bin/cassandra
 ```
 
-### Setting up Cassandra
-
-Download and install the latest version of [cassandra](http://cassandra.apache.org/).
-Once downloaded and extracted in a directory of your choice, run the following commands to create the necessary folders that cassandra needs to run.
+If you choose to instead install with a package manager, you'll want to ensure the following directories exist:
 
 ```
-cd your-cassandra-dir
 sudo mkdir -p /var/log/cassandra
 sudo chown -R `whoami` /var/log/cassandra
 sudo mkdir -p /var/lib/cassandra
 sudo chown -R `whoami` /var/lib/cassandra
 ```
 
-When that is complete, you can start up Cassandra in the foreground:
+All Hilary data is stored in Cassandra instead of a relational database. Therefore it is *not necessary* to install any RDBMS such as MySQL or PostgreSQL.
+
+#### Redis
+
+Download and install (or compile) the latest version of [redis](http://redis.io/download). For compilation instructions, please see the installation of the redis download page. Once installed, you can start it by running the following:
 
 ```
-cd your-cassandra-dir
-bin/cassandra -f
+cd my-redis-dir
+src/redis-server
 ```
 
-### Download and install the latest version of Redis
+Redis is used for caching frequently accessed data and broadcast messages (PubSub) across the app cluster.
 
-Download and install (or compile) the latest version of [redis](http://redis.io/download).
+#### ElasticSearch
 
-Once installed, start the server by running the `redis-server` binary.
-
-### Download and install the latest version of ElasticSearch
-
-ElasticSearch can be downloaded [here](http://www.elasticsearch.org/download/). By default, Hilary will expect ElasticSearch to be available on its default port: 9200.
-
-Once you've installed ElasticSearch, you can start it up in the background:
+Download the latest version of ElasticSearch from [here](http://www.elasticsearch.org/download/), and extract it to a directory of your choice. Once extracted, you can start it in the backround by running the following:
 
 ```
-cd your-elasticsearch-dir
+cd my-elasticsearch-dir
 bin/elasticsearch
 ```
 
-### Download and install version 1.3.11 or up of Nginx
+ElasticSearch powers the full-text search functionality in Sakai OAE.
 
-Nginx can be downloaded [here](http://nginx.org/en/download.html). You will need [PCRE](http://www.pcre.org/) to configure Nginx. Nginx 1.3.11+ is required for preview processing to work.
+#### RabbitMQ
 
-Once you've downloaded and unpacked both, you can configure and install:
+To install RabbitMQ, please follow the instructions on the [RabbitMQ Download Page](http://www.rabbitmq.com/download.html). Once completed, you should be able to start RabbitMQ in the background by running:
+
+```
+rabbitmq-server -detatched
+```
+
+RabbitMQ powers the asynchronous task-queue function in Hilary. It allows heavier asynchronous tasks such as activity processing and search indexing to be offloaded to different clusters of servers. Though, a development environment you can still get that functionality with just your devlopment box.
+
+#### GraphicsMagick
+
+GraphicsMagick installation instructions can be found on their [README page](http://www.graphicsmagick.org/README.html), however for *nix OS' it is typically available in the package manager of your choice (e.g., `brew install graphicsmagick`)
+
+GraphicsMagick provides the ability to crop and resize profile pictures, and is required to run Hilary.
+
+#### Preview Processor (optional)
+
+The preview processor is not a requirement to run Hilary. It takes care of producing previews of content items for the UI (e.g., splitting PDFs into pages, cropping / resizing uploaded images). There are a few dependencies needed only if you are planning to run the preview processor:
+
+##### PDFTK
+
+Download and install the PDFTK installer from [here](http://www.pdflabs.com/tools/pdftk-the-pdf-toolkit/). This dependency takes care of splitting PDF files into individual pages.
+
+##### LibreOffice
+
+Download and install LibreOffice from [here](http://www.libreoffice.org/download/). This dependency takes care of converting Microsoft Office files to PDFs so they may be further split into previews by PDFTK.
+
+#### Nginx (version 1.3.11 or higher)
+
+Nginx **version 1.3.11 or higher** can be downloaded [here](http://nginx.org/en/download.html). You will need [PCRE](http://www.pcre.org/) to configure Nginx.
+
+Once you've downloaded and extracted both to directories of your choice, you can configure and install:
 
 ```
 cd your-nginx-dir
@@ -77,36 +100,95 @@ cd /usr/local/nginx
 sudo sbin/nginx
 ```
 
-Once the installation has completed you will need to replace the Nginx config with the default provided in 3akai-ux and reload nginx.
+Nginx is the most tested load balancer and web server used for Sakai OAE. A web server such as Nginx is necessary for file downloads to work properly.
+
+### Deploying the server
+
+#### Get the code
+
+By default, OAE assumes both the [Hilary repository](http://github.com/sakaiproject/Hilary) and the [3akai-ux repository](http://github.com/sakaiproject/3akai-ux) are siblings in the same directory. You should clone both sets of code as such:
 
 ```
-sudo sbin/nginx -s reload
+~/oae$ git clone git@github.com:sakaiproject/Hilary
+~/oae$ git clone git@github.com:sakaiproject/3akai-ux
+~/oae$ cd 3akai-ux
+~/oae/3akai-ux$ checkout Hilary
 ```
 
-### Download and install the latest version of RabbitMQ
+**Note:** Currently you must use the **Hilary branch** in the 3akai-ux repository, as master remains built for the Nakamura back-end.
 
-RabbitMQ can be downloaded [here](http://www.rabbitmq.com/download.html). By default, Hilary will expect RabbitMQ to be available on its default port: 5672.
+Please remember that filenames and directories that contain spaces can sometimes result in unstable side-effects. Please ensure all paths are space-free.
 
-Once installed, you can start up RabbitMQ in the background by running `rabbitmq-server -detached`, assuming rabbitmq-server is on your PATH.
+#### Configuring the server
 
-### Download and install GraphicsMagick
-On OS X: sudo port install graphicsmagick
-On Linux: sudo apt-get install graphicsmagick
-GraphicsMagick is used to crop profile pictures and is a requirement if you wish to run the tests successfully.
+##### Hosts file
 
-### Download and install the latest version of PDFTK
-
-PDFTK is used to process PDF files and create previews of them. PDFTK is optional. You can download the PDFTK installer [here](http://www.pdflabs.com/tools/pdftk-the-pdf-toolkit/).
-
-#### Start Hilary
+Sakai OAE is a multi-tenant system that discriminates the tenant by the host name with which you are accessing the server. In order to support the "Global Tenant" (i.e., the tenant that hosts the administration UI) and a "User Tenant", you will need to have at least 2 different host names that point to your server. To do this, you will need to add the following entries to your `/etc/hosts` file:
 
 ```
-cd your-sakai-repo-dir
+127.0.0.1   admin.oae.com
+127.0.0.1   tenant1.oae.com
+```
+
+Where "admin.oae.com" is the hostname that we will use to access the global administration tenant, and "tenant1.oae.com" would be one of many potential user tenant hosts.
+
+##### Hilary config.js
+
+Open the `config.js` file in the root of the Hilary directory. This file is a node.js module that contains a JavaScript object that represents the configuration for your server.
+
+* Configure the `config.files.uploadDir` to point to a directory that exists. This is where files such as profile pictures, content bodies, previews etc... will be stored
+* Ensure that the property `config.server.globalAdminHost` is configured to the same host name you set for your global admin host in /etc/hosts (Note: at time of writing, this does not exist as Preview Processing has not been merged to master)
+
+**If you want preview processing enabled, configure the following:**
+
+* Ensure that the property `config.previews.enabled` is set to `true`
+* Ensure that the locations of the LibreOffice and PDFTK binaries is correct in the `config.previews.binaries` property
+
+##### Nginx Configuration
+
+Find the "nginx.conf" template file located in the 3akai-ux repository that you cloned earlier. You will want to overwrite your nginx.conf file (e.g., `/usr/local/nginx/conf/nginx.conf`) with this one and perform the following edits:
+
+* Replace `<%= NGINX_USER %>` and `<%= NGINX_GROUP %>` with the OS user and group that the nginx process should run as
+* Replace `<%= UX_HOME %>` with the full absolute path to your cloned 3akai-ux directory (e.g., /Users/branden/oae/3akai-ux)
+* Replace `<%= LOCAL_FILE_STORAGE_DIRECTORY %>` with the full absolute path that you configured for file storage in the `Hilary config.js` step
+* Ensure that the `server_name` property for the global administration server (default value is `admin.oae.com`) is set to the same value you configured for the global administration host in `/etc/hosts`. **Note:** The `server_name` property for the *user tenant* should always remain configured as `*`.
+
+When the configuration is ready, reload Nginx:
+
+```
+sudo /usr/local/nginx/sbin/nginx -s reload
+```
+
+##### Install NPM dependencies
+
+NPM is the package manager that downloads all the Node.js dependencies on which Hilary relies. To tell NPM to download all the dependencies, run this command in your Hilary directory:
+
+```
+npm install -d
+```
+
+### Starting the server
+
+Now we're ready to start the app server. You can do so by going into the Hilary directory and running:
+
+```
 node app.js | node_modules/.bin/bunyan
 ```
 
-You can install bunyan as a global depency with `npm install -g bunyan` so you can start the app with 'node app | bunyan'. And that's it, the server should now be up and running!
+**Tip:** You can install bunyan as a global depency with `npm install -g bunyan` so you can start the app with 'node app | bunyan'. 
 
-You can access the admin page at http://localhost:2000/admin.html and login with `administrator - administrator`
+### Creating your first user tenant
+
+When you start the server, all data schemas will be created for you if they don't already exist. A global administrator user and global administration tenant will be ready for you as well. You can use these to create a new user tenant that hosts the actual OAE user interface.
+
+1. Visit http://admin.oae.com/  (substitute "admin.oae.com" with the administration host you configured in `/etc/hosts`)
+2. Log in with username and password: administrator / administrator
+3. Click "Create a new tenant"
+4. Choose an alias (a short, unique 2-5 character alphanumeric string such as "oae"), and a name of your liking.
+5. For the Host field, use the host you configured for your user tenant in `/etc/hosts` (e.g., "tenant1.oae.com")
+6. Click "Create new tenant"
+
+That's it! You can now access the user tenant by their host http://tenant1.oae.com and start creating new users.
 
 We're looking forward to seeing your contributions to the Sakai OAE project!
+

@@ -72,7 +72,7 @@ module.exports = function(grunt) {
         // Set a covering environment variable, as this will be used to determine where the UI resides relative to the Hilary folder.
         shell.env['OAE_COVERING'] = true;
         var MODULES = grunt.file.expandDirs('node_modules/oae-*/tests').join(' ');
-        var output = shell.exec('../node_modules/.bin/mocha --ignore-leaks --timeout 20000 --reporter html-cov node_modules/oae-tests/runner/beforeTests.js ' + MODULES, {silent:true}).output;
+        var output = shell.exec('../node_modules/.bin/mocha --ignore-leaks --timeout 30000 --reporter html-cov node_modules/oae-tests/runner/beforeTests.js ' + MODULES, {silent:true}).output;
         output.to('coverage.html');
         grunt.log.writeln('Code Coverage report generated at ' + 'target/coverage.html'.cyan);
 

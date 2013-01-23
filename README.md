@@ -38,7 +38,7 @@ sudo mkdir -p /var/lib/cassandra
 sudo chown -R `whoami` /var/lib/cassandra
 ```
 
-When that is complete, you can start up Cassandra in the background:
+When that is complete, you can start up Cassandra in the foreground:
 
 ```
 cd your-cassandra-dir
@@ -62,30 +62,50 @@ cd your-elasticsearch-dir
 bin/elasticsearch
 ```
 
+### Download and install version 1.3.11 or up of Nginx
+
+Nginx can be downloaded [here](http://nginx.org/en/download.html). You will need [PCRE](http://www.pcre.org/) to configure Nginx. Nginx 1.3.11+ is required for preview processing to work.
+
+Once you've downloaded and unpacked both, you can configure and install:
+
+```
+cd your-nginx-dir
+./configure --with-pcre=/path/to/pcre
+make
+sudo make install
+cd /usr/local/nginx
+sudo sbin/nginx
+```
+
+Once the installation has completed you will need to replace the Nginx config with the default provided in 3akai-ux and reload nginx.
+
+```
+sudo sbin/nginx -s reload
+```
+
 ### Download and install the latest version of RabbitMQ
 
 RabbitMQ can be downloaded [here](http://www.rabbitmq.com/download.html). By default, Hilary will expect RabbitMQ to be available on its default port: 5672.
 
 Once installed, you can start up RabbitMQ in the background by running `rabbitmq-server -detached`, assuming rabbitmq-server is on your PATH.
 
-### Running the server
-
-All that remains now is booting the server.
-
 ### Download and install GraphicsMagick
 On OS X: sudo port install graphicsmagick
 On Linux: sudo apt-get install graphicsmagick
 GraphicsMagick is used to crop profile pictures and is a requirement if you wish to run the tests successfully.
 
+### Download and install the latest version of PDFTK
+
+PDFTK is used to process PDF files and create previews of them. PDFTK is optional. You can download the PDFTK installer [here](http://www.pdflabs.com/tools/pdftk-the-pdf-toolkit/).
 
 #### Start Hilary
 
 ```
 cd your-sakai-repo-dir
-node app.js
+node app.js | node_modules/.bin/bunyan
 ```
 
-And that's it, the server should now be up and running!
+You can install bunyan as a global depency with `npm install -g bunyan` so you can start the app with 'node app | bunyan'. And that's it, the server should now be up and running!
 
 You can access the admin page at http://localhost:2000/admin.html and login with `administrator - administrator`
 

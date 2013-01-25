@@ -408,21 +408,24 @@ var getPreviewItems = module.exports.getPreviewItems = function(restCtx, content
 /**
  * Download a preview item
  *
- * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {String}         contentId           Content id of the content item we're trying to download a preview item from.
- * @param  {String}         previewItem         The preview item.
- * @param  {String}         signature           The signature as returned by `getPreviewItems`.
- * @param  {Number}         expires             The timestamp when the signature expires.
- * @param  {Function}       callback            Standard callback method
- * @param  {Object}         callback.err        Error object containing error code and error message
- * @param  {Object}         callback.body       The body of the response.
+ * @param  {RestContext}    restCtx                 Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}         contentId               Content id of the content item we're trying to download a preview item from.
+ * @param  {String}         previewItem             The preview item.
+ * @param  {Object}         signature               A signature that validates this call.
+ * @param  {String}         signature.signature     A signature that validates this call.
+ * @param  {Number}         signature.expires       When the signature expires (in millis since epoch.)
+ * @param  {Number}         signature.lastModified  When the signature expires (in millis since epoch.)
+ * @param  {Function}       callback                Standard callback method
+ * @param  {Object}         callback.err            Error object containing error code and error message
+ * @param  {Object}         callback.body           The body of the response.
  */
-var downloadPreviewItem = module.exports.downloadPreviewItem = function(restCtx, contentId, previewItem, signature, expires, callback) {
+var downloadPreviewItem = module.exports.downloadPreviewItem = function(restCtx, contentId, previewItem, signature, callback) {
     var url = '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/previews/';
     url += RestUtil.encodeURIComponent(previewItem);
     var params = {
-        'signature': signature,
-        'expires': expires
+        'signature': signature.signature,
+        'expires': signature.expires,
+        'lastmodified': signature.lastModified
     };
     RestUtil.RestRequest(restCtx, url, 'GET', params, callback);
 };

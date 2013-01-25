@@ -56,3 +56,8 @@ module.exports.Crop = require('./api.crop');
 
 // Search REST wrappers
 module.exports.Search = require('./api.search');
+
+// Activity REST wrappers
+module.exports.Activity = require('./api.activity');
+
+

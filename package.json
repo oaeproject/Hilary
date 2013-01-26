@@ -30,6 +30,7 @@
     "connect-redis": "latest",
     "dox": "latest",
     "elasticsearchclient": "latest",
+    "etherpad-lite-client": "latest",
     "express": "latest",
     "gm": "latest",
     "helenus": "latest",

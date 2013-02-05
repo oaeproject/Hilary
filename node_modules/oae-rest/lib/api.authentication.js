@@ -21,7 +21,7 @@ var RestUtil = require('./util');
 /**
  * Log a user in through the REST API.
  * 
- * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. For this function to work, the passed in restCtx should be an anonymous REST context
+ * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL. For this function to work, the passed in restCtx should be an anonymous REST context
  * @param  {String}                 username            Username for the user logging in. This should not be the globally unique userid (e.g. u:cam:nm417), but the login id a user would actually use (e.g. nm417)
  * @param  {String}                 password            The user's password
  * @param  {Function}               callback            Standard callback method takes argument `err`

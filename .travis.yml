@@ -22,7 +22,7 @@ services:
   - redis-server
 
 script:
-  - grunt test
+  - OAE_TIMEOUTS_SEARCH=5000 OAE_TIMEOUTS_CONFIG=250 OAE_TIMEOUTS_MOCHA=60000 grunt test
 
 after_failure:
   - cat bootstrap.log | node_modules/.bin/bunyan -l warn

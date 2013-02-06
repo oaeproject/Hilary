@@ -56,3 +56,6 @@ module.exports.Crop = require('./api.crop');
 
 // Search REST wrappers
 module.exports.Search = require('./api.search');
+
+// Admin specific REST wrappers
+module.exports.Admin = require('./api.admin');

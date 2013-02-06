@@ -291,12 +291,11 @@ var updateFileBody = module.exports.updateFileBody = function(restCtx, contentId
  * @param  {Response}       callback.response   The requestjs response object.
  */
 var download = module.exports.download = function(restCtx, contentId, revisionId, path, callback) {
-    // We can't use the RestUtil.RestRequest utility to wrap our requests as we're dealing with streams.
-    RestUtil.getJar(restCtx, function(err, jar) {
-        if (err) {
-            return callback(err);
-        }
-
+    /*!
+     * Performs the correct HTTP request to download a file.
+     * This function assumes a proper cookiejar can be found on the RestContext objext.
+     */
+    var downloadFile = function() {
         var url = restCtx.host + '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/download';
         if (revisionId) {
             url += '/' + revisionId;
@@ -305,7 +304,7 @@ var download = module.exports.download = function(restCtx, contentId, revisionId
         var requestParams = {
             'url': url,
             'method': 'GET',
-            'jar': jar
+            'jar': restCtx.cookieJar
         };
         if (restCtx.hostHeader) {
             requestParams.headers = {
@@ -358,7 +357,22 @@ var download = module.exports.download = function(restCtx, contentId, revisionId
                 callback({'code': response.statusCode, 'msg': 'Unable to download the file.'});
             }
         });
-    });
+    };
+
+    // We can't use the RestUtil.RestRequest utility to wrap our requests as we're dealing with streams.
+    // This leads to annoying problems with cookiejars who might or might not be filled up.
+    // Check if we have a jar and perform the request if we have one.
+    // If we don't have one, try to fill it up.
+    if (restCtx.cookieJar) {
+        downloadFile();
+    } else {
+        RestUtil.fillCookieJar(restCtx, function(err) {
+            if (err) {
+                return callback(err);
+            }
+            downloadFile();
+        });
+    }
 };
 
 

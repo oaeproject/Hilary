@@ -19,9 +19,6 @@ var util = require('util');
 
 // Array of response codes that are considered to be HTTP errors
 var errorCodes = [400, 401, 403, 404, 500, 503];
-// Variable that will keep track of a cookie jar per user, so we can continue to
-// use the user's session throughout the tests
-var cookies = {};
 
 /**
  * ### Events
@@ -56,90 +53,58 @@ module.exports.encodeURIComponent = function(uriComponent) {
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         url                 The URL of the REST endpoint that should be called
  * @param  {String}         method              The HTTP method that should be used for the request (i.e. GET or POST)
- * @param  {Object}         data                The form data that should be passed into the request [optional]       
+ * @param  {Object}         data                The form data that should be passed into the request [optional]
  * @param  {Function}       callback            Standard callback function
  * @param  {Object}         callback.err        Error object containing the error code and message
  * @param  {String|Object}  callback.body       The response body received from the request. If this is JSON, a parsed JSON object will be returned, otherwise the response will be returned as a string
  * @param  {Response}       callback.response   The response object that was returned by the node module requestjs.
  */
 var RestRequest = module.exports.RestRequest = function(restCtx, url, method, data, callback) {
-    // Check if the request should be done by a logged in user
-    getJar(restCtx, function(err) {
-        if (err) {
-            return callback(err);
-        }
-        _RestRequest(restCtx, url, method, data, callback);
-    });
-};
+    // If we already have a cookieJar, we can perform the request directly.
+    if (restCtx.cookieJar) {
+        return _RestRequest(restCtx, url, method, data, callback);
 
-/**
- * Creates an empty cookie jar and associates it to the user for the passed in REST context.
- *
- * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- */
-var setupEmptyJar = module.exports.setupEmptyJar = function(restCtx) {
-    var cookieIdentifier = _getCookieIdentifier(restCtx);
-    cookies[cookieIdentifier] = request.jar();
-};
-
-/**
- * Returns the jar that is associated to a rest context.
- * If no jar is found, an empty one will be returned.
- *
- * @param {RestContext}     restCtx         Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param {Function}        callback        Standard callback method.
- * @param {Object}          callback.err    Standard error object (if any.)
- * @param {Jar}             callback.jar    A cookie jar that can be used for performing HTTP requests with this Rest Context.
- */
-var getJar = module.exports.getJar = function(restCtx, callback) {
-    // If we're performing the request anonymously, we don't need to do anything.
-    if (!restCtx.userId) {
-        return callback(null);
-    }
-
-    // Check if we already have a stored session for this user
-    var cookieIdentifier = _getCookieIdentifier(restCtx);
-    if (cookies[cookieIdentifier]) {
-        callback(null, cookies[cookieIdentifier]);
-    // Otherwise, we log the user in first
+    // Otherwise we create a new one.
     } else {
-        // Set up an empty cookie jar for this user
-        setupEmptyJar(restCtx);
-        // Log the user in
-        _RestRequest(restCtx, '/api/auth/login', 'POST', {
-            'username': restCtx.userId,
-            'password': restCtx.userPassword
-        }, function(err, response) {
+        restCtx.cookieJar = request.jar();
+
+        // Fill the new cookie jar.
+        fillCookieJar(restCtx, function(err) {
             if (err) {
                 return callback(err);
             }
-            callback(null, cookies[cookieIdentifier]);
+            _RestRequest(restCtx, url, method, data, callback);
         });
     }
 };
 
 /**
- * Given a RestContext, returns the identifier that can be used to retrieve the correct cookie jar.
+ * Fills the jar for a rest context.
  *
- * @param  {RestContext}    restCtx     Standard REST Context object that contains the current tenant URL and the current user credentials
- * @return {String}                     The identifier that can be used to look up a jar in the `cookies` variable.
- * @api private
+ * @param {RestContext}     restCtx         Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param {Function}        callback        Standard callback method.
+ * @param {Object}          callback.err    Standard error object (if any.)
  */
-var _getCookieIdentifier = function(restCtx) {
-    var cookieIdentifier = restCtx.host + '-' + restCtx.userId;
-    if (restCtx.hostHeader) {
-        cookieIdentifier += '-' + restCtx.hostHeader;
+var fillCookieJar = module.exports.fillCookieJar = function(restCtx, callback) {
+    // If no user is specified, there is no point in doing a login request.
+    if (!restCtx.userId) {
+        return callback(null);
     }
-    return cookieIdentifier;
+
+    // Log the user in
+    _RestRequest(restCtx, '/api/auth/login', 'POST', {
+        'username': restCtx.userId,
+        'password': restCtx.userPassword
+    }, callback);
 };
 
 /**
  * Internal Function that will perform a REST request. If no user is provided, the request will be done anonymously
- * 
+ *
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         url                 The URL of the REST endpoint that should be called
  * @param  {String}         method              The HTTP method that should be used for the request (i.e. GET or POST)
- * @param  {Object}         data                The form data that should be passed into the request [optional]       
+ * @param  {Object}         data                The form data that should be passed into the request [optional]
  * @param  {Function}       callback            Standard callback function
  * @param  {Object}         callback.err        Error object containing the error code and message
  * @param  {String|Object}  callback.response   The response received from the request. If this is JSON, a parsed JSON object will be returned, otherwise the response will be returned as a string
@@ -148,20 +113,10 @@ var _getCookieIdentifier = function(restCtx) {
 var _RestRequest = function(restCtx, url, method, data, callback) {
     module.exports.emit('request', restCtx, url, method, data);
 
-    var j = request.jar();
-    if (restCtx.userId) {
-        // Create a composite of URL and userid to make sure that userids
-        // don't collide accross tenants
-        var cookieIdentifier = restCtx.host + '-' + restCtx.userId;
-        if (restCtx.hostHeader) {
-            cookieIdentifier += '-' + restCtx.hostHeader;
-        }
-        j = cookies[cookieIdentifier];
-    }
     var requestParams = {
         'url': restCtx.host + url,
         'method': method,
-        'jar': j
+        'jar': restCtx.cookieJar
     };
     if (restCtx.hostHeader) {
         requestParams.headers = {

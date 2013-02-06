@@ -16,6 +16,7 @@
 var url = require('url');
 
 var RestContext = require('./model').RestContext;
+var RestUser = require('./api.user');
 var RestUtil = require('./util');
 
 /**
@@ -128,8 +129,7 @@ var loginOnTenant = module.exports.loginOnTenant = function(globalRestCtx, tenan
 
         // Create a new rest context and jar for this tenant.
         // There is no need to pass in a password
-        var restCtx = new RestContext('http://' + token.host, globalRestCtx.userId, null, token.host);
-        RestUtil.setupEmptyJar(restCtx);
+        var restCtx = new RestContext('http://' + token.host, null, null, token.host);
 
         // Perform the actual login.
         loginWithSignedToken(restCtx, token, function(err, body, response) {

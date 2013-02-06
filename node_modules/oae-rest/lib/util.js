@@ -14,7 +14,7 @@
  */
 var events = require('events');
 var request = require('request');
-var Stream = require('stream').Stream
+var Stream = require('stream').Stream;
 var util = require('util');
 
 // Array of response codes that are considered to be HTTP errors

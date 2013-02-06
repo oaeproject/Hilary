@@ -172,3 +172,15 @@ config.mq = {
     },
     'prefetchCount': 15
 };
+
+/**
+ * `config.signing`
+ *
+ * Configuration namespace for the signing logic
+ * FIXME: once https://github.com/sakaiproject/Hilary/issues/331 is addressed, this config can move to the Global Admin Config.
+ *
+ * @param   {String}    key     This key will be used to sign URLs like profile pictures, content previews, etc.. . It's vital to the security of the system that you change this in production.
+ */
+config.signing = {
+    'key': 'The default signing key, please change me.'
+};

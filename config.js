@@ -48,12 +48,20 @@ config.redis = {
     'dbIndex': 0
 };
 
-// Configuration for the ports on which the global admin express server and
-// the tenant express server need to be running. It also specifies the tenant
-// alias used for the global admin
+/**
+ * `config.servers`
+ *
+ * Configuration namespace for servers.
+ *
+ * @param   {String}    globalAdminAlias        The tenant alias that will be used for the global admins.
+ * @param   {String}    globalAdminHost         The hostname on which the global admin server can be reached by users.
+ * @param   {Number}    globalAdminPort         The network port on which the global admin express server can run.
+ * @param   {Number}    tenantPort              The network port on which the tenant express server can run.
+ */
 config.servers = {
     // Port on which the global admin server should be initialized
     'globalAdminAlias': 'admin',
+    'globalAdminHost': 'admin.oae.com',
     'globalAdminPort': 2000,
     'tenantPort': 2001
 };
@@ -63,8 +71,11 @@ config.servers = {
 // moving them over to the configured storage backend.
 // The storage backend can be configured in the Admin UI and can be changed
 // at runtime.
+var tmpDir = process.env.TMP || process.env.TMPDIR || process.env.TEMP || '/tmp' || process.cwd();
+var tmpFilesDir = tmpDir + '/uploads';
+
 config.files = {
-    'uploadDir': process.env.TMP || process.env.TMPDIR || process.env.TEMP || '/tmp' || process.cwd()
+    'uploadDir': tmpFilesDir
 };
 
 // The configuration that can be used to generate secure HTTP cookies.
@@ -161,14 +172,46 @@ config.search = {
  * @param   {Object}    connection      The connection description
  * @param   {String}    connection.host The host for the connection
  * @param   {Number}    connection.port The port for the connection
- * @param   {Number}    prefetchCount   The number of tasks that will be distributed locally to the machine at a time
  */
 config.mq = {
     'connection': {
         'host': 'localhost',
         'port': 5672
+    }
+};
+
+/**
+ * `config.previews`
+ *
+ * Configuration namespace for the preview processor.
+ *
+ * @param {Boolean}     enabled                 Whether or not the preview processor should be running.
+ * @param {String}      dir                     A directory that can be used to store temporary files in.
+ * @param {Object}      office                  Holds the configuration for anything Office related.
+ * @paran {String}      office.binary           The path to the 'soffice.bin' binary that starts up Libre Office. ex: On OS X it is `/Applications/LibreOffice.app/Contents/MacOS/soffice.bin` with a default install.
+ * @param {Number}      office.timeout          Defines the timeout (in ms) when the Office process should be killed.
+ * @param {Object}      pdf                     Holds the configuration for anything related to PDF splitting.
+ * @paran {String}      pdf.binary              The path to the `pdftk` binary that can be used to split a PDF file into a PDF-per-page.
+ * @param {Number}      pdf.timeout             Defines the timeout (in ms) when the pdftk process should be killed.
+ * @param {Object}      credentials             Holds the credentials that can be used to log on the global admin server.
+ * @param {String}      credentials.username    The username to login with on the global admin server.
+ * @param {String}      credentials.password    The password to login with on the global admin server.
+ */
+config.previews = {
+    'enabled': false,
+    'dir': tmpDir + '/previews',
+    'office': {
+        'binary': 'soffice.bin',
+        'timeout': 120000 
     },
-    'prefetchCount': 15
+    'pdf': {
+        'binary': 'pdftk',
+        'timeout': 120000
+    },
+    'credentials': {
+        'username': 'administrator',
+        'password': 'administrator'
+    }
 };
 
 /**

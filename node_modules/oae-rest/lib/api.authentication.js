@@ -16,7 +16,6 @@
 var url = require('url');
 
 var RestContext = require('./model').RestContext;
-var RestUser = require('./api.user');
 var RestUtil = require('./util');
 
 /**

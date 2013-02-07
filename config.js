@@ -115,7 +115,6 @@ config.telemetry = {
  * @param  {Object}    index                    Holds configuration properties for the OAE search index.
  * @param  {String}    index.name               The unique name of the index.
  * @param  {Object}    index.settings           Holds the elastic search index configuration settings, as per http://www.elasticsearch.org/guide/reference/api/admin-indices-create-index.html
- * @param  {Boolean}   [index.allowAnonRefresh] Whether or not to allow the anonymous user to force-refresh the OAE index. Helpful for tests, but not recommended for production. Defaults to `false`.
  * @param  {Boolean}   [index.destroyOnStartup] Whether or not the index should be destroyed when the server starts up. Do not enable this on a production server. Defaults to `false`.
  * @param  {Boolean}   [processIndexJobs]       Whether or not this node should act as an indexer. Only disable this if you have another dedicated set of machines performing index processing. Defaults to `true`.
  */
@@ -149,7 +148,6 @@ config.search = {
                 }
             }
         },
-        'allowAnonRefresh': false,
         'destroyOnStartup': false
     },
     'processIndexJobs': true
@@ -184,3 +182,32 @@ config.mq = {
 config.signing = {
     'key': 'The default signing key, please change me.'
 };
+
+/**
+ * `config.activity`
+ *
+ * Configuration namespace for activities.
+ *
+ * @param  {Boolean}    [processActivityJobs]           Whether or not this server node should produce and route activities. Defaults to `true`
+ * @param  {Number}     [activityTtl]                   The time-to-live (in seconds) for generated activities. After this period of time, an activity in an activity feed is lost permanently. Defaults to 2 weeks
+ * @param  {Number}     [aggregateIdleExpiry]           The amount of time (in seconds) an aggregate can be idle until it expires. The "idle" time of an aggregate is reset when a new activity occurs that matches the aggregate. Defaults to 3 hours
+ * @param  {Number}     [aggregateMaxExpiry]            An upper-bound on the amount of time (in seconds) for which an aggregate can live. Defaults to 1 day
+ * @param  {Number}     [numberOfProcessingBuckets]     The number of buckets available for parallel processing of activities. Defaults to 5
+ * @param  {Number}     [collectionExpiry]              The maximum amount of time (in seconds) a processing bucket can be locked for at one time. If this is not long enough for an activity processor to collect the number of activities as configured by `collectionBatchSize`, then it will be possible for multiple processors to collect the same bucket concurrently. This will result in duplicate activities, which is not desired. Defaults to 1 minute
+ * @param  {Number}     [maxConcurrentCollections]      The maximum number of concurrent collection cycles that can be active on a process at once. Defaults to 3
+ * @param  {Number}     [collectionPollingFrequency]    How often (in seconds) the processing buckets are polled for new activities. If -1, polling will be disabled. If polling is disabled, activities will not function, so do not set to -1 in production. Defaults to 5 seconds.
+ * @param  {Number}     [collectionBatchSize]           The number of items to process at a time when collecting bucketed activities. After one batch has been collected, the activity processor will immediately continue to process the next batch from that bucket, and so on. Defaults to 500
+ */
+config.activity = {
+    'processActivityJobs': true,
+    'activityTtl': 2 * 7 * 24 * 60 * 60,    // 2 weeks (in seconds)
+    'numberOfProcessingBuckets': 5,
+    'aggregateIdleExpiry': 3 * 60 * 60,     // 3 hours (in seconds)
+    'aggregateMaxExpiry': 24 * 60 * 60,     // 1 day (in seconds)
+    'collectionExpiry': 60,                 // 1 minute (in seconds)
+    'maxConcurrentCollections': 3,
+    'collectionPollingFrequency': 5,        // 5 seconds
+    'collectionBatchSize': 500
+};
+
+

@@ -1,6 +1,6 @@
-# Hilary
+# Sakai OAE
 
-The back-end for Sakai OAE
+Hilary is the back-end for Sakai OAE
 
 ## Build status
 [![Build Status](https://travis-ci.org/sakaiproject/Hilary.png?branch=master)](https://travis-ci.org/sakaiproject/Hilary)

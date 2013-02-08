@@ -10,6 +10,7 @@ Hilary is the back-end for Sakai OAE
 The following guide will take you through the necessary steps to run the back-end for Sakai OAE (Hilary) and its reference UI (3akai-ux) for development purposes.
 
 ### Installing dependencies
+If you're installing on Windows (not recommended for production) there's a package manager called Chocolatey that can be used to install all the dependencies quickly. See the `Windows Dependencies` section of this document for more information.
 
 #### Node.js
 
@@ -103,6 +104,20 @@ sudo sbin/nginx
 Nginx is the most tested load balancer and web server used for Sakai OAE. A web server such as Nginx is necessary for file downloads to work properly.
 
 #### Windows Dependencies
+
+##### Installing With Chocolatey
+
+Open a command line and install Chocolatey with the following command:
+
+    @powershell -NoProfile -ExecutionPolicy unrestricted -Command "iex ((new-object net.webclient).DownloadString('http://chocolatey.org/install.ps1'))" && SET PATH=%PATH%;%systemdrive%\chocolatey\bin
+
+If you don't yet have git installed you can use Chocolatey to install it with `cinst msysgit`.
+
+You can then install the remaining dependencies using the `chocolatey.config` in this repo:
+
+    cinst chocolatey.config
+
+##### Installing manually
 
 Windows has a few extra dependencies that are known to be needed:
 

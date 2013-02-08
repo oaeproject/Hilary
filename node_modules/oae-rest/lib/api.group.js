@@ -97,7 +97,7 @@ var getGroupMembers = module.exports.getGroupMembers = function(restCtx, groupId
 
 /**
  * Update the members of a group through the REST API.
- * 
+ *
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         groupId             The id of the group you wish to update
  * @param  {Object}         members             A hash object where each key is the id of a user or group and the value is one of 'manager', 'member' or false. In case the value is false, the member will be deleted.
@@ -109,8 +109,32 @@ var setGroupMembers = module.exports.setGroupMembers = function(restCtx, groupId
 };
 
 /**
+ * Join the group as the current user.
+ *
+ * @param  {RestContext}    restCtx             Standard REST Context object of the current HTTP session
+ * @param  {String}         groupId             The id of the group you wish to join
+ * @param  {Function}       callback            Invoked when the request completes
+ * @param  {Object}         callback.err        An error that occurred, if any
+ */
+var joinGroup = module.exports.joinGroup = function(restCtx, groupId, callback) {
+    RestUtil.RestRequest(restCtx, '/api/group/' + RestUtil.encodeURIComponent(groupId) + '/join', 'POST', null, callback);
+};
+
+/**
+ * Leave the group as the current user.
+ *
+ * @param  {RestContext}    restCtx             Standard REST Context object of the current HTTP session
+ * @param  {String}         groupId             The id of the group you wish to leave
+ * @param  {Function}       callback            Invoked when the request completes
+ * @param  {Object}         callback.err        An error that occurred, if any
+ */
+var leaveGroup = module.exports.leaveGroup = function(restCtx, groupId, callback) {
+    RestUtil.RestRequest(restCtx, '/api/group/' + RestUtil.encodeURIComponent(groupId) + '/leave', 'POST', null, callback);
+};
+
+/**
  * Returns all of the groups that a user is a direct and indirect member of through the REST API.
- * 
+ *
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}       userId              The user id for which we want to get all of the memberships
  * @param  {String}       start               The group id to start from (this will not be included in the response)

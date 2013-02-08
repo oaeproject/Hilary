@@ -1,6 +1,6 @@
 # Hilary
 
-The NodeJS implementation of Sakai OAE
+The back-end for Sakai OAE
 
 ## Build status
 [![Build Status](https://travis-ci.org/sakaiproject/Hilary.png?branch=master)](https://travis-ci.org/sakaiproject/Hilary)
@@ -13,11 +13,11 @@ The following guide will take you through the necessary steps to run the back-en
 
 #### Node.js
 
-Download and install the latest version of [node.js](http://nodejs.org/). The Hilary back-end is written completely in JavaScript, powered by Node.js.
+Download and install the latest version of [Node.js](http://nodejs.org/). The Hilary back-end is written completely in JavaScript, powered by Node.js.
 
-#### Cassandra
+#### Apache Cassandra
 
-Download the latest version from [here](http://cassandra.apache.org/) and extract it to a directory of your choice. Then you can start it in the backround by running the following:
+Download the latest version if [Apache Cassandra](http://cassandra.apache.org/) and extract it to a directory of your choice. Then you can start it in the backround by running the following:
 
 ```
 cd my-cassandra-dir
@@ -33,7 +33,7 @@ sudo mkdir -p /var/lib/cassandra
 sudo chown -R `whoami` /var/lib/cassandra
 ```
 
-All Hilary data is stored in Cassandra instead of a relational database. Therefore it is *not necessary* to install any RDBMS such as MySQL or PostgreSQL.
+All Hilary data is stored in Apache Cassandra. Therefore it is *not necessary* to install any RDBMS such as MySQL or PostgreSQL.
 
 #### Redis
 
@@ -48,7 +48,7 @@ Redis is used for caching frequently accessed data and for broadcasting messages
 
 #### ElasticSearch
 
-Download the latest version of ElasticSearch from [here](http://www.elasticsearch.org/download/), and extract it to a directory of your choice. Once extracted, you can start it in the backround by running the following:
+Download the latest version of [ElasticSearch](http://www.elasticsearch.org/download/), and extract it to a directory of your choice. Once extracted, you can start it in the backround by running the following:
 
 ```
 cd my-elasticsearch-dir
@@ -79,15 +79,15 @@ The preview processor is not a requirement to run Hilary, but it certainly makes
 
 ##### PDFTK (only if preview processor is desired)
 
-Download and install the PDFTK installer from [here](http://www.pdflabs.com/tools/pdftk-the-pdf-toolkit/). This dependency takes care of splitting PDF files into individual pages.
+Download and install [PDFTK](http://www.pdflabs.com/tools/pdftk-the-pdf-toolkit/). This dependency takes care of splitting PDF files into individual pages.
 
 ##### LibreOffice (only if preview processor is desired)
 
-Download and install LibreOffice from [here](http://www.libreoffice.org/download/). This dependency takes care of converting Microsoft Office files to PDFs so they may be further split into previews by PDFTK.
+Download and install [LibreOffice](http://www.libreoffice.org/download/). This dependency takes care of converting Microsoft Office files to PDFs so they may be further split into previews by PDFTK.
 
 #### Nginx (version 1.3.11 or higher)
 
-Nginx **version 1.3.11 or higher** can be downloaded [here](http://nginx.org/en/download.html) (at the time of writing, version 1.3.11 can only be found as a development version). You will need [PCRE](http://www.pcre.org/) to configure Nginx.
+Download [Nginx **version 1.3.11 or higher**](http://nginx.org/en/download.html) (at the time of writing, version 1.3.11 can only be found as a development version). You will need [PCRE](http://www.pcre.org/) to configure Nginx.
 
 Once you've downloaded and extracted both to directories of your choice, you can configure and install:
 
@@ -148,10 +148,10 @@ Where "admin.oae.com" is the hostname that we will use to access the global admi
 
 ##### Hilary config.js
 
-Open the `config.js` file in the root of the Hilary directory. This file is a node.js module that contains a JavaScript object that represents the configuration for your server.
+Open the `config.js` file in the root of the Hilary directory. This file contains a JavaScript object that represents the configuration for your server.
 
 * Configure the `config.files.uploadDir` property to point to a directory that exists. This is where files such as profile pictures, content bodies, previews, etc... will be stored
-* Ensure that the property `config.server.globalAdminHost` is configured to the same host name you set for your global admin host in /etc/hosts (Note: at time of writing, this property does not exist as Preview Processing has not been merged to master)
+* Ensure that the property `config.server.globalAdminHost` is configured to the same host name you set for your global admin host in /etc/hosts
 
 **If you want preview processing enabled, configure the following:**
 

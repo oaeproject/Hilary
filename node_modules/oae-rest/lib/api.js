@@ -60,4 +60,5 @@ module.exports.Search = require('./api.search');
 // Activity REST wrappers
 module.exports.Activity = require('./api.activity');
 
-
+// Admin specific REST wrappers
+module.exports.Admin = require('./api.admin');

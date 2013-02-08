@@ -71,8 +71,7 @@ var loginOnTenant = module.exports.loginOnTenant = function(globalRestCtx, tenan
 
         // Create a new rest context and jar for this tenant.
         // There is no need to pass in a password
-        var restCtx = new RestContext('http://' + token.host, globalRestCtx.userId, null, token.host);
-        RestUtil.setupEmptyJar(restCtx);
+        var restCtx = new RestContext('http://' + token.host, null, null, token.host);
 
         // Perform the actual login.
         loginWithSignedToken(restCtx, token, function(err, body, response) {
@@ -81,6 +80,7 @@ var loginOnTenant = module.exports.loginOnTenant = function(globalRestCtx, tenan
             } else if (response.statusCode !== 302) {
                 return callback({'code': response.statusCode, 'msg': 'Unexpected response code'});
             } else {
+                restCtx.userId = globalRestCtx.userId;
                 callback(null, restCtx);
             }
         });

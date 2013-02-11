@@ -29,6 +29,7 @@ var RestContext = module.exports.RestContext = function(host, userId, userPasswo
     that.userId = userId;
     that.userPassword = userPassword;
     that.hostHeader = hostHeader;
+    that.cookieJar = null;
     
     return that;
 };

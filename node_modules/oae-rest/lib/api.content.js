@@ -188,6 +188,7 @@ var shareContent = module.exports.shareContent = function(restCtx, contentId, pr
  * @param  {String}       [replyTo]           Id of the comment to reply to
  * @param  {Function}     callback            Standard callback method
  * @param  {Object}       callback.err        Error object containing error code and error message
+ * @param  {Comment}      callback.comment    The created comment
  */
 var createComment = module.exports.createComment = function(restCtx, contentId, body, replyTo, callback) {
     RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/comments', 'POST', {'body': body, 'replyTo': replyTo}, callback);
@@ -196,12 +197,12 @@ var createComment = module.exports.createComment = function(restCtx, contentId, 
 /**
  * Deletes a comment from a content item
  *
- * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {String}       contentId           Content id of the content item we're trying to delete a comment from
- * @param  {String}       commentId           The ID of the comment to delete
- * @param  {Function}     callback            Standard callback method
- * @param  {Object}       callback.err        Error object containing error code and error message
- * @param  {Object}       callback.response   If the comment is not deleted, but instead flagged as deleted because it has replies, this will return {'deleted': false}. If the comment has been properly deleted, this will return {'deleted': true}.
+ * @param  {RestContext}  restCtx                  Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}       contentId                Content id of the content item we're trying to delete a comment from
+ * @param  {String}       commentId                The ID of the comment to delete
+ * @param  {Function}     callback                 Standard callback method
+ * @param  {Object}       callback.err             Error object containing error code and error message
+ * @param  {Comment}      [callback.softDeleted]   If the comment is not deleted, but instead flagged as deleted because it has replies, this will return a stripped down comment object representing the deleted comment will be returned, with the `deleted` parameter set to `false`.. If the comment has been properly deleted, no comment will be returned.
  */
 var deleteComment = module.exports.deleteComment = function(restCtx, contentId, commentId, callback) {
     RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/comments/' + RestUtil.encodeURIComponent(commentId), 'DELETE', null, callback);

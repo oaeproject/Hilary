@@ -20,7 +20,7 @@ var RestUtil = require('./util');
  *
  * @param {RestContext}             restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param {String}                  searchType          The type of search to perform (e.g., general)
- * @oaram {String[]}                [params]            The parameters (i.e., path parameters) for the search. These are given as the `opts.params` value in the custom search. While these are optional for this API call, they may be required by the particular search type you are executing.
+ * @param {String[]}                [params]            The parameters (i.e., path parameters) for the search. These are given as the `opts.params` value in the custom search. While these are optional for this API call, they may be required by the particular search type you are executing.
  * @param {Object}                  [opts]              Options for the search
  * @param {String}                  [opts.q]            The full-text search term. If unspecified it will be the server-side default.
  * @param {Number}                  [opts.limit]        The number of items to retrieve. If -1, then return all. (default: -1)

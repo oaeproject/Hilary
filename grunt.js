@@ -20,7 +20,7 @@ module.exports = function(grunt) {
                 node: true,
                 sub: true,
                 indent: 4,
-                //trailing: true,
+                trailing: true,
                 quotmark: 'single',
                 curly: true,
                 white: false,

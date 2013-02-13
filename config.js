@@ -240,6 +240,11 @@ config.signing = {
  * @param  {Number}     [maxConcurrentCollections]      The maximum number of concurrent collection cycles that can be active on a process at once. Defaults to 3
  * @param  {Number}     [collectionPollingFrequency]    How often (in seconds) the processing buckets are polled for new activities. If -1, polling will be disabled. If polling is disabled, activities will not function, so do not set to -1 in production. Defaults to 5 seconds.
  * @param  {Number}     [collectionBatchSize]           The number of items to process at a time when collecting bucketed activities. After one batch has been collected, the activity processor will immediately continue to process the next batch from that bucket, and so on. Defaults to 500
+ * @param  {Object}     [redis]                         Configuration for dedicated redis server. If not specified, will use the same pool as the rest of the container (i.e., as specified by `config.redis`)
+ * @param  {String}     [redis.host]                    The host of the dedicated redis server
+ * @param  {Number}     [redis.port]                    The port of the dedicated redis server
+ * @param  {String}     [redis.pass]                    The password to the dedicated redis server
+ * @param  {Number}     [redis.dbIndex]                 The index number of the dedicated redis server index
  */
 config.activity = {
     'processActivityJobs': true,
@@ -250,7 +255,8 @@ config.activity = {
     'collectionExpiry': 60,                 // 1 minute (in seconds)
     'maxConcurrentCollections': 3,
     'collectionPollingFrequency': 5,        // 5 seconds
-    'collectionBatchSize': 500
+    'collectionBatchSize': 500,
+    'redis': null
 };
 
 

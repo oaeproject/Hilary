@@ -3,11 +3,13 @@ module.exports = function(grunt) {
     var shell = require('shelljs');
     var mocha_grep = process.env['MOCHA_GREP'] || undefined;
 
+    var regexErrors = false;
+
     // Project configuration.
     grunt.initConfig({
         pkg: '<json:package.json>',
         lint: {
-            files: ['grunt.js', 'node_modules/oae-*/lib/**/*.js', 'node_modules/oae-*/tests/**/*.js']
+            files: ['grunt.js', 'node_modules/oae-*/lib/**/*.js', 'node_modules/oae-*/tests/**/*.js', 'node_modules/oae-*/config/**/*.js']
         },
         watch: {
             files: '<config:lint.files>',
@@ -15,7 +17,14 @@ module.exports = function(grunt) {
         },
         jshint: {
             options: {
-                sub: true
+                node: true,
+                sub: true,
+                indent: 4,
+                trailing: true,
+                quotmark: 'single',
+                curly: true,
+                white: false,
+                strict: false
             },
             globals: {
                 exports: true
@@ -41,6 +50,64 @@ module.exports = function(grunt) {
                     'target/': '**'
                 }
             }
+        },
+        replace: {
+            jsdoc: {
+                src: ['node_modules/oae-*/**/*.js'],
+                overwrite: true,
+                replacements: [
+                    {
+                        from: /@param (\S|\s\s)/,
+                        to: function(matchedWord, index, fullText, regexMatches) {
+                            var msg ='@param should be followed by 2 spaces';
+                            return logMatch(msg, matchedWord, index, fullText, regexMatches);
+                        }
+                    },
+                    {
+                        from: /@return \s/,
+                        to: function(matchedWord, index, fullText, regexMatches) {
+                            var msg ='@return should be followed by 1 space';
+                            return logMatch(msg, matchedWord, index, fullText, regexMatches);
+                        }
+                    },
+                    {
+                        from: /@returns/,
+                        to: function(matchedWord, index, fullText, regexMatches) {
+                            var msg ='Use @return instead of @returns';
+                            return logMatch(msg, matchedWord, index, fullText, regexMatches);
+                        }
+                    },
+                    {
+                        from: /@throws \s/,
+                        to: function(matchedWord, index, fullText, regexMatches) {
+                            var msg ='@throws should be followed by 1 space';
+                            return logMatch(msg, matchedWord, index, fullText, regexMatches);
+                        }
+                    }
+                ]
+            }
+        }
+    });
+
+    // Utility function for logging regex matches
+    var logMatch = function(msg, matchedWord, index, fullText, regexMatches) {
+        var lineNum = fullText.substring(0, index).match(/\n/g).length + 1;
+        var line = fullText.split('\n')[lineNum - 1];
+        grunt.log.writeln(msg.red + ': ' + lineNum + ': ' + line);
+        regexErrors = true;
+        return matchedWord;
+    };
+
+    // Task to run the regex task and fail if it matches anything
+    grunt.registerTask('check-style', function() {
+        grunt.task.run('replace');
+        grunt.task.run('lint');
+        grunt.task.run('checkRegexErrors');
+    });
+    grunt.registerTask('checkRegexErrors', function() {
+        grunt.task.requires('replace');
+        if (regexErrors) {
+            grunt.warn('Style rule validation failed');
         }
     });
 
@@ -99,12 +166,13 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-simple-mocha');
     grunt.loadNpmTasks('grunt-clean');
     grunt.loadNpmTasks('grunt-contrib-copy');
+    grunt.loadNpmTasks('grunt-text-replace');
 
     // Override default test task to use simplemocha
     grunt.registerTask('test', 'simplemocha');
     // Run test coverage and open the report
     grunt.registerTask('test-coverage', 'clean copy:coverage jscoverage test-instrumented showFile:target/coverage.html');
     // Default task.
-    grunt.registerTask('default', 'lint test');
+    grunt.registerTask('default', 'check-style test');
 
 };

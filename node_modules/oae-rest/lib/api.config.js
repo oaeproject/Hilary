@@ -17,7 +17,7 @@ var RestUtil = require('./util');
 
 // Changing a config value is async, this variable
 // holds how long we should wait before returning
-var WAIT_TIME = 150;
+var WAIT_TIME = parseInt(process.env['OAE_TIMEOUTS_CONFIG'], 10) || 150;
 
 /**
  * Get the global config schema through the REST API. This should only return for a global or tenant admin.

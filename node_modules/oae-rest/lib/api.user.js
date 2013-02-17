@@ -131,7 +131,7 @@ var downloadPicture = module.exports.downloadPicture = function(restCtx, userId,
     if (!size) {
         return callback({'code': 400, 'msg': 'Missing size parameter'});
     }
-    RestUtil.RestRequest(restCtx, '/api/user/' + RestUtil.encodeURIComponent(userId), 'GET', null, function(err, user) {
+    getUser(restCtx, userId, function(err, user) {
         if (err) {
             return callback(err);
         }

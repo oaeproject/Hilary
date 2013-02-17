@@ -255,9 +255,9 @@ config.activity = {
     'aggregateMaxExpiry': 24 * 60 * 60,     // 1 day (in seconds)
     'collectionExpiry': 60,                 // 1 minute (in seconds)
     'maxConcurrentCollections': 3,
-    'maxConcurrentRouters': 8,
+    'maxConcurrentRouters': 5,
     'collectionPollingFrequency': 5,        // 5 seconds
-    'collectionBatchSize': 500,
+    'collectionBatchSize': 1000,
     'redis': null
 };
 

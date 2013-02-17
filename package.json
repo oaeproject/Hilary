@@ -24,6 +24,7 @@
     "amqp": "latest",
     "awssum": "latest",
     "bunyan": "latest",
+    "cas-sfu": "git://github.com/nicolaasmatthijs/node-cas-sfu.git",
     "clone": "latest",
     "connect": "latest",
     "connect-redis": "latest",
@@ -54,6 +55,7 @@
     "passport-http": "latest",
     "passport-google": "latest",
     "passport-openid": "latest",
+    "passport-saml": "git://github.com/nicolaasmatthijs/passport-saml.git",
     "passport-twitter": "latest",
     "passport-facebook": "latest",
     "readdirp": "latest",
@@ -73,6 +75,7 @@
     "grunt-simple-mocha": "0.2",
     "grunt-clean": "latest",
     "grunt-contrib-copy": "latest",
+    "grunt-text-replace": "latest",
     "mocha": "latest",
     "optimist": "latest"
   },

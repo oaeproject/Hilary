@@ -34,6 +34,7 @@
     "gm": "latest",
     "helenus": "latest",
     "mkdirp": "latest",
+    "node-expat": "latest",
     "oae-authentication": "",
     "oae-authz": "",
     "oae-config": "",
@@ -68,7 +69,10 @@
     "timezone-js": "latest",
     "underscore": "latest",
     "validator": "latest",
-    "watch": "latest"
+    "watch": "latest",
+    "xml-crypto": "latest",
+    "xml2js": "latest",
+    "xmldom": "latest"
   },
   "devDependencies": {
     "grunt": "latest",

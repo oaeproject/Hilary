@@ -250,11 +250,11 @@ config.signing = {
 config.activity = {
     'processActivityJobs': true,
     'activityTtl': 2 * 7 * 24 * 60 * 60,    // 2 weeks (in seconds)
-    'numberOfProcessingBuckets': 5,
+    'numberOfProcessingBuckets': 3,
     'aggregateIdleExpiry': 3 * 60 * 60,     // 3 hours (in seconds)
     'aggregateMaxExpiry': 24 * 60 * 60,     // 1 day (in seconds)
     'collectionExpiry': 60,                 // 1 minute (in seconds)
-    'maxConcurrentCollections': 3,
+    'maxConcurrentCollections': 1,
     'maxConcurrentRouters': 5,
     'collectionPollingFrequency': 5,        // 5 seconds
     'collectionBatchSize': 1000,

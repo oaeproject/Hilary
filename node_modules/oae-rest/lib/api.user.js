@@ -135,11 +135,10 @@ var downloadPicture = module.exports.downloadPicture = function(restCtx, userId,
         if (err) {
             return callback(err);
         }
-        var type = size + 'Picture';
-        if (!user[type]) {
+        if (!user.picture[size]) {
             return callback({'code': 404, 'msg': 'This user has no picture.'});
         }
-        var url = user[type];
+        var url = user.picture[size];
         RestUtil.RestRequest(restCtx, url, 'GET', null, callback);
     });
 };

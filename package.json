@@ -53,7 +53,7 @@
     "passport": "latest",
     "passport-local": "latest",
     "passport-http": "latest",
-    "passport-google": "latest",
+    "passport-google-oauth": "latest",
     "passport-openid": "latest",
     "passport-saml": "git://github.com/nicolaasmatthijs/passport-saml.git",
     "passport-twitter": "latest",

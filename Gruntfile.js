@@ -1,7 +1,8 @@
+/*jslint node:true*/
 var MOCHA_TIMEOUT = parseInt(process.env['OAE_TIMEOUTS_MOCHA'], 10) || 30000;
 
 module.exports = function(grunt) {
-
+    'use strict';
     var shell = require('shelljs');
     var mocha_grep = process.env['MOCHA_GREP'] || undefined;
 
@@ -9,13 +10,9 @@ module.exports = function(grunt) {
 
     // Project configuration.
     grunt.initConfig({
-        pkg: '<json:package.json>',
-        lint: {
-            files: ['grunt.js', 'node_modules/oae-*/lib/**/*.js', 'node_modules/oae-*/tests/**/*.js', 'node_modules/oae-*/config/**/*.js']
-        },
-        watch: {
-            files: '<config:lint.files>',
-            tasks: 'default'
+        pkg: grunt.file.readJSON('package.json'),
+        jslint: {
+            files:['grunt.js', 'node_modules/oae-*/lib/**/*.js', 'node_modules/oae-*/tests/**/*.js', 'node_modules/oae-*/config/**/*.js']
         },
         jshint: {
             options: {
@@ -26,11 +23,16 @@ module.exports = function(grunt) {
                 quotmark: 'single',
                 curly: true,
                 white: false,
-                strict: false
+                strict: false,
+                globals: {
+                    exports: true
+                }
             },
-            globals: {
-                exports: true
-            }
+            files: '<%= jslint.files %>'
+        },
+        watch: {
+            files: '<%= jslint.files %>',
+            tasks: ['default']
         },
         simplemocha: {
             all: {
@@ -43,9 +45,7 @@ module.exports = function(grunt) {
                 }
             }
         },
-        clean: {
-            folder: 'target/'
-        },
+        clean: [ 'target/' ],
         copy: {
             coverage: {
                 files: {
@@ -88,7 +88,8 @@ module.exports = function(grunt) {
                     }
                 ]
             }
-        }
+        },
+        showFile: 'target/coverage.html'
     });
 
     // Utility function for logging regex matches
@@ -101,11 +102,7 @@ module.exports = function(grunt) {
     };
 
     // Task to run the regex task and fail if it matches anything
-    grunt.registerTask('check-style', function() {
-        grunt.task.run('replace');
-        grunt.task.run('lint');
-        grunt.task.run('checkRegexErrors');
-    });
+    grunt.registerTask('check-style', ['replace', 'jslint', 'checkRegexErrors']);
     grunt.registerTask('checkRegexErrors', function() {
         grunt.task.requires('replace');
         if (regexErrors) {
@@ -131,6 +128,7 @@ module.exports = function(grunt) {
     // Make a task for running jscoverage
     grunt.registerTask('jscoverage', 'Run jscoverage on the `target` dir', function() {
         grunt.task.requires('copy:coverage');
+        console.log('node node_modules/oae-tests/runner/instrument_code.js "' + __dirname + '"')
         shell.exec('node node_modules/oae-tests/runner/instrument_code.js "' + __dirname + '"');
         grunt.log.writeln('Code instrumented'.green);
     });
@@ -140,7 +138,8 @@ module.exports = function(grunt) {
         shell.cd('target');
         // Set a covering environment variable, as this will be used to determine where the UI resides relative to the Hilary folder.
         shell.env['OAE_COVERING'] = true;
-        var MODULES = grunt.file.expandDirs('node_modules/oae-*/tests').join(' ');
+        var MODULES = grunt.file.expand({'filter': 'isDirectory'},'node_modules/oae-*/tests').join(' ');
+        console.log(MODULES)
         var output = shell.exec('../node_modules/.bin/mocha --ignore-leaks --timeout 20000 --reporter html-cov node_modules/oae-tests/runner/beforeTests.js ' + MODULES, {silent:true}).output;
         output.to('coverage.html');
         grunt.log.writeln('Code Coverage report generated at ' + 'target/coverage.html'.cyan);
@@ -148,7 +147,7 @@ module.exports = function(grunt) {
     });
 
     // Make a task to open the browser
-    grunt.registerTask('showFile', 'Open a file with the OS default viewer', function(file) {
+    grunt.registerTask('showFile', 'Open a file with the OS default viewer', function() {
         var browser = shell.env['BROWSER'];
         if (! browser) {
             if (process.platform === 'linux') {
@@ -160,21 +159,24 @@ module.exports = function(grunt) {
             }
         }
         if (browser) {
-            shell.exec(browser + ' coverage.html');
+            shell.exec(browser + ' ' + (grunt.config.get('showFile') || 'coverage.html'));
         }
     });
 
     // Bring in tasks from npm
+    grunt.loadNpmTasks('grunt-jslint');
     grunt.loadNpmTasks('grunt-simple-mocha');
-    grunt.loadNpmTasks('grunt-clean');
+    grunt.loadNpmTasks('grunt-contrib-jshint');
+    grunt.loadNpmTasks('grunt-contrib-clean');
+    grunt.loadNpmTasks('grunt-contrib-watch');
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-text-replace');
 
     // Override default test task to use simplemocha
-    grunt.registerTask('test', 'simplemocha');
+    grunt.registerTask('test', ['simplemocha']);
     // Run test coverage and open the report
-    grunt.registerTask('test-coverage', 'clean copy:coverage jscoverage test-instrumented showFile:target/coverage.html');
+    grunt.registerTask('test-coverage', ['clean', 'copy:coverage', 'jscoverage', 'test-instrumented', 'showFile']);
     // Default task.
-    grunt.registerTask('default', 'check-style test');
+    grunt.registerTask('default', ['check-style', 'test']);
 
 };

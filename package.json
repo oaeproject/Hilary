@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "homepage": "https://github.com/sakaiproject/Hilary",
   "author": {
-     "name": "The Sakai Foundation",
-     "email": "oae-dev@collab.sakaiproject.org"
+    "name": "The Sakai Foundation",
+    "email": "oae-dev@collab.sakaiproject.org"
   },
   "repository": {
     "type": "git",
@@ -15,10 +15,10 @@
     "url": "https://github.com/sakaiproject/Hilary/issues"
   },
   "licenses": [
-     {
-       "type": "ECLv2",
-       "url": "http://opensource.org/licenses/ecl2.php"
-     }
+    {
+      "type": "ECLv2",
+      "url": "http://opensource.org/licenses/ecl2.php"
+    }
   ],
   "dependencies": {
     "amqp": "latest",
@@ -72,10 +72,13 @@
   },
   "devDependencies": {
     "grunt": "latest",
-    "grunt-simple-mocha": "0.2",
-    "grunt-clean": "latest",
+    "grunt-simple-mocha": "latest",
+    "grunt-contrib-clean": "latest",
     "grunt-contrib-copy": "latest",
     "grunt-text-replace": "latest",
+    "grunt-contrib-jshint": "latest",
+    "grunt-contrib-watch": "latest",
+    "grunt-jslint": "latest",
     "mocha": "latest",
     "optimist": "latest"
   },

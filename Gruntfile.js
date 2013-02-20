@@ -1,8 +1,8 @@
-/*jslint node:true*/
 var MOCHA_TIMEOUT = parseInt(process.env['OAE_TIMEOUTS_MOCHA'], 10) || 30000;
 
 module.exports = function(grunt) {
     'use strict';
+
     var shell = require('shelljs');
     var mocha_grep = process.env['MOCHA_GREP'] || undefined;
 
@@ -12,7 +12,19 @@ module.exports = function(grunt) {
     grunt.initConfig({
         pkg: grunt.file.readJSON('package.json'),
         jslint: {
-            files:['grunt.js', 'node_modules/oae-*/lib/**/*.js', 'node_modules/oae-*/tests/**/*.js', 'node_modules/oae-*/config/**/*.js']
+            files:['Gruntfile.js', 'node_modules/oae-*/lib/**/*.js', 'node_modules/oae-*/tests/**/*.js',
+                   'node_modules/oae-*/config/**/*.js'],
+            directives: {
+                node: true,
+                predef: ['it', 'describe', 'beforeEach', 'before', 'afterEach', 'after'],
+                sub: true,
+                indent: 4,
+                quotmark: 'single',
+                curly: true
+            },
+            options: {
+                shebang: true
+            }
         },
         jshint: {
             options: {
@@ -25,7 +37,12 @@ module.exports = function(grunt) {
                 white: false,
                 strict: false,
                 globals: {
-                    exports: true
+                    it: true,
+                    describe: true,
+                    before: true,
+                    beforeEach: true,
+                    after: true,
+                    afterEach: true
                 }
             },
             files: '<%= jslint.files %>'
@@ -139,7 +156,6 @@ module.exports = function(grunt) {
         // Set a covering environment variable, as this will be used to determine where the UI resides relative to the Hilary folder.
         shell.env['OAE_COVERING'] = true;
         var MODULES = grunt.file.expand({'filter': 'isDirectory'},'node_modules/oae-*/tests').join(' ');
-        console.log(MODULES)
         var output = shell.exec('../node_modules/.bin/mocha --ignore-leaks --timeout 20000 --reporter html-cov node_modules/oae-tests/runner/beforeTests.js ' + MODULES, {silent:true}).output;
         output.to('coverage.html');
         grunt.log.writeln('Code Coverage report generated at ' + 'target/coverage.html'.cyan);

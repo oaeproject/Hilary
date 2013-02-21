@@ -448,8 +448,8 @@ var downloadPreviewItem = module.exports.downloadPreviewItem = function(restCtx,
 /**
  * Attempt to reprocess all content previews that were not successfully processed.
  *
- * @param  {RestContext}    restCtx     A global administration context that can be used to reprocess all preview items
+ * @param  {RestContext}    globalAdminRestContext  A global administration context that can be used to reprocess all preview items
  */
-var reprocessPreviews = module.exports.reprocessPreviews = function(restCtx, callback) {
-    RestUtil.RestRequest(restCtx, '/api/content/reprocessPreviews', 'POST', null, callback);
+var reprocessPreviews = module.exports.reprocessPreviews = function(globalAdminRestContext, callback) {
+    RestUtil.RestRequest(globalAdminRestContext, '/api/content/reprocessPreviews', 'POST', null, callback);
 };

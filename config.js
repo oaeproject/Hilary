@@ -74,17 +74,18 @@ tmpDir += '/oae';
  *
  * Configuration namespace for files.
  *
+ * @param  {String}    tmpDir                   The directory where temporary files can be created. (profile pictures when cropping, ...)
  * @param  {String}    uploadDir                The directory where upload files can be buffered before moving them over to the configured storage backend.
  * @param  {Object}    cleaner                  Holds configuration properties for the cleaning job that removes lingering files in the upload directory.
  * @param  {Boolean}   cleaner.enabled          Whether or not the cleaning job should run.
- * @param  {Number}    cleaner.interval         Files that haven't been accessed in this amount (of ms) should be removed.
+ * @param  {Number}    cleaner.interval         Files that haven't been accessed in this amount (of seconds) should be removed.
  */
 config.files = {
     'tmpDir': tmpDir,
     'uploadDir': tmpDir + '/uploads',
     'cleaner': {
         'enabled': true,
-        'interval': 2*60*60*1000
+        'interval': 2*60*60
     }
 };
 

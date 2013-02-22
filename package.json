@@ -72,7 +72,7 @@
   },
   "devDependencies": {
     "grunt": "latest",
-    "grunt-simple-mocha": "latest",
+    "grunt-mocha-hack": "latest",
     "grunt-contrib-clean": "latest",
     "grunt-contrib-copy": "latest",
     "grunt-text-replace": "latest",

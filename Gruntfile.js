@@ -1,7 +1,6 @@
 var MOCHA_TIMEOUT = parseInt(process.env['OAE_TIMEOUTS_MOCHA'], 10) || 30000;
 
 module.exports = function(grunt) {
-    'use strict';
 
     var shell = require('shelljs');
     var mocha_grep = process.env['MOCHA_GREP'] || undefined;
@@ -46,10 +45,6 @@ module.exports = function(grunt) {
                 }
             },
             files: '<%= jslint.files %>'
-        },
-        watch: {
-            files: '<%= jslint.files %>',
-            tasks: ['default']
         },
         simplemocha: {
             all: {
@@ -105,8 +100,7 @@ module.exports = function(grunt) {
                     }
                 ]
             }
-        },
-        showFile: 'target/coverage.html'
+        }
     });
 
     // Utility function for logging regex matches
@@ -162,7 +156,7 @@ module.exports = function(grunt) {
     });
 
     // Make a task to open the browser
-    grunt.registerTask('showFile', 'Open a file with the OS default viewer', function() {
+    grunt.registerTask('showFile', 'Open a file with the OS default viewer', function(file) {
         var browser = shell.env['BROWSER'];
         if (! browser) {
             if (process.platform === 'linux') {
@@ -174,7 +168,7 @@ module.exports = function(grunt) {
             }
         }
         if (browser) {
-            shell.exec(browser + ' ' + (grunt.config.get('showFile') || 'coverage.html'));
+            shell.exec(browser + ' '  + ( file || 'target/coverage.html' ));
         }
     });
 
@@ -183,14 +177,13 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-simple-mocha');
     grunt.loadNpmTasks('grunt-contrib-jshint');
     grunt.loadNpmTasks('grunt-contrib-clean');
-    grunt.loadNpmTasks('grunt-contrib-watch');
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-text-replace');
 
     // Override default test task to use simplemocha
     grunt.registerTask('test', ['simplemocha']);
     // Run test coverage and open the report
-    grunt.registerTask('test-coverage', ['clean', 'copy:coverage', 'jscoverage', 'test-instrumented', 'showFile']);
+    grunt.registerTask('test-coverage', ['clean', 'copy:coverage', 'jscoverage', 'test-instrumented', 'showFile:coverage.html']);
     // Default task.
     grunt.registerTask('default', ['check-style', 'test']);
 

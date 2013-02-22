@@ -77,7 +77,6 @@
     "grunt-contrib-copy": "latest",
     "grunt-text-replace": "latest",
     "grunt-contrib-jshint": "latest",
-    "grunt-contrib-watch": "latest",
     "grunt-jslint": "latest",
     "mocha": "latest",
     "optimist": "latest"

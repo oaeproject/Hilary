@@ -46,14 +46,16 @@ module.exports = function(grunt) {
             },
             files: '<%= jslint.files %>'
         },
-        simplemocha: {
+        'mocha-hack': {
             all: {
                 src: ['node_modules/oae-tests/runner/beforeTests.js', 'node_modules/oae-*/tests/**/*.js'],
                 options: {
                     timeout: MOCHA_TIMEOUT,
                     ignoreLeaks: true,
                     reporter: 'spec',
-                    grep: mocha_grep
+                    grep: mocha_grep,
+                    bail: false,
+                    slow: 500
                 }
             }
         },
@@ -132,8 +134,8 @@ module.exports = function(grunt) {
                 grep: mocha_grep
             }
         };
-        grunt.config.set('simplemocha.' + module, config);
-        grunt.task.run('simplemocha:' + module);
+        grunt.config.set('mocha-hack.' + module, config);
+        grunt.task.run('mocha-hack:' + module);
     });
 
     // Make a task for running jscoverage
@@ -144,7 +146,7 @@ module.exports = function(grunt) {
     });
 
     grunt.registerTask('test-instrumented', 'Runs mocha tests on the instrumented code', function() {
-        // Mocha can't write to a file and simplemocha doesn't add that functionality, so we'll just shell.exec it here since we need the output :P
+        // Mocha can't write to a file and mocha-hack doesn't add that functionality, so we'll just shell.exec it here since we need the output :P
         shell.cd('target');
         // Set a covering environment variable, as this will be used to determine where the UI resides relative to the Hilary folder.
         shell.env['OAE_COVERING'] = true;
@@ -174,14 +176,15 @@ module.exports = function(grunt) {
 
     // Bring in tasks from npm
     grunt.loadNpmTasks('grunt-jslint');
-    grunt.loadNpmTasks('grunt-simple-mocha');
+    // Temporary work around till https://github.com/yaymukund/grunt-simple-mocha/issues/16 lands.
+    grunt.loadNpmTasks('grunt-mocha-hack');
     grunt.loadNpmTasks('grunt-contrib-jshint');
     grunt.loadNpmTasks('grunt-contrib-clean');
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-text-replace');
 
-    // Override default test task to use simplemocha
-    grunt.registerTask('test', ['simplemocha']);
+    // Override default test task to use mocha-hack
+    grunt.registerTask('test', ['mocha-hack']);
     // Run test coverage and open the report
     grunt.registerTask('test-coverage', ['clean', 'copy:coverage', 'jscoverage', 'test-instrumented', 'showFile:coverage.html']);
     // Default task.

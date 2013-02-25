@@ -164,7 +164,7 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
         // Check if the response body is JSON
         try {
             body = JSON.parse(body);
-        } catch (err) {
+        } catch (ex) {
             /* This can be ignored, response is not a JSON object */
         }
 

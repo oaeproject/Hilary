@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "homepage": "https://github.com/sakaiproject/Hilary",
   "author": {
-     "name": "The Sakai Foundation",
-     "email": "oae-dev@collab.sakaiproject.org"
+    "name": "The Sakai Foundation",
+    "email": "oae-dev@collab.sakaiproject.org"
   },
   "repository": {
     "type": "git",
@@ -15,10 +15,10 @@
     "url": "https://github.com/sakaiproject/Hilary/issues"
   },
   "licenses": [
-     {
-       "type": "ECLv2",
-       "url": "http://opensource.org/licenses/ecl2.php"
-     }
+    {
+      "type": "ECLv2",
+      "url": "http://opensource.org/licenses/ecl2.php"
+    }
   ],
   "dependencies": {
     "amqp": "latest",
@@ -53,7 +53,7 @@
     "passport": "latest",
     "passport-local": "latest",
     "passport-http": "latest",
-    "passport-google": "latest",
+    "passport-google-oauth": "latest",
     "passport-openid": "latest",
     "passport-saml": "git://github.com/nicolaasmatthijs/passport-saml.git",
     "passport-twitter": "latest",
@@ -72,9 +72,12 @@
   },
   "devDependencies": {
     "grunt": "latest",
-    "grunt-simple-mocha": "0.2",
-    "grunt-clean": "latest",
+    "grunt-mocha-hack": "latest",
+    "grunt-contrib-clean": "latest",
     "grunt-contrib-copy": "latest",
+    "grunt-text-replace": "latest",
+    "grunt-contrib-jshint": "latest",
+    "grunt-jslint": "latest",
     "mocha": "latest",
     "optimist": "latest"
   },

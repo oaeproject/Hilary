@@ -66,16 +66,27 @@ config.servers = {
     'tenantPort': 2001
 };
 
-// Configuration regarding file uploads.
-// The `uploadDir` key determines where upload files can be buffered before
-// moving them over to the configured storage backend.
-// The storage backend can be configured in the Admin UI and can be changed
-// at runtime.
 var tmpDir = process.env.TMP || process.env.TMPDIR || process.env.TEMP || '/tmp' || process.cwd();
-var tmpFilesDir = tmpDir + '/uploads';
+tmpDir += '/oae';
 
+/**
+ * `config.files`
+ *
+ * Configuration namespace for files.
+ *
+ * @param  {String}    tmpDir                   The directory where temporary files can be created. (profile pictures when cropping, ...)
+ * @param  {String}    uploadDir                The directory where upload files can be buffered before moving them over to the configured storage backend.
+ * @param  {Object}    cleaner                  Holds configuration properties for the cleaning job that removes lingering files in the upload directory.
+ * @param  {Boolean}   cleaner.enabled          Whether or not the cleaning job should run.
+ * @param  {Number}    cleaner.interval         Files that haven't been accessed in this amount (of seconds) should be removed.
+ */
 config.files = {
-    'uploadDir': tmpFilesDir
+    'tmpDir': tmpDir,
+    'uploadDir': tmpDir + '/uploads',
+    'cleaner': {
+        'enabled': true,
+        'interval': 2*60*60
+    }
 };
 
 // The configuration that can be used to generate secure HTTP cookies.
@@ -202,7 +213,7 @@ config.previews = {
     'dir': tmpDir + '/previews',
     'office': {
         'binary': 'soffice.bin',
-        'timeout': 120000 
+        'timeout': 120000
     },
     'pdf': {
         'binary': 'pdftk',

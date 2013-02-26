@@ -10,6 +10,7 @@ Hilary is the back-end for Sakai OAE
 The following guide will take you through the necessary steps to run the back-end for Sakai OAE (Hilary) and its reference UI (3akai-ux) for development purposes.
 
 ### Installing dependencies
+If you're installing on Windows (not recommended for production) there's a package manager called Chocolatey that can be used to install all the dependencies quickly. See the `Windows Dependencies` section of this document for more information.
 
 #### Node.js
 
@@ -104,6 +105,20 @@ Nginx is the most tested load balancer and web server used for Sakai OAE. A web 
 
 #### Windows Dependencies
 
+##### Installing With Chocolatey
+
+Open a command line and install Chocolatey with the following command:
+
+    @powershell -NoProfile -ExecutionPolicy unrestricted -Command "iex ((new-object net.webclient).DownloadString('http://chocolatey.org/install.ps1'))" && SET PATH=%PATH%;%systemdrive%\chocolatey\bin
+
+If you don't yet have git installed you can use Chocolatey to install it with `cinst msysgit`.
+
+You can then install the remaining dependencies using the `chocolatey.config` in this repo:
+
+    cinst chocolatey.config
+
+##### Installing manually
+
 Windows has a few extra dependencies that are known to be needed:
 
 **Windows 7:**
@@ -119,11 +134,11 @@ Windows has a few extra dependencies that are known to be needed:
 
 #### Get the code
 
-By default, OAE assumes both the [Hilary repository](http://github.com/sakaiproject/Hilary) and the [3akai-ux repository](http://github.com/sakaiproject/3akai-ux) are siblings in the same directory. You should clone both sets of code as such:
+By default, OAE assumes both the [Hilary repository](http://github.com/sakaiproject/Hilary) and the [3akai-ux repository](http://github.com/sakaiproject/3akai-ux) are siblings in the same directory. If you want to make changes to the code, you will want your own fork of these repositories, which can then be used to push to and send pull requests from. If you are only trying to set up a new OAE instance, the Github repositories below should be sufficient. We now clone both of the repositories. If you have created your own forks of Hilary and 3akai-ux, please substitute the repositories below with your repositories:
 
 ```
-~/oae$ git clone git@github.com:sakaiproject/Hilary
-~/oae$ git clone git@github.com:sakaiproject/3akai-ux
+~/oae$ git clone git://github.com/sakaiproject/Hilary.git
+~/oae$ git clone git://github.com/sakaiproject/3akai-ux.git
 ~/oae$ cd 3akai-ux
 ~/oae/3akai-ux$ checkout Hilary
 ```
@@ -160,7 +175,7 @@ Open the `config.js` file in the root of the Hilary directory. This file contain
 
 ##### Nginx Configuration
 
-Find the "nginx.conf" template file located in the 3akai-ux repository that you cloned earlier. You will want to overwrite your nginx.conf file (e.g., `/usr/local/nginx/conf/nginx.conf`) with this one and perform the following edits:
+Find the "nginx.conf" template file located in the root folder of the 3akai-ux (3akai-ux/nginx.conf) repository that you cloned earlier. Now replace your the nginx.conf file that came with your Nginx install (e.g., `/usr/local/nginx/conf/nginx.conf`) with this one and perform the following edits:
 
 * Replace `<%= NGINX_USER %>` and `<%= NGINX_GROUP %>` with the OS user and group that the nginx process should run as
 * Replace `<%= UX_HOME %>` with the full absolute path to your cloned 3akai-ux directory (e.g., /Users/branden/oae/3akai-ux)

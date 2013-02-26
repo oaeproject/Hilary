@@ -10,6 +10,7 @@ before_install:
   - sudo service cassandra status
   - sudo cat /var/log/cassandra/system.log
   - sudo apt-get install -qq graphicsmagick
+  - npm install -g grunt-cli
   - git clone git://github.com/sakaiproject/3akai-ux.git --branch master ../3akai-ux
   - cd ../3akai-ux
   - git checkout Hilary
@@ -22,7 +23,7 @@ services:
   - redis-server
 
 script:
-  - grunt test
+  - OAE_TIMEOUTS_SEARCH=15000 OAE_TIMEOUTS_CONFIG=250 OAE_TIMEOUTS_MOCHA=120000 OAE_TIMEOUTS_ACTIVITY_COLLECTION=750 grunt test
 
 after_failure:
   - cat bootstrap.log | node_modules/.bin/bunyan -l warn

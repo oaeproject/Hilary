@@ -26,8 +26,8 @@ script:
   - OAE_TIMEOUTS_SEARCH=15000 OAE_TIMEOUTS_CONFIG=250 OAE_TIMEOUTS_MOCHA=120000 OAE_TIMEOUTS_ACTIVITY_COLLECTION=750 grunt test
 
 after_failure:
-  - cat bootstrap.log | node_modules/.bin/bunyan -l warn
-  - cat tests.log | node_modules/.bin/bunyan -l warn
+  - cat bootstrap.log | node_modules/.bin/bunyan
+  - cat tests.log | node_modules/.bin/bunyan
 
 notifications:
   email:

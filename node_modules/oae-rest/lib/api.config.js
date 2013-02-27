@@ -15,10 +15,6 @@
 
 var RestUtil = require('./util');
 
-// Changing a config value is async, this variable
-// holds how long we should wait before returning
-var WAIT_TIME = 0;
-
 /**
  * Get the global config schema through the REST API. This should only return for a global or tenant admin.
  * 
@@ -65,12 +61,5 @@ var updateConfig = module.exports.updateConfig = function(restCtx, tenantAlias, 
     if (tenantAlias) {
         url += '/' + RestUtil.encodeURIComponent(tenantAlias);
     }
-    RestUtil.RestRequest(restCtx, url, 'POST', params, function(err) {
-        if (err) {
-            callback(err);
-        } else {
-            // Give it a second to propogate to the app servers
-            setTimeout(callback, WAIT_TIME, err);
-        }
-    });
+    RestUtil.RestRequest(restCtx, url, 'POST', params, callback);
 };

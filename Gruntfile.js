@@ -1,5 +1,3 @@
-var MOCHA_TIMEOUT = parseInt(process.env['OAE_TIMEOUTS_MOCHA'], 10) || 30000;
-
 module.exports = function(grunt) {
 
     var shell = require('shelljs');
@@ -50,7 +48,7 @@ module.exports = function(grunt) {
             all: {
                 src: ['node_modules/oae-tests/runner/beforeTests.js', 'node_modules/oae-*/tests/**/*.js'],
                 options: {
-                    timeout: MOCHA_TIMEOUT,
+                    timeout: 30000,
                     ignoreLeaks: true,
                     reporter: 'spec',
                     grep: mocha_grep,

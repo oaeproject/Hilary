@@ -3,6 +3,9 @@ module.exports = function(grunt) {
     var shell = require('shelljs');
     var mocha_grep = process.env['MOCHA_GREP'] || undefined;
 
+    // Timeout used to determine when a test has failed
+    var MOCHA_TIMEOUT = 30000;
+
     var regexErrors = false;
 
     // Project configuration.
@@ -48,7 +51,7 @@ module.exports = function(grunt) {
             all: {
                 src: ['node_modules/oae-tests/runner/beforeTests.js', 'node_modules/oae-*/tests/**/*.js'],
                 options: {
-                    timeout: 30000,
+                    timeout: MOCHA_TIMEOUT,
                     ignoreLeaks: true,
                     reporter: 'spec',
                     grep: mocha_grep,
@@ -57,7 +60,7 @@ module.exports = function(grunt) {
                 }
             }
         },
-        clean: [ 'target/' ],
+        clean: ['target/'],
         copy: {
             coverage: {
                 files: {
@@ -149,7 +152,7 @@ module.exports = function(grunt) {
         // Set a covering environment variable, as this will be used to determine where the UI resides relative to the Hilary folder.
         shell.env['OAE_COVERING'] = true;
         var MODULES = grunt.file.expand({'filter': 'isDirectory'},'node_modules/oae-*/tests').join(' ');
-        var output = shell.exec('../node_modules/.bin/mocha --ignore-leaks --timeout 20000 --reporter html-cov node_modules/oae-tests/runner/beforeTests.js ' + MODULES, {silent:true}).output;
+        var output = shell.exec('../node_modules/.bin/mocha --ignore-leaks --timeout ' + MOCHA_TIMEOUT + ' --reporter html-cov node_modules/oae-tests/runner/beforeTests.js ' + MODULES, {silent:true}).output;
         output.to('coverage.html');
         grunt.log.writeln('Code Coverage report generated at ' + 'target/coverage.html'.cyan);
 

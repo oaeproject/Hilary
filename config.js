@@ -246,22 +246,30 @@ config.signing = {
  * @param  {Number}     [activityTtl]                   The time-to-live (in seconds) for generated activities. After this period of time, an activity in an activity feed is lost permanently. Defaults to 2 weeks
  * @param  {Number}     [aggregateIdleExpiry]           The amount of time (in seconds) an aggregate can be idle until it expires. The "idle" time of an aggregate is reset when a new activity occurs that matches the aggregate. Defaults to 3 hours
  * @param  {Number}     [aggregateMaxExpiry]            An upper-bound on the amount of time (in seconds) for which an aggregate can live. Defaults to 1 day
- * @param  {Number}     [numberOfProcessingBuckets]     The number of buckets available for parallel processing of activities. Defaults to 5
+ * @param  {Number}     [numberOfProcessingBuckets]     The number of buckets available for parallel processing of activities. Defaults to 3
  * @param  {Number}     [collectionExpiry]              The maximum amount of time (in seconds) a processing bucket can be locked for at one time. If this is not long enough for an activity processor to collect the number of activities as configured by `collectionBatchSize`, then it will be possible for multiple processors to collect the same bucket concurrently. This will result in duplicate activities, which is not desired. Defaults to 1 minute
  * @param  {Number}     [maxConcurrentCollections]      The maximum number of concurrent collection cycles that can be active on a process at once. Defaults to 3
+ * @param  {Number}     [maxConcurrentRouters]          The maximum number of activities that will be routed by one node at one time. This should be used to ensure activities are not routed faster than they can be collected, to ensure the redis collection buckets do not grow in size uncontrollably under unanticipated load. Defaults to 5
  * @param  {Number}     [collectionPollingFrequency]    How often (in seconds) the processing buckets are polled for new activities. If -1, polling will be disabled. If polling is disabled, activities will not function, so do not set to -1 in production. Defaults to 5 seconds.
- * @param  {Number}     [collectionBatchSize]           The number of items to process at a time when collecting bucketed activities. After one batch has been collected, the activity processor will immediately continue to process the next batch from that bucket, and so on. Defaults to 500
+ * @param  {Number}     [collectionBatchSize]           The number of items to process at a time when collecting bucketed activities. After one batch has been collected, the activity processor will immediately continue to process the next batch from that bucket, and so on. Defaults to 1000
+ * @param  {Object}     [redis]                         Configuration for dedicated redis server. If not specified, will use the same pool as the rest of the container (i.e., as specified by `config.redis`)
+ * @param  {String}     [redis.host]                    The host of the dedicated redis server
+ * @param  {Number}     [redis.port]                    The port of the dedicated redis server
+ * @param  {String}     [redis.pass]                    The password to the dedicated redis server
+ * @param  {Number}     [redis.dbIndex]                 The index number of the dedicated redis server index
  */
 config.activity = {
     'processActivityJobs': true,
     'activityTtl': 2 * 7 * 24 * 60 * 60,    // 2 weeks (in seconds)
-    'numberOfProcessingBuckets': 5,
+    'numberOfProcessingBuckets': 3,
     'aggregateIdleExpiry': 3 * 60 * 60,     // 3 hours (in seconds)
     'aggregateMaxExpiry': 24 * 60 * 60,     // 1 day (in seconds)
     'collectionExpiry': 60,                 // 1 minute (in seconds)
     'maxConcurrentCollections': 3,
+    'maxConcurrentRouters': 5,
     'collectionPollingFrequency': 5,        // 5 seconds
-    'collectionBatchSize': 500
+    'collectionBatchSize': 1000,
+    'redis': null
 };
 
 

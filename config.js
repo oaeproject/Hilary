@@ -99,7 +99,7 @@ config.cookie = {
 config.log = {
     'streams': [
         {
-            'level': 'debug',
+            'level': 'info',
             'stream': process.stdout
         }
     ],
@@ -274,6 +274,12 @@ config.activity = {
     'collectionPollingFrequency': 5,        // 5 seconds
     'collectionBatchSize': 1000,
     'redis': null
+};
+
+config.email = {
+    'enabled': false,
+    'defaultLocale': 'en_US',
+    'customEmailTemplatesDir': null
 };
 
 /**

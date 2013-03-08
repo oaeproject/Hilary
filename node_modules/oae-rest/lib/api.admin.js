@@ -86,3 +86,16 @@ var loginOnTenant = module.exports.loginOnTenant = function(globalRestCtx, tenan
         });
     });
 };
+
+/**
+ * Get the skin variables
+ *
+ * @param  {RestContext}    globalRestCtx           Standard REST Context object associated to the global administrator.
+ * @param  {String}         tenantAlias             The tenant (alias) for which the variable should be retrieved.
+ * @param  {Function}       callback                Standard callback method
+ * @param  {Object}         callback.err            Error object containing error code and error message
+ * @param  {Object}         callback.variables      The variables grouped by their respective groups.
+ */
+var getSkinVariables = module.exports.getSkinVariables = function(restCtx, tenantAlias, callback) {
+    RestUtil.RestRequest(restCtx, '/api/ui/skin/variables', 'GET', {'tenant': tenantAlias}, callback);
+};

@@ -42,3 +42,31 @@ var getStaticBatch = module.exports.getStaticBatch = function(restCtx, files, ca
     }
     RestUtil.RestRequest(restCtx, '/api/ui/staticbatch', 'GET', {'files': files}, callback);
 };
+
+/**
+ * Get the file content for a number of static files through the REST API.
+ *
+ * @param  {RestContext}        restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String|String[]}    files               A path or array of paths relative to the 3akai-ux folder that need to be retrieved.
+ * @param  {Function}           callback            Standard callback method
+ * @param  {Object}             callback.err        Error object containing error code and error message
+ * @param  {String[]}           callback.data       Array containing the file content for the requested static files.
+ */
+var getStaticBatch = module.exports.getStaticBatch = function(restCtx, files, callback) {
+    if (!Array.isArray(files)) {
+        files = [files];
+    }
+    RestUtil.RestRequest(restCtx, '/api/ui/staticbatch', 'GET', {'files': files}, callback);
+};
+
+/**
+ * Retrieve the CSS for a specific tenant.
+ *
+ * @param  {RestContext}        restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {Function}           callback            Standard callback method
+ * @param  {Object}             callback.err        Error object containing error code and error message
+ * @param  {String}             callback.css        The skin file for this tenant (in CSS.)
+ */
+var getSkin = module.exports.getSkin = function(restCtx, callback) {
+    RestUtil.RestRequest(restCtx, '/api/ui/skin', 'GET', null, callback);
+};

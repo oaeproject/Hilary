@@ -33,6 +33,7 @@
     "express": "latest",
     "gm": "latest",
     "helenus": "latest",
+    "less": "latest",
     "mkdirp": "latest",
     "oae-authentication": "",
     "oae-authz": "",

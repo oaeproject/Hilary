@@ -146,15 +146,34 @@ module.exports = function(grunt) {
         grunt.log.writeln('Code instrumented'.green);
     });
 
-    grunt.registerTask('test-instrumented', 'Runs mocha tests on the instrumented code', function() {
+    grunt.registerTask('run-instrumented', 'Runs the instrumented tests', function(module) {
+        var config = {
+            src: ['node_modules/oae-tests/runner/beforeTests.js', 'node_modules/oae-*/tests/**/*.js'],
+            options: {
+                timeout: MOCHA_TIMEOUT,
+                ignoreLeaks: true,
+                reporter: 'html-cov'
+            }
+        };
+
+        grunt.config.set('mocha-hack', config);
+        grunt.task.run('mocha-hack');
+    });
+
+    grunt.registerTask('test-instrumented', 'Runs the instrumented tests and shows the coverage report', function() {
         // Mocha can't write to a file and mocha-hack doesn't add that functionality, so we'll just shell.exec it here since we need the output :P
         shell.cd('target');
         // Set a covering environment variable, as this will be used to determine where the UI resides relative to the Hilary folder.
         shell.env['OAE_COVERING'] = true;
-        var MODULES = grunt.file.expand({'filter': 'isDirectory'},'node_modules/oae-*/tests').join(' ');
-        var output = shell.exec('../node_modules/.bin/mocha --ignore-leaks --timeout ' + MOCHA_TIMEOUT + ' --reporter html-cov node_modules/oae-tests/runner/beforeTests.js ' + MODULES, {silent:true}).output;
+        var output = shell.exec('grunt run-instrumented', {silent:true}).output;
+        // Remove the grunt related lines (first 3 and the last one.)
+        var lines = output.split('\n');
+        lines.splice(0, 3);
+        lines.pop();
+        output = lines.join('\n');
+        // Output it in coverage.html
         output.to('coverage.html');
-        grunt.log.writeln('Code Coverage report generated at ' + 'target/coverage.html'.cyan);
+        grunt.log.writeln('Code Coverage report generated at target/coverage.html'.cyan);
 
     });
 

@@ -68,7 +68,9 @@
     "timezone-js": "latest",
     "underscore": "latest",
     "validator": "latest",
-    "watch": "latest"
+    "watch": "latest",
+    "webshot": "latest",
+    "xml2js": "latest"
   },
   "devDependencies": {
     "grunt": "latest",

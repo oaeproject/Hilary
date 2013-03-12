@@ -83,6 +83,7 @@
     "optimist": "latest"
   },
   "optionalDependencies": {
+    "bunyan-syslog": "latest",
     "hiredis": "latest"
   },
   "bundleDependencies": [

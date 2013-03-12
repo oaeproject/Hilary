@@ -21,6 +21,7 @@
  * @param  {String}      userId          The user id (i.e., local "username") of the user performing the REST request. This should be null if the current user is anonymous.
  * @param  {String}      userPassword    The password of the user performing the REST request. This should be null if the current user is anonymous.
  * @param  {String}      [hostHeader]    The host header that should be sent on the REST request. This can be set to avoid having to set up the actual hosts on a development environment. When this is set, the host should be the direct URL to the tenant express server
+ * @param  {String}      [refererHeader] The referer header that should be sent on the REST request. By default it will be set as the target host of the request
  */
 var RestContext = module.exports.RestContext = function(host, userId, userPassword, hostHeader, refererHeader) {
     var that = {};

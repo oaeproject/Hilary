@@ -83,8 +83,8 @@
     "optimist": "latest"
   },
   "optionalDependencies": {
-    "hiredis": "latest",
-    "bunyan-syslog": "latest"
+    "bunyan-syslog": "latest",
+    "hiredis": "latest"
   },
   "bundleDependencies": [
     "oae-authentication",

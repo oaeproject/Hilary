@@ -1,21 +1,30 @@
-var MOCHA_TIMEOUT = parseInt(process.env['OAE_TIMEOUTS_MOCHA'], 10) || 30000;
-
 module.exports = function(grunt) {
 
     var shell = require('shelljs');
     var mocha_grep = process.env['MOCHA_GREP'] || undefined;
 
+    // Timeout used to determine when a test has failed
+    var MOCHA_TIMEOUT = 30000;
+
     var regexErrors = false;
 
     // Project configuration.
     grunt.initConfig({
-        pkg: '<json:package.json>',
-        lint: {
-            files: ['grunt.js', 'node_modules/oae-*/lib/**/*.js', 'node_modules/oae-*/tests/**/*.js', 'node_modules/oae-*/config/**/*.js']
-        },
-        watch: {
-            files: '<config:lint.files>',
-            tasks: 'default'
+        pkg: grunt.file.readJSON('package.json'),
+        jslint: {
+            files:['Gruntfile.js', 'node_modules/oae-*/lib/**/*.js', 'node_modules/oae-*/tests/**/*.js',
+                   'node_modules/oae-*/config/**/*.js'],
+            directives: {
+                node: true,
+                predef: ['it', 'describe', 'beforeEach', 'before', 'afterEach', 'after'],
+                sub: true,
+                indent: 4,
+                quotmark: 'single',
+                curly: true
+            },
+            options: {
+                shebang: true
+            }
         },
         jshint: {
             options: {
@@ -26,26 +35,32 @@ module.exports = function(grunt) {
                 quotmark: 'single',
                 curly: true,
                 white: false,
-                strict: false
+                strict: false,
+                globals: {
+                    it: true,
+                    describe: true,
+                    before: true,
+                    beforeEach: true,
+                    after: true,
+                    afterEach: true
+                }
             },
-            globals: {
-                exports: true
-            }
+            files: '<%= jslint.files %>'
         },
-        simplemocha: {
+        'mocha-hack': {
             all: {
                 src: ['node_modules/oae-tests/runner/beforeTests.js', 'node_modules/oae-*/tests/**/*.js'],
                 options: {
                     timeout: MOCHA_TIMEOUT,
                     ignoreLeaks: true,
                     reporter: 'spec',
-                    grep: mocha_grep
+                    grep: mocha_grep,
+                    bail: false,
+                    slow: 500
                 }
             }
         },
-        clean: {
-            folder: 'target/'
-        },
+        clean: ['target/'],
         copy: {
             coverage: {
                 files: {
@@ -101,11 +116,7 @@ module.exports = function(grunt) {
     };
 
     // Task to run the regex task and fail if it matches anything
-    grunt.registerTask('check-style', function() {
-        grunt.task.run('replace');
-        grunt.task.run('lint');
-        grunt.task.run('checkRegexErrors');
-    });
+    grunt.registerTask('check-style', ['replace', 'jslint', 'checkRegexErrors']);
     grunt.registerTask('checkRegexErrors', function() {
         grunt.task.requires('replace');
         if (regexErrors) {
@@ -124,8 +135,8 @@ module.exports = function(grunt) {
                 grep: mocha_grep
             }
         };
-        grunt.config.set('simplemocha.' + module, config);
-        grunt.task.run('simplemocha:' + module);
+        grunt.config.set('mocha-hack.' + module, config);
+        grunt.task.run('mocha-hack:' + module);
     });
 
     // Make a task for running jscoverage
@@ -136,12 +147,12 @@ module.exports = function(grunt) {
     });
 
     grunt.registerTask('test-instrumented', 'Runs mocha tests on the instrumented code', function() {
-        // Mocha can't write to a file and simplemocha doesn't add that functionality, so we'll just shell.exec it here since we need the output :P
+        // Mocha can't write to a file and mocha-hack doesn't add that functionality, so we'll just shell.exec it here since we need the output :P
         shell.cd('target');
         // Set a covering environment variable, as this will be used to determine where the UI resides relative to the Hilary folder.
         shell.env['OAE_COVERING'] = true;
-        var MODULES = grunt.file.expandDirs('node_modules/oae-*/tests').join(' ');
-        var output = shell.exec('../node_modules/.bin/mocha --ignore-leaks --timeout 20000 --reporter html-cov node_modules/oae-tests/runner/beforeTests.js ' + MODULES, {silent:true}).output;
+        var MODULES = grunt.file.expand({'filter': 'isDirectory'},'node_modules/oae-*/tests').join(' ');
+        var output = shell.exec('../node_modules/.bin/mocha --ignore-leaks --timeout ' + MOCHA_TIMEOUT + ' --reporter html-cov node_modules/oae-tests/runner/beforeTests.js ' + MODULES, {silent:true}).output;
         output.to('coverage.html');
         grunt.log.writeln('Code Coverage report generated at ' + 'target/coverage.html'.cyan);
 
@@ -160,21 +171,24 @@ module.exports = function(grunt) {
             }
         }
         if (browser) {
-            shell.exec(browser + ' coverage.html');
+            shell.exec(browser + ' '  + ( file || 'target/coverage.html' ));
         }
     });
 
     // Bring in tasks from npm
-    grunt.loadNpmTasks('grunt-simple-mocha');
-    grunt.loadNpmTasks('grunt-clean');
+    grunt.loadNpmTasks('grunt-jslint');
+    // Temporary work around till https://github.com/yaymukund/grunt-simple-mocha/issues/16 lands.
+    grunt.loadNpmTasks('grunt-mocha-hack');
+    grunt.loadNpmTasks('grunt-contrib-jshint');
+    grunt.loadNpmTasks('grunt-contrib-clean');
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-text-replace');
 
-    // Override default test task to use simplemocha
-    grunt.registerTask('test', 'simplemocha');
+    // Override default test task to use mocha-hack
+    grunt.registerTask('test', ['mocha-hack']);
     // Run test coverage and open the report
-    grunt.registerTask('test-coverage', 'clean copy:coverage jscoverage test-instrumented showFile:target/coverage.html');
+    grunt.registerTask('test-coverage', ['clean', 'copy:coverage', 'jscoverage', 'test-instrumented', 'showFile:coverage.html']);
     // Default task.
-    grunt.registerTask('default', 'check-style test');
+    grunt.registerTask('default', ['check-style', 'test']);
 
 };

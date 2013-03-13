@@ -60,3 +60,14 @@ var refresh = module.exports.refresh = function(restCtx, callback) {
     RestUtil.RestRequest(restCtx, '/api/search/_refresh', 'POST', null, callback);
 };
 
+/**
+ * Reindex all items in storage. Intended for use by global administrator contexts only.
+ *
+ * @param  {RestContext}   globalAdminRestCtx   A global administrator REST Context
+ * @param  {Function}      callback             Invoked when the request completes
+ * @param  {Object}        callback.err         An error that occurred, if any
+ */
+var reindexAll = module.exports.reindexAll = function(globalAdminRestCtx, callback) {
+    RestUtil.RestRequest(globalAdminRestCtx, '/api/search/reindexAll', 'POST', null, callback);
+};
+

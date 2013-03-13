@@ -140,7 +140,7 @@ By default, OAE assumes both the [Hilary repository](http://github.com/sakaiproj
 ~/oae$ git clone git://github.com/sakaiproject/Hilary.git
 ~/oae$ git clone git://github.com/sakaiproject/3akai-ux.git
 ~/oae$ cd 3akai-ux
-~/oae/3akai-ux$ checkout Hilary
+~/oae/3akai-ux$ git checkout Hilary
 ```
 
 **Note:** Currently you must use the **Hilary branch** in the 3akai-ux repository, as master remains built for the Nakamura back-end.

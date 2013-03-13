@@ -18,7 +18,7 @@ var Stream = require('stream').Stream;
 var util = require('util');
 
 // Array of response codes that are considered to be HTTP errors
-var errorCodes = [400, 401, 403, 404, 500, 503];
+var errorCodes = [400, 401, 403, 404, 418, 500, 503];
 
 /**
  * ### Events

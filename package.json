@@ -56,7 +56,7 @@
     "passport-http": "latest",
     "passport-local": "latest",
     "passport-openid": "latest",
-    "passport-saml": "git://github.com/nicolaasmatthijs/passport-saml.git",
+    "passport-saml": "git://github.com/simong/passport-saml",
     "passport-twitter": "latest",
     "readdirp": "latest",
     "recaptcha-async": "latest",

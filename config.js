@@ -277,9 +277,15 @@ config.activity = {
 };
 
 config.email = {
-    'enabled': false,
-    'defaultLocale': 'en_US',
-    'customEmailTemplatesDir': null
+    'debug': true,
+    'customEmailTemplatesDir': null,
+    'smtpTransport': {
+        'service': 'Gmail',
+        'auth': {
+            'user': 'my.email@gmail.com',
+            'pass': 'myemailpassword'
+        }
+    }
 };
 
 /**

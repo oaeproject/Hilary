@@ -98,9 +98,9 @@ var createFile = module.exports.createFile = function(restCtx, displayName, desc
  * @param  {Object}       callback.err        Error object containing error code and error message
  * @param  {Content}      callback.content    Content object representing the created content
  */
-var createDocument = module.exports.createDocument = function(restCtx, displayName, description, visibility, managers, viewers, callback) {
+var createCollabDoc = module.exports.createCollabDoc = function(restCtx, displayName, description, visibility, managers, viewers, callback) {
     var params = {
-        'resourceSubType': 'document',
+        'resourceSubType': 'collabdoc',
         'displayName': displayName,
         'description': description,
         'visibility': visibility,

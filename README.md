@@ -86,7 +86,7 @@ Download and install [PDFTK](http://www.pdflabs.com/tools/pdftk-the-pdf-toolkit/
 
 Download and install [LibreOffice](http://www.libreoffice.org/download/). This dependency takes care of converting Microsoft Office files to PDFs so they may be further split into previews by PDFTK.
 
-##### PhantomKS (only if preview processor is desired)
+##### PhantomJS (only if preview processor is desired)
 
 Download and install [PhantomJS](http://www.phantomjs.org/download.html). This dependency takes care of creating screenshots of regular webpages.
 

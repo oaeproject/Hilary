@@ -276,6 +276,15 @@ config.activity = {
     'redis': null
 };
 
+/**
+ * `config.email`
+ *
+ * Configuration namespace for emails.
+ *
+ * @param  {Boolean}    [debug]                     Determines whether or not email is in debug mode. If in debug mode, email messages are logged, not actually sent through any service.
+ * @param  {String}     [customEmailTemplatesDir]   Specifies a directory that holds the tenant-specific email template overrides
+ * @param  {Object}     [smtpTransport]             The SMTP connection information for sending emails. This is the settings object that will be used by nodemailer to form an smtp connection: https://github.com/andris9/Nodemailer
+ */
 config.email = {
     'debug': true,
     'customEmailTemplatesDir': null,

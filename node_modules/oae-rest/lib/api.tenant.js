@@ -22,12 +22,11 @@ var WAIT_TIME = 100;
 
 /**
  * Retrieve all available tenants through the REST API.
- * 
+ *
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global admin rest context will need to passed in.
  * @param  {Function}       callback            Standard callback method takes arguments `err` and `tenants`
  * @param  {Object}         callback.err        Error object containing error code and error message
  * @param  {Tenant[]}       callback.tenants    Array containing a tenant object for each of the available tenants
- *                                                          
  */
 var getAllTenants = module.exports.getAllTenants = function(restCtx, callback) {
     RestUtil.RestRequest(restCtx, '/api/tenants', 'GET', null, callback);

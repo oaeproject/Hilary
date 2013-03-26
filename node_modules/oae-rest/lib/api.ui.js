@@ -65,7 +65,7 @@ var getStaticBatch = module.exports.getStaticBatch = function(restCtx, files, ca
  * @param  {RestContext}        restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {Function}           callback            Standard callback method
  * @param  {Object}             callback.err        Error object containing error code and error message
- * @param  {String}             callback.css        The skin file for this tenant (in CSS.)
+ * @param  {String}             callback.css        The skin file for this tenant (in CSS).
  */
 var getSkin = module.exports.getSkin = function(restCtx, callback) {
     RestUtil.RestRequest(restCtx, '/api/ui/skin', 'GET', null, callback);

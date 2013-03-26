@@ -88,10 +88,10 @@ var loginOnTenant = module.exports.loginOnTenant = function(globalRestCtx, tenan
 };
 
 /**
- * Get the skin variables
+ * Get the skin variables that are defined in the UI's skin file.
  *
- * @param  {RestContext}    globalRestCtx           Standard REST Context object associated to the global administrator.
- * @param  {String}         tenantAlias             The tenant (alias) for which the variable should be retrieved.
+ * @param  {RestContext}    restCtx                 Standard REST Context object associated to an administrator.
+ * @param  {String}         tenantAlias             The alias of the tenant for which the variables should be retrieved.
  * @param  {Function}       callback                Standard callback method
  * @param  {Object}         callback.err            Error object containing error code and error message
  * @param  {Object}         callback.variables      The variables grouped by their respective groups.

@@ -30,6 +30,7 @@
     "connect-redis": "latest",
     "dox": "latest",
     "elasticsearchclient": "latest",
+    "ent": "latest",
     "etherpad-lite-client": "latest",
     "express": "latest",
     "gm": "latest",
@@ -75,7 +76,13 @@
     "underscore": "latest",
     "validator": "latest",
     "watch": "latest",
+<<<<<<< HEAD
     "xml2js": "latest"
+=======
+    "webshot": "latest",
+    "xml2js": "latest",
+    "youtube-feeds": "latest"
+>>>>>>> Set YouTube title as the content item's displayName
   },
   "devDependencies": {
     "grunt": "latest",

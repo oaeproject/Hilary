@@ -221,7 +221,7 @@ config.mq = {
  * @param {String}      credentials.password    The password to login with on the global admin server.
  */
 config.previews = {
-    'enabled': false,
+    'enabled': true,
     'dir': tmpDir + '/previews',
     'office': {
         'binary': 'soffice.bin',
@@ -230,10 +230,6 @@ config.previews = {
     'pdf': {
         'binary': 'pdftk',
         'timeout': 120000
-    },
-    'phantomjs': {
-        'binary': 'phantomjs',
-        'renderDelay': 5000
     },
     'credentials': {
         'username': 'administrator',

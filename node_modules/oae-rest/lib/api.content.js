@@ -440,19 +440,24 @@ var joinCollabDoc = module.exports.joinCollabDoc = function(restCtx, contentId, 
  *
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         contentId           Content id of the content item we're trying to retrieve the list of preview items from.
+ * @param  {String}         revisionId          Revision id of the content item we're trying to retrieve the list of preview items from.
  * @param  {String}         status              The status of the preview generation. One of 'error', 'done' or 'pending'.
  * @param  {Object}         files               A hash where the key is the filename and the value is a function that returns a stream for a preview item.
- * @param  {Object}         sizes               A hash where the key is the filename and the value is a string that represents the preview size of the item. It should be one of 'small', 'medium', 'large' or 'thumbnail'.
- * @param  {Object}         [metadata]          Extra optional metadata.
+ * @param  {Object}         sizes               A hash where the key is the filename and the value is a string that represents the preview size of the item. It should be one of 'small', 'medium', 'large', 'activity' or 'thumbnail'.
+ * @param  {Object}         [contentMetadata]   Extra optional content metadata.
+ * @param  {Object}         [previewMetadata]   Extra optional preview metadata.
  * @param  {Function}       callback            Standard callback method
  * @param  {Object}         callback.err        Error object containing error code and error message
  */
-var setPreviewItems = module.exports.setPreviewItems = function(restCtx, contentId, status, files, sizes, metadata, callback) {
-    metadata = metadata || {};
+var setPreviewItems = module.exports.setPreviewItems = function(restCtx, contentId, revisionId, status, files, sizes, contentMetadata, previewMetadata, callback) {
+    previewMetadata = previewMetadata || {};
+    contentMetadata = contentMetadata || {};
     var params = {
+        'revisionId': revisionId,
         'status': status,
         'sizes': {},
-        'metadata': JSON.stringify(metadata)
+        'previewMetadata': JSON.stringify(previewMetadata),
+        'contentMetadata': JSON.stringify(contentMetadata)
     };
 
     // Add the files and their sizes to the parameters.

@@ -86,7 +86,7 @@
   },
   "optionalDependencies": {
     "bunyan-syslog": "latest",
-    "hiredis": "latest"
+    "hiredis": "0.1.13"
   },
   "bundleDependencies": [
     "oae-authentication",

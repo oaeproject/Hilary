@@ -70,3 +70,16 @@ var getStaticBatch = module.exports.getStaticBatch = function(restCtx, files, ca
 var getSkin = module.exports.getSkin = function(restCtx, callback) {
     RestUtil.RestRequest(restCtx, '/api/ui/skin', 'GET', null, callback);
 };
+
+/**
+ * Get the skin variables that are defined in the UI's skin file.
+ *
+ * @param  {RestContext}    restCtx                 Standard REST Context object associated to an administrator.
+ * @param  {String}         tenantAlias             The alias of the tenant for which the variables should be retrieved.
+ * @param  {Function}       callback                Standard callback method
+ * @param  {Object}         callback.err            Error object containing error code and error message
+ * @param  {Object}         callback.variables      The variables grouped by their respective groups.
+ */
+var getSkinVariables = module.exports.getSkinVariables = function(restCtx, tenantAlias, callback) {
+    RestUtil.RestRequest(restCtx, '/api/ui/skin/variables', 'GET', {'tenant': tenantAlias}, callback);
+};

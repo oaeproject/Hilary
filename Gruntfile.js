@@ -154,7 +154,7 @@ module.exports = function(grunt) {
         var MODULES = grunt.file.expand({'filter': 'isDirectory'},'node_modules/oae-*/tests').join(' ');
         var output = shell.exec('../node_modules/.bin/mocha --ignore-leaks --timeout ' + MOCHA_TIMEOUT + ' --reporter html-cov node_modules/oae-tests/runner/beforeTests.js ' + MODULES, {silent:true}).output;
         output.to('coverage.html');
-        grunt.log.writeln('Code Coverage report generated at ' + 'target/coverage.html'.cyan);
+        grunt.log.writeln('Code Coverage report generated at target/coverage.html'.cyan);
 
     });
 

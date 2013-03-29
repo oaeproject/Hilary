@@ -33,6 +33,7 @@
     "express": "latest",
     "gm": "latest",
     "helenus": "latest",
+    "less": "latest",
     "mkdirp": "latest",
     "oae-authentication": "",
     "oae-authz": "",
@@ -86,7 +87,7 @@
   },
   "optionalDependencies": {
     "bunyan-syslog": "latest",
-    "hiredis": "latest"
+    "hiredis": "0.1.13"
   },
   "bundleDependencies": [
     "oae-authentication",

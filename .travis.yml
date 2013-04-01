@@ -16,6 +16,7 @@ before_install:
   - git checkout newframework
   - git clone git://github.com/ether/etherpad-lite --branch master ../etherpad-lite
   - cd ../etherpad-lite
+  - echo "13SirapH8t3kxUh5T5aqWXhXahMzoZRA" > APIKEY.txt
   - ./bin/installDeps.sh
   - node src/node/server.js &
   - cd ../Hilary

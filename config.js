@@ -293,16 +293,19 @@ config.saml = {
  * `config.etherpad`
  *
  * Configuration namespace for the etherpad logic
+ * It's recommended that you proxy your etherpad instance which allows you to do failover without restarting all the app nodes.
  *
  * @param  {Object[]}   hosts               The hosts where etherpad instances can be found.
  * @param  {String}     hosts[i].apikey     The key that can be used to communicate with etherpad.
- * @param  {String}     hosts[i].host       The hostname or IP address where the etherpad API can be reached. It's recommended that you proxy your etherpad instance which allows you to do failover without restarting all the app nodes.
+ * @param  {String}     hosts[i].protocol   The protocol where the etherpad API can be reached. Either `http` or `https`.
+ * @param  {String}     hosts[i].host       The hostname or IP address where the etherpad API can be reached.
  * @param  {Number}     hosts[i].port       The port number where etherpad can be reached.
  */
 config.etherpad = {
     'hosts': [
         {
             'apikey': '13SirapH8t3kxUh5T5aqWXhXahMzoZRA',
+            'protocol': 'http',
             'host': 'localhost',
             'port': 9001
         }

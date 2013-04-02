@@ -270,7 +270,7 @@ var getRevisions = module.exports.getRevisions = function(restCtx, contentId, st
  * Get a specific revision for a piece of content.
  *
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {String}         contentId           Content id of the content item we're trying to retrieve the revisions for
+ * @param  {String}         contentId           Content id of the content item we're trying to retrieve the revision for
  * @param  {String}         revisionId          The id of the revision to retrieve.
  * @param  {Function}       callback            Standard callback method
  * @param  {Object}         callback.err        Error object containing error code and error message
@@ -279,6 +279,20 @@ var getRevisions = module.exports.getRevisions = function(restCtx, contentId, st
 var getRevision = module.exports.getRevision = function(restCtx, contentId, revisionId, callback) {
     var url = '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/revisions/' + RestUtil.encodeURIComponent(revisionId);
     RestUtil.RestRequest(restCtx, url, 'GET', null, callback);
+};
+
+/**
+ * Restore a specific revision for a piece of content.
+ *
+ * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}         contentId           Content id of the content item we're trying to restore the revision for
+ * @param  {String}         revisionId          The id of the revision to restore.
+ * @param  {Function}       callback            Standard callback method
+ * @param  {Object}         callback.err        Error object containing error code and error message
+ */
+var restoreRevision = module.exports.restoreRevision = function(restCtx, contentId, revisionId, callback) {
+    var url = '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/revisions/' + RestUtil.encodeURIComponent(revisionId) + '/restore';
+    RestUtil.RestRequest(restCtx, url, 'POST', null, callback);
 };
 
 /**

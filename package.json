@@ -70,7 +70,6 @@
     "underscore": "latest",
     "validator": "latest",
     "watch": "latest",
-    "webshot": "latest",
     "xml2js": "latest"
   },
   "devDependencies": {
@@ -87,7 +86,8 @@
   },
   "optionalDependencies": {
     "bunyan-syslog": "latest",
-    "hiredis": "0.1.13"
+    "hiredis": "0.1.13",
+    "webshot": "latest"
   },
   "bundleDependencies": [
     "oae-authentication",

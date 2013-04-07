@@ -13,7 +13,7 @@ before_install:
   - npm install -g grunt-cli
   - git clone git://github.com/sakaiproject/3akai-ux.git --branch master ../3akai-ux
   - cd ../3akai-ux
-  - git checkout Hilary
+  - git checkout newframework
   - cd ../Hilary
 
 services:

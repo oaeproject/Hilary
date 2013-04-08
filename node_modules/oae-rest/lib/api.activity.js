@@ -15,8 +15,6 @@
 
 var RestUtil = require('./util');
 
-var COLLECTION_DELAY = 250;
-
 /**
  * Get the activity stream of the user in context.
  *
@@ -67,12 +65,11 @@ var getNotificationStream = module.exports.getNotificationStream = function(rest
  * Mark all notifications for the current user in context as read.
  *
  * @param  {RestContext}    restCtx                 Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {Object}         [opts]                  Optional request parameters
  * @param  {Function}       callback                Invoked when the request has completed
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Number}         callback.lastReadTime   The timestamp (millis since epoch) detailing the last time notifications were marked as read
  */
-var markNotificationsRead = module.exports.markNotificationsRead = function(restCtx, opts, callback) {
+var markNotificationsRead = module.exports.markNotificationsRead = function(restCtx, callback) {
     RestUtil.RestRequest(restCtx, '/api/notifications/markRead', 'POST', null, callback);
 };
 

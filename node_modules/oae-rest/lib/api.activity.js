@@ -15,17 +15,16 @@
 
 var RestUtil = require('./util');
 
-var COLLECTION_DELAY = 250;
-
 /**
  * Get the activity stream of the user in context.
  *
- * @param   {RestContext}   restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. For this function to work, the passed in restCtx should be an anonymous REST context
- * @param   {Object}        [opts]              Optional parameters for the request
- * @param   {Number}        [opts.from]         The time since the epoch in millis from which to get activities. All activities after this time will have occurred after this time
- * @param   {Number}        [opts.limit]        The number of activities to return
- * @param   {Function}      callback            Standard callback method
- * @param   {Object}        callback.err        Error object containing error code and error message
+ * @param  {RestContext}    restCtx                 Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {Object}         [opts]                  Optional parameters for the request
+ * @param  {Number}         [opts.from]             The time since the epoch in millis from which to get activities. All activities returned will have occurred before this time
+ * @param  {Number}         [opts.limit]            The maximum number of activities to return
+ * @param  {Function}       callback                Standard callback method
+ * @param  {Object}         callback.err            Error object containing error code and error message
+ * @param  {ActivityStream} callback.activityStream The stream of activities
  */
 var getCurrentUserActivityStream = module.exports.getCurrentUserActivityStream = function(restCtx, opts, callback) {
     RestUtil.RestRequest(restCtx, '/api/activity', 'GET', opts, callback);
@@ -34,16 +33,44 @@ var getCurrentUserActivityStream = module.exports.getCurrentUserActivityStream =
 /**
  * Get the activity stream by its id.
  *
- * @param   {RestContext}   restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. For this function to work, the passed in restCtx should be an anonymous REST context
- * @param   {String}        activityStreamId    The ID of the activity stream to fetch
- * @param   {Object}        [opts]              Optional parameters for the request
- * @param   {Number}        [opts.from]         The time since the epoch in millis from which to get activities. All activities after this time will have occurred after this time
- * @param   {Number}        [opts.limit]        The number of activities to return
- * @param   {Function}      callback            Standard callback method
- * @param   {Object}        callback.err        Error object containing error code and error message
+ * @param  {RestContext}    restCtx                 Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}         activityStreamId        The ID of the activity stream to fetch
+ * @param  {Object}         [opts]                  Optional parameters for the request
+ * @param  {Number}         [opts.from]             The time since the epoch in millis from which to get activities. All activities returned will have occurred before this time
+ * @param  {Number}         [opts.limit]            The maximum number of activities to return
+ * @param  {Function}       callback                Standard callback method
+ * @param  {Object}         callback.err            Error object containing error code and error message
+ * @param  {ActivityStream} callback.activityStream The stream of activities
  */
 var getActivityStream = module.exports.getActivityStream = function(restCtx, activityStreamId, opts, callback) {
     RestUtil.RestRequest(restCtx, '/api/activity/' + RestUtil.encodeURIComponent(activityStreamId), 'GET', opts, callback);
+};
+
+/**
+ * Get the notifications for the current user in context.
+ *
+ * @param  {RestContext}    restCtx                     Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {Object}         [opts]                      Optional parameters for the request
+ * @param  {Number}         [opts.from]                 The time since the epoch in millis from which to get notifications. All notifications returned will have occurred before this time
+ * @param  {Number}         [opts.limit]                The maximum number of notifications to return
+ * @param  {Function}       callback                    Standard callback method
+ * @param  {Object}         callback.err                Error object containing error code and error message
+ * @param  {ActivityStream} callback.notificationStream The stream of notifications
+ */
+var getNotificationStream = module.exports.getNotificationStream = function(restCtx, opts, callback) {
+    RestUtil.RestRequest(restCtx, '/api/notifications', 'GET', opts, callback);
+};
+
+/**
+ * Mark all notifications for the current user in context as read.
+ *
+ * @param  {RestContext}    restCtx                 Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {Function}       callback                Invoked when the request has completed
+ * @param  {Object}         callback.err            An error that occurred, if any
+ * @param  {Number}         callback.lastReadTime   The timestamp (millis since epoch) detailing the last time notifications were marked as read
+ */
+var markNotificationsRead = module.exports.markNotificationsRead = function(restCtx, callback) {
+    RestUtil.RestRequest(restCtx, '/api/notifications/markRead', 'POST', null, callback);
 };
 
 /**

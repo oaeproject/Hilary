@@ -39,6 +39,7 @@ var createUser = module.exports.createUser = function(restCtx, username, passwor
         'username': username,
         'password': password,
         'displayName': displayName,
+        'email': additionalOptions.email,
         'visibility': additionalOptions.visibility,
         'locale': additionalOptions.locale,
         'timezone': additionalOptions.timezone,

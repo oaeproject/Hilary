@@ -19,8 +19,18 @@ var config = module.exports.config = {};
 
 // UI related config information. By default, we assume that the UI repostory
 // can be found on the same level as the Hilary folder.
+
+/**
+ * `config.ui`
+ *
+ * Configuration namespace for the UI module.
+ *
+ * @param   {String}    path            The path to the UI static assets
+ * @param   {String}    [hashesPath]    The path (relative to the `path` property) for a mapping of file paths to actual location. This is useful for static assets whose filenames are altered during UI optimization. If this file does not exist or is invalid JSON, startup will continue assuming there is no mapping required.
+ */
 config.ui = {
-    'path': '../3akai-ux'
+    'path': '../3akai-ux',
+    'hashesPath': 'hashes.json'
 };
 
 // Cassandra related config information.

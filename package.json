@@ -36,12 +36,14 @@
     "helenus": "latest",
     "less": "latest",
     "mkdirp": "latest",
+    "nodemailer": "latest",
     "oae-authentication": "",
     "oae-authz": "",
     "oae-config": "",
     "oae-content": "",
     "oae-context": "",
     "oae-doc": "",
+    "oae-email": "",
     "oae-logger": "",
     "oae-principals": "",
     "oae-profiles": "",
@@ -71,7 +73,6 @@
     "underscore": "latest",
     "validator": "latest",
     "watch": "latest",
-    "webshot": "latest",
     "xml2js": "latest"
   },
   "devDependencies": {
@@ -88,7 +89,8 @@
   },
   "optionalDependencies": {
     "bunyan-syslog": "latest",
-    "hiredis": "0.1.13"
+    "hiredis": "0.1.13",
+    "webshot": "latest"
   },
   "bundleDependencies": [
     "oae-authentication",
@@ -97,6 +99,7 @@
     "oae-content",
     "oae-context",
     "oae-doc",
+    "oae-email",
     "oae-logger",
     "oae-principals",
     "oae-profiles",

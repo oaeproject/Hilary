@@ -13,7 +13,7 @@ before_install:
   - npm install -g grunt-cli
   - git clone git://github.com/sakaiproject/3akai-ux.git --branch master ../3akai-ux
   - cd ../3akai-ux
-  - git checkout Hilary
+  - git checkout newframework
   - cd ../Hilary
 
 services:
@@ -23,11 +23,11 @@ services:
   - redis-server
 
 script:
-  - OAE_TIMEOUTS_SEARCH=15000 OAE_TIMEOUTS_CONFIG=250 OAE_TIMEOUTS_MOCHA=120000 OAE_TIMEOUTS_ACTIVITY_COLLECTION=750 grunt test
+  - grunt test
 
 after_failure:
-  - cat bootstrap.log | node_modules/.bin/bunyan -l warn
-  - cat tests.log | node_modules/.bin/bunyan -l warn
+  - cat bootstrap.log | node_modules/.bin/bunyan
+  - cat tests.log | node_modules/.bin/bunyan -l info
 
 notifications:
   email:

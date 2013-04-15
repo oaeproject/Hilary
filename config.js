@@ -19,8 +19,18 @@ var config = module.exports.config = {};
 
 // UI related config information. By default, we assume that the UI repostory
 // can be found on the same level as the Hilary folder.
+
+/**
+ * `config.ui`
+ *
+ * Configuration namespace for the UI module.
+ *
+ * @param   {String}    path            The path to the UI static assets
+ * @param   {String}    [hashesPath]    The path (relative to the `path` property) for a mapping of file paths to actual location. This is useful for static assets whose filenames are altered during UI optimization. If this file does not exist or is invalid JSON, startup will continue assuming there is no mapping required.
+ */
 config.ui = {
-    'path': '../3akai-ux'
+    'path': '../3akai-ux',
+    'hashesPath': 'hashes.json'
 };
 
 // Cassandra related config information.
@@ -79,6 +89,7 @@ tmpDir += '/oae';
  * @param  {Object}    cleaner                  Holds configuration properties for the cleaning job that removes lingering files in the upload directory.
  * @param  {Boolean}   cleaner.enabled          Whether or not the cleaning job should run.
  * @param  {Number}    cleaner.interval         Files that haven't been accessed in this amount (of seconds) should be removed.
+ * @param  {String}    localStorageDirectory    The directory where the local storage backend can store its files. By default, the files get stored on the same level as the Hilary directory.
  */
 config.files = {
     'tmpDir': tmpDir,
@@ -86,7 +97,8 @@ config.files = {
     'cleaner': {
         'enabled': true,
         'interval': 2*60*60
-    }
+    },
+    'localStorageDirectory': '../files'
 };
 
 // The configuration that can be used to generate secure HTTP cookies.
@@ -99,7 +111,7 @@ config.cookie = {
 config.log = {
     'streams': [
         {
-            'level': 'debug',
+            'level': 'info',
             'stream': process.stdout
         }
     ],
@@ -199,10 +211,10 @@ config.mq = {
  * @param {Boolean}     enabled                 Whether or not the preview processor should be running.
  * @param {String}      dir                     A directory that can be used to store temporary files in.
  * @param {Object}      office                  Holds the configuration for anything Office related.
- * @paran {String}      office.binary           The path to the 'soffice.bin' binary that starts up Libre Office. ex: On OS X it is `/Applications/LibreOffice.app/Contents/MacOS/soffice.bin` with a default install.
+ * @param {String}      office.binary           The path to the 'soffice.bin' binary that starts up Libre Office. ex: On OS X it is `/Applications/LibreOffice.app/Contents/MacOS/soffice.bin` with a default install.
  * @param {Number}      office.timeout          Defines the timeout (in ms) when the Office process should be killed.
  * @param {Object}      pdf                     Holds the configuration for anything related to PDF splitting.
- * @paran {String}      pdf.binary              The path to the `pdftk` binary that can be used to split a PDF file into a PDF-per-page.
+ * @param {String}      pdf.binary              The path to the `pdftk` binary that can be used to split a PDF file into a PDF-per-page.
  * @param {Number}      pdf.timeout             Defines the timeout (in ms) when the pdftk process should be killed.
  * @param {Object}      credentials             Holds the credentials that can be used to log on the global admin server.
  * @param {String}      credentials.username    The username to login with on the global admin server.
@@ -218,6 +230,10 @@ config.previews = {
     'pdf': {
         'binary': 'pdftk',
         'timeout': 120000
+    },
+    'phantomjs': {
+        'binary': 'phantomjs',
+        'renderDelay': 5000
     },
     'credentials': {
         'username': 'administrator',
@@ -246,22 +262,60 @@ config.signing = {
  * @param  {Number}     [activityTtl]                   The time-to-live (in seconds) for generated activities. After this period of time, an activity in an activity feed is lost permanently. Defaults to 2 weeks
  * @param  {Number}     [aggregateIdleExpiry]           The amount of time (in seconds) an aggregate can be idle until it expires. The "idle" time of an aggregate is reset when a new activity occurs that matches the aggregate. Defaults to 3 hours
  * @param  {Number}     [aggregateMaxExpiry]            An upper-bound on the amount of time (in seconds) for which an aggregate can live. Defaults to 1 day
- * @param  {Number}     [numberOfProcessingBuckets]     The number of buckets available for parallel processing of activities. Defaults to 5
+ * @param  {Number}     [numberOfProcessingBuckets]     The number of buckets available for parallel processing of activities. Defaults to 3
  * @param  {Number}     [collectionExpiry]              The maximum amount of time (in seconds) a processing bucket can be locked for at one time. If this is not long enough for an activity processor to collect the number of activities as configured by `collectionBatchSize`, then it will be possible for multiple processors to collect the same bucket concurrently. This will result in duplicate activities, which is not desired. Defaults to 1 minute
  * @param  {Number}     [maxConcurrentCollections]      The maximum number of concurrent collection cycles that can be active on a process at once. Defaults to 3
+ * @param  {Number}     [maxConcurrentRouters]          The maximum number of activities that will be routed by one node at one time. This should be used to ensure activities are not routed faster than they can be collected, to ensure the redis collection buckets do not grow in size uncontrollably under unanticipated load. Defaults to 5
  * @param  {Number}     [collectionPollingFrequency]    How often (in seconds) the processing buckets are polled for new activities. If -1, polling will be disabled. If polling is disabled, activities will not function, so do not set to -1 in production. Defaults to 5 seconds.
- * @param  {Number}     [collectionBatchSize]           The number of items to process at a time when collecting bucketed activities. After one batch has been collected, the activity processor will immediately continue to process the next batch from that bucket, and so on. Defaults to 500
+ * @param  {Number}     [collectionBatchSize]           The number of items to process at a time when collecting bucketed activities. After one batch has been collected, the activity processor will immediately continue to process the next batch from that bucket, and so on. Defaults to 1000
+ * @param  {Object}     [redis]                         Configuration for dedicated redis server. If not specified, will use the same pool as the rest of the container (i.e., as specified by `config.redis`)
+ * @param  {String}     [redis.host]                    The host of the dedicated redis server
+ * @param  {Number}     [redis.port]                    The port of the dedicated redis server
+ * @param  {String}     [redis.pass]                    The password to the dedicated redis server
+ * @param  {Number}     [redis.dbIndex]                 The index number of the dedicated redis server index
  */
 config.activity = {
     'processActivityJobs': true,
     'activityTtl': 2 * 7 * 24 * 60 * 60,    // 2 weeks (in seconds)
-    'numberOfProcessingBuckets': 5,
+    'numberOfProcessingBuckets': 3,
     'aggregateIdleExpiry': 3 * 60 * 60,     // 3 hours (in seconds)
     'aggregateMaxExpiry': 24 * 60 * 60,     // 1 day (in seconds)
     'collectionExpiry': 60,                 // 1 minute (in seconds)
     'maxConcurrentCollections': 3,
+    'maxConcurrentRouters': 5,
     'collectionPollingFrequency': 5,        // 5 seconds
-    'collectionBatchSize': 500
+    'collectionBatchSize': 1000,
+    'redis': null
 };
 
+/**
+ * `config.email`
+ *
+ * Configuration namespace for emails.
+ *
+ * @param  {Boolean}    [debug]                     Determines whether or not email is in debug mode. If in debug mode, email messages are logged, not actually sent through any service.
+ * @param  {String}     [customEmailTemplatesDir]   Specifies a directory that holds the tenant-specific email template overrides
+ * @param  {Object}     [smtpTransport]             The SMTP connection information for sending emails. This is the settings object that will be used by nodemailer to form an smtp connection: https://github.com/andris9/Nodemailer
+ */
+config.email = {
+    'debug': true,
+    'customEmailTemplatesDir': null,
+    'smtpTransport': {
+        'service': 'Gmail',
+        'auth': {
+            'user': 'my.email@gmail.com',
+            'pass': 'myemailpassword'
+        }
+    }
+};
 
+/**
+ * `config.saml`
+ *
+ * Configuration namespace for the saml logic
+ *
+ * @param  {String}    SAMLParserJarPath     The path towards the Java binary that can be used to decrypt SAML messages. This only needs to be configured if you want to enable the Shibboleth strategy. See https://github.com/sakaiproject/SAMLParser
+ */
+config.saml = {
+    'SAMLParserJarPath': ''
+};

@@ -86,6 +86,10 @@ Download and install [PDFTK](http://www.pdflabs.com/tools/pdftk-the-pdf-toolkit/
 
 Download and install [LibreOffice](http://www.libreoffice.org/download/). This dependency takes care of converting Microsoft Office files to PDFs so they may be further split into previews by PDFTK.
 
+##### PhantomJS (only if preview processor is desired)
+
+Download and install [PhantomJS](http://www.phantomjs.org/download.html). This dependency takes care of creating screenshots of regular webpages.
+
 #### Nginx (version 1.3.11 or higher)
 
 Download [Nginx **version 1.3.11 or higher**](http://nginx.org/en/download.html) (at the time of writing, version 1.3.11 can only be found as a development version). You will need [PCRE](http://www.pcre.org/) to configure Nginx.
@@ -140,7 +144,7 @@ By default, OAE assumes both the [Hilary repository](http://github.com/sakaiproj
 ~/oae$ git clone git://github.com/sakaiproject/Hilary.git
 ~/oae$ git clone git://github.com/sakaiproject/3akai-ux.git
 ~/oae$ cd 3akai-ux
-~/oae/3akai-ux$ checkout Hilary
+~/oae/3akai-ux$ git checkout Hilary
 ```
 
 **Note:** Currently you must use the **Hilary branch** in the 3akai-ux repository, as master remains built for the Nakamura back-end.

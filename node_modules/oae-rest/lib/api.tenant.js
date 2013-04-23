@@ -54,7 +54,7 @@ var getTenant = module.exports.getTenant = function(restCtx, tenantAlias, callba
  * 
  * @param  {RestContext}      restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global admin rest context will need to passed in.
  * @param  {String}           tenantAlias         The tenant's unique identifier
- * @param  {String}           tenantName          The new tenant's name
+ * @param  {String}           tenantName          The new tenant's displayName
  * @param  {String}           tenantHost          The base URL for the newly created tenant (e.g. cambridge.oae.com)
  * @param  {Function}         callback            Standard callback method takes arguments `err` and `tenant`
  * @param  {Object}           callback.err        Error object containing error code and error message
@@ -63,7 +63,7 @@ var getTenant = module.exports.getTenant = function(restCtx, tenantAlias, callba
 var createTenant = module.exports.createTenant = function(restCtx, tenantAlias, tenantName, tenantHost, callback) {
     var params = {
         'alias': tenantAlias,
-        'name': tenantName,
+        'displayName': tenantName,
         'host': tenantHost
     };
     RestUtil.RestRequest(restCtx, '/api/tenant/create', 'POST', params, function(err, tenant) {
@@ -81,14 +81,14 @@ var createTenant = module.exports.createTenant = function(restCtx, tenantAlias, 
  * 
  * @param  {RestContext}      restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials.
  * @param  {String}           tenantAlias         The alias of the tenant that needs to be updated
- * @param  {String}           tenantName          The new tenant name
+ * @param  {String}           tenantName          The new tenant displayName
  * @param  {Function}         callback            Standard callback method takes argument `err`
  * @param  {Object}           callback.err        Error object containing error code and error message
  */
 var updateTenant = module.exports.updateTenant = function(restCtx, tenantAlias, tenantName, callback) {
     var params = {
         'alias': tenantAlias,
-        'name': tenantName
+        'displayName': tenantName
     };
     RestUtil.RestRequest(restCtx, '/api/tenant', 'POST', params, callback);
 };

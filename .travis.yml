@@ -7,8 +7,10 @@ branches:
     - master
 
 before_install:
+  - sudo sh -c "echo 'JVM_OPTS=\"\${JVM_OPTS} -Djava.net.preferIPv4Stack=false\"' >> /usr/local/cassandra/conf/cassandra-env.sh"
+  - sudo service cassandra stop
+  - sudo service cassandra start
   - sudo service cassandra status
-  - sudo cat /var/log/cassandra/system.log
   - sudo apt-get install -qq graphicsmagick
   - npm install -g grunt-cli
   - git clone git://github.com/sakaiproject/3akai-ux.git --branch master ../3akai-ux

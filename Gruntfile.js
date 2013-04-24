@@ -4,7 +4,7 @@ module.exports = function(grunt) {
     var mocha_grep = process.env['MOCHA_GREP'] || undefined;
 
     // Timeout used to determine when a test has failed
-    var MOCHA_TIMEOUT = 30000;
+    var MOCHA_TIMEOUT = 40000;
 
     var regexErrors = false;
 

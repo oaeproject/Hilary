@@ -112,7 +112,11 @@ Nginx is the most tested load balancer and web server used for Sakai OAE. A web 
 [Etherpad](http://etherpad.org/) is an open-source editor for online collaborative editing in real-time and is used to power the collaborative documents. Follow the [README](https://github.com/ether/etherpad-lite/blob/develop/README.md) to get it installed.
 
 Once you've installed the server you will also need the [Etherpad OAE](https://github.com/sakaiproject/ep_oae) plugin. It's the glue for authenticating users between Hilary and etherpad-lite.
-The simplest method of installing the plugin is cloning it in the top node_modules folder that can be found in your etherpad-lite directory. Check out the [plugin's README](https://github.com/sakaiproject/ep_oae/blob/master/README.md) for more information.
+The simplest method of installing the plugin is cloning it in the top node_modules folder that can be found in your etherpad-lite directory.
+
+You will need to configure the OAE Etherpad plugin with the *same* signing key as the one that is defined in Hilary's config.js at `config.signing.key`. Because etherpad and Hilary can't use the same sessionstore, a mechanisme has been devised where the user is given a URL that points to an etherpad instance, contains his displayName and has been signed. This allows the plugin to create a new session for the user and effectively log the user into Etherpad.
+
+Hilary will also need to be configured to use the correct Etherpad API key. The key can be found (or created) in a plain-text file at ~/etherpad-lite/APIKEY.txt
 
 #### Windows Dependencies
 

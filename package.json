@@ -1,10 +1,10 @@
 {
   "name": "Hilary",
-  "description": "Sakai OAE Back-end",
+  "description": "Open Academic Environment (OAE) Back-end",
   "version": "0.1.0",
-  "homepage": "https://github.com/sakaiproject/Hilary",
+  "homepage": "http://www.oaeproject.org",
   "author": {
-    "name": "The Sakai Foundation",
+    "name": "The Apereo Foundation",
     "email": "oae-dev@collab.sakaiproject.org"
   },
   "repository": {
@@ -36,6 +36,7 @@
     "less": "latest",
     "mkdirp": "latest",
     "nodemailer": "latest",
+    "oae-activity": "",
     "oae-authentication": "",
     "oae-authz": "",
     "oae-config": "",
@@ -45,6 +46,7 @@
     "oae-email": "",
     "oae-logger": "",
     "oae-principals": "",
+    "oae-preview-processor": "",
     "oae-profiles": "",
     "oae-rest": "",
     "oae-search": "",
@@ -92,6 +94,7 @@
     "webshot": "latest"
   },
   "bundleDependencies": [
+    "oae-activity",
     "oae-authentication",
     "oae-authz",
     "oae-config",
@@ -100,6 +103,7 @@
     "oae-doc",
     "oae-email",
     "oae-logger",
+    "oae-preview-processor",
     "oae-principals",
     "oae-profiles",
     "oae-rest",

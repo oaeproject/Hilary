@@ -1,13 +1,13 @@
-# Sakai OAE
+# Open Academic Environment (OAE Project)
 
-Hilary is the back-end for Sakai OAE
+Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject.org/)
 
 ## Build status
 [![Build Status](https://travis-ci.org/sakaiproject/Hilary.png?branch=master)](https://travis-ci.org/sakaiproject/Hilary)
 
 ## Quickstart Guide
 
-The following guide will take you through the necessary steps to run the back-end for Sakai OAE (Hilary) and its reference UI (3akai-ux) for development purposes.
+The following guide will take you through the necessary steps to run the back-end for OAE (Hilary) and its reference UI (3akai-ux) for development purposes.
 
 ### Installing dependencies
 If you're installing on Windows (not recommended for production) there's a package manager called Chocolatey that can be used to install all the dependencies quickly. See the `Windows Dependencies` section of this document for more information.
@@ -56,7 +56,7 @@ cd my-elasticsearch-dir
 bin/elasticsearch
 ```
 
-ElasticSearch powers the full-text search functionality of Sakai OAE.
+ElasticSearch powers the full-text search functionality of OAE.
 
 #### RabbitMQ
 
@@ -105,7 +105,7 @@ cd /usr/local/nginx
 sudo sbin/nginx
 ```
 
-Nginx is the most tested load balancer and web server used for Sakai OAE. A web server such as Nginx is necessary for file downloads to work properly.
+Nginx is the most tested load balancer and web server used for OAE. A web server such as Nginx is necessary for file downloads to work properly.
 
 #### Windows Dependencies
 
@@ -156,7 +156,7 @@ Please remember that filenames and directories that contain spaces can sometimes
 
 ##### Hosts file
 
-Sakai OAE is a multi-tenant system that discriminates the tenant by the host name with which you are accessing the server. In order to support the "Global Tenant" (i.e., the tenant that hosts the administration UI) and a "User Tenant", you will need to have at least 2 different host names that point to your server. To do this, you will need to add the following entries to your `/etc/hosts` file:
+OAE is a multi-tenant system that discriminates the tenant by the host name with which you are accessing the server. In order to support the "Global Tenant" (i.e., the tenant that hosts the administration UI) and a "User Tenant", you will need to have at least 2 different host names that point to your server. To do this, you will need to add the following entries to your `/etc/hosts` file:
 
 ```
 127.0.0.1   admin.oae.com
@@ -225,5 +225,5 @@ When you start the server, all data schemas will be created for you if they don'
 
 That's it! You can now access the user tenant by their host http://tenant1.oae.com and start creating new users.
 
-We're looking forward to seeing your contributions to the Sakai OAE project!
+We're looking forward to seeing your contributions to the OAE project!
 

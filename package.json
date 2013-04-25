@@ -37,6 +37,7 @@
     "less": "latest",
     "mkdirp": "latest",
     "nodemailer": "latest",
+    "oae-activity": "",
     "oae-authentication": "",
     "oae-authz": "",
     "oae-config": "",
@@ -46,6 +47,7 @@
     "oae-email": "",
     "oae-logger": "",
     "oae-principals": "",
+    "oae-preview-processor": "",
     "oae-profiles": "",
     "oae-rest": "",
     "oae-search": "",
@@ -93,6 +95,7 @@
     "webshot": "latest"
   },
   "bundleDependencies": [
+    "oae-activity",
     "oae-authentication",
     "oae-authz",
     "oae-config",
@@ -101,6 +104,7 @@
     "oae-doc",
     "oae-email",
     "oae-logger",
+    "oae-preview-processor",
     "oae-principals",
     "oae-profiles",
     "oae-rest",

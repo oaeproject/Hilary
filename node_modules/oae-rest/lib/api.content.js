@@ -409,7 +409,7 @@ var download = module.exports.download = function(restCtx, contentId, revisionId
 };
 
 /**
- * Publish a collaboration document.
+ * Publish a collaborative document.
  *
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         contentId           Content id of the content item we're trying to publish.
@@ -421,13 +421,13 @@ var publishCollabDoc = module.exports.publishCollabDoc = function(restCtx, conte
 };
 
 /**
- * Join a collaboration document.
+ * Join a collaborative document.
  *
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         contentId           Content id of the content item we're trying to join.
  * @param  {Function}       callback            Standard callback method
  * @param  {Object}         callback.err        Error object containing error code and error message.
- * @param  {String}         callback.url        The URL where the etherpad instance for the collaboration document is available.
+ * @param  {String}         callback.url        The URL where the etherpad instance for the collaborative document is available.
  */
 var joinCollabDoc = module.exports.joinCollabDoc = function(restCtx, contentId, callback) {
     RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/join', 'POST', null, callback);

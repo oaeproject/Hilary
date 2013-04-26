@@ -90,9 +90,9 @@ Download and install [LibreOffice](http://www.libreoffice.org/download/). This d
 
 Download and install [PhantomJS](http://www.phantomjs.org/download.html). This dependency takes care of creating screenshots of regular webpages.
 
-#### Nginx (version 1.3.11 or higher)
+#### Nginx (version 1.3.14 or higher)
 
-Download [Nginx **version 1.3.11 or higher**](http://nginx.org/en/download.html) (at the time of writing, version 1.3.11 can only be found as a development version). You will need [PCRE](http://www.pcre.org/) to configure Nginx.
+Download [Nginx **version 1.3.14 or higher**](http://nginx.org/en/download.html) (at the time of writing, version 1.3.14 can only be found as a development version). You will need [PCRE](http://www.pcre.org/) to configure Nginx.
 
 Once you've downloaded and extracted both to directories of your choice, you can configure and install:
 
@@ -106,6 +106,15 @@ sudo sbin/nginx
 ```
 
 Nginx is the most tested load balancer and web server used for OAE. A web server such as Nginx is necessary for file downloads to work properly.
+
+#### Etherpad lite
+
+[Etherpad](http://etherpad.org/) is an open-source editor for online collaborative editing in real-time and is used to power the collaborative documents. Follow the [README](https://github.com/ether/etherpad-lite/blob/develop/README.md) to get it installed.
+
+Once you've installed the server you will also need the [Etherpad OAE](https://github.com/sakaiproject/ep_oae) plugin. It's the glue for authenticating users between Hilary and etherpad-lite.
+The simplest method of installing the plugin is cloning it in the top node_modules folder that can be found in your etherpad-lite directory.
+
+Hilary will also need to be configured to use the correct Etherpad API key. The key can be found (or created) in a plain-text file at ~/etherpad-lite/APIKEY.txt
 
 #### Windows Dependencies
 

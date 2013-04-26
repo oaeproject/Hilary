@@ -330,7 +330,6 @@ config.saml = {
  * @param  {String}     hosts[i].externalProtocol       The protocol on which users will be accessing Etherpad. Either `http` or `https`
  * @param  {String}     hosts[i].externalEtherpadHost   The hostname or IP address on which users will be accessing Etherpad.
  * @param  {String}     hosts[i].externalEtherpadPort   The port on which users will be accessing Etherpad.
- * @param  {String}     hosts[i].internalProtocol       The protocol on which Hilary can communicate with the Etherpad API. Either `http` or `https`
  * @param  {String}     hosts[i].internalEtherpadHost   The hostname or IP address on which Hilary will be accessing the Etherpad API.
  * @param  {Number}     hosts[i].internalEtherpadPort   The port number on which Hilary will be accessing the etherpad API.
  */
@@ -341,7 +340,6 @@ config.etherpad = {
             'externalProtocol': 'http',
             'externalHost': 'localhost',
             'externalPort': 9001,
-            'internalProtocol': 'http',
             'internalHost': 'localhost',
             'internalPort': 9001
         }

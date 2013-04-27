@@ -319,3 +319,29 @@ config.email = {
 config.saml = {
     'SAMLParserJarPath': ''
 };
+
+/**
+ * `config.etherpad`
+ *
+ * Configuration namespace for the etherpad logic.
+ *
+ * @param  {String}     apikey                          The key that can be used to communicate with the etherpad API.
+ * @param  {Object[]}   hosts                           The hosts where etherpad instances can be found.
+ * @param  {String}     hosts[i].externalProtocol       The protocol on which users will be accessing Etherpad. Either `http` or `https`
+ * @param  {String}     hosts[i].externalEtherpadHost   The hostname or IP address on which users will be accessing Etherpad.
+ * @param  {String}     hosts[i].externalEtherpadPort   The port on which users will be accessing Etherpad.
+ * @param  {String}     hosts[i].internalEtherpadHost   The hostname or IP address on which Hilary will be accessing the Etherpad API.
+ * @param  {Number}     hosts[i].internalEtherpadPort   The port number on which Hilary will be accessing the etherpad API.
+ */
+config.etherpad = {
+    'apikey': '13SirapH8t3kxUh5T5aqWXhXahMzoZRA',
+    'hosts': [
+        {
+            'externalProtocol': 'http',
+            'externalHost': 'localhost',
+            'externalPort': 9001,
+            'internalHost': 'localhost',
+            'internalPort': 9001
+        }
+    ]
+};

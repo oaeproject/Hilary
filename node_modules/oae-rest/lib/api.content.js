@@ -453,7 +453,6 @@ var setPreviewItems = module.exports.setPreviewItems = function(restCtx, content
     previewMetadata = previewMetadata || {};
     contentMetadata = contentMetadata || {};
     var params = {
-        'revisionId': revisionId,
         'status': status,
         'sizes': {},
         'previewMetadata': JSON.stringify(previewMetadata),
@@ -466,7 +465,8 @@ var setPreviewItems = module.exports.setPreviewItems = function(restCtx, content
         params.sizes[filename] = sizes[filename];
     });
     params.sizes = JSON.stringify(params.sizes);
-    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/previews', 'POST', params, callback);
+    var url = '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/revisions/' + RestUtil.encodeURIComponent(revisionId) + '/previews';
+    RestUtil.RestRequest(restCtx, url, 'POST', params, callback);
 };
 
 /**
@@ -474,11 +474,13 @@ var setPreviewItems = module.exports.setPreviewItems = function(restCtx, content
  *
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         contentId           Content id of the content item we're trying to retrieve the preview items.
+ * @param  {String}         revisionId          Revision id of the preview items.
  * @param  {Function}       callback            Standard callback method
  * @param  {Object}         callback.err        Error object containing error code and error message
  */
-var getPreviewItems = module.exports.getPreviewItems = function(restCtx, contentId, callback) {
-    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/previews', 'GET', {}, callback);
+var getPreviewItems = module.exports.getPreviewItems = function(restCtx, contentId, revisionId, callback) {
+    var url = '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/revisions/' + RestUtil.encodeURIComponent(revisionId) + '/previews';
+    RestUtil.RestRequest(restCtx, url, 'GET', {}, callback);
 };
 
 /**
@@ -486,6 +488,7 @@ var getPreviewItems = module.exports.getPreviewItems = function(restCtx, content
  *
  * @param  {RestContext}    restCtx                 Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         contentId               Content id of the content item we're trying to download a preview item from.
+ * @param  {String}         revisionId              Revision id for the preview item.
  * @param  {String}         previewItem             The preview item.
  * @param  {Object}         signature               A signature that validates this call.
  * @param  {String}         signature.signature     A signature that validates this call.
@@ -495,8 +498,8 @@ var getPreviewItems = module.exports.getPreviewItems = function(restCtx, content
  * @param  {Object}         callback.err            Error object containing error code and error message
  * @param  {Object}         callback.body           The body of the response.
  */
-var downloadPreviewItem = module.exports.downloadPreviewItem = function(restCtx, contentId, previewItem, signature, callback) {
-    var url = '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/previews/';
+var downloadPreviewItem = module.exports.downloadPreviewItem = function(restCtx, contentId, revisionId, previewItem, signature, callback) {
+    var url = '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/revisions/' + RestUtil.encodeURIComponent(revisionId) + '/previews/';
     url += RestUtil.encodeURIComponent(previewItem);
     var params = {
         'signature': signature.signature,

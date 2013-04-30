@@ -155,4 +155,4 @@ var downloadPicture = module.exports.downloadPicture = function(restCtx, userId,
  */
 var setTenantAdmin = module.exports.setTenantAdmin = function(restCtx, userId, value, callback) {
     RestUtil.RestRequest(restCtx, '/api/user/' + RestUtil.encodeURIComponent(userId) + '/admin', 'POST', {'admin': (value === true)}, callback);
-}
+};

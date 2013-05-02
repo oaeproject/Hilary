@@ -192,15 +192,17 @@ config.search = {
  *
  * Configuration namespace for the message queue (RabbitMQ).
  *
- * @param   {Object}    connection      The connection description
- * @param   {String}    connection.host The host for the connection
- * @param   {Number}    connection.port The port for the connection
+ * @param  {Object}     connection              The connection description
+ * @param  {String}     connection.host         The host for the connection
+ * @param  {Number}     connection.port         The port for the connection
+ * @param  {Boolean}    [purgeQueuesOnStartup]  If `true`, the application will **delete** all messages in a queue when a worker is first bound. This setting only takes effect if the NODE_ENV environment variable is not set to `production` to indicate a production environment. Default: `false`
  */
 config.mq = {
     'connection': {
         'host': 'localhost',
         'port': 5672
-    }
+    },
+    'purgeQueuesOnStartup': false
 };
 
 /**

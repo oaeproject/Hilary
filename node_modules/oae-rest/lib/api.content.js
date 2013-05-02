@@ -200,13 +200,13 @@ var createComment = module.exports.createComment = function(restCtx, contentId, 
  *
  * @param  {RestContext}  restCtx                  Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}       contentId                Content id of the content item we're trying to delete a comment from
- * @param  {String}       commentId                The ID of the comment to delete
+ * @param  {String}       created                  The timestamp (in millis since the epoch) that the comment to delete was created
  * @param  {Function}     callback                 Standard callback method
  * @param  {Object}       callback.err             Error object containing error code and error message
  * @param  {Comment}      [callback.softDeleted]   If the comment is not deleted, but instead flagged as deleted because it has replies, this will return a stripped down comment object representing the deleted comment will be returned, with the `deleted` parameter set to `false`.. If the comment has been properly deleted, no comment will be returned.
  */
-var deleteComment = module.exports.deleteComment = function(restCtx, contentId, commentId, callback) {
-    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/comments/' + RestUtil.encodeURIComponent(commentId), 'DELETE', null, callback);
+var deleteComment = module.exports.deleteComment = function(restCtx, contentId, created, callback) {
+    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/comments/' + RestUtil.encodeURIComponent(created), 'DELETE', null, callback);
 };
 
 /**
@@ -230,7 +230,7 @@ var getComments = module.exports.getComments = function(restCtx, contentId, star
 
 /**
  * Get a principal library through the REST API.
- * 
+ *
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         principalId         User or group id for who we want to retrieve the library
  * @param  {String}         start               The content id to start from (this will not be included in the response)

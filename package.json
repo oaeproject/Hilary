@@ -1,10 +1,10 @@
 {
   "name": "Hilary",
-  "description": "Sakai OAE Back-end",
+  "description": "Open Academic Environment (OAE) Back-end",
   "version": "0.1.0",
-  "homepage": "https://github.com/sakaiproject/Hilary",
+  "homepage": "http://www.oaeproject.org",
   "author": {
-    "name": "The Sakai Foundation",
+    "name": "The Apereo Foundation",
     "email": "oae-dev@collab.sakaiproject.org"
   },
   "repository": {
@@ -30,6 +30,7 @@
     "connect-redis": "latest",
     "dox": "latest",
     "elasticsearchclient": "latest",
+    "etherpad-lite-client": "latest",
     "express": "latest",
     "gm": "latest",
     "helenus": "latest",

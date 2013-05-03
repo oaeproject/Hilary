@@ -233,10 +233,6 @@ config.previews = {
         'binary': 'pdftk',
         'timeout': 120000
     },
-    'phantomjs': {
-        'binary': 'phantomjs',
-        'renderDelay': 5000
-    },
     'credentials': {
         'username': 'administrator',
         'password': 'administrator'

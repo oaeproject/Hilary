@@ -198,11 +198,12 @@ var getMessages = module.exports.getMessages = function(restCtx, discussionId, s
  *
  * @param  {RestContext}    restCtx                 The context of the current request
  * @param  {String}         discussionId            The ID of the discussion from which to delete the message
- * @param  {String}         messageCreatedDate      The timestamp (in millis since the epoch) that the message we wish to delete was created
+ * @param  {String}         messageCreated          The timestamp (in millis since the epoch) that the message we wish to delete was created
  * @param  {Function}       callback                Invoked when the process completes
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Comment}        [callback.softDeleted]  When the message has been soft deleted (because it has replies), a stripped down message object representing the deleted message will be returned, with the `deleted` parameter set to `false`. If the message has been deleted from the index, no message object will be returned.
  */
 var deleteMessage = module.exports.deleteMessage = function(restCtx, discussionId, messageCreated, callback) {
-    RestUtil.RestRequest(restCtx, '/api/discussions/' + RestUtil.encodeURIComponent(discussionId) + '/messages/' + RestUtil.encodeURIComponent(messagesCreated), 'DELETE', null, callback);
+    RestUtil.RestRequest(restCtx, '/api/discussions/' + RestUtil.encodeURIComponent(discussionId) + '/messages/' + RestUtil.encodeURIComponent(messageCreated), 'DELETE', null, callback);
 };
+

@@ -54,7 +54,7 @@ var createDiscussion = module.exports.createDiscussion = function(restCtx, displ
  * @param  {Object}         callback.err        An error that occurred, if any
  * @param  {Discussion}     callback.discussion The updated discussion object
  */
-var updateDiscussion = module.exports.updateDiscussions = function(restCtx, discussionId, profileFields, callback) {
+var updateDiscussion = module.exports.updateDiscussion = function(restCtx, discussionId, profileFields, callback) {
     RestUtil.RestRequest(restCtx, '/api/discussions/' + RestUtil.encodeURIComponent(discussionId), 'POST', profileFields, callback);
 };
 
@@ -89,7 +89,7 @@ var getDiscussion = module.exports.getDiscussion = function(restCtx, discussionI
  * @param  {Discussion[]}   callback.discussions    The array of discussions fetched
  * @param  {String}         [callback.nextToken]    The token that can be used as the `start` parameter to fetch the next set of tokens (exclusively). If not specified, indicates that the query fetched all remaining results.
  */
-var getDiscussions = module.exports.getDiscussions = function(restCtx, principalId, start, limit, callback) {
+var getDiscussionsLibrary = module.exports.getDiscussionsLibrary = function(restCtx, principalId, start, limit, callback) {
     var params = {'start': start, 'limit': limit};
     RestUtil.RestRequest(restCtx, '/api/discussions/library/' + RestUtil.encodeURIComponent(principalId), 'GET', params, callback);
 };
@@ -129,17 +129,34 @@ var updateDiscussionMembers = module.exports.updateDiscussionMembers = function(
 
 /**
  * Share a discussion with a number of users and groups. The role of the target principals will be `member`. If
- * any principals in the list already have the content item in their library, then this will have no impact for
+ * any principals in the list already have the discussion in their library, then this will have no impact for
  * that user with no error. Only those who do not have the discussion in their library will be impacted.
  *
- * @param  {RestContext}    restCtx             The context of the current request
- * @param  {String}         discussionId        The id of the discussion to share
- * @param  {String[]}       principalIds        The ids of the principals with which the discussion will be shared
- * @param  {Function}       callback            Invoked when the process completes
- * @param  {Object}         callback.err        An error that occurred, if any
+ * @param  {RestContext}    restCtx         The context of the current request
+ * @param  {String}         discussionId    The id of the discussion to share
+ * @param  {String[]}       principalIds    The ids of the principals with which the discussion will be shared
+ * @param  {Function}       callback        Invoked when the process completes
+ * @param  {Object}         callback.err    An error that occurred, if any
  */
 var shareDiscussion = module.exports.shareDiscussion = function(restCtx, discussionId, principalIds, callback) {
     RestUtil.RestRequest(restCtx, '/api/discussions/' + RestUtil.encodeURIComponent(discussionId) + '/share', 'POST', {'members': principalIds}, callback);
+};
+
+
+/**
+ * Remove a discussion from a discussion library. This is its own API method due to special permission handling required, as the user
+ * is effectively updating a discussions permissions (removing themselves, or removing it from a group they manage), and they might not
+ * necessarily have access to update the permissions of the private discussion (e.g., they are only a member). Also, tenant privacy
+ * rules do not come into play in this case.
+ *
+ * @param  {RestContext}    restCtx         The context of the current request
+ * @param  {String}         libraryOwnerId  The owner of the library, should be a principal id (either user or group id)
+ * @param  {String}         discussionId    The id of the discussion to remove from the library
+ * @param  {Function}       callback        Invoked when the method is complete
+ * @param  {Object}         callback.err    An error that occurred, if any
+ */
+var removeDiscussionFromLibrary = module.exports.removeDiscussionFromLibrary = function(restCtx, libraryOwnerId, discussionId, callback) {
+    RestUtil.RestRequest(restCtx, '/api/discussions/library/' + RestUtil.encodeURIComponent(libraryOwnerId) + '/' + RestUtil.encodeURIComponent(discussionId), 'POST', null, callback);
 };
 
 /**
@@ -180,7 +197,7 @@ var getMessages = module.exports.getMessages = function(restCtx, discussionId, s
  * to the discussion can only delete their own messages. Therefore, anonymous users will never be able to delete messages.
  *
  * @param  {RestContext}    restCtx                 The context of the current request
- * @param  {String}         contentId               The ID of the discussion from which to delete the message
+ * @param  {String}         discussionId            The ID of the discussion from which to delete the message
  * @param  {String}         messageCreatedDate      The timestamp (in millis since the epoch) that the message we wish to delete was created
  * @param  {Function}       callback                Invoked when the process completes
  * @param  {Object}         callback.err            An error that occurred, if any

@@ -29,7 +29,7 @@ var config = module.exports.config = {};
  * @param   {String}    [hashesPath]    The path (relative to the `path` property) for a mapping of file paths to actual location. This is useful for static assets whose filenames are altered during UI optimization. If this file does not exist or is invalid JSON, startup will continue assuming there is no mapping required.
  */
 config.ui = {
-    'path': '../3akai-ux',
+    'path': '../3akai-ux/target/optimized',
     'hashesPath': 'hashes.json'
 };
 
@@ -331,7 +331,7 @@ config.saml = {
  * @param  {Number}     hosts[i].internalEtherpadPort   The port number on which Hilary will be accessing the etherpad API.
  */
 config.etherpad = {
-    'apikey': '13SirapH8t3kxUh5T5aqWXhXahMzoZRA',
+    'apikey': 'F6v3RJbdLV1xV9SoRyxJERFdAvvrulh7',
     'hosts': [
         {
             'externalProtocol': 'http',

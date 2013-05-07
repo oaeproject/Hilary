@@ -192,15 +192,17 @@ config.search = {
  *
  * Configuration namespace for the message queue (RabbitMQ).
  *
- * @param   {Object}    connection      The connection description
- * @param   {String}    connection.host The host for the connection
- * @param   {Number}    connection.port The port for the connection
+ * @param  {Object}     connection              The connection description
+ * @param  {String}     connection.host         The host for the connection
+ * @param  {Number}     connection.port         The port for the connection
+ * @param  {Boolean}    [purgeQueuesOnStartup]  If `true`, the application will **delete** all messages in a queue when a worker is first bound. This setting only takes effect if the NODE_ENV environment variable is not set to `production` to indicate a production environment. Default: `false`
  */
 config.mq = {
     'connection': {
         'host': 'localhost',
         'port': 5672
-    }
+    },
+    'purgeQueuesOnStartup': false
 };
 
 /**
@@ -231,10 +233,6 @@ config.previews = {
         'binary': 'pdftk',
         'timeout': 120000
     },
-    'phantomjs': {
-        'binary': 'phantomjs',
-        'renderDelay': 5000
-    },
     'credentials': {
         'username': 'administrator',
         'password': 'administrator'
@@ -245,7 +243,6 @@ config.previews = {
  * `config.signing`
  *
  * Configuration namespace for the signing logic
- * FIXME: once https://github.com/sakaiproject/Hilary/issues/331 is addressed, this config can move to the Global Admin Config.
  *
  * @param   {String}    key     This key will be used to sign URLs like profile pictures, content previews, etc.. . It's vital to the security of the system that you change this in production.
  */
@@ -318,4 +315,30 @@ config.email = {
  */
 config.saml = {
     'SAMLParserJarPath': ''
+};
+
+/**
+ * `config.etherpad`
+ *
+ * Configuration namespace for the etherpad logic.
+ *
+ * @param  {String}     apikey                          The key that can be used to communicate with the etherpad API.
+ * @param  {Object[]}   hosts                           The hosts where etherpad instances can be found.
+ * @param  {String}     hosts[i].externalProtocol       The protocol on which users will be accessing Etherpad. Either `http` or `https`
+ * @param  {String}     hosts[i].externalEtherpadHost   The hostname or IP address on which users will be accessing Etherpad.
+ * @param  {String}     hosts[i].externalEtherpadPort   The port on which users will be accessing Etherpad.
+ * @param  {String}     hosts[i].internalEtherpadHost   The hostname or IP address on which Hilary will be accessing the Etherpad API.
+ * @param  {Number}     hosts[i].internalEtherpadPort   The port number on which Hilary will be accessing the etherpad API.
+ */
+config.etherpad = {
+    'apikey': '13SirapH8t3kxUh5T5aqWXhXahMzoZRA',
+    'hosts': [
+        {
+            'externalProtocol': 'http',
+            'externalHost': 'localhost',
+            'externalPort': 9001,
+            'internalHost': 'localhost',
+            'internalPort': 9001
+        }
+    ]
 };

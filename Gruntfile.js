@@ -10,93 +10,93 @@ module.exports = function(grunt) {
 
     // Project configuration.
     grunt.initConfig({
-        pkg: grunt.file.readJSON('package.json'),
-        jslint: {
-            files:['Gruntfile.js', 'node_modules/oae-*/lib/**/*.js', 'node_modules/oae-*/tests/**/*.js',
-                   'node_modules/oae-*/config/**/*.js'],
-            directives: {
-                node: true,
-                predef: ['it', 'describe', 'beforeEach', 'before', 'afterEach', 'after'],
-                sub: true,
-                indent: 4,
-                quotmark: 'single',
-                curly: true
+        'pkg': grunt.file.readJSON('package.json'),
+        'jslint': {
+            'files': ['Gruntfile.js', 'node_modules/oae-*/lib/**/*.js', 'node_modules/oae-*/tests/**/*.js',
+                      'node_modules/oae-*/config/**/*.js'],
+            'directives': {
+                'node': true,
+                'predef': ['it', 'describe', 'beforeEach', 'before', 'afterEach', 'after'],
+                'sub': true,
+                'indent': 4,
+                'quotmark': 'single',
+                'curly': true
             },
-            options: {
-                shebang: true
+            'options': {
+                'shebang': true
             }
         },
-        jshint: {
-            options: {
-                node: true,
-                sub: true,
-                indent: 4,
-                trailing: true,
-                quotmark: 'single',
-                curly: true,
-                white: false,
-                strict: false,
-                globals: {
-                    it: true,
-                    describe: true,
-                    before: true,
-                    beforeEach: true,
-                    after: true,
-                    afterEach: true
+        'jshint': {
+            'options': {
+                'node': true,
+                'sub': true,
+                'indent': 4,
+                'trailing': true,
+                'quotmark': 'single',
+                'curly': true,
+                'white': false,
+                'strict': false,
+                'globals': {
+                    'it': true,
+                    'describe': true,
+                    'before': true,
+                    'beforeEach': true,
+                    'after': true,
+                    'afterEach': true
                 }
             },
-            files: '<%= jslint.files %>'
+            'files': '<%= jslint.files %>'
         },
         'mocha-hack': {
-            all: {
-                src: ['node_modules/oae-tests/runner/beforeTests.js', 'node_modules/oae-*/tests/**/*.js'],
-                options: {
-                    timeout: MOCHA_TIMEOUT,
-                    ignoreLeaks: true,
-                    reporter: 'spec',
-                    grep: mocha_grep,
-                    bail: false,
-                    slow: 500
+            'all': {
+                'src': ['node_modules/oae-tests/runner/beforeTests.js', 'node_modules/oae-*/tests/**/*.js'],
+                'options': {
+                    'timeout': MOCHA_TIMEOUT,
+                    'ignoreLeaks': true,
+                    'reporter': 'spec',
+                    'grep': mocha_grep,
+                    'bail': false,
+                    'slow': 500
                 }
             }
         },
-        clean: ['target/'],
-        copy: {
-            coverage: {
-                files: {
+        'clean': ['target/'],
+        'copy': {
+            'coverage': {
+                'files': {
                     'target/': '**'
                 }
             }
         },
-        replace: {
-            jsdoc: {
-                src: ['node_modules/oae-*/**/*.js'],
-                overwrite: true,
-                replacements: [
+        'replace': {
+            'jsdoc': {
+                'src': ['node_modules/oae-*/**/*.js'],
+                'overwrite': true,
+                'replacements': [
                     {
-                        from: /@param (\S|\s\s)/,
-                        to: function(matchedWord, index, fullText, regexMatches) {
+                        'from': /@param (\S|\s\s)/,
+                        'to': function(matchedWord, index, fullText, regexMatches) {
                             var msg ='@param should be followed by 2 spaces';
                             return logMatch(msg, matchedWord, index, fullText, regexMatches);
                         }
                     },
                     {
-                        from: /@return \s/,
-                        to: function(matchedWord, index, fullText, regexMatches) {
+                        'from': /@return \s/,
+                        'to': function(matchedWord, index, fullText, regexMatches) {
                             var msg ='@return should be followed by 1 space';
                             return logMatch(msg, matchedWord, index, fullText, regexMatches);
                         }
                     },
                     {
-                        from: /@returns/,
-                        to: function(matchedWord, index, fullText, regexMatches) {
+                        'from': /@returns/,
+                        'to': function(matchedWord, index, fullText, regexMatches) {
                             var msg ='Use @return instead of @returns';
                             return logMatch(msg, matchedWord, index, fullText, regexMatches);
                         }
                     },
                     {
-                        from: /@throws \s/,
-                        to: function(matchedWord, index, fullText, regexMatches) {
+                        'from': /@throws \s/,
+                        'to': function(matchedWord, index, fullText, regexMatches) {
                             var msg ='@throws should be followed by 1 space';
                             return logMatch(msg, matchedWord, index, fullText, regexMatches);
                         }
@@ -127,12 +127,12 @@ module.exports = function(grunt) {
     // Make a task for running tests on a single module
     grunt.registerTask('test-module', 'Test a single module', function(module) {
         var config = {
-            src: ['node_modules/oae-tests/runner/beforeTests.js', 'node_modules/' + module + '/tests/**/*.js'],
-            options: {
-                timeout: MOCHA_TIMEOUT,
-                ignoreLeaks: true,
-                reporter: 'spec',
-                grep: mocha_grep
+            'src': ['node_modules/oae-tests/runner/beforeTests.js', 'node_modules/' + module + '/tests/**/*.js'],
+            'options': {
+                'timeout': MOCHA_TIMEOUT,
+                'ignoreLeaks': true,
+                'reporter': 'spec',
+                'grep': mocha_grep
             }
         };
         grunt.config.set('mocha-hack.' + module, config);

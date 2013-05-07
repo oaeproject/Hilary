@@ -1,3 +1,3 @@
-Sakai OAE `rest` module. 
+The `rest` module for OAE. 
 
-This is a stand-alone module that can be used to communicate with a live Sakai OAE instance through its REST endpoints.
+This is a stand-alone module that can be used to communicate with a live OAE instance through its REST endpoints.

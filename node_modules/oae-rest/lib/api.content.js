@@ -249,13 +249,14 @@ var getLibrary = module.exports.getLibrary = function(restCtx, principalId, star
 
 /**
  * Get the revisions for a piece of content.
+ *
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         contentId           Content id of the content item we're trying to retrieve the revisions for
  * @param  {String}         start               The revision id to start from (this will not be included in the response)
  * @param  {Number}         limit               The number of revisions to retrieve.
  * @param  {Function}       callback            Standard callback method
  * @param  {Object}         callback.err        Error object containing error code and error message
- * @param  {Content[]}      callback.items      Array of revisions
+ * @param  {Revision[]}     callback.items      Array of revisions
  */
 var getRevisions = module.exports.getRevisions = function(restCtx, contentId, start, limit, callback) {
     var params = {
@@ -266,7 +267,37 @@ var getRevisions = module.exports.getRevisions = function(restCtx, contentId, st
 };
 
 /**
+ * Get a specific revision for a piece of content.
+ *
+ * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}         contentId           Content id of the content item we're trying to retrieve the revision for
+ * @param  {String}         revisionId          The id of the revision to retrieve.
+ * @param  {Function}       callback            Standard callback method
+ * @param  {Object}         callback.err        Error object containing error code and error message
+ * @param  {Revision}       callback.revision   Revision object representing the retrieved revision.
+ */
+var getRevision = module.exports.getRevision = function(restCtx, contentId, revisionId, callback) {
+    var url = '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/revisions/' + RestUtil.encodeURIComponent(revisionId);
+    RestUtil.RestRequest(restCtx, url, 'GET', null, callback);
+};
+
+/**
+ * Restore a specific revision for a piece of content.
+ *
+ * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}         contentId           Content id of the content item we're trying to restore the revision for
+ * @param  {String}         revisionId          The id of the revision to restore.
+ * @param  {Function}       callback            Standard callback method
+ * @param  {Object}         callback.err        Error object containing error code and error message
+ */
+var restoreRevision = module.exports.restoreRevision = function(restCtx, contentId, revisionId, callback) {
+    var url = '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/revisions/' + RestUtil.encodeURIComponent(revisionId) + '/restore';
+    RestUtil.RestRequest(restCtx, url, 'POST', null, callback);
+};
+
+/**
  * Update the filebody for a sakai file.
+ *
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         contentId           Content id of the content item we're trying to update
  * @param  {Function}       file                A function that returns a stream which points to a file body.
@@ -377,6 +408,30 @@ var download = module.exports.download = function(restCtx, contentId, revisionId
     }
 };
 
+/**
+ * Publish a collaborative document.
+ *
+ * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}         contentId           Content id of the content item we're trying to publish.
+ * @param  {Function}       callback            Standard callback method
+ * @param  {Object}         callback.err        Error object containing error code and error message
+ */
+var publishCollabDoc = module.exports.publishCollabDoc = function(restCtx, contentId, callback) {
+    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/publish', 'POST', null, callback);
+};
+
+/**
+ * Join a collaborative document.
+ *
+ * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}         contentId           Content id of the content item we're trying to join.
+ * @param  {Function}       callback            Standard callback method
+ * @param  {Object}         callback.err        Error object containing error code and error message.
+ * @param  {String}         callback.url        The URL where the etherpad instance for the collaborative document is available.
+ */
+var joinCollabDoc = module.exports.joinCollabDoc = function(restCtx, contentId, callback) {
+    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/join', 'POST', null, callback);
+};
 
 /**
  * Set one or multiple preview items.
@@ -385,19 +440,23 @@ var download = module.exports.download = function(restCtx, contentId, revisionId
  *
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         contentId           Content id of the content item we're trying to retrieve the list of preview items from.
+ * @param  {String}         revisionId          Revision id of the content item we're trying to retrieve the list of preview items from.
  * @param  {String}         status              The status of the preview generation. One of 'error', 'done' or 'pending'.
  * @param  {Object}         files               A hash where the key is the filename and the value is a function that returns a stream for a preview item.
- * @param  {Object}         sizes               A hash where the key is the filename and the value is a string that represents the preview size of the item. It should be one of 'small', 'medium', 'large' or 'thumbnail'.
- * @param  {Object}         [metadata]          Extra optional metadata.
+ * @param  {Object}         sizes               A hash where the key is the filename and the value is a string that represents the preview size of the item. It should be one of 'small', 'medium', 'large', 'activity' or 'thumbnail'.
+ * @param  {Object}         [contentMetadata]   Extra optional content metadata.
+ * @param  {Object}         [previewMetadata]   Extra optional preview metadata.
  * @param  {Function}       callback            Standard callback method
  * @param  {Object}         callback.err        Error object containing error code and error message
  */
-var setPreviewItems = module.exports.setPreviewItems = function(restCtx, contentId, status, files, sizes, metadata, callback) {
-    metadata = metadata || {};
+var setPreviewItems = module.exports.setPreviewItems = function(restCtx, contentId, revisionId, status, files, sizes, contentMetadata, previewMetadata, callback) {
+    previewMetadata = previewMetadata || {};
+    contentMetadata = contentMetadata || {};
     var params = {
         'status': status,
         'sizes': {},
-        'metadata': JSON.stringify(metadata)
+        'previewMetadata': JSON.stringify(previewMetadata),
+        'contentMetadata': JSON.stringify(contentMetadata)
     };
 
     // Add the files and their sizes to the parameters.
@@ -406,7 +465,8 @@ var setPreviewItems = module.exports.setPreviewItems = function(restCtx, content
         params.sizes[filename] = sizes[filename];
     });
     params.sizes = JSON.stringify(params.sizes);
-    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/previews', 'POST', params, callback);
+    var url = '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/revisions/' + RestUtil.encodeURIComponent(revisionId) + '/previews';
+    RestUtil.RestRequest(restCtx, url, 'POST', params, callback);
 };
 
 /**
@@ -414,11 +474,13 @@ var setPreviewItems = module.exports.setPreviewItems = function(restCtx, content
  *
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         contentId           Content id of the content item we're trying to retrieve the preview items.
+ * @param  {String}         revisionId          Revision id of the preview items.
  * @param  {Function}       callback            Standard callback method
  * @param  {Object}         callback.err        Error object containing error code and error message
  */
-var getPreviewItems = module.exports.getPreviewItems = function(restCtx, contentId, callback) {
-    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/previews', 'GET', {}, callback);
+var getPreviewItems = module.exports.getPreviewItems = function(restCtx, contentId, revisionId, callback) {
+    var url = '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/revisions/' + RestUtil.encodeURIComponent(revisionId) + '/previews';
+    RestUtil.RestRequest(restCtx, url, 'GET', {}, callback);
 };
 
 /**
@@ -426,6 +488,7 @@ var getPreviewItems = module.exports.getPreviewItems = function(restCtx, content
  *
  * @param  {RestContext}    restCtx                 Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         contentId               Content id of the content item we're trying to download a preview item from.
+ * @param  {String}         revisionId              Revision id for the preview item.
  * @param  {String}         previewItem             The preview item.
  * @param  {Object}         signature               A signature that validates this call.
  * @param  {String}         signature.signature     A signature that validates this call.
@@ -435,8 +498,8 @@ var getPreviewItems = module.exports.getPreviewItems = function(restCtx, content
  * @param  {Object}         callback.err            Error object containing error code and error message
  * @param  {Object}         callback.body           The body of the response.
  */
-var downloadPreviewItem = module.exports.downloadPreviewItem = function(restCtx, contentId, previewItem, signature, callback) {
-    var url = '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/previews/';
+var downloadPreviewItem = module.exports.downloadPreviewItem = function(restCtx, contentId, revisionId, previewItem, signature, callback) {
+    var url = '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/revisions/' + RestUtil.encodeURIComponent(revisionId) + '/previews/';
     url += RestUtil.encodeURIComponent(previewItem);
     var params = {
         'signature': signature.signature,

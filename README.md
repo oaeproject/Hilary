@@ -1,13 +1,13 @@
-# Sakai OAE
+# Open Academic Environment (OAE Project)
 
-Hilary is the back-end for Sakai OAE
+Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject.org/)
 
 ## Build status
 [![Build Status](https://travis-ci.org/sakaiproject/Hilary.png?branch=master)](https://travis-ci.org/sakaiproject/Hilary)
 
 ## Quickstart Guide
 
-The following guide will take you through the necessary steps to run the back-end for Sakai OAE (Hilary) and its reference UI (3akai-ux) for development purposes.
+The following guide will take you through the necessary steps to run the back-end for OAE (Hilary) and its reference UI (3akai-ux) for development purposes.
 
 ### Installing dependencies
 If you're installing on Windows (not recommended for production) there's a package manager called Chocolatey that can be used to install all the dependencies quickly. See the `Windows Dependencies` section of this document for more information.
@@ -56,7 +56,7 @@ cd my-elasticsearch-dir
 bin/elasticsearch
 ```
 
-ElasticSearch powers the full-text search functionality of Sakai OAE.
+ElasticSearch powers the full-text search functionality of OAE.
 
 #### RabbitMQ
 
@@ -90,9 +90,9 @@ Download and install [LibreOffice](http://www.libreoffice.org/download/). This d
 
 Download and install [PhantomJS](http://www.phantomjs.org/download.html). This dependency takes care of creating screenshots of regular webpages.
 
-#### Nginx (version 1.3.11 or higher)
+#### Nginx (version 1.3.14 or higher)
 
-Download [Nginx **version 1.3.11 or higher**](http://nginx.org/en/download.html) (at the time of writing, version 1.3.11 can only be found as a development version). You will need [PCRE](http://www.pcre.org/) to configure Nginx.
+Download [Nginx **version 1.3.14 or higher**](http://nginx.org/en/download.html) (at the time of writing, version 1.3.14 can only be found as a development version). You will need [PCRE](http://www.pcre.org/) to configure Nginx.
 
 Once you've downloaded and extracted both to directories of your choice, you can configure and install:
 
@@ -105,7 +105,16 @@ cd /usr/local/nginx
 sudo sbin/nginx
 ```
 
-Nginx is the most tested load balancer and web server used for Sakai OAE. A web server such as Nginx is necessary for file downloads to work properly.
+Nginx is the most tested load balancer and web server used for OAE. A web server such as Nginx is necessary for file downloads to work properly.
+
+#### Etherpad lite
+
+[Etherpad](http://etherpad.org/) is an open-source editor for online collaborative editing in real-time and is used to power the collaborative documents. Follow the [README](https://github.com/ether/etherpad-lite/blob/develop/README.md) to get it installed.
+
+Once you've installed the server you will also need the [Etherpad OAE](https://github.com/sakaiproject/ep_oae) plugin. It's the glue for authenticating users between Hilary and etherpad-lite.
+The simplest method of installing the plugin is cloning it in the top node_modules folder that can be found in your etherpad-lite directory.
+
+Hilary will also need to be configured to use the correct Etherpad API key. The key can be found (or created) in a plain-text file at ~/etherpad-lite/APIKEY.txt
 
 #### Windows Dependencies
 
@@ -156,7 +165,7 @@ Please remember that filenames and directories that contain spaces can sometimes
 
 ##### Hosts file
 
-Sakai OAE is a multi-tenant system that discriminates the tenant by the host name with which you are accessing the server. In order to support the "Global Tenant" (i.e., the tenant that hosts the administration UI) and a "User Tenant", you will need to have at least 2 different host names that point to your server. To do this, you will need to add the following entries to your `/etc/hosts` file:
+OAE is a multi-tenant system that discriminates the tenant by the host name with which you are accessing the server. In order to support the "Global Tenant" (i.e., the tenant that hosts the administration UI) and a "User Tenant", you will need to have at least 2 different host names that point to your server. To do this, you will need to add the following entries to your `/etc/hosts` file:
 
 ```
 127.0.0.1   admin.oae.com
@@ -225,5 +234,5 @@ When you start the server, all data schemas will be created for you if they don'
 
 That's it! You can now access the user tenant by their host http://tenant1.oae.com and start creating new users.
 
-We're looking forward to seeing your contributions to the Sakai OAE project!
+We're looking forward to seeing your contributions to the OAE project!
 

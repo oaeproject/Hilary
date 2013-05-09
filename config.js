@@ -26,11 +26,9 @@ var config = module.exports.config = {};
  * Configuration namespace for the UI module.
  *
  * @param   {String}    path            The path to the UI static assets
- * @param   {String}    [hashesPath]    The path (relative to the `path` property) for a mapping of file paths to actual location. This is useful for static assets whose filenames are altered during UI optimization. If this file does not exist or is invalid JSON, startup will continue assuming there is no mapping required.
  */
 config.ui = {
-    'path': '../3akai-ux',
-    'hashesPath': 'hashes.json'
+    'path': '../3akai-ux'
 };
 
 // Cassandra related config information.

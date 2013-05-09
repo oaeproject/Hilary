@@ -13,10 +13,6 @@
  * permissions and limitations under the License.
  */
 
-var _ = require('underscore');
-var fs = require('fs');
-var request = require('request');
-
 var RestUtil = require('./util');
 
 /**
@@ -28,12 +24,11 @@ var RestUtil = require('./util');
  * @param  {String}         [visibility]        The visibility of the discussion. One of public, loggedin, private. Defaults to the configured tenant default.
  * @param  {String[]}       [managers]          The principal ids of the initial managers of the discussion
  * @param  {String[]}       [members]           The principal ids of the initial members of the discussion
- * @param  {Object}         [opts]              Additional optional parameters
  * @param  {Function}       callback            Invoked when the process completes
  * @param  {Object}         callback.err        An error that occurred, if any
  * @param  {Discussion}     callback.discussion The discussion object that was created
  */
-var createDiscussion = module.exports.createDiscussion = function(restCtx, displayName, description, visibility, managers, members, opts, callback) {
+var createDiscussion = module.exports.createDiscussion = function(restCtx, displayName, description, visibility, managers, members, callback) {
     var params = {
         'displayName': displayName,
         'description': description,
@@ -42,20 +37,6 @@ var createDiscussion = module.exports.createDiscussion = function(restCtx, displ
         'members': members
     };
     RestUtil.RestRequest(restCtx, '/api/discussions/create', 'POST', params, callback);
-};
-
-/**
- * Update the basic profile of the specified discussion.
- *
- * @param  {RestContext}    restCtx             The context of the current request
- * @param  {String}         discussionId        The id of the discussion to update
- * @param  {Object}         profileFields       An object whose keys are profile field names, and the value is the value to which you wish the field to change. Keys must be one of: displayName, visibility, discription
- * @param  {Function}       callback            Invoked when the process completes
- * @param  {Object}         callback.err        An error that occurred, if any
- * @param  {Discussion}     callback.discussion The updated discussion object
- */
-var updateDiscussion = module.exports.updateDiscussion = function(restCtx, discussionId, profileFields, callback) {
-    RestUtil.RestRequest(restCtx, '/api/discussions/' + RestUtil.encodeURIComponent(discussionId), 'POST', profileFields, callback);
 };
 
 /**
@@ -77,11 +58,25 @@ var getDiscussion = module.exports.getDiscussion = function(restCtx, discussionI
 };
 
 /**
- * Get the discussions library items for the specified user. Depending on the access of the user in context,
+ * Update the metadata of the specified discussion.
+ *
+ * @param  {RestContext}    restCtx             The context of the current request
+ * @param  {String}         discussionId        The id of the discussion to update
+ * @param  {Object}         profileFields       An object whose keys are profile field names, and the value is the value to which you wish the field to change. Keys must be one of: displayName, visibility, description
+ * @param  {Function}       callback            Invoked when the process completes
+ * @param  {Object}         callback.err        An error that occurred, if any
+ * @param  {Discussion}     callback.discussion The updated discussion object
+ */
+var updateDiscussion = module.exports.updateDiscussion = function(restCtx, discussionId, profileFields, callback) {
+    RestUtil.RestRequest(restCtx, '/api/discussions/' + RestUtil.encodeURIComponent(discussionId), 'POST', profileFields, callback);
+};
+
+/**
+ * Get the discussions library items for the specified principal. Depending on the access of the user in context,
  * either a library of public, loggedin, or all items will be returned.
  *
  * @param  {RestContext}    restCtx                 The context of the current request
- * @param  {String}         principalId             The id of the user whose discussion library to fetch
+ * @param  {String}         principalId             The id of the principal whose discussion library to fetch
  * @param  {String}         [start]                 The discussion ordering token from which to start fetching discussions (see `nextToken` in callback params)
  * @param  {Number}         [limit]                 The maximum number of results to return. Default: 10
  * @param  {Function}       callback                Invoked when the process completes
@@ -90,7 +85,10 @@ var getDiscussion = module.exports.getDiscussion = function(restCtx, discussionI
  * @param  {String}         [callback.nextToken]    The token that can be used as the `start` parameter to fetch the next set of tokens (exclusively). If not specified, indicates that the query fetched all remaining results.
  */
 var getDiscussionsLibrary = module.exports.getDiscussionsLibrary = function(restCtx, principalId, start, limit, callback) {
-    var params = {'start': start, 'limit': limit};
+    var params = {
+        'start': start,
+        'limit': limit
+    };
     RestUtil.RestRequest(restCtx, '/api/discussions/library/' + RestUtil.encodeURIComponent(principalId), 'GET', params, callback);
 };
 
@@ -108,20 +106,22 @@ var getDiscussionsLibrary = module.exports.getDiscussionsLibrary = function(rest
  * @param  {User|Group}     callback.members[i].profile The principal profile of the member at index `i`
  */
 var getDiscussionMembers = module.exports.getDiscussionMembers = function(restCtx, discussionId, start, limit, callback) {
-    var params = {'start': start, 'limit': limit};
+    var params = {
+        'start': start,
+        'limit': limit
+    };
     RestUtil.RestRequest(restCtx, '/api/discussions/' + RestUtil.encodeURIComponent(discussionId) + '/members', 'GET', params, callback);
 };
 
 /**
- * Update the permissions of a discussion. This method will ensure that the current user in context has access to change the
+ * Update the members of a discussion. This method will ensure that the current user in context has access to change the
  * permissions, as well as ensure the discussion does not end up with no manager members.
  *
  * @param  {RestContext}    restCtx                 The context of the current request
  * @param  {String}         discussionId            The id of the discussion to share
- * @param  {Object}         permissionChanges       An object that describes the permission changes to apply to the discussion. The key is the id of the principal to which to apply the change, and the value is the role to apply to the principal. If the value is `false`, the principal will be revoked access.
+ * @param  {Object}         permissionChanges       An object that describes the permission changes to apply to the discussion. The key is the id of the principal to which to apply the change, and the value is the role to apply to the principal. If the value is `false`, the principal will be revoked access. Acceptable values are: member, manager, or false.
  * @param  {Function}       callback                Invoked when the process completes
  * @param  {Object}         callback.err            An error that occurred, if any
- * @param  {Object}         callback.permissions    An object describing the permissions of the discussion after the change is applied. The key is the principal id and the value is the role that the principal has on the discussion
  */
 var updateDiscussionMembers = module.exports.updateDiscussionMembers = function(restCtx, discussionId, memberUpdates, callback) {
     RestUtil.RestRequest(restCtx, '/api/discussions/' + RestUtil.encodeURIComponent(discussionId) + '/members', 'POST', memberUpdates, callback);
@@ -139,7 +139,10 @@ var updateDiscussionMembers = module.exports.updateDiscussionMembers = function(
  * @param  {Object}         callback.err    An error that occurred, if any
  */
 var shareDiscussion = module.exports.shareDiscussion = function(restCtx, discussionId, principalIds, callback) {
-    RestUtil.RestRequest(restCtx, '/api/discussions/' + RestUtil.encodeURIComponent(discussionId) + '/share', 'POST', {'members': principalIds}, callback);
+    var params = {
+        'members': principalIds
+    };
+    RestUtil.RestRequest(restCtx, '/api/discussions/' + RestUtil.encodeURIComponent(discussionId) + '/share', 'POST', params, callback);
 };
 
 
@@ -172,7 +175,11 @@ var removeDiscussionFromLibrary = module.exports.removeDiscussionFromLibrary = f
  * @param  {Message}        callback.message            The message object that was created
  */
 var createMessage = module.exports.createMessage = function(restCtx, discussionId, body, replyTo, callback) {
-    RestUtil.RestRequest(restCtx, '/api/discussions/' + RestUtil.encodeURIComponent(discussionId) + '/messages', 'POST', {'body': body, 'replyTo': replyTo}, callback);
+    var params = {
+        'body': body,
+        'replyTo': replyTo
+    };
+    RestUtil.RestRequest(restCtx, '/api/discussions/' + RestUtil.encodeURIComponent(discussionId) + '/messages', 'POST', params, callback);
 };
 
 /**
@@ -184,11 +191,14 @@ var createMessage = module.exports.createMessage = function(restCtx, discussionI
  * @param  {Number}         [limit]                     The maximum number of results to return. Default: 10
  * @param  {Function}       callback                    Invoked when the process completes
  * @param  {Object}         callback.err                An error that occurred, if any
- * @param  {Object}         callback.results            An object containing the messages returned
- * @param  {Message[]}      callback.results.results    The list of messages retrieved
+ * @param  {Object}         callback.messages           An object containing the messages returned
+ * @param  {Message[]}      callback.messages.results   The list of messages retrieved
  */
 var getMessages = module.exports.getMessages = function(restCtx, discussionId, start, limit, callback) {
-    var params = {'start': start, 'limit': limit};
+    var params = {
+        'start': start,
+        'limit': limit
+    };
     RestUtil.RestRequest(restCtx, '/api/discussions/' + RestUtil.encodeURIComponent(discussionId) + '/messages', 'GET', params, callback);
 };
 

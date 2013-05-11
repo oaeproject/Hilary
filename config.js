@@ -61,17 +61,18 @@ config.redis = {
  *
  * Configuration namespace for servers.
  *
- * @param   {String}    globalAdminAlias        The tenant alias that will be used for the global admins.
- * @param   {String}    globalAdminHost         The hostname on which the global admin server can be reached by users.
- * @param   {Number}    globalAdminPort         The network port on which the global admin express server can run.
- * @param   {Number}    tenantPort              The network port on which the tenant express server can run.
+ * @param  {String}     globalAdminAlias        The tenant alias that will be used for the global admins.
+ * @param  {String}     globalAdminHost         The hostname on which the global admin server can be reached by users.
+ * @param  {Number}     globalAdminPort         The network port on which the global admin express server can run.
+ * @param  {Number}     tenantPort              The network port on which the tenant express server can run.
+ * @param  {Boolean}    useHttps                Whether or not the server is accessible via HTTPS. Hilary will *not* expose an HTTPS server, it's up to a frontend server such as Apache or Nginx to deal with the actual delivery of HTTPS traffic. This flag is mainly used to generate correct backlinks to the web application.
  */
 config.servers = {
-    // Port on which the global admin server should be initialized
     'globalAdminAlias': 'admin',
     'globalAdminHost': 'admin.oae.com',
     'globalAdminPort': 2000,
-    'tenantPort': 2001
+    'tenantPort': 2001,
+    'useHttps': false
 };
 
 var tmpDir = process.env.TMP || process.env.TMPDIR || process.env.TEMP || '/tmp' || process.cwd();

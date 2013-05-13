@@ -291,11 +291,17 @@ config.activity = {
  *
  * @param  {Boolean}    [debug]                     Determines whether or not email is in debug mode. If in debug mode, email messages are logged, not actually sent through any service.
  * @param  {String}     [customEmailTemplatesDir]   Specifies a directory that holds the tenant-specific email template overrides
+ * @param  {String}     transport                   Which method of e-mail transport should be used. Either `SMTP` or `sendmail`.
+ * @param  {Object}     [sendmailTransport]         An object with a `path` key which value points to the sendmail binary.
  * @param  {Object}     [smtpTransport]             The SMTP connection information for sending emails. This is the settings object that will be used by nodemailer to form an smtp connection: https://github.com/andris9/Nodemailer
  */
 config.email = {
     'debug': true,
     'customEmailTemplatesDir': null,
+    'transport': 'SMTP',
+    'sendmailTransport': {
+        'path': '/usr/sbin/sendmail'
+    },
     'smtpTransport': {
         'service': 'Gmail',
         'auth': {

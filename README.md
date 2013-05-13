@@ -123,7 +123,7 @@ Next, we need to enable websockets as a way of communicating between Etherpad an
 "socketTransportProtocols" : ["xhr-polling", "jsonp-polling", "htmlfile"],
 ```
 
-into
+to
 
 ```
 "socketTransportProtocols" : ["websocket", "xhr-polling", "jsonp-polling", "htmlfile"],
@@ -137,7 +137,7 @@ bin/run.sh
 
 #### Windows Dependencies
 
-##### Installing With Chocolatey
+##### Installing with chocolatey
 
 Open a command line and install Chocolatey with the following command:
 
@@ -172,7 +172,7 @@ By default, OAE assumes both the [Hilary repository](http://github.com/sakaiproj
 ~/oae$ git clone git://github.com/sakaiproject/Hilary.git
 ~/oae$ git clone git://github.com/sakaiproject/3akai-ux.git
 ~/oae$ cd 3akai-ux
-~/oae/3akai-ux$ git checkout Hilary
+~/oae/3akai-ux$ git checkout newframework
 ```
 
 **Note:** Currently you must use the **newframework branch** in the 3akai-ux repository, as master remains built for the Nakamura back-end.

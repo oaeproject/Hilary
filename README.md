@@ -86,9 +86,9 @@ Download and install [PDFTK](http://www.pdflabs.com/tools/pdftk-the-pdf-toolkit/
 
 Download and install [LibreOffice](http://www.libreoffice.org/download/). This dependency takes care of converting Microsoft Office files to PDFs so they may be further split into previews by PDFTK.
 
-#### Nginx (version 1.4.0 or higher)
+#### Nginx (version 1.4.1 or higher)
 
-Download [Nginx **version 1.4.0 or higher**](http://nginx.org/en/download.html). You will need to download [PCRE](http://www.pcre.org/) as well for configuring Nginx.
+Download [Nginx **version 1.4.1 or higher**](http://nginx.org/en/download.html). You will need to download [PCRE](http://www.pcre.org/) as well for configuring Nginx.
 
 Once you've downloaded and extracted both to directories of your choice, you can configure and install:
 

@@ -335,7 +335,7 @@ config.etherpad = {
         {
             'externalProtocol': 'http',
             'externalHost': '0.etherpad.oae.com',
-            'externalPort': false,
+            'externalPort': 80,
             'internalHost': '127.0.0.1',
             'internalPort': 9001
         }

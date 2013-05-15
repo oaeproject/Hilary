@@ -225,7 +225,7 @@ config.previews = {
     'enabled': false,
     'dir': tmpDir + '/previews',
     'office': {
-        'binary': 'soffice.bin',
+        'binary': '/Applications/LibreOffice.app/Contents/MacOS/soffice.bin',
         'timeout': 120000
     },
     'pdf': {

@@ -110,7 +110,37 @@ Nginx is the most tested load balancer and web server used for OAE. A web server
 Once you've installed the server you will also need the [Etherpad OAE](https://github.com/sakaiproject/ep_oae) plugin. It's the glue for authenticating users between Hilary and etherpad-lite.
 The simplest method of installing the plugin is cloning it in the top node_modules folder that can be found in your etherpad-lite directory.
 
-Hilary will also need to be configured to use the correct Etherpad API key. The key can be found (or created) in a plain-text file at ~/etherpad-lite/APIKEY.txt
+```
+cd your-etherpad-dir
+cd node_modules
+git clone https://github.com/sakaiproject/ep_oae
+cd ..
+```
+
+You can copy or symlink the `static/css/pad.css` in the `ep_oae` module to `your-etherpad-dir/src/static/custom/pad.css` in order to apply the OAE skin on etherpad.
+
+Next, we need to enable websockets as a way of communicating between Etherpad and Hilary. In order to do this, open the settings.json file in your favourite editor and change
+
+```
+"socketTransportProtocols" : ["xhr-polling", "jsonp-polling", "htmlfile"],
+```
+
+to
+
+```
+"socketTransportProtocols" : ["websocket", "xhr-polling", "jsonp-polling", "htmlfile"],
+```
+
+You can optionally add the [Etherpad headings plugin](https://github.com/fourplusone/etherpad-plugins/tree/master/ep_headings) which allows you to use HTML headings in your document.
+The installation process is the same as the OAE plugin so it should be installed in the top-level node_modules directory.
+
+Now, Etherpad can be started by running the following command:
+
+```
+bin/run.sh
+```
+
+Hilary will also need to be configured to use the correct Etherpad API key. The key can be found (or created) in a plain-text file at `your-etherpad-dir/APIKEY.txt`
 
 #### Windows Dependencies
 
@@ -215,7 +245,7 @@ node app.js | node_modules/.bin/bunyan
 
 The server is now running and you can access the administration UI at http://admin.oae.com/!
 
-**Tip:** If you install bunyan as a global depency with `npm install -g bunyan`, you can start the app instead with 'node app | bunyan'. 
+**Tip:** If you install bunyan as a global depency with `npm install -g bunyan`, you can start the app instead with 'node app | bunyan'.
 
 ### Creating your first user tenant
 

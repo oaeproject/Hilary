@@ -119,6 +119,12 @@ cd ..
 
 You can copy or symlink the `static/css/pad.css` in the `ep_oae` module to `your-etherpad-dir/src/static/custom/pad.css` in order to apply the OAE skin on etherpad.
 
+```
+cd your-etherpad-dir
+rm src/static/custom/pad.css
+ln -s your-etherpad-dir/static/css/pad.css src/static/custom/pad.css
+```
+
 Next, we need to enable websockets as a way of communicating between Etherpad and Hilary. In order to do this, open the settings.json file in your favourite editor and change
 
 ```
@@ -131,16 +137,34 @@ to
 "socketTransportProtocols" : ["websocket", "xhr-polling", "jsonp-polling", "htmlfile"],
 ```
 
+It is also recommended that you change the default pad text. In order to do this, open the settings.json file in your favourite editor and change
+
+```
+"defaultPadText" : "Welcome to Etherpad!\n\nThis pad text is synchronized ..."
+```
+
+to
+
+```
+"defaultPadText" : ""
+```
+
 You can optionally add the [Etherpad headings plugin](https://github.com/fourplusone/etherpad-plugins/tree/master/ep_headings) which allows you to use HTML headings in your document.
 The installation process is the same as the OAE plugin so it should be installed in the top-level node_modules directory.
+
+```
+cd your-etherpad-dir
+cd ..
+git clone git://github.com/fourplusone/etherpad-plugins.git
+cd your-etherpad-dir
+npm install your-etherpad-plugins-dir/[plugin-name]
+```
 
 Now, Etherpad can be started by running the following command:
 
 ```
 bin/run.sh
 ```
-
-Hilary will also need to be configured to use the correct Etherpad API key. The key can be found (or created) in a plain-text file at `your-etherpad-dir/APIKEY.txt`
 
 #### Windows Dependencies
 

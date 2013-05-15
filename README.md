@@ -157,7 +157,7 @@ cd your-etherpad-dir
 cd ..
 git clone git://github.com/fourplusone/etherpad-plugins.git
 cd your-etherpad-dir
-npm install your-etherpad-plugins-dir/[plugin-name]
+npm install your-etherpad-plugins-dir/ep_headings
 ```
 
 Now, Etherpad can be started by running the following command:

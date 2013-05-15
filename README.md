@@ -86,9 +86,9 @@ Download and install [PDFTK](http://www.pdflabs.com/tools/pdftk-the-pdf-toolkit/
 
 Download and install [LibreOffice](http://www.libreoffice.org/download/). This dependency takes care of converting Microsoft Office files to PDFs so they may be further split into previews by PDFTK.
 
-#### Nginx (version 1.3.14 or higher)
+#### Nginx (version 1.4.1 or higher)
 
-Download [Nginx **version 1.3.14 or higher**](http://nginx.org/en/download.html) (at the time of writing, version 1.3.14 can only be found as a development version). You will need [PCRE](http://www.pcre.org/) to configure Nginx.
+Download [Nginx **version 1.4.1 or higher**](http://nginx.org/en/download.html). You will need to download [PCRE](http://www.pcre.org/) as well for configuring Nginx.
 
 Once you've downloaded and extracted both to directories of your choice, you can configure and install:
 
@@ -105,7 +105,7 @@ Nginx is the most tested load balancer and web server used for OAE. A web server
 
 #### Etherpad lite
 
-[Etherpad](http://etherpad.org/) is an open-source editor for online collaborative editing in real-time and is used to power the collaborative documents. Follow the [README](https://github.com/ether/etherpad-lite/blob/develop/README.md) to get it installed.
+[Etherpad](http://etherpad.org/) is an open-source editor for online collaborative editing in real-time and is used to power the OAE collaborative documents. Follow the [Etherpad README](https://github.com/ether/etherpad-lite/blob/develop/README.md) to get it installed.
 
 Once you've installed the server you will also need the [Etherpad OAE](https://github.com/sakaiproject/ep_oae) plugin. It's the glue for authenticating users between Hilary and etherpad-lite.
 The simplest method of installing the plugin is cloning it in the top node_modules folder that can be found in your etherpad-lite directory.
@@ -144,7 +144,7 @@ Hilary will also need to be configured to use the correct Etherpad API key. The 
 
 #### Windows Dependencies
 
-##### Installing With Chocolatey
+##### Installing with chocolatey
 
 Open a command line and install Chocolatey with the following command:
 
@@ -179,10 +179,10 @@ By default, OAE assumes both the [Hilary repository](http://github.com/sakaiproj
 ~/oae$ git clone git://github.com/sakaiproject/Hilary.git
 ~/oae$ git clone git://github.com/sakaiproject/3akai-ux.git
 ~/oae$ cd 3akai-ux
-~/oae/3akai-ux$ git checkout Hilary
+~/oae/3akai-ux$ git checkout newframework
 ```
 
-**Note:** Currently you must use the **Hilary branch** in the 3akai-ux repository, as master remains built for the Nakamura back-end.
+**Note:** Currently you must use the **newframework branch** in the 3akai-ux repository, as master remains built for the Nakamura back-end.
 
 Please remember that filenames and directories that contain spaces can sometimes result in unstable side-effects. Please ensure all paths are space-free.
 
@@ -191,14 +191,15 @@ Please remember that filenames and directories that contain spaces can sometimes
 
 ##### Hosts file
 
-OAE is a multi-tenant system that discriminates the tenant by the host name with which you are accessing the server. In order to support the "Global Tenant" (i.e., the tenant that hosts the administration UI) and a "User Tenant", you will need to have at least 2 different host names that point to your server. To do this, you will need to add the following entries to your `/etc/hosts` file:
+OAE is a multi-tenant system that discriminates the tenant by the host name with which you are accessing the server. In order to support the "Global Tenant" (i.e., the tenant that hosts the administration UI) and a "User Tenant", you will need to have at least 3 different host names that point to your server. To do this, you will need to add the following entries to your `/etc/hosts` file:
 
 ```
 127.0.0.1   admin.oae.com
 127.0.0.1   tenant1.oae.com
+127.0.0.1   0.etherpad.oae.com
 ```
 
-Where "admin.oae.com" is the hostname that we will use to access the global administration tenant, and "tenant1.oae.com" would be one of many potential user tenant hosts.
+Where "admin.oae.com" is the hostname that we will use to access the global administration tenant, "tenant1.oae.com" would be one of many potential user tenant hosts and "0.etherpad.oae.com" is the default domain for the Etherpad server.
 
 ##### Hilary config.js
 
@@ -206,6 +207,7 @@ Open the `config.js` file in the root of the Hilary directory. This file contain
 
 * Configure the `config.files.uploadDir` property to point to a directory that exists. This is where files such as profile pictures, content bodies, previews, etc... will be stored
 * Ensure that the property `config.server.globalAdminHost` is configured to the same host name you set for your global admin host in /etc/hosts
+* Configure the `config.etherpad.apikey` property to the API Key that can be found in `your-etherpad-dir/APIKEY.txt`
 
 **If you want preview processing enabled, configure the following:**
 

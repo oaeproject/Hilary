@@ -26,11 +26,9 @@ var config = module.exports.config = {};
  * Configuration namespace for the UI module.
  *
  * @param   {String}    path            The path to the UI static assets
- * @param   {String}    [hashesPath]    The path (relative to the `path` property) for a mapping of file paths to actual location. This is useful for static assets whose filenames are altered during UI optimization. If this file does not exist or is invalid JSON, startup will continue assuming there is no mapping required.
  */
 config.ui = {
-    'path': '../3akai-ux',
-    'hashesPath': 'hashes.json'
+    'path': '../3akai-ux'
 };
 
 // Cassandra related config information.
@@ -63,17 +61,18 @@ config.redis = {
  *
  * Configuration namespace for servers.
  *
- * @param   {String}    globalAdminAlias        The tenant alias that will be used for the global admins.
- * @param   {String}    globalAdminHost         The hostname on which the global admin server can be reached by users.
- * @param   {Number}    globalAdminPort         The network port on which the global admin express server can run.
- * @param   {Number}    tenantPort              The network port on which the tenant express server can run.
+ * @param  {String}     globalAdminAlias        The tenant alias that will be used for the global admins.
+ * @param  {String}     globalAdminHost         The hostname on which the global admin server can be reached by users.
+ * @param  {Number}     globalAdminPort         The network port on which the global admin express server can run.
+ * @param  {Number}     tenantPort              The network port on which the tenant express server can run.
+ * @param  {Boolean}    useHttps                Whether or not the server is accessible via HTTPS. Hilary will *not* expose an HTTPS server, it's up to a frontend server such as Apache or Nginx to deal with the actual delivery of HTTPS traffic. This flag is mainly used to generate correct backlinks to the web application.
  */
 config.servers = {
-    // Port on which the global admin server should be initialized
     'globalAdminAlias': 'admin',
     'globalAdminHost': 'admin.oae.com',
     'globalAdminPort': 2000,
-    'tenantPort': 2001
+    'tenantPort': 2001,
+    'useHttps': false
 };
 
 var tmpDir = process.env.TMP || process.env.TMPDIR || process.env.TEMP || '/tmp' || process.cwd();
@@ -335,9 +334,9 @@ config.etherpad = {
     'hosts': [
         {
             'externalProtocol': 'http',
-            'externalHost': 'localhost',
-            'externalPort': 9001,
-            'internalHost': 'localhost',
+            'externalHost': '0.etherpad.oae.com',
+            'externalPort': 80,
+            'internalHost': '127.0.0.1',
             'internalPort': 9001
         }
     ]

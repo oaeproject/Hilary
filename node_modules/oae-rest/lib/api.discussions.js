@@ -72,6 +72,18 @@ var updateDiscussion = module.exports.updateDiscussion = function(restCtx, discu
 };
 
 /**
+ * Deletes a discussion. The discussion will also be removed from all the principal libraries.
+ *
+ * @param  {RestContext}    restCtx                         The context of the current request
+ * @param  {String}         discussionId                    The id of the discussion to delete
+ * @param  {Function}       callback                        Invoked when the process completes
+ * @param  {Object}         callback.err                    An error that occurred, if any
+ */
+var deleteDiscussion = module.exports.deleteDiscussion = function(restCtx, discussionId, callback) {
+    RestUtil.RestRequest(restCtx, '/api/discussions/' + RestUtil.encodeURIComponent(discussionId), 'DELETE', null, callback);
+};
+
+/**
  * Get the discussions library items for the specified principal. Depending on the access of the user in context,
  * either a library of public, loggedin, or all items will be returned.
  *

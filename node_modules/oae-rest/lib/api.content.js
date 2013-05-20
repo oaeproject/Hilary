@@ -20,7 +20,7 @@ var RestUtil = require('./util');
 
 /**
  * Get a full content profile through the REST API.
- * 
+ *
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}       contentId           Content id of the content item we're trying to retrieve
  * @param  {Function}     callback            Standard callback method
@@ -33,7 +33,7 @@ var getContent = module.exports.getContent = function(restCtx, contentId, callba
 
 /**
  * Create a new link through the REST API.
- * 
+ *
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         displayName         Display name for the created content item
  * @param  {String}         [description]       The content item's description
@@ -87,7 +87,7 @@ var createFile = module.exports.createFile = function(restCtx, displayName, desc
 
 /**
  * Create a new collaborative document through the REST API.
- * 
+ *
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}       displayName         Display name for the created content item
  * @param  {String}       [description]       The content item's description
@@ -112,7 +112,7 @@ var createCollabDoc = module.exports.createCollabDoc = function(restCtx, display
 
 /**
  * Update a content item's metadata through the REST API.
- * 
+ *
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}       contentId           Content id of the content item we're trying to update
  * @param  {Object}       params              JSON object where the keys represent all of the profile field names we want to update and the values represent the new values for those fields
@@ -125,7 +125,7 @@ var updateContent = module.exports.updateContent = function(restCtx, contentId, 
 
 /**
  * Delete a content item through the REST API.
- * 
+ *
  * @param  {RestContext}   restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}        contentId           Content id of the content item we're trying to delete
  * @param  {Function}      callback            Standard callback method
@@ -137,7 +137,7 @@ var deleteContent = module.exports.deleteContent = function(restCtx, contentId, 
 
 /**
  * Get the viewers and managers of a content item through the REST API.
- * 
+ *
  * @param  {RestContext}     restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}          contentId           Content id of the content item we're trying to retrieve the members for
  * @param  {String}          start               The principal id to start from (this will not be included in the response)
@@ -156,7 +156,7 @@ var getMembers = module.exports.getMembers = function(restCtx, contentId, start,
 
 /**
  * Change the members and managers of a content item through the REST API.
- * 
+ *
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}       contentId           Content id of the content item we're trying to update the members for
  * @param  {Object}       updatedMembers      JSON Object where the keys are the user/group ids we want to update membership for, and the values are the roles these members should get (manager or viewer). If false is passed in as a role, the principal will be removed as a member
@@ -169,7 +169,7 @@ var updateMembers = module.exports.updateMembers = function(restCtx, contentId, 
 
 /**
  * Share a content item through the REST API.
- * 
+ *
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}       contentId           Content id of the content item we're trying to share
  * @param  {String[]}     principals          Array of principal ids with who the content should be shared
@@ -192,7 +192,7 @@ var shareContent = module.exports.shareContent = function(restCtx, contentId, pr
  * @param  {Comment}      callback.comment    The created comment
  */
 var createComment = module.exports.createComment = function(restCtx, contentId, body, replyTo, callback) {
-    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/comments', 'POST', {'body': body, 'replyTo': replyTo}, callback);
+    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/messages', 'POST', {'body': body, 'replyTo': replyTo}, callback);
 };
 
 /**
@@ -206,7 +206,7 @@ var createComment = module.exports.createComment = function(restCtx, contentId, 
  * @param  {Comment}      [callback.softDeleted]   If the comment is not deleted, but instead flagged as deleted because it has replies, this will return a stripped down comment object representing the deleted comment will be returned, with the `deleted` parameter set to `false`.. If the comment has been properly deleted, no comment will be returned.
  */
 var deleteComment = module.exports.deleteComment = function(restCtx, contentId, created, callback) {
-    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/comments/' + RestUtil.encodeURIComponent(created), 'DELETE', null, callback);
+    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/messages/' + RestUtil.encodeURIComponent(created), 'DELETE', null, callback);
 };
 
 /**
@@ -225,7 +225,7 @@ var getComments = module.exports.getComments = function(restCtx, contentId, star
         'start': start,
         'limit': limit
     };
-    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/comments', 'GET', params, callback);
+    RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/messages', 'GET', params, callback);
 };
 
 /**

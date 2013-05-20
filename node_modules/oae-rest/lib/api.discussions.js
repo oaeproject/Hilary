@@ -36,7 +36,7 @@ var createDiscussion = module.exports.createDiscussion = function(restCtx, displ
         'managers': managers,
         'members': members
     };
-    RestUtil.RestRequest(restCtx, '/api/discussions/create', 'POST', params, callback);
+    RestUtil.RestRequest(restCtx, '/api/discussion/create', 'POST', params, callback);
 };
 
 /**
@@ -54,7 +54,7 @@ var createDiscussion = module.exports.createDiscussion = function(restCtx, displ
  * @param  {Boolean}        callback.discussion.canPost     Specifies if the current user in context is allowed to post messages to the discussion
  */
 var getDiscussion = module.exports.getDiscussion = function(restCtx, discussionId, callback) {
-    RestUtil.RestRequest(restCtx, '/api/discussions/' + RestUtil.encodeURIComponent(discussionId), 'GET', null, callback);
+    RestUtil.RestRequest(restCtx, '/api/discussion/' + RestUtil.encodeURIComponent(discussionId), 'GET', null, callback);
 };
 
 /**
@@ -68,7 +68,7 @@ var getDiscussion = module.exports.getDiscussion = function(restCtx, discussionI
  * @param  {Discussion}     callback.discussion The updated discussion object
  */
 var updateDiscussion = module.exports.updateDiscussion = function(restCtx, discussionId, profileFields, callback) {
-    RestUtil.RestRequest(restCtx, '/api/discussions/' + RestUtil.encodeURIComponent(discussionId), 'POST', profileFields, callback);
+    RestUtil.RestRequest(restCtx, '/api/discussion/' + RestUtil.encodeURIComponent(discussionId), 'POST', profileFields, callback);
 };
 
 /**
@@ -80,7 +80,7 @@ var updateDiscussion = module.exports.updateDiscussion = function(restCtx, discu
  * @param  {Object}         callback.err                    An error that occurred, if any
  */
 var deleteDiscussion = module.exports.deleteDiscussion = function(restCtx, discussionId, callback) {
-    RestUtil.RestRequest(restCtx, '/api/discussions/' + RestUtil.encodeURIComponent(discussionId), 'DELETE', null, callback);
+    RestUtil.RestRequest(restCtx, '/api/discussion/' + RestUtil.encodeURIComponent(discussionId), 'DELETE', null, callback);
 };
 
 /**
@@ -101,7 +101,7 @@ var getDiscussionsLibrary = module.exports.getDiscussionsLibrary = function(rest
         'start': start,
         'limit': limit
     };
-    RestUtil.RestRequest(restCtx, '/api/discussions/library/' + RestUtil.encodeURIComponent(principalId), 'GET', params, callback);
+    RestUtil.RestRequest(restCtx, '/api/discussion/library/' + RestUtil.encodeURIComponent(principalId), 'GET', params, callback);
 };
 
 /**
@@ -122,7 +122,7 @@ var getDiscussionMembers = module.exports.getDiscussionMembers = function(restCt
         'start': start,
         'limit': limit
     };
-    RestUtil.RestRequest(restCtx, '/api/discussions/' + RestUtil.encodeURIComponent(discussionId) + '/members', 'GET', params, callback);
+    RestUtil.RestRequest(restCtx, '/api/discussion/' + RestUtil.encodeURIComponent(discussionId) + '/members', 'GET', params, callback);
 };
 
 /**
@@ -136,7 +136,7 @@ var getDiscussionMembers = module.exports.getDiscussionMembers = function(restCt
  * @param  {Object}         callback.err            An error that occurred, if any
  */
 var updateDiscussionMembers = module.exports.updateDiscussionMembers = function(restCtx, discussionId, memberUpdates, callback) {
-    RestUtil.RestRequest(restCtx, '/api/discussions/' + RestUtil.encodeURIComponent(discussionId) + '/members', 'POST', memberUpdates, callback);
+    RestUtil.RestRequest(restCtx, '/api/discussion/' + RestUtil.encodeURIComponent(discussionId) + '/members', 'POST', memberUpdates, callback);
 };
 
 /**
@@ -154,7 +154,7 @@ var shareDiscussion = module.exports.shareDiscussion = function(restCtx, discuss
     var params = {
         'members': principalIds
     };
-    RestUtil.RestRequest(restCtx, '/api/discussions/' + RestUtil.encodeURIComponent(discussionId) + '/share', 'POST', params, callback);
+    RestUtil.RestRequest(restCtx, '/api/discussion/' + RestUtil.encodeURIComponent(discussionId) + '/share', 'POST', params, callback);
 };
 
 
@@ -171,7 +171,7 @@ var shareDiscussion = module.exports.shareDiscussion = function(restCtx, discuss
  * @param  {Object}         callback.err    An error that occurred, if any
  */
 var removeDiscussionFromLibrary = module.exports.removeDiscussionFromLibrary = function(restCtx, libraryOwnerId, discussionId, callback) {
-    RestUtil.RestRequest(restCtx, '/api/discussions/library/' + RestUtil.encodeURIComponent(libraryOwnerId) + '/' + RestUtil.encodeURIComponent(discussionId), 'POST', null, callback);
+    RestUtil.RestRequest(restCtx, '/api/discussion/library/' + RestUtil.encodeURIComponent(libraryOwnerId) + '/' + RestUtil.encodeURIComponent(discussionId), 'POST', null, callback);
 };
 
 /**
@@ -191,7 +191,7 @@ var createMessage = module.exports.createMessage = function(restCtx, discussionI
         'body': body,
         'replyTo': replyTo
     };
-    RestUtil.RestRequest(restCtx, '/api/discussions/' + RestUtil.encodeURIComponent(discussionId) + '/messages', 'POST', params, callback);
+    RestUtil.RestRequest(restCtx, '/api/discussion/' + RestUtil.encodeURIComponent(discussionId) + '/messages', 'POST', params, callback);
 };
 
 /**
@@ -211,7 +211,7 @@ var getMessages = module.exports.getMessages = function(restCtx, discussionId, s
         'start': start,
         'limit': limit
     };
-    RestUtil.RestRequest(restCtx, '/api/discussions/' + RestUtil.encodeURIComponent(discussionId) + '/messages', 'GET', params, callback);
+    RestUtil.RestRequest(restCtx, '/api/discussion/' + RestUtil.encodeURIComponent(discussionId) + '/messages', 'GET', params, callback);
 };
 
 /**
@@ -226,6 +226,6 @@ var getMessages = module.exports.getMessages = function(restCtx, discussionId, s
  * @param  {Comment}        [callback.softDeleted]  When the message has been soft deleted (because it has replies), a stripped down message object representing the deleted message will be returned, with the `deleted` parameter set to `false`. If the message has been deleted from the index, no message object will be returned.
  */
 var deleteMessage = module.exports.deleteMessage = function(restCtx, discussionId, messageCreated, callback) {
-    RestUtil.RestRequest(restCtx, '/api/discussions/' + RestUtil.encodeURIComponent(discussionId) + '/messages/' + RestUtil.encodeURIComponent(messageCreated), 'DELETE', null, callback);
+    RestUtil.RestRequest(restCtx, '/api/discussion/' + RestUtil.encodeURIComponent(discussionId) + '/messages/' + RestUtil.encodeURIComponent(messageCreated), 'DELETE', null, callback);
 };
 

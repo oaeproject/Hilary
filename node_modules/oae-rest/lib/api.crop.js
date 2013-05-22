@@ -18,15 +18,15 @@ var RestUtil = require('./util');
 /**
  * Crop the large picture that is associated with a user.
  *
- * @param {RestContext}     restCtx                 Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param {String}          principalId             The ID of the principal we're trying to crop a picture for.
- * @param {Object}          selectedArea            The topleft coordinates and size of the square that should be cropped out
- * @param {Number}          selectedArea.x          The top left x coordinate.
- * @param {Number}          selectedArea.y          The top left y coordinate.
- * @param {Number}          selectedArea.width      The width of the square
- * @param {Function}        callback                Standard callback method takes argument `err`
- * @param {Object}          callback.err            Error object containing error code and error message
- * @param {Object}          callback.principal      The updated principal object
+ * @param  {RestContext}     restCtx                 Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}          principalId             The ID of the principal we're trying to crop a picture for.
+ * @param  {Object}          selectedArea            The topleft coordinates and size of the square that should be cropped out
+ * @param  {Number}          selectedArea.x          The top left x coordinate.
+ * @param  {Number}          selectedArea.y          The top left y coordinate.
+ * @param  {Number}          selectedArea.width      The width of the square
+ * @param  {Function}        callback                Standard callback method takes argument `err`
+ * @param  {Object}          callback.err            Error object containing error code and error message
+ * @param  {Object}          callback.principal      The updated principal object
  */
 
 var cropPicture = module.exports.cropPicture = function(restCtx, principalId, selectedArea, callback) {

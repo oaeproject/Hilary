@@ -248,6 +248,20 @@ var getLibrary = module.exports.getLibrary = function(restCtx, principalId, star
 };
 
 /**
+ * Removes a piece of content from a principal library.
+ *
+ * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}         principalId         User or group id for who we wish to remove a piece of content from the library
+ * @param  {[type]}         contentId           Content id of the content item we're trying to remove from the library
+ * @param  {Function}       callback            Standard callback method
+ * @param  {Object}         callback.err        Error object containing error code and error message
+ */
+var removeContentFromLibrary = module.exports.removeContentFromLibrary = function(restCtx, principalId, contentId, callback) {
+    var url = '/api/content/library/' + RestUtil.encodeURIComponent(principalId) + '/' + RestUtil.encodeURIComponent(contentId);
+    RestUtil.RestRequest(restCtx, url, 'DELETE', null, callback);
+};
+
+/**
  * Get the revisions for a piece of content.
  *
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials

@@ -156,3 +156,13 @@ var downloadPicture = module.exports.downloadPicture = function(restCtx, userId,
 var setTenantAdmin = module.exports.setTenantAdmin = function(restCtx, userId, value, callback) {
     RestUtil.RestRequest(restCtx, '/api/user/' + RestUtil.encodeURIComponent(userId) + '/admin', 'POST', {'admin': (value === true)}, callback);
 };
+
+/**
+ * Get available timezones and offsets from UTC
+ *
+ * @param  {Function}       callback        Standard callback method takes argument `err`
+ * @param  {Object}         callback.err    Error object containing error code and error message
+ */
+var getTimezones = module.exports.getTimezones = function(restCtx, callback) {
+    RestUtil.RestRequest(restCtx, '/api/timezones', 'GET', null, callback);
+};

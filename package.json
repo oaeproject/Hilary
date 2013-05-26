@@ -68,6 +68,7 @@
     "passport-openid": "latest",
     "passport-saml": "git://github.com/simong/passport-saml",
     "passport-twitter": "latest",
+    "rails-timezone": "latest",
     "readdirp": "latest",
     "recaptcha-async": "latest",
     "redis": "latest",

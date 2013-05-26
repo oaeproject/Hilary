@@ -14,51 +14,29 @@
  */
 
 /*!
- * Note: Most of the REST wrappers will take a RestContext (ctx) object as the first parameter. This context
- * parameter specifies the tenant URL we're working on, as well as the user making the request and his password. 
+ * Define the REST API wrappers for the different modules of the application.
  *
- * It will be of the following form
- * 
- *     RestContext restCtx = {'host': http://oae.sakai.org, 'userId': 'janedoe', 'password': 'foo'}
- * 
- * For anonymous users, `userId` and `password` will be `null` 
+ * Note: Most of the REST wrappers will take a RestContext (ctx) object as the first parameter. This context
+ * parameter specifies the tenant URL we're working on, as well as the user making the request and his password.
+ *
+ * It will be of the following form:
+ *
+ *     `{'host': http://oae.sakai.org, 'userId': 'janedoe', 'password': 'foo'}`
+ *
+ * For anonymous users, `userId` and `password` will be `null`.
  */
 
-// User REST wrappers
-module.exports.User = require('./api.user');
-
-// Group REST wrappers
-module.exports.Group = require('./api.group');
-
-// User profile REST wrappers
-module.exports.Profile = require('./api.profile');
-
-// Authentication REST wrappers
-module.exports.Authentication = require('./api.authentication');
-
-// Content REST wrappers
-module.exports.Content = require('./api.content');
-
-// Tenant REST wrappers
-module.exports.Tenant = require('./api.tenant');
-
-// Config REST wrappers
-module.exports.Config = require('./api.config');
-
-// Doc REST wrappers
-module.exports.Doc = require('./api.doc');
-
-// UI REST wrappers
-module.exports.UI = require('./api.ui');
-
-// Crop REST wrappers
-module.exports.Crop = require('./api.crop');
-
-// Search REST wrappers
-module.exports.Search = require('./api.search');
-
-// Activity REST wrappers
 module.exports.Activity = require('./api.activity');
-
-// Admin specific REST wrappers
 module.exports.Admin = require('./api.admin');
+module.exports.Authentication = require('./api.authentication');
+module.exports.Config = require('./api.config');
+module.exports.Content = require('./api.content');
+module.exports.Crop = require('./api.crop');
+module.exports.Discussions = require('./api.discussions');
+module.exports.Doc = require('./api.doc');
+module.exports.Group = require('./api.group');
+module.exports.Profile = require('./api.profile');
+module.exports.Search = require('./api.search');
+module.exports.Tenant = require('./api.tenant');
+module.exports.UI = require('./api.ui');
+module.exports.User = require('./api.user');

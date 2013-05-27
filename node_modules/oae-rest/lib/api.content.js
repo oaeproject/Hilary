@@ -266,8 +266,8 @@ var removeContentFromLibrary = module.exports.removeContentFromLibrary = functio
  *
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         contentId           Content id of the content item we're trying to retrieve the revisions for
- * @param  {String}         start               The revision id to start from (this will not be included in the response)
- * @param  {Number}         limit               The number of revisions to retrieve.
+ * @param  {String}         [start]             The created timestampto start from (this will not be included in the response).
+ * @param  {Number}         [limit]             The number of revisions to retrieve.
  * @param  {Function}       callback            Standard callback method
  * @param  {Object}         callback.err        Error object containing error code and error message
  * @param  {Revision[]}     callback.items      Array of revisions

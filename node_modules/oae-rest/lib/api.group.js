@@ -69,7 +69,7 @@ var getGroup = module.exports.getGroup = function(restCtx, groupId, callback) {
  * @param  {String}         [profileFields.joinable]      New joinability setting for the group. The possible values are 'yes', 'no' and 'request'
  * @param  {Function}       callback                      Standard callback method takes argument `err`
  * @param  {Object}         callback.err                  Error object containing error code and error message
- * @param  {Group}          callback.newGroup             The new group object
+ * @param  {Group}          callback.updatedGroup         Group object representing the updated group
  */
 var updateGroup = module.exports.updateGroup = function (restCtx, groupId, profileFields, callback) {
     RestUtil.RestRequest(restCtx, '/api/group/' + RestUtil.encodeURIComponent(groupId), 'POST', profileFields, callback);

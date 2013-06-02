@@ -46,11 +46,10 @@ var getTenantConfig = module.exports.getTenantConfig = function(restCtx, tenantA
 
 /**
  * Update a configuration values for a specific tenant
- * 
+ *
  * @param  {RestContext}   restCtx         Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global/tenant admin context will need to be passed in.
  * @param  {String}        [tenantAlias]   Optional tenant alias of the tenant to get configuration of. If no tenantAlias is passed in, the current tenant will be used.
  * @param  {Object}        update          The object that contains the updates that should be made. The keys are of the form `oae-authentication/twitter/enabled`.
- * @param  {String}        configValue     The value of the config value that is being changed
  * @param  {Function}      callback        Standard callback method
  * @param  {Object}        callback.err    Error object containing error code and error message
  */
@@ -60,4 +59,22 @@ var updateConfig = module.exports.updateConfig = function(restCtx, tenantAlias, 
         url += '/' + RestUtil.encodeURIComponent(tenantAlias);
     }
     RestUtil.RestRequest(restCtx, url, 'POST', update, callback);
+};
+
+/**
+ * Clear configuration values for a specific tenant
+ *
+ * @param  {RestContext}   restCtx         Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global/tenant admin context will need to be passed in.
+ * @param  {String}        [tenantAlias]   Optional tenant alias of the tenant to get configuration of. If no tenantAlias is passed in, the current tenant will be used.
+ * @param  {Array}         update          The config fields that should be cleared.
+ * @param  {Function}      callback        Standard callback method
+ * @param  {Object}        callback.err    Error object containing error code and error message
+ */
+var clearConfig = module.exports.clearConfig = function(restCtx, tenantAlias, update, callback) {
+    var url = '/api/config';
+    if (tenantAlias) {
+        url += '/' + RestUtil.encodeURIComponent(tenantAlias);
+    }
+    url += '/clear';
+    RestUtil.RestRequest(restCtx, url, 'POST', {'configFields': update}, callback);
 };

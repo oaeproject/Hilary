@@ -20,6 +20,7 @@ before_install:
   - cd ../etherpad-lite
   - echo "13SirapH8t3kxUh5T5aqWXhXahMzoZRA" > APIKEY.txt
   - ./bin/installDeps.sh
+  - "sed -i 's/defaultPadText\" : \".*\"/defaultPadText\" : \"\"/g' settings.json"
   - node src/node/server.js &
   - cd ../Hilary
 

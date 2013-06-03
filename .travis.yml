@@ -11,6 +11,9 @@ before_install:
   - sudo service cassandra stop
   - sudo service cassandra start
   - sudo service cassandra status
+  - sudo service mysql stop
+  - sudo service memcached stop
+  - sudo service postgresql stop
   - sudo apt-get install -qq graphicsmagick
   - npm install -g grunt-cli
   - git clone git://github.com/sakaiproject/3akai-ux.git --branch master ../3akai-ux

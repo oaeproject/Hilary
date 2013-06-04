@@ -69,7 +69,7 @@ module.exports = function(grunt) {
                     {
                         'from': /@param (\S|\s\s)/,
                         'to': function(matchedWord, index, fullText, regexMatches) {
-                            var msg ='@param should be followed by 2 spaces';
+                            var msg ='@param  should be followed by 2 spaces';
                             return logMatch(msg, matchedWord, index, fullText, regexMatches);
                         }
                     },

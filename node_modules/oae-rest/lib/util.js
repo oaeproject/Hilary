@@ -82,9 +82,9 @@ var RestRequest = module.exports.RestRequest = function(restCtx, url, method, da
 /**
  * Fills the jar for a rest context.
  *
- * @param {RestContext}     restCtx         Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param {Function}        callback        Standard callback method.
- * @param {Object}          callback.err    Standard error object (if any.)
+ * @param  {RestContext}     restCtx         Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {Function}        callback        Standard callback method.
+ * @param  {Object}          callback.err    Standard error object (if any.)
  */
 var fillCookieJar = module.exports.fillCookieJar = function(restCtx, callback) {
     // If no user is specified, there is no point in doing a login request.

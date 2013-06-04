@@ -141,8 +141,9 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
     // If we would simple pass in a stream the data might already be gone by the time
     // we reach this point.
     var hasStream = false;
+    var keys;
     if (data) {
-        var keys = Object.keys(data);
+        keys = Object.keys(data);
         for (var i = 0; i < keys.length; i++) {
             if (typeof data[keys[i]] === 'function') {
                 data[keys[i]] = data[keys[i]]();
@@ -201,8 +202,8 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
         // We append our data in a multi-part way.
         // That way we can support buffer/streams as well.
         var form = req.form();
-        for (var i = 0; i < keys.length; i++) {
-            var value = data[keys[i]];
+        for (var j = 0; j < keys.length; j++) {
+            var value = data[keys[j]];
 
             // We can't append null values.
             if (value) {
@@ -210,12 +211,12 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
                 // we have to unroll them before appending them to the form.
                 if (Array.isArray(value)) {
                     for (var v = 0; v < value.length; v++) {
-                        form.append(keys[i], value[v]);
+                        form.append(keys[j], value[v]);
                     }
 
                 // All other value types (string, stream, ..)
                 } else {
-                    form.append(keys[i], data[keys[i]]);
+                    form.append(keys[j], data[keys[j]]);
                 }
             }
         }

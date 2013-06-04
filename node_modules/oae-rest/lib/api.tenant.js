@@ -51,7 +51,7 @@ var getTenant = module.exports.getTenant = function(restCtx, tenantAlias, callba
 
 /**
  * Create a new tenant through the REST API.
- * 
+ *
  * @param  {RestContext}      restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global admin rest context will need to passed in.
  * @param  {String}           tenantAlias         The tenant's unique identifier
  * @param  {String}           tenantName          The new tenant's displayName
@@ -78,7 +78,7 @@ var createTenant = module.exports.createTenant = function(restCtx, tenantAlias, 
 
 /**
  * Update a tenant's metadata through the REST API.
- * 
+ *
  * @param  {RestContext}      restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials.
  * @param  {String}           tenantAlias         The alias of the tenant that needs to be updated
  * @param  {String}           tenantName          The new tenant displayName
@@ -95,7 +95,7 @@ var updateTenant = module.exports.updateTenant = function(restCtx, tenantAlias, 
 
 /**
  * Stop a running tenant through the REST API.
- * 
+ *
  * @param  {RestContext}      restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global admin rest context will need to passed in.
  * @param  {String}           tenantAlias         The alias of the tenant that needs to be stopped
  * @param  {Function}         callback            Standard callback method takes argument `err`
@@ -114,7 +114,7 @@ var stopTenant = module.exports.stopTenant = function(restCtx, tenantAlias, call
 
 /**
  * Start a stopped tenant through the REST API.
- * 
+ *
  * @param  {RestContext}      restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global admin rest context will need to passed in.
  * @param  {String}           tenantAlias         The alias of the tenant that needs to be started
  * @param  {Function}         callback            Standard callback method takes argument `err`
@@ -133,12 +133,12 @@ var startTenant = module.exports.startTenant = function(restCtx, tenantAlias, ca
 
 /**
  * Delete a tenant through the REST API.
- * 
+ *
  * @param  {RestContext}      restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global admin rest context will need to passed in.
  * @param  {String}           tenantAlias         The alias of the tenant that needs to be deleted
  * @param  {Function}         callback            Standard callback method takes argument `err`
  * @param  {Object}           callback.err        Error object containing error code and error message
- */     
+ */
 var deleteTenant = module.exports.deleteTenant = function(restCtx, tenantAlias, callback) {
     RestUtil.RestRequest(restCtx, '/api/tenant/delete', 'POST', {'aliases': [tenantAlias]}, function(err) {
         if (err) {

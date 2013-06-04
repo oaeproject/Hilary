@@ -38,7 +38,7 @@ var emitter = RestUtil;
  * Utility wrapper around the native JS encodeURIComponent function, to make sure that
  * encoding null doesn't return "null". In tests, null will often be passed in to validate
  * validation, and there's no need to catch the "null" string everywhere.
- * 
+ *
  * @param  {String}     uriComponent        The URL part to encode and make URL safe
  * @return {String}                         The encoded URL part. When null was passed in, this will return ''
  */
@@ -51,7 +51,7 @@ module.exports.encodeURIComponent = function(uriComponent) {
  * or not the request should be authenticated, for which it will check the presence of a Cookie Jar
  * for that user. If no cookie jar exists, the user will be logged in first. After that, the actual
  * request will be made by the internal _RestRequest function
- * 
+ *
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         url                 The URL of the REST endpoint that should be called
  * @param  {String}         method              The HTTP method that should be used for the request (i.e. GET or POST)

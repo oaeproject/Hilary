@@ -17,7 +17,7 @@ var RestUtil = require('./util');
 
 /**
  * Get the global config schema through the REST API. This should only return for a global or tenant admin.
- * 
+ *
  * @param  {RestContext}   restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {Function}      callback            Standard callback method
  * @param  {Object}        callback.err        Error object containing error code and error message
@@ -29,7 +29,7 @@ var getSchema = module.exports.getSchema = function(restCtx, callback) {
 
 /**
  * Get the global or tenant config through the REST API.
- * 
+ *
  * @param  {RestContext}   restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}        [tenantAlias]       Optional tenant alias of the tenant to get configuration of. If no tenantAlias is passed in, the current tenant will be used.
  * @param  {Function}      callback            Standard callback method

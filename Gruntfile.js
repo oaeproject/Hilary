@@ -12,19 +12,12 @@ module.exports = function(grunt) {
     grunt.initConfig({
         'pkg': grunt.file.readJSON('package.json'),
         'jslint': {
-            'files': ['Gruntfile.js', 'node_modules/oae-*/lib/**/*.js', 'node_modules/oae-*/tests/**/*.js',
-                      'node_modules/oae-*/config/**/*.js'],
-            'directives': {
-                'node': true,
-                'predef': ['it', 'describe', 'beforeEach', 'before', 'afterEach', 'after'],
-                'sub': true,
-                'indent': 4,
-                'quotmark': 'single',
-                'curly': true
-            },
-            'options': {
-                'shebang': true
-            }
+            'files': [
+                'Gruntfile.js',
+                'node_modules/oae-*/lib/**/*.js',
+                'node_modules/oae-*/tests/**/*.js',
+                'node_modules/oae-*/config/**/*.js'
+            ]
         },
         'jshint': {
             'options': {
@@ -116,7 +109,7 @@ module.exports = function(grunt) {
     };
 
     // Task to run the regex task and fail if it matches anything
-    grunt.registerTask('check-style', ['replace', 'jslint', 'checkRegexErrors']);
+    grunt.registerTask('check-style', ['replace', 'jshint', 'checkRegexErrors']);
     grunt.registerTask('checkRegexErrors', function() {
         grunt.task.requires('replace');
         if (regexErrors) {
@@ -176,7 +169,6 @@ module.exports = function(grunt) {
     });
 
     // Bring in tasks from npm
-    grunt.loadNpmTasks('grunt-jslint');
     // Temporary work around till https://github.com/yaymukund/grunt-simple-mocha/issues/16 lands.
     grunt.loadNpmTasks('grunt-mocha-hack');
     grunt.loadNpmTasks('grunt-contrib-jshint');

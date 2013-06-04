@@ -50,7 +50,7 @@ var createUser = module.exports.createUser = function(restCtx, username, passwor
 
 /**
  * Gets a user's me feed through the REST API.
- * 
+ *
  * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {Function}               callback            Standard callback method takes arguments `err` and `resp`
  * @param  {Object}                 callback.err        Error object containing error code and error message
@@ -62,7 +62,7 @@ var getMe = module.exports.getMe = function(restCtx, callback) {
 
 /**
  * Get a user basic profile through the REST API.
- * 
+ *
  * @param  {RestContext}     restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}          userId              User id of the profile you wish to retrieve
  * @param  {Function}        callback            Standard callback method takes arguments `err` and `resp`
@@ -75,7 +75,7 @@ var getUser = module.exports.getUser = function(restCtx, userId, callback) {
 
 /**
  * Update a user's basic profile through the REST API.
- * 
+ *
  * @param  {RestContext}     restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}          userId              The user id of the user we're trying to update
  * @param  {Object}          params              Object representing the profile fields that need to be updated. The keys are the profile fields, the values are the profile field values

@@ -34,7 +34,7 @@ services:
   - redis-server
 
 script:
-  - grunt test
+  - grunt
 
 after_failure:
   - cat bootstrap.log | node_modules/.bin/bunyan

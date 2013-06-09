@@ -20,12 +20,12 @@ var RestUtil = require('./util');
 
 /**
  * Log a user in through the REST API.
- * 
+ *
  * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL. For this function to work, the passed in restCtx should be an anonymous REST context
  * @param  {String}                 username            Username for the user logging in. This should not be the globally unique userid (e.g. u:cam:nm417), but the login id a user would actually use (e.g. nm417)
  * @param  {String}                 password            The user's password
  * @param  {Function}               callback            Standard callback method takes argument `err`
- * @param  {Object}                 callback.err        Error object containing error code and error message                        
+ * @param  {Object}                 callback.err        Error object containing error code and error message
  */
 var login = module.exports.login = function(restCtx, username, password, callback) {
     RestUtil.RestRequest(restCtx, '/api/auth/login', 'POST', {'username': username, 'password': password}, callback);
@@ -33,10 +33,10 @@ var login = module.exports.login = function(restCtx, username, password, callbac
 
 /**
  * Log a user out through the REST API.
- * 
+ *
  * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. This is the user that will be logged out
  * @param  {Function}               callback            Standard callback method takes argument `err`
- * @param  {Object}                 callback.err        Error object containing error code and error message   
+ * @param  {Object}                 callback.err        Error object containing error code and error message
  */
 var logout = module.exports.logout = function(restCtx, callback) {
     RestUtil.RestRequest(restCtx, '/api/auth/logout', 'POST', null, callback);
@@ -44,7 +44,7 @@ var logout = module.exports.logout = function(restCtx, callback) {
 
 /**
  * Change a user's password through the REST API.
- * 
+ *
  * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}                 userId              The user id for which we want to update the password
  * @param  {String}                 oldPassword         The user's current password
@@ -62,7 +62,7 @@ var changePassword = module.exports.changePassword = function(restCtx, userId, o
 
 /**
  * Check whether or not a login id exists
- * 
+ *
  * @param  {RestContext}            restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}                 username            Username we're checking existence. This should not be the globally unique userid (e.g. u:cam:nm417), but the login id a user would actually use (e.g. nm417) to log in.
  * @param  {Function}               callback            Standard callback method takes argument `err`

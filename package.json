@@ -90,7 +90,6 @@
     "grunt-contrib-clean": "latest",
     "grunt-contrib-copy": "latest",
     "grunt-contrib-jshint": "latest",
-    "grunt-jslint": "latest",
     "grunt-mocha-hack": "latest",
     "grunt-text-replace": "latest",
     "mocha": "latest",

@@ -180,6 +180,8 @@ You can then install the remaining dependencies using the `chocolatey.config` in
 
     cinst chocolatey.config
 
+Note that this will install the dependencies, but doesn't necessarily configure and start them for you. You should still read the individual service sections of this document to ensure you've configured and started all the necessary services.
+
 ##### Installing manually
 
 Windows has a few extra dependencies that are known to be needed:

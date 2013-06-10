@@ -38,7 +38,7 @@ var emitter = RestUtil;
  * Utility wrapper around the native JS encodeURIComponent function, to make sure that
  * encoding null doesn't return "null". In tests, null will often be passed in to validate
  * validation, and there's no need to catch the "null" string everywhere.
- * 
+ *
  * @param  {String}     uriComponent        The URL part to encode and make URL safe
  * @return {String}                         The encoded URL part. When null was passed in, this will return ''
  */
@@ -51,7 +51,7 @@ module.exports.encodeURIComponent = function(uriComponent) {
  * or not the request should be authenticated, for which it will check the presence of a Cookie Jar
  * for that user. If no cookie jar exists, the user will be logged in first. After that, the actual
  * request will be made by the internal _RestRequest function
- * 
+ *
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         url                 The URL of the REST endpoint that should be called
  * @param  {String}         method              The HTTP method that should be used for the request (i.e. GET or POST)
@@ -82,9 +82,9 @@ var RestRequest = module.exports.RestRequest = function(restCtx, url, method, da
 /**
  * Fills the jar for a rest context.
  *
- * @param {RestContext}     restCtx         Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param {Function}        callback        Standard callback method.
- * @param {Object}          callback.err    Standard error object (if any.)
+ * @param  {RestContext}     restCtx         Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {Function}        callback        Standard callback method.
+ * @param  {Object}          callback.err    Standard error object (if any.)
  */
 var fillCookieJar = module.exports.fillCookieJar = function(restCtx, callback) {
     // If no user is specified, there is no point in doing a login request.
@@ -141,8 +141,9 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
     // If we would simple pass in a stream the data might already be gone by the time
     // we reach this point.
     var hasStream = false;
+    var keys;
     if (data) {
-        var keys = Object.keys(data);
+        keys = Object.keys(data);
         for (var i = 0; i < keys.length; i++) {
             if (typeof data[keys[i]] === 'function') {
                 data[keys[i]] = data[keys[i]]();
@@ -201,8 +202,8 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
         // We append our data in a multi-part way.
         // That way we can support buffer/streams as well.
         var form = req.form();
-        for (var i = 0; i < keys.length; i++) {
-            var value = data[keys[i]];
+        for (var j = 0; j < keys.length; j++) {
+            var value = data[keys[j]];
 
             // We can't append null values.
             if (value) {
@@ -210,12 +211,12 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
                 // we have to unroll them before appending them to the form.
                 if (Array.isArray(value)) {
                     for (var v = 0; v < value.length; v++) {
-                        form.append(keys[i], value[v]);
+                        form.append(keys[j], value[v]);
                     }
 
                 // All other value types (string, stream, ..)
                 } else {
-                    form.append(keys[i], data[keys[i]]);
+                    form.append(keys[j], data[keys[j]]);
                 }
             }
         }

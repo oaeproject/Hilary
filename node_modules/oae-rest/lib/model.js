@@ -25,13 +25,13 @@
  */
 var RestContext = module.exports.RestContext = function(host, userId, userPassword, hostHeader, refererHeader) {
     var that = {};
-    
+
     that.host = host;
     that.userId = userId;
     that.userPassword = userPassword;
     that.hostHeader = hostHeader;
     that.refererHeader = refererHeader;
     that.cookieJar = null;
-    
+
     return that;
 };

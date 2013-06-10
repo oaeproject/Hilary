@@ -17,7 +17,7 @@ var RestUtil = require('./util');
 
 /**
  * Get all of the widget manifest files through the REST API.
- * 
+ *
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {Function}     callback            Standard callback method
  * @param  {Object}       callback.err        Error object containing error code and error message
@@ -29,7 +29,7 @@ var getWidgetManifests = module.exports.getWidgetManifests = function(restCtx, c
 
 /**
  * Get the file content for a number of static files through the REST API.
- * 
+ *
  * @param  {RestContext}        restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String|String[]}    files               A path or array of paths relative to the 3akai-ux folder that need to be retrieved.
  * @param  {Function}           callback            Standard callback method

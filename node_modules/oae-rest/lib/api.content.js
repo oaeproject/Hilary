@@ -297,7 +297,7 @@ var restoreRevision = module.exports.restoreRevision = function(restCtx, content
 };
 
 /**
- * Update the filebody for a sakai file.
+ * Upload a new version of a file.
  *
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         contentId           Content id of the content item we're trying to update

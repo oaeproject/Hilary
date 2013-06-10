@@ -1,5 +1,5 @@
 /*!
- * Copyright 2012 Sakai Foundation (SF) Licensed under the
+ * Copyright 2013 Apereo Foundation (AF) Licensed under the
  * Educational Community License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License. You may
  * obtain a copy of the License at
@@ -21,7 +21,7 @@
  *
  * It will be of the following form:
  *
- *     `{'host': http://oae.sakai.org, 'userId': 'janedoe', 'password': 'foo'}`
+ *     `{'host': http://oae.oaeproject.org, 'userId': 'janedoe', 'password': 'foo'}`
  *
  * For anonymous users, `userId` and `password` will be `null`.
  */

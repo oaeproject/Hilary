@@ -153,17 +153,17 @@ var memberOf = module.exports.memberOf = function(restCtx, userId, start, limit,
 /**
  * Uploads a new profile picture for a group and optionally resize it.
  *
- * @param {RestContext}     restCtx                 Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param {String}          groupId                 The id of the group we're trying to upload a new image for.
- * @param {Function}        fileGenerator           A method that returns an open stream to a file.
- * @param {Object}          [selectedArea]          If specified, this will crop the picture to the required rectangle and generate the 2 sizes.
- * @param {Number}          [selectedArea.x]        The top left x coordinate.
- * @param {Number}          [selectedArea.y]        The top left y coordinate.
- * @param {Number}          [selectedArea.width]    The width of the rectangle
- * @param {Number}          [selectedArea.height]   The height of the rectangle
- * @param {Function}        callback                Standard callback method takes argument `err`
- * @param {Object}          callback.err            Error object containing error code and error message
- * @param {Object}          callback.principal      The updated principal object.
+ * @param  {RestContext}     restCtx                 Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}          groupId                 The id of the group we're trying to upload a new image for.
+ * @param  {Function}        fileGenerator           A method that returns an open stream to a file.
+ * @param  {Object}          [selectedArea]          If specified, this will crop the picture to the required rectangle and generate the 2 sizes.
+ * @param  {Number}          [selectedArea.x]        The top left x coordinate.
+ * @param  {Number}          [selectedArea.y]        The top left y coordinate.
+ * @param  {Number}          [selectedArea.width]    The width of the rectangle
+ * @param  {Number}          [selectedArea.height]   The height of the rectangle
+ * @param  {Function}        callback                Standard callback method takes argument `err`
+ * @param  {Object}          callback.err            Error object containing error code and error message
+ * @param  {Object}          callback.principal      The updated principal object.
  */
 var uploadPicture = module.exports.uploadPicture = function(restCtx, groupId, file, selectedArea, callback) {
     var params = {
@@ -184,12 +184,12 @@ var uploadPicture = module.exports.uploadPicture = function(restCtx, groupId, fi
  * Download a group's picture. Returns a 404 if the group has no picture.
  * This will only return the image when it's run against the nginx server, as it's nginx who sends the picture stream.
  *
- * @param {RestContext}     restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param {String}          groupId             The ID of the group we're trying to download a picture from.
- * @param {String}          size                The picture size. One of `small`, `medium` or `large`.
- * @param {Function}        callback            Standard callback method takes argument `err`
- * @param {Object}          callback.err        Error object containing error code and error message
- * @param {Object}          callback.picture    The raw picture for this group.
+ * @param  {RestContext}     restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}          groupId             The ID of the group we're trying to download a picture from.
+ * @param  {String}          size                The picture size. One of `small`, `medium` or `large`.
+ * @param  {Function}        callback            Standard callback method takes argument `err`
+ * @param  {Object}          callback.err        Error object containing error code and error message
+ * @param  {Object}          callback.picture    The raw picture for this group.
  */
 var downloadPicture = module.exports.downloadPicture = function(restCtx, groupId, size, callback) {
     if (!size) {

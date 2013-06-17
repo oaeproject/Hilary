@@ -9,10 +9,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/sakaiproject/Hilary.git"
+    "url": "git://github.com/oaeproject/Hilary.git"
   },
   "bugs": {
-    "url": "https://github.com/sakaiproject/Hilary/issues"
+    "url": "https://github.com/oaeproject/Hilary/issues"
   },
   "licenses": [
     {

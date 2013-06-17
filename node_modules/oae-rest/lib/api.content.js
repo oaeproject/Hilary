@@ -118,6 +118,7 @@ var createCollabDoc = module.exports.createCollabDoc = function(restCtx, display
  * @param  {Object}       params              JSON object where the keys represent all of the profile field names we want to update and the values represent the new values for those fields
  * @param  {Function}     callback            Standard callback method
  * @param  {Object}       callback.err        Error object containing error code and error message
+ * @param  {Content}      callback.content    The updated content object
  */
 var updateContent = module.exports.updateContent = function(restCtx, contentId, params, callback) {
     RestUtil.RestRequest(restCtx, '/api/content/' + RestUtil.encodeURIComponent(contentId), 'POST', params, callback);

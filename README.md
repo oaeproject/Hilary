@@ -14,7 +14,9 @@ If you're installing on Windows (not recommended for production) there's a packa
 
 #### Node.js
 
-Download and install the latest version of [Node.js](http://nodejs.org/). The Hilary back-end is written completely in JavaScript, powered by Node.js.
+Download and install the latest version of [Node.js](http://nodejs.org/). Hilary is best tested with node 0.8.x (0.8.24 at time of writing), however is reported to work fine on at least 0.10.6 as well. Do not use any version prior to 0.8.x.
+
+The Hilary back-end is written completely in JavaScript, powered by Node.js.
 
 #### Apache Cassandra
 
@@ -179,6 +181,8 @@ If you don't yet have git installed you can use Chocolatey to install it with `c
 You can then install the remaining dependencies using the `chocolatey.config` in this repo:
 
     cinst chocolatey.config
+
+Note that this will install the dependencies, but doesn't necessarily configure and start them for you. You should still read the individual service sections of this document to ensure you've configured and started all the necessary services.
 
 ##### Installing manually
 

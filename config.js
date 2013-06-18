@@ -1,10 +1,10 @@
 /*
- * Copyright 2012 Sakai Foundation (SF) Licensed under the
+ * Copyright 2013 Apereo Foundation (AF) Licensed under the
  * Educational Community License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License. You may
  * obtain a copy of the License at
  *
- *     http://www.osedu.org/licenses/ECL-2.0
+ *     http://opensource.org/licenses/ECL-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an "AS IS"
@@ -317,7 +317,7 @@ config.email = {
  *
  * Configuration namespace for the saml logic
  *
- * @param  {String}    SAMLParserJarPath     The path towards the Java binary that can be used to decrypt SAML messages. This only needs to be configured if you want to enable the Shibboleth strategy. See https://github.com/sakaiproject/SAMLParser
+ * @param  {String}    SAMLParserJarPath     The path towards the Java binary that can be used to decrypt SAML messages. This only needs to be configured if you want to enable the Shibboleth strategy. See https://github.com/oaeproject/SAMLParser
  */
 config.saml = {
     'SAMLParserJarPath': ''

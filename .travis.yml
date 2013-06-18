@@ -16,7 +16,7 @@ before_install:
   - sudo service postgresql stop
   - sudo apt-get install -qq graphicsmagick
   - npm install -g grunt-cli
-  - git clone git://github.com/sakaiproject/3akai-ux.git --branch master ../3akai-ux
+  - git clone git://github.com/oaeproject/3akai-ux.git --branch master ../3akai-ux
   - cd ../3akai-ux
   - git checkout newframework
   - git clone git://github.com/ether/etherpad-lite --branch master ../etherpad-lite

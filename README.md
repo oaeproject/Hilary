@@ -3,7 +3,7 @@
 Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject.org/)
 
 ## Build status
-[![Build Status](https://travis-ci.org/sakaiproject/Hilary.png?branch=master)](https://travis-ci.org/sakaiproject/Hilary)
+[![Build Status](https://travis-ci.org/oaeproject/Hilary.png?branch=master)](https://travis-ci.org/oaeproject/Hilary)
 
 ## Quickstart Guide
 
@@ -14,7 +14,9 @@ If you're installing on Windows (not recommended for production) there's a packa
 
 #### Node.js
 
-Download and install the latest version of [Node.js](http://nodejs.org/). The Hilary back-end is written completely in JavaScript, powered by Node.js.
+Download and install the latest version of [Node.js](http://nodejs.org/). Hilary is best tested with node 0.8.x (0.8.24 at time of writing), however is reported to work fine on at least 0.10.6 as well. Do not use any version prior to 0.8.x.
+
+The Hilary back-end is written completely in JavaScript, powered by Node.js.
 
 #### Apache Cassandra
 
@@ -107,13 +109,13 @@ Nginx is the most tested load balancer and web server used for OAE. A web server
 
 [Etherpad](http://etherpad.org/) is an open-source editor for online collaborative editing in real-time and is used to power the OAE collaborative documents. Follow the [Etherpad README](https://github.com/ether/etherpad-lite/blob/develop/README.md) to get it installed.
 
-Once you've installed the server you will also need the [Etherpad OAE](https://github.com/sakaiproject/ep_oae) plugin. It's the glue for authenticating users between Hilary and etherpad-lite.
+Once you've installed the server you will also need the [Etherpad OAE](https://github.com/oaeproject/ep_oae) plugin. It's the glue for authenticating users between Hilary and etherpad-lite.
 The simplest method of installing the plugin is cloning it in the top node_modules folder that can be found in your etherpad-lite directory.
 
 ```
 cd your-etherpad-dir
 cd node_modules
-git clone https://github.com/sakaiproject/ep_oae
+git clone https://github.com/oaeproject/ep_oae
 cd ..
 ```
 
@@ -199,16 +201,12 @@ Windows has a few extra dependencies that are known to be needed:
 
 #### Get the code
 
-By default, OAE assumes both the [Hilary repository](http://github.com/sakaiproject/Hilary) and the [3akai-ux repository](http://github.com/sakaiproject/3akai-ux) are siblings in the same directory. If you want to make changes to the code, you will want your own fork of these repositories, which can then be used to push to and send pull requests from. If you are only trying to set up a new OAE instance, the Github repositories below should be sufficient. We now clone both of the repositories. If you have created your own forks of Hilary and 3akai-ux, please substitute the repositories below with your repositories:
+By default, OAE assumes both the [Hilary repository](http://github.com/oaeproject/Hilary) and the [3akai-ux repository](http://github.com/oaeproject/3akai-ux) are siblings in the same directory. If you want to make changes to the code, you will want your own fork of these repositories, which can then be used to push to and send pull requests from. If you are only trying to set up a new OAE instance, the Github repositories below should be sufficient. We now clone both of the repositories. If you have created your own forks of Hilary and 3akai-ux, please substitute the repositories below with your repositories:
 
 ```
-~/oae$ git clone git://github.com/sakaiproject/Hilary.git
-~/oae$ git clone git://github.com/sakaiproject/3akai-ux.git
-~/oae$ cd 3akai-ux
-~/oae/3akai-ux$ git checkout newframework
+~/oae$ git clone git://github.com/oaeproject/Hilary.git
+~/oae$ git clone git://github.com/oaeproject/3akai-ux.git
 ```
-
-**Note:** Currently you must use the **newframework branch** in the 3akai-ux repository, as master remains built for the Nakamura back-end.
 
 Please remember that filenames and directories that contain spaces can sometimes result in unstable side-effects. Please ensure all paths are space-free.
 

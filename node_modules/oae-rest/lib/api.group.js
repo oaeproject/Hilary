@@ -1,10 +1,10 @@
 /*!
- * Copyright 2012 Sakai Foundation (SF) Licensed under the
+ * Copyright 2013 Apereo Foundation (AF) Licensed under the
  * Educational Community License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License. You may
  * obtain a copy of the License at
  *
- *     http://www.osedu.org/licenses/ECL-2.0
+ *     http://opensource.org/licenses/ECL-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an "AS IS"
@@ -69,7 +69,7 @@ var getGroup = module.exports.getGroup = function(restCtx, groupId, callback) {
  * @param  {String}         [profileFields.joinable]      New joinability setting for the group. The possible values are 'yes', 'no' and 'request'
  * @param  {Function}       callback                      Standard callback method takes argument `err`
  * @param  {Object}         callback.err                  Error object containing error code and error message
- * @param  {Group}          callback.newGroup             The new group object
+ * @param  {Group}          callback.updatedGroup         Group object representing the updated group
  */
 var updateGroup = module.exports.updateGroup = function (restCtx, groupId, profileFields, callback) {
     RestUtil.RestRequest(restCtx, '/api/group/' + RestUtil.encodeURIComponent(groupId), 'POST', profileFields, callback);

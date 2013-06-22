@@ -171,7 +171,7 @@ var shareDiscussion = module.exports.shareDiscussion = function(restCtx, discuss
  * @param  {Object}         callback.err    An error that occurred, if any
  */
 var removeDiscussionFromLibrary = module.exports.removeDiscussionFromLibrary = function(restCtx, libraryOwnerId, discussionId, callback) {
-    RestUtil.RestRequest(restCtx, '/api/discussion/library/' + RestUtil.encodeURIComponent(libraryOwnerId) + '/' + RestUtil.encodeURIComponent(discussionId), 'POST', null, callback);
+    RestUtil.RestRequest(restCtx, '/api/discussion/library/' + RestUtil.encodeURIComponent(libraryOwnerId) + '/' + RestUtil.encodeURIComponent(discussionId), 'DELETE', null, callback);
 };
 
 /**

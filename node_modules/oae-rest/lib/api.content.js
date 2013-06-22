@@ -315,10 +315,10 @@ var restoreRevision = module.exports.restoreRevision = function(restCtx, content
  *
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         contentId           Content id of the content item we're trying to update
- * @param  {Function}       file                A function that returns a stream which points to a file body.
+ * @param  {Function}       file                A function that returns a stream which points to a file body
  * @param  {Function}       callback            Standard callback method
  * @param  {Object}         callback.err        Error object containing error code and error message
- * @param  {Content[]}      callback.items      Array of revisions
+ * @param  {Content}        callback.content    The full content profile of the content item updated
  */
 var updateFileBody = module.exports.updateFileBody = function(restCtx, contentId, file, callback) {
     var params = {

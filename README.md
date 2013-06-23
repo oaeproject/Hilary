@@ -215,15 +215,14 @@ Please remember that filenames and directories that contain spaces can sometimes
 
 ##### Hosts file
 
-OAE is a multi-tenant system that discriminates the tenant by the host name with which you are accessing the server. In order to support the "Global Tenant" (i.e., the tenant that hosts the administration UI) and a "User Tenant", you will need to have at least 3 different host names that point to your server. To do this, you will need to add the following entries to your `/etc/hosts` file:
+OAE is a multi-tenant system that discriminates the tenant by the host name with which you are accessing the server. In order to support the "Global Tenant" (i.e., the tenant that hosts the administration UI) and a "User Tenant", you will need to have at least 2 different host names that point to your server. To do this, you will need to add the following entries to your `/etc/hosts` file:
 
 ```
 127.0.0.1   admin.oae.com
 127.0.0.1   tenant1.oae.com
-127.0.0.1   0.etherpad.oae.com
 ```
 
-Where "admin.oae.com" is the hostname that we will use to access the global administration tenant, "tenant1.oae.com" would be one of many potential user tenant hosts and "0.etherpad.oae.com" is the default domain for the Etherpad server.
+Where "admin.oae.com" is the hostname that we will use to access the global administration tenant and "tenant1.oae.com" would be one of many potential user tenant hosts.
 
 ##### Hilary config.js
 

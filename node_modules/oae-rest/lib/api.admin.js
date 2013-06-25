@@ -80,7 +80,7 @@ var loginOnTenant = module.exports.loginOnTenant = function(globalRestCtx, tenan
             } else if (response.statusCode !== 302) {
                 return callback({'code': response.statusCode, 'msg': 'Unexpected response code'});
             } else {
-                restCtx.userId = globalRestCtx.userId;
+                restCtx.username = globalRestCtx.username;
                 callback(null, restCtx);
             }
         });

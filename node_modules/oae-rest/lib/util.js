@@ -88,13 +88,13 @@ var RestRequest = module.exports.RestRequest = function(restCtx, url, method, da
  */
 var fillCookieJar = module.exports.fillCookieJar = function(restCtx, callback) {
     // If no user is specified, there is no point in doing a login request.
-    if (!restCtx.userId) {
+    if (!restCtx.username) {
         return callback(null);
     }
 
     // Log the user in
     _RestRequest(restCtx, '/api/auth/login', 'POST', {
-        'username': restCtx.userId,
+        'username': restCtx.username,
         'password': restCtx.userPassword
     }, callback);
 };

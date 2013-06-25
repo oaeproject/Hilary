@@ -124,8 +124,12 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
 
     var referer = restCtx.host + '/';
     if (restCtx.hostHeader) {
-        referer = 'http://' + restCtx.hostHeader + '/';
+        // Set the host header so the app server can determine the tenant.
         requestParams.headers.host = restCtx.hostHeader;
+
+        // Grab the protocol from the host to create a referer header value.
+        var protocol = restCtx.host.split(':')[0];
+        referer = protocol + '://' + restCtx.hostHeader + '/';
     }
 
     // If a referer was explicitly set, we use that

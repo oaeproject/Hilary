@@ -252,7 +252,7 @@ When you have finished making changes to the nginx.conf file, reload Nginx:
 sudo /usr/local/nginx/sbin/nginx -s reload
 ```
 
-##### Install NPM dependencies
+#### Install NPM dependencies
 
 NPM is the package manager that downloads all the Node.js dependencies on which Hilary relies. To tell NPM to download all the dependencies, run this command in your Hilary directory:
 

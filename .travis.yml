@@ -17,8 +17,6 @@ before_install:
   - sudo apt-get install -qq graphicsmagick
   - npm install -g grunt-cli
   - git clone git://github.com/oaeproject/3akai-ux.git --branch master ../3akai-ux
-  - cd ../3akai-ux
-  - git checkout newframework
   - git clone git://github.com/ether/etherpad-lite --branch master ../etherpad-lite
   - cd ../etherpad-lite
   - echo "13SirapH8t3kxUh5T5aqWXhXahMzoZRA" > APIKEY.txt

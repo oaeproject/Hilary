@@ -3,7 +3,7 @@
  * Educational Community License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License. You may
  * obtain a copy of the License at
- * 
+ *
  *     http://opensource.org/licenses/ECL-2.0
  *
  * Unless required by applicable law or agreed to in writing,
@@ -14,7 +14,7 @@
  */
 
 module.exports = function(grunt) {
-
+    var path = require('path');
     var shell = require('shelljs');
     var mocha_grep = process.env['MOCHA_GREP'] || undefined;
 
@@ -195,6 +195,43 @@ module.exports = function(grunt) {
     grunt.registerTask('test', ['mocha-hack']);
     // Run test coverage and open the report
     grunt.registerTask('test-coverage', ['clean', 'copy:coverage', 'jscoverage', 'test-instrumented', 'showFile:coverage.html']);
+
+    // Copies the files that need to go in the release.
+    // We remove the test files and the Grunt file as it could be potentially
+    // devestating to run the tests in a production environment.
+    // Example:
+    //     grunt release:/tmp/release
+    // will copy only those files you really need in order to run Hilary in a folder at `/tmp/release/Hilary`.
+    grunt.registerTask('release', function(outputDir) {
+        if (!outputDir) {
+            return grunt.log.writeln('Please provide a path where the files should be copied to'.red);
+        }
+
+        var dest = path.resolve(outputDir + '/Hilary');
+
+        // Copy only the files we really need.
+        // ie: No Gruntfile, tests, logs, git repository, etc...
+        var config = {
+            'files': [
+                {
+                    'expand': true,
+                    'src': [
+                        '**',
+                        '!Gruntfile.js',
+                        '!.*/**',
+                        '!chocolatey.config',
+                        '!bootstrap.log',
+                        '!tests.log',
+                        '!node_modules/oae-*/tests/**'
+                    ],
+                    'dest': dest
+                }
+            ]
+        };
+        grunt.config.set('copy.release', config);
+        grunt.task.run('copy:release');
+    });
+
     // Default task.
     grunt.registerTask('default', ['check-style', 'test']);
 

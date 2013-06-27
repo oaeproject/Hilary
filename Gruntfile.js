@@ -201,13 +201,13 @@ module.exports = function(grunt) {
     // devestating to run the tests in a production environment.
     // Example:
     //     grunt release:/tmp/release
-    // will copy only those files you really need in order to run Hilary in a folder at `/tmp/release/Hilary`.
+    // will copy only those files you really need in order to run Hilary in a folder at `/tmp/release`.
     grunt.registerTask('release', function(outputDir) {
         if (!outputDir) {
             return grunt.log.writeln('Please provide a path where the files should be copied to'.red);
         }
 
-        var dest = path.resolve(outputDir + '/Hilary');
+        var dest = path.resolve(outputDir);
 
         // Copy only the files we really need.
         // ie: No Gruntfile, tests, logs, git repository, etc...
@@ -220,8 +220,7 @@ module.exports = function(grunt) {
                         '!Gruntfile.js',
                         '!.*/**',
                         '!chocolatey.config',
-                        '!bootstrap.log',
-                        '!tests.log',
+                        '!*.log',
                         '!node_modules/oae-*/tests/**'
                     ],
                     'dest': dest

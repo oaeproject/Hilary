@@ -62,7 +62,7 @@ ElasticSearch powers the full-text search functionality of OAE.
 
 #### RabbitMQ
 
-To install RabbitMQ, please follow the instructions on the [RabbitMQ Download Page](http://www.rabbitmq.com/download.html). Once completed, you should be able to start RabbitMQ in the background by running:
+To install RabbitMQ, please follow the instructions on the [RabbitMQ download page](http://www.rabbitmq.com/download.html). Once completed, you should be able to start RabbitMQ in the background by running:
 
 ```
 rabbitmq-server -detatched

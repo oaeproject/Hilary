@@ -1027,7 +1027,7 @@
           "from": "lodash@~0.9.0"
         },
         "underscore.string": {
-          "version": "2.2.0rc",
+          "version": "2.2.1",
           "from": "underscore.string@~2.2.0rc"
         },
         "which": {

@@ -14,6 +14,7 @@
  */
 
 module.exports = function(grunt) {
+    var _ = require('underscore');
     var path = require('path');
     var shell = require('shelljs');
     var mocha_grep = process.env['MOCHA_GREP'] || undefined;
@@ -207,28 +208,28 @@ module.exports = function(grunt) {
             return grunt.log.writeln('Please provide a path where the files should be copied to'.red);
         }
 
+        // We will wind up deleting stuff out of this directory, so make sure it doesn't exist yet
         var dest = path.resolve(outputDir);
+        if (shell.test('-d', dest)) {
+            return grunt.log.writeln('The output directory already exists, please delete it first'.red);
+        }
 
-        // Copy only the files we really need.
-        // ie: No Gruntfile, tests, logs, git repository, etc...
-        var config = {
-            'files': [
-                {
-                    'expand': true,
-                    'src': [
-                        '**',
-                        '!Gruntfile.js',
-                        '!.*/**',
-                        '!chocolatey.config',
-                        '!*.log',
-                        '!node_modules/oae-*/tests/**'
-                    ],
-                    'dest': dest
-                }
-            ]
-        };
-        grunt.config.set('copy.release', config);
-        grunt.task.run('copy:release');
+        // Create the target directory
+        shell.mkdir('-p', dest);
+
+        // Copy the relevant files to the distribution directory
+        shell.cp('app.js', 'config.js', 'npm-shrinkwrap.json', 'package.json', 'README.md', 'LICENSE', dest);
+
+        // Using shell.exec here because shell.cp (and grunt--copy) does not copy the files in the same way, which results in
+        // (I think) issues with symlinks that result in phantomjs/webshot not functioning properly on the released binary
+        // package. If you change this, ensure you test "link" content items have previews generated properly on the resulting
+        // distribution.
+        shell.exec('cp -Rf node_modules ' + dest);
+
+        // Delete the node_modules/oae-*/tests directories
+        _.each(shell.ls(dest + '/node_modules/oae-*'), function(modulePath) {
+            shell.rm('-rf', modulePath + '/tests');
+        });
     });
 
     // Default task.

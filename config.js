@@ -121,14 +121,22 @@ config.log = {
     }
 };
 
-// This object holds the configuration for the telemetry monitoring.
-// By default telemetry is disabled.
-// We currently support two types of publishers:
-// * displaying data on the console
-// * pushing data to circonus (via httptrap and redis)
+/**
+ * `config.telemetry`
+ *
+ * Configuration namespace for API telemetry
+ *
+ * @param  {Boolean}    [enabled]               Whether or not to enable telemetry. When `false`, no data will be published to the publishers. Default: `false`
+ * @param  {Number}     [publishInterval]       How often (in seconds) to push data to the configured publisher. Default: 30 seconds
+ * @param  {Number}     [resetInterval]         How often (in seconds) telemetry counters should be reset to 0. You want this to be fairly large as its reset can disrupt rate statistics for one publish interval on each reset. Set this to a value that controls insane numeric overflows such as 2^31-1. Default: 86400 seconds (once per day)
+ * @param  {String}     [publisher]             The publisher implementation to use to publish data. Should be one of `console` or `circonus`. Default: `console`
+ * @param  {Object}     [circonus]              Custom circonus configuration, only applicable if the selected publisher is `circonus` (required param if circonus is the publisher)
+ * @param  {String}     [circonus.url]          The Circonus url to which data should be published (required param if circonus is the publisher)
+ */
 config.telemetry = {
-    'enabled': true,
-    'publishInterval': 1,
+    'enabled': false,
+    'publishInterval': 30,
+    'resetInterval': 86400,
     'publisher': 'console',
     'circonus': {
         'url': 'https://trap.noit.circonus.net/module/httptrap/5655b0c9-5246-68b3-e456-edfb512d4ea1/mys3cr3t'

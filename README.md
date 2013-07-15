@@ -99,8 +99,6 @@ cd your-nginx-dir
 ./configure --with-pcre=/path/to/pcre
 make
 sudo make install
-cd /usr/local/nginx
-sudo sbin/nginx
 ```
 
 Nginx is the most tested load balancer and web server used for OAE. A web server such as Nginx is necessary for file downloads to work properly.
@@ -239,17 +237,17 @@ Open the `config.js` file in the root of the Hilary directory. This file contain
 
 ##### Nginx Configuration
 
-Find the "nginx.conf" template file located in the root folder of the 3akai-ux (3akai-ux/nginx.conf) repository that you cloned earlier. Now replace your the nginx.conf file that came with your Nginx install (e.g., `/usr/local/nginx/conf/nginx.conf`) with this one and perform the following edits:
+Find the "nginx.conf" template file located in the nginx folder of the 3akai-ux (3akai-ux/nginx/nginx.conf) repository that you cloned earlier and perform the following edits:
 
-* Replace `<%= NGINX_USER %>` and `<%= NGINX_GROUP %>` with the OS user and group that the nginx process should run as
-* Replace `<%= UX_HOME %>` with the full absolute path to your cloned 3akai-ux directory (e.g., /Users/branden/oae/3akai-ux)
-* Replace `<%= LOCAL_FILE_STORAGE_DIRECTORY %>` with the full absolute path that you configured for file storage in the `Hilary config.js` step
-* Ensure that the `server_name` property for the *global administration server* (the one whose current value would be "admin.oae.com") is set to the same value you configured for the global administration host in `/etc/hosts`. **Note:** The `server_name` property for the *user tenant server* further down the configuration file should remain set to "*".
+* Replace `<%= nginxConf.NGINX_USER %>` and `<%= nginxConf.NGINX_GROUP %>` with the OS user and group that the nginx process should run as
+* Replace `<%= nginxConf.NGINX_HOSTNAME %>` with the same value you configured for the global administration server host in `/etc/hosts` (the one whose current value would be "admin.oae.com"). **Note:** The `server_name` property for the *user tenant server* further down the configuration file should remain set to "*".
+* Replace all instances of `<%= nginxConf.UX_HOME %>` with the full absolute path to your cloned 3akai-ux directory (e.g., /Users/branden/oae/3akai-ux) or the 3akai-ux production build directory (e.g., /Users/branden/oae/3akai-ux/target/optimized)
+* Replace `<%= nginxConf.LOCAL_FILE_STORAGE_DIRECTORY %>` with the full absolute path that you configured for file storage in the `Hilary config.js` step
 
-When you have finished making changes to the nginx.conf file, reload Nginx:
+When you have finished making changes to the nginx.conf file, start Nginx:
 
 ```
-sudo /usr/local/nginx/sbin/nginx -s reload
+sudo /usr/local/nginx/sbin/nginx -c your-3akai-ux-dir/nginx/nginx.conf
 ```
 
 #### Install NPM dependencies

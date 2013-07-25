@@ -29,3 +29,14 @@ var reprocessPreview = module.exports.reprocessPreview = function(restCtx, conte
     revisionId = RestUtil.encodeURIComponent(revisionId);
     RestUtil.RestRequest(restCtx, '/api/content/' + contentId + '/revision/'+ revisionId + '/reprocessPreview', 'POST', null, callback);
 };
+
+/**
+ * Attempt to reprocess all content previews that were not successfully processed.
+ *
+ * @param  {RestContext}    globalAdminRestContext  A global administration context that can be used to reprocess all preview items. This context must be bound to the global admin server, not a user tenant
+ * @param  {String[]}       [statuses]              Only previews whose processing status is in this array of statuses will be reprocessed
+ * @param  {Function}       callback                Invoked when the request completes
+ */
+var reprocessPreviews = module.exports.reprocessPreviews = function(globalAdminRestContext, statuses, callback) {
+    RestUtil.RestRequest(globalAdminRestContext, '/api/content/reprocessPreviews', 'POST', {'status': statuses}, callback);
+};

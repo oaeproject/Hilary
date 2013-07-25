@@ -20,7 +20,7 @@ The Hilary back-end is written completely in JavaScript, powered by Node.js.
 
 #### Apache Cassandra
 
-Download the latest version if [Apache Cassandra](http://cassandra.apache.org/) and extract it to a directory of your choice. Then you can start it in the backround by running the following:
+Download the latest version of [Apache Cassandra](http://cassandra.apache.org/) and extract it to a directory of your choice. Then you can start it in the backround by running the following:
 
 ```
 cd my-cassandra-dir
@@ -65,7 +65,7 @@ ElasticSearch powers the full-text search functionality of OAE.
 To install RabbitMQ, please follow the instructions on the [RabbitMQ download page](http://www.rabbitmq.com/download.html). Once completed, you should be able to start RabbitMQ in the background by running:
 
 ```
-rabbitmq-server -detatched
+rabbitmq-server -detached
 ```
 
 RabbitMQ powers the asynchronous task-queue function in Hilary. It allows heavier "background" tasks such as activity processing, search indexing and preview processing to be off-loaded to specialized clusters of servers. Though, in a development environment you don't need to worry about specialized clusters, your development machine will do just fine out-of-the-box.
@@ -90,7 +90,7 @@ Download and install [LibreOffice](http://www.libreoffice.org/download/). This d
 
 #### Nginx (version 1.4.1 or higher)
 
-Download [Nginx **version 1.4.1 or higher**](http://nginx.org/en/download.html). You will need to download [PCRE](http://www.pcre.org/) as well for configuring Nginx.
+Download [Nginx **version 1.4.1 or higher**](http://nginx.org/en/download.html). You will need to download [PCRE](http://www.pcre.org/) as well for configuring Nginx. Note that you do not need to install PCRE, just download and extract it.
 
 Once you've downloaded and extracted both to directories of your choice, you can configure and install:
 
@@ -122,7 +122,7 @@ You can copy or symlink the `static/css/pad.css` in the `ep_oae` module to `your
 ```
 cd your-etherpad-dir
 rm src/static/custom/pad.css
-ln -s your-etherpad-dir/static/css/pad.css src/static/custom/pad.css
+ln -s src/static/css/pad.css src/static/custom/pad.css
 ```
 
 Next, we need to enable websockets as a way of communicating between Etherpad and Hilary. In order to do this, open the settings.json file in your favourite editor and change
@@ -163,7 +163,7 @@ npm install your-etherpad-plugins-dir/ep_headings
 Now, Etherpad can be started by running the following command:
 
 ```
-bin/run.sh
+bin/run.sh &
 ```
 
 #### Windows Dependencies

@@ -414,6 +414,10 @@ var download = module.exports.download = function(restCtx, contentId, revisionId
     if (restCtx.cookieJar) {
         downloadFile();
     } else {
+        // No jar was present, create one.
+        restCtx.cookieJar = request.jar();
+
+        // If the restContext is not anonymous, we need to fill it up.
         RestUtil.fillCookieJar(restCtx, function(err) {
             if (err) {
                 return callback(err);

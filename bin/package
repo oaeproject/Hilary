@@ -1,0 +1,65 @@
+#!/usr/bin/env node
+
+var path = require('path');
+var util = require('util');
+
+var BinUtil = require('./lib/util');
+var PackageUtil = require('./lib/package/util');
+
+var argv = require('optimist')
+	.usage('Usage: $0 -v <release version>')
+
+    .alias('h', 'help')
+    .describe('h', 'Show this help information.')
+
+    .demand('o')
+    .alias('o', 'output')
+    .describe('o', 'The target output directory to copy the release artifacts')
+    .default('o', 'dist')
+
+    .alias('v', 'hilary-version')
+    .describe('v', 'The version of hilary that we are packaging. If not specified, it will be derived from the hilary version in package.json and git describe')
+
+    .alias('s', 'skip-tests')
+    .describe('s', 'Skip the unit tests in the packaging process.')
+
+    .argv;
+
+// Gather system information so we know what system we built on
+var systemInfo = BinUtil.getSystemInfo();
+var packageJsonPath = path.resolve('package.json');
+
+// Load and validate the package.json
+var packageJson = BinUtil.loadPackageJson(packageJsonPath, 4);
+
+if (!argv.s) {
+    BinUtil.runUnitTests(6);
+} else {
+    BinUtil.logWarn('Skipping unit tests because of -s parameter');
+}
+
+// Find the hilary version
+var hilaryVersion = argv.v;
+if (!hilaryVersion) {
+	var describe = BinUtil.gitDescribe(packageJson.version, 7);
+	hilaryVersion = describe.tag;
+
+	if (describe.commits) {
+		hilaryVersion += '-' + describe.commits;
+	}
+
+	if (describe.hash) {
+		hilaryVersion += '-' + describe.hash;
+	}
+}
+
+BinUtil.logSuccess('Resolved hilary version to be '.text + hilaryVersion.white);
+
+// Copy the release files to the source directory
+PackageUtil.copyReleaseFiles(argv.o, 8);
+
+PackageUtil.saveBuildInfo(argv.o, hilaryVersion, systemInfo, 9);
+
+// Package the source directory into a tarball
+var packageFilename = util.format('hilary-%s_node-%s', hilaryVersion, systemInfo.nodeVersion);
+PackageUtil.packageRelease(argv.o, packageFilename, 9);

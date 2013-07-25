@@ -85,6 +85,7 @@
     "youtube-feeds": "latest"
   },
   "devDependencies": {
+    "colors": "latest",
     "grunt": "latest",
     "grunt-cli": "latest",
     "grunt-contrib-clean": "latest",
@@ -93,7 +94,8 @@
     "grunt-mocha-hack": "latest",
     "grunt-text-replace": "latest",
     "mocha": "latest",
-    "optimist": "latest"
+    "optimist": "latest",
+    "semver": "latest"
   },
   "optionalDependencies": {
     "bunyan-syslog": "latest",

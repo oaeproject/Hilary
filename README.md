@@ -27,8 +27,10 @@ Download the latest version of [Apache Cassandra](http://cassandra.apache.org/) 
 
 ```
 cd my-cassandra-dir
-bin/cassandra
+bin/cassandra -f
 ```
+
+To start it in the background, you can omit the `-f` parameter
 
 If you choose to instead install with a package manager, you'll want to ensure the following directories exist:
 
@@ -50,6 +52,8 @@ cd my-redis-dir
 src/redis-server
 ```
 
+To start it in the background, you can update the `redis.conf` to set property `daemonize yes`.
+
 Redis is used for caching frequently accessed data and for broadcasting messages (PubSub) across the application cluster.
 
 #### ElasticSearch
@@ -65,11 +69,13 @@ ElasticSearch powers the full-text search functionality of OAE.
 
 #### RabbitMQ
 
-To install RabbitMQ, please follow the instructions on the [RabbitMQ download page](http://www.rabbitmq.com/download.html). Once completed, you should be able to start RabbitMQ in the background by running:
+To install RabbitMQ, please follow the instructions on the [RabbitMQ download page](http://www.rabbitmq.com/download.html). Once completed, you should be able to start RabbitMQ:
 
 ```
-rabbitmq-server -detached
+rabbitmq-server
 ```
+
+To start it in the background, you can run: `rabbitmq-server -detached`
 
 RabbitMQ powers the asynchronous task-queue function in Hilary. It allows heavier "background" tasks such as activity processing, search indexing and preview processing to be off-loaded to specialized clusters of servers. Though, in a development environment you don't need to worry about specialized clusters, your development machine will do just fine out-of-the-box.
 
@@ -168,6 +174,8 @@ Now, Etherpad can be started by running the following command:
 ```
 bin/run.sh
 ```
+
+To run it in the background, simply fork the process: `bin/run.sh &`
 
 #### Windows Dependencies
 

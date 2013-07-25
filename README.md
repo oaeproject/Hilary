@@ -10,6 +10,7 @@ Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject
 The following guide will take you through the necessary steps to run the back-end for OAE (Hilary) and its reference UI (3akai-ux) for development purposes.
 
 ### Installing dependencies
+
 If you're installing on Windows (not recommended for production) there's a package manager called Chocolatey that can be used to install all the dependencies quickly. See the `Windows Dependencies` section of this document for more information.
 
 #### Node.js
@@ -90,7 +91,7 @@ Download and install [LibreOffice](http://www.libreoffice.org/download/). This d
 
 #### Nginx (version 1.4.1 or higher)
 
-Download [Nginx **version 1.4.1 or higher**](http://nginx.org/en/download.html). You will need to download [PCRE](http://www.pcre.org/) as well for configuring Nginx. Note that you do not need to install PCRE, just download and extract it.
+Download [Nginx **version 1.4.2 or higher**](http://nginx.org/en/download.html). You will also need to download and extract [PCRE](http://www.pcre.org/), which will be used to configure Nginx.
 
 Once you've downloaded and extracted both to directories of your choice, you can configure and install:
 
@@ -163,7 +164,7 @@ npm install your-etherpad-plugins-dir/ep_headings
 Now, Etherpad can be started by running the following command:
 
 ```
-bin/run.sh &
+bin/run.sh
 ```
 
 #### Windows Dependencies

@@ -30,7 +30,7 @@ cd my-cassandra-dir
 bin/cassandra -f
 ```
 
-To start it in the background, you can omit the `-f` parameter
+To start it in the background, you can omit the `-f` parameter.
 
 If you choose to instead install with a package manager, you'll want to ensure the following directories exist:
 
@@ -58,12 +58,14 @@ Redis is used for caching frequently accessed data and for broadcasting messages
 
 #### ElasticSearch
 
-Download the latest version of [ElasticSearch](http://www.elasticsearch.org/download/), and extract it to a directory of your choice. Once extracted, you can start it in the backround by running the following:
+Download the latest version of [ElasticSearch](http://www.elasticsearch.org/download/), and extract it to a directory of your choice. Once extracted, you can start it by running the following:
 
 ```
 cd my-elasticsearch-dir
-bin/elasticsearch
+bin/elasticsearch -f
 ```
+
+To start it in the background, you can omit the `-f` parameter.
 
 ElasticSearch powers the full-text search functionality of OAE.
 

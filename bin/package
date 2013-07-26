@@ -7,7 +7,7 @@ var BinUtil = require('./lib/util');
 var PackageUtil = require('./lib/package/util');
 
 var argv = require('optimist')
-	.usage('Usage: $0 -v <release version>')
+	.usage('Usage: $0 [-s] [-o <output dir>] [-v <force hilary version>]')
 
     .alias('h', 'help')
     .describe('h', 'Show this help information.')
@@ -24,6 +24,12 @@ var argv = require('optimist')
     .describe('s', 'Skip the unit tests in the packaging process.')
 
     .argv;
+
+// Display the help if requested
+if (argv.h) {
+    require('optimist').showHelp();
+    return process.exit(0);
+}
 
 // Gather system information so we know what system we built on
 var systemInfo = BinUtil.getSystemInfo();
@@ -61,5 +67,9 @@ PackageUtil.copyReleaseFiles(argv.o, 8);
 PackageUtil.saveBuildInfo(argv.o, hilaryVersion, systemInfo, 9);
 
 // Package the source directory into a tarball
-var packageFilename = util.format('hilary-%s_node-%s', hilaryVersion, systemInfo.nodeVersion);
+
+// Slice the 'v' from the start of the node version (e.g., v0.10.14 -> 0.10.14)
+var nodeVersionNumber = systemInfo.nodeVersion.slice(1);
+
+var packageFilename = util.format('hilary-%s_node-%s', hilaryVersion, nodeVersionNumber);
 PackageUtil.packageRelease(argv.o, packageFilename, 9);

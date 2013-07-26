@@ -113,7 +113,7 @@ var gitCommitShrinkwrapAndTag = module.exports.gitCommitShrinkwrapAndTag = funct
     errCode = errCode || 1;
     var commitMessage = util.format('(Release %s) Add shrinkwrap, bump version', tagVersion);
 
-    BinUtil.logInfo('Commiting npm shrinkwrap and tagging release');
+    BinUtil.logInfo('Committing npm shrinkwrap and tagging release');
 
     // Stage changes
     BinUtil.exec('git add npm-shrinkwrap.json', 'Error adding npm-shrinkwrap.json to git index', errCode);
@@ -123,7 +123,7 @@ var gitCommitShrinkwrapAndTag = module.exports.gitCommitShrinkwrapAndTag = funct
     BinUtil.exec(util.format('git commit -m "%s"', commitMessage), 'Error committng shrinkwrap to git', errCode);
     BinUtil.exec(util.format('git tag -a %s -m v%s', tagVersion, tagVersion), 'Error creating tag for release', errCode);
 
-    BinUtil.logSuccess('Created tag '.text + tagVersion.white + ' and '.text + '1 commit (shrinkwrap)'.white);
+    BinUtil.logSuccess('Created tag '.text + tagVersion.white + ' and '.text + '1 commit'.white + ' (shrinkwrap)'.text);
 };
 
 /**
@@ -142,5 +142,5 @@ var gitRemoveShrinkwrapAndCommit = module.exports.gitRemoveShrinkwrapAndCommit =
     BinUtil.exec('git rm npm-shrinkwrap.json', 'Error removing npm-shrinkwrap.json from git index', errCode);
     BinUtil.exec(util.format('git commit -m "%s"', commitMessage), 'Error committing shrinkwrap removal to git', errCode);
 
-    BinUtil.logSuccess('Removed shrinkwrap with '.text + '1 comment'.white);
+    BinUtil.logSuccess('Removed shrinkwrap with '.text + '1 commit'.white);
 };

@@ -23,14 +23,9 @@ The Hilary back-end is written completely in JavaScript, powered by Node.js.
 
 **Note:** Cassandra is best supported with the latest version of Oracle Java 6. Trying to run vanilla Cassandra with OpenJDK can result in a silent segmentation fault.
 
-Download the latest version of [Apache Cassandra](http://cassandra.apache.org/) and extract it to a directory of your choice. Then you can start it in the backround by running the following:
+Download the latest version of [Apache Cassandra](http://cassandra.apache.org/) and extract it to a directory of your choice.
 
-```
-cd my-cassandra-dir
-bin/cassandra
-```
-
-If you choose to instead install with a package manager, you'll want to ensure the following directories exist:
+Create the following directories and set the owner:
 
 ```
 sudo mkdir -p /var/log/cassandra
@@ -38,6 +33,15 @@ sudo chown -R `whoami` /var/log/cassandra
 sudo mkdir -p /var/lib/cassandra
 sudo chown -R `whoami` /var/lib/cassandra
 ```
+
+Then you can start Cassandra in the background by running the following:
+
+```
+cd my-cassandra-dir
+bin/cassandra -f
+```
+
+To start it in the background, you can omit the `-f` parameter.
 
 All Hilary data is stored in Apache Cassandra. Therefore it is *not necessary* to install any RDBMS such as MySQL or PostgreSQL.
 
@@ -50,26 +54,32 @@ cd my-redis-dir
 src/redis-server
 ```
 
+To start it in the background, you can update the `redis.conf` to set the property `daemonize yes`.
+
 Redis is used for caching frequently accessed data and for broadcasting messages (PubSub) across the application cluster.
 
 #### ElasticSearch
 
-Download the latest version of [ElasticSearch](http://www.elasticsearch.org/download/), and extract it to a directory of your choice. Once extracted, you can start it in the backround by running the following:
+Download the latest version of [ElasticSearch](http://www.elasticsearch.org/download/), and extract it to a directory of your choice. Once extracted, you can start it by running the following:
 
 ```
 cd my-elasticsearch-dir
-bin/elasticsearch
+bin/elasticsearch -f
 ```
+
+To start it in the background, you can omit the `-f` parameter.
 
 ElasticSearch powers the full-text search functionality of OAE.
 
 #### RabbitMQ
 
-To install RabbitMQ, please follow the instructions on the [RabbitMQ download page](http://www.rabbitmq.com/download.html). Once completed, you should be able to start RabbitMQ in the background by running:
+To install RabbitMQ, please follow the instructions on the [RabbitMQ download page](http://www.rabbitmq.com/download.html). Once completed, you should be able to start RabbitMQ by running the following:
 
 ```
-rabbitmq-server -detached
+rabbitmq-server
 ```
+
+To start it in the background, you can run: `rabbitmq-server -detached`
 
 RabbitMQ powers the asynchronous task-queue function in Hilary. It allows heavier "background" tasks such as activity processing, search indexing and preview processing to be off-loaded to specialized clusters of servers. Though, in a development environment you don't need to worry about specialized clusters, your development machine will do just fine out-of-the-box.
 
@@ -168,6 +178,8 @@ Now, Etherpad can be started by running the following command:
 ```
 bin/run.sh
 ```
+
+To run it in the background, simply fork the process: `bin/run.sh &`
 
 #### Windows Dependencies
 

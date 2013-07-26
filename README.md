@@ -54,7 +54,7 @@ cd my-redis-dir
 src/redis-server
 ```
 
-To start it in the background, you can update the `redis.conf` to set property `daemonize yes`.
+To start it in the background, you can update the `redis.conf` to set the property `daemonize yes`.
 
 Redis is used for caching frequently accessed data and for broadcasting messages (PubSub) across the application cluster.
 
@@ -73,7 +73,7 @@ ElasticSearch powers the full-text search functionality of OAE.
 
 #### RabbitMQ
 
-To install RabbitMQ, please follow the instructions on the [RabbitMQ download page](http://www.rabbitmq.com/download.html). Once completed, you should be able to start RabbitMQ:
+To install RabbitMQ, please follow the instructions on the [RabbitMQ download page](http://www.rabbitmq.com/download.html). Once completed, you should be able to start RabbitMQ by running the following:
 
 ```
 rabbitmq-server

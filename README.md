@@ -23,16 +23,9 @@ The Hilary back-end is written completely in JavaScript, powered by Node.js.
 
 **Note:** Cassandra is best supported with the latest version of Oracle Java 6. Trying to run vanilla Cassandra with OpenJDK can result in a silent segmentation fault.
 
-Download the latest version of [Apache Cassandra](http://cassandra.apache.org/) and extract it to a directory of your choice. Then you can start it in the backround by running the following:
+Download the latest version of [Apache Cassandra](http://cassandra.apache.org/) and extract it to a directory of your choice. 
 
-```
-cd my-cassandra-dir
-bin/cassandra -f
-```
-
-To start it in the background, you can omit the `-f` parameter.
-
-If you choose to instead install with a package manager, you'll want to ensure the following directories exist:
+Create the following directories and set the owner:
 
 ```
 sudo mkdir -p /var/log/cassandra
@@ -40,6 +33,15 @@ sudo chown -R `whoami` /var/log/cassandra
 sudo mkdir -p /var/lib/cassandra
 sudo chown -R `whoami` /var/lib/cassandra
 ```
+
+Then you can start it in the background by running the following:
+
+```
+cd my-cassandra-dir
+bin/cassandra -f
+```
+
+To start it in the background, you can omit the `-f` parameter.
 
 All Hilary data is stored in Apache Cassandra. Therefore it is *not necessary* to install any RDBMS such as MySQL or PostgreSQL.
 

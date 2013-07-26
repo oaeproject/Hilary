@@ -7,7 +7,7 @@ var BinUtil = require('./lib/util');
 var PackageUtil = require('./lib/package/util');
 
 var argv = require('optimist')
-	.usage('Usage: $0 [-s] [-o <output dir>] [-v <force hilary version>]')
+    .usage('Usage: $0 [-s] [-o <output dir>] [-v <force hilary version>]')
 
     .alias('h', 'help')
     .describe('h', 'Show this help information.')
@@ -47,16 +47,16 @@ if (!argv.s) {
 // Find the hilary version
 var hilaryVersion = argv.v;
 if (!hilaryVersion) {
-	var describe = BinUtil.gitDescribe(packageJson.version, 7);
-	hilaryVersion = describe.tag;
+    var describe = BinUtil.gitDescribe(packageJson.version, 7);
+    hilaryVersion = describe.tag;
 
-	if (describe.commits) {
-		hilaryVersion += '-' + describe.commits;
-	}
+    if (describe.commits) {
+        hilaryVersion += '-' + describe.commits;
+    }
 
-	if (describe.hash) {
-		hilaryVersion += '-' + describe.hash;
-	}
+    if (describe.hash) {
+        hilaryVersion += '-' + describe.hash;
+    }
 }
 
 BinUtil.logSuccess('Resolved hilary version to be '.text + hilaryVersion.white);
@@ -72,4 +72,5 @@ PackageUtil.saveBuildInfo(argv.o, hilaryVersion, systemInfo, 9);
 var nodeVersionNumber = systemInfo.nodeVersion.slice(1);
 
 var packageFilename = util.format('hilary-%s_node-%s', hilaryVersion, nodeVersionNumber);
-PackageUtil.packageRelease(argv.o, packageFilename, 9);
+var packageResult = PackageUtil.packageRelease(argv.o, packageFilename, 10);
+PackageUtil.checksumPackage(packageResult.tarballPath, 11);

@@ -108,6 +108,7 @@ var getSystemInfo = module.exports.getSystemInfo = function() {
  *
  * @param  {String}     packageJsonPath     The path to expect the package.json file
  * @param  {Number}     [errCode]           The process error code to return on failure. Default: 1
+ * @return {Object}                         The parsed hilary package.json file that has been validated
  */
 var loadPackageJson = module.exports.loadPackageJson = function(packageJsonPath, errCode) {
     errCode = errCode || 1;

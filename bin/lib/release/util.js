@@ -88,6 +88,8 @@ var bumpPackageJsonVersion = module.exports.bumpPackageJsonVersion = function(pa
         BinUtil.logFail('Resulting package.json file did not contain the text ' + replaceWith.trim().error);
         return process.exit(errCode);
     }
+
+    BinUtil.logSuccess('Successfully bumped hilary version to '.text + toVersion.white);
 };
 
 /**

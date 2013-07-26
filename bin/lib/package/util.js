@@ -89,12 +89,12 @@ var copyReleaseFiles = module.exports.copyReleaseFiles = function(dest, errCode)
  * @param  {Number}     [errCode]       The process error code to return on failure. Default: 1
  */
 var saveBuildInfo = module.exports.saveBuildInfo = function(dest, hilaryVersion, systemInfo, errCode) {
-	errCode = errCode || 1;
+    errCode = errCode || 1;
 
-	var targetInfoPath = util.format('%s/build-info.json', _getDestSrc(dest));
-	var buildInfo = _.extend({}, systemInfo, {'version': hilaryVersion});
-	fs.writeFileSync(targetInfoPath, JSON.stringify(buildInfo, null, 4) + '\n');
-	BinUtil.logSuccess('Sucessfully wrote system and version information to '.text + targetInfoPath.white);
+    var targetInfoPath = util.format('%s/build-info.json', _getDestSrc(dest));
+    var buildInfo = _.extend({}, systemInfo, {'version': hilaryVersion});
+    fs.writeFileSync(targetInfoPath, JSON.stringify(buildInfo, null, 4) + '\n');
+    BinUtil.logSuccess('Successfully wrote system and version information to '.text + targetInfoPath.white);
 };
 
 /**
@@ -103,17 +103,35 @@ var saveBuildInfo = module.exports.saveBuildInfo = function(dest, hilaryVersion,
  * @param  {String}     dest        The root distribution directory
  * @param  {String}     filename    The filename (without the extention) of the distribution tar to create
  * @param  {Number}     [errCode]   The process error code to return on failure. Default: 1
+ * @return {Object}                 An object with field `tarballPath` whose value holds the path to the release tarball
  */
 var packageRelease = module.exports.packageRelease = function(dest, filename, errCode) {
     errCode = errCode || 1;
-	var destSrc = _getDestSrc(dest);
+    var destSrc = _getDestSrc(dest);
 
-	BinUtil.logInfo('Starting to package the release artifacts (tar.gz)');
-	BinUtil.exec(util.format('tar -czvf %s/%s.tar.gz -C %s .', dest, filename, destSrc), 'Error creating the distribution tar.gz file', errCode);
+    BinUtil.logInfo('Starting to package the release artifacts (tar.gz)');
+    BinUtil.exec(util.format('tar -czvf %s/%s.tar.gz -C %s .', dest, filename, destSrc), 'Error creating the distribution tar.gz file', errCode);
 
-	var result = {'tarball': util.format('%s/%s.tar.gz', dest, filename)};
-	BinUtil.logSuccess('Successfully created release tarball at '.text + result.tarball.white);
-	return result;
+    var result = {'tarballPath': util.format('%s/%s.tar.gz', dest, filename)};
+    BinUtil.logSuccess('Successfully created release tarball at '.text + result.tarballPath.white);
+    return result;
+};
+
+/**
+ * Generate a sha1 checksum of a package for integrity verification. It will create a file with name
+ * <packagePath>.sha1.txt located in the same directory as the specified package.
+ *
+ * @param  {String}     packagePath     The path to the package for which to generate a sha1 checksum
+ * @param  {Number}     [errCode]       The process error code to return on failure. Default: 1
+ * @return {Object}                     An object with field `checksum` whose value holds the path to the package checksum
+ */
+var checksumPackage = module.exports.checksumPackage = function(packagePath, errCode) {
+    errCode = errCode || 1;
+    var sha1sumPath = packagePath + '.sha1.txt';
+    var sha1sum = BinUtil.exec(util.format('shasum %s', packagePath), 'Error creating checksum for the release package', errCode).split(' ')[0];
+    fs.writeFileSync(sha1sumPath, sha1sum);
+    BinUtil.logSuccess('Created sha1 signature '.text + sha1sum.white + ' located at '.text + sha1sumPath.white);
+    return {'checksum': sha1sumPath};
 };
 
 /**
@@ -122,5 +140,5 @@ var packageRelease = module.exports.packageRelease = function(dest, filename, er
  * @param   {String}    dest        The root distribution directory
  */
 var _getDestSrc = function(dest) {
-	return util.format('%s/src', dest);
+    return util.format('%s/src', dest);
 };

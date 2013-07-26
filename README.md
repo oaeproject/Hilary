@@ -23,7 +23,7 @@ The Hilary back-end is written completely in JavaScript, powered by Node.js.
 
 **Note:** Cassandra is best supported with the latest version of Oracle Java 6. Trying to run vanilla Cassandra with OpenJDK can result in a silent segmentation fault.
 
-Download the latest version of [Apache Cassandra](http://cassandra.apache.org/) and extract it to a directory of your choice. 
+Download the latest version of [Apache Cassandra](http://cassandra.apache.org/) and extract it to a directory of your choice.
 
 Create the following directories and set the owner:
 
@@ -34,7 +34,7 @@ sudo mkdir -p /var/lib/cassandra
 sudo chown -R `whoami` /var/lib/cassandra
 ```
 
-Then you can start it in the background by running the following:
+Then you can start Cassandra in the background by running the following:
 
 ```
 cd my-cassandra-dir

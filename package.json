@@ -94,8 +94,7 @@
     "grunt-text-replace": "latest",
     "mocha": "latest",
     "oae-release-tools": "git://github.com/mrvisser/oae-release-tools",
-    "optimist": "latest",
-    "semver": "latest"
+    "optimist": "latest"
   },
   "optionalDependencies": {
     "bunyan-syslog": "latest",

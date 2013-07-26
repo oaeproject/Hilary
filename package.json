@@ -85,7 +85,6 @@
     "youtube-feeds": "latest"
   },
   "devDependencies": {
-    "colors": "latest",
     "grunt": "latest",
     "grunt-cli": "latest",
     "grunt-contrib-clean": "latest",
@@ -94,6 +93,7 @@
     "grunt-mocha-hack": "latest",
     "grunt-text-replace": "latest",
     "mocha": "latest",
+    "oae-release-tools": "git://github.com/mrvisser/oae-release-tools",
     "optimist": "latest",
     "semver": "latest"
   },

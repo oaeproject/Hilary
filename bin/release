@@ -3,9 +3,9 @@
 var path = require('path');
 var util = require('util');
 
-var BinUtil = require('./lib/util');
-var PackageUtil = require('./lib/package/util');
-var ReleaseUtil = require('./lib/release/util');
+var CoreUtil = require('oae-release-tools').CoreUtil;
+var PackageUtil = require('oae-release-tools').PackageUtil;
+var ReleaseUtil = require('oae-release-tools').ReleaseUtil;
 
 //////////////////////
 // HANDLE ARGUMENTS //
@@ -48,16 +48,16 @@ if (argv.p) {
 }
 
 // Load and validate the package.json
-var packageJson = BinUtil.loadPackageJson(packageJsonPath, 4);
+var packageJson = CoreUtil.loadPackageJson(packageJsonPath, 'Hilary', 4);
 
 // Ensure our target version is a valid jump from where we are
 ReleaseUtil.validateTargetVersion(packageJson, argv.v, 5);
 
 // Optionally, run the tests right now
 if (!argv.s) {
-    BinUtil.runUnitTests(6);
+    CoreUtil.runUnitTests(6);
 } else {
-    BinUtil.logWarn('Skipping unit tests because of -s parameter');
+    CoreUtil.logWarn('Skipping unit tests because of -s parameter');
 }
 
 // Bump the version in package.json to the target version
@@ -66,29 +66,30 @@ ReleaseUtil.bumpPackageJsonVersion(packageJsonPath, packageJson.version, argv.v,
 // Shrinkwrap our dependencies
 ReleaseUtil.shrinkwrap(8);
 
-// Commit the shrinkwrap and tag the release
-ReleaseUtil.gitCommitShrinkwrapAndTag(argv.v, 9);
+// Commit the shrinkwrap, version and tag the release
+CoreUtil.exec('git add npm-shrinkwrap.json', 'Failed to add npm-shrinkwrap.json to the git index', 9);
+ReleaseUtil.gitCommitVersionAndTag(argv.v, 9);
 
 // Optionally package up the release on the tag
 if (argv.p) {
     // Skip the tests and just use the version from package.json
-    BinUtil.exec('bin/package -s', 'Error packaging up the distribution release', 10, true);
+    CoreUtil.exec('bin/package -s', 'Error packaging up the distribution release', 10, true);
 }
 
 // Remove the shrinkwrap and commit it for master
 ReleaseUtil.gitRemoveShrinkwrapAndCommit(argv.v, 11);
 
-BinUtil.logSuccess('Successfully released Hilary '.text + argv.v.white + ' in your local repository'.text);
-BinUtil.logInfo(' ');
-BinUtil.logInfo('Next you will have to do the following:');
-BinUtil.logInfo(' ');
-BinUtil.logInfo('    1. Analyze the commits in your local repository and verify they are what you want. Look at the diffs between the 2 commits');
-BinUtil.logInfo('       to ensure they are only bumping the versions and adding / removing npm-shrinkwrap.json.');
-BinUtil.logInfo('            * Use "git log" and "git diff" to analyze the commits and their contents');
-BinUtil.logInfo('            * Use "git tag" to verify that the tag '.text + argv.v.white + ' was indeed created'.text);
-BinUtil.logInfo(' ');
-BinUtil.logInfo('    2. If everything is OK, push the commits to the https://github.com/oaeproject/Hilary repository with "git push".');
-BinUtil.logInfo(' ');
-BinUtil.logInfo('    3. Once pushed, also push the tag you created with: "git push <remote> ' + argv.v + '"');
-BinUtil.logInfo(' ');
-BinUtil.logSuccess('Complete!');
+CoreUtil.logSuccess('Successfully released Hilary '.text + argv.v.white + ' in your local repository'.text);
+CoreUtil.logInfo(' ');
+CoreUtil.logInfo('Next you will have to do the following:');
+CoreUtil.logInfo(' ');
+CoreUtil.logInfo('    1. Analyze the commits in your local repository and verify they are what you want. Look at the diffs between the 2 commits');
+CoreUtil.logInfo('       to ensure they are only bumping the versions and adding / removing npm-shrinkwrap.json.');
+CoreUtil.logInfo('            * Use "git log" and "git diff" to analyze the commits and their contents');
+CoreUtil.logInfo('            * Use "git tag" to verify that the tag '.text + argv.v.white + ' was indeed created'.text);
+CoreUtil.logInfo(' ');
+CoreUtil.logInfo('    2. If everything is OK, push the commits to the https://github.com/oaeproject/Hilary repository with "git push".');
+CoreUtil.logInfo(' ');
+CoreUtil.logInfo('    3. Once pushed, also push the tag you created with: "git push <remote> ' + argv.v + '"');
+CoreUtil.logInfo(' ');
+CoreUtil.logSuccess('Complete!');

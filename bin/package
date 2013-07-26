@@ -3,8 +3,8 @@
 var path = require('path');
 var util = require('util');
 
-var BinUtil = require('./lib/util');
-var PackageUtil = require('./lib/package/util');
+var CoreUtil = require('oae-release-tools').CoreUtil;
+var PackageUtil = require('oae-release-tools').PackageUtil;
 
 var argv = require('optimist')
     .usage('Usage: $0 [-s] [-o <output dir>] [-v <force hilary version>]')
@@ -32,22 +32,22 @@ if (argv.h) {
 }
 
 // Gather system information so we know what system we built on
-var systemInfo = BinUtil.getSystemInfo();
+var systemInfo = CoreUtil.getSystemInfo();
 var packageJsonPath = path.resolve('package.json');
 
 // Load and validate the package.json
-var packageJson = BinUtil.loadPackageJson(packageJsonPath, 4);
+var packageJson = CoreUtil.loadPackageJson(packageJsonPath, 'Hilary', 4);
 
 if (!argv.s) {
-    BinUtil.runUnitTests(6);
+    CoreUtil.runUnitTests(6);
 } else {
-    BinUtil.logWarn('Skipping unit tests because of -s parameter');
+    CoreUtil.logWarn('Skipping unit tests because of -s parameter');
 }
 
 // Find the hilary version
 var hilaryVersion = argv.v;
 if (!hilaryVersion) {
-    var describe = BinUtil.gitDescribe(packageJson.version, 7);
+    var describe = CoreUtil.gitDescribe(packageJson.version, 7);
     hilaryVersion = describe.tag;
 
     if (describe.commits) {
@@ -59,18 +59,14 @@ if (!hilaryVersion) {
     }
 }
 
-BinUtil.logSuccess('Resolved hilary version to be '.text + hilaryVersion.white);
+CoreUtil.logSuccess('Resolved hilary version to be '.text + hilaryVersion.white);
 
 // Copy the release files to the source directory
-PackageUtil.copyReleaseFiles(argv.o, 8);
+var srcDir = PackageUtil.copyHilaryReleaseFiles(argv.o, 8).srcDir;
 
-PackageUtil.saveBuildInfo(argv.o, hilaryVersion, systemInfo, 9);
+PackageUtil.saveBuildInfo(srcDir, hilaryVersion, systemInfo, 9);
 
 // Package the source directory into a tarball
-
-// Slice the 'v' from the start of the node version (e.g., v0.10.14 -> 0.10.14)
-var nodeVersionNumber = systemInfo.nodeVersion.slice(1);
-
-var packageFilename = util.format('hilary-%s_node-%s', hilaryVersion, nodeVersionNumber);
-var packageResult = PackageUtil.packageRelease(argv.o, packageFilename, 10);
-PackageUtil.checksumPackage(packageResult.tarballPath, 11);
+var packageFilename = util.format('hilary-%s_node-%s', hilaryVersion, systemInfo.nodeVersion);
+var packageResult = PackageUtil.packageRelease(srcDir, argv.o, packageFilename, 10);
+PackageUtil.checksumPackage(packageResult.packagePath, 11);

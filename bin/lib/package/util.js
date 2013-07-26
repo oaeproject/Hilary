@@ -123,7 +123,7 @@ var packageRelease = module.exports.packageRelease = function(dest, filename, er
  *
  * @param  {String}     packagePath     The path to the package for which to generate a sha1 checksum
  * @param  {Number}     [errCode]       The process error code to return on failure. Default: 1
- * @return {Object}                     An object with field `checksum` whose value holds the path to the package checksum
+ * @return {Object}                     An object with field `checksumPath` whose value holds the path to the package checksum
  */
 var checksumPackage = module.exports.checksumPackage = function(packagePath, errCode) {
     errCode = errCode || 1;
@@ -131,7 +131,7 @@ var checksumPackage = module.exports.checksumPackage = function(packagePath, err
     var sha1sum = BinUtil.exec(util.format('shasum %s', packagePath), 'Error creating checksum for the release package', errCode).split(' ')[0];
     fs.writeFileSync(sha1sumPath, sha1sum);
     BinUtil.logSuccess('Created sha1 signature '.text + sha1sum.white + ' located at '.text + sha1sumPath.white);
-    return {'checksum': sha1sumPath};
+    return {'checksumPath': sha1sumPath};
 };
 
 /**

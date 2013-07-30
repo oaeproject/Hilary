@@ -64,6 +64,7 @@
     "passport-facebook": "latest",
     "passport-google-oauth": "latest",
     "passport-http": "latest",
+    "passport-ldapauth": "latest",
     "passport-local": "latest",
     "passport-openid": "latest",
     "passport-saml": "git://github.com/simong/passport-saml",

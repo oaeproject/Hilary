@@ -94,6 +94,7 @@
     "grunt-mocha-hack": "latest",
     "grunt-text-replace": "latest",
     "mocha": "latest",
+    "oae-release-tools": "git://github.com/oaeproject/oae-release-tools",
     "optimist": "latest"
   },
   "optionalDependencies": {

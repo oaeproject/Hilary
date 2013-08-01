@@ -1,0 +1,72 @@
+#!/usr/bin/env node
+
+var path = require('path');
+var util = require('util');
+
+var CoreUtil = require('oae-release-tools').CoreUtil;
+var PackageUtil = require('oae-release-tools').PackageUtil;
+
+var argv = require('optimist')
+    .usage('Usage: $0 [-s] [-o <output dir>] [-v <force hilary version>]')
+
+    .alias('h', 'help')
+    .describe('h', 'Show this help information.')
+
+    .demand('o')
+    .alias('o', 'output')
+    .describe('o', 'The target output directory to copy the release artifacts')
+    .default('o', 'dist')
+
+    .alias('v', 'hilary-version')
+    .describe('v', 'The version of hilary that we are packaging. If not specified, it will be derived from the hilary version in package.json and git describe')
+
+    .alias('s', 'skip-tests')
+    .describe('s', 'Skip the unit tests in the packaging process.')
+
+    .argv;
+
+// Display the help if requested
+if (argv.h) {
+    require('optimist').showHelp();
+    return process.exit(0);
+}
+
+// Gather system information so we know what system we built on
+var systemInfo = CoreUtil.getSystemInfo();
+var packageJsonPath = path.resolve('package.json');
+
+// Load and validate the package.json
+var packageJson = CoreUtil.loadPackageJson(packageJsonPath, 'Hilary', 4);
+
+if (!argv.s) {
+    CoreUtil.runUnitTests(6);
+} else {
+    CoreUtil.logWarn('Skipping unit tests because of -s parameter');
+}
+
+// Find the hilary version
+var hilaryVersion = argv.v;
+if (!hilaryVersion) {
+    var describe = CoreUtil.gitDescribe(packageJson.version, 7);
+    hilaryVersion = describe.tag;
+
+    if (describe.commits) {
+        hilaryVersion += '-' + describe.commits;
+    }
+
+    if (describe.hash) {
+        hilaryVersion += '-' + describe.hash;
+    }
+}
+
+CoreUtil.logSuccess('Resolved hilary version to be '.text + hilaryVersion.white);
+
+// Copy the release files to the source directory
+var srcDir = PackageUtil.copyHilaryReleaseFiles(argv.o, 8).srcDir;
+
+PackageUtil.saveBuildInfo(srcDir, hilaryVersion, systemInfo, 9);
+
+// Package the source directory into a tarball
+var packageFilename = util.format('hilary-%s_node-%s', hilaryVersion, systemInfo.nodeVersion);
+var packageResult = PackageUtil.packageRelease(srcDir, argv.o, packageFilename, 10);
+PackageUtil.checksumPackage(packageResult.packagePath, 11);

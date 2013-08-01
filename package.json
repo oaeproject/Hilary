@@ -36,6 +36,7 @@
     "gm": "latest",
     "helenus": "latest",
     "less": "latest",
+    "mime-magic": "latest",
     "mkdirp": "latest",
     "nodemailer": "latest",
     "oae-activity": "",

@@ -7,6 +7,8 @@ var CoreUtil = require('oae-release-tools').CoreUtil;
 var PackageUtil = require('oae-release-tools').PackageUtil;
 var ReleaseUtil = require('oae-release-tools').ReleaseUtil;
 
+
+
 //////////////////////
 // HANDLE ARGUMENTS //
 //////////////////////
@@ -15,10 +17,10 @@ var argv = require('optimist')
     .usage('Usage: $0 [-s] [-p] -v <release version>')
 
     .alias('h', 'help')
-    .describe('h', 'Show this help information.')
+    .describe('h', 'Show this help information')
 
     .alias('s', 'skip-tests')
-    .describe('s', 'Skip the unit tests in the release process.')
+    .describe('s', 'Skip the unit tests in the release process')
 
     .alias('p', 'package')
     .describe('p', 'Generate a package tarball (tar.gz) of the tag before erasing npm-shrinkwrap from master')
@@ -28,6 +30,12 @@ var argv = require('optimist')
     .demand('v')
 
     .argv;
+
+
+
+/////////////////////
+// PERFORM RELEASE //
+/////////////////////
 
 var version = argv.v;
 var packageJsonPath = path.resolve('package.json');

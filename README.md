@@ -86,6 +86,7 @@ RabbitMQ powers the asynchronous task-queue function in Hilary. It allows heavie
 #### GraphicsMagick
 
 GraphicsMagick installation instructions can be found on their [README page](http://www.graphicsmagick.org/README.html), however for *nix OS' it is typically available in the package manager of your choice (e.g., `brew install graphicsmagick`)
+When installing GraphicsMagick manually, make sure you have at least libpng, libjpeg and ghostscript installed.
 
 GraphicsMagick provides the ability to crop and resize profile pictures, and is required to run Hilary.
 

@@ -208,32 +208,7 @@ module.exports = function(grunt) {
             return grunt.log.writeln('Please provide a path where the files should be copied to'.red);
         }
 
-        // We will wind up deleting stuff out of this directory, so make sure it doesn't exist yet
-        var dest = path.resolve(outputDir);
-        if (shell.test('-d', dest)) {
-            return grunt.log.writeln('The output directory already exists, please delete it first'.red);
-        }
-
-        // Create the target directory
-        shell.mkdir('-p', dest);
-
-        // Copy the relevant files to the distribution directory
-        shell.cp('app.js', 'config.js', 'npm-shrinkwrap.json', 'package.json', 'README.md', 'LICENSE', dest);
-
-        // Using shell.exec here because shell.cp (and grunt--copy) does not copy the files in the same way, which results in
-        // (I think) issues with symlinks that result in phantomjs/webshot not functioning properly on the released binary
-        // package. If you change this, ensure you test "link" content items have previews generated properly on the resulting
-        // distribution.
-        shell.exec('cp -RLf node_modules ' + dest);
-
-        // Remove all orig and rej files as they are useless and trip up the debian packaging process
-        shell.exec('find ' + dest + ' -name "*.orig" -exec rm {} \\;');
-        shell.exec('find ' + dest + ' -name "*.rej" -exec rm {} \\;');
-
-        // Delete the node_modules/oae-*/tests directories
-        _.each(shell.ls(dest + '/node_modules/oae-*'), function(modulePath) {
-            shell.rm('-rf', modulePath + '/tests');
-        });
+        shell.exec('bin/package -so ' + outputDir);
     });
 
     // Default task.

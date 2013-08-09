@@ -90,7 +90,7 @@ tmpDir += '/oae';
  * @param  {Object}    cleaner                  Holds configuration properties for the cleaning job that removes lingering files in the upload directory.
  * @param  {Boolean}   cleaner.enabled          Whether or not the cleaning job should run.
  * @param  {Number}    cleaner.interval         Files that haven't been accessed in this amount (of seconds) should be removed.
- * @param  {String}    localStorageDirectory    The directory where the local storage backend can store its files. By default, the files get stored on the same level as the Hilary directory. This directory will not be used when Amazon S3 file storage is used.
+ * @param  {String}    localStorageDirectory    The directory where the local storage backend can store its files. By default, the files get stored on the same level as the Hilary directory. Note: the absolute path to this directory should also be configured in the Nginx config file. This directory will not be used when Amazon S3 file storage is used.
  */
 config.files = {
     'tmpDir': tmpDir,

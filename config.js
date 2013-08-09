@@ -332,7 +332,11 @@ config.saml = {
 /**
  * `config.etherpad`
  *
- * Configuration namespace for the etherpad logic.
+ * Configuration namespace for the etherpad logic. If you are deploying a cluster of etherpad instances, note that the order of the hosts
+ * in the array is sensitive to the indexes assigned in the accompanying front-end reverse proxy configuration (e.g., Nginx). More
+ * information on deploying etherpad clusters can be found here:
+ *
+ *  https://github.com/oaeproject/Hilary/wiki/Deployment-Documentation
  *
  * @param  {String}     apikey          The key that can be used to communicate with the etherpad API.
  * @param  {Object[]}   hosts           The internal hosts or IP addresses where etherpad instances can be found. It's important that you add *all* your etherpad instances in this array, as the number of configured servers will be used to do (some very rudimentary) sharding.

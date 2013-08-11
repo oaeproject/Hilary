@@ -61,16 +61,18 @@ config.redis = {
  *
  * Configuration namespace for servers.
  *
- * @param  {String}     globalAdminAlias        The tenant alias that will be used for the global admins.
- * @param  {String}     globalAdminHost         The hostname on which the global admin server can be reached by users.
- * @param  {Number}     globalAdminPort         The network port on which the global admin express server can run.
- * @param  {Number}     tenantPort              The network port on which the tenant express server can run.
- * @param  {Boolean}    useHttps                Whether or not the server is accessible via HTTPS. Hilary will *not* expose an HTTPS server, it's up to a frontend server such as Apache or Nginx to deal with the actual delivery of HTTPS traffic. This flag is mainly used to generate correct backlinks to the web application.
+ * @param  {String}     globalAdminAlias         The tenant alias that will be used for the global admins.
+ * @param  {String}     globalAdminHost          The hostname on which the global admin server can be reached by users.
+ * @param  {Number}     globalAdminPort          The network port on which the global admin express server can run.
+ * @param  {String}     serverInternalAddress    The hostname on which the server can be reached by oae services such as the preview processor.
+ * @param  {Number}     tenantPort               The network port on which the tenant express server can run.
+ * @param  {Boolean}    useHttps                 Whether or not the server is accessible via HTTPS. Hilary will *not* expose an HTTPS server, it's up to a frontend server such as Apache or Nginx to deal with the actual delivery of HTTPS traffic. This flag is mainly used to generate correct backlinks to the web application.
  */
 config.servers = {
     'globalAdminAlias': 'admin',
     'globalAdminHost': 'admin.oae.com',
     'globalAdminPort': 2000,
+    'serverInternalAddress': undefined,
     'tenantPort': 2001,
     'useHttps': false
 };
@@ -330,7 +332,11 @@ config.saml = {
 /**
  * `config.etherpad`
  *
- * Configuration namespace for the etherpad logic.
+ * Configuration namespace for the etherpad logic. If you are deploying a cluster of etherpad instances, note that the order of the hosts
+ * in the array is sensitive to the indexes assigned in the accompanying front-end reverse proxy configuration (e.g., Nginx). More
+ * information on deploying etherpad clusters can be found here:
+ *
+ *  https://github.com/oaeproject/Hilary/wiki/Deployment-Documentation
  *
  * @param  {String}     apikey          The key that can be used to communicate with the etherpad API.
  * @param  {Object[]}   hosts           The internal hosts or IP addresses where etherpad instances can be found. It's important that you add *all* your etherpad instances in this array, as the number of configured servers will be used to do (some very rudimentary) sharding.

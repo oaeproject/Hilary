@@ -1,7 +1,7 @@
 {
   "name": "Hilary",
   "description": "Open Academic Environment (OAE) Back-end",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "homepage": "http://www.oaeproject.org",
   "author": {
     "name": "The Apereo Foundation",
@@ -36,6 +36,7 @@
     "gm": "latest",
     "helenus": "latest",
     "less": "latest",
+    "mime": "latest",
     "mkdirp": "latest",
     "nodemailer": "latest",
     "oae-activity": "",
@@ -94,6 +95,7 @@
     "grunt-mocha-hack": "latest",
     "grunt-text-replace": "latest",
     "mocha": "latest",
+    "oae-release-tools": "git://github.com/oaeproject/oae-release-tools",
     "optimist": "latest"
   },
   "optionalDependencies": {

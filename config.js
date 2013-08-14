@@ -61,16 +61,18 @@ config.redis = {
  *
  * Configuration namespace for servers.
  *
- * @param  {String}     globalAdminAlias        The tenant alias that will be used for the global admins.
- * @param  {String}     globalAdminHost         The hostname on which the global admin server can be reached by users.
- * @param  {Number}     globalAdminPort         The network port on which the global admin express server can run.
- * @param  {Number}     tenantPort              The network port on which the tenant express server can run.
- * @param  {Boolean}    useHttps                Whether or not the server is accessible via HTTPS. Hilary will *not* expose an HTTPS server, it's up to a frontend server such as Apache or Nginx to deal with the actual delivery of HTTPS traffic. This flag is mainly used to generate correct backlinks to the web application.
+ * @param  {String}     globalAdminAlias         The tenant alias that will be used for the global admins
+ * @param  {String}     globalAdminHost          The hostname on which the global admin server can be reached by users
+ * @param  {Number}     globalAdminPort          The network port on which the global admin express server can run
+ * @param  {String}     [serverInternalAddress]  The internal hostname on which the server can be reached by OAE services such as the preview processor
+ * @param  {Number}     tenantPort               The network port on which the tenant express server can run
+ * @param  {Boolean}    useHttps                 Whether or not the server is accessible via HTTPS. Hilary will *not* expose an HTTPS server, it's up to a frontend server such as Apache or Nginx to deal with the actual delivery of HTTPS traffic. This flag is mainly used to generate correct backlinks to the web application
  */
 config.servers = {
     'globalAdminAlias': 'admin',
     'globalAdminHost': 'admin.oae.com',
     'globalAdminPort': 2000,
+    'serverInternalAddress': null,
     'tenantPort': 2001,
     'useHttps': false
 };
@@ -213,17 +215,17 @@ config.mq = {
  *
  * Configuration namespace for the preview processor.
  *
- * @param  {Boolean}     enabled                 Whether or not the preview processor should be running.
- * @param  {String}      dir                     A directory that can be used to store temporary files in.
- * @param  {Object}      office                  Holds the configuration for anything Office related.
- * @param  {String}      office.binary           The path to the 'soffice.bin' binary that starts up Libre Office. ex: On OS X it is `/Applications/LibreOffice.app/Contents/MacOS/soffice.bin` with a default install.
- * @param  {Number}      office.timeout          Defines the timeout (in ms) when the Office process should be killed.
- * @param  {Object}      pdf                     Holds the configuration for anything related to PDF splitting.
- * @param  {String}      pdf.binary              The path to the `pdftk` binary that can be used to split a PDF file into a PDF-per-page.
- * @param  {Number}      pdf.timeout             Defines the timeout (in ms) when the pdftk process should be killed.
- * @param  {Object}      credentials             Holds the credentials that can be used to log on the global admin server.
- * @param  {String}      credentials.username    The username to login with on the global admin server.
- * @param  {String}      credentials.password    The password to login with on the global admin server.
+ * @param  {Boolean}     enabled                 Whether or not the preview processor should be running
+ * @param  {String}      dir                     A directory that can be used to store temporary files in
+ * @param  {Object}      office                  Holds the configuration for anything Office related
+ * @param  {String}      office.binary           The path to the 'soffice.bin' binary that starts up Libre Office. ex: On OS X it is `/Applications/LibreOffice.app/Contents/MacOS/soffice.bin` with a default install
+ * @param  {Number}      office.timeout          Defines the timeout (in ms) when the Office process should be killed
+ * @param  {Object}      pdf                     Holds the configuration for anything related to PDF splitting
+ * @param  {String}      pdf.binary              The path to the `pdftk` binary that can be used to split a PDF file into a PDF-per-page
+ * @param  {Number}      pdf.timeout             Defines the timeout (in ms) when the pdftk process should be killed
+ * @param  {Object}      credentials             Holds the credentials that can be used to log on the global admin server
+ * @param  {String}      credentials.username    The username to login with on the global admin server
+ * @param  {String}      credentials.password    The password to login with on the global admin server
  */
 config.previews = {
     'enabled': true,
@@ -334,7 +336,11 @@ config.saml = {
 /**
  * `config.etherpad`
  *
- * Configuration namespace for the etherpad logic.
+ * Configuration namespace for the etherpad logic. If you are deploying a cluster of etherpad instances, note that the order of the hosts
+ * in the array is sensitive to the indexes assigned in the accompanying front-end reverse proxy configuration (e.g., Nginx). More
+ * information on deploying etherpad clusters can be found here:
+ *
+ *  https://github.com/oaeproject/Hilary/wiki/Deployment-Documentation
  *
  * @param  {String}     apikey          The key that can be used to communicate with the etherpad API.
  * @param  {Object[]}   hosts           The internal hosts or IP addresses where etherpad instances can be found. It's important that you add *all* your etherpad instances in this array, as the number of configured servers will be used to do (some very rudimentary) sharding.

@@ -61,12 +61,13 @@ config.redis = {
  *
  * Configuration namespace for servers.
  *
- * @param  {String}     globalAdminAlias         The tenant alias that will be used for the global admins
- * @param  {String}     globalAdminHost          The hostname on which the global admin server can be reached by users
- * @param  {Number}     globalAdminPort          The network port on which the global admin express server can run
- * @param  {String}     [serverInternalAddress]  The internal hostname on which the server can be reached by OAE services such as the preview processor
- * @param  {Number}     tenantPort               The network port on which the tenant express server can run
- * @param  {Boolean}    useHttps                 Whether or not the server is accessible via HTTPS. Hilary will *not* expose an HTTPS server, it's up to a frontend server such as Apache or Nginx to deal with the actual delivery of HTTPS traffic. This flag is mainly used to generate correct backlinks to the web application
+ * @param  {String}     globalAdminAlias            The tenant alias that will be used for the global admins
+ * @param  {String}     globalAdminHost             The hostname on which the global admin server can be reached by users
+ * @param  {Number}     globalAdminPort             The network port on which the global admin express server can run
+ * @param  {String}     [serverInternalAddress]     The internal hostname on which the server can be reached by OAE services such as the preview processor
+ * @param  {Number}     tenantPort                  The network port on which the tenant express server can run
+ * @param  {Boolean}    useHttps                    Whether or not the server is accessible via HTTPS. Hilary will *not* expose an HTTPS server, it's up to a frontend server such as Apache or Nginx to deal with the actual delivery of HTTPS traffic. This flag is mainly used to generate correct backlinks to the web application
+ * @param  {Boolean}    [strictHttps]               Whether or not the server is using a valid SSL certificate. If `true`, any attempts to connect to the REST apis that results in an invalid certificate should result in an error and not be ignored. If `false`, it is expected that the server will not return a valid certificate. Default: `true`
  */
 config.servers = {
     'globalAdminAlias': 'admin',
@@ -74,7 +75,8 @@ config.servers = {
     'globalAdminPort': 2000,
     'serverInternalAddress': null,
     'tenantPort': 2001,
-    'useHttps': false
+    'useHttps': false,
+    'strictHttps': true
 };
 
 var tmpDir = process.env.TMP || process.env.TMPDIR || process.env.TEMP || '/tmp' || process.cwd();

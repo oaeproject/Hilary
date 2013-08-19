@@ -114,18 +114,19 @@ var fillCookieJar = module.exports.fillCookieJar = function(restCtx, callback) {
 var _RestRequest = function(restCtx, url, method, data, callback) {
     module.exports.emit('request', restCtx, url, method, data);
 
-    var requestParams = {
+    var requestOpts = {
         'url': restCtx.host + url,
         'method': method,
-        'jar': restCtx.cookieJar
+        'jar': restCtx.cookieJar,
+        'strictSSL': restCtx.strictSSL
     };
 
-    requestParams.headers = requestParams.headers || {};
+    requestOpts.headers = requestOpts.headers || {};
 
     var referer = restCtx.host + '/';
     if (restCtx.hostHeader) {
         // Set the host header so the app server can determine the tenant.
-        requestParams.headers.host = restCtx.hostHeader;
+        requestOpts.headers.host = restCtx.hostHeader;
 
         // Grab the protocol from the host to create a referer header value.
         var protocol = restCtx.host.split(':')[0];
@@ -137,7 +138,7 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
         referer = restCtx.refererHeader;
     }
 
-    requestParams.headers.referer = referer;
+    requestOpts.headers.referer = referer;
 
     // Expand values and check if we're uploading something (with a stream.)
     // API users need to pass in uploads (=streams) via a function as we do some other things
@@ -175,13 +176,13 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
         });
 
         if (method === 'GET') {
-            requestParams.qs = data;
+            requestOpts.qs = data;
         } else if (!hasStream && method === 'POST') {
-            requestParams.form = data;
+            requestOpts.form = data;
         }
     }
 
-    var req = request(requestParams, function(err, response, body) {
+    var req = request(requestOpts, function(err, response, body) {
         if (err) {
             emitter.emit('error', err);
             return callback({'code': 500, 'msg': 'Something went wrong trying to contact the server: ' + err});

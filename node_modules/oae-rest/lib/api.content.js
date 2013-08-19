@@ -352,7 +352,8 @@ var download = module.exports.download = function(restCtx, contentId, revisionId
         var requestParams = {
             'url': url,
             'method': 'GET',
-            'jar': restCtx.cookieJar
+            'jar': restCtx.cookieJar,
+            'strictSSL': restCtx.strictSSL
         };
         if (restCtx.hostHeader) {
             requestParams.headers = {

@@ -69,9 +69,8 @@ var loginOnTenant = module.exports.loginOnTenant = function(globalRestCtx, tenan
             return callback(err);
         }
 
-        // Create a new rest context and jar for this tenant.
-        // There is no need to pass in a password
-        var restCtx = new RestContext(token.protocol + '://' + token.host, null, null, token.host);
+        // Create a new rest context and jar for this tenant. There is no need to pass in a password as we aren't using local authentication
+        var restCtx = new RestContext(token.protocol + '://' + token.host, {'hostHeader': token.host, 'strictSSL': globalRestCtx.strictSSL});
 
         // Perform the actual login.
         loginWithSignedToken(restCtx, token, function(err, body, response) {

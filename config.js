@@ -67,7 +67,7 @@ config.redis = {
  * @param  {String}     [serverInternalAddress]     The internal hostname on which the server can be reached by OAE services such as the preview processor
  * @param  {Number}     tenantPort                  The network port on which the tenant express server can run
  * @param  {Boolean}    useHttps                    Whether or not the server is accessible via HTTPS. Hilary will *not* expose an HTTPS server, it's up to a frontend server such as Apache or Nginx to deal with the actual delivery of HTTPS traffic. This flag is mainly used to generate correct backlinks to the web application
- * @param  {Boolean}    [strictHttps]               Whether or not the server is using a valid SSL certificate. If `true`, any attempts to connect to the REST apis that results in an invalid certificate should result in an error and not be ignored. If `false`, it is expected that the server will not return a valid certificate. Default: `true`
+ * @param  {Boolean}    [strictHttps]               Whether or not the server is using a valid SSL certificate. If `true`, any attempts to connect to the REST endpoints using an invalid certificate should result in an error and not be ignored. If `false`, a valid certificate will not be required
  */
 config.servers = {
     'globalAdminAlias': 'admin',

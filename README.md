@@ -25,7 +25,7 @@ The Hilary back-end is written completely in JavaScript, powered by Node.js.
 
 Download the latest version of [Apache Cassandra](http://cassandra.apache.org/) and extract it to a directory of your choice.
 
-Create the following directories and set the owner:
+Create the following directories and set the owner to be the user that will be running Cassandra:
 
 ```
 sudo mkdir -p /var/log/cassandra
@@ -242,7 +242,7 @@ Where "admin.oae.com" is the hostname that we will use to access the global admi
 
 Open the `config.js` file in the root of the Hilary directory. This file contains a JavaScript object that represents the configuration for your server.
 
-* Configure the `config.files.uploadDir` property to point to a directory that exists. This is where files such as profile pictures, content bodies, previews, etc... will be stored
+* Configure the `config.files.uploadDir` property to point to a directory that exists. The reference to this directory should not have a trailing slash. This directory is used to store files such as profile pictures, content bodies, previews, etc...
 * Ensure that the property `config.server.globalAdminHost` is configured to the same host name you set for your global admin host in /etc/hosts
 * Configure the `config.etherpad.apikey` property to the API Key that can be found in `your-etherpad-dir/APIKEY.txt`
 
@@ -258,7 +258,7 @@ Find the "nginx.conf" template file located in the nginx folder of the 3akai-ux 
 * Replace `<%= nginxConf.NGINX_USER %>` and `<%= nginxConf.NGINX_GROUP %>` with the OS user and group that the nginx process should run as
 * Replace `<%= nginxConf.NGINX_HOSTNAME %>` with the same value you configured for the global administration server host in `/etc/hosts` (the one whose current value would be "admin.oae.com"). **Note:** The `server_name` property for the *user tenant server* further down the configuration file should remain set to "*".
 * Replace all instances of `<%= nginxConf.UX_HOME %>` with the full absolute path to your cloned 3akai-ux directory (e.g., /Users/branden/oae/3akai-ux) or the 3akai-ux production build directory (e.g., /Users/branden/oae/3akai-ux/target/optimized)
-* Replace `<%= nginxConf.LOCAL_FILE_STORAGE_DIRECTORY %>` with the full absolute path that you configured for file storage in the `Hilary config.js` step
+* Replace `<%= nginxConf.LOCAL_FILE_STORAGE_DIRECTORY %>` with the full absolute path that you configured as the `localStorageDirectory` in the `files` section of the  Hilary `config.js` file. This path should not have a trailing slash
 
 When you have finished making changes to the nginx.conf file, start Nginx:
 
@@ -281,6 +281,8 @@ Now we're ready to start the app server. You can do so by going into the Hilary 
 ```
 node app.js | node_modules/.bin/bunyan
 ```
+
+To start it in the background, you can run: `node app.js | node_modules/.bin/bunyan &`. An [upstart script](https://github.com/oaeproject/puppet-hilary/blob/master/modules/hilary/templates/upstart_hilary.conf.erb) can also be used to spawn and manage Hilary as a daemon process. The benefit of tying into upstart is that you get first-class support from deployment tools like MCollective and Puppet.
 
 The server is now running and you can access the administration UI at http://admin.oae.com/!
 

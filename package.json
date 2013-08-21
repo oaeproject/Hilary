@@ -87,6 +87,7 @@
     "youtube-feeds": "latest"
   },
   "devDependencies": {
+    "dtrace-provider": "latest",
     "grunt": "latest",
     "grunt-cli": "latest",
     "grunt-contrib-clean": "latest",

@@ -228,18 +228,18 @@ config.mq = {
  * @param  {String}      credentials.password    The password to login with on the global admin server
  */
 config.previews = {
-    'enabled': true,
+    'enabled': false,
     'dir': tmpDir + '/previews',
     'office': {
-        'binary': '/usr/lib/libreoffice/program/soffice.bin',
+        'binary': 'soffice.bin',
         'timeout': 120000
     },
     'pdf': {
-        'binary': '/usr/bin/pdftk',
+        'binary': 'pdftk',
         'timeout': 120000
     },
     'pdf2htmlEX':{
-        'binary': '/usr/local/bin/pdf2htmlEX',
+        'binary': 'pdf2htmlEX',
         'timeout': 120000 
     },
     'credentials': {
@@ -348,7 +348,7 @@ config.saml = {
  * @param  {Number}     hosts[i].port   The port number on which Hilary will be accessing the etherpad API.
  */
 config.etherpad = {
-    'apikey': 'd7F2JuVNtL4L6TnQAv0uovV7QxeP6M92',
+    'apikey': '13SirapH8t3kxUh5T5aqWXhXahMzoZRA',
     'hosts': [
         {
             'host': '127.0.0.1',

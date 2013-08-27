@@ -26,11 +26,11 @@ var RestUtil = require('./util');
 /**
  * Get a signed token from the global server that can be used to log onto a tenant.
  *
- * @param  {RestContext}    globalRestCtx               Standard REST Context object associated to the global administrator server.
- * @param  {String}         tenantAlias                 The tenant to log on.
+ * @param  {RestContext}    globalRestCtx               Standard REST Context object associated to the global administrator server
+ * @param  {String}         tenantAlias                 The tenant to log onto
  * @param  {Function}       callback                    Standard callback method
  * @param  {Object}         callback.err                Error object containing error code and error message
- * @param  {Token}          callback.token              A token object that contains all the data to sign in.
+ * @param  {Token}          callback.token              A token object that contains all the data to sign in
  */
 var getSignedToken = module.exports.getSignedToken = function(globalRestCtx, tenantAlias, callback) {
     var params = {
@@ -43,11 +43,11 @@ var getSignedToken = module.exports.getSignedToken = function(globalRestCtx, ten
  * Given a token that was request earlier, this method allows you to log in on a tenant.
  * The passed in RestContext should already be associated with the tenant you wish to login on.
  *
- * @param  {RestContext}    restCtx                         Standard REST Context object associated to the tenant you wish to log onto.
- * @param  {Token}          token                           A token object that contains all the data to sign in.
+ * @param  {RestContext}    restCtx                         Standard REST Context object associated to the tenant you wish to log onto
+ * @param  {Token}          token                           A token object that contains all the data to sign in
  * @param  {Function}       callback                        Standard callback method
  * @param  {Object}         callback.err                    Error object containing error code and error message
- * @param  {String}         callback.body                   The body as returned by the endpoint.
+ * @param  {String}         callback.body                   The body as returned by the endpoint
  */
 var loginWithSignedToken = module.exports.loginWithSignedToken = function(restCtx, token, callback) {
     RestUtil.RestRequest(restCtx, '/api/auth/signed', 'POST', token, callback);
@@ -57,11 +57,11 @@ var loginWithSignedToken = module.exports.loginWithSignedToken = function(restCt
  * Allows for a global administrator to login on a tenant.
  * This is mostly a utility method around `getSignedToken` and `loginWithSignedToken`.
  *
- * @param  {RestContext}    globalRestCtx   Standard REST Context object associated to the global administrator.
- * @param  {String}         tenantAlias     The tenant to log on.
+ * @param  {RestContext}    globalRestCtx   Standard REST Context object associated to the global administrator
+ * @param  {String}         tenantAlias     The tenant to log on
  * @param  {Function}       callback        Standard callback method
  * @param  {Object}         callback.err    Error object containing error code and error message
- * @param  {RestContext}    callback.ctx    The REST Context object that can be used to execute request too the tenant.
+ * @param  {RestContext}    callback.ctx    The REST Context object that can be used to execute request too the tenant
  */
 var loginOnTenant = module.exports.loginOnTenant = function(globalRestCtx, tenantAlias, callback) {
     getSignedToken(globalRestCtx, tenantAlias, function(err, token) {
@@ -69,9 +69,8 @@ var loginOnTenant = module.exports.loginOnTenant = function(globalRestCtx, tenan
             return callback(err);
         }
 
-        // Create a new rest context and jar for this tenant.
-        // There is no need to pass in a password
-        var restCtx = new RestContext(token.protocol + '://' + token.host, null, null, token.host);
+        // Create a new rest context and jar for this tenant. There is no need to pass in a password as we aren't using local authentication
+        var restCtx = new RestContext(token.protocol + '://' + token.host, {'hostHeader': token.host, 'strictSSL': globalRestCtx.strictSSL});
 
         // Perform the actual login.
         loginWithSignedToken(restCtx, token, function(err, body, response) {

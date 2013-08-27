@@ -61,12 +61,13 @@ config.redis = {
  *
  * Configuration namespace for servers.
  *
- * @param  {String}     globalAdminAlias         The tenant alias that will be used for the global admins
- * @param  {String}     globalAdminHost          The hostname on which the global admin server can be reached by users
- * @param  {Number}     globalAdminPort          The network port on which the global admin express server can run
- * @param  {String}     [serverInternalAddress]  The internal hostname on which the server can be reached by OAE services such as the preview processor
- * @param  {Number}     tenantPort               The network port on which the tenant express server can run
- * @param  {Boolean}    useHttps                 Whether or not the server is accessible via HTTPS. Hilary will *not* expose an HTTPS server, it's up to a frontend server such as Apache or Nginx to deal with the actual delivery of HTTPS traffic. This flag is mainly used to generate correct backlinks to the web application
+ * @param  {String}     globalAdminAlias            The tenant alias that will be used for the global admins
+ * @param  {String}     globalAdminHost             The hostname on which the global admin server can be reached by users
+ * @param  {Number}     globalAdminPort             The network port on which the global admin express server can run
+ * @param  {String}     [serverInternalAddress]     The internal hostname on which the server can be reached by OAE services such as the preview processor
+ * @param  {Number}     tenantPort                  The network port on which the tenant express server can run
+ * @param  {Boolean}    useHttps                    Whether or not the server is accessible via HTTPS. Hilary will *not* expose an HTTPS server, it's up to a frontend server such as Apache or Nginx to deal with the actual delivery of HTTPS traffic. This flag is mainly used to generate correct backlinks to the web application
+ * @param  {Boolean}    [strictHttps]               Whether or not the server is using a valid SSL certificate. If `true`, any attempts to connect to the REST endpoints using an invalid certificate should result in an error and not be ignored. If `false`, a valid certificate will not be required
  */
 config.servers = {
     'globalAdminAlias': 'admin',
@@ -74,7 +75,8 @@ config.servers = {
     'globalAdminPort': 2000,
     'serverInternalAddress': null,
     'tenantPort': 2001,
-    'useHttps': false
+    'useHttps': false,
+    'strictHttps': true
 };
 
 var tmpDir = process.env.TMP || process.env.TMPDIR || process.env.TEMP || '/tmp' || process.cwd();
@@ -90,7 +92,7 @@ tmpDir += '/oae';
  * @param  {Object}    cleaner                  Holds configuration properties for the cleaning job that removes lingering files in the upload directory.
  * @param  {Boolean}   cleaner.enabled          Whether or not the cleaning job should run.
  * @param  {Number}    cleaner.interval         Files that haven't been accessed in this amount (of seconds) should be removed.
- * @param  {String}    localStorageDirectory    The directory where the local storage backend can store its files. By default, the files get stored on the same level as the Hilary directory. This directory will not be used when Amazon S3 file storage is used.
+ * @param  {String}    localStorageDirectory    The directory where the local storage backend can store its files. By default, the files get stored on the same level as the Hilary directory. Note: the absolute path to this directory should also be configured in the Nginx config file. This directory will not be used when Amazon S3 file storage is used.
  */
 config.files = {
     'tmpDir': tmpDir,

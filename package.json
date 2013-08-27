@@ -1,7 +1,7 @@
 {
   "name": "Hilary",
   "description": "Open Academic Environment (OAE) Back-end",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "homepage": "http://www.oaeproject.org",
   "author": {
     "name": "The Apereo Foundation",
@@ -128,6 +128,6 @@
     "oae-util"
   ],
   "engines": {
-    "node": ">=0.8"
+    "node": ">=0.10"
   }
 }

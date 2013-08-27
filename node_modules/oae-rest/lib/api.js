@@ -39,6 +39,6 @@ module.exports.Group = require('./api.group');
 module.exports.Previews = require('./api.previews');
 module.exports.Profile = require('./api.profile');
 module.exports.Search = require('./api.search');
-module.exports.Tenant = require('./api.tenant');
+module.exports.Tenants = require('./api.tenants');
 module.exports.UI = require('./api.ui');
 module.exports.User = require('./api.user');

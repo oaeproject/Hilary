@@ -17,21 +17,26 @@
  * REST Context object used to represent a tenant on which a REST request is done, as well as
  * the user creditentials of the user performing the action.
  *
- * @param  {String}      host            The URL of the tenant on which the request is done. This should include the protocol (e.g. http://gt.oae.com) and should not have a trailing slash.
- * @param  {String}      username        The username of the user performing the REST request. This should be null if the current user is anonymous.
- * @param  {String}      userPassword    The password of the user performing the REST request. This should be null if the current user is anonymous.
- * @param  {String}      [hostHeader]    The host header that should be sent on the REST request. This can be set to avoid having to set up the actual hosts on a development environment. When this is set, the host should be the direct URL to the tenant express server
- * @param  {String}      [refererHeader] The referer header that should be sent on the REST request. By default it will be set as the target host of the request
+ * @param  {String}     host                    The URL of the tenant on which the request is done. This should include the protocol (e.g. http://gt.oae.com) and should not have a trailing slash.
+ * @param  {Object}     [opts]                  Optional parameters for the request
+ * @param  {String}     [opts.username]         The username of the user performing the REST request. This should be null if the current user is anonymous
+ * @param  {String}     [opts.userPassword]     The password of the user performing the REST request. This should be null if the current user is anonymous
+ * @param  {String}     [opts.hostHeader]       The host header that should be sent on the REST request. This can be set to avoid having to set up the actual hosts on a development environment. When this is set, the host should be the direct URL to the tenant express server
+ * @param  {String}     [opts.refererHeader]    The referer header that should be sent on the REST request. By default it will be set as the target host of the request
+ * @param  {Boolean}    [opts.strictSSL]        Whether or not the server is using a valid SSL certificate. If `true`, any attempts to connect to the REST endpoints using an invalid certificate should result in an error and not be ignored. If `false`, a valid certificate will not be required. By default, this will be set to `true`
  */
-var RestContext = module.exports.RestContext = function(host, username, userPassword, hostHeader, refererHeader) {
+var RestContext = module.exports.RestContext = function(host, opts) {
     var that = {};
 
+    opts = opts || {};
+
     that.host = host;
-    that.username = username;
-    that.userPassword = userPassword;
-    that.hostHeader = hostHeader;
-    that.refererHeader = refererHeader;
+    that.username = opts.username;
+    that.userPassword = opts.userPassword;
+    that.hostHeader = opts.hostHeader;
+    that.refererHeader = opts.refererHeader;
     that.cookieJar = null;
+    that.strictSSL = (opts.strictSSL !== false);
 
     return that;
 };

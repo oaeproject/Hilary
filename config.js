@@ -225,6 +225,9 @@ config.mq = {
  * @param  {Object}      pdf                     Holds the configuration for anything related to PDF splitting
  * @param  {String}      pdf.binary              The path to the `pdftk` binary that can be used to split a PDF file into a PDF-per-page
  * @param  {Number}      pdf.timeout             Defines the timeout (in ms) when the pdftk process should be killed
+ * @param  {Object}      link                    Holds the configuration for anything related to link processing
+ * @param  {String}      link.renderDelay        Defines the timeout (in ms) that should be waited between loading the page and taking a screenshot
+ * @param  {Number}      link.timeout            Defines the timeout (in ms) when the link processing should be stopped
  * @param  {Object}      credentials             Holds the credentials that can be used to log on the global admin server
  * @param  {String}      credentials.username    The username to login with on the global admin server
  * @param  {String}      credentials.password    The password to login with on the global admin server
@@ -239,6 +242,10 @@ config.previews = {
     'pdf': {
         'binary': 'pdftk',
         'timeout': 120000
+    },
+    'link': {
+        'renderDelay': 7500,
+        'timeout': 30000
     },
     'credentials': {
         'username': 'administrator',

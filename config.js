@@ -217,20 +217,21 @@ config.mq = {
  *
  * Configuration namespace for the preview processor.
  *
- * @param  {Boolean}     enabled                 Whether or not the preview processor should be running
- * @param  {String}      dir                     A directory that can be used to store temporary files in
- * @param  {Object}      office                  Holds the configuration for anything Office related
- * @param  {String}      office.binary           The path to the 'soffice.bin' binary that starts up Libre Office. ex: On OS X it is `/Applications/LibreOffice.app/Contents/MacOS/soffice.bin` with a default install
- * @param  {Number}      office.timeout          Defines the timeout (in ms) when the Office process should be killed
- * @param  {Object}      pdf                     Holds the configuration for anything related to PDF splitting
- * @param  {String}      pdf.binary              The path to the `pdftk` binary that can be used to split a PDF file into a PDF-per-page
- * @param  {Number}      pdf.timeout             Defines the timeout (in ms) when the pdftk process should be killed
- * @param  {Object}      link                    Holds the configuration for anything related to link processing
- * @param  {String}      link.renderDelay        Defines the timeout (in ms) that should be waited between loading the page and taking a screenshot
- * @param  {Number}      link.timeout            Defines the timeout (in ms) when the link processing should be stopped
- * @param  {Object}      credentials             Holds the credentials that can be used to log on the global admin server
- * @param  {String}      credentials.username    The username to login with on the global admin server
- * @param  {String}      credentials.password    The password to login with on the global admin server
+ * @param  {Boolean}     enabled                        Whether or not the preview processor should be running
+ * @param  {String}      dir                            A directory that can be used to store temporary files in
+ * @param  {Object}      office                         Holds the configuration for anything Office related
+ * @param  {String}      office.binary                  The path to the 'soffice.bin' binary that starts up Libre Office. ex: On OS X it is `/Applications/LibreOffice.app/Contents/MacOS/soffice.bin` with a default install
+ * @param  {Number}      office.timeout                 Defines the timeout (in ms) when the Office process should be killed
+ * @param  {Object}      pdf                            Holds the configuration for anything related to PDF splitting
+ * @param  {String}      pdf.binary                     The path to the `pdftk` binary that can be used to split a PDF file into a PDF-per-page
+ * @param  {Number}      pdf.timeout                    Defines the timeout (in ms) when the pdftk process should be killed
+ * @param  {Object}      link                           Holds the configuration for anything related to link processing
+ * @param  {String}      link.renderDelay               Defines the timeout (in ms) that should be waited between loading the page and taking a screenshot
+ * @param  {Number}      link.renderTimeout             Defines the timeout (in ms) when the screencapturing should be stopped. This should include the renderDelay
+ * @param  {Number}      link.embeddableCheckTimeout    Defines the timeout (in ms) when the embeddable link check should be stopped
+ * @param  {Object}      credentials                    Holds the credentials that can be used to log on the global admin server
+ * @param  {String}      credentials.username           The username to login with on the global admin server
+ * @param  {String}      credentials.password           The password to login with on the global admin server
  */
 config.previews = {
     'enabled': false,
@@ -245,7 +246,8 @@ config.previews = {
     },
     'link': {
         'renderDelay': 7500,
-        'timeout': 30000
+        'renderTimeout': 30000,
+        'embeddableCheckTimeout': 15000
     },
     'credentials': {
         'username': 'administrator',

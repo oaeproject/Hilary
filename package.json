@@ -28,6 +28,7 @@
     "clone": "latest",
     "connect": "latest",
     "connect-redis": "latest",
+    "csv": "latest",
     "dox": "latest",
     "elasticsearchclient": "latest",
     "ent": "latest",

@@ -77,6 +77,7 @@
     "request": "latest",
     "shelljs": "latest",
     "shortid": "latest",
+    "slideshare": "git://github.com/simong/node-slideshare#url-parse",
     "temp": "latest",
     "timezone-js": "latest",
     "underscore": "latest",

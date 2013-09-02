@@ -240,6 +240,10 @@ config.previews = {
         'binary': 'pdftk',
         'timeout': 120000
     },
+    'pdf2htmlEX':{
+        'binary': 'pdf2htmlEX',
+        'timeout': 120000 
+    },
     'credentials': {
         'username': 'administrator',
         'password': 'administrator'

@@ -226,8 +226,8 @@ config.mq = {
  * @param  {String}      pdftk.binary            The path to the `pdftk` binary that can be used to split a PDF file into a PDF-per-page
  * @param  {Number}      pdftk.timeout           Defines the timeout (in ms) when the pdftk process should be killed
  * @param  {Object}      pdf2htmlEX              Holds the configuration for anything related to converting a PDF file into an HTML file
- * @param  {String}      pdf2htmlEX.binary       The path to the `pdftk` binary that can be used to split a PDF file into a PDF-per-page
- * @param  {Number}      pdf2htmlEX.timeout      Defines the timeout (in ms) when the pdftk process should be killed
+ * @param  {String}      pdf2htmlEX.binary       The path to the `pdf2htmlEX` binary that can be used to convert a PDF file into an HTML file
+ * @param  {Number}      pdf2htmlEX.timeout      Defines the timeout (in ms) when the pdf2htmlEX process should be killed
  * @param  {Object}      credentials             Holds the credentials that can be used to log on the global admin server
  * @param  {String}      credentials.username    The username to login with on the global admin server
  * @param  {String}      credentials.password    The password to login with on the global admin server

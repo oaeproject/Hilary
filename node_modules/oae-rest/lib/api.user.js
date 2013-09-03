@@ -35,7 +35,7 @@ var RestUtil = require('./util');
  */
 var createUser = module.exports.createUser = function(restCtx, username, password, displayName, additionalOptions, callback) {
     additionalOptions = additionalOptions || {};
-    var postData = {
+    var params = {
         'username': username,
         'password': password,
         'displayName': displayName,
@@ -45,7 +45,7 @@ var createUser = module.exports.createUser = function(restCtx, username, passwor
         'timezone': additionalOptions.timezone,
         'publicAlias': additionalOptions.publicAlias
     };
-    RestUtil.RestRequest(restCtx, '/api/user/create', 'POST', postData, callback);
+    RestUtil.RestRequest(restCtx, '/api/user/create', 'POST', params, callback);
 };
 
 /**

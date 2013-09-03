@@ -115,7 +115,7 @@ var importUsers = module.exports.importUsers = function(restCtx, tenantAlias, cs
         } else {
             // Give it some time to asynchronously load the users. Note that this will not be sufficient for
             // large numbers of imported users
-            setTimeout(callback, 1000, err, tenant);
+            setTimeout(callback, 1000);
         }
     });
 };

@@ -18,10 +18,8 @@ var url = require('url');
 var RestContext = require('./model').RestContext;
 var RestUtil = require('./util');
 
-// This file aggregates those REST calls that are only benefitial
-// to a global administrator.
-// It's expected that the RestContext objects that are passed into these methods
-// reflect authenticated users whom are all global administrators.
+// This file aggregates those REST calls that are only beneficial to a global and/or tenant administrators.
+// It's expected that the RestContext objects that are passed into these methods reflect authenticated users whom are all administrators
 
 /**
  * Get a signed token from the global server that can be used to log onto a tenant.
@@ -84,4 +82,32 @@ var loginOnTenant = module.exports.loginOnTenant = function(globalRestCtx, tenan
             }
         });
     });
+};
+
+/**
+ * Import a batch of users from a CSV file. The CSV file should be formatted in the following way:
+ *
+ *  `externalId, lastName, firstName, email`
+ *
+ * When importing a set of users using the local authentication strategy, the CSV format should be the following:
+ *
+ *  `externalId, password, lastName, firstName, email`
+ *
+ * When an external id for the provided authentication strategy cannot be found, a new user will be created. When that
+ * user can be found, no new user will be created.
+ *
+ * @param  {RestContext}    restCtx                 Standard REST Context object associated to a global or tenant administrator
+ * @param  {String}         [tenantAlias]           The alias of the tenant on which the users should be loaded
+ * @param  {Function}       csvGenerator            A function that returns a stream which points to a CSV file body
+ * @param  {String}         authenticationStrategy  The authentication strategy with which the provided external ids should be associated
+ * @param  {Function}       callback                Standard callback method takes arguments `err`
+ * @param  {Object}         callback.err            Error object containing error code and error message
+ */
+var importUsers = module.exports.importUsers = function(restCtx, tenantAlias, csvGenerator, authenticationStrategy, callback) {
+    var params = {
+        'tenantAlias': tenantAlias,
+        'authenticationStrategy': authenticationStrategy,
+        'file': csvGenerator
+    };
+    RestUtil.RestRequest(restCtx, '/api/user/import', 'POST', params, callback);
 };

@@ -93,21 +93,21 @@ var loginOnTenant = module.exports.loginOnTenant = function(globalRestCtx, tenan
  *
  *  `externalId, password, lastName, firstName, email`
  *
- * When an external id for the provided authentication method cannot be found, a new user will be created. When that
+ * When an external id for the provided authentication strategy cannot be found, a new user will be created. When that
  * user can be found, no new user will be created.
  *
  * @param  {RestContext}    restCtx                 Standard REST Context object associated to a global or tenant administrator
  * @param  {String}         [tenantAlias]           The alias of the tenant on which the users should be loaded
  * @param  {Function}       csvGenerator            A function that returns a stream which points to a CSV file body
- * @param  {String}         authenticationMethod    The authentication method with which the provided external ids should be associated
+ * @param  {String}         authenticationStrategy  The authentication strategy with which the provided external ids should be associated
  * @param  {Function}       callback                Standard callback method takes arguments `err`
  * @param  {Object}         callback.err            Error object containing error code and error message
  */
-var importUsers = module.exports.importUsers = function(restCtx, tenantAlias, csvGenerator, authenticationMethod, callback) {
+var importUsers = module.exports.importUsers = function(restCtx, tenantAlias, csvGenerator, authenticationStrategy, callback) {
     var params = {
         'tenantAlias': tenantAlias,
-        'file': csvGenerator,
-        'authentication': authenticationMethod
+        'authenticationStrategy': authenticationStrategy,
+        'file': csvGenerator
     };
     RestUtil.RestRequest(restCtx, '/api/user/import', 'POST', params, callback);
 };

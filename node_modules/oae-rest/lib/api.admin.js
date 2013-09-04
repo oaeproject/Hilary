@@ -109,13 +109,5 @@ var importUsers = module.exports.importUsers = function(restCtx, tenantAlias, cs
         'file': csvGenerator,
         'authentication': authenticationMethod
     };
-    RestUtil.RestRequest(restCtx, '/api/user/import', 'POST', params, function(err) {
-        if (err) {
-            callback(err);
-        } else {
-            // Give it some time to asynchronously load the users. Note that this will not be sufficient for
-            // large numbers of imported users
-            setTimeout(callback, 500);
-        }
-    });
+    RestUtil.RestRequest(restCtx, '/api/user/import', 'POST', params, callback);
 };

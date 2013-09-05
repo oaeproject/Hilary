@@ -59,6 +59,7 @@
     "oae-telemetry": "",
     "oae-tenants": "",
     "oae-tests": "",
+    "oae-tincanapi": "",
     "oae-ui": "",
     "oae-util": "",
     "passport": "latest",
@@ -124,6 +125,7 @@
     "oae-telemetry",
     "oae-tenants",
     "oae-tests",
+    "oae-tincanapi",
     "oae-ui",
     "oae-util"
   ],

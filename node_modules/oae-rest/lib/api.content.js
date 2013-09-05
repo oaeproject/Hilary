@@ -64,8 +64,8 @@ var createLink = module.exports.createLink = function(restCtx, displayName, desc
  * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         displayName         Display name for the created content item
  * @param  {String}         [description]       The content item's description (optional)
- * @param  {String}         [visibility]        The content item's visibility. This can be public, loggedin or private and is optional.
- * @param  {Function}       fileGenerator       A function that returns a stream which points to a file body.
+ * @param  {String}         [visibility]        The content item's visibility. This can be public, loggedin or private and is optional
+ * @param  {Function}       fileGenerator       A function that returns a stream which points to a file body
  * @param  {String[]}       [managers]          An optional array of user/group ids that should be added as managers to the content item
  * @param  {String[]}       [viewers]           An optional array of user/group ids that should be added as viewers to the content item
  * @param  {Function}       callback            Standard callback method

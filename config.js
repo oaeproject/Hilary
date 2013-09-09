@@ -354,3 +354,14 @@ config.etherpad = {
         }
     ]
 };
+
+/**
+* `config.tincanapi`
+*
+* Configuration namespace for the tincanapi logic
+*
+* @param  {Number}  timeout             Defines the timeout (in ms) when the request to LRS should be killed
+*/
+config.tincanapi = {
+    'timeout': 4000
+};

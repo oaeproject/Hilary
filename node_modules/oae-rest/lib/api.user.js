@@ -29,6 +29,7 @@ var RestUtil = require('./util');
  * @param  {String}         [additionalOptions.locale]      The user's locale
  * @param  {String}         [additionalOptions.timezone]    The user's timezone
  * @param  {String}         [additionalOptions.publicAlias] The publically-available alias for users to see when the user's display name is protected
+ * @param  {Boolean}        [additionalOptions.acceptedTC]  Whether or not the user accepts the T&C
  * @param  {Function}       callback                        Standard callback method takes arguments `err` and `resp`
  * @param  {Object}         callback.err                    Error object containing error code and error message
  * @param  {User}           callback.response               A User object representing the created user
@@ -43,7 +44,8 @@ var createUser = module.exports.createUser = function(restCtx, username, passwor
         'visibility': additionalOptions.visibility,
         'locale': additionalOptions.locale,
         'timezone': additionalOptions.timezone,
-        'publicAlias': additionalOptions.publicAlias
+        'publicAlias': additionalOptions.publicAlias,
+        'acceptedTC': additionalOptions.acceptedTC
     };
     RestUtil.RestRequest(restCtx, '/api/user/create', 'POST', params, callback);
 };

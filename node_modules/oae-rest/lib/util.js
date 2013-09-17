@@ -20,7 +20,7 @@ var Stream = require('stream').Stream;
 var util = require('util');
 
 // Array of response codes that are considered to be HTTP errors
-var errorCodes = [400, 401, 403, 404, 418, 500, 503];
+var errorCodes = [400, 401, 403, 404, 409, 418, 500, 503];
 
 /**
  * ### Events
@@ -118,10 +118,9 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
         'url': restCtx.host + url,
         'method': method,
         'jar': restCtx.cookieJar,
-        'strictSSL': restCtx.strictSSL
+        'strictSSL': restCtx.strictSSL,
+        'headers': {}
     };
-
-    requestOpts.headers = requestOpts.headers || {};
 
     var referer = restCtx.host + '/';
     if (restCtx.hostHeader) {

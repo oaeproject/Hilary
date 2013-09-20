@@ -42,14 +42,14 @@ var reprocessPreview = module.exports.reprocessPreview = function(restCtx, conte
  * one of the provided values.
  *
  * @param  {RestContext}    globalAdminRestContext              A global administration context that can be used to reprocess all preview items. This context must be bound to the global admin server, not a user tenant
- * @param  {Object}         filters                             A set of filters that can be used to filter the content and/or revisions that need reprocessing.
- * @param  {String[]}       filters.content_createdBy           Filter content based on who it was created by
- * @param  {String[]}       filters.content_resourceSubType     Filter content based on its resourceSubType
- * @param  {String[]}       filters.content_previewsStatus      Filter content based on the status of the previews processing.
+ * @param  {Object}         filters                             A set of filters that can be used to filter the content and/or revisions that need reprocessing
+ * @param  {String[]}       filters.content_createdBy           Filter content based on who it was created by. This should be the user ID of the person who create the piece of conte
+ * @param  {String[]}       filters.content_resourceSubType     Filter content based on its resourceSubType. Possible values are any combination of `file`, `link`, or `collabdoc`
+ * @param  {String[]}       filters.content_previewsStatus      Filter content based on the preview processing status. Possible values are any combination of `error`, `ignored`, `pending` or `done`
  * @param  {String[]}       filters.revision_mime               Filter based on the mime type of a file. Only useful in combination with `content_resourceSubType: file`
  * @param  {Number}         filters.revision_createdAfter       Filter those revisions who were created after a certain timestamp. The value of the timestamp should be specified in ms since epoch
  * @param  {Number}         filters.revision_createdBefore      Filter those revisions who were created before a certain timestamp. The value of the timestamp should be specified in ms since epoch
- * @param  {String[]}       filters.revision_createdBy          Filter the revisions based on who created them. This should be a user ID
+ * @param  {String[]}       filters.revision_createdBy          Filter the revisions based on who created them. This should be the user ID of the person who created the revision
  * @param  {Function}       callback                            Invoked when the request completes. The actuall reprocessing happens async
  */
 var reprocessPreviews = module.exports.reprocessPreviews = function(globalAdminRestContext, filters, callback) {

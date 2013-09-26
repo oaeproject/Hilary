@@ -101,7 +101,8 @@ config.files = {
         'enabled': true,
         'interval': 2*60*60
     },
-    'localStorageDirectory': '../files'
+    'localStorageDirectory': '../files',
+    'maxSize': '4096mb'
 };
 
 // The configuration that can be used to generate secure HTTP cookies.

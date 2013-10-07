@@ -29,7 +29,7 @@ var RestUtil = require('./util');
  * @param  {String}         [additionalOptions.locale]      The user's locale
  * @param  {String}         [additionalOptions.timezone]    The user's timezone
  * @param  {String}         [additionalOptions.publicAlias] The publically-available alias for users to see when the user's display name is protected
- * @param  {Boolean}        [additionalOptions.acceptedTC]  Whether or not the user accepts the T&C
+ * @param  {Boolean}        [additionalOptions.acceptedTC]  Whether or not the user accepts the Terms and Conditions
  * @param  {Function}       callback                        Standard callback method takes arguments `err` and `resp`
  * @param  {Object}         callback.err                    Error object containing error code and error message
  * @param  {User}           callback.response               A User object representing the created user
@@ -168,4 +168,31 @@ var setTenantAdmin = module.exports.setTenantAdmin = function(restCtx, userId, v
  */
 var getTimezones = module.exports.getTimezones = function(restCtx, callback) {
     RestUtil.RestRequest(restCtx, '/api/timezones', 'GET', null, callback);
+};
+
+/**
+ * Gets the Terms and Conditions for a tenant.
+ * If the Terms and Conditions for a given locale cannot be found, the default Terms and Conditions will be returned.
+ *
+ * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}         locale              The locale in which the Terms and Conditions should be retrieved. It the Terms and Conditions are not available in that locale, the default Terms and Conditions will be returned
+ * @param  {Function}       callback            Standard callback method takes argument `err`
+ * @param  {Object}         callback.err        Error object containing error code and error message
+ */
+var getTermsAndConditions = module.exports.getTermsAndConditions = function(restCtx, locale, callback) {
+    RestUtil.RestRequest(restCtx, '/api/user/termsAndConditions', 'GET', {'locale': locale}, callback);
+};
+
+/**
+ * Accepts the Terms and Conditions for a user
+ *
+ * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}         userId              The id of the user that accepts the Terms and Conditions
+ * @param  {Function}       callback            Standard callback function
+ * @param  {Object}         callback.err        Standard error object, if any
+ * @param  {User}           callback.user       The updated user object
+ */
+var acceptTermsAndConditions = module.exports.acceptTermsAndConditions = function(restCtx, userId, callback) {
+    var url = '/api/user/' + RestUtil.encodeURIComponent(userId) + '/termsAndConditions';
+    RestUtil.RestRequest(restCtx, url, 'POST', {}, callback);
 };

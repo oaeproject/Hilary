@@ -35,7 +35,7 @@
     "etherpad-lite-client": "latest",
     "express": "latest",
     "gm": "latest",
-    "helenus": "latest",
+    "helenus": "0.6.2",
     "less": "latest",
     "mime": "latest",
     "mkdirp": "latest",

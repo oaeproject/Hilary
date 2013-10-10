@@ -61,6 +61,7 @@
     "oae-telemetry": "",
     "oae-tenants": "",
     "oae-tests": "",
+    "oae-tincanapi": "",
     "oae-ui": "",
     "oae-util": "",
     "passport": "latest",
@@ -79,6 +80,7 @@
     "request": "latest",
     "shelljs": "latest",
     "shortid": "latest",
+    "slideshare": "git://github.com/oaeproject/node-slideshare",
     "temp": "latest",
     "timezone-js": "latest",
     "underscore": "latest",
@@ -127,6 +129,7 @@
     "oae-telemetry",
     "oae-tenants",
     "oae-tests",
+    "oae-tincanapi",
     "oae-ui",
     "oae-util"
   ],

@@ -103,6 +103,7 @@
   },
   "optionalDependencies": {
     "bunyan-syslog": "latest",
+    "fluent-ffmpeg": "latest",
     "hiredis": "0.1.13",
     "webshot": "latest"
   },

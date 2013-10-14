@@ -11,6 +11,7 @@ node_modules/*
 !node_modules/oae-discussions
 !node_modules/oae-doc
 !node_modules/oae-email
+!node_modules/oae-following
 !node_modules/oae-library
 !node_modules/oae-logger
 !node_modules/oae-messagebox

@@ -75,7 +75,7 @@
     "passport-twitter": "latest",
     "rails-timezone": "latest",
     "readdirp": "latest",
-    "recaptcha-async": "latest",
+    "recaptcha": "latest",
     "redis": "latest",
     "request": "latest",
     "shelljs": "latest",

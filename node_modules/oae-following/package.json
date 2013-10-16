@@ -1,0 +1,5 @@
+{
+    "name": "oae-following",
+    "main": "./lib/api",
+    "version": "0.0.1"
+}

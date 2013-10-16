@@ -34,6 +34,7 @@ module.exports.Content = require('./api.content');
 module.exports.Crop = require('./api.crop');
 module.exports.Discussions = require('./api.discussions');
 module.exports.Doc = require('./api.doc');
+module.exports.Following = require('./api.following');
 module.exports.Group = require('./api.group');
 module.exports.Previews = require('./api.previews');
 module.exports.Profile = require('./api.profile');

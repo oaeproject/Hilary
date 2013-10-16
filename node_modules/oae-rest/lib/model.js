@@ -35,6 +35,7 @@ var RestContext = module.exports.RestContext = function(host, opts) {
     that.userPassword = opts.userPassword;
     that.hostHeader = opts.hostHeader;
     that.refererHeader = opts.refererHeader;
+    that.additionalHeaders = opts.additionalHeaders;
     that.cookieJar = null;
     that.strictSSL = (opts.strictSSL !== false);
 

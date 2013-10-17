@@ -142,7 +142,7 @@ var leaveGroup = module.exports.leaveGroup = function(restCtx, groupId, callback
  * @param  {Object}       callback.err        Error object containing error code and error message
  * @param  {Group[]}      callback.response   An array of groups representing the direct and indirect memberships of the provided user
  */
-var memberOf = module.exports.memberOf = function(restCtx, userId, start, limit, callback) {
+var getMembershipsLibrary = module.exports.getMembershipsLibrary = function(restCtx, userId, start, limit, callback) {
     var params = {
         'start': start,
         'limit': limit

@@ -216,7 +216,7 @@ var deleteComment = module.exports.deleteComment = function(restCtx, contentId, 
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}       contentId           Content id of the content item we're trying to get comments for
  * @param  {String}       start               Determines the point at which content items are returned for paging purposed.
- * @param  {Integer}      limit               Number of items to return.
+ * @param  {Number}       limit               Number of items to return.
  * @param  {Function}     callback            Standard callback method
  * @param  {Object}       callback.err        Error object containing error code and error message
  * @param  {Comment[]}    callback.comments   Array of comments on the content item

@@ -15,6 +15,7 @@ node_modules/*
 !node_modules/oae-google-analytics
 !node_modules/oae-library
 !node_modules/oae-logger
+!node_modules/oae-mediacore
 !node_modules/oae-messagebox
 !node_modules/oae-preview-processor
 !node_modules/oae-principals

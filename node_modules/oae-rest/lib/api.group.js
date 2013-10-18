@@ -31,7 +31,7 @@ var RestUtil = require('./util');
  * @param  {Object}            callback.err        Error object containing error code and error message
  * @param  {Group}             callback.response   A Group object representing the created group
  */
-var createGroup = module.exports.createGroup = function (restCtx, displayName, description, visibility, joinable, managers, members, callback) {
+var createGroup = module.exports.createGroup = function(restCtx, displayName, description, visibility, joinable, managers, members, callback) {
     var postData = {
         'displayName': displayName,
         'description': description,

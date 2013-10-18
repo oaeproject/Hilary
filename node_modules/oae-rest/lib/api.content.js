@@ -216,7 +216,7 @@ var deleteComment = module.exports.deleteComment = function(restCtx, contentId, 
  * @param  {RestContext}  restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}       contentId           Content id of the content item we're trying to get comments for
  * @param  {String}       start               Determines the point at which content items are returned for paging purposed.
- * @param  {Integer}      limit               Number of items to return.
+ * @param  {Number}       limit               Number of items to return.
  * @param  {Function}     callback            Standard callback method
  * @param  {Object}       callback.err        Error object containing error code and error message
  * @param  {Comment[]}    callback.comments   Array of comments on the content item
@@ -475,15 +475,21 @@ var setPreviewItems = module.exports.setPreviewItems = function(restCtx, content
     var params = {
         'status': status,
         'sizes': {},
+        'links': {},
         'previewMetadata': JSON.stringify(previewMetadata),
         'contentMetadata': JSON.stringify(contentMetadata)
     };
 
     // Add the files and their sizes to the parameters.
     Object.keys(files).forEach(function(filename) {
-        params[filename] = files[filename];
+        if (_.isString(files[filename])) {
+            params.links[filename] = files[filename];
+        } else {
+            params[filename] = files[filename];
+        }
         params.sizes[filename] = sizes[filename];
     });
+    params.links = JSON.stringify(params.links);
     params.sizes = JSON.stringify(params.sizes);
     var url = '/api/content/' + RestUtil.encodeURIComponent(contentId) + '/revisions/' + RestUtil.encodeURIComponent(revisionId) + '/previews';
     RestUtil.RestRequest(restCtx, url, 'POST', params, callback);

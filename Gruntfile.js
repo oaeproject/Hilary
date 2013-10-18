@@ -85,7 +85,7 @@ module.exports = function(grunt) {
                     {
                         'from': /@param (\S|\s\s)/,
                         'to': function(matchedWord, index, fullText, regexMatches) {
-                            var msg ='@param  should be followed by 2 spaces';
+                            var msg ='@param should be followed by 2 spaces';
                             return logMatch(msg, matchedWord, index, fullText, regexMatches);
                         }
                     },
@@ -107,6 +107,13 @@ module.exports = function(grunt) {
                         'from': /@throws \s/,
                         'to': function(matchedWord, index, fullText, regexMatches) {
                             var msg ='@throws should be followed by 1 space';
+                            return logMatch(msg, matchedWord, index, fullText, regexMatches);
+                        }
+                    },
+                    {
+                        'from': /(tenant|globalAdmin)Server\.(get|post|put|head|del)\((.*)/,
+                        'to': function(matchedWord, index, fullText, regexMatches) {
+                            var msg = 'Do not use the tenantServer or globalAdminServer to bind routes. Use the Router object like this:\n\n  ' + regexMatches[0] + 'Router.on(\'' + regexMatches[1] + '\', ' + regexMatches[2];
                             return logMatch(msg, matchedWord, index, fullText, regexMatches);
                         }
                     }

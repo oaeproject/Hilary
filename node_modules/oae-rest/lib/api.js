@@ -36,6 +36,7 @@ module.exports.Discussions = require('./api.discussions');
 module.exports.Doc = require('./api.doc');
 module.exports.Following = require('./api.following');
 module.exports.Group = require('./api.group');
+module.exports.MediaCore = require('./api.mediacore');
 module.exports.Previews = require('./api.previews');
 module.exports.Profile = require('./api.profile');
 module.exports.Search = require('./api.search');

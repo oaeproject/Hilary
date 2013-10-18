@@ -39,7 +39,8 @@ config.cassandra = {
     'pass': '',
     'timeout': 3000,
     'replication': 1,
-    'strategyClass': 'SimpleStrategy'
+    'strategyClass': 'SimpleStrategy',
+    'cqlVersion': '2.0.0'
 };
 
 // The redis related configuration information.
@@ -93,6 +94,7 @@ tmpDir += '/oae';
  * @param  {Boolean}   cleaner.enabled          Whether or not the cleaning job should run.
  * @param  {Number}    cleaner.interval         Files that haven't been accessed in this amount (of seconds) should be removed.
  * @param  {String}    localStorageDirectory    The directory where the local storage backend can store its files. By default, the files get stored on the same level as the Hilary directory. Note: the absolute path to this directory should also be configured in the Nginx config file. This directory will not be used when Amazon S3 file storage is used.
+ * @param  {String}    limit                    The maximum file upload size, accepted formats look like "5mb", "200kb", "1gb". You should also adjust your front-end proxy (e.g., Nginx, Apache) to also handle files of this size
  */
 config.files = {
     'tmpDir': tmpDir,
@@ -101,7 +103,8 @@ config.files = {
         'enabled': true,
         'interval': 2*60*60
     },
-    'localStorageDirectory': '../files'
+    'localStorageDirectory': '../files',
+    'limit': '4096mb'
 };
 
 // The configuration that can be used to generate secure HTTP cookies.

@@ -123,6 +123,10 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
 
     requestOpts.headers = requestOpts.headers || {};
 
+    if (restCtx.additionalHeaders) {
+        _.extend(requestOpts.headers, restCtx.additionalHeaders);
+    }
+
     var referer = restCtx.host + '/';
     if (restCtx.hostHeader) {
         // Set the host header so the app server can determine the tenant.

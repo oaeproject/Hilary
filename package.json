@@ -37,6 +37,7 @@
     "gm": "latest",
     "helenus": "latest",
     "less": "latest",
+    "locale": "latest",
     "mime": "latest",
     "mkdirp": "latest",
     "nodemailer": "latest",

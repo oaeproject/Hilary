@@ -78,7 +78,7 @@ module.exports = function(grunt) {
             }
         },
         'replace': {
-            'jsdoc': {
+            'check-style': {
                 'src': ['node_modules/oae-*/**/*.js'],
                 'overwrite': true,
                 'replacements': [

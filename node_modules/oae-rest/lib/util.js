@@ -19,9 +19,6 @@ var request = require('request');
 var Stream = require('stream').Stream;
 var util = require('util');
 
-// Array of response codes that are considered to be HTTP errors
-var errorCodes = [400, 401, 403, 404, 409, 418, 500, 503];
-
 /**
  * ### Events
  *
@@ -189,7 +186,7 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
         if (err) {
             emitter.emit('error', err);
             return callback({'code': 500, 'msg': util.format('Something went wrong trying to contact the server:\n%s\n%s', err.message, err.stack)});
-        } else if (errorCodes.indexOf(response.statusCode) !== -1) {
+        } else if (response.statusCode >= 400) {
             err = {'code': response.statusCode, 'msg': body};
             emitter.emit('error', err, body, response);
             return callback(err);

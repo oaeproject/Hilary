@@ -40,6 +40,7 @@
     "locale": "latest",
     "mime": "latest",
     "mkdirp": "latest",
+    "multiparty": "latest",
     "nodemailer": "latest",
     "oae-activity": "",
     "oae-authentication": "",

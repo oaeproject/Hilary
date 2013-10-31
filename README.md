@@ -100,6 +100,37 @@ The preview processor is not a requirement to run Hilary, but it certainly makes
 
 Download and install [PDFTK](http://www.pdflabs.com/tools/pdftk-the-pdf-toolkit/). This dependency takes care of splitting PDF files into individual pages.
 
+##### pdf2htmlEX (only if preview processor is desired)
+
+Download and install [pdf2htmlEX](https://github.com/coolwanglu/pdf2htmlEX). This dependency takes care of converting a pdf file to a set of HTML files.
+You will need at least version 0.9 .
+On Ubuntu this can be installed by running:
+```
+sudo add-apt-repository ppa:coolwanglu/pdf2htmlex
+sudo apt-get update
+sudo apt-get install pdf2htmlEX
+```
+
+On OS X the latest Homebrew version is unfortunately outdated so you will have to install the dependencies and then manually build pdf2htmlEX.
+This can be done with:
+```
+brew install cmake
+brew install pkg-config
+brew install fontforge
+brew install poppler
+brew install ttfautohint
+git clone git://github.com/coolwanglu/pdf2htmlEX
+cd pdf2htmlEX
+cmake .
+make && sudo make install
+```
+In case you get an error along the lines of `Cannot find _my_iconv_setup` try the following:
+```
+brew install libiconv
+brew link libiconv
+make && sudo make install
+```
+
 ##### LibreOffice (only if preview processor is desired)
 
 Download and install [LibreOffice](http://www.libreoffice.org/download/). This dependency takes care of converting Microsoft Office files to PDFs so they may be further split into previews by PDFTK.

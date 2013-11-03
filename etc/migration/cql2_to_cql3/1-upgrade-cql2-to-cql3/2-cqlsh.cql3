@@ -1,0 +1,78 @@
+
+-- Clear out unused column families
+DROP TABLE "ActivityAggregateEntities";
+DROP TABLE "ActivityAggregateStatus";
+DROP TABLE "ActivityProcessingBuckets";
+DROP TABLE "LibraryByPrincipal";
+DROP TABLE "Profiles";
+
+-- Add columns that are missing from the schema
+ALTER TABLE "AuthenticationLoginId" ADD "password" text;
+ALTER TABLE "Content" ADD "displayName" text;
+ALTER TABLE "Content" ADD "etherpadGroupId" text;
+ALTER TABLE "Content" ADD "etherpadPadId" text;
+ALTER TABLE "Content" ADD "filename" text;
+ALTER TABLE "Content" ADD "largeUri" text;
+ALTER TABLE "Content" ADD "latestRevisionId" text;
+ALTER TABLE "Content" ADD "link" text;
+ALTER TABLE "Content" ADD "mediumUri" text;
+ALTER TABLE "Content" ADD "mime" text;
+ALTER TABLE "Content" ADD "previews" text;
+ALTER TABLE "Content" ADD "size" text;
+ALTER TABLE "Content" ADD "smallUri" text;
+ALTER TABLE "Content" ADD "status" text;
+ALTER TABLE "Content" ADD "thumbnailUri" text;
+ALTER TABLE "Content" ADD "uri" text;
+ALTER TABLE "Content" ADD "wideUri" text;
+ALTER TABLE "OAuthClient" ADD "userId" text;
+ALTER TABLE "Principals" ADD "acceptedTC" text;
+ALTER TABLE "Principals" ADD "admin:tenant" text;
+ALTER TABLE "Principals" ADD "admin:global" text;
+ALTER TABLE "Principals" ADD "description" text;
+ALTER TABLE "Principals" ADD "email" text;
+ALTER TABLE "Principals" ADD "joinable" text;
+ALTER TABLE "Principals" ADD "largePictureUri" text;
+ALTER TABLE "Principals" ADD "lastModified" text;
+ALTER TABLE "Principals" ADD "locale" text;
+ALTER TABLE "Principals" ADD "mediumPictureUri" text;
+ALTER TABLE "Principals" ADD "notificationsUnread" text;
+ALTER TABLE "Principals" ADD "notificationsLastRead" text;
+ALTER TABLE "Principals" ADD "publicAlias" text;
+ALTER TABLE "Principals" ADD "smallPictureUri" text;
+ALTER TABLE "Principals" ADD "timezone" text;
+ALTER TABLE "Revisions" ADD "created" text;
+ALTER TABLE "Revisions" ADD "createdBy" text;
+ALTER TABLE "Revisions" ADD "etherpadHtml" text;
+ALTER TABLE "Revisions" ADD "filename" text;
+ALTER TABLE "Revisions" ADD "largeUri" text;
+ALTER TABLE "Revisions" ADD "mediumUri" text;
+ALTER TABLE "Revisions" ADD "mime" text;
+ALTER TABLE "Revisions" ADD "previews" text;
+ALTER TABLE "Revisions" ADD "previewsId" text;
+ALTER TABLE "Revisions" ADD "size" text;
+ALTER TABLE "Revisions" ADD "smallUri" text;
+ALTER TABLE "Revisions" ADD "status" text;
+ALTER TABLE "Revisions" ADD "thumbnailUri" text;
+ALTER TABLE "Revisions" ADD "uri" text;
+ALTER TABLE "Revisions" ADD "wideUri" text;
+
+-- Rename columns for tables that have been automatically transposed by CQL3
+ALTER TABLE "ActivityStreams" RENAME "column1" TO "activityId" AND "value" TO "activity";
+ALTER TABLE "AuthenticationUserLoginId" RENAME "column1" TO "loginId";
+ALTER TABLE "AuthzMembers" RENAME "column1" TO "memberId" AND "value" TO "role";
+ALTER TABLE "AuthzMembershipsCache" RENAME "column1" TO "groupId";
+ALTER TABLE "AuthzRoles" RENAME "column1" TO "resourceId" AND "value" TO "role";
+ALTER TABLE "Config" RENAME "column1" TO "configKey";
+ALTER TABLE "FollowingUsersFollowers" RENAME "column1" TO "followerId";
+ALTER TABLE "FollowingUsersFollowing" RENAME "column1" TO "followingId";
+ALTER TABLE "LibraryIndex" RENAME "column1" TO "rankedResourceId";
+ALTER TABLE "MessageBoxMessages" RENAME "column1" TO "threadKey";
+ALTER TABLE "MessageBoxMessagesDeleted" RENAME "column1" TO "createdTimestamp";
+ALTER TABLE "MessageBoxRecentContributions" RENAME "column1" TO "contributorId";
+ALTER TABLE "OAuthAccessTokenByUser" RENAME "column1" TO "clientId" AND "value" TO "token";
+ALTER TABLE "OAuthClientsByUser" RENAME "column1" TO "clientId";
+ALTER TABLE "PreviewItems" RENAME "column1" TO "name";
+ALTER TABLE "RevisionByContent" RENAME "column1" TO "created" AND "value" TO "revisionId";
+ALTER TABLE "TenantNetworkTenants" RENAME "column1" TO "tenantAlias";
+
+quit;

@@ -40,7 +40,7 @@ config.cassandra = {
     'timeout': 3000,
     'replication': 1,
     'strategyClass': 'SimpleStrategy',
-    'cqlVersion': '2.0.0'
+    'cqlVersion': '3.0.0'
 };
 
 // The redis related configuration information.

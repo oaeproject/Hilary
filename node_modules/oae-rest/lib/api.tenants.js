@@ -80,7 +80,7 @@ var createTenant = module.exports.createTenant = function(restCtx, alias, displa
  * Update a tenant's metadata through the REST API.
  *
  * @param  {RestContext}      restCtx                         Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {String}           [alias]                         Optional tenant alias of the tenant that needs to be updated, in case the request is made from the global admin tenant. If no tenantAlias is passed in, the current tenant will be used 
+ * @param  {String}           [alias]                         Optional tenant alias of the tenant that needs to be updated, in case the request is made from the global admin tenant. If no tenantAlias is passed in, the current tenant will be used
  * @param  {Object}           tenantUpdates                   Object where the keys represents the metadata identifiers and the values represent the new metadata values
  * @param  {String}           [tenantUpdates.displayName]     Updated tenant display name
  * @param  {String}           [tenantUpdates.host]            Updated tenant hostname

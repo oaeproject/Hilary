@@ -139,50 +139,89 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
     }
 
     requestOpts.headers.referer = referer;
+    return module.exports.request(requestOpts, data, callback);
+};
 
-    // Expand values and check if we're uploading something (with a stream.)
-    // API users need to pass in uploads (=streams) via a function as we do some other things
-    // *before* we reach this point.
-    // If we would simple pass in a stream the data might already be gone by the time
-    // we reach this point.
+/**
+ * Perform an HTTP request, automatically handling whether or not it should be multipart.
+ *
+ * @param  {Object}         opts                The opts that would normally be sent to the request module
+ * @param  {Object}         data                The request data (e.g., query string values or request body)
+ * @param  {Function}       callback            Invoked when the process completes
+ * @param  {Object}         callback.err        An error that occurred, if any
+ * @param  {String|Object}  callback.body       The response body received from the request. If this is JSON, a parsed JSON object will be returned, otherwise the response will be returned as a string
+ * @param  {Response}       callback.response   The response object that was returned by the request node module
+ */
+module.exports.request = function(opts, data, callback) {
+    data = data || {};
+    callback = callback || function() {};
+
+    /*!
+     * Expand values and check if we're uploading a file (a stream value). Since:
+     *
+     *  a) Streams start pumping out data as soon as they're opened in a later process tick
+     *  b) We may not necessarily be in the same process tick as the stream was opened
+     *
+     * ... we allow a function to be sent in which opens the stream only in the 'tick' that
+     * the request will be sent. This avoids the possibility of missing some 'data' callbacks
+     * from the file stream.
+     */
     var hasStream = false;
-    var keys;
-    if (data) {
-        keys = Object.keys(data);
-        for (var i = 0; i < keys.length; i++) {
-            if (typeof data[keys[i]] === 'function') {
-                data[keys[i]] = data[keys[i]]();
-            }
-            if (data[keys[i]] instanceof Stream) {
+    _.each(data, function(value, key) {
+        if (_.isArray(value)) {
+            // For an array, resolve all inner values and reassign it to the data array
+            value = _.map(value, function(innerValue) {
+                if (_.isFunction(innerValue)) {
+                    innerValue = innerValue();
+                    if (innerValue instanceof Stream) {
+                        hasStream = true;
+                    }
+
+                    return innerValue;
+                } else {
+                    return innerValue;
+                }
+            });
+
+            data[key] = value;
+        } else if (_.isFunction(value)) {
+            // Invoke any values that are functions in order to resolve the returned value
+            // for the request
+            value = value();
+            if (value instanceof Stream) {
                 hasStream = true;
             }
+
+            data[key] = value;
+        } else if (value instanceof Stream) {
+            hasStream = true;
         }
-    }
+    });
 
-    // Add the request data, if there is any
-    if (data) {
-
-        // Sanitize the parameters to not include null / unspecified values
-        _.each(data, function(value, key) {
-            if (value === null || value === undefined) {
+    // Sanitize the parameters to not include null / unspecified values
+    _.each(data, function(value, key) {
+        if (value === null || value === undefined) {
+            delete data[key];
+        } else if (_.isArray(value)) {
+            // Filter out unspecified items from the parameter array, and remove it if it is empty
+            value = _.compact(value);
+            if (_.isEmpty(value)) {
                 delete data[key];
-            } else if (_.isArray(value)) {
-                // Filter out unspecified items from the parameter array, and remove it if it is empty
-                value = _.filter(value, function(el) { return (el !== null && el !== undefined); });
-                if (value.length === 0) {
-                    delete data[key];
-                }
+            } else {
+                data[key] = value;
             }
-        });
+        }
+    });
 
-        if (method === 'GET') {
-            requestOpts.qs = data;
-        } else if (!hasStream && method === 'POST') {
-            requestOpts.form = data;
+    if (!_.isEmpty(data)) {
+        if (opts.method === 'GET') {
+            opts.qs = data;
+        } else if (!hasStream && opts.method === 'POST') {
+            opts.form = data;
         }
     }
 
-    var req = request(requestOpts, function(err, response, body) {
+    var req = request(opts, function(err, response, body) {
         if (err) {
             emitter.emit('error', err);
             return callback({'code': 500, 'msg': util.format('Something went wrong trying to contact the server:\n%s\n%s', err.message, err.stack)});
@@ -207,23 +246,16 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
         // We append our data in a multi-part way.
         // That way we can support buffer/streams as well.
         var form = req.form();
-        for (var j = 0; j < keys.length; j++) {
-            var value = data[keys[j]];
-
-            // We can't append null values.
-            if (value) {
-                // If we're sending parts which have the same name
-                // we have to unroll them before appending them to the form.
-                if (Array.isArray(value)) {
-                    for (var v = 0; v < value.length; v++) {
-                        form.append(keys[j], value[v]);
-                    }
-
-                // All other value types (string, stream, ..)
-                } else {
-                    form.append(keys[j], data[keys[j]]);
-                }
+        _.each(data, function(value, key) {
+            // If we're sending parts which have the same name, we have to unroll them
+            // before appending them to the form
+            if (_.isArray(value)) {
+                _.each(value, function(innerValue) {
+                    form.append(key, innerValue);
+                });
+            } else {
+                form.append(key, value);
             }
-        }
+        });
     }
 };

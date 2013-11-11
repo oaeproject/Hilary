@@ -111,24 +111,9 @@ sudo apt-get update
 sudo apt-get install pdf2htmlEX
 ```
 
-On OS X the latest Homebrew version is unfortunately outdated so you will have to install the dependencies and then manually build pdf2htmlEX.
-This can be done with:
+On OS X Homebrew is sufficient:
 ```
-brew install cmake
-brew install pkg-config
-brew install fontforge
-brew install poppler
-brew install ttfautohint
-git clone git://github.com/coolwanglu/pdf2htmlEX
-cd pdf2htmlEX
-cmake .
-make && sudo make install
-```
-In case you get an error along the lines of `Cannot find _my_iconv_setup` try the following:
-```
-brew install libiconv
-brew link libiconv
-make && sudo make install
+brew install pdf2htmlex
 ```
 
 ##### LibreOffice (only if preview processor is desired)
@@ -169,7 +154,7 @@ You can copy or symlink the `static/css/pad.css` in the `ep_oae` module to `your
 ```
 cd your-etherpad-dir
 rm src/static/custom/pad.css
-ln -s src/static/css/pad.css src/static/custom/pad.css
+ln -s ../../../node_modules/ep_oae/static/css/pad.css src/static/custom/pad.css
 ```
 
 Next, we need to enable websockets as a way of communicating between Etherpad and Hilary. In order to do this, open the settings.json file in your favourite editor and change

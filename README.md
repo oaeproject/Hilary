@@ -261,7 +261,7 @@ Where "admin.oae.com" is the hostname that we will use to access the global admi
 Open the `config.js` file in the root of the Hilary directory. This file contains a JavaScript object that represents the configuration for your server.
 
 * Configure the `config.files.uploadDir` property to point to a directory that exists. The reference to this directory should not have a trailing slash. This directory is used to store files such as profile pictures, content bodies, previews, etc...
-* Ensure that the property `config.server.globalAdminHost` is configured to the same host name you set for your global admin host in /etc/hosts
+* Ensure that the property `config.servers.globalAdminHost` is configured to the same host name you set for your global admin host in /etc/hosts
 * Configure the `config.etherpad.apikey` property to the API Key that can be found in `your-etherpad-dir/APIKEY.txt`
 
 **If you want preview processing enabled, configure the following:**

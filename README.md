@@ -19,10 +19,6 @@ Download and install the latest version of [Node.js](http://nodejs.org/). Hilary
 
 The Hilary back-end is written completely in JavaScript, powered by Node.js.
 
-> Note: To run OAE in an OS X Mavericks development environment (not recommended for production), Node.js and
-most of the dependencies may be installed using the [Homebrew](http://brew.sh) package manager. Before 
-installing Homebrew, you must install Apple's XCode Development application (available for free in [Mac App Store](https://itunes.apple.com/us/app/xcode/id497799835)) and the XCode command line tools (requires a free Apple Developer account). After installing Homebrew using the instructions on its web site site, `brew install node` will install Node.js.
-
 #### Apache Cassandra
 
 Download the latest version of [Apache Cassandra](http://cassandra.apache.org/) 1.2 and extract it to a directory of your choice.
@@ -51,8 +47,6 @@ To start it in the background, you can omit the `-f` parameter.
 
 All Hilary data is stored in Apache Cassandra. Therefore it is *not necessary* to install any RDBMS such as MySQL or PostgreSQL.
 
-> Note: To install Cassandra in an OS X Mavericks environment, you must first install the Java Development Kit from [Oracle](http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html). Also, be sure to install Cassandra version 1.2 and not the latest version 2.0. (At this time, that version is available in a pull request and can be installed with `brew install http://raw.github.com/jaknowlden/homebrew-versions/master/cassandra12.rb`.)
-
 #### Redis
 
 Download and install (or compile) the latest version of Redis, please follow the installation instructions on the [Redis download page](http://redis.io/download). Once installed, you can start it by running the following:
@@ -65,8 +59,6 @@ src/redis-server
 To start it in the background, you can update the `redis.conf` to set the property `daemonize yes`.
 
 Redis is used for caching frequently accessed data and for broadcasting messages (PubSub) across the application cluster.
-
-> Note: For OS X Mavericks, `brew install redis` will install Redis and its dependencies.
 
 #### ElasticSearch
 
@@ -81,8 +73,6 @@ To start it in the background, you can omit the `-f` parameter.
 
 ElasticSearch powers the full-text search functionality of OAE.
 
-> Note: For OS X Mavericks, `brew install elasticsearch` will install ElasticSearch and its dependencies.
-
 #### RabbitMQ
 
 To install RabbitMQ, please follow the instructions on the [RabbitMQ download page](http://www.rabbitmq.com/download.html). Once completed, you should be able to start RabbitMQ by running the following:
@@ -95,16 +85,12 @@ To start it in the background, you can run: `rabbitmq-server -detached`
 
 RabbitMQ powers the asynchronous task-queue function in Hilary. It allows heavier "background" tasks such as activity processing, search indexing and preview processing to be off-loaded to specialized clusters of servers. Though, in a development environment you don't need to worry about specialized clusters, your development machine will do just fine out-of-the-box.
 
-> Note: For OS X Mavericks, `brew install rabbitmq` will install the RabbitMQ and dependencies. However, unlike standard Homebrew applications, the binaries are installed in `/usr/local/sbin` instead of `/usr/local/bin`. To start and control RabbitMQ, you'll need to add `/usr/local/sbin` to your path.
-
 #### GraphicsMagick
 
 GraphicsMagick installation instructions can be found on their [README page](http://www.graphicsmagick.org/README.html), however for *nix OS' it is typically available in the package manager of your choice (e.g., `brew install graphicsmagick`).
 When installing GraphicsMagick manually, make sure you have at least [libpng](http://www.libpng.org/pub/png/libpng.html), [libjpeg](http://libjpeg.sourceforge.net) and [Ghostscript](http://www.ghostscript.com) installed.
 
 GraphicsMagick provides the ability to crop and resize profile pictures, and is required to run Hilary.
-
-> Note: For OS X Mavericks, `brew install graphicsmagick` will install GraphicsMagick and its dependencies.
 
 #### Preview Processor (optional)
 
@@ -113,8 +99,6 @@ The preview processor is not a requirement to run Hilary, but it certainly makes
 ##### PDFTK Server (only if preview processor is desired)
 
 Download and install [PDFTK Server](http://www.pdflabs.com/tools/pdftk-server/). This dependency takes care of splitting PDF files into individual pages.
-
-> Note: PDFTK server cannot (currently) be installed using Homebrew. For OS X, the installer available at the above web page will install the application and its dependencies.
 
 ##### pdf2htmlEX (only if preview processor is desired)
 
@@ -127,13 +111,9 @@ sudo apt-get update
 sudo apt-get install pdf2htmlEX
 ```
 
-> Note: For OS X Mavericks, `brew install pdf2htmlex` will install pdf2htmlEX and its dependencies.
-
 ##### LibreOffice (only if preview processor is desired)
 
 Download and install [LibreOffice](http://www.libreoffice.org/download/). This dependency takes care of converting Microsoft Office files to PDFs so they may be further split into previews by PDFTK.
-
-> Note: LibreOffice cannot (currently) be installed using Homebrew. For OS X Mavericks, the installer available at the above web page will install the application and its dependencies. When configuring Hilary as instructed below, the path to the `soffice` binary will be `/Applications/LibreOffice.app/Contents/MacOS/soffice` (without the `.bin` suffix).
 
 #### Nginx (version 1.4.1 or higher)
 
@@ -149,8 +129,6 @@ sudo make install
 ```
 
 Nginx is the most tested load balancer and web server used for OAE. A web server such as Nginx is necessary for file downloads to work properly.
-
-> Note: For OS X Mavericks, `brew install nginx` will install Nginx and its dependencies.
 
 #### Etherpad lite
 
@@ -216,9 +194,6 @@ bin/run.sh
 ```
 
 To run it in the background, simply fork the process: `bin/run.sh &`
-
-> Note: Etherpad Lite cannot (currently) be installed using Homebrew. For OS X Mavericks, the instructions listed above will install the application and its dependencies. A convenient folder for the application is `/usr/local/share/etherpad`.
-
 
 #### Windows Dependencies
 

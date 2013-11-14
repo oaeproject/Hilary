@@ -96,9 +96,9 @@ GraphicsMagick provides the ability to crop and resize profile pictures, and is 
 
 The preview processor is not a requirement to run Hilary, but it certainly makes things look wonderful. It takes care of producing previews of content items for the UI (e.g., splitting PDFs into pages, cropping / resizing uploaded images). There are a few dependencies needed only if you are planning to run the preview processor:
 
-##### PDFTK (only if preview processor is desired)
+##### PDFTK Server (only if preview processor is desired)
 
-Download and install [PDFTK](http://www.pdflabs.com/tools/pdftk-the-pdf-toolkit/). This dependency takes care of splitting PDF files into individual pages.
+Download and install [PDFTK Server](http://www.pdflabs.com/tools/pdftk-server/). This dependency takes care of splitting PDF files into individual pages.
 
 ##### pdf2htmlEX (only if preview processor is desired)
 
@@ -109,26 +109,6 @@ On Ubuntu this can be installed by running:
 sudo add-apt-repository ppa:coolwanglu/pdf2htmlex
 sudo apt-get update
 sudo apt-get install pdf2htmlEX
-```
-
-On OS X the latest Homebrew version is unfortunately outdated so you will have to install the dependencies and then manually build pdf2htmlEX.
-This can be done with:
-```
-brew install cmake
-brew install pkg-config
-brew install fontforge
-brew install poppler
-brew install ttfautohint
-git clone git://github.com/coolwanglu/pdf2htmlEX
-cd pdf2htmlEX
-cmake .
-make && sudo make install
-```
-In case you get an error along the lines of `Cannot find _my_iconv_setup` try the following:
-```
-brew install libiconv
-brew link libiconv
-make && sudo make install
 ```
 
 ##### LibreOffice (only if preview processor is desired)
@@ -169,7 +149,7 @@ You can copy or symlink the `static/css/pad.css` in the `ep_oae` module to `your
 ```
 cd your-etherpad-dir
 rm src/static/custom/pad.css
-ln -s src/static/css/pad.css src/static/custom/pad.css
+ln -s ../../../node_modules/ep_oae/static/css/pad.css src/static/custom/pad.css
 ```
 
 Next, we need to enable websockets as a way of communicating between Etherpad and Hilary. In order to do this, open the settings.json file in your favourite editor and change
@@ -276,7 +256,7 @@ Where "admin.oae.com" is the hostname that we will use to access the global admi
 Open the `config.js` file in the root of the Hilary directory. This file contains a JavaScript object that represents the configuration for your server.
 
 * Configure the `config.files.uploadDir` property to point to a directory that exists. The reference to this directory should not have a trailing slash. This directory is used to store files such as profile pictures, content bodies, previews, etc...
-* Ensure that the property `config.server.globalAdminHost` is configured to the same host name you set for your global admin host in /etc/hosts
+* Ensure that the property `config.servers.globalAdminHost` is configured to the same host name you set for your global admin host in /etc/hosts
 * Configure the `config.etherpad.apikey` property to the API Key that can be found in `your-etherpad-dir/APIKEY.txt`
 
 **If you want preview processing enabled, configure the following:**

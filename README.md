@@ -102,8 +102,8 @@ Download and install [PDFTK Server](http://www.pdflabs.com/tools/pdftk-server/).
 
 ##### pdf2htmlEX (only if preview processor is desired)
 
-Download and install [pdf2htmlEX](https://github.com/coolwanglu/pdf2htmlEX). This dependency takes care of converting a pdf file to a set of HTML files.
-You will need at least version 0.9 .
+Download and install [pdf2htmlEX](https://github.com/coolwanglu/pdf2htmlEX) **0.11 or later**. This dependency takes care of converting a pdf file to a set of HTML files.
+
 On Ubuntu this can be installed by running:
 ```
 sudo add-apt-repository ppa:coolwanglu/pdf2htmlex
@@ -115,7 +115,7 @@ sudo apt-get install pdf2htmlEX
 
 Download and install [LibreOffice](http://www.libreoffice.org/download/). This dependency takes care of converting Microsoft Office files to PDFs so they may be further split into previews by PDFTK.
 
-#### Nginx (version 1.4.1 or higher)
+#### Nginx
 
 Download [Nginx **version 1.4.2 or higher**](http://nginx.org/en/download.html). You will also need to download and extract [PCRE](http://www.pcre.org/), which will be used to configure Nginx.
 

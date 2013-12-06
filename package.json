@@ -22,7 +22,7 @@
   ],
   "dependencies": {
     "amqp": "latest",
-    "awssum": "latest",
+    "awssum-amazon-s3": "latest",
     "bunyan": "latest",
     "cas-sfu": "git://github.com/nicolaasmatthijs/node-cas-sfu.git",
     "clone": "latest",

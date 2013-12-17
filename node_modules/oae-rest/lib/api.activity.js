@@ -20,7 +20,7 @@ var RestUtil = require('./util');
  *
  * @param  {RestContext}    restCtx                 Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {Object}         [opts]                  Optional parameters for the request
- * @param  {Number}         [opts.from]             The time since the epoch in millis from which to get activities. All activities returned will have occurred before this time
+ * @param  {Number}         [opts.start]            The activity ID to start from, this activity will not be included in the response
  * @param  {Number}         [opts.limit]            The maximum number of activities to return
  * @param  {Function}       callback                Standard callback method
  * @param  {Object}         callback.err            Error object containing error code and error message
@@ -36,7 +36,7 @@ var getCurrentUserActivityStream = module.exports.getCurrentUserActivityStream =
  * @param  {RestContext}    restCtx                 Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {String}         activityStreamId        The ID of the activity stream to fetch
  * @param  {Object}         [opts]                  Optional parameters for the request
- * @param  {Number}         [opts.from]             The time since the epoch in millis from which to get activities. All activities returned will have occurred before this time
+ * @param  {Number}         [opts.start]            The activity ID to start from, this activity will not be included in the response
  * @param  {Number}         [opts.limit]            The maximum number of activities to return
  * @param  {Function}       callback                Standard callback method
  * @param  {Object}         callback.err            Error object containing error code and error message
@@ -51,7 +51,7 @@ var getActivityStream = module.exports.getActivityStream = function(restCtx, act
  *
  * @param  {RestContext}    restCtx                     Standard REST Context object that contains the current tenant URL and the current user credentials
  * @param  {Object}         [opts]                      Optional parameters for the request
- * @param  {Number}         [opts.from]                 The time since the epoch in millis from which to get notifications. All notifications returned will have occurred before this time
+ * @param  {Number}         [opts.start]                The notification ID to start from, this notification will not be included in the response
  * @param  {Number}         [opts.limit]                The maximum number of notifications to return
  * @param  {Function}       callback                    Standard callback method
  * @param  {Object}         callback.err                Error object containing error code and error message

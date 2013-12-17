@@ -1,7 +1,7 @@
 {
   "name": "Hilary",
   "description": "Open Academic Environment (OAE) Back-end",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "homepage": "http://www.oaeproject.org",
   "author": {
     "name": "The Apereo Foundation",
@@ -22,7 +22,7 @@
   ],
   "dependencies": {
     "amqp": "latest",
-    "awssum": "latest",
+    "awssum-amazon-s3": "latest",
     "bunyan": "latest",
     "cas-sfu": "git://github.com/nicolaasmatthijs/node-cas-sfu.git",
     "clone": "latest",

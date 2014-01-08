@@ -16,7 +16,15 @@
 var OAE = require('oae-util/lib/oae');
 var log = require('oae-logger').logger();
 
-var config = require('./config').config;
+var argv = require('optimist').argv;
+
+// Qualify path for require
+if (argv.config && !argv.config.match(/^\.?\//)) {
+    argv.config = './' + argv.config;
+}
+
+var configPath = argv.config || './config';
+var config = require(configPath).config;
 
 // Start the server and all of its tenants
 OAE.init(config, function(err) {

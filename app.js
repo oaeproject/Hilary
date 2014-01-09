@@ -15,12 +15,12 @@
  */
 
 var optimist = require('optimist')
-    .usage('$0: Start the Hilary server')
+    .usage('$0 [--config <path/to/config.js>]')
     .alias('c', 'config')
     .alias('h', 'help')
     .describe('c', 'Specify an alternate config file')
     .describe('h', 'Show usage information')
-    .default('config', './config.js');
+    .default('c', __dirname + '/config.js');
 var argv = optimist.argv;
 
 var OAE = require('oae-util/lib/oae');
@@ -32,8 +32,10 @@ if (argv.help) {
 }
 
 // Qualify path for require
-if (argv.config && !argv.config.match(/^\.?\//)) {
-    argv.config = './' + argv.config;
+if (!argv.config.match(/^\.?\//)) {
+    argv.config = process.cwd() + '/' + argv.config;
+} else if (argv.config.match(/^\.\//)) {
+    argv.config = process.cwd() + argv.config.substring(1);
 }
 
 var config = require(argv.config).config;

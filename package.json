@@ -88,7 +88,7 @@
     "temp": "latest",
     "timezone-js": "latest",
     "underscore": "latest",
-    "validator": "latest",
+    "validator": "2.0.0",
     "watch": "latest",
     "webshot": "latest",
     "xml2js": "latest",

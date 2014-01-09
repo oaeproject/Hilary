@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /*
  * Copyright 2014 Apereo Foundation (AF) Licensed under the
  * Educational Community License, Version 2.0 (the "License"); you may
@@ -13,10 +14,31 @@
  * permissions and limitations under the License.
  */
 
+var optimist = require('optimist')
+    .usage('$0 [--config <path/to/config.js>]')
+    .alias('c', 'config')
+    .alias('h', 'help')
+    .describe('c', 'Specify an alternate config file')
+    .describe('h', 'Show usage information')
+    .default('c', __dirname + '/config.js');
+var argv = optimist.argv;
+
 var OAE = require('oae-util/lib/oae');
 var log = require('oae-logger').logger();
 
-var config = require('./config').config;
+if (argv.help) {
+    optimist.showHelp();
+    process.exit(0);
+}
+
+// Qualify path for require
+if (!argv.config.match(/^\.?\//)) {
+    argv.config = process.cwd() + '/' + argv.config;
+} else if (argv.config.match(/^\.\//)) {
+    argv.config = process.cwd() + argv.config.substring(1);
+}
+
+var config = require(argv.config).config;
 
 // Start the server and all of its tenants
 OAE.init(config, function(err) {

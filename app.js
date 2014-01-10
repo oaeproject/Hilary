@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 /*
  * Copyright 2014 Apereo Foundation (AF) Licensed under the
  * Educational Community License, Version 2.0 (the "License"); you may
@@ -14,28 +15,32 @@
  * permissions and limitations under the License.
  */
 
-var optimist = require('optimist')
-    .usage('$0 [--config <path/to/config.js>]')
+var optimist = require('optimist');
+var argv = optimist.usage('$0 [--config <path/to/config.js>]')
     .alias('c', 'config')
-    .alias('h', 'help')
     .describe('c', 'Specify an alternate config file')
+    .default('c', __dirname + '/config.js')
+
+    .alias('h', 'help')
     .describe('h', 'Show usage information')
-    .default('c', __dirname + '/config.js');
-var argv = optimist.argv;
+    .argv;
 
 var OAE = require('oae-util/lib/oae');
 var log = require('oae-logger').logger();
 
 if (argv.help) {
     optimist.showHelp();
-    process.exit(0);
+    return;
 }
 
-// Qualify path for require
-if (!argv.config.match(/^\.?\//)) {
-    argv.config = process.cwd() + '/' + argv.config;
-} else if (argv.config.match(/^\.\//)) {
+// If a relative path that starts with `./` has been provided,
+// we turn it into an absolute path based on the current working directory
+if (argv.config.match(/^\.\//)) {
     argv.config = process.cwd() + argv.config.substring(1);
+// If a different non-absolute path has been provided, we turn
+// it into an absolute path based on the current working directory
+} else if (!argv.config.match(/^\//)) {
+    argv.config = process.cwd() + '/' + argv.config;
 }
 
 var config = require(argv.config).config;

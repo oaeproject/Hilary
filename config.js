@@ -383,3 +383,21 @@ config.etherpad = {
 config.tincanapi = {
     'timeout': 4000
 };
+
+/**
+ * `config.symplectic`
+ *
+ * Configuration namespace for the symplectic integration.
+ *
+ * @param  {Boolean}    enabled                 Whether or not this app node will by performing symplectic updates
+ * @param  {Object}     intervals               Holds the interval lengths for when a full synchronization or an update will be performed
+ * @param  {Number}     intervals.incremental   The interval (in hours) between incremental updates
+ * @param  {Number}     intervals.full          The interval (in the incremental updates interval length) between full synchronizations. For example, with `incremental` set to 24 and `full` set to 7 the node will pull down incremental updates each day and do a full update on the seventh day
+ */
+config.symplectic = {
+    'enabled': true,
+    'intervals': {
+        'incremental': 24,
+        'full': 7
+    }
+};

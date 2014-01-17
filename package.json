@@ -96,13 +96,14 @@
     "youtube-feeds": "latest"
   },
   "devDependencies": {
+    "coveralls": "latest",
     "grunt": "latest",
     "grunt-cli": "latest",
     "grunt-contrib-clean": "latest",
-    "grunt-contrib-copy": "latest",
     "grunt-contrib-jshint": "latest",
     "grunt-mocha-hack": "latest",
     "grunt-text-replace": "latest",
+    "istanbul": "latest",
     "mocha": "latest",
     "oae-release-tools": "git://github.com/oaeproject/oae-release-tools",
     "optimist": "latest",

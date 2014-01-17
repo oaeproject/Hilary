@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Apereo Foundation (AF) Licensed under the
+ * Copyright 2014 Apereo Foundation (AF) Licensed under the
  * Educational Community License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License. You may
  * obtain a copy of the License at
@@ -17,6 +17,7 @@ module.exports = function(grunt) {
     var _ = require('underscore');
     var path = require('path');
     var shell = require('shelljs');
+    var util = require('util');
     var mocha_grep = process.env['MOCHA_GREP'] || undefined;
 
     // Timeout used to determine when a test has failed
@@ -70,13 +71,6 @@ module.exports = function(grunt) {
             }
         },
         'clean': ['target/'],
-        'copy': {
-            'coverage': {
-                'files': {
-                    'target/': '**'
-                }
-            }
-        },
         'replace': {
             'check-style': {
                 'src': ['node_modules/oae-*/**/*.js'],
@@ -140,6 +134,9 @@ module.exports = function(grunt) {
         }
     });
 
+    // Override default test task to use mocha-hack
+    grunt.registerTask('test', ['mocha-hack']);
+
     // Make a task for running tests on a single module
     grunt.registerTask('test-module', 'Test a single module', function(module) {
         var config = {
@@ -155,24 +152,48 @@ module.exports = function(grunt) {
         grunt.task.run('mocha-hack:' + module);
     });
 
-    // Make a task for running jscoverage
-    grunt.registerTask('jscoverage', 'Run jscoverage on the `target` dir', function() {
-        grunt.task.requires('copy:coverage');
-        shell.exec('node node_modules/oae-tests/runner/instrument_code.js "' + __dirname + '"');
-        grunt.log.writeln('Code instrumented'.green);
+    // Runs the unit tests and dumps some coverage data
+    grunt.registerTask('test-instrumented', function(report) {
+        // If no report format was provided, we default to `lcov` which generates lcov and html
+        report = report || 'lcov';
+
+        // Get the modules that should be excluded
+        var nonOaeModules = grunt.file.expand({'filter': 'isDirectory'}, 'node_modules/*', '!node_modules/oae-*');
+        var nonOaeModulesParameters = _.map(nonOaeModules, function(module) {
+            return util.format('-x %s/\\*\\*', module);
+        });
+
+        // Exclude the tests from the coverage reports
+        var oaeModules = grunt.file.expand({'filter': 'isDirectory'}, 'node_modules/oae-*');
+        var testDirectories = _.map(oaeModules, function(directory) {
+            return util.format('-x %s/tests/\\*\\*', directory);
+        });
+
+        // Exclude the config directories
+        var configDirectories = _.map(oaeModules, function(module) {
+            return util.format('-x %s/config/\\*\\*', module);
+        });
+
+        // Build up one big set of exlusion filters
+        var excludeFilters = _.union(nonOaeModulesParameters, testDirectories, configDirectories);
+        excludeFilters.push('-x Gruntfile.js');
+
+        var cmd = util.format('node_modules/.bin/istanbul cover --verbose --dir target --no-default-excludes %s --report %s ./node_modules/grunt-cli/bin/grunt', excludeFilters.join(' '), report);
+        shell.exec(cmd);
     });
 
-    grunt.registerTask('test-instrumented', 'Runs mocha tests on the instrumented code', function() {
-        // Mocha can't write to a file and mocha-hack doesn't add that functionality, so we'll just shell.exec it here since we need the output :P
-        shell.cd('target');
-        // Set a covering environment variable, as this will be used to determine where the UI resides relative to the Hilary folder.
-        shell.env['OAE_COVERING'] = true;
-        var MODULES = grunt.file.expand({'filter': 'isDirectory'},'node_modules/oae-*/tests').join(' ');
-        var output = shell.exec('../node_modules/.bin/mocha --ignore-leaks --timeout ' + MOCHA_TIMEOUT + ' --reporter html-cov node_modules/oae-tests/runner/beforeTests.js ' + MODULES, {silent:true}).output;
-        output.to('coverage.html');
-        grunt.log.writeln('Code Coverage report generated at target/coverage.html'.cyan);
-
+    // Sends a coverage report to coveralls.io
+    grunt.registerTask('coveralls', function() {
+        // This assumes we're executing within the context of Travis CI
+        // If not, you'll have to add a .converalls.yml file with `repo_token: ...` in it
+        shell.exec('cat ./target/lcov.info | ./node_modules/coveralls/bin/coveralls.js');
     });
+
+    // Run test coverage and open the report
+    grunt.registerTask('test-coverage', ['clean', 'test-instrumented', 'showFile:target/lcov-report/index.html']);
+
+    // Run test coverage
+    grunt.registerTask('test-coverage-coveralls', ['clean', 'test-instrumented:lcovonly', 'coveralls']);
 
     // Make a task to open the browser
     grunt.registerTask('showFile', 'Open a file with the OS default viewer', function(file) {
@@ -196,13 +217,7 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-mocha-hack');
     grunt.loadNpmTasks('grunt-contrib-jshint');
     grunt.loadNpmTasks('grunt-contrib-clean');
-    grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-text-replace');
-
-    // Override default test task to use mocha-hack
-    grunt.registerTask('test', ['mocha-hack']);
-    // Run test coverage and open the report
-    grunt.registerTask('test-coverage', ['clean', 'copy:coverage', 'jscoverage', 'test-instrumented', 'showFile:coverage.html']);
 
     // Copies the files that need to go in the release.
     // We remove the test files and the Grunt file as it could be potentially

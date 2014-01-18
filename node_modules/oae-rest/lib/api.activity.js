@@ -22,7 +22,7 @@ var RestUtil = require('./util');
  * @param  {Object}         [opts]                  Optional parameters for the request
  * @param  {Number}         [opts.start]            The activity ID to start from, this activity will not be included in the response
  * @param  {Number}         [opts.limit]            The maximum number of activities to return
- * @param  {String}         [opts.transformer]      The transformer that should be used to format the activities
+ * @param  {String}         [opts.format]           The format that should be used to format the activities
  * @param  {Function}       callback                Standard callback method
  * @param  {Object}         callback.err            Error object containing error code and error message
  * @param  {ActivityStream} callback.activityStream The stream of activities
@@ -39,7 +39,7 @@ var getCurrentUserActivityStream = module.exports.getCurrentUserActivityStream =
  * @param  {Object}         [opts]                  Optional parameters for the request
  * @param  {Number}         [opts.start]            The activity ID to start from, this activity will not be included in the response
  * @param  {Number}         [opts.limit]            The maximum number of activities to return
- * @param  {String}         [opts.transformer]      The transformer that should be used to format the activities
+ * @param  {String}         [opts.format]           The format that should be used to format the activities
  * @param  {Function}       callback                Standard callback method
  * @param  {Object}         callback.err            Error object containing error code and error message
  * @param  {ActivityStream} callback.activityStream The stream of activities
@@ -55,7 +55,7 @@ var getActivityStream = module.exports.getActivityStream = function(restCtx, act
  * @param  {Object}         [opts]                      Optional parameters for the request
  * @param  {Number}         [opts.start]                The notification ID to start from, this notification will not be included in the response
  * @param  {Number}         [opts.limit]                The maximum number of notifications to return
- * @param  {String}         [opts.transformer]          The transformer that should be used to format the activities
+ * @param  {String}         [opts.format]               The format that should be used to format the activities
  * @param  {Function}       callback                    Standard callback method
  * @param  {Object}         callback.err                Error object containing error code and error message
  * @param  {ActivityStream} callback.notificationStream The stream of notifications

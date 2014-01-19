@@ -20,6 +20,92 @@ var RestUtil = require('./util');
 // of a tenant.
 var WAIT_TIME = 100;
 
+
+/////////////////////
+// TENANT NETWORKS //
+/////////////////////
+
+/**
+ * Create a tenant network.
+ *
+ * @param  {RestContext}    restCtx                 Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global admin rest context will need to passed in.
+ * @param  {String}         displayName             The display name of the tenant network
+ * @param  {Function}       callback                Standard callback function
+ * @param  {Object}         callback.err            An error that occurred, if any
+ * @param  {TenantNetwork}  callback.tenantNetwork  The tenant network that was created
+ */
+var createTenantNetwork = module.exports.createTenantNetwork = function(restCtx, displayName, callback) {
+    RestUtil.RestRequest(restCtx, '/api/tenantNetwork/create', 'POST', {'displayName': displayName}, callback);
+};
+
+/**
+ * Fetch all tenant networks and their associated tenants.
+ *
+ * @param  {RestContext}    restCtx                     Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global admin rest context will need to passed in.
+ * @param  {Function}       callback                    Standard callback function
+ * @param  {Object}         callback.err                An error that occurred, if any
+ * @param  {Object}         callback.tenantNetworks     All tenant networks in the system, keyed by their tenant network id
+ */
+var getTenantNetworks = module.exports.getTenantNetworks = function(restCtx, callback) {
+    RestUtil.RestRequest(restCtx, '/api/tenantNetworks', 'GET', null, callback);
+};
+
+/**
+ * Update a tenant network.
+ *
+ * @param  {RestContext}    restCtx                 Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global admin rest context will need to passed in.
+ * @param  {String}         id                      The id of the tenant network being updated
+ * @param  {String}         displayName             The updated display name of the tenant network
+ * @param  {Function}       callback                Standard callback function
+ * @param  {Object}         callback.err            An error that occurred, if any
+ * @param  {TenantNetwork}  callback.tenantNetwork  The new tenant network, after update
+ */
+var updateTenantNetwork = module.exports.updateTenantNetwork = function(restCtx, id, displayName, callback) {
+    RestUtil.RestRequest(restCtx, '/api/tenantNetwork/' + RestUtil.encodeURIComponent(id), 'POST', {'displayName': displayName}, callback);
+};
+
+/**
+ * Delete a tenant network.
+ *
+ * @param  {RestContext}    restCtx         Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global admin rest context will need to passed in.
+ * @param  {String}         id              The id of the tenant network to delete
+ * @param  {Function}       callback        Standard callback function
+ * @param  {Object}         callback.err    An error that occurred, if any
+ */
+var deleteTenantNetwork = module.exports.deleteTenantNetwork = function(restCtx, id, callback) {
+    RestUtil.RestRequest(restCtx, '/api/tenantNetwork/' + RestUtil.encodeURIComponent(id), 'DELETE', null, callback);
+};
+
+/**
+ * Add the provided tenant aliases to the specified tenant network.
+ *
+ * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global admin rest context will need to passed in.
+ * @param  {String}         tenantNetworkId     The id of the tenant network to which to add the provided tenant aliases
+ * @param  {String[]}       tenantAlises        The tenant aliases to add to the tenant network
+ * @param  {Function}       callback            Standard callback function
+ * @param  {Object}         callback.err        An error that occurred, if any
+ */
+var addTenantAliases = module.exports.addTenantAliases = function(restCtx, tenantNetworkId, tenantAliases, callback) {
+    RestUtil.RestRequest(restCtx, '/api/tenantNetwork/' + RestUtil.encodeURIComponent(tenantNetworkId) + '/addTenants', 'POST', {'alias': tenantAliases}, callback);
+};
+
+/**
+ * Remove the provided tenant aliases from the specified tenant network.
+ *
+ * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. In order for this to work, a global admin rest context will need to passed in.
+ * @param  {String}         tenantNetworkId     The id of the tenant network from which to remove the provided tenant aliases
+ * @param  {String[]}       tenantAlises        The tenant aliases to remove from the tenant network
+ * @param  {Function}       callback            Standard callback function
+ * @param  {Object}         callback.err        An error that occurred, if any
+ */
+var removeTenantAliases = module.exports.removeTenantAliases = function(restCtx, tenantNetworkId, tenantAliases, callback) {
+    RestUtil.RestRequest(restCtx, '/api/tenantNetwork/' + RestUtil.encodeURIComponent(tenantNetworkId) + '/removeTenants', 'POST', {'alias': tenantAliases}, callback);
+};
+
+/////////////
+// TENANTS //
+/////////////
+
 /**
  * Retrieve all available tenants through the REST API.
  *

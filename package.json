@@ -85,6 +85,7 @@
     "shelljs": "latest",
     "shortid": "latest",
     "slideshare": "git://github.com/oaeproject/node-slideshare",
+    "sockjs": "latest",
     "temp": "latest",
     "timezone-js": "latest",
     "underscore": "latest",
@@ -105,7 +106,8 @@
     "istanbul": "latest",
     "mocha": "latest",
     "oae-release-tools": "git://github.com/oaeproject/oae-release-tools",
-    "optimist": "latest"
+    "optimist": "latest",
+    "sockjs-client-ws": "latest"
   },
   "optionalDependencies": {
     "bunyan-syslog": "latest",

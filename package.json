@@ -68,6 +68,7 @@
     "oae-tincanapi": "",
     "oae-ui": "",
     "oae-util": "",
+    "optimist": "latest",
     "passport": "latest",
     "passport-facebook": "latest",
     "passport-google-oauth": "latest",
@@ -106,7 +107,6 @@
     "istanbul": "latest",
     "mocha": "latest",
     "oae-release-tools": "git://github.com/oaeproject/oae-release-tools",
-    "optimist": "latest",
     "sockjs-client-ws": "latest"
   },
   "optionalDependencies": {

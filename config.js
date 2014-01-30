@@ -317,6 +317,7 @@ config.activity = {
  *
  * @param  {Boolean}    [debug]                     Determines whether or not email is in debug mode. If in debug mode, email messages are logged, not actually sent through any service.
  * @param  {String}     transport                   Which method of e-mail transport should be used. Either `SMTP` or `sendmail`.
+ * @param  {String}     deduplicationInterval       Specifies the interval in which the same email can't be sent out again
  * @param  {String}     [customEmailTemplatesDir]   Specifies a directory that holds the tenant-specific email template overrides
  * @param  {Object}     [sendmailTransport]         The sendmail information for sending emails.
  * @param  {String}     [sendmailTransport.path]    The path that points to the sendmail binary.
@@ -325,6 +326,7 @@ config.activity = {
 config.email = {
     'debug': true,
     'customEmailTemplatesDir': null,
+    'deduplicationInterval': 7 * 24 * 60 * 60,   //  7 days
     'transport': 'SMTP',
     'sendmailTransport': {
         'path': '/usr/sbin/sendmail'

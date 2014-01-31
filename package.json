@@ -21,7 +21,7 @@
     }
   ],
   "dependencies": {
-    "amqp": "git+https://github.com/oaeproject/node-amqp#0.1.8.x",
+    "amqp": "git://github.com/oaeproject/node-amqp#0.1.8.x",
     "awssum-amazon-s3": "latest",
     "bunyan": "latest",
     "cas-sfu": "git://github.com/nicolaasmatthijs/node-cas-sfu.git",

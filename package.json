@@ -82,6 +82,7 @@
     "readdirp": "latest",
     "recaptcha": "latest",
     "redis": "latest",
+    "redis-throttle": "latest",
     "request": "latest",
     "shelljs": "latest",
     "shortid": "latest",

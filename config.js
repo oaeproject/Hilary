@@ -319,8 +319,8 @@ config.activity = {
  * @param  {String}     transport                   Which method of e-mail transport should be used. Either `SMTP` or `sendmail`.
  * @param  {String}     deduplicationInterval       Specifies the interval in seconds in which the same email can't be sent out again
  * @param  {Object}     throttling                  The throttling configuration
- * @param  {Number}     throttling.count            Specifies the number of emails a user can receive in `throttling.timespan` milliseconds before throttling takes effect
- * @param  {Number}     throttling.timespan         Specifies the throttling timespan in milliseconds
+ * @param  {Number}     throttling.count            Specifies the number of emails a user can receive in `throttling.timespan` seconds before throttling takes effect
+ * @param  {Number}     throttling.timespan         Specifies the throttling timespan in seconds
  * @param  {String}     [customEmailTemplatesDir]   Specifies a directory that holds the tenant-specific email template overrides
  * @param  {Object}     [sendmailTransport]         The sendmail information for sending emails.
  * @param  {String}     [sendmailTransport.path]    The path that points to the sendmail binary.
@@ -332,7 +332,7 @@ config.email = {
     'deduplicationInterval': 7 * 24 * 60 * 60,   //  7 days
     'throttling': {
         'count': 10,
-        'timespan': 2 * 60 * 1000                //  2 minutes
+        'timespan': 2 * 60                       //  2 minutes
     },
     'transport': 'SMTP',
     'sendmailTransport': {

@@ -100,13 +100,15 @@ var loginOnTenant = module.exports.loginOnTenant = function(globalRestCtx, tenan
  * @param  {String}         [tenantAlias]           The alias of the tenant on which the users should be loaded
  * @param  {Function}       csvGenerator            A function that returns a stream which points to a CSV file body
  * @param  {String}         authenticationStrategy  The authentication strategy with which the provided external ids should be associated
+ * @param  {Boolean}        [forceProfileUpdate]    Whether or not the user's display name should be updated with the value specified in the CSV file, even when the display name is different than the external id. By default, this will be set to `false`
  * @param  {Function}       callback                Standard callback method takes arguments `err`
  * @param  {Object}         callback.err            Error object containing error code and error message
  */
-var importUsers = module.exports.importUsers = function(restCtx, tenantAlias, csvGenerator, authenticationStrategy, callback) {
+var importUsers = module.exports.importUsers = function(restCtx, tenantAlias, csvGenerator, authenticationStrategy, forceProfileUpdate, callback) {
     var params = {
         'tenantAlias': tenantAlias,
         'authenticationStrategy': authenticationStrategy,
+        'forceProfileUpdate': forceProfileUpdate,
         'file': csvGenerator
     };
     RestUtil.RestRequest(restCtx, '/api/user/import', 'POST', params, callback);

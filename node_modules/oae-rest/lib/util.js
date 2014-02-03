@@ -253,7 +253,7 @@ module.exports.request = function(opts, data, callback) {
                 _.each(value, function(innerValue) {
                     // Stringify Booleans when uploading files
                     if (_.isBoolean(value)) {
-                        form.append(key, innerValue.toString);
+                        form.append(key, innerValue.toString());
                     } else {
                         form.append(key, innerValue);
                     }

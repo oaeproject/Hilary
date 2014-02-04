@@ -41,6 +41,7 @@
     "mime": "latest",
     "mkdirp": "latest",
     "multiparty": "latest",
+    "node-html-encoder": "latest",
     "nodemailer": "latest",
     "oae-activity": "",
     "oae-authentication": "",

@@ -43,6 +43,26 @@ var getClients = module.exports.getClients = function(restCtx, userId, callback)
 };
 
 /**
+ * Update a client for a user
+ *
+ * @param  {RestContext}    restCtx         Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {String}         userId          The ID of the user for whom to retrieve the OAuth clients
+ * @param  {String}         clientId        The ID of the client to delete
+ * @param  {String}         [displayName]   The new display name for this client
+ * @param  {String}         [secret]        The new secret for this client
+ * @param  {Function}       callback        Standard callback function
+ * @param  {Object}         callback.err    Standard error object, if any
+ */
+var updateClient = module.exports.updateClient = function(restCtx, userId, clientId, displayName, secret, callback) {
+    var url = '/api/auth/oauth/clients/' + RestUtil.encodeURIComponent(userId) + '/' + RestUtil.encodeURIComponent(clientId);
+    var params = {
+        'displayName': displayName,
+        'secret': secret
+    };
+    RestUtil.RestRequest(restCtx, url, 'POST', params, callback);
+};
+
+/**
  * Delete a client for a user
  *
  * @param  {RestContext}    restCtx         Standard REST Context object that contains the current tenant URL and the current user credentials

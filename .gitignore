@@ -12,7 +12,6 @@ node_modules/*
 !node_modules/oae-doc
 !node_modules/oae-email
 !node_modules/oae-following
-!node_modules/oae-google-analytics
 !node_modules/oae-library
 !node_modules/oae-logger
 !node_modules/oae-mediacore
@@ -26,6 +25,7 @@ node_modules/*
 !node_modules/oae-tenants
 !node_modules/oae-tests
 !node_modules/oae-tincanapi
+!node_modules/oae-tracking
 !node_modules/oae-ui
 !node_modules/oae-util
 *.log

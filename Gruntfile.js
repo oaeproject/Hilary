@@ -179,7 +179,6 @@ module.exports = function(grunt) {
         excludeFilters.push('-x Gruntfile.js');
 
         var cmd = util.format('node_modules/.bin/istanbul cover --verbose --dir target --no-default-excludes %s --report %s ./node_modules/grunt-cli/bin/grunt', excludeFilters.join(' '), report);
-
         var code = shell.exec(cmd).code;
         if (code !== 0) {
             process.exit(code);

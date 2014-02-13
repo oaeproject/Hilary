@@ -41,6 +41,7 @@ module.exports.OAuth = require('./api.oauth');
 module.exports.Previews = require('./api.previews');
 module.exports.Profile = require('./api.profile');
 module.exports.Search = require('./api.search');
+module.exports.Telemetry = require('./api.telemetry');
 module.exports.Tenants = require('./api.tenants');
 module.exports.UI = require('./api.ui');
 module.exports.User = require('./api.user');

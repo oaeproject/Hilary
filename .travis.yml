@@ -6,6 +6,11 @@ branches:
   only:
     - master
 
+env:
+  global:
+    - secure: hD9O8NEni8jWuuC0/7ff92/lFMZfMUBqBfUspKOXuychqluAKV1eZxaJ6rkQDVhXC+Ee37uGeJtaVcS+Jf0ZAfzb9/eBNolnTcLqfNiXJujXKRC2I6y+tHYLy/c5vI4oyhwD55ZVm+ZKVrjjukz1Ti7xd6+e+mW26QLLsQ9cgEg=
+    - secure: nlmfpXSQo6/ihXay2/WYjAlL69mCDzch0rODrCUsHufajI/P9AJAEl4TduYj78NvV97qFHBZ4Kec0UAWVYoKZLG5CALe9tNlvSqxrBM0WpDd4MACfAAx6fkLC+/GIKPcW5fTwO/t4ztTI1GJsxRCjIDSi3SOlYJ+PaA2e4U81x4=
+
 before_install:
   # Add extra apt repos
   - echo "deb http://debian.datastax.com/community stable main" | sudo tee -a /etc/apt/sources.list.d/dsc.sources.list
@@ -57,6 +62,13 @@ services:
 
 script:
   - grunt test-coverage-coveralls
+
+after_success:
+  # Package and upload to Amazon S3, but only if we're building on code that is merged into master
+  - git reset --hard origin/master
+  - git checkout master
+  - npm shrinkwrap
+  - if [[ "$TRAVIS_PULL_REQUEST" == "false" ]]; then bin/package -su --upload-bucket=oae-releases-travis; fi
 
 after_failure:
   - cat tests.log | node_modules/.bin/bunyan -l info

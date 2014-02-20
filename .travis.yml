@@ -6,6 +6,11 @@ branches:
   only:
     - master
 
+env:
+  global:
+    - secure: T23GAZQqZsNKK7OXEr0d3UwFoE/8hAgPOF5jgdTAJTHI6Jq+OjOv9jt+QvuKxpfqt3/yz+JzztRJAw12CD1BHej4L6NSXIalUfnn2EF93otFRSTRBQ2uzofBJ+MtUQqyCRG7Ha8sjEWoWc/QkdZbFGTaJpQpUuBt1oSabT0D3zA=
+    - secure: T1wEYmk7AhKxIGtDbb12ERT18sNb/92vL1VBo42Q4JMd4ww/Z3E7su5T3IsVY3cjaE2X7oKNVBWx9TWvkJJnHk5UiN3SmKiIGcFNKOvp6ha9BW0JyVAk5lPRh5poq33GrCvkZT3YKX7AgI/+7TutrbYVE/o5Bs599rF+8l8dSkk=
+
 before_install:
   # Add extra apt repos
   - echo "deb http://debian.datastax.com/community stable main" | sudo tee -a /etc/apt/sources.list.d/dsc.sources.list
@@ -57,6 +62,9 @@ services:
 
 script:
   - grunt test-coverage-coveralls
+
+after_success:
+  - etc/scripts/travis-upload.sh
 
 after_failure:
   - cat tests.log | node_modules/.bin/bunyan -l info

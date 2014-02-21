@@ -8,7 +8,6 @@ var PackageUtil = require('oae-release-tools').PackageUtil;
 var ReleaseUtil = require('oae-release-tools').ReleaseUtil;
 
 
-
 //////////////////////
 // HANDLE ARGUMENTS //
 //////////////////////
@@ -30,7 +29,6 @@ var argv = require('optimist')
     .demand('v')
 
     .argv;
-
 
 
 /////////////////////
@@ -82,7 +80,7 @@ ReleaseUtil.gitCommitVersionAndTag(argv.v, 9);
 if (argv.p || argv.u) {
     var packageCmd = 'bin/package -s';
 
-    // Pass along the upload arg if specified
+    // Pass along the upload argument if specified
     if (argv.u) {
         packageCmd += 'u';
     }

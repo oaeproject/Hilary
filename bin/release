@@ -13,10 +13,14 @@ var ReleaseUtil = require('oae-release-tools').ReleaseUtil;
 //////////////////////
 
 var argv = require('optimist')
-    .usage('Usage: $0 [-s] [-p] -v <release version>')
+    .usage('Usage: $0 [-s] [-p] -r <remote repository> -v <release version>')
 
     .alias('h', 'help')
     .describe('h', 'Show this help information')
+
+    .alias('r', 'remote')
+    .describe('r', 'The remote repository to push the release commits into (e.g., origin)')
+    .demand('r')
 
     .alias('s', 'skip-tests')
     .describe('s', 'Skip the unit tests in the release process')
@@ -35,9 +39,10 @@ var argv = require('optimist')
 // PERFORM RELEASE //
 /////////////////////
 
-var version = argv.v;
 var packageJsonPath = path.resolve('package.json');
 var packageDest = 'dist';
+var remoteName = argv.r;
+var version = argv.v;
 
 // Display the help if requested
 if (argv.h) {
@@ -46,7 +51,7 @@ if (argv.h) {
 }
 
 // Ensure everything is OK to do a release
-ReleaseUtil.validateRelease(3);
+ReleaseUtil.validateRelease(remoteName, 3);
 
 // If they specified to package after the tag, verify everything is OK to package before doing anything
 if (argv.p) {
@@ -57,7 +62,7 @@ if (argv.p) {
 var packageJson = CoreUtil.loadPackageJson(packageJsonPath, 'Hilary', 4);
 
 // Ensure our target version is a valid jump from where we are
-ReleaseUtil.validateTargetVersion(packageJson, argv.v, 5);
+ReleaseUtil.validateTargetVersion(packageJson, argv.v, remoteName, 5);
 
 // Optionally, run the tests right now
 if (!argv.s) {
@@ -74,7 +79,7 @@ ReleaseUtil.shrinkwrap(8);
 
 // Commit the shrinkwrap, version and tag the release
 CoreUtil.exec('git add npm-shrinkwrap.json', 'Failed to add npm-shrinkwrap.json to the git index', 9);
-ReleaseUtil.gitCommitVersionAndTag(argv.v, 9);
+ReleaseUtil.gitCommitVersionAndTag(argv.v, remoteName, 9);
 
 // Optionally package up the release on the tag
 if (argv.p || argv.u) {
@@ -90,19 +95,6 @@ if (argv.p || argv.u) {
 }
 
 // Remove the shrinkwrap and commit it for master
-ReleaseUtil.gitRemoveShrinkwrapAndCommit(argv.v, 11);
+ReleaseUtil.gitRemoveShrinkwrapAndCommit(argv.v, remoteName, 11);
 
-CoreUtil.logSuccess('Successfully released Hilary '.text + argv.v.white + ' in your local repository'.text);
-CoreUtil.logInfo(' ');
-CoreUtil.logInfo('Next you will have to do the following:');
-CoreUtil.logInfo(' ');
-CoreUtil.logInfo('    1. Analyze the commits in your local repository and verify they are what you want. Look at the diffs between the 2 commits');
-CoreUtil.logInfo('       to ensure they are only bumping the versions and adding / removing npm-shrinkwrap.json.');
-CoreUtil.logInfo('            * Use "git log" and "git diff" to analyze the commits and their contents');
-CoreUtil.logInfo('            * Use "git tag" to verify that the tag '.text + argv.v.white + ' was indeed created'.text);
-CoreUtil.logInfo(' ');
-CoreUtil.logInfo('    2. If everything is OK, push the commits to the https://github.com/oaeproject/Hilary repository with "git push".');
-CoreUtil.logInfo(' ');
-CoreUtil.logInfo('    3. Once pushed, also push the tag you created with: "git push <remote> ' + argv.v + '"');
-CoreUtil.logInfo(' ');
-CoreUtil.logSuccess('Complete!');
+CoreUtil.logSuccess('Successfully released Hilary '.text + argv.v.white + ' to the remote repository '.text + remoteName.white);

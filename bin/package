@@ -22,7 +22,7 @@ var argv = require('optimist')
     .describe('o', 'The target output directory to copy the release artifacts')
     .default('o', 'dist')
 
-    .alias('v', 'hilary-version')
+    .alias('v', 'version')
     .describe('v', 'The version of hilary that we are packaging. If not specified, it will be derived from the hilary version in package.json and git describe')
 
     .alias('s', 'skip-tests')

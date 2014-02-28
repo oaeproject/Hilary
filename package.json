@@ -1,7 +1,7 @@
 {
   "name": "Hilary",
   "description": "Open Academic Environment (OAE) Back-end",
-  "version": "3.0.0",
+  "version": "4.3.0",
   "homepage": "http://www.oaeproject.org",
   "author": {
     "name": "The Apereo Foundation",
@@ -21,7 +21,7 @@
     }
   ],
   "dependencies": {
-    "amqp": "latest",
+    "amqp": "git://github.com/oaeproject/node-amqp#0.1.8.x",
     "awssum-amazon-s3": "latest",
     "bunyan": "latest",
     "cas-sfu": "git://github.com/nicolaasmatthijs/node-cas-sfu.git",
@@ -68,23 +68,29 @@
     "oae-tincanapi": "",
     "oae-ui": "",
     "oae-util": "",
+    "oauth2orize": "latest",
+    "optimist": "latest",
     "passport": "latest",
     "passport-facebook": "latest",
     "passport-google-oauth": "latest",
     "passport-http": "latest",
+    "passport-http-bearer": "latest",
     "passport-ldapauth": "latest",
     "passport-local": "latest",
+    "passport-oauth2-client-password": "latest",
     "passport-openid": "latest",
     "passport-saml": "git://github.com/simong/passport-saml",
     "passport-twitter": "latest",
     "rails-timezone": "latest",
     "readdirp": "latest",
     "recaptcha": "latest",
+    "redback": "latest",
     "redis": "latest",
     "request": "latest",
     "shelljs": "latest",
     "shortid": "latest",
     "slideshare": "git://github.com/oaeproject/node-slideshare",
+    "sockjs": "latest",
     "temp": "latest",
     "timezone-js": "latest",
     "underscore": "latest",
@@ -105,7 +111,8 @@
     "istanbul": "latest",
     "mocha": "latest",
     "oae-release-tools": "git://github.com/oaeproject/oae-release-tools",
-    "optimist": "latest"
+    "oauth": "latest",
+    "sockjs-client-ws": "latest"
   },
   "optionalDependencies": {
     "bunyan-syslog": "latest",
@@ -142,5 +149,8 @@
   ],
   "engines": {
     "node": ">=0.10"
+  },
+  "scripts": {
+    "test": "grunt"
   }
 }

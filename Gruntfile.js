@@ -168,6 +168,9 @@ module.exports = function(grunt) {
         var testDirectories = _.map(oaeModules, function(directory) {
             return util.format('-x %s/tests/\\*\\*', directory);
         });
+        var testUtilDirectories = _.map(oaeModules, function(directory) {
+            return util.format('-x %s/lib/test/\\*\\*', directory);
+        });
 
         // Exclude the config directories
         var configDirectories = _.map(oaeModules, function(module) {
@@ -175,11 +178,14 @@ module.exports = function(grunt) {
         });
 
         // Build up one big set of exlusion filters
-        var excludeFilters = _.union(nonOaeModulesParameters, testDirectories, configDirectories);
+        var excludeFilters = _.union(nonOaeModulesParameters, testDirectories, testUtilDirectories, configDirectories);
         excludeFilters.push('-x Gruntfile.js');
 
         var cmd = util.format('node_modules/.bin/istanbul cover --verbose --dir target --no-default-excludes %s --report %s ./node_modules/grunt-cli/bin/grunt', excludeFilters.join(' '), report);
-        shell.exec(cmd);
+        var code = shell.exec(cmd).code;
+        if (code !== 0) {
+            process.exit(code);
+        }
     });
 
     // Sends a coverage report to coveralls.io

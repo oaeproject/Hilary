@@ -41,7 +41,7 @@
     "mime": "latest",
     "mkdirp": "latest",
     "multiparty": "latest",
-    "node-html-encoder": "latest",
+    "node-esapi": "latest",
     "nodemailer": "latest",
     "oae-activity": "",
     "oae-authentication": "",

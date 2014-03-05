@@ -33,7 +33,7 @@
     "elasticsearchclient": "latest",
     "ent": "latest",
     "etherpad-lite-client": "latest",
-    "express": "latest",
+    "express": "3.4.8",
     "gm": "latest",
     "helenus": "latest",
     "less": "latest",

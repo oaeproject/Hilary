@@ -180,12 +180,22 @@ config.search = {
                         'char_filter': ['html_strip'],
                         'tokenizer': 'letter',
                         'filter': ['lowercase', 'q_edgengram']
+                    },
+                    'message': {
+                        'type': 'custom',
+                        'tokenizer': 'letter',
+                        'filter': ['lowercase', 'message_edgengram']
                     }
                 },
                 'filter': {
                     'q_edgengram': {
                         'type': 'edgeNGram',
                         'min_gram': 1,
+                        'max_gram': 15
+                    },
+                    'message_edgengram': {
+                        'type': 'edgeNGram',
+                        'min_gram': 5,
                         'max_gram': 15
                     }
                 }

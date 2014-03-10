@@ -14,8 +14,7 @@ EXPECTED_BRANCH="master"
 EXPECTED_PULL_REQUEST=false
 
 function package_and_upload {
-    git reset --hard origin/master
-    git checkout master
+    git reset --hard $TRAVIS_COMMIT
     npm shrinkwrap
     bin/package -su --upload-bucket=oae-releases --upload-region=us-east-1
 }

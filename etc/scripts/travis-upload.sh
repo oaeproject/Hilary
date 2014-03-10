@@ -17,7 +17,7 @@ function package_and_upload {
     git reset --hard origin/master
     git checkout master
     npm shrinkwrap
-    bin/package -su --upload-bucket=oae-releases
+    bin/package -su --upload-bucket=oae-releases --upload-region=us-east-1
 }
 
 if [[ "$TRAVIS_REPO_SLUG" == "$EXPECTED_REPOSITORY" && "$TRAVIS_BRANCH" == "$EXPECTED_BRANCH" && "$TRAVIS_PULL_REQUEST" == "$EXPECTED_PULL_REQUEST" ]]; then

@@ -105,7 +105,7 @@
     "grunt": "latest",
     "grunt-cli": "latest",
     "grunt-contrib-clean": "latest",
-    "grunt-contrib-jshint": "latest",
+    "grunt-contrib-jshint": "0.8.0",
     "grunt-mocha-hack": "latest",
     "grunt-text-replace": "latest",
     "istanbul": "latest",

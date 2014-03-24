@@ -55,8 +55,9 @@ fs.stat(logPath, function(err, stat) {
     }
 
     var buildNumber = process.env.TRAVIS_BUILD_NUMBER || 'no-build-number';
+    var commitHash = process.env.TRAVIS_COMMIT || 'no-commit-hash';
     var now = new Date();
-    var objectName = util.format('travisci/%s-%s-%s-%s-%s_%s.log', now.getFullYear(), pad(now.getMonth() + 1), pad(now.getDate()), pad(now.getHours()), pad(now.getMinutes()), buildNumber);
+    var objectName = util.format('travisci/logs/hilary/build-%s-%s.log', buildNumber, commitHash);
 
     // Upload the log file to S3
     var s3 = new amazons3.S3({
@@ -79,17 +80,3 @@ fs.stat(logPath, function(err, stat) {
         console.log(util.format('Uploaded "%s" to Amazon S3: "%s/%s"', logPath, bucketName, objectName));
     });
 });
-
-/**
- * Pads a number with a leading zero if its smaller than 10
- *
- * @param  {Number}     number  The number to pad
- * @return {String}             The padded number as a string
- * @api private
- */
-var pad = function(number) {
-    if (number < 10) {
-        return '0' + number;
-    }
-    return number;
-};

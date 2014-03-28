@@ -71,6 +71,8 @@ after_success:
   - etc/scripts/travis-upload.sh
 
 after_failure:
+  # Uploads the logs to S3
+  - bin/upload_logs
   - cat tests.log | node_modules/.bin/bunyan -l info
 
 notifications:

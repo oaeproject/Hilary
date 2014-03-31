@@ -1,0 +1,518 @@
+CREATE KEYSPACE oaeTest WITH strategy_class = 'SimpleStrategy'
+  AND strategy_options:replication_factor = '1';
+
+USE oaeTest;
+
+CREATE TABLE OAuthAccessToken (
+  token text PRIMARY KEY,
+  userId text,
+  clientId text
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE Config (
+  tenantAlias text PRIMARY KEY
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE AuthzMembers (
+  resourceId text PRIMARY KEY
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE Principals (
+  principalId text PRIMARY KEY,
+  tenantAlias text,
+  displayName text,
+  visibility text
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE FollowingUsersFollowing (
+  userId text PRIMARY KEY
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE AuthenticationLoginId (
+  loginId text PRIMARY KEY,
+  userId text
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE AuthenticationUserLoginId (
+  userId text PRIMARY KEY
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE PreviewItems (
+  revisionId text PRIMARY KEY
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE LibraryIndex (
+  bucketKey text PRIMARY KEY
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE AuthzMembershipsCache (
+  principalId text PRIMARY KEY
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE OAuthAccessTokenByUser (
+  userId text PRIMARY KEY
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE Etherpad (
+  KEY text PRIMARY KEY,
+  data text
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE Revisions (
+  revisionId text PRIMARY KEY
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE Content (
+  contentId text PRIMARY KEY,
+  created text,
+  tenantAlias text,
+  description text,
+  createdBy text,
+  visibility text,
+  name text,
+  resourceSubType text,
+  lastModified text
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE Tenant (
+  alias text PRIMARY KEY,
+  deleted boolean,
+  active boolean,
+  host text,
+  displayName text
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE OAuthClient (
+  id text PRIMARY KEY,
+  secret text,
+  displayName text
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE TenantNetworkTenants (
+  tenantNetworkId text PRIMARY KEY
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE ActivityAggregateStatus (
+  aggregateKey text PRIMARY KEY,
+  lastCollected text,
+  lastActivity text,
+  lastUpdated text
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE RevisionByContent (
+  contentId text PRIMARY KEY
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE MessageBoxMessages (
+  messageBoxId text PRIMARY KEY
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE OAuthClientsByUser (
+  userId text PRIMARY KEY
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE MediaCoreContentRevisionIdMap (
+  mediaCoreId text PRIMARY KEY,
+  revisionId text,
+  contentId text
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE MessageBoxRecentContributions (
+  messageBoxId text PRIMARY KEY
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE TenantNetwork (
+  id text PRIMARY KEY,
+  displayName text
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE Messages (
+  id text PRIMARY KEY,
+  threadKey text,
+  deleted text,
+  createdBy text,
+  body text
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE ActivityAggregateEntities (
+  aggregateKey text PRIMARY KEY
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE Discussions (
+  id text PRIMARY KEY,
+  created text,
+  tenantAlias text,
+  description text,
+  createdBy text,
+  displayName text,
+  visibility text,
+  lastModified text
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE Profiles (
+  principalId text PRIMARY KEY
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE FollowingUsersFollowers (
+  userId text PRIMARY KEY
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE ActivityStreams (
+  activityStreamId text PRIMARY KEY
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE MessageBoxMessagesDeleted (
+  messageBoxId text PRIMARY KEY
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE ActivityProcessingBuckets (
+  bucketId text PRIMARY KEY
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE LibraryByPrincipal (
+  principalId text PRIMARY KEY
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';
+
+CREATE TABLE AuthzRoles (
+  principalId text PRIMARY KEY
+) WITH
+  comment='' AND
+  comparator=text AND
+  read_repair_chance=0.100000 AND
+  gc_grace_seconds=864000 AND
+  default_validation=text AND
+  min_compaction_threshold=4 AND
+  max_compaction_threshold=32 AND
+  replicate_on_write='true' AND
+  compaction_strategy_class='SizeTieredCompactionStrategy' AND
+  compression_parameters:sstable_compression='SnappyCompressor';

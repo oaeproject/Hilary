@@ -41,10 +41,11 @@ if (argv.h) {
 
 // Validate the upload
 UploadUtil.validateUpload(argv.p, argv.c, 10);
-UploadUtil.upload(argv.b, argv.r, argv.p, argv.c, function(err) {
+UploadUtil.upload(argv.b, argv.r, 'oae', argv.p, argv.c, function(err) {
     if (err) {
         CoreUtil.logFail('Error uploading release artifacts to Amazon S3');
         if (err instanceof Error) {
+            // It's a Node.js error object with a stack trace
             CoreUtil.logFail(err.stack);
         } else {
             // It's an AmazonS3 error message

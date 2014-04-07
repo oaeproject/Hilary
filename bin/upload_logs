@@ -1,0 +1,82 @@
+#!/usr/bin/env node
+
+var fs = require('fs');
+var amazons3 = require('awssum-amazon-s3');
+var path = require('path');
+var util = require('util');
+
+//////////////////////
+// HANDLE ARGUMENTS //
+//////////////////////
+
+var argv = require('optimist')
+    .usage('Usage: $0 -l <path of log file> -b <bucket name> [-r <region=eu-west-1>]')
+
+    .alias('h', 'help')
+    .describe('h', 'Show help information')
+
+    .alias('l', 'log')
+    .describe('l', 'The path to the log file that should be uploaded')
+    .default('l', 'tests.log.gz')
+
+    .alias('b', 'bucket')
+    .describe('b', 'The Amazon S3 bucket to which to upload the log file')
+    .default('b', 'oae-testing')
+
+    .alias('r', 'region')
+    .describe('r', 'The Amazon region to which to upload the log file')
+    .default('r', 'eu-west-1')
+
+    .argv;
+
+// Display the help if requested
+if (argv.h) {
+    require('optimist').showHelp();
+    return process.exit(0);
+}
+
+// Ensure that we're on the master branch
+if (process.env['TRAVIS_REPO_SLUG'] !== 'oaeproject/Hilary' || process.env['TRAVIS_BRANCH'] !== 'master' || process.env['TRAVIS_PULL_REQUEST'] == 'true') {
+    console.log('Only uploading logs for commits on oaeproject/Hilary#master');
+    return;
+}
+
+
+// Get the argument values
+var bucketName = argv.b;
+var region = argv.r;
+var logPath = argv.l;
+
+// Stat the log file to a/ ensure that it exists and b/ get the size of the file
+fs.stat(logPath, function(err, stat) {
+    if (err) {
+        console.log('Failed to get the file information for the test log file');
+        console.log(err);
+    }
+
+    var buildNumber = process.env.TRAVIS_BUILD_NUMBER || 'no-build-number';
+    var commitHash = process.env.TRAVIS_COMMIT || 'no-commit-hash';
+    var now = new Date();
+    var objectName = util.format('travisci/logs/hilary/build-%s-%s.log.gz', buildNumber, commitHash);
+
+    // Upload the log file to S3
+    var s3 = new amazons3.S3({
+        'accessKeyId': process.env.AWS_ACCESS_KEY_ID,
+        'secretAccessKey': process.env.AWS_SECRET_ACCESS_KEY,
+        'region': region
+    });
+    s3.PutObject({
+        'BucketName': bucketName,
+        'ObjectName': objectName,
+        'ContentLength': stat.size, 
+        'Body': fs.createReadStream(logPath)
+    }, function(err) {
+        if (err) {
+            console.log('Failed to upload to S3');
+            console.log(err);
+            return;
+        }
+
+        console.log(util.format('Uploaded "%s" to Amazon S3: "%s/%s"', logPath, bucketName, objectName));
+    });
+});

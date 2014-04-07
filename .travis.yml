@@ -6,6 +6,11 @@ branches:
   only:
     - master
 
+env:
+  global:
+    - secure: T23GAZQqZsNKK7OXEr0d3UwFoE/8hAgPOF5jgdTAJTHI6Jq+OjOv9jt+QvuKxpfqt3/yz+JzztRJAw12CD1BHej4L6NSXIalUfnn2EF93otFRSTRBQ2uzofBJ+MtUQqyCRG7Ha8sjEWoWc/QkdZbFGTaJpQpUuBt1oSabT0D3zA=
+    - secure: T1wEYmk7AhKxIGtDbb12ERT18sNb/92vL1VBo42Q4JMd4ww/Z3E7su5T3IsVY3cjaE2X7oKNVBWx9TWvkJJnHk5UiN3SmKiIGcFNKOvp6ha9BW0JyVAk5lPRh5poq33GrCvkZT3YKX7AgI/+7TutrbYVE/o5Bs599rF+8l8dSkk=
+
 before_install:
   # Add extra apt repos
   - echo "deb http://debian.datastax.com/community stable main" | sudo tee -a /etc/apt/sources.list.d/dsc.sources.list
@@ -15,7 +20,7 @@ before_install:
   - sudo apt-get update
 
   # Install cassandra 1.2 manually
-  - sudo apt-get install -y -o Dpkg::Options::=--force-confnew cassandra=1.2.15 dsc12
+  - sudo apt-get install -y -o Dpkg::Options::=--force-confnew cassandra=1.2.10
   - sudo sed -i 's/-Xss180k/-Xss256k/g' /etc/cassandra/cassandra-env.sh
   - sudo sh -c "echo 'JVM_OPTS=\"\${JVM_OPTS} -Djava.net.preferIPv4Stack=false\"' >> /etc/cassandra/cassandra-env.sh"
   - sudo service cassandra stop
@@ -26,6 +31,9 @@ before_install:
   - sudo service mysql stop
   - sudo service memcached stop
   - sudo service postgresql stop
+
+  # We must ensure phantomjs is not available so the travis build will include it in node_modules when deploying
+  - sudo rm -rf /usr/local/phantomjs
 
   # Install Hilary deps
   - sudo apt-get install -qq graphicsmagick libreoffice pdftk chrpath pdf2htmlex
@@ -58,8 +66,14 @@ services:
 script:
   - grunt test-coverage-coveralls
 
+after_success:
+  # Package and upload to Amazon S3
+  - etc/scripts/travis-upload.sh
+
 after_failure:
-  - cat tests.log | node_modules/.bin/bunyan -l info
+  # Compress the logs and upload them to Amazon S3
+  - gzip tests.log
+  - bin/upload_logs
 
 notifications:
   email:

@@ -64,7 +64,7 @@ services:
   - redis-server
 
 script:
-  - grunt test-coverage-coveralls
+    - grunt check-style test-coverage-coveralls
 
 after_success:
   # Package and upload to Amazon S3

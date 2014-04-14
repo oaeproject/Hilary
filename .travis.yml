@@ -71,7 +71,9 @@ after_success:
   - etc/scripts/travis-upload.sh
 
 after_failure:
-  - cat tests.log | node_modules/.bin/bunyan -l info
+  # Compress the logs and upload them to Amazon S3
+  - gzip tests.log
+  - bin/upload_logs
 
 notifications:
   email:

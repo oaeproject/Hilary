@@ -60,7 +60,7 @@
     "oae-messagebox": "",
     "oae-principals": "",
     "oae-preview-processor": "",
-    "oae-rest": "git://github.com/mrvisser/oae-rest.git",
+    "oae-rest": "git://github.com/mrvisser/oae-rest#become-user",
     "oae-search": "",
     "oae-telemetry": "",
     "oae-tenants": "",

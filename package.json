@@ -87,6 +87,7 @@
     "redback": "latest",
     "redis": "latest",
     "request": "latest",
+    "rimraf": "latest",
     "shelljs": "latest",
     "shortid": "latest",
     "slideshare": "git://github.com/oaeproject/node-slideshare",

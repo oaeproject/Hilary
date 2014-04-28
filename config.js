@@ -249,7 +249,7 @@ config.mq = {
  * @param  {String}      credentials.password           The password to login with on the global admin server
  */
 config.previews = {
-    'enabled': true,
+    'enabled': false,
     'tmpDir': tmpDir + '/previews',
     'office': {
         'binary': 'soffice.bin',

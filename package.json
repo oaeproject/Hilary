@@ -87,7 +87,7 @@
     "redback": "latest",
     "redis": "latest",
     "request": "latest",
-    "shelljs": "latest",
+    "rimraf": "latest",
     "shortid": "latest",
     "slideshare": "git://github.com/oaeproject/node-slideshare",
     "sockjs": "latest",
@@ -112,6 +112,7 @@
     "mocha": "latest",
     "oae-release-tools": "git://github.com/oaeproject/oae-release-tools",
     "oauth": "latest",
+    "shelljs": "latest",
     "sockjs-client-ws": "latest"
   },
   "optionalDependencies": {

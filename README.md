@@ -1,4 +1,3 @@
-
 # Open Academic Environment (OAE Project)
 
 Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject.org/)
@@ -17,7 +16,7 @@ If you're installing on Windows (not recommended for production) there's a packa
 
 #### Node.js
 
-Download and install the latest version of [Node.js](http://nodejs.org/). Hilary is best tested with node 0.8.x (0.8.24 at time of writing), however is reported to work fine on at least 0.10.6 as well. Do not use any version prior to 0.8.x.
+Download and install the latest version of [Node.js](http://nodejs.org/). Hilary is best tested with node 0.10.x (0.10.25 at the time of writing).
 
 The Hilary back-end is written completely in JavaScript, powered by Node.js.
 
@@ -64,7 +63,7 @@ Redis is used for caching frequently accessed data and for broadcasting messages
 
 #### ElasticSearch
 
-Download the latest version of [ElasticSearch](http://www.elasticsearch.org/download/), and extract it to a directory of your choice. Once extracted, you can start it by running the following:
+Download the latest 0.90.x point release of [ElasticSearch](http://www.elasticsearch.org/download/), and extract it to a directory of your choice (please avoid version 1.x for now as Hilary is known not to be compatible yet). Once extracted, you can start it by running the following:
 
 ```
 cd my-elasticsearch-dir

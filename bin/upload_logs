@@ -57,7 +57,7 @@ fs.stat(logPath, function(err, stat) {
     var buildNumber = process.env.TRAVIS_BUILD_NUMBER || 'no-build-number';
     var commitHash = process.env.TRAVIS_COMMIT || 'no-commit-hash';
     var now = new Date();
-    var objectName = util.format('travisci/logs/hilary/build-%s-%s.log.gz', buildNumber, commitHash);
+    var objectName = util.format('travisci/logs/hilary/build-%s-%s-%s.log.gz', buildNumber, commitHash, now);
 
     // Upload the log file to S3
     var s3 = new amazons3.S3({
@@ -68,7 +68,7 @@ fs.stat(logPath, function(err, stat) {
     s3.PutObject({
         'BucketName': bucketName,
         'ObjectName': objectName,
-        'ContentLength': stat.size, 
+        'ContentLength': stat.size,
         'Body': fs.createReadStream(logPath)
     }, function(err) {
         if (err) {

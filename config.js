@@ -325,8 +325,6 @@ config.activity = {
     'maxConcurrentRouters': 5,
     'collectionPollingFrequency': 5,        // 5 seconds
     'collectionBatchSize': 1000,
-    'mailPollingFrequency': 10 * 60,        // 10 minutes
-    'processMailJobs': true,
     'mail': {
         'processJobs': true,
         'pollingFrequency': 10 * 60 * 60,   // 10 minutes

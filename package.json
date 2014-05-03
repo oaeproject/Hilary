@@ -99,6 +99,7 @@
     "temp": "latest",
     "timezone-js": "latest",
     "underscore": "latest",
+    "uservoice-sso": "latest",
     "validator": "1.1.3",
     "watch": "latest",
     "webshot": "latest",

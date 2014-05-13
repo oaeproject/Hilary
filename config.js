@@ -327,12 +327,12 @@ config.activity = {
     'collectionBatchSize': 1000,
     'mail': {
         'processJobs': true,
-        'pollingFrequency': 10 * 60 * 60,   // 10 minutes
+        'pollingFrequency': 10 * 60,        // 10 minutes
         'daily': {
-            'hour': 0                       // Midnight
+            'hour': 8                       // 8AM
         },
         'weekly': {
-            'day': 5,                       // Friday, 0-based where 0 = Sunday
+            'day': 3,                       // Wednesday, 0-based where 0 = Sunday
             'hour': 12                      // Noon
         }
     },

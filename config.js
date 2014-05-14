@@ -232,7 +232,7 @@ config.mq = {
  * @param  {Boolean}     enabled                        Whether or not the preview processor should be running
  * @param  {String}      tmpDir                         A directory that can be used to store temporary files in
  * @param  {Object}      office                         Holds the configuration for anything Office related
- * @param  {String}      office.binary                  The path to the 'soffice.bin' binary that starts up Libre Office. ex: On OS X it is `/Applications/LibreOffice.app/Contents/MacOS/soffice.bin` with a default install
+ * @param  {String}      office.binary                  The path to the 'soffice' binary that starts up Libre Office. ex: On OS X it is `/Applications/LibreOffice.app/Contents/MacOS/soffice` with a default install
  * @param  {Number}      office.timeout                 Defines the timeout (in ms) when the Office process should be killed
  * @param  {Object}      pdf                            Holds the configuration for anything related to PDF splitting
  * @param  {String}      pdf.binary                     The path to the `pdftk` binary that can be used to split a PDF file into a PDF-per-page
@@ -252,7 +252,7 @@ config.previews = {
     'enabled': false,
     'tmpDir': tmpDir + '/previews',
     'office': {
-        'binary': 'soffice.bin',
+        'binary': 'soffice',
         'timeout': 120000
     },
     'pdftk': {

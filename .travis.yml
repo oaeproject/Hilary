@@ -93,9 +93,6 @@ after_success:
   - etc/scripts/travis-upload.sh
 
 after_failure:
-  - npm install -g bunyan
-  - cat tests.log | bunyan -l error
-
   # Compress the logs and upload them to Amazon S3
   - gzip tests.log
   - bin/upload_logs

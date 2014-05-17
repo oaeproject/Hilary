@@ -50,7 +50,9 @@ before_install:
   # Install Hilary deps
   - sudo apt-get install -qq graphicsmagick libreoffice pdftk chrpath pdf2htmlex
   - npm install -g grunt-cli
-  - git clone --depth 1 --branch master git://github.com/oaeproject/3akai-ux.git ../3akai-ux
+  - git clone --depth 1 --branch master git://github.com/simong/3akai-ux.git ../3akai-ux
+  - cd ../3akai-ux
+  - git checkout emailaggregation
 
   # Install etherpad-lite
   - sudo apt-get install etherpad-lite

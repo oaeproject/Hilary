@@ -190,7 +190,7 @@ config.search = {
                 'filter': {
                     'q_edgengram': {
                         'type': 'edgeNGram',
-                        'min_gram': 1,
+                        'min_gram': 2,
                         'max_gram': 15
                     },
                     'message_edgengram': {

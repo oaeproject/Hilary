@@ -73,7 +73,7 @@ module.exports = function(grunt) {
         'clean': ['target/'],
         'replace': {
             'check-style': {
-                'src': ['node_modules/oae-*/**/*.js'],
+                'src': ['node_modules/oae-*/**/*.js', '!node_modules/oae-*/node_modules/**/*.js'],
                 'overwrite': true,
                 'replacements': [
                     {

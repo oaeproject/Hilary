@@ -188,6 +188,12 @@ config.search = {
                         'type': 'custom',
                         'tokenizer': 'letter',
                         'filter': ['lowercase', 'message_edgengram']
+                    },
+                    'content': {
+                        'type': 'custom',
+                        'char_filter': ['html_strip'],
+                        'tokenizer': 'letter',
+                        'filter': ['lowercase', 'content_edgengram']
                     }
                 },
                 'filter': {
@@ -197,6 +203,11 @@ config.search = {
                         'max_gram': 15
                     },
                     'message_edgengram': {
+                        'type': 'edgeNGram',
+                        'min_gram': 5,
+                        'max_gram': 15
+                    },
+                    'content_edgengram': {
                         'type': 'edgeNGram',
                         'min_gram': 5,
                         'max_gram': 15

@@ -158,7 +158,7 @@ module.exports = function(grunt) {
         report = report || 'lcov';
 
         // Get the modules that should be excluded
-        var nonOaeModules = grunt.file.expand({'filter': 'isDirectory'}, 'node_modules/*', '!node_modules/oae-*');
+        var nonOaeModules = grunt.file.expand({'filter': 'isDirectory'}, 'node_modules/*', '!node_modules/oae-*', 'node_modules/oae-*/node_modules/*');
         var nonOaeModulesParameters = _.map(nonOaeModules, function(module) {
             return util.format('-x %s/\\*\\*', module);
         });

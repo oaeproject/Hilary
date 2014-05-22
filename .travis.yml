@@ -16,10 +16,6 @@ before_install:
   - curl -L http://debian.datastax.com/debian/repo_key | sudo apt-key add -
   - echo "deb http://debian.datastax.com/community stable main" | sudo tee -a /etc/apt/sources.list.d/dsc.sources.list
 
-  # Add ElasticSearch apt repo
-  - curl -L http://packages.elasticsearch.org/GPG-KEY-elasticsearch | sudo apt-key add -
-  - echo "deb http://packages.elasticsearch.org/elasticsearch/0.90/debian stable main" | sudo tee -a /etc/apt/sources.list.d/elasticsearch.sources.list
-
   # Add PPA repos for miscellaneous dependencies
   - echo 'yes' | sudo add-apt-repository ppa:oae/deps
   - echo 'yes' | sudo add-apt-repository ppa:coolwanglu/pdf2htmlex
@@ -33,12 +29,6 @@ before_install:
   - sudo service cassandra start
   - sudo service cassandra status
 
-  # Install elasticsearch 0.90 manually
-  - sudo apt-get install -y --force-yes -o Dpkg::Options::=--force-confnew elasticsearch=0.90.13
-  - sudo service elasticsearch restart
-  - sleep 5
-  - sudo service elasticsearch status
-
   # Turn off unneeded services to free some memory
   - sudo service mysql stop
   - sudo service memcached stop
@@ -50,7 +40,9 @@ before_install:
   # Install Hilary deps
   - sudo apt-get install -qq graphicsmagick libreoffice pdftk chrpath pdf2htmlex
   - npm install -g grunt-cli
-  - git clone --depth 1 --branch master git://github.com/oaeproject/3akai-ux.git ../3akai-ux
+  - git clone --depth 1 --branch emailaggregation git://github.com/simong/3akai-ux.git ../3akai-ux
+  - cd ../3akai-ux
+  - npm install
 
   # Install etherpad-lite
   - sudo apt-get install etherpad-lite
@@ -93,9 +85,6 @@ after_success:
   - etc/scripts/travis-upload.sh
 
 after_failure:
-  - npm install -g bunyan
-  - cat tests.log | bunyan -l error
-
   # Compress the logs and upload them to Amazon S3
   - gzip tests.log
   - bin/upload_logs

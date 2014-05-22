@@ -50,7 +50,12 @@ All Hilary data is stored in Apache Cassandra. Therefore it is *not necessary* t
 
 #### Redis
 
-Download and install (or compile) the latest version of Redis, please follow the installation instructions on the [Redis download page](http://redis.io/download). Once installed, you can start it by running the following:
+Download and install (or compile) the latest version of Redis, please follow the installation instructions on the [Redis download page](http://redis.io/download).
+
+**Important:**
+* In order to install Redis on Mac OS X, you will first need to make sure that [XCode](https://developer.apple.com/xcode/downloads/) is installed
+
+Once installed, you can start Redis by running the following:
 
 ```
 cd my-redis-dir

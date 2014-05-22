@@ -1,1 +1,2 @@
+ALTER TABLE "Principals" DROP "timezone";
 ALTER TABLE "Principals" ADD "emailPreference" text;

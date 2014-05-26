@@ -63,7 +63,7 @@
     "oae-messagebox": "",
     "oae-principals": "",
     "oae-preview-processor": "",
-    "oae-rest": "git://github.com/bp323/oae-rest#userManagement",
+    "oae-rest": "git://github.com/mrvisser/oae-rest#userManagement",
     "oae-search": "",
     "oae-telemetry": "",
     "oae-tenants": "",

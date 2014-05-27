@@ -38,6 +38,7 @@
     "ent": "latest",
     "etherpad-lite-client": "latest",
     "express": "4.2.0",
+    "globalize": "0.1.1",
     "gm": "latest",
     "helenus": "latest",
     "juice": "latest",

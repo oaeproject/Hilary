@@ -40,7 +40,7 @@ config.cassandra = {
     'timeout': 3000,
     'replication': 1,
     'strategyClass': 'SimpleStrategy',
-    'cqlVersion': '2.0.0'
+    'cqlVersion': '3.0.0'
 };
 
 // The redis related configuration information.
@@ -180,12 +180,22 @@ config.search = {
                         'char_filter': ['html_strip'],
                         'tokenizer': 'letter',
                         'filter': ['lowercase', 'q_edgengram']
+                    },
+                    'message': {
+                        'type': 'custom',
+                        'tokenizer': 'letter',
+                        'filter': ['lowercase', 'message_edgengram']
                     }
                 },
                 'filter': {
                     'q_edgengram': {
                         'type': 'edgeNGram',
-                        'min_gram': 1,
+                        'min_gram': 2,
+                        'max_gram': 15
+                    },
+                    'message_edgengram': {
+                        'type': 'edgeNGram',
+                        'min_gram': 5,
                         'max_gram': 15
                     }
                 }
@@ -220,9 +230,9 @@ config.mq = {
  * Configuration namespace for the preview processor.
  *
  * @param  {Boolean}     enabled                        Whether or not the preview processor should be running
- * @param  {String}      dir                            A directory that can be used to store temporary files in
+ * @param  {String}      tmpDir                         A directory that can be used to store temporary files in
  * @param  {Object}      office                         Holds the configuration for anything Office related
- * @param  {String}      office.binary                  The path to the 'soffice.bin' binary that starts up Libre Office. ex: On OS X it is `/Applications/LibreOffice.app/Contents/MacOS/soffice.bin` with a default install
+ * @param  {String}      office.binary                  The path to the 'soffice' binary that starts up Libre Office. ex: On OS X it is `/Applications/LibreOffice.app/Contents/MacOS/soffice` with a default install
  * @param  {Number}      office.timeout                 Defines the timeout (in ms) when the Office process should be killed
  * @param  {Object}      pdf                            Holds the configuration for anything related to PDF splitting
  * @param  {String}      pdf.binary                     The path to the `pdftk` binary that can be used to split a PDF file into a PDF-per-page
@@ -240,9 +250,9 @@ config.mq = {
  */
 config.previews = {
     'enabled': false,
-    'dir': tmpDir + '/previews',
+    'tmpDir': tmpDir + '/previews',
     'office': {
-        'binary': 'soffice.bin',
+        'binary': 'soffice',
         'timeout': 120000
     },
     'pdftk': {

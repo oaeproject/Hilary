@@ -59,21 +59,22 @@ module.exports.encodeURIComponent = function(uriComponent) {
  * @param  {Response}       callback.response   The response object that was returned by the node module requestjs.
  */
 var RestRequest = module.exports.RestRequest = function(restCtx, url, method, data, callback) {
-    // If we already have a cookieJar, we can perform the request directly.
+    // If we already have a cookieJar, we can perform the request directly
     if (restCtx.cookieJar) {
         return _RestRequest(restCtx, url, method, data, callback);
-    // Otherwise we create a new one.
-    } else {
-        restCtx.cookieJar = request.jar();
-
-        // Fill the new cookie jar.
-        fillCookieJar(restCtx, function(err) {
-            if (err) {
-                return callback(err);
-            }
-            _RestRequest(restCtx, url, method, data, callback);
-        });
     }
+
+    // Otherwise we create a new one
+    restCtx.cookieJar = request.jar();
+
+    // Fill the new cookie jar
+    fillCookieJar(restCtx, function(err) {
+        if (err) {
+            return callback(err);
+        }
+
+        return _RestRequest(restCtx, url, method, data, callback);
+    });
 };
 
 /**
@@ -86,7 +87,7 @@ var RestRequest = module.exports.RestRequest = function(restCtx, url, method, da
 var fillCookieJar = module.exports.fillCookieJar = function(restCtx, callback) {
     // If no user is specified, there is no point in doing a login request.
     if (!restCtx.username) {
-        return callback(null);
+        return callback();
     }
 
     // Log the user in
@@ -116,21 +117,22 @@ var _RestRequest = function(restCtx, url, method, data, callback) {
         'method': method,
         'jar': restCtx.cookieJar,
         'strictSSL': restCtx.strictSSL,
+        'followRedirect': restCtx.followRedirect,
         'headers': {}
     };
 
-    if (restCtx.additionalHeaders) {
+    if (_.isObject(restCtx.additionalHeaders)) {
         requestOpts.headers = _.extend(requestOpts.headers, restCtx.additionalHeaders);
     }
 
     var referer = restCtx.host + '/';
     if (restCtx.hostHeader) {
-        // Set the host header so the app server can determine the tenant.
+        // Set the host header so the app server can determine the tenant
         requestOpts.headers.host = restCtx.hostHeader;
 
-        // Grab the protocol from the host to create a referer header value.
+        // Grab the protocol from the host to create a referer header value
         var protocol = restCtx.host.split(':')[0];
-        referer = protocol + '://' + restCtx.hostHeader + '/';
+        referer = util.format('%s://%s/', protocol, restCtx.hostHeader);
     }
 
     // If a referer was explicitly set, we use that

@@ -45,3 +45,4 @@ module.exports.Telemetry = require('./api.telemetry');
 module.exports.Tenants = require('./api.tenants');
 module.exports.UI = require('./api.ui');
 module.exports.User = require('./api.user');
+module.exports.Uservoice = require('./api.uservoice');

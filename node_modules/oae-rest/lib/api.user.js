@@ -13,41 +13,108 @@
  * permissions and limitations under the License.
  */
 
+var _ = require('underscore');
+var util = require('util');
+
 var CropAPI = require('./api.crop');
 var RestUtil = require('./util');
 
 /**
- * Creates a user through the REST API.
- * Optional arguments will only be added if they are defined and will be sent as is.
+ * Create a global administrator user with mapped local authentication credentials in the system
  *
- * @param  {RestContext}    restCtx                         Standard REST Context object that contains the current tenant URL and the current user credentials. For this function to work, the passed in restCtx should either be for a global/tenant admin or for an anonymous user with reCaptcha disabled.
- * @param  {String}         username                        The username this user can login with.
- * @param  {String}         password                        The password for this user.
- * @param  {String}         displayName                     The display name for the user
- * @param  {Object}         [additionalOptions]             Additional optional parameters that need to be passed.
- * @param  {String}         [additionalOptions.visibility]  The user's visibility setting. This can be public, loggedin or private.
- * @param  {String}         [additionalOptions.locale]      The user's locale
- * @param  {String}         [additionalOptions.timezone]    The user's timezone
- * @param  {String}         [additionalOptions.publicAlias] The publically-available alias for users to see when the user's display name is protected
- * @param  {Boolean}        [additionalOptions.acceptedTC]  Whether or not the user accepts the Terms and Conditions
- * @param  {Function}       callback                        Standard callback method takes arguments `err` and `resp`
- * @param  {Object}         callback.err                    Error object containing error code and error message
- * @param  {User}           callback.response               A User object representing the created user
+ * @param  {RestContext}    restCtx         Standard REST Context object that should be authenticated to the global admin tenant as a global administrator
+ * @param  {String}         username        The username the user should use to log into the global administrator tenant
+ * @param  {String}         password        The password the user should use to log into the global administrator tenant
+ * @param  {String}         displayName     The display name of the administrator user
+ * @param  {Object}         [opts]          Additional optional profile parameters for the user
+ * @param  {Function}       callback        Standard callback method
+ * @param  {Object}         callback.err    An error that occurred, if any
+ * @param  {User}           callback.user   The user object that was created
  */
-var createUser = module.exports.createUser = function(restCtx, username, password, displayName, additionalOptions, callback) {
-    additionalOptions = additionalOptions || {};
-    var params = {
+var createGlobalAdminUser = module.exports.createGlobalAdminUser = function(restCtx, username, password, displayName, opts, callback) {
+    opts = _.extend({}, opts, {
         'username': username,
         'password': password,
-        'displayName': displayName,
-        'email': additionalOptions.email,
-        'visibility': additionalOptions.visibility,
-        'locale': additionalOptions.locale,
-        'timezone': additionalOptions.timezone,
-        'publicAlias': additionalOptions.publicAlias,
-        'acceptedTC': additionalOptions.acceptedTC
-    };
-    RestUtil.RestRequest(restCtx, '/api/user/create', 'POST', params, callback);
+        'displayName': displayName
+    });
+
+    RestUtil.RestRequest(restCtx, '/api/user/createGlobalAdminUser', 'POST', opts, callback);
+};
+
+/**
+ * Create a private tenant administrator user with mapped local authentication credentials on the tenant in context
+ *
+ * @param  {RestContext}    restCtx         Standard REST Context object of the tenant administrator who is creating the new tenant administrator
+ * @param  {String}         username        The username the user should use to login
+ * @param  {String}         password        The password the user should use to login
+ * @param  {String}         displayName     The display name of the administrator user
+ * @param  {Object}         [opts]          Additional optional profile parameters for the user
+ * @param  {Function}       callback        Standard callback method
+ * @param  {Object}         callback.err    An error that occurred, if any
+ * @param  {User}           callback.user   The user object that was created
+ */
+var createTenantAdminUser = module.exports.createTenantAdminUser = function(restCtx, username, password, displayName, opts, callback) {
+    _createTenantAdminUser(restCtx, null, username, password, displayName, opts, callback);
+};
+
+/**
+ * Create a private tenant administrator user with mapped local authentication credentials on the specified tenant
+ *
+ * @param  {RestContext}    restCtx         Standard REST Context object of the global administrator creating the tenant administrator user
+ * @param  {String}         tenantAlias     The tenant on which to create the tenant administrator
+ * @param  {String}         username        The username the user should use to login
+ * @param  {String}         password        The password the user should use to login
+ * @param  {String}         displayName     The display name of the administrator user
+ * @param  {Object}         [opts]          Additional optional profile parameters for the user
+ * @param  {Function}       callback        Standard callback method
+ * @param  {Object}         callback.err    An error that occurred, if any
+ * @param  {User}           callback.user   The user object that was created
+ */
+var createTenantAdminUserOnTenant = module.exports.createTenantAdminUserOnTenant = function(restCtx, tenantAlias, username, password, displayName, opts, callback) {
+    _createTenantAdminUser(restCtx, tenantAlias, username, password, displayName, opts, callback);
+};
+
+/**
+ * Creates a user on the current tenant through the REST API
+ *
+ * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. For this function to work, the passed in restCtx should either be for a global/tenant admin or for an anonymous user with reCaptcha disabled
+ * @param  {String}         username            The username this user can login with
+ * @param  {String}         password            The password for this user
+ * @param  {String}         displayName         The display name for the user
+ * @param  {Object}         [opts]              Additional optional parameters that need to be passed
+ * @param  {String}         [opts.visibility]   The user's visibility setting. This can be public, loggedin or private
+ * @param  {String}         [opts.locale]       The user's locale
+ * @param  {String}         [opts.timezone]     The user's timezone
+ * @param  {String}         [opts.publicAlias]  The publically-available alias for users to see when the user's display name is protected
+ * @param  {Boolean}        [opts.acceptedTC]   Whether or not the user accepts the Terms and Conditions
+ * @param  {Function}       callback            Standard callback method takes arguments `err` and `resp`
+ * @param  {Object}         callback.err        Error object containing error code and error message
+ * @param  {User}           callback.response   A User object representing the created user
+ */
+var createUser = module.exports.createUser = function(restCtx, username, password, displayName, opts, callback) {
+    _createUser(restCtx, null, username, password, displayName, opts, callback);
+};
+
+/**
+ * Creates a user on a particular tenant through the REST API
+ *
+ * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. For this function to work, the passed in restCtx should either be for a global/tenant admin or for an anonymous user with reCaptcha disabled
+ * @param  {String}         tenantAlias         The tenant on which to create the user
+ * @param  {String}         username            The username this user can login with
+ * @param  {String}         password            The password for this user
+ * @param  {String}         displayName         The display name for the user
+ * @param  {Object}         [opts]              Additional optional parameters that need to be passed
+ * @param  {String}         [opts.visibility]   The user's visibility setting. This can be public, loggedin or private
+ * @param  {String}         [opts.locale]       The user's locale
+ * @param  {String}         [opts.timezone]     The user's timezone
+ * @param  {String}         [opts.publicAlias]  The publically-available alias for users to see when the user's display name is protected
+ * @param  {Boolean}        [opts.acceptedTC]   Whether or not the user accepts the Terms and Conditions
+ * @param  {Function}       callback            Standard callback method takes arguments `err` and `resp`
+ * @param  {Object}         callback.err        Error object containing error code and error message
+ * @param  {User}           callback.response   A User object representing the created user
+ */
+var createUserOnTenant = module.exports.createUserOnTenant = function(restCtx, tenantAlias, username, password, displayName, opts, callback) {
+    _createUser(restCtx, tenantAlias, username, password, displayName, opts, callback);
 };
 
 /**
@@ -195,4 +262,60 @@ var getTermsAndConditions = module.exports.getTermsAndConditions = function(rest
 var acceptTermsAndConditions = module.exports.acceptTermsAndConditions = function(restCtx, userId, callback) {
     var url = '/api/user/' + RestUtil.encodeURIComponent(userId) + '/termsAndConditions';
     RestUtil.RestRequest(restCtx, url, 'POST', {}, callback);
+};
+
+/**
+ * Create a private tenant administrator user with mapped local authentication credentials on the provided tenant
+ *
+ * @param  {RestContext}    restCtx         Standard REST Context object
+ * @param  {String}         [tenantAlias]   The alias of the tenant in which the tenant administrator should be created. If unspecified, defaults to the current tenant
+ * @param  {String}         username        The username the user should use to login
+ * @param  {String}         password        The password the user should use to login
+ * @param  {String}         displayName     The display name of the administrator user
+ * @param  {Object}         [opts]          Additional optional profile parameters for the user
+ * @param  {Function}       callback        Standard callback method
+ * @param  {Object}         callback.err    An error that occurred, if any
+ * @param  {User}           callback.user   The user object that was created
+ * @api private
+ */
+var _createTenantAdminUser = function(restCtx, tenantAlias, username, password, displayName, opts, callback) {
+    opts = _.extend({}, opts, {
+        'username': username,
+        'password': password,
+        'displayName': displayName
+    });
+
+    var path = (tenantAlias) ? util.format('/api/user/%s/createTenantAdminUser', RestUtil.encodeURIComponent(tenantAlias)) : '/api/user/createTenantAdminUser';
+    RestUtil.RestRequest(restCtx, path, 'POST', opts, callback);
+};
+
+/**
+ * Creates a user through the REST API
+ *
+ * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials. For this function to work, the passed in restCtx should either be for a global/tenant admin or for an anonymous user with reCaptcha disabled
+ * @param  {String}         [tenantAlias]       The tenant on which to create the user. If unspecified, will default to current tenant of the `restCtx`
+ * @param  {String}         username            The username this user can login with
+ * @param  {String}         password            The password for this user
+ * @param  {String}         displayName         The display name for the user
+ * @param  {Object}         [opts]              Additional optional parameters that need to be passed
+ * @param  {String}         [opts.visibility]   The user's visibility setting. This can be public, loggedin or private
+ * @param  {String}         [opts.locale]       The user's locale
+ * @param  {String}         [opts.timezone]     The user's timezone
+ * @param  {String}         [opts.publicAlias]  The publically-available alias for users to see when the user's display name is protected
+ * @param  {Boolean}        [opts.acceptedTC]   Whether or not the user accepts the Terms and Conditions
+ * @param  {Function}       callback            Standard callback method takes arguments `err` and `resp`
+ * @param  {Object}         callback.err        Error object containing error code and error message
+ * @param  {User}           callback.response   A User object representing the created user
+ * @api private
+ */
+var _createUser = function(restCtx, tenantAlias, username, password, displayName, opts, callback) {
+    opts = opts || {};
+    opts = _.extend({}, opts, {
+        'username': username,
+        'password': password,
+        'displayName': displayName
+    });
+
+    var path = (tenantAlias) ? util.format('/api/user/%s/create', RestUtil.encodeURIComponent(tenantAlias)) : '/api/user/create';
+    RestUtil.RestRequest(restCtx, path, 'POST', opts, callback);
 };

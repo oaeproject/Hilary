@@ -67,7 +67,7 @@ module.exports = function(grunt) {
                     'grep': mocha_grep,
                     'bail': false,
                     'slow': 500,
-                    'globals': ['oaeTests', 'util', 'events', 'SlowBuffer', 'Functions', 'Utilities']
+                    'globals': ['oaeTests', 'Functions', 'Utilities']
                 }
             }
         },

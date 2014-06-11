@@ -42,7 +42,6 @@ before_install:
   - npm install -g grunt-cli
   - git clone --depth 1 --branch emailaggregation git://github.com/simong/3akai-ux.git ../3akai-ux
   - cd ../3akai-ux
-  - npm install
 
   # Install etherpad-lite
   - sudo apt-get install etherpad-lite

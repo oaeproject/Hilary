@@ -66,7 +66,7 @@
     "oae-messagebox": "",
     "oae-principals": "",
     "oae-preview-processor": "",
-    "oae-rest": "git://github.com/oaeproject/oae-rest#emailaggregation",
+    "oae-rest": "latest",
     "oae-search": "",
     "oae-telemetry": "",
     "oae-tenants": "",

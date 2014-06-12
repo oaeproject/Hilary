@@ -62,11 +62,12 @@ module.exports = function(grunt) {
                 'src': ['node_modules/oae-tests/runner/beforeTests.js', 'node_modules/oae-*/tests/**/*.js'],
                 'options': {
                     'timeout': MOCHA_TIMEOUT,
-                    'ignoreLeaks': true,
+                    'ignoreLeaks': false,
                     'reporter': 'spec',
                     'grep': mocha_grep,
                     'bail': false,
-                    'slow': 500
+                    'slow': 500,
+                    'globals': ['oaeTests']
                 }
             }
         },

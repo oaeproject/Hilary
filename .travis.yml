@@ -24,10 +24,9 @@ before_install:
   # Position ourselves to start the test in "script" phase
   - cd ~/build/oaeproject/Hilary
 
-  - etc/scripts/travis/setup-cassandra.sh &
+  - etc/scripts/travis/setup-cassandra-etherpad.sh &
   - etc/scripts/travis/turn-off-unneeded.sh &
   - etc/scripts/travis/install-hilary-deps.sh &
-  - etc/scripts/travis/setup-etherpad.sh &
   - etc/scripts/travis/enable-preview-processing.sh &
 
 services:

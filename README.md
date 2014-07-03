@@ -1,4 +1,3 @@
-
 # Open Academic Environment (OAE Project)
 
 Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject.org/)
@@ -17,7 +16,7 @@ If you're installing on Windows (not recommended for production) there's a packa
 
 #### Node.js
 
-Download and install the latest version of [Node.js](http://nodejs.org/). Hilary is best tested with node 0.8.x (0.8.24 at time of writing), however is reported to work fine on at least 0.10.6 as well. Do not use any version prior to 0.8.x.
+Download and install the latest version of [Node.js](http://nodejs.org/). Hilary is best tested with node 0.10.x (0.10.25 at the time of writing).
 
 The Hilary back-end is written completely in JavaScript, powered by Node.js.
 
@@ -51,7 +50,12 @@ All Hilary data is stored in Apache Cassandra. Therefore it is *not necessary* t
 
 #### Redis
 
-Download and install (or compile) the latest version of Redis, please follow the installation instructions on the [Redis download page](http://redis.io/download). Once installed, you can start it by running the following:
+Download and install (or compile) the latest version of Redis, please follow the installation instructions on the [Redis download page](http://redis.io/download).
+
+**Important:**
+* In order to install Redis on Mac OS X, you will first need to make sure that [XCode](https://developer.apple.com/xcode/downloads/) is installed
+
+Once installed, you can start Redis by running the following:
 
 ```
 cd my-redis-dir
@@ -64,7 +68,7 @@ Redis is used for caching frequently accessed data and for broadcasting messages
 
 #### ElasticSearch
 
-Download the latest version of [ElasticSearch](http://www.elasticsearch.org/download/), and extract it to a directory of your choice. Once extracted, you can start it by running the following:
+Download the latest 1.1.x point release of [ElasticSearch](http://www.elasticsearch.org/download/), and extract it to a directory of your choice. Once extracted, you can start it by running the following:
 
 ```
 cd my-elasticsearch-dir

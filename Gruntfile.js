@@ -21,7 +21,7 @@ module.exports = function(grunt) {
     var mocha_grep = process.env['MOCHA_GREP'] || undefined;
 
     // Timeout used to determine when a test has failed
-    var MOCHA_TIMEOUT = 40000;
+    var MOCHA_TIMEOUT = 60000;
 
     var regexErrors = false;
 
@@ -62,18 +62,19 @@ module.exports = function(grunt) {
                 'src': ['node_modules/oae-tests/runner/beforeTests.js', 'node_modules/oae-*/tests/**/*.js'],
                 'options': {
                     'timeout': MOCHA_TIMEOUT,
-                    'ignoreLeaks': true,
+                    'ignoreLeaks': false,
                     'reporter': 'spec',
                     'grep': mocha_grep,
                     'bail': false,
-                    'slow': 500
+                    'slow': 500,
+                    'globals': ['oaeTests']
                 }
             }
         },
         'clean': ['target/'],
         'replace': {
             'check-style': {
-                'src': ['node_modules/oae-*/**/*.js'],
+                'src': ['node_modules/oae-*/**/*.js', '!node_modules/oae-*/node_modules/**/*.js'],
                 'overwrite': true,
                 'replacements': [
                     {
@@ -158,8 +159,8 @@ module.exports = function(grunt) {
         report = report || 'lcov';
 
         // Get the modules that should be excluded
-        var nonOaeModules = grunt.file.expand({'filter': 'isDirectory'}, 'node_modules/*', '!node_modules/oae-*');
-        var nonOaeModulesParameters = _.map(nonOaeModules, function(module) {
+        var excludeDirectories = grunt.file.expand({'filter': 'isDirectory'}, 'node_modules/*', '!node_modules/oae-*', 'node_modules/oae-*/node_modules');
+        var excludeDirectoriesParameters = _.map(excludeDirectories, function(module) {
             return util.format('-x %s/\\*\\*', module);
         });
 
@@ -178,7 +179,7 @@ module.exports = function(grunt) {
         });
 
         // Build up one big set of exlusion filters
-        var excludeFilters = _.union(nonOaeModulesParameters, testDirectories, testUtilDirectories, configDirectories);
+        var excludeFilters = _.union(excludeDirectoriesParameters, testDirectories, testUtilDirectories, configDirectories);
         excludeFilters.push('-x Gruntfile.js');
 
         var cmd = util.format('node_modules/.bin/istanbul cover --verbose --dir target --no-default-excludes %s --report %s ./node_modules/grunt-cli/bin/grunt', excludeFilters.join(' '), report);

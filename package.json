@@ -96,7 +96,7 @@
     "redis": "latest",
     "request": "latest",
     "rimraf": "latest",
-    "restjsdoc": "git://github.com/oaeproject/restjsdoc",
+    "restjsdoc": "latest",
     "shortid": "latest",
     "slideshare": "git://github.com/oaeproject/node-slideshare",
     "sockjs": "latest",

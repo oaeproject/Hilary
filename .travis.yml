@@ -76,7 +76,7 @@ services:
   - redis-server
 
 script:
-  - grunt test-coverage-coveralls
+  - OAE_TEST_INTEGRATION=false grunt test-coverage-coveralls
 
 after_success:
   # Package and upload to Amazon S3

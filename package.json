@@ -1,7 +1,7 @@
 {
   "name": "Hilary",
   "description": "Open Academic Environment (OAE) Back-end",
-  "version": "7.0.0",
+  "version": "7.1.0",
   "homepage": "http://www.oaeproject.org",
   "author": {
     "name": "The Apereo Foundation",
@@ -48,7 +48,7 @@
     "mkdirp": "latest",
     "multiparty": "latest",
     "node-esapi": "latest",
-    "nodemailer": "latest",
+    "nodemailer": "0.7.1",
     "oae-activity": "",
     "oae-authentication": "",
     "oae-authz": "",
@@ -96,6 +96,7 @@
     "redis": "latest",
     "request": "latest",
     "rimraf": "latest",
+    "restjsdoc": "latest",
     "shortid": "latest",
     "slideshare": "git://github.com/oaeproject/node-slideshare",
     "sockjs": "latest",

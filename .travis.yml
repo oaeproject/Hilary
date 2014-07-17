@@ -43,9 +43,12 @@ before_install:
   - npm install -g grunt-cli
   - git clone --depth 1 --branch master git://github.com/oaeproject/3akai-ux.git ../3akai-ux
 
-  # Install etherpad-lite
-  - sudo apt-get install etherpad-lite
+  # Install etherpad
+  - cd /usr/src
+  - sudo wget https://s3.amazonaws.com/oae-releases/etherpad/1.4/etherpad-1.4.0_node-0.10.17.tar.gz
+  - sudo mkdir /opt/etherpad
   - cd /opt/etherpad
+  - sudo tar -zxvf /usr/src/etherpad-1.4.0_node-0.10.17.tar.gz > /dev/null
   - sudo touch APIKEY.txt
   - sudo chmod -R 777 .
 
@@ -54,13 +57,14 @@ before_install:
   - "echo \"CREATE KEYSPACE etherpad WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};\" > /tmp/.create_etherpad_keyspace.cql3"
   - cqlsh -3 -f /tmp/.create_etherpad_keyspace.cql3
 
-  # Configure etherpad to talk to Cassandra
+  # Configure etherpad
   - "sed -i 's/dbType\" : \"dirty/dbType\" : \"cassandra/g' settings.json"
   - "sed -i 's/\"filename\" : \"var\\/dirty.db\"/\"hosts\": [ \"localhost:9160\" ], \"keyspace\": \"etherpad\", \"cfName\": \"Etherpad\", \"user\": \"\", \"pass\": \"\", \"timeout\": 3000, \"replication\": \"1\", \"strategyClass\": \"SimpleStrategy\", \"cqlVersion\": \"2.0.0\"/g' settings.json"
   - "sed -i 's/defaultPadText\" : \".*\"/defaultPadText\" : \"\"/g' settings.json"
-
   - echo "13SirapH8t3kxUh5T5aqWXhXahMzoZRA" > APIKEY.txt
-  - node src/node/server.js &> /dev/null &
+
+  # Start etherpad
+  - node node_modules/ep_etherpad-lite/node/server.js &
 
   # Position ourselves to start the test in "script" phase
   - cd ~/build/oaeproject/Hilary

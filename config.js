@@ -300,6 +300,13 @@ config.signing = {
  * @param  {Number}     [maxConcurrentRouters]          The maximum number of activities that will be routed by one node at one time. This should be used to ensure activities are not routed faster than they can be collected, to ensure the redis collection buckets do not grow in size uncontrollably under unanticipated load. Defaults to 5
  * @param  {Number}     [collectionPollingFrequency]    How often (in seconds) the processing buckets are polled for new activities. If -1, polling will be disabled. If polling is disabled, activities will not function, so do not set to -1 in production. Defaults to 5 seconds.
  * @param  {Number}     [collectionBatchSize]           The number of items to process at a time when collecting bucketed activities. After one batch has been collected, the activity processor will immediately continue to process the next batch from that bucket, and so on. Defaults to 1000
+ * @param  {Object}     [mail]                          Configuration for aggregated emails
+ * @param  {Number}     [mail.pollingFrequency]         How often (in seconds) the email processing buckets are polled for new activities. This frequency will roughly determine the delay between an activity and sending an email for a user who has selected `immediate` and is involved in the activity. It should always be less than an hour
+ * @param  {Object}     [mail.daily]                    Configuration for the daily email aggregate collection cycle
+ * @param  {Number}     [mail.daily.hour]               At what hour during the day email should be collected for daily aggregates
+ * @param  {Object}     [mail.weekly]                   Configuration for the weekly email aggregate collection cycle
+ * @param  {Number}     [mail.weekly.day]               On which day emails should be sent for weekly aggregates. Zero-based where `0` is sunday. Default is `5`
+ * @param  {Number}     [mail.weekly.hour]              On which hour emails should be sent for weekly aggregates. You should probably keep this different to the `mail.daily.hour` value in order to spread the load
  * @param  {Object}     [redis]                         Configuration for dedicated redis server. If not specified, will use the same pool as the rest of the container (i.e., as specified by `config.redis`)
  * @param  {String}     [redis.host]                    The host of the dedicated redis server
  * @param  {Number}     [redis.port]                    The port of the dedicated redis server
@@ -317,6 +324,16 @@ config.activity = {
     'maxConcurrentRouters': 5,
     'collectionPollingFrequency': 5,        // 5 seconds
     'collectionBatchSize': 1000,
+    'mail': {
+        'pollingFrequency': 10 * 60,        // 10 minutes
+        'daily': {
+            'hour': 8                       // 8AM
+        },
+        'weekly': {
+            'day': 3,                       // Wednesday, 0-based where 0 = Sunday
+            'hour': 12                      // Noon
+        }
+    },
     'redis': null
 };
 

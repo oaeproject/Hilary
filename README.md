@@ -50,7 +50,12 @@ All Hilary data is stored in Apache Cassandra. Therefore it is *not necessary* t
 
 #### Redis
 
-Download and install (or compile) the latest version of Redis, please follow the installation instructions on the [Redis download page](http://redis.io/download). Once installed, you can start it by running the following:
+Download and install (or compile) the latest version of Redis, please follow the installation instructions on the [Redis download page](http://redis.io/download).
+
+**Important:**
+* In order to install Redis on Mac OS X, you will first need to make sure that [XCode](https://developer.apple.com/xcode/downloads/) is installed
+
+Once installed, you can start Redis by running the following:
 
 ```
 cd my-redis-dir
@@ -63,7 +68,7 @@ Redis is used for caching frequently accessed data and for broadcasting messages
 
 #### ElasticSearch
 
-Download the latest 0.90.x point release of [ElasticSearch](http://www.elasticsearch.org/download/), and extract it to a directory of your choice (please avoid version 1.x for now as Hilary is known not to be compatible yet). Once extracted, you can start it by running the following:
+Download the latest 1.1.x point release of [ElasticSearch](http://www.elasticsearch.org/download/), and extract it to a directory of your choice. Once extracted, you can start it by running the following:
 
 ```
 cd my-elasticsearch-dir

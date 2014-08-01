@@ -419,3 +419,21 @@ config.etherpad = {
 config.tincanapi = {
     'timeout': 4000
 };
+
+/**
+* `config.stats`
+*
+* Configuration namespace for the stats logic
+*
+* @param  {Object}      storage             Defines the storage stats related configuration
+* @param  {Boolean}     storage.enabled     Whether or not the storage stats should be enabled. Keep in mind this only works on POSIX systems
+* @param  {Number}      storage.interval    How often (in seconds) the storage stats should be updated. Default: every 4 hours
+* @param  {Number}      storage.expiry      The maximum amount of time (in seconds) a a single collection of storage statistics can last. Any longer runs are considered errors and should be investigated. Default: an hour
+*/
+config.stats = {
+    'storage': {
+        'enabled': false,
+        'interval': 4 * 60 * 60,
+        'expiry': 60 * 60
+    }
+};

@@ -20,6 +20,7 @@ node_modules/*
 !node_modules/oae-preview-processor
 !node_modules/oae-principals
 !node_modules/oae-search
+!node_modules/oae-stats
 !node_modules/oae-telemetry
 !node_modules/oae-tenants
 !node_modules/oae-tests

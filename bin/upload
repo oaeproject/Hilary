@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 var path = require('path');
-var util = require('util');
 
 var CoreUtil = require('oae-release-tools').CoreUtil;
 var UploadUtil = require('oae-release-tools').UploadUtil;

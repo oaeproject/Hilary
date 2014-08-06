@@ -182,15 +182,20 @@ to
 "defaultPadText" : ""
 ```
 
-You can optionally add the [Etherpad headings plugin](https://github.com/fourplusone/etherpad-plugins/tree/master/ep_headings) which allows you to use HTML headings in your document.
+You can optionally add some plugins which make Etherpad look and feel slightly better.
 The installation process is the same as the OAE plugin so it should be installed in the top-level node_modules directory.
+
+ * `ep_page_view`: Shows a page view of the collaborative document
+ * `ep_headings`: Allows you to use HTML headings in the collaborative document
+ * `ep_spellcheck`: Enables a spellchecker when you are editing the collaborative document
+ * `ep_hide_line_numbers`: Hides the line numbers in the side bar
 
 ```
 cd your-etherpad-dir
-cd ..
-git clone git://github.com/fourplusone/etherpad-plugins.git
-cd your-etherpad-dir
-npm install your-etherpad-plugins-dir/ep_headings
+npm install ep_page_view
+npm install ep_headings
+npm install ep_spellcheck
+npm install ep_hide_line_numbers
 ```
 
 Now, Etherpad can be started by running the following command:

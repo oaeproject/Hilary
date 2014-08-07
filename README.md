@@ -140,17 +140,27 @@ Nginx is the most tested load balancer and web server used for OAE. A web server
 
 [Etherpad](http://etherpad.org/) is an open-source editor for online collaborative editing in real-time and is used to power the OAE collaborative documents. Follow the [Etherpad README](https://github.com/ether/etherpad-lite/blob/develop/README.md) to get it installed. Make sure you get the 1.4.0 release.
 
-Once you've installed the server you will also need the [Etherpad OAE](https://github.com/oaeproject/ep_oae) plugin. It's the glue for authenticating users between Hilary and etherpad-lite.
-The simplest method of installing the plugin is cloning it in the top node_modules folder that can be found in your etherpad-lite directory.
+Once you've installed the server you will also need the [Etherpad OAE](https://github.com/oaeproject/ep_oae) plugin. It's the glue for authenticating users between Hilary and etherpad-lite. The simplest method of installing the plugin is cloning it in the top node_modules folder that can be found in your etherpad-lite directory.
 
 ```
 cd your-etherpad-dir
 cd node_modules
 git clone https://github.com/oaeproject/ep_oae
-cd ..
+cd ep_oae
+npm install
+cd ../..
 ```
 
-You can copy or symlink the `static/css/pad.css` in the `ep_oae` module to `your-etherpad-dir/src/static/custom/pad.css` in order to apply the OAE skin on etherpad.
+You can copy or symlink the `static/css/pad.css` in the `ep_oae` module to `your-etherpad-dir/src/static/custom/pad.css` in order to apply the OAE skin on etherpad. The module needs to send events back to OAE, this happens over RabbitMQ. If you're running RabbitMQ on a different server (or on a different ip / port) you can configure the settings by adding the following block to Etherpad's `settings.json` file.
+
+```
+"ep_oae": {
+    "mq": {
+        "host": "10.1.2.3",
+        "port": 5672
+    }
+}
+```
 
 ```
 cd your-etherpad-dir

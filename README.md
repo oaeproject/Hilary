@@ -138,7 +138,7 @@ Nginx is the most tested load balancer and web server used for OAE. A web server
 
 #### Etherpad lite
 
-[Etherpad](http://etherpad.org/) is an open-source editor for online collaborative editing in real-time and is used to power the OAE collaborative documents. Follow the [Etherpad README](https://github.com/ether/etherpad-lite/blob/develop/README.md) to get it installed. Make sure you get the 1.2.91 release.
+[Etherpad](http://etherpad.org/) is an open-source editor for online collaborative editing in real-time and is used to power the OAE collaborative documents. Follow the [Etherpad README](https://github.com/ether/etherpad-lite/blob/develop/README.md) to get it installed. Make sure you get the 1.4.0 release.
 
 Once you've installed the server you will also need the [Etherpad OAE](https://github.com/oaeproject/ep_oae) plugin. It's the glue for authenticating users between Hilary and etherpad-lite.
 The simplest method of installing the plugin is cloning it in the top node_modules folder that can be found in your etherpad-lite directory.
@@ -182,15 +182,20 @@ to
 "defaultPadText" : ""
 ```
 
-You can optionally add the [Etherpad headings plugin](https://github.com/fourplusone/etherpad-plugins/tree/master/ep_headings) which allows you to use HTML headings in your document.
+You can optionally add some plugins which make Etherpad look and feel slightly better.
 The installation process is the same as the OAE plugin so it should be installed in the top-level node_modules directory.
+
+ * `ep_page_view`: Shows a page view of the collaborative document
+ * `ep_headings`: Allows you to use HTML headings in the collaborative document
+ * `ep_spellcheck`: Enables a spellchecker when you are editing the collaborative document
+ * `ep_hide_line_numbers`: Hides the line numbers in the side bar
 
 ```
 cd your-etherpad-dir
-cd ..
-git clone git://github.com/fourplusone/etherpad-plugins.git
-cd your-etherpad-dir
-npm install your-etherpad-plugins-dir/ep_headings
+npm install ep_page_view
+npm install ep_headings
+npm install ep_spellcheck
+npm install ep_hide_line_numbers
 ```
 
 Now, Etherpad can be started by running the following command:

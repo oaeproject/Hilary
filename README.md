@@ -194,14 +194,12 @@ to
 You can optionally add some plugins which make Etherpad look and feel slightly better.
 The installation process is the same as the OAE plugin so it should be installed in the top-level node_modules directory.
 
- * `ep_page_view`: Shows a page view of the collaborative document
  * `ep_headings`: Allows you to use HTML headings in the collaborative document
  * `ep_spellcheck`: Enables a spellchecker when you are editing the collaborative document
  * `ep_hide_line_numbers`: Hides the line numbers in the side bar
 
 ```
 cd your-etherpad-dir
-npm install ep_page_view
 npm install ep_headings
 npm install ep_spellcheck
 npm install ep_hide_line_numbers
@@ -212,7 +210,7 @@ In order to have custom titles for headers, copy or symlink the `static/template
 ```
 cd your-etherpad-dir
 rm node_modules/ep_headings/templates/editbarButtons.ejs
-ln -s node_modules/ep_oae/static/templates/editbarButtons.ejs node_modules/ep_headings/templates/editbarButtons.ejs
+ln -s ../../../node_modules/ep_oae/static/templates/editbarButtons.ejs node_modules/ep_headings/templates/editbarButtons.ejs
 ```
 
 In order to use the OAE toolbar, the etherpad `settings.json` file needs to be updated to reflect the following changes:

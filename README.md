@@ -152,7 +152,7 @@ cd ../..
 
 You can copy or symlink the `static/css/pad.css` in the `ep_oae` module to `your-etherpad-dir/src/static/custom/pad.css` in order to apply the OAE skin on etherpad. The module needs to send events back to OAE, which happens over RabbitMQ. If you're not running RabbitMQ on the IP or port, you can configure the settings by adding the following block to Etherpad's `settings.json` file.
 
-```
+```javascript
 "ep_oae": {
     "mq": {
         "host": "10.1.2.3",
@@ -169,25 +169,25 @@ ln -s ../../../node_modules/ep_oae/static/css/pad.css src/static/custom/pad.css
 
 Next, we need to enable websockets as a way of communicating between Etherpad and Hilary. In order to do this, open the settings.json file in your favourite editor and change
 
-```
+```javascript
 "socketTransportProtocols" : ["xhr-polling", "jsonp-polling", "htmlfile"],
 ```
 
 to
 
-```
+```javascript
 "socketTransportProtocols" : ["websocket", "xhr-polling", "jsonp-polling", "htmlfile"],
 ```
 
 It is also recommended that you change the default pad text. In order to do this, open the settings.json file in your favourite editor and change
 
-```
+```javascript
 "defaultPadText" : "Welcome to Etherpad!\n\nThis pad text is synchronized ..."
 ```
 
 to
 
-```
+```javascript
 "defaultPadText" : ""
 ```
 
@@ -205,6 +205,27 @@ npm install ep_page_view
 npm install ep_headings
 npm install ep_spellcheck
 npm install ep_hide_line_numbers
+```
+
+In order to have custom titles for headers, copy or symlink the `static/templates/editbarButtons.ejs` file in the `ep_oae` module to `your-etherpad-directory/node_modules/ep_headings/templates/editbarButtons.ejs`.
+
+```
+cd your-etherpad-dir
+rm node_modules/ep_headings/templates/editbarButtons.ejs
+ln -s node_modules/ep_oae/static/templates/editbarButtons.ejs node_modules/ep_headings/templates/editbarButtons.ejs
+```
+
+In order to use the OAE toolbar, the etherpad `settings.json` file needs to be updated to reflect the following changes:
+
+```javascript
+"toolbar": {
+    "left": [
+        ["bold", "italic", "underline", "strikethrough", "orderedlist", "unorderedlist", "indent", "outdent"]
+    ],
+    "right": [
+        ["showusers"]
+    ]
+}
 ```
 
 Now, Etherpad can be started by running the following command:

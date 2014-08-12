@@ -5,6 +5,7 @@ node_modules/*
 !node_modules/oae-activity
 !node_modules/oae-authentication
 !node_modules/oae-authz
+!node_modules/oae-collections
 !node_modules/oae-config
 !node_modules/oae-content
 !node_modules/oae-context

@@ -1,7 +1,7 @@
 {
   "name": "Hilary",
   "description": "Open Academic Environment (OAE) Back-end",
-  "version": "7.1.1",
+  "version": "7.2.0",
   "homepage": "http://www.oaeproject.org",
   "author": {
     "name": "The Apereo Foundation",
@@ -62,6 +62,7 @@
     "oae-discussions": "",
     "oae-doc": "",
     "oae-email": "",
+    "oae-folders": "",
     "oae-following": "",
     "oae-google-analytics": "",
     "oae-library": "",
@@ -145,6 +146,7 @@
     "oae-discussions",
     "oae-doc",
     "oae-email",
+    "oae-folders",
     "oae-following",
     "oae-google-analytics",
     "oae-library",

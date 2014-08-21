@@ -22,11 +22,10 @@ The Hilary back-end is written completely in JavaScript, powered by Node.js.
 
 #### Apache Cassandra
 
-Download the latest version of [Apache Cassandra](http://cassandra.apache.org/) 1.2 and extract it to a directory of your choice.
+Download the latest version of [Apache Cassandra 2.0.x](http://cassandra.apache.org/download/) and extract it to a directory of your choice.
 
 **Important:**
 * Cassandra is best supported with the latest version of Oracle Java 6. Trying to run vanilla Cassandra with OpenJDK can result in a silent segmentation fault
-* Hilary currently does not support Cassandra 2.0. Please be sure to use the latest stable release of 1.2
 
 Create the following directories and set the owner to be the user that will be running Cassandra:
 
@@ -37,7 +36,7 @@ sudo mkdir -p /var/lib/cassandra
 sudo chown -R `whoami` /var/lib/cassandra
 ```
 
-Then you can start Cassandra in the background by running the following:
+Then you can start Cassandra by running the following:
 
 ```
 cd my-cassandra-dir
@@ -46,7 +45,7 @@ bin/cassandra -f
 
 To start it in the background, you can omit the `-f` parameter.
 
-All Hilary data is stored in Apache Cassandra. Therefore it is *not necessary* to install any RDBMS such as MySQL or PostgreSQL.
+All canonical Hilary data is stored in Apache Cassandra. Therefore it is *not necessary* to install any RDBMS such as MySQL or PostgreSQL.
 
 #### Redis
 
@@ -138,19 +137,29 @@ Nginx is the most tested load balancer and web server used for OAE. A web server
 
 #### Etherpad lite
 
-[Etherpad](http://etherpad.org/) is an open-source editor for online collaborative editing in real-time and is used to power the OAE collaborative documents. Follow the [Etherpad README](https://github.com/ether/etherpad-lite/blob/develop/README.md) to get it installed. Make sure you get the 1.2.91 release.
+[Etherpad](http://etherpad.org/) is an open-source editor for online collaborative editing in real-time and is used to power the OAE collaborative documents. Follow the [Etherpad README](https://github.com/ether/etherpad-lite/blob/develop/README.md) to get it installed. Make sure you get the 1.4.0 release.
 
-Once you've installed the server you will also need the [Etherpad OAE](https://github.com/oaeproject/ep_oae) plugin. It's the glue for authenticating users between Hilary and etherpad-lite.
-The simplest method of installing the plugin is cloning it in the top node_modules folder that can be found in your etherpad-lite directory.
+Once you've installed Etherpad, you will also need the [Etherpad OAE](https://github.com/oaeproject/ep_oae) plugin. This is the glue for authenticating users between Hilary and etherpad-lite. The simplest method of installing the plugin is cloning it in the top node_modules folder that can be found in your etherpad-lite directory.
 
 ```
 cd your-etherpad-dir
 cd node_modules
 git clone https://github.com/oaeproject/ep_oae
-cd ..
+cd ep_oae
+npm install
+cd ../..
 ```
 
-You can copy or symlink the `static/css/pad.css` in the `ep_oae` module to `your-etherpad-dir/src/static/custom/pad.css` in order to apply the OAE skin on etherpad.
+You can copy or symlink the `static/css/pad.css` in the `ep_oae` module to `your-etherpad-dir/src/static/custom/pad.css` in order to apply the OAE skin on etherpad. The module needs to send events back to OAE, which happens over RabbitMQ. If you're not running RabbitMQ on the IP or port, you can configure the settings by adding the following block to Etherpad's `settings.json` file.
+
+```javascript
+"ep_oae": {
+    "mq": {
+        "host": "10.1.2.3",
+        "port": 5672
+    }
+}
+```
 
 ```
 cd your-etherpad-dir
@@ -160,37 +169,61 @@ ln -s ../../../node_modules/ep_oae/static/css/pad.css src/static/custom/pad.css
 
 Next, we need to enable websockets as a way of communicating between Etherpad and Hilary. In order to do this, open the settings.json file in your favourite editor and change
 
-```
+```javascript
 "socketTransportProtocols" : ["xhr-polling", "jsonp-polling", "htmlfile"],
 ```
 
 to
 
-```
+```javascript
 "socketTransportProtocols" : ["websocket", "xhr-polling", "jsonp-polling", "htmlfile"],
 ```
 
 It is also recommended that you change the default pad text. In order to do this, open the settings.json file in your favourite editor and change
 
-```
+```javascript
 "defaultPadText" : "Welcome to Etherpad!\n\nThis pad text is synchronized ..."
 ```
 
 to
 
-```
+```javascript
 "defaultPadText" : ""
 ```
 
-You can optionally add the [Etherpad headings plugin](https://github.com/fourplusone/etherpad-plugins/tree/master/ep_headings) which allows you to use HTML headings in your document.
+You can optionally add some plugins which make Etherpad look and feel slightly better.
 The installation process is the same as the OAE plugin so it should be installed in the top-level node_modules directory.
+
+ * `ep_headings`: Allows you to use HTML headings in the collaborative document
+ * `ep_spellcheck`: Enables a spellchecker when you are editing the collaborative document
+ * `ep_hide_line_numbers`: Hides the line numbers in the side bar
 
 ```
 cd your-etherpad-dir
-cd ..
-git clone git://github.com/fourplusone/etherpad-plugins.git
+npm install ep_headings
+npm install ep_spellcheck
+npm install ep_hide_line_numbers
+```
+
+In order to have custom titles for headers, copy or symlink the `static/templates/editbarButtons.ejs` file in the `ep_oae` module to `your-etherpad-directory/node_modules/ep_headings/templates/editbarButtons.ejs`.
+
+```
 cd your-etherpad-dir
-npm install your-etherpad-plugins-dir/ep_headings
+rm node_modules/ep_headings/templates/editbarButtons.ejs
+ln -s ../../../node_modules/ep_oae/static/templates/editbarButtons.ejs node_modules/ep_headings/templates/editbarButtons.ejs
+```
+
+In order to use the OAE toolbar, the etherpad `settings.json` file needs to be updated to reflect the following changes:
+
+```javascript
+"toolbar": {
+    "left": [
+        ["bold", "italic", "underline", "strikethrough", "orderedlist", "unorderedlist", "indent", "outdent"]
+    ],
+    "right": [
+        ["showusers"]
+    ]
+}
 ```
 
 Now, Etherpad can be started by running the following command:

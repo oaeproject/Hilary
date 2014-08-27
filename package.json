@@ -108,7 +108,7 @@
     "strftime": "latest",
     "temp": "latest",
     "timezone-js": "latest",
-    "underscore": "1.6.0",
+    "underscore": "latest",
     "uservoice-sso": "latest",
     "validator": "1.1.3",
     "watch": "latest",

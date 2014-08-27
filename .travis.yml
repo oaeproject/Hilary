@@ -17,7 +17,7 @@ before_install:
   - curl -L http://debian.datastax.com/debian/repo_key | sudo apt-key add -
   - echo "deb http://debian.datastax.com/community stable main" | sudo tee -a /etc/apt/sources.list.d/dsc.sources.list
 
-  # Add the ElasticSearch apt repo for ElasticSearch
+  # Add ElasticSearch apt repo
   - wget -qO - http://packages.elasticsearch.org/GPG-KEY-elasticsearch | sudo apt-key add -
   - echo "deb http://packages.elasticsearch.org/elasticsearch/1.1/debian stable main" | sudo tee -a /etc/apt/sources.list.d/elasticsearch.sources.list
 

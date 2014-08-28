@@ -91,7 +91,6 @@
     "passport-local": "latest",
     "passport-oauth2-client-password": "latest",
     "passport-openid": "latest",
-    "passport-saml": "git://github.com/simong/passport-saml",
     "passport-twitter": "latest",
     "properties-parser": "latest",
     "rails-timezone": "latest",

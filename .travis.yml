@@ -71,7 +71,7 @@ before_install:
   - echo "13SirapH8t3kxUh5T5aqWXhXahMzoZRA" > APIKEY.txt
 
   # Start etherpad
-  - node node_modules/ep_etherpad-lite/node/server.js &
+  - node node_modules/ep_etherpad-lite/node/server.js &> /dev/null &
 
   # Position ourselves to start the test in "script" phase
   - cd ~/build/oaeproject/Hilary

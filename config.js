@@ -103,6 +103,7 @@ config.files = {
         'enabled': true,
         'interval': 2*60*60
     },
+    'limit': '4096mb',
     'localStorageDirectory': '../files'
 };
 
@@ -259,7 +260,7 @@ config.previews = {
         'binary': 'pdftk',
         'timeout': 120000
     },
-    'pdf2htmlEX':{
+    'pdf2htmlEX': {
         'binary': 'pdf2htmlEX',
         'timeout': 120000
     },
@@ -315,7 +316,7 @@ config.signing = {
  */
 config.activity = {
     'processActivityJobs': true,
-    'activityTtl': 2 * 30 * 24 * 60 * 60,    // 2 months (in seconds)
+    'activityTtl': 2 * 30 * 24 * 60 * 60,   // 2 months (in seconds)
     'numberOfProcessingBuckets': 3,
     'aggregateIdleExpiry': 3 * 60 * 60,     // 3 hours (in seconds)
     'aggregateMaxExpiry': 24 * 60 * 60,     // 1 day (in seconds)

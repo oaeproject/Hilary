@@ -2,23 +2,38 @@ var _ = require('underscore');
 
 var Cassandra = require('oae-util/lib/cassandra');
 
-var config = require('./config').config;
+var config = require('../../../config').config;
 
+// Connect to cassandra and start the migration
 Cassandra.init(config.cassandra, function(err) {
     if (err) {
-        console.error(err);
-        return;
+        console.error(err.msg);
+        process.exit(err.code);
     }
 
     startProcessing();
 });
 
-var done = function() {
-    console.log('All done!');
-    console.log(arguments);
+/**
+ * Notify the user that the migration is complete
+ */
+var _done = function(err) {
+    if (err) {
+        console.error(err.msg);
+        process.exit(err.code);
+    }
+    console.log('Migration complete');
+    process.exit();
 }
 
-var onEach = function(rows, callback) {
+/**
+ * Migrate a set of rows by adding a `created` timestamp to each (the timestamp will be when the row was
+ * last written)
+ *
+ * @param  {Row[]}      rows        An array of cassandra rows to update
+ * @param  {Function}   callback    A standard callback function
+ */
+var _migrateRows = function(rows, callback) {
     var queries = [];
 
     _.each(rows, function(row) {
@@ -29,9 +44,16 @@ var onEach = function(rows, callback) {
     });
 
     // Add the created timestamp and move on to the next page
-    Cassandra.runBatchQuery(queries, callback);
+    return Cassandra.runBatchQuery(queries, callback);
 }
 
+/**
+ * Start the migration
+ */
 var startProcessing = function() {
-    Cassandra.iterateAll(['principalId', 'WRITETIME("tenantAlias") AS wt'], 'Principals', 'principalId', {'batchSize': 30}, onEach, done);
+    Cassandra.runQuery('ALTER TABLE "Principals" ADD "created" timestamp', null, function() {
+        Cassandra.runQuery('ALTER TABLE "Principals" ADD "createdBy" text', null, function() {
+            return Cassandra.iterateAll(['principalId', 'WRITETIME("tenantAlias") AS wt'], 'Principals', 'principalId', {'batchSize': 30}, _migrateRows, _done);
+        });
+    });
 };

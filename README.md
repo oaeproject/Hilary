@@ -351,3 +351,10 @@ That's it! You can now access the user tenant by their host http://tenant1.oae.c
 
 We're looking forward to seeing your contributions to the OAE project!
 
+## Get in touch
+
+The project website can be found at http://www.oaeproject.org. The [project blog](http://www.oaeproject.org/blog) will be updated with the latest project news from time to time.
+
+The mailing list used for Apereo OAE is oae@apereo.org. You can subscribe to the mailing list at https://groups.google.com/a/apereo.org/d/forum/oae.
+
+Bugs and other issues can be reported in our [issue tracker](https://github.com/oaeproject/Hilary/issues). Ideas for new features and capabilities can be suggested and voted for in our [UserVoice page](https://github.com/oaeproject/Hilary/issues).

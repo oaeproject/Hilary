@@ -16,6 +16,7 @@
  */
 
 var optimist = require('optimist');
+var repl = require("repl");
 var argv = optimist.usage('$0 [--config <path/to/config.js>]')
     .alias('c', 'config')
     .describe('c', 'Specify an alternate config file')
@@ -23,6 +24,8 @@ var argv = optimist.usage('$0 [--config <path/to/config.js>]')
 
     .alias('h', 'help')
     .describe('h', 'Show usage information')
+    .alias('i', 'interactive')
+    .describe('i', 'Start an interactive shell')
     .argv;
 
 var OAE = require('oae-util/lib/oae');
@@ -51,4 +54,10 @@ OAE.init(config, function(err) {
         log().error({err: err}, 'Error initializing server.');
     }
     log().info("Initialization all done ... Firing up tenants ... Enjoy!");
+    if (argv.interactive) {
+        var replServer = repl.start({
+            prompt: 'oae > '
+        });
+        replServer.context.OAE = OAE;
+    }
 });

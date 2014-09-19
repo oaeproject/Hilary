@@ -25,6 +25,7 @@
     "awssum-amazon-s3": "latest",
     "body-parser": "latest",
     "bunyan": "latest",
+    "bunyan-prettystream": "latest",
     "cheerio": "latest",
     "clone": "latest",
     "connect": "latest",

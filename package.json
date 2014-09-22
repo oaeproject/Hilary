@@ -44,6 +44,7 @@
     "less": "latest",
     "locale": "latest",
     "mailparser": "latest",
+    "markdown": "latest",
     "mime": "latest",
     "mkdirp": "latest",
     "multiparty": "latest",

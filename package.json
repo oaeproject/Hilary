@@ -70,7 +70,7 @@
     "oae-messagebox": "",
     "oae-principals": "",
     "oae-preview-processor": "",
-    "oae-rest": "latest",
+    "oae-rest": "git://github.com/oaeproject/oae-rest#1002-update-visibility",
     "oae-search": "",
     "oae-telemetry": "",
     "oae-tenants": "",

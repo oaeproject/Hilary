@@ -15,7 +15,9 @@
  * permissions and limitations under the License.
  */
 
+var PrettyStream = require('bunyan-prettystream');
 var optimist = require('optimist');
+var repl = require('repl');
 var argv = optimist.usage('$0 [--config <path/to/config.js>]')
     .alias('c', 'config')
     .describe('c', 'Specify an alternate config file')
@@ -23,6 +25,12 @@ var argv = optimist.usage('$0 [--config <path/to/config.js>]')
 
     .alias('h', 'help')
     .describe('h', 'Show usage information')
+
+    .alias('i', 'interactive')
+    .describe('i', 'Start an interactive shell, implies --pretty')
+
+    .alias('p', 'pretty')
+    .describe('p', 'Pretty print the logs')
     .argv;
 
 var OAE = require('oae-util/lib/oae');
@@ -45,10 +53,26 @@ if (argv.config.match(/^\.\//)) {
 
 var config = require(argv.config).config;
 
+// If the user asked for pretty output change the log stream
+if (argv.pretty || argv.interactive) {
+    var prettyStdOut = new PrettyStream();
+    prettyStdOut.pipe(process.stdout);
+
+    config.log.streams[0].stream = prettyStdOut;
+}
+
 // Start the server and all of its tenants
 OAE.init(config, function(err) {
     if (err) {
         log().error({err: err}, 'Error initializing server.');
     }
-    log().info("Initialization all done ... Firing up tenants ... Enjoy!");
+    log().info('Initialization all done ... Firing up tenants ... Enjoy!');
+    // If the user asked for an interactive shell start the node REPL and pass in the OAE and log objects
+    if (argv.interactive) {
+        var replServer = repl.start({
+            prompt: 'oae > '
+        });
+        replServer.context.OAE = OAE;
+        replServer.context.log = log;
+    }
 });

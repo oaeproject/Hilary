@@ -135,7 +135,7 @@
   },
   "optionalDependencies": {
     "bunyan-syslog": "latest",
-    "hiredis": "0.1.13",
+    "hiredis": "latest",
     "webshot": "latest"
   },
   "bundleDependencies": [

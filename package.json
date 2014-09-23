@@ -103,6 +103,7 @@
     "request": "latest",
     "rimraf": "latest",
     "restjsdoc": "latest",
+    "selectn": "latest",
     "shortid": "latest",
     "slideshare": "git://github.com/oaeproject/node-slideshare",
     "sockjs": "latest",

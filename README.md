@@ -195,14 +195,10 @@ You can optionally add some plugins which make Etherpad look and feel slightly b
 The installation process is the same as the OAE plugin so it should be installed in the top-level node_modules directory.
 
  * `ep_headings`: Allows you to use HTML headings in the collaborative document
- * `ep_spellcheck`: Enables a spellchecker when you are editing the collaborative document
- * `ep_hide_line_numbers`: Hides the line numbers in the side bar
 
 ```
 cd your-etherpad-dir
 npm install ep_headings
-npm install ep_spellcheck
-npm install ep_hide_line_numbers
 ```
 
 In order to have custom titles for headers, copy or symlink the `static/templates/editbarButtons.ejs` file in the `ep_oae` module to `your-etherpad-directory/node_modules/ep_headings/templates/editbarButtons.ejs`.
@@ -355,3 +351,10 @@ That's it! You can now access the user tenant by their host http://tenant1.oae.c
 
 We're looking forward to seeing your contributions to the OAE project!
 
+## Get in touch
+
+The project website can be found at http://www.oaeproject.org. The [project blog](http://www.oaeproject.org/blog) will be updated with the latest project news from time to time.
+
+The mailing list used for Apereo OAE is oae@apereo.org. You can subscribe to the mailing list at https://groups.google.com/a/apereo.org/d/forum/oae.
+
+Bugs and other issues can be reported in our [issue tracker](https://github.com/oaeproject/Hilary/issues). Ideas for new features and capabilities can be suggested and voted for in our [UserVoice page](http://oaeproject.uservoice.com).

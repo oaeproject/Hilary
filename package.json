@@ -25,6 +25,7 @@
     "awssum-amazon-s3": "latest",
     "body-parser": "latest",
     "bunyan": "latest",
+    "bunyan-prettystream": "latest",
     "cheerio": "latest",
     "clone": "latest",
     "connect": "latest",
@@ -70,7 +71,7 @@
     "oae-messagebox": "",
     "oae-principals": "",
     "oae-preview-processor": "",
-    "oae-rest": "latest",
+    "oae-rest": "git://github.com/oaeproject/oae-rest#1002-update-visibility",
     "oae-search": "",
     "oae-telemetry": "",
     "oae-tenants": "",
@@ -101,6 +102,7 @@
     "request": "latest",
     "rimraf": "latest",
     "restjsdoc": "latest",
+    "selectn": "latest",
     "shortid": "latest",
     "slideshare": "git://github.com/oaeproject/node-slideshare",
     "sockjs": "latest",
@@ -133,7 +135,7 @@
   },
   "optionalDependencies": {
     "bunyan-syslog": "latest",
-    "hiredis": "0.1.13",
+    "hiredis": "latest",
     "webshot": "latest"
   },
   "bundleDependencies": [

@@ -252,7 +252,7 @@ config.mq = {
  * @param  {String}      credentials.password           The password to login with on the global admin server
  */
 config.previews = {
-    'enabled': false,
+    'enabled': true,
     'tmpDir': tmpDir + '/previews',
     'office': {
         'binary': 'soffice',
@@ -305,6 +305,7 @@ config.signing = {
  * @param  {Number}     [collectionBatchSize]           The number of items to process at a time when collecting bucketed activities. After one batch has been collected, the activity processor will immediately continue to process the next batch from that bucket, and so on. Defaults to 1000
  * @param  {Object}     [mail]                          Configuration for aggregated emails
  * @param  {Number}     [mail.pollingFrequency]         How often (in seconds) the email processing buckets are polled for new activities. This frequency will roughly determine the delay between an activity and sending an email for a user who has selected `immediate` and is involved in the activity. It should always be less than an hour
+ * @param  {Number}     [mail.gracePeriod]              The minimum amount of time (in seconds) that should pass before the email process can send out an e-mail for an activity. This is to allow further activities to aggregate with the activity that triggered the email. Defaults to 3 minutes
  * @param  {Object}     [mail.daily]                    Configuration for the daily email aggregate collection cycle
  * @param  {Number}     [mail.daily.hour]               At what hour during the day email should be collected for daily aggregates
  * @param  {Object}     [mail.weekly]                   Configuration for the weekly email aggregate collection cycle
@@ -328,7 +329,8 @@ config.activity = {
     'collectionPollingFrequency': 5,        // 5 seconds
     'collectionBatchSize': 1000,
     'mail': {
-        'pollingFrequency': 10 * 60,        // 10 minutes
+        'pollingFrequency': 15 * 60,        // 15 minutes
+        'gracePeriod':  3 * 60,             // 3 minutes
         'daily': {
             'hour': 8                       // 8AM
         },

@@ -34,8 +34,9 @@ before_install:
   - "sudo sed -i 's/key_cache_size_in_mb:/key_cache_size_in_mb: 0/g' /etc/cassandra/cassandra.yaml"
   - sudo service cassandra stop
   # Give Cassandra some time to shut down
-  - sleep 10
+  - sleep 5
   - sudo service cassandra start
+  - sleep 5
   - sudo service cassandra status
 
   # Install elasticsearch 1.1.1 manually

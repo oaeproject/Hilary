@@ -22,6 +22,7 @@
   ],
   "dependencies": {
     "amqp": "git://github.com/oaeproject/node-amqp#0.1.8.x",
+    "async": "latest",
     "awssum-amazon-s3": "latest",
     "body-parser": "latest",
     "bunyan": "latest",

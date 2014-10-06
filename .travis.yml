@@ -29,7 +29,7 @@ before_install:
   # Install cassandra 2 manually
   - sudo service cassandra stop
   - sudo apt-get install -y -o Dpkg::Options::=--force-confnew cassandra=2.0.8
-  - printf "MAX_HEAP_SIZE=512M\nHEAP_NEWSIZE=48M\n" | cat - /etc/cassandra/cassandra-env.sh > temp && sudo mv temp /etc/cassandra/cassandra-env.sh
+  - "sudo sed -i '1iMAX_HEAP_SIZE=512M\nHEAP_NEWSIZE=48M\n' /etc/cassandra/cassandra-env.sh"
   - "sudo sed -i 's/rpc_server_type: sync/rpc_server_type: hsha/g' /etc/cassandra/cassandra.yaml"
   - "sudo sed -i 's/key_cache_size_in_mb:/key_cache_size_in_mb: 0/g' /etc/cassandra/cassandra.yaml"
   - sudo service cassandra stop

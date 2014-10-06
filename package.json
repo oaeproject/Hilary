@@ -1,7 +1,7 @@
 {
   "name": "Hilary",
   "description": "Open Academic Environment (OAE) Back-end",
-  "version": "8.0.2",
+  "version": "9.0.0",
   "homepage": "http://www.oaeproject.org",
   "author": {
     "name": "The Apereo Foundation",
@@ -25,6 +25,7 @@
     "awssum-amazon-s3": "latest",
     "body-parser": "latest",
     "bunyan": "latest",
+    "bunyan-prettystream": "latest",
     "cheerio": "latest",
     "clone": "latest",
     "connect": "latest",
@@ -92,7 +93,6 @@
     "passport-local": "latest",
     "passport-oauth2-client-password": "latest",
     "passport-openid": "latest",
-    "passport-saml": "git://github.com/simong/passport-saml",
     "passport-twitter": "latest",
     "properties-parser": "latest",
     "rails-timezone": "latest",
@@ -102,7 +102,7 @@
     "redis": "latest",
     "request": "latest",
     "restjsdoc": "latest",
-    "rimraf": "latest",
+    "selectn": "latest",
     "shortid": "latest",
     "slideshare": "git://github.com/oaeproject/node-slideshare",
     "sockjs": "latest",
@@ -129,12 +129,13 @@
     "mocha": "latest",
     "oae-release-tools": "git://github.com/oaeproject/oae-release-tools",
     "oauth": "latest",
+    "tough-cookie": "latest",
     "shelljs": "latest",
     "sockjs-client-ws": "latest"
   },
   "optionalDependencies": {
     "bunyan-syslog": "latest",
-    "hiredis": "0.1.13",
+    "hiredis": "latest",
     "webshot": "latest"
   },
   "bundleDependencies": [

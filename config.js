@@ -65,6 +65,7 @@ config.redis = {
  * @param  {String}     globalAdminAlias            The tenant alias that will be used for the global admins
  * @param  {String}     globalAdminHost             The hostname on which the global admin server can be reached by users
  * @param  {Number}     globalAdminPort             The network port on which the global admin express server can run
+ * @param  {String}     [shibbolethSPHost]          The hostname on which the Shibboleth SP has been mounted
  * @param  {String}     [serverInternalAddress]     The internal hostname on which the server can be reached by OAE services such as the preview processor
  * @param  {Number}     tenantPort                  The network port on which the tenant express server can run
  * @param  {Boolean}    useHttps                    Whether or not the server is accessible via HTTPS. Hilary will *not* expose an HTTPS server, it's up to a frontend server such as Apache or Nginx to deal with the actual delivery of HTTPS traffic. This flag is mainly used to generate correct backlinks to the web application
@@ -74,6 +75,7 @@ config.servers = {
     'globalAdminAlias': 'admin',
     'globalAdminHost': 'admin.oae.com',
     'globalAdminPort': 2000,
+    'shibbolethSPHost': 'shib-sp.oae.com',
     'serverInternalAddress': null,
     'tenantPort': 2001,
     'useHttps': false,
@@ -375,17 +377,6 @@ config.email = {
             'pass': 'myemailpassword'
         }
     }
-};
-
-/**
- * `config.saml`
- *
- * Configuration namespace for the saml logic
- *
- * @param  {String}    SAMLParserJarPath     The path towards the Java binary that can be used to decrypt SAML messages. This only needs to be configured if you want to enable the Shibboleth strategy. See https://github.com/oaeproject/SAMLParser
- */
-config.saml = {
-    'SAMLParserJarPath': ''
 };
 
 /**

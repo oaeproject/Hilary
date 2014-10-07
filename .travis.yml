@@ -29,7 +29,14 @@ before_install:
   # Install cassandra 2 manually
   - sudo service cassandra stop
   - sudo apt-get install -y -o Dpkg::Options::=--force-confnew cassandra=2.0.8
+  - "sudo sed -i '1iMAX_HEAP_SIZE=512M\\nHEAP_NEWSIZE=48M\\n' /etc/cassandra/cassandra-env.sh"
+  - "sudo sed -i 's/rpc_server_type: sync/rpc_server_type: hsha/g' /etc/cassandra/cassandra.yaml"
+  - "sudo sed -i 's/key_cache_size_in_mb:/key_cache_size_in_mb: 0/g' /etc/cassandra/cassandra.yaml"
+  - sudo service cassandra stop
+  # Give Cassandra some time to shut down
+  - sleep 5
   - sudo service cassandra start
+  - sleep 5
   - sudo service cassandra status
 
   # Install elasticsearch 1.1.1 manually
@@ -41,6 +48,12 @@ before_install:
   - sudo service mysql stop
   - sudo service memcached stop
   - sudo service postgresql stop
+
+  # Do not let Redis save to disk
+  - "sudo sed -i 's/save 900 1/#save 900 1/g' /etc/redis/redis.conf"
+  - "sudo sed -i 's/save 300 10/#save 300 10/g' /etc/redis/redis.conf"
+  - "sudo sed -i 's/save 60 10000/#save 60 10000/g' /etc/redis/redis.conf"
+  - sudo service redis-server restart
 
   # We must ensure phantomjs is not available so the travis build will include it in node_modules when deploying
   - sudo rm -rf /usr/local/phantomjs
@@ -103,4 +116,7 @@ after_failure:
 notifications:
   email:
     - oae-team@collab.sakaiproject.org
-  irc: "irc.freenode.org#oae"
+  irc:
+    channels:
+        - "irc.freenode.org#oae"
+    skip_join: true

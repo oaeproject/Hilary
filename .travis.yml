@@ -110,8 +110,6 @@ after_failure:
   # Compress the logs and upload them to Amazon S3
   - gzip tests.log
   - bin/upload_logs
-  # Output the Redis logs
-  - cat /var/log/redis/redis.log
 
 notifications:
   email:

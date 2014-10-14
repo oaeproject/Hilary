@@ -55,6 +55,7 @@
     "nodemailer-sendmail-transport": "latest",
     "nodemailer-stub-transport": "latest",
     "oae-activity": "",
+    "oae-annotations": "",
     "oae-authentication": "",
     "oae-authz": "",
     "oae-config": "",
@@ -141,6 +142,7 @@
   },
   "bundleDependencies": [
     "oae-activity",
+    "oae-annotations",
     "oae-authentication",
     "oae-authz",
     "oae-config",

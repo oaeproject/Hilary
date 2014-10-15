@@ -85,7 +85,7 @@
     "optimist": "latest",
     "passport": "latest",
     "passport-cas": "git://github.com/oaeproject/passport-cas#samlValidateLoginUrl",
-    "passport-facebook": "latest",
+    "passport-facebook": "git://github.com/oaeproject/passport-facebook",
     "passport-google-oauth": "latest",
     "passport-http": "latest",
     "passport-http-bearer": "latest",

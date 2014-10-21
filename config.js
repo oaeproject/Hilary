@@ -65,6 +65,7 @@ config.redis = {
  * @param  {String}     globalAdminAlias            The tenant alias that will be used for the global admins
  * @param  {String}     globalAdminHost             The hostname on which the global admin server can be reached by users
  * @param  {Number}     globalAdminPort             The network port on which the global admin express server can run
+ * @param  {String}     guestsTenantHost            The hostname on which guests will interact with the OAE
  * @param  {String}     [shibbolethSPHost]          The hostname on which the Shibboleth SP has been mounted
  * @param  {String}     [serverInternalAddress]     The internal hostname on which the server can be reached by OAE services such as the preview processor
  * @param  {Number}     tenantPort                  The network port on which the tenant express server can run
@@ -75,6 +76,8 @@ config.servers = {
     'globalAdminAlias': 'admin',
     'globalAdminHost': 'admin.oae.com',
     'globalAdminPort': 2000,
+    'guestsTenantAlias': 'guests',
+    'guestsTenantHost': 'guests.oae.com',
     'shibbolethSPHost': 'shib-sp.oae.com',
     'serverInternalAddress': null,
     'tenantPort': 2001,

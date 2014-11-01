@@ -57,14 +57,15 @@ OAE.init(config, function(err) {
 
 
 /**
- * Migrate a set of rows by adding a `created` timestamp to each (the timestamp will be when the row was
- * last written)
+ * Ensure that each collabdoc revision's `etherpadHtml` is wrapped in the
+ * proper html and body tags. Revisions that are not wrapped, will be updated
+ * and be queued for preview processing.
  *
  * @param  {Row[]}      rows        An array of cassandra rows to update
- * @param  {Function}   callback    A standard callback function
+ * @param  {Function}   callback    Standard callback function
  * @api private
  */
-var _migrateRows = function(rows, callback) {
+var _handleRows = function(rows, callback) {
     var queries = [];
     var toReprocess = [];
 
@@ -121,5 +122,5 @@ var _migrateRows = function(rows, callback) {
  */
 var migrate = function(callback) {
     log().info('Starting migration process, please be patient as this might take a while\nThe process will exit when the migration has been completed');
-    return Cassandra.iterateAll(['revisionId', 'contentId', 'etherpadHtml'], 'Revisions', 'revisionId', {'batchSize': 30}, _migrateRows, callback);
+    return Cassandra.iterateAll(['revisionId', 'contentId', 'etherpadHtml'], 'Revisions', 'revisionId', {'batchSize': 30}, _handleRows, callback);
 };

@@ -57,9 +57,9 @@ OAE.init(config, function(err) {
 
 
 /**
- * Ensure that each collabdoc revision's `etherpadHtml` is wrapped in the
- * proper html and body tags. Revisions that are not wrapped, will be updated
- * and be queued for preview processing.
+ * Ensure that the `etherpadHtml` of each collabdoc revision is wrapped in the
+ * proper HTML and body tags. Revisions that are not wrapped will be updated
+ * and queued for preview processing
  *
  * @param  {Row[]}      rows        An array of cassandra rows to update
  * @param  {Function}   callback    Standard callback function

@@ -413,3 +413,16 @@ config.etherpad = {
 config.tincanapi = {
     'timeout': 4000
 };
+
+/**
+ * `config.mixpanel`
+ *
+ * Configuration namespace for the mixpanel event tracking logic
+ *
+ * @param  {Boolean}    enabled         Whether or not mixpanel event tracking should be enabled
+ * @param  {String}     token           The mixpanel api token
+ */
+config.mixpanel = {
+    'enabled': false,
+    'token': 'f3e9fce119d357b745a8dfa36248d632'
+};

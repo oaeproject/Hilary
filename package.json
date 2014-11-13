@@ -102,7 +102,7 @@
     "recaptcha": "latest",
     "redback": "latest",
     "redis": "latest",
-    "request": "latest",
+    "request": "2.47.0",
     "restjsdoc": "latest",
     "rimraf": "latest",
     "selectn": "latest",

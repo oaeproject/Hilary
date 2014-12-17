@@ -191,7 +191,6 @@ config.search = {
                     },
                     'html_content': {
                         'type': 'custom',
-                        'char_filter': ['html_strip'],
                         'tokenizer': 'letter',
                         'filter': ['lowercase', 'content_edgengram']
                     }

@@ -31,3 +31,5 @@ node_modules/*
 !node_modules/oae-util
 *.log
 doc_data.txt
+
+node_modules/oae-authentication/.DS_Store

@@ -189,9 +189,8 @@ config.search = {
                         'tokenizer': 'letter',
                         'filter': ['lowercase', 'message_edgengram']
                     },
-                    'html_content': {
+                    'text_content': {
                         'type': 'custom',
-                        'char_filter': ['html_strip'],
                         'tokenizer': 'letter',
                         'filter': ['lowercase', 'content_edgengram']
                     }

@@ -253,6 +253,9 @@ config.mq = {
  * @param  {Object}      pdf2htmlEX                     Holds the configuration for anything related to converting a PDF file into an HTML file
  * @param  {String}      pdf2htmlEX.binary              The path to the `pdf2htmlEX` binary that can be used to convert a PDF file into an HTML file
  * @param  {Number}      pdf2htmlEX.timeout             Defines the timeout (in ms) when the pdf2htmlEX process should be killed
+ * @param  {Object}      pdftotext                      Holds the configuration for anything related to converting a PDF file into a text file
+ * @param  {String}      pdftotext.binary               The path to the `pdftotext` binary that can be used to convert a PDF file into a text file
+ * @param  {Number}      pdftotext.timeout              Defines the timeout (in ms) when the pdftotext process should be killed
  * @param  {Object}      link                           Holds the configuration for anything related to link processing
  * @param  {String}      link.renderDelay               Defines the timeout (in ms) that should be waited between loading the page and taking a screenshot
  * @param  {Number}      link.renderTimeout             Defines the timeout (in ms) when the screencapturing should be stopped. This should include the renderDelay
@@ -274,6 +277,10 @@ config.previews = {
     },
     'pdf2htmlEX': {
         'binary': 'pdf2htmlEX',
+        'timeout': 120000
+    },
+    'pdftotext': {
+        'binary': 'pdftotext',
         'timeout': 120000
     },
     'link': {

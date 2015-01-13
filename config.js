@@ -193,6 +193,19 @@ config.search = {
                         'type': 'custom',
                         'tokenizer': 'letter',
                         'filter': ['lowercase', 'content_edgengram']
+                    },
+                    'display_name': {
+                        'type': 'custom',
+                        'tokenizer': 'display_name_tokenizer',
+                        'filter': ['lowercase']
+                    }
+                },
+                'tokenizer': {
+                    'display_name_tokenizer': {
+                        "type" : "edgeNGram",
+                        "min_gram" : "2",
+                        "max_gram" : "10",
+                        "token_chars": []
                     }
                 },
                 'filter': {

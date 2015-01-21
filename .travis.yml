@@ -58,7 +58,7 @@ before_install:
   - sudo rm -rf /usr/local/phantomjs
 
   # Install Hilary deps
-  - sudo apt-get install -qq graphicsmagick libreoffice pdftk chrpath pdf2htmlex poppler-utils
+  - sudo apt-get install -qq graphicsmagick libreoffice chrpath pdf2htmlex poppler-utils
   - npm install -g grunt-cli
   - git clone --depth 1 --branch master git://github.com/oaeproject/3akai-ux.git ../3akai-ux
 
@@ -91,7 +91,6 @@ before_install:
   # Enable preview processing
   - printf "\n\nconfig.previews.enabled = true;" >> config.js
   - printf "\nconfig.previews.office.binary = '/usr/bin/soffice';" >> config.js
-  - printf "\nconfig.previews.pdftk.binary = '/usr/bin/pdftk';" >> config.js
   - printf "\nconfig.previews.pdf2htmlEX.binary = '/usr/bin/pdf2htmlEX';" >> config.js
   - printf "\nconfig.previews.pdftotext.binary = '/usr/bin/pdftotext';" >> config.js
 

@@ -260,9 +260,6 @@ config.mq = {
  * @param  {Object}      office                         Holds the configuration for anything Office related
  * @param  {String}      office.binary                  The path to the 'soffice' binary that starts up Libre Office. ex: On OS X it is `/Applications/LibreOffice.app/Contents/MacOS/soffice` with a default install
  * @param  {Number}      office.timeout                 Defines the timeout (in ms) when the Office process should be killed
- * @param  {Object}      pdf                            Holds the configuration for anything related to PDF splitting
- * @param  {String}      pdf.binary                     The path to the `pdftk` binary that can be used to split a PDF file into a PDF-per-page
- * @param  {Number}      pdf.timeout                    Defines the timeout (in ms) when the pdftk process should be killed
  * @param  {Object}      pdf2htmlEX                     Holds the configuration for anything related to converting a PDF file into an HTML file
  * @param  {String}      pdf2htmlEX.binary              The path to the `pdf2htmlEX` binary that can be used to convert a PDF file into an HTML file
  * @param  {Number}      pdf2htmlEX.timeout             Defines the timeout (in ms) when the pdf2htmlEX process should be killed
@@ -282,10 +279,6 @@ config.previews = {
     'tmpDir': tmpDir + '/previews',
     'office': {
         'binary': 'soffice',
-        'timeout': 120000
-    },
-    'pdftk': {
-        'binary': 'pdftk',
         'timeout': 120000
     },
     'pdf2htmlEX': {

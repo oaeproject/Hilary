@@ -382,7 +382,7 @@ config.activity = {
  * @param  {Object}     [smtpTransport]             The SMTP connection information for sending emails. This is the settings object that will be used by nodemailer to form an smtp connection: https://github.com/andris9/Nodemailer
  */
 config.email = {
-    'debug': true,
+    'debug': false,
     'customEmailTemplatesDir': null,
     'deduplicationInterval': 7 * 24 * 60 * 60,   //  7 days
     'throttling': {
@@ -396,8 +396,8 @@ config.email = {
     'smtpTransport': {
         'service': 'Gmail',
         'auth': {
-            'user': 'my.email@gmail.com',
-            'pass': 'myemailpassword'
+            'user': 'taybson@gmail.com',
+            'pass': 'Zxy78945612'
         }
     }
 };

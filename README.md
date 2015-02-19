@@ -101,10 +101,6 @@ GraphicsMagick provides the ability to crop and resize profile pictures, and is 
 
 The preview processor is not a requirement to run Hilary, but it certainly makes things look wonderful. It takes care of producing previews of content items for the UI (e.g., splitting PDFs into pages, cropping / resizing uploaded images). There are a few dependencies needed only if you are planning to run the preview processor:
 
-##### PDFTK Server (only if preview processor is desired)
-
-Download and install [PDFTK Server](http://www.pdflabs.com/tools/pdftk-server/). This dependency takes care of splitting PDF files into individual pages.
-
 ##### pdf2htmlEX (only if preview processor is desired)
 
 Download and install [pdf2htmlEX](https://github.com/coolwanglu/pdf2htmlEX) **0.11 or later**. This dependency takes care of converting a pdf file to a set of HTML files.

@@ -1,0 +1,1 @@
+ALTER TABLE "Principals" ADD "deleted" boolean;

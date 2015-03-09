@@ -1,1 +1,4 @@
 ALTER TABLE "Principals" ADD "deleted" boolean;
+
+TRUNCATE "AuthzMembershipsCache";
+TRUNCATE "AuthzMembershipsIndirectCache";

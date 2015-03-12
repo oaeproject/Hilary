@@ -25,7 +25,7 @@ The Hilary back-end is written completely in JavaScript, powered by Node.js.
 Download the latest version of [Apache Cassandra](http://cassandra.apache.org/download/) and extract it to a directory of your choice.
 
 **Important:**
-* Cassandra is best supported with the latest version of Oracle Java 6. Trying to run vanilla Cassandra with OpenJDK can result in a silent segmentation fault
+* Cassandra is best supported with the latest version of Oracle Java 7. Trying to run vanilla Cassandra with OpenJDK can result in a silent segmentation fault
 
 Create the following directories and set the owner to be the user that will be running Cassandra:
 

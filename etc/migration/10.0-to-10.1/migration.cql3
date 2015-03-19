@@ -1,4 +1,4 @@
-ALTER TABLE "Principals" ADD "deleted" boolean;
+ALTER TABLE "Principals" ADD "deleted" timestamp;
 
 TRUNCATE "AuthzMembershipsCache";
 TRUNCATE "AuthzMembershipsIndirectCache";

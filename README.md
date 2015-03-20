@@ -118,7 +118,9 @@ Download and install [LibreOffice](http://www.libreoffice.org/download/). This d
 
 ##### pdftotext (only if preview processor is desired)
 
-The version of `pdftotext` required comes with a library called Poppler which is installed when you install `pdf2htmlEX`. Note that this version of `pdftotext` is around **0.29**. The latest stand-alone version of `pdftotext` is around 3+ and it is not supported.
+`pdftotext` is used to extract text out of PDF documents so that the contents of document uploads can be searched in OAE.
+
+The required version of `pdftotext` comes with a library called Poppler which is installed when you install `pdf2htmlEX`. Note that this version of `pdftotext` is approximately **0.29**. The latest stand-alone version of `pdftotext` is approximately 3+ and it is not supported.
 
   * If you installed `pdf2htmlEX` with the Ubuntu PPA, then you probably already have the correct version of pdftotext in your path
   * If you installed `pdf2htmlEX` with Homebrew for MacOSX, then you probably have it available. If you can't find it on your path, try running `brew unlink poppler` then `brew link poppler`, and that should ensure all binary links (including `pdftotext`) get installed to your path

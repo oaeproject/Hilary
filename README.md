@@ -116,6 +116,16 @@ sudo apt-get install pdf2htmlEX
 
 Download and install [LibreOffice](http://www.libreoffice.org/download/). This dependency takes care of converting Microsoft Office files to PDFs so they may be further split into previews by PDFTK.
 
+##### pdftotext (only if preview processor is desired)
+
+The version of `pdftotext` required comes with a library called Poppler which is installed when you install `pdf2htmlEX`. Note that this version `pdftotext` version is around **0.29**. We do not run the latest version of `pdftotext` which is around 3+.
+
+  * If you installed `pdf2htmlEX` with the Ubuntu PPA, then you probably already have the correct version of pdftotext in your path
+  * If you installed `pdf2htmlEX` with Homebrew for MacOSX, then you probably have it available. If you can't find it on your path, try running `brew unlink poppler` then `brew link poppler`, and that should ensure all binary links (including `pdftotext`) get installed to your path
+  * If you compiled `pdf2htmlEX` yourself, you're a wizard. `pdftotext` is available in your poppler distribution's `bin` directory
+
+If none of these work for you, you can download and compile the latest [Poppler](http://poppler.freedesktop.org/releases.html) tarball. `pdftotext` will be available in the installed `bin` directory.
+
 #### Nginx
 
 Download [Nginx **version 1.4.2 or higher**](http://nginx.org/en/download.html). You will also need to download and extract [PCRE](http://www.pcre.org/), which will be used to configure Nginx.

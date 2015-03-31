@@ -1,5 +1,5 @@
 /*!
- * Copyright 2014 Apereo Foundation (AF) Licensed under the
+ * Copyright 2015 Apereo Foundation (AF) Licensed under the
  * Educational Community License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License. You may
  * obtain a copy of the License at
@@ -11,32 +11,59 @@
  * BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the License for the specific language governing
  * permissions and limitations under the License.
- *
+ */
+
+/*
  * This migration script will try to create a mapping between a user's email address and the user
  * object in the Principals table. Before it does that however, the following checks will be made:
- *   -  Ensure that each user has an email address
- *   -  Ensure that each user's email address is valid
- *   -  Ensure that an email address is only used by 1 user
- *
- * A CSV file with all errors will be created in the current working directory. If any of the above
- * checks fail, you will have to manually address these. How you resolve these issues is up to you.
- *
- * Once you've addressed the raised issues, re-run the script to perform the actual migration
+ *   -  Ensure that the user has an email address
+ *   -  Ensure that the user's email address is valid
  */
 
 var _ = require('underscore');
 var bunyan = require('bunyan');
 var csv = require('csv');
 var fs = require('fs');
+var optimist = require('optimist');
 
 var Cassandra = require('oae-util/lib/cassandra');
-var log = require('oae-logger').logger('revisions-migrator');
+var log = require('oae-logger').logger('email-mapping-migrator');
 var OAE = require('oae-util/lib/oae');
 var PrincipalsDAO = require('oae-principals/lib/internal/dao');
 var Validator = require('oae-util/lib/validator').Validator;
 
-// The application configuration
-var config = require('../../../config').config;
+
+var argv = optimist.usage('$0 [--config <path/to/config.js>] [--warnings <path/to/warnings.csv>]')
+    .alias('c', 'config')
+    .describe('c', 'Specify an alternate config file')
+    .default('c', __dirname + '/config.js')
+
+    .alias('w', 'warnings')
+    .describe('w', 'Specify the path to the file where unmappable users should be dumped to')
+    .default('w', __dirname + '/email-migration.csv')
+
+    .alias('h', 'help')
+    .describe('h', 'Show usage information')
+    .argv;
+
+if (argv.help) {
+    optimist.showHelp();
+    return;
+}
+
+var warningFilePath = argv.warnings;
+
+// If a relative path that starts with `./` has been provided,
+// we turn it into an absolute path based on the current working directory
+if (argv.config.match(/^\.\//)) {
+    argv.config = process.cwd() + argv.config.substring(1);
+// If a different non-absolute path has been provided, we turn
+// it into an absolute path based on the current working directory
+} else if (!argv.config.match(/^\//)) {
+    argv.config = process.cwd() + '/' + argv.config;
+}
+
+var config = require(argv.config).config;
 
 // Ensure that this application server does NOT start processing any preview images
 config.previews.enabled = false;
@@ -59,6 +86,13 @@ var start = Date.now();
 var totalUsers = 0;
 var mappedUsers = 0;
 
+// Setup the CSV file
+var fileStream = fs.createWriteStream(warningFilePath);
+var csvStream = csv.stringify({
+    'columns': ['principalId', 'displayName', 'email', 'message']
+});
+csvStream.pipe(fileStream);
+
 // Spin up the application container. This will allow us to re-use existing APIs
 OAE.init(config, function(err) {
     if (err) {
@@ -66,15 +100,18 @@ OAE.init(config, function(err) {
         return _exit(err.code);
     }
 
-    PrincipalsDAO.iterateAll(['principalId', 'displayName', 'email'], 30, _mapPrincipals, function() {
+    PrincipalsDAO.iterateAll(['principalId', 'displayName', 'email'], 30, _mapPrincipals, function(err) {
         if (err) {
             log().error({'err': err}, 'Failed to migrate all users');
-            process.exit(1);
+            return _exit(1);
         }
 
         log().info('Migration completed, it took %d milliseconds', (Date.now() - start));
         log().info('Total users: %d, mapped users: %d', totalUsers, mappedUsers);
-        process.exit(0);
+        if (mappedUsers !== totalUsers) {
+            log().warn('Not all users could be mapped, check the warning CSV file which ones couldn\'t and why');
+        }
+        _exit(0);
     });
 });
 
@@ -102,14 +139,24 @@ var _mapPrincipals = function(principals, callback) {
 
         // Check if the user has an email address
         if (!email) {
-            return log().warn({'principalId': principalId}, 'This user has no email address');
+            return csvStream.write({
+                'principalId': principalId,
+                'displayName': displayName,
+                'message': 'No email'
+            });
         }
 
         // Check whether the persisted email address is valid
         var validator = new Validator();
         validator.check(email, {'code': 400, 'msg': 'An invalid email address has been persisted'}).isEmail();
         if (validator.hasErrors()) {
-            return log().warn({'principalId': principalId, 'email': email}, 'An invalid email address has been persisted');
+            return csvStream.write({
+                'principalId': principalId,
+                'displayName': displayName,
+                'email': email,
+                'message':
+                'Invalid email'
+            });
         }
 
         // Create a mapping for the valid email address
@@ -119,4 +166,15 @@ var _mapPrincipals = function(principals, callback) {
 
     // Create the mappings and move on to the next set of principals
     Cassandra.runBatchQuery(queries, callback);
+};
+
+/**
+ * Exit the migration script, but wait until the CSV stream has been properly closed down
+ *
+ * @param  {Number}     code    The exit code that should be used to stop the process with
+ */
+var _exit = function(code) {
+    csvStream.end(function() {
+        process.exit(code);
+    });
 };

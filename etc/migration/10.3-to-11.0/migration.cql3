@@ -1,2 +1,0 @@
-ALTER TABLE "Principals" ADD "emailChange" text;
-ALTER TABLE "Principals" ADD "emailVerified" boolean;

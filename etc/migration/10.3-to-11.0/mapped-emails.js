@@ -25,6 +25,7 @@ var bunyan = require('bunyan');
 var csv = require('csv');
 var fs = require('fs');
 var optimist = require('optimist');
+var path = require('path');
 
 var Cassandra = require('oae-util/lib/cassandra');
 var log = require('oae-logger').logger('email-mapping-migrator');
@@ -36,11 +37,11 @@ var Validator = require('oae-util/lib/validator').Validator;
 var argv = optimist.usage('$0 [--config <path/to/config.js>] [--warnings <path/to/warnings.csv>]')
     .alias('c', 'config')
     .describe('c', 'Specify an alternate config file')
-    .default('c', __dirname + '/config.js')
+    .default('c', 'config.js')
 
     .alias('w', 'warnings')
     .describe('w', 'Specify the path to the file where unmappable users should be dumped to')
-    .default('w', __dirname + '/email-migration.csv')
+    .default('w', 'email-migration.csv')
 
     .alias('h', 'help')
     .describe('h', 'Show usage information')
@@ -51,19 +52,9 @@ if (argv.help) {
     return;
 }
 
-var warningFilePath = argv.warnings;
-
-// If a relative path that starts with `./` has been provided,
-// we turn it into an absolute path based on the current working directory
-if (argv.config.match(/^\.\//)) {
-    argv.config = process.cwd() + argv.config.substring(1);
-// If a different non-absolute path has been provided, we turn
-// it into an absolute path based on the current working directory
-} else if (!argv.config.match(/^\//)) {
-    argv.config = process.cwd() + '/' + argv.config;
-}
-
-var config = require(argv.config).config;
+// Get the config
+var configPath = path.resolve(process.cwd(), argv.config);
+var config = require(configPath).config;
 
 // Ensure that this application server does NOT start processing any preview images
 config.previews.enabled = false;
@@ -86,8 +77,12 @@ var start = Date.now();
 var totalUsers = 0;
 var mappedUsers = 0;
 
-// Setup the CSV file
-var fileStream = fs.createWriteStream(warningFilePath);
+// Set up the CSV file
+var fileStream = fs.createWriteStream(argv.warnings, {'flags': 'a'});
+fileStream.on('error', function(err) {
+    log().error({'err': err}, 'Error occurred when writing to the warnings file');
+    process.exit(1);
+});
 var csvStream = csv.stringify({
     'columns': ['principalId', 'displayName', 'email', 'message']
 });
@@ -109,7 +104,7 @@ OAE.init(config, function(err) {
         log().info('Migration completed, it took %d milliseconds', (Date.now() - start));
         log().info('Total users: %d, mapped users: %d', totalUsers, mappedUsers);
         if (mappedUsers !== totalUsers) {
-            log().warn('Not all users could be mapped, check the warning CSV file which ones couldn\'t and why');
+            log().warn('Not all users could be mapped, check the warning CSV file for which ones couldn\'t and why');
         }
         _exit(0);
     });

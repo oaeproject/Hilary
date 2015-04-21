@@ -102,6 +102,12 @@ OAE.init(config, function(err) {
     });
 });
 
+/**
+ * Build and write all user rows concurrently for the given batches of user hashes
+ *
+ * @param  {Object[][]}     userHashBatches     A collection of batches for which to generate user rows and write them to the csv file
+ * @api private
+ */
 function _writeUserRows(userHashBatches) {
     if (_.isEmpty(userHashBatches)) {
         log().info('Processing complete');
@@ -129,6 +135,15 @@ function _writeUserRows(userHashBatches) {
     });
 }
 
+/**
+ * Page through all the users in the system, filtering by tenant and those that have email
+ * addresses, and group them by their email address
+ *
+ * @param  {String}     tenantAlias             The tenant alias to filter by
+ * @param  {Function}   callback                Invoked when users have been grouped by email address
+ * @param  {Object}     usersByEmail            An object keyed by email, whose value is an array of user hashes
+ * @api private
+ */
 function _groupUsersByEmail(tenantAlias, callback) {
     var userHashes = [];
 
@@ -141,6 +156,14 @@ function _groupUsersByEmail(tenantAlias, callback) {
         return callback(_.groupBy(userHashes, 'email'));
     });
 
+    /*!
+     * Given a paged result set of principal hashes, filter them down to those with email addresses
+     * and those that are part of the specified tenant. Then add them to the shared `userHashes`
+     * array
+     *
+     * @param  {Object[]}   principalHashes     The principals to filter and aggregate
+     * @param  {Function}   callback            Will be invoked when the principals are aggregated
+     */
     function _aggregateUsers(principalHashes, callback) {
         _.chain(principalHashes)
             .filter(function(principalHash) {
@@ -323,11 +346,30 @@ function _findContentLibraryCount(userHash, callback) {
     Cassandra.runQuery('SELECT COUNT(*) FROM "LibraryIndex" WHERE "bucketKey" = ?', [bucketKey], _rowToCount(callback));
 }
 
+/**
+ * Find the number of memberships for the user in the authz memberships cache
+ *
+ * @param  {Object}     userHash        The user hash object
+ * @param  {Function}   callback        Standard callback function
+ * @param  {Object}     callback.err    An error that occurred, if any
+ * @param  {Number}     callback.count  The number of memberships in the authz memberships cache
+ * @api private
+ */
 function _findAuthzMembershipsCacheCount(userHash, callback) {
     var userId = userHash.principalId;
     Cassandra.runQuery('SELECT COUNT(*) FROM "AuthzMembershipsCache" WHERE "principalId" = ?', [userId], _rowToCount(callback));
 }
 
+
+/**
+ * Find the number of memberships for the user across all resource types
+ *
+ * @param  {Object}     userHash        The user hash object
+ * @param  {Function}   callback        Standard callback function
+ * @param  {Object}     callback.err    An error that occurred, if any
+ * @param  {Number}     callback.count  The number of memberships for the user across all resource types
+ * @api private
+ */
 function _findResourceMembershipsCount(userHash, callback) {
     var userId = userHash.principalId;
     Cassandra.runQuery('SELECT COUNT(*) FROM "AuthzRoles" WHERE "principalId" = ?', [userId], _rowToCount(callback));

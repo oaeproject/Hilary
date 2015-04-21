@@ -79,7 +79,6 @@ var streamInfo = _createCsvStream();
 var csvStream = streamInfo.csv;
 var fileStream = streamInfo.file;
 var filePath = streamInfo.filePath;
-var rows = [];
 
 // Spin up the application container. This will allow us to re-use existing APIs
 OAE.init(config, function(err) {
@@ -88,69 +87,71 @@ OAE.init(config, function(err) {
         return process.exit(err.code);
     }
 
-    PrincipalsDAO.iterateAll(['principalId', 'tenantAlias', 'displayName', 'email', 'visibility', 'lastModified', 'notificationsLastRead'], 30, _processPrincipals, function(err) {
+    _groupUsersByEmail(tenantAlias, function(usersByEmail) {
+        var batches = _.chain(usersByEmail)
+            // Only keep profiles that have duplicate emails
+            .filter(function(userHashes) { return (userHashes.length > 1); })
+
+            // Re-group things into batches of 30 to process concurrently
+            .flatten()
+            .groupBy(function(userHash, i) { return Math.floor(i / 5); })
+            .values()
+            .value();
+
+        return _writeUserRows(batches);
+    });
+});
+
+function _writeUserRows(userHashBatches) {
+    if (_.isEmpty(userHashBatches)) {
+        log().info('Processing complete');
+        return _exit(0);
+    }
+
+    log().info('There are %d batches remaining to process', userHashBatches.length);
+
+    // Process the next batch
+    var userHashBatch = userHashBatches.shift();
+    var _done = _.after(userHashBatch.length, function() {
+        log().info('Successfully completed batch of %d users', userHashBatch.length);
+        return _writeUserRows(userHashBatches);
+    });
+
+    _.each(userHashBatch, function(userHash) {
+        _createUserRow(userHash, function(err, row) {
+            if (err) {
+                log().warn({'err': err, 'user': userHash}, 'Failed to create row from a user hash');
+                return _done();
+            }
+
+            return csvStream.write(row, _done);
+        });
+    });
+}
+
+function _groupUsersByEmail(tenantAlias, callback) {
+    var userHashes = [];
+
+    PrincipalsDAO.iterateAll(['principalId', 'tenantAlias', 'displayName', 'email', 'visibility', 'lastModified', 'notificationsLastRead'], 30, _aggregateUsers, function(err) {
         if (err) {
             log().error({'err': err}, 'Failed to iterate all users');
             return process.exit(1);
         }
 
-        var rowsByEmail = _.chain(rows)
-            .filter(function(row) {
-                return row.email;
-            })
-            .groupBy('email')
-            .value();
-
-        // Write all rows
-        var _done = _.after(rows.length, function() {
-            log().info('Finished writing %d rows to %s', rows.length, filePath);
-            return _exit(0);
-        });
-
-        _.each(rows, function(row) {
-            // Additional aggregation values
-            row.email_count = _.size(rowsByEmail[row.email]) || 0;
-            return csvStream.write(row, _done);
-        });
+        return callback(_.groupBy(userHashes, 'email'));
     });
-});
 
-/**
- * Process the set of principal rows, filtering them down to users of the specified tenant and
- * aggregating all CSV rows to the global `rows` array
- *
- * @param  {Object[]}   principalHashes     An array of principal row objects to process
- * @param  {Function}   callback            Standard callback function
- * @param  {Object}     callback.err        An error object, if any
- * @api private
- */
-function _processPrincipals(principalHashes, callback) {
-    // Limit to only users from the specified tenant that have emails
-    var userHashes = _.chain(principalHashes)
-        .filter(function(principalHash) {
-            return (principalHash.principalId.indexOf('u') === 0);
-        })
-        .where({'tenantAlias': tenantAlias})
-        .value();
+    function _aggregateUsers(principalHashes, callback) {
+        _.chain(principalHashes)
+            .filter(function(principalHash) {
+                return (principalHash.tenantAlias === tenantAlias && principalHash.email);
+            })
+            .each(function(userHash) {
+                userHashes.push(userHash);
+            });
 
-    if (_.isEmpty(userHashes)) {
         return callback();
     }
-
-    log().info(util.format('Processing activity for %d users', userHashes.length));
-
-    var _done = _.after(userHashes.length, callback);
-    _.each(userHashes, function(userHash) {
-        _createUserRow(userHash, function(err, row) {
-            if (err) {
-                log().warn({'err': err, 'userHash': userHash}, 'An error occurred trying to get user activity');
-                return _done();
-            }
-
-            rows.push(row);
-            return _done();
-        });
-    });
 }
 
 /**
@@ -198,15 +199,28 @@ function _createUserRow(userHash, callback) {
                         return callback(err);
                     }
 
-                    // Add the activity-related information to the row
-                    _.extend(row, {
-                        'activities': activityStreamCount || 0,
-                        'activity_latest': latestActedActivityMillis || 0,
-                        'content_items': contentLibraryCount || 0,
-                        'content_item_latest': latestContentInLibraryMillis || 0
-                    });
+                    _findAuthzMembershipsCacheCount(userHash, function(err, authzMembershipsCacheCount) {
 
-                    return callback(null, row);
+                        _findResourceMembershipsCount(userHash, function(err, resourceMembershipsCount) {
+                            if (err) {
+                                return callback(err);
+                            }
+
+                            // Add the activity-related information to the row. Library estimates are
+                            // not guaranteed to be correct because there are 2 slug columns (why we
+                            // reduce by 2), but also because they may not be seeded at all (0 items)
+                            _.extend(row, {
+                                'activities': activityStreamCount || 0,
+                                'activity_latest': latestActedActivityMillis || 0,
+                                'content_items_estimate': (contentLibraryCount-2) || 0,
+                                'content_item_latest': latestContentInLibraryMillis || 0,
+                                'group_memberships_estimate': authzMembershipsCacheCount || 0,
+                                'resource_memberships': resourceMembershipsCount || 0
+                            });
+
+                            return callback(null, row);
+                        });
+                    });
                 });
             });
         });
@@ -309,6 +323,16 @@ function _findContentLibraryCount(userHash, callback) {
     Cassandra.runQuery('SELECT COUNT(*) FROM "LibraryIndex" WHERE "bucketKey" = ?', [bucketKey], _rowToCount(callback));
 }
 
+function _findAuthzMembershipsCacheCount(userHash, callback) {
+    var userId = userHash.principalId;
+    Cassandra.runQuery('SELECT COUNT(*) FROM "AuthzMembershipsCache" WHERE "principalId" = ?', [userId], _rowToCount(callback));
+}
+
+function _findResourceMembershipsCount(userHash, callback) {
+    var userId = userHash.principalId;
+    Cassandra.runQuery('SELECT COUNT(*) FROM "AuthzRoles" WHERE "principalId" = ?', [userId], _rowToCount(callback));
+}
+
 /**
  * Creates a function that can convert a standard `COUNT(*)` query result row into the count value
  * and return it in the standard callback
@@ -359,7 +383,7 @@ function _createCsvStream(csvFileName) {
         process.exit(1);
     });
     var csvStream = csv.stringify({
-        'columns': ['tenant_alias', 'user_id', 'display_name', 'email', 'visibility', 'last_modified', 'notifications_last_read', 'activities', 'activity_latest', 'content_items', 'content_item_latest', 'email_count'],
+        'columns': ['tenant_alias', 'user_id', 'display_name', 'email', 'visibility', 'last_modified', 'notifications_last_read', 'activities', 'activity_latest', 'content_items_estimate', 'content_item_latest', 'group_memberships_estimate', 'resource_memberships'],
         'header': true,
         'quoted': true
     });

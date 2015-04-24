@@ -33,10 +33,9 @@ var OAE = require('oae-util/lib/oae');
 var PrincipalsDAO = require('oae-principals/lib/internal/dao');
 var Validator = require('oae-util/lib/validator').Validator;
 
-var argv = optimist.usage('$0 -t cam [--config <path/to/config.js>]')
-    .demand('t')
+var argv = optimist.usage('$0 [-t cam] [--config <path/to/config.js>]')
     .alias('t', 'tenant')
-    .describe('t', 'Specify the tenant alias of the tenant whose users activity to analyze')
+    .describe('t', 'Specify the tenant alias of the tenant whose users activity to analyze. By default, analyze all tenants')
 
     .alias('c', 'config')
     .describe('c', 'Specify an alternate config file')
@@ -91,12 +90,17 @@ OAE.init(config, function(err) {
         var batches = _.chain(usersByEmail)
             // Only keep profiles that have duplicate emails
             .filter(function(userHashes) { return (userHashes.length > 1); })
-
-            // Re-group things into batches of 30 to process concurrently
             .flatten()
+            .tap(function(userHashes) {
+                log().info('Preparing to write a total of %s users who have duplicate emails', userHashes.length);
+            })
+
+            // Re-group things into sane concurrent batches
             .groupBy(function(userHash, i) { return Math.floor(i / 5); })
             .values()
             .value();
+
+        log().info('Begin writing %s batches of user activity to CSV', batches.length);
 
         return _writeUserRows(batches);
     });
@@ -147,11 +151,13 @@ function _writeUserRows(userHashBatches) {
 function _groupUsersByEmail(tenantAlias, callback) {
     var userHashes = [];
 
-    PrincipalsDAO.iterateAll(['principalId', 'tenantAlias', 'displayName', 'email', 'visibility', 'lastModified', 'notificationsLastRead'], 30, _aggregateUsers, function(err) {
+    PrincipalsDAO.iterateAll(['principalId', 'tenantAlias', 'displayName', 'email', 'visibility', 'lastModified', 'notificationsLastRead'], 100, _aggregateUsers, function(err) {
         if (err) {
             log().error({'err': err}, 'Failed to iterate all users');
             return process.exit(1);
         }
+
+        log().info('Finished indexing %s users by email', userHashes.length);
 
         return callback(_.groupBy(userHashes, 'email'));
     });
@@ -165,9 +171,13 @@ function _groupUsersByEmail(tenantAlias, callback) {
      * @param  {Function}   callback            Will be invoked when the principals are aggregated
      */
     function _aggregateUsers(principalHashes, callback) {
+        log().info('Analyzing %s principals to index by email', principalHashes.length);
         _.chain(principalHashes)
             .filter(function(principalHash) {
-                return (principalHash.tenantAlias === tenantAlias && principalHash.email);
+                return principalHash.email && (!tenantAlias || principalHash.tenantAlias === tenantAlias);
+            })
+            .tap(function(userHashes) {
+                log().info('Indexing %d users with emails for the specified tenant (if any)', userHashes.length);
             })
             .each(function(userHash) {
                 userHashes.push(userHash);

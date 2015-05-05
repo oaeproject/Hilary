@@ -129,7 +129,7 @@
     "grunt-cli": "latest",
     "grunt-contrib-clean": "latest",
     "grunt-contrib-jshint": "latest",
-    "grunt-mocha-hack": "latest",
+    "grunt-mocha-hack": "git://github.com/mrvisser/grunt-mocha-hack#full-stack-trace",
     "grunt-text-replace": "latest",
     "istanbul": "latest",
     "mocha": "latest",

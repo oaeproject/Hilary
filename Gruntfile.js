@@ -63,6 +63,7 @@ module.exports = function(grunt) {
                 'options': {
                     'timeout': MOCHA_TIMEOUT,
                     'ignoreLeaks': false,
+                    'fullStackTrace': true,
                     'reporter': 'spec',
                     'grep': mocha_grep,
                     'bail': false,

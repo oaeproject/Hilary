@@ -163,7 +163,7 @@ You can copy or symlink the `static/css/pad.css` in the `ep_oae` module to `your
 ```javascript
 "ep_oae": {
     "mq": {
-        "host": "10.1.2.3",
+        "host": "127.0.0.1",
         "port": 5672
     }
 }

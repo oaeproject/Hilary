@@ -102,10 +102,14 @@ script:
   - grunt test-coverage-coveralls
 
 after_success:
+  - ps aux --sort -rss | head
+  - top -n1 -b
   # Package and upload to Amazon S3
   - etc/scripts/travis-upload.sh
 
 after_failure:
+  - ps aux --sort -rss | head
+  - top -n1 -b
   # Compress the logs and upload them to Amazon S3
   - gzip tests.log
   - bin/upload_logs

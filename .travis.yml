@@ -19,7 +19,7 @@ before_install:
 
   # Add ElasticSearch apt repo
   - wget -qO - http://packages.elasticsearch.org/GPG-KEY-elasticsearch | sudo apt-key add -
-  - echo "deb http://packages.elasticsearch.org/elasticsearch/1.1/debian stable main" | sudo tee -a /etc/apt/sources.list.d/elasticsearch.sources.list
+  - echo "deb http://packages.elasticsearch.org/elasticsearch/1.5/debian stable main" | sudo tee -a /etc/apt/sources.list.d/elasticsearch.sources.list
 
   # Add PPA repos for miscellaneous dependencies
   - echo 'yes' | sudo add-apt-repository ppa:oae/deps
@@ -38,9 +38,9 @@ before_install:
   - sleep 5
   - sudo service cassandra status
 
-  # Install elasticsearch 1.1.1 manually
+  # Install elasticsearch 1.5.2  manually
   - sudo service elasticsearch stop
-  - sudo apt-get install -y --force-yes -o Dpkg::Options::=--force-confnew elasticsearch=1.1.1
+  - sudo apt-get install -y --force-yes -o Dpkg::Options::=--force-confnew elasticsearch=1.5.2
   - sudo service elasticsearch start
 
   # Turn off unneeded services to free some memory

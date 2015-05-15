@@ -14,14 +14,32 @@
  */
 
 var _ = require('underscore');
+var optimist = require('optimist');
+var path = require('path');
 var util = require('util');
 
 var Cassandra = require('oae-util/lib/cassandra');
 var log = require('oae-logger').logger('delete-etherpad-sessions');
 var OAE = require('oae-util/lib/oae');
 
-// The application configuration
-var config = require('../../config').config;
+var argv = optimist
+    .usage('Delete the Etherpad session keys\n$0 [--config <path/to/config.js>]')
+    .alias('c', 'config')
+    .describe('c', 'Specify an alternate config file')
+    .default('c', 'config.js')
+
+    .alias('h', 'help')
+    .describe('h', 'Show usage information')
+    .argv;
+
+if (argv.help) {
+    optimist.showHelp();
+    return;
+}
+
+// Get the config
+var configPath = path.resolve(process.cwd(), argv.config);
+var config = require(configPath).config;
 
 // Ensure that this application server does NOT start processing any preview images
 config.previews.enabled = false;

@@ -28,8 +28,7 @@ before_install:
   # Install cassandra 2 manually
   - sudo service cassandra stop
   - sudo apt-get install -y -o Dpkg::Options::=--force-confnew cassandra=2.0.8
-  - sudo cat /etc/cassandra/cassandra-env.sh
-  - "sudo sed -i '1iMAX_HEAP_SIZE=512M\\nHEAP_NEWSIZE=48M\\n' /etc/cassandra/cassandra-env.sh"
+  - sudo cp etc/cassandra/cassasndra-env.sh /etc/cassandra/cassandra-env.sh
   - "sudo sed -i 's/rpc_server_type: sync/rpc_server_type: hsha/g' /etc/cassandra/cassandra.yaml"
   - "sudo sed -i 's/key_cache_size_in_mb:/key_cache_size_in_mb: 0/g' /etc/cassandra/cassandra.yaml"
   - sudo cat /etc/cassandra/cassandra-env.sh
@@ -39,6 +38,7 @@ before_install:
   - sudo service cassandra start
   - sleep 5
   - sudo service cassandra status
+  - ps aux --sort -rss | head
 
   # Install elasticsearch 1.5.2  manually
   - sudo service elasticsearch stop

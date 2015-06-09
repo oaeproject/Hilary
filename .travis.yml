@@ -31,14 +31,16 @@ before_install:
   - sudo cp ~/build/oaeproject/Hilary/etc/cassandra/cassandra-env.sh /etc/cassandra/cassandra-env.sh
   - "sudo sed -i 's/rpc_server_type: sync/rpc_server_type: hsha/g' /etc/cassandra/cassandra.yaml"
   - "sudo sed -i 's/key_cache_size_in_mb:/key_cache_size_in_mb: 0/g' /etc/cassandra/cassandra.yaml"
-  - sudo cat /etc/cassandra/cassandra-env.sh
   - sudo service cassandra stop
   # Give Cassandra some time to shut down
   - sleep 5
   - sudo service cassandra start
   - sleep 5
   - sudo service cassandra status
-  - ps aux --sort -rss | head
+  - sudo ls /var/log
+  - sudo ls /var/log/cassandra
+  - sudo cat /var/log/cassandra/output.log
+  - exit 1
 
   # Install elasticsearch 1.5.2  manually
   - sudo service elasticsearch stop
@@ -114,6 +116,7 @@ after_failure:
   - ps aux --sort -rss | head
   - top -n1 -b
   - df -h
+  - tail -300 /var/log/
   # Compress the logs and upload them to Amazon S3
   - gzip tests.log
   - bin/upload_logs

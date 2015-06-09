@@ -120,7 +120,9 @@ after_failure:
   - df -h
   - cat /var/log/cassandra/system.log | grep ERROR
   - cat /var/log/cassandra/gc.log
-  - ls /usr/local/cassandra
+  - find /usr/local/cassandra/ -name "*"
+  - find /etc/cassandra/ -name "*"
+  - find /var/log/cassandra/ -name "*"
   # Compress the logs and upload them to Amazon S3
   - gzip tests.log
   - bin/upload_logs

@@ -31,15 +31,17 @@ before_install:
   - sudo ls /etc/cassandra
   - sudo cp ~/build/oaeproject/Hilary/etc/cassandra/cassandra-env.sh /etc/cassandra/cassandra-env.sh
   - sudo cp ~/build/oaeproject/Hilary/etc/cassandra/cassandra.yaml /etc/cassandra/cassandra.yaml
+  - sudo cat /usr/local/cassandra/conf/log4j-tools.properties
+  - sudo cat /usr/local/cassandra/conf/log4j-server.properties
+  - sudo cat /etc/cassandra/log4j-tools.properties
+  - sudo cat /etc/cassandra/log4j-server.properties
   - sudo service cassandra stop
   # Give Cassandra some time to shut down
   - sleep 5
   - sudo service cassandra start
   - sleep 5
   - sudo service cassandra status
-  - sudo ls /var/log
-  - sudo ls /var/log/cassandra
-  - sudo cat /var/log/cassandra/system.log
+  - sudo ps -aux | grep java
 
   # Install elasticsearch 1.5.2  manually
   - sudo service elasticsearch stop
@@ -115,11 +117,10 @@ after_success:
   - etc/scripts/travis-upload.sh
 
 after_failure:
-  - ps aux --sort -rss | head
-  - top -n1 -b
-  - df -h
-  - cat /var/log/cassandra/system.log | grep ERROR
-  - cat /var/log/cassandra/gc.log
+  - sudo ps aux --sort -rss | head
+  - sudo top -n1 -b
+  - sudo df -h
+  - sudo cat /var/log/cassandra/gc.log
   - find /usr/local/cassandra/ -name "*"
   - find /etc/cassandra/ -name "*"
   - find /var/log/cassandra/ -name "*"

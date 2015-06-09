@@ -1,8 +1,6 @@
 MAX_HEAP_SIZE=2048M
 HEAP_NEWSIZE=512M
 
-echo "LOL ran custom env file"
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -53,8 +51,6 @@ calculate_heap_sizes()
     then
         system_cpu_cores="1"
     fi
-
-    echo "LOL setting max heap size any way"
 
     # set max heap size based on the following
     # max(min(1/2 ram, 1024MB), min(1/4 ram, 8GB))
@@ -226,14 +222,15 @@ if [ "$JVM_ARCH" = "64-Bit" ] ; then
 fi
 
 # GC logging options -- uncomment to enable
-# JVM_OPTS="$JVM_OPTS -XX:+PrintGCDetails"
-# JVM_OPTS="$JVM_OPTS -XX:+PrintGCDateStamps"
-# JVM_OPTS="$JVM_OPTS -XX:+PrintHeapAtGC"
-# JVM_OPTS="$JVM_OPTS -XX:+PrintTenuringDistribution"
-# JVM_OPTS="$JVM_OPTS -XX:+PrintGCApplicationStoppedTime"
-# JVM_OPTS="$JVM_OPTS -XX:+PrintPromotionFailure"
-# JVM_OPTS="$JVM_OPTS -XX:PrintFLSStatistics=1"
-# JVM_OPTS="$JVM_OPTS -Xloggc:/var/log/cassandra/gc-`date +%s`.log"
+JVM_OPTS="$JVM_OPTS -XX:+PrintGCDetails"
+JVM_OPTS="$JVM_OPTS -XX:+PrintGCDateStamps"
+JVM_OPTS="$JVM_OPTS -XX:+PrintHeapAtGC"
+JVM_OPTS="$JVM_OPTS -XX:+PrintTenuringDistribution"
+JVM_OPTS="$JVM_OPTS -XX:+PrintGCApplicationStoppedTime"
+JVM_OPTS="$JVM_OPTS -XX:+PrintPromotionFailure"
+JVM_OPTS="$JVM_OPTS -XX:PrintFLSStatistics=1"
+JVM_OPTS="$JVM_OPTS -Xloggc:/var/log/cassandra/gc.log"
+
 # If you are using JDK 6u34 7u2 or later you can enable GC log rotation
 # don't stick the date in the log name if rotation is on.
 # JVM_OPTS="$JVM_OPTS -Xloggc:/var/log/cassandra/gc.log"

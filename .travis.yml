@@ -116,6 +116,7 @@ after_failure:
   - top -n1 -b
   - df -h
   - tail -300 /var/log/cassandra/system.log
+  - cat /var/log/cassandra/gc.log
   # Compress the logs and upload them to Amazon S3
   - gzip tests.log
   - bin/upload_logs

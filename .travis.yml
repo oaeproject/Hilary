@@ -30,10 +30,7 @@ before_install:
   - sudo apt-get install -y -o Dpkg::Options::=--force-confnew cassandra=2.0.8
   - sudo ls /etc/cassandra
   - sudo cp ~/build/oaeproject/Hilary/etc/cassandra/cassandra-env.sh /etc/cassandra/cassandra-env.sh
-  - "sudo sed -i 's/rpc_server_type: sync/rpc_server_type: hsha/g' /etc/cassandra/cassandra.yaml"
-  - "sudo sed -i 's/key_cache_size_in_mb:/key_cache_size_in_mb: 0/g' /etc/cassandra/cassandra.yaml"
-  - sudo cat /etc/cassandra/cassandra.yaml
-  - exit 1
+  - sudo cp ~/build/oaeproject/Hilary/etc/cassandra/cassandra.yaml /etc/cassandra/cassandra.yaml
   - sudo service cassandra stop
   # Give Cassandra some time to shut down
   - sleep 5

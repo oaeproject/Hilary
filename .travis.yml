@@ -106,6 +106,7 @@ script:
   - grunt test-coverage-coveralls
 
 after_success:
+  - sudo ps aux | grep java
   - ps aux --sort -rss | head
   - top -n1 -b
   - df -h
@@ -116,7 +117,7 @@ after_failure:
   - sudo ps aux --sort -rss | head
   - sudo top -n1 -b
   - sudo df -h
-  - sudo cat /var/log/cassandra/gc.log
+  - sudo cat /var/log/cassandra/system.log
   - find /usr/local/cassandra/ -name "*"
   - find /etc/cassandra/ -name "*"
   - find /var/log/cassandra/ -name "*"

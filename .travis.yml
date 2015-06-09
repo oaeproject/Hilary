@@ -39,8 +39,7 @@ before_install:
   - sudo service cassandra status
   - sudo ls /var/log
   - sudo ls /var/log/cassandra
-  - sudo cat /var/log/cassandra/output.log
-  - exit 1
+  - sudo cat /var/log/cassandra/system.log
 
   # Install elasticsearch 1.5.2  manually
   - sudo service elasticsearch stop
@@ -116,7 +115,7 @@ after_failure:
   - ps aux --sort -rss | head
   - top -n1 -b
   - df -h
-  - tail -300 /var/log/
+  - tail -300 /var/log/cassandra/system.log
   # Compress the logs and upload them to Amazon S3
   - gzip tests.log
   - bin/upload_logs

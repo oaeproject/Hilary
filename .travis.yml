@@ -27,22 +27,16 @@ before_install:
 
   # Install cassandra 2 manually
   - sudo service cassandra stop
-  - sudo apt-cache show cassandra
   - sudo apt-get install -y -o Dpkg::Options::=--force-confnew cassandra=2.1.5
-  - sudo ls /etc/cassandra
   - sudo cp ~/build/oaeproject/Hilary/etc/cassandra/cassandra-env.sh /etc/cassandra/cassandra-env.sh
   - sudo cp ~/build/oaeproject/Hilary/etc/cassandra/cassandra.yaml /etc/cassandra/cassandra.yaml
-  - sudo cat /usr/local/cassandra/conf/log4j-tools.properties
-  - sudo cat /usr/local/cassandra/conf/log4j-server.properties
-  - sudo cat /etc/cassandra/log4j-tools.properties
-  - sudo cat /etc/cassandra/log4j-server.properties
   - sudo service cassandra stop
   # Give Cassandra some time to shut down
   - sleep 5
   - sudo service cassandra start
   - sleep 5
   - sudo service cassandra status
-  - sudo ps -aux | grep java
+  - sudo ps -aux | grep cassandra
 
   # Install elasticsearch 1.5.2  manually
   - sudo service elasticsearch stop

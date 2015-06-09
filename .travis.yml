@@ -91,6 +91,9 @@ before_install:
   # Position ourselves to start the test in "script" phase
   - cd ~/build/oaeproject/Hilary
 
+  # Increase Cassandra query timeout
+  - printf "\nconfig.cassandra.timeout = 30000;" >> config.js
+
   # Enable preview processing
   - printf "\n\nconfig.previews.enabled = true;" >> config.js
   - printf "\nconfig.previews.office.binary = '/usr/bin/soffice';" >> config.js

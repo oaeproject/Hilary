@@ -32,11 +32,12 @@ before_install:
   - sudo cp ~/build/oaeproject/Hilary/etc/cassandra/cassandra.yaml /etc/cassandra/cassandra.yaml
   - sudo service cassandra stop
   # Give Cassandra some time to shut down
-  - sleep 5
+  - sleep 10
   - sudo service cassandra start
-  - sleep 5
-  - sudo service cassandra status
+  - sleep 10
+  - sudo ls /var/run
   - sudo ps -aux | grep cassandra
+  - sudo service cassandra status
 
   # Install elasticsearch 1.5.2  manually
   - sudo service elasticsearch stop

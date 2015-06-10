@@ -28,14 +28,18 @@ before_install:
   # Install cassandra 2 manually
   - sudo service cassandra stop
   - sudo apt-get install -y -o Dpkg::Options::=--force-confnew cassandra=2.1.5
+  - "sudo sed -i '1iMAX_HEAP_SIZE=512M\\nHEAP_NEWSIZE=48M\\n' /etc/cassandra/cassandra-env.sh"
+  - "sudo sed -i 's/rpc_server_type: sync/rpc_server_type: hsha/g' /etc/cassandra/cassandra.yaml"
+  - "sudo sed -i 's/key_cache_size_in_mb:/key_cache_size_in_mb: 0/g' /etc/cassandra/cassandra.yaml"
+  - sudo cat /etc/cassandra/cassandra-env.sh
+  - sudo cat /etc/cassandra/cassandra.yaml
   #- sudo cp ~/build/oaeproject/Hilary/etc/cassandra/cassandra-env.sh /etc/cassandra/cassandra-env.sh
   #- sudo cp ~/build/oaeproject/Hilary/etc/cassandra/cassandra.yaml /etc/cassandra/cassandra.yaml
   - sudo service cassandra stop
   # Give Cassandra some time to shut down
-  - sleep 10
+  - sleep 5
   - sudo service cassandra start
-  - sleep 10
-  - sudo ls /var/run
+  - sleep 5
   - sudo ps -aux | grep cassandra
   - sudo service cassandra status
 
@@ -106,7 +110,6 @@ script:
   - grunt test-coverage-coveralls
 
 after_success:
-  - sudo ps aux | grep java
   - ps aux --sort -rss | head
   - top -n1 -b
   - df -h
@@ -115,6 +118,7 @@ after_success:
 
 after_failure:
   - sudo ps aux --sort -rss | head
+  - sudo ps aux | grep java
   - sudo top -n1 -b
   - sudo df -h
   - sudo cat /var/log/cassandra/system.log

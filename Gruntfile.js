@@ -142,9 +142,9 @@ module.exports = function(grunt) {
     // Make a task for running tests on a single module
     grunt.registerTask('test-module', 'Test a single module', function(module) {
         var config = {
-            'src': ['node_modules/oae-tests/runner/beforeTests.js', 'node_modules/' + module + '/tests/**/*.js']
+            'src': ['node_modules/oae-tests/runner/beforeTests.js', 'node_modules/' + module + '/tests/**/*.js'],
+            'options': grunt.config.get('mocha-hack.all.options')
         };
-        config.options = grunt.config.get('mocha-hack.all.options');
         grunt.config.set('mocha-hack.' + module, config);
         grunt.task.run('mocha-hack:' + module);
     });

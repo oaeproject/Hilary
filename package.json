@@ -1,7 +1,7 @@
 {
   "name": "Hilary",
   "description": "Open Academic Environment (OAE) Back-end",
-  "version": "11.2.0",
+  "version": "11.3.0",
   "homepage": "http://www.oaeproject.org",
   "author": {
     "name": "The Apereo Foundation",
@@ -92,7 +92,7 @@
     "oauth2orize": "latest",
     "optimist": "latest",
     "passport": "latest",
-    "passport-cas": "git://github.com/oaeproject/passport-cas#samlValidateLoginUrl",
+    "passport-cas": "0.1.0",
     "passport-facebook": "git://github.com/oaeproject/passport-facebook",
     "passport-google-oauth": "latest",
     "passport-http": "latest",

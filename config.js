@@ -447,5 +447,7 @@ config.tincanapi = {
  */
 config.mixpanel = {
     'enabled': false,
+    'apikey': '',
+    'apisecret': '',
     'token': 'f3e9fce119d357b745a8dfa36248d632'
 };

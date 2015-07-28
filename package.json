@@ -90,7 +90,7 @@
     "oauth2orize": "latest",
     "optimist": "latest",
     "passport": "latest",
-    "passport-cas": "0.1.0",
+    "passport-cas": "git://github.com/oaeproject/passport-cas#samlValidateLoginUrl",
     "passport-facebook": "git://github.com/oaeproject/passport-facebook",
     "passport-google-oauth": "latest",
     "passport-http": "latest",

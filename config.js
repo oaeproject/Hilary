@@ -275,7 +275,7 @@ config.mq = {
  * @param  {String}      credentials.password           The password to login with on the global admin server
  */
 config.previews = {
-    'enabled': false,
+    'enabled': true,
     'tmpDir': tmpDir + '/previews',
     'office': {
         'binary': 'soffice',
@@ -446,8 +446,8 @@ config.tincanapi = {
  * @param  {String}     token           The mixpanel api token
  */
 config.mixpanel = {
-    'enabled': false,
-    'apikey': '',
-    'apisecret': '',
-    'token': 'f3e9fce119d357b745a8dfa36248d632'
+    'enabled': true,
+    'apikey': 'c7fea3ef38c0327918e9b7b9213e2492',
+    'apisecret': 'ec5a500087f6898c1432b24c859fc5bd',
+    'token': '801b591644e11eef4c6774a4daa1a013'
 };

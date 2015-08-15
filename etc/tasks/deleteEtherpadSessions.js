@@ -77,9 +77,7 @@ OAE.init(config, function(err) {
 var _deleteSessionRows = function(rows, callback) {
     // Get the session keys
     var keysToDelete = _.chain(rows)
-        .map(function(row) {
-            return row.get('key').value;
-        })
+        .pluck('key')
         .filter(function(key) {
             return (key.indexOf('session') !== -1);
         })
@@ -92,5 +90,5 @@ var _deleteSessionRows = function(rows, callback) {
 
     totalDeletedKeys += keysToDelete.length;
     log().info('Deleting %d keys', keysToDelete.length);
-    return Cassandra.runQuery('DELETE FROM "Etherpad" WHERE key IN (?)', [keysToDelete], callback);
+    return Cassandra.runInQuery('DELETE FROM "Etherpad"', null, 'key', keysToDelete, callback);
 };

@@ -75,6 +75,8 @@ config.servers = {
     'globalAdminAlias': 'admin',
     'globalAdminHost': 'admin.oae.com',
     'globalAdminPort': 2000,
+    'guestTenantAlias': 'guest',
+    'guestTenantHost': 'guest.oae.com',
     'shibbolethSPHost': 'shib-sp.oae.com',
     'serverInternalAddress': null,
     'tenantPort': 2001,

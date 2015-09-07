@@ -33,7 +33,7 @@ config.ui = {
 
 // Cassandra related config information.
 config.cassandra = {
-    'hosts': ['127.0.0.1:9160'],
+    'hosts': ['127.0.0.1:9042'],
     'keyspace': 'oae',
     'user': '',
     'pass': '',
@@ -75,6 +75,8 @@ config.servers = {
     'globalAdminAlias': 'admin',
     'globalAdminHost': 'admin.oae.com',
     'globalAdminPort': 2000,
+    'guestTenantAlias': 'guest',
+    'guestTenantHost': 'guest.oae.com',
     'shibbolethSPHost': 'shib-sp.oae.com',
     'serverInternalAddress': null,
     'tenantPort': 2001,

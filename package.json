@@ -27,6 +27,7 @@
     "bunyan": "latest",
     "bunyan-prettystream": "latest",
     "cassandra-driver": "latest",
+    "cassandra-native-driver": "git://github.com/simong/node-cassandra-native-driver#bigints-dates",
     "chance": "latest",
     "cheerio": "latest",
     "clone": "latest",

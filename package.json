@@ -48,6 +48,7 @@
     "less": "1.7.5",
     "locale": "latest",
     "long": "latest",
+    "lunr": "latest",
     "mailparser": "latest",
     "marked": "latest",
     "mime": "latest",

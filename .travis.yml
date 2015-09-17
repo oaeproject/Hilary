@@ -60,7 +60,7 @@ before_install:
   # Install Hilary deps
   - sudo apt-get install -qq graphicsmagick libreoffice chrpath pdf2htmlex poppler-utils
   - npm install -g grunt-cli
-  - git clone --depth 1 --branch master git://github.com/oaeproject/3akai-ux.git ../3akai-ux
+  - git clone --depth 1 --branch inviting-guests git://github.com/mrvisser/3akai-ux.git ../3akai-ux
 
   # Install etherpad
   - cd /usr/src

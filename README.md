@@ -312,7 +312,7 @@ Open the `config.js` file in the root of the Hilary directory. This file contain
 Find the "nginx.conf" template file located in the nginx folder of the 3akai-ux (3akai-ux/nginx/nginx.conf) repository that you cloned earlier and perform the following edits:
 
 * Replace `<%= nginxConf.NGINX_USER %>` and `<%= nginxConf.NGINX_GROUP %>` with the OS user and group that the nginx process should run as
-* Replace `<%= nginxConf.NGINX_HOSTNAME %>` with the same value you configured for the global administration server host in `/etc/hosts` (the one whose current value would be "admin.oae.com"). **Note:** The `server_name` property for the *user tenant server* further down the configuration file should remain set to "*".
+* Replace `<%= nginxConf.NGINX_HOSTNAME %>` with the same value you configured for the global administration server host in `/etc/hosts` (the one whose current value would be "admin.oae.com"). **Note:** The `server_name` property for the *user tenant server* further down the configuration file should remain set to "\*".
 * Replace all instances of `<%= nginxConf.UX_HOME %>` with the full absolute path to your cloned 3akai-ux directory (e.g., /Users/branden/oae/3akai-ux) or the 3akai-ux production build directory (e.g., /Users/branden/oae/3akai-ux/target/optimized)
 * Replace `<%= nginxConf.LOCAL_FILE_STORAGE_DIRECTORY %>` with the full absolute path that you configured as the `localStorageDirectory` in the `files` section of the  Hilary `config.js` file. This path should not have a trailing slash
 
@@ -342,20 +342,27 @@ To start it in the background, you can run: `node app.js | node_modules/.bin/bun
 
 The server is now running and you can access the administration UI at http://admin.oae.com/!
 
-**Tip:** If you install bunyan as a global depency with `npm install -g bunyan`, you can start the app instead with 'node app | bunyan'.
+**Tip:** If you install bunyan as a global dependency with `npm install -g bunyan`, you can start the app instead with 'node app | bunyan'.
 
 ### Creating your first user tenant
 
 When you start the server, all data schemas will be created for you if they don't already exist. A global administrator user and global administration tenant will be ready for you as well. You can use these to create a new user tenant that hosts the actual OAE user interface.
 
 1. Visit http://admin.oae.com/  (substitute "admin.oae.com" with the administration host you configured in `/etc/hosts`)
-2. Log in with username and password: administrator / administrator
-3. Click "Create a new tenant"
-4. Choose an alias (a short, unique 2-5 character alphanumeric string such as "oae"), and a name of your liking.
-5. For the Host field, use the host you configured for your user tenant in `/etc/hosts` (e.g., "tenant1.oae.com")
-6. Click "Create new tenant"
+1. Log in with username and password: administrator / administrator
+1. Click the "Tenants" header to open up the actions
+1. Click "Create tenant"
+1. Choose an alias (a short, unique 2-5 character alphanumeric string such as "oae"), and a name of your liking.
+1. For the Host field, use the host you configured for your user tenant in `/etc/hosts` (e.g., "tenant1.oae.com")
+1. Click "Create new tenant"
 
-That's it! You can now access the user tenant by their host http://tenant1.oae.com and start creating new users.
+You can now access the user tenant by their host http://tenant1.oae.com and start creating new users.
+
+### Creating your first user
+
+To create a new user, use either the Sign Up link at the top left, or the Sign In link at the top right.
+
+**Tip:** OAE requires that users have an email address that is verified VIA an email that is sent to the user. To avoid the requirement of having a valid email server configuration, you can instead watch the app server logs when a user is created or their email address is updated. When `config.email.debug` is set to `true` in `config.js`, the content of the verification email can be seen in the logs, and you can copy/paste the email verification link from the log to your browser to verify your email. The URL will look similar to: `http://tenant1.oae.com/?verifyEmail=abc123`
 
 We're looking forward to seeing your contributions to the OAE project!
 

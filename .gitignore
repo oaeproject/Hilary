@@ -1,9 +1,16 @@
 .DS_STORE
-dump.rdb
-target/
-node_modules/*
-!node_modules/oae-*
-node_modules/oae-rest
-node_modules/oae-release-tools
+/dump.rdb
+/target/
 *.log
 doc_data.txt
+
+/node_modules/*
+!/node_modules/oae-*
+
+# This line is needed to work around a bug with Atom IDE TreeView
+# https://github.com/atom/tree-view/issues/196
+!/node_modules/oae-*/*
+
+
+/node_modules/oae-release-tools
+/node_modules/oae-rest

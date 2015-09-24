@@ -80,7 +80,7 @@
     "oae-mixpanel": "",
     "oae-preview-processor": "",
     "oae-principals": "",
-    "oae-rest": "git://github.com/mrvisser/oae-rest#inviting-guests",
+    "oae-rest": "latest",
     "oae-search": "",
     "oae-telemetry": "",
     "oae-tenants": "",

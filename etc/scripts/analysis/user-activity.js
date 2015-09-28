@@ -208,55 +208,105 @@ function _createUserRow(userHash, callback) {
         'notifications_last_read': userHash.notificationsLastRead || 0
     };
 
-    // Get the latest publish date for an activity in which the user is an actor
-    _findLatestActedActivityMillis(userHash, function(err, latestActedActivityMillis) {
+    // Get the user's external id to help administrative identification
+    _findExternalId(userHash, function(err, externalId) {
         if (err) {
             return callback(err);
         }
 
-        // Get the number of items in the user's activity feed
-        _findActivityStreamCount(userHash, function(err, activityStreamCount) {
+        // Get the latest publish date for an activity in which the user is an actor
+        _findLatestActedActivityMillis(userHash, function(err, latestActedActivityMillis) {
             if (err) {
                 return callback(err);
             }
 
-            // Find the last updated time of the most recent content item in the user's content library
-            _findLatestContentInLibraryMillis(userHash, function(err, latestContentInLibraryMillis) {
+            // Get the number of items in the user's activity feed
+            _findActivityStreamCount(userHash, function(err, activityStreamCount) {
                 if (err) {
                     return callback(err);
                 }
 
-                // Find the number of items in the user's content library
-                _findContentLibraryCount(userHash, function(err, contentLibraryCount) {
+                // Find the last updated time of the most recent content item in the user's content library
+                _findLatestContentInLibraryMillis(userHash, function(err, latestContentInLibraryMillis) {
                     if (err) {
                         return callback(err);
                     }
 
-                    _findAuthzMembershipsCacheCount(userHash, function(err, authzMembershipsCacheCount) {
+                    // Find the number of items in the user's content library
+                    _findContentLibraryCount(userHash, function(err, contentLibraryCount) {
+                        if (err) {
+                            return callback(err);
+                        }
 
-                        _findResourceMembershipsCount(userHash, function(err, resourceMembershipsCount) {
-                            if (err) {
-                                return callback(err);
-                            }
+                        // Find how many members are in the user's memberships
+                        // cache, which is only an estimate since the cache may
+                        // not have been populated yet
+                        _findAuthzMembershipsCacheCount(userHash, function(err, authzMembershipsCacheCount) {
 
-                            // Add the activity-related information to the row. Library estimates are
-                            // not guaranteed to be correct because there are 2 slug columns (why we
-                            // reduce by 2), but also because they may not be seeded at all (0 items)
-                            _.extend(row, {
-                                'activities': activityStreamCount || 0,
-                                'activity_latest': latestActedActivityMillis || 0,
-                                'content_items_estimate': (contentLibraryCount-2) || 0,
-                                'content_item_latest': latestContentInLibraryMillis || 0,
-                                'group_memberships_estimate': authzMembershipsCacheCount || 0,
-                                'resource_memberships': resourceMembershipsCount || 0
+                            // Find how many memberships to which the user
+                            // belongs directly
+                            _findResourceMembershipsCount(userHash, function(err, resourceMembershipsCount) {
+                                if (err) {
+                                    return callback(err);
+                                }
+
+                                // Add the activity-related information to the row. Library estimates are
+                                // not guaranteed to be correct because there are 2 slug columns (why we
+                                // reduce by 2), but also because they may not be seeded at all (0 items)
+                                _.extend(row, {
+                                    'activities': activityStreamCount || 0,
+                                    'activity_latest': latestActedActivityMillis || 0,
+                                    'content_items_estimate': (contentLibraryCount-2) || 0,
+                                    'content_item_latest_estimate': latestContentInLibraryMillis || 0,
+                                    'external_id': externalId || '',
+                                    'group_memberships_estimate': authzMembershipsCacheCount || 0,
+                                    'resource_memberships': resourceMembershipsCount || 0
+                                });
+
+                                return callback(null, row);
                             });
-
-                            return callback(null, row);
                         });
                     });
                 });
             });
         });
+    });
+}
+
+/**
+ * Find the external login id of the user
+ *
+ * @param  {Object}     userHash                The user hash object
+ * @param  {Function}   callback                Standard callback function
+ * @param  {Object}     callback.err            An error that occurred, if any
+ * @param  {String}     callback.externalId     The external id associated to the user
+ * @api private
+ */
+function _findExternalId(userHash, callback) {
+    var userId = userHash.principalId;
+    Cassandra.runQuery('SELECT "loginId" FROM "AuthenticationUserLoginId" WHERE "userId" = ?', [userId], function(err, rows) {
+        if (err) {
+            return callback(err);
+        }
+
+        var loginId = _.chain(rows)
+            .map(Cassandra.rowToHash)
+            .pluck('loginId')
+            .first()
+            .value();
+
+        var externalId = '';
+        if (loginId) {
+            // If the login id is marist:cas:123456@marist.edu, we take just
+            // 123456@marist.edu by splitting by :, taking away the first two
+            // parts, and re-joining by : in-case the login id portion has :'s
+            externalId = loginId
+                .split(':')
+                .slice(2)
+                .join(':');
+        }
+
+        return callback(null, externalId);
     });
 }
 
@@ -435,7 +485,7 @@ function _createCsvStream(csvFileName) {
         process.exit(1);
     });
     var csvStream = csv.stringify({
-        'columns': ['tenant_alias', 'user_id', 'display_name', 'email', 'visibility', 'last_modified', 'notifications_last_read', 'activities', 'activity_latest', 'content_items_estimate', 'content_item_latest', 'group_memberships_estimate', 'resource_memberships'],
+        'columns': ['tenant_alias', 'user_id', 'external_login_id', 'display_name', 'email', 'visibility', 'last_modified', 'notifications_last_read', 'activities', 'activity_latest', 'content_items_estimate', 'content_item_latest', 'group_memberships_estimate', 'resource_memberships'],
         'header': true,
         'quoted': true
     });

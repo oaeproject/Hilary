@@ -1,0 +1,2 @@
+ALTER TABLE "Folders" ALTER "created" TYPE timestamp;
+ALTER TABLE "Folders" ALTER "lastModified" TYPE timestamp;

@@ -485,7 +485,7 @@ function _createCsvStream(csvFileName) {
         process.exit(1);
     });
     var csvStream = csv.stringify({
-        'columns': ['tenant_alias', 'user_id', 'external_login_id', 'display_name', 'email', 'visibility', 'last_modified', 'notifications_last_read', 'activities', 'activity_latest', 'content_items_estimate', 'content_item_latest', 'group_memberships_estimate', 'resource_memberships'],
+        'columns': ['tenant_alias', 'user_id', 'external_id', 'display_name', 'email', 'visibility', 'last_modified', 'notifications_last_read', 'activities', 'activity_latest', 'content_items_estimate', 'content_item_latest', 'group_memberships_estimate', 'resource_memberships'],
         'header': true,
         'quoted': true
     });

@@ -14,10 +14,7 @@
  */
 
 /*
- * This migration script will:
- *  - Add an `emailDomains` column to the `Tenant` column family
- *  - Copy each row's `emailDomain` value to `emailDomains`
- *  - Drop the `emailDomain` value
+ * This migration script will copy each row's `emailDomain` value to `emailDomains`
  */
 
 var _ = require('underscore');
@@ -107,7 +104,7 @@ OAE.init(config, function(err) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-var _updateTenants = function(tenants, callback) {
+function _updateTenants(tenants, callback) {
     if (_.isEmpty(tenants)) {
         return callback();
     }
@@ -122,6 +119,6 @@ var _updateTenants = function(tenants, callback) {
             return callback(err);
         }
 
-        _updateTenants(tenants, callback);
+        return _updateTenants(tenants, callback);
     });
 };

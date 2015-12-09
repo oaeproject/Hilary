@@ -1,1 +1,1 @@
-ALTER TABLE "Tenant" drop "emailDomain" text;
+ALTER TABLE "Tenant" DROP "emailDomain";

@@ -330,7 +330,7 @@ function _findLatestActedActivityMillis(userHash, callback, _nextToken) {
         }
 
         var activity = _.find(activities, function(activity) {
-            return (JSON.stringify(activity.actor).indexOf(userId) !== -1)
+            return (JSON.stringify(activity.actor).indexOf(userId) !== -1);
         });
 
         if (activity) {

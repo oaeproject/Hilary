@@ -79,7 +79,7 @@ OAE.init(config, function(err) {
         var tenantsToUpdate = _.chain(rows)
             .map(Cassandra.rowToHash)
             .filter(function(hash) {
-                return (hash.emailDomain)
+                return (hash.emailDomain);
             })
             .value();
 
@@ -110,7 +110,8 @@ function _updateTenants(tenants, callback) {
     }
 
     // Update tenants in batches
-    var tenantsToUpdate = tenants.splice(0, 250);
+    var numberOfTenants = 250;
+    var tenantsToUpdate = tenants.splice(0, numberOfTenants);
     var queries = _.map(tenantsToUpdate, function(tenant) {
         return Cassandra.constructUpsertCQL('Tenant', 'alias', tenant.alias, {'emailDomains': tenant.emailDomain});
     });
@@ -119,6 +120,7 @@ function _updateTenants(tenants, callback) {
             return callback(err);
         }
 
+        log.info('Updated %d tenants their email domains', numberOfTenants);
         return _updateTenants(tenants, callback);
     });
-};
+}

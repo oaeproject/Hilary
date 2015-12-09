@@ -31,6 +31,7 @@ module.exports = function(grunt) {
         'jslint': {
             'files': [
                 'Gruntfile.js',
+                'etc/**/*.js',
                 'node_modules/oae-*/lib/**/*.js',
                 'node_modules/oae-*/tests/**/*.js',
                 'node_modules/oae-*/config/**/*.js'

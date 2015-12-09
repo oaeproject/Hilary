@@ -1,1 +1,1 @@
-ALTER TABLE "Tenant" add "emailDomains" text;
+ALTER TABLE "Tenant" ADD "emailDomains" text;

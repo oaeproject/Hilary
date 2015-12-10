@@ -120,7 +120,7 @@ function _updateTenants(tenants, callback) {
             return callback(err);
         }
 
-        log.info('Updated %d tenants their email domains', numberOfTenants);
+        log().info('Updated %d tenants their email domains', tenantsToUpdate.length);
         return _updateTenants(tenants, callback);
     });
 }

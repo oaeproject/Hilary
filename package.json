@@ -41,6 +41,7 @@
     "etherpad-lite-client": "latest",
     "expand-url": "latest",
     "express": "4.2.0",
+    "gift": "latest",
     "globalize": "0.1.1",
     "gm": "latest",
     "helenus": "latest",

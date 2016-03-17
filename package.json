@@ -91,6 +91,7 @@
     "oae-ui": "",
     "oae-uservoice": "",
     "oae-util": "",
+    "oae-version": "",
     "oauth2orize": "latest",
     "optimist": "latest",
     "passport": "0.2.2",
@@ -178,7 +179,8 @@
     "oae-tincanapi",
     "oae-ui",
     "oae-uservoice",
-    "oae-util"
+    "oae-util",
+    "oae-version"
   ],
   "engines": {
     "node": ">=0.10"

@@ -13,6 +13,7 @@ env:
     - secure: T1wEYmk7AhKxIGtDbb12ERT18sNb/92vL1VBo42Q4JMd4ww/Z3E7su5T3IsVY3cjaE2X7oKNVBWx9TWvkJJnHk5UiN3SmKiIGcFNKOvp6ha9BW0JyVAk5lPRh5poq33GrCvkZT3YKX7AgI/+7TutrbYVE/o5Bs599rF+8l8dSkk=
 
 before_install:
+  - echo $(which phantomjs)
   # Add DataStax apt repo for Cassandra
   - curl -L http://debian.datastax.com/debian/repo_key | sudo apt-key add -
   - echo "deb http://debian.datastax.com/community stable main" | sudo tee -a /etc/apt/sources.list.d/dsc.sources.list

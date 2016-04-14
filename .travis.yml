@@ -56,7 +56,6 @@ before_install:
 
   # We must ensure phantomjs is not available so the travis build will include it in node_modules when deploying
   - sudo rm -rf /usr/local/phantomjs/bin/phantomjs
-  - echo $(which phantomjs)
 
   # Install Hilary deps
   - sudo apt-get install -qq graphicsmagick libreoffice chrpath pdf2htmlex poppler-utils

@@ -23,7 +23,7 @@ var optimist = require('optimist');
 var path = require('path');
 
 var Cassandra = require('oae-util/lib/cassandra');
-var log = require('oae-logger').logger('tenants-email-domains-migrator');
+var log = require('oae-logger').logger('lower-case-email-migrator');
 var LowerCaseEmailsMigrator = require('./lib/lowerCaseEmails');
 var OAE = require('oae-util/lib/oae');
 var TenantsAPI = require('oae-tenants');

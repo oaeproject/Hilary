@@ -1,6 +1,8 @@
-# Open Academic Environment (OAE Project)
+# Open Academic Environment (OAE Project) with a Doodle-like functionality
 
 Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject.org/)
+This repository is a modified version of Hilary with a Doodle-like functionality.
+To make it works, you need, in addition of all the dependencies required for Hilary, a Doodle-like (Loodle) server which you can found at this repository : [Loodle](https://github.com/Orodan/Loodle).
 
 ## Build status
 [![Build Status](https://travis-ci.org/oaeproject/Hilary.png?branch=master)](https://travis-ci.org/oaeproject/Hilary)

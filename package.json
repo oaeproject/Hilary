@@ -23,6 +23,7 @@
   "dependencies": {
     "amqp": "git://github.com/oaeproject/node-amqp#0.1.8.x",
     "awssum-amazon-s3": "latest",
+    "async": "^1.5.2",
     "body-parser": "latest",
     "bunyan": "latest",
     "bunyan-prettystream": "latest",
@@ -33,6 +34,7 @@
     "connect-redis": "latest",
     "cookie-parser": "latest",
     "cookie-session": "latest",
+    "crypto": "0.0.3",
     "csv": "latest",
     "data-structures": "latest",
     "dox": "latest",

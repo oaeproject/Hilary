@@ -13,5 +13,4 @@ doc_data.txt
 
 
 /node_modules/oae-release-tools
-
-.idea/
+/node_modules/oae-rest

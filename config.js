@@ -111,10 +111,16 @@ config.files = {
     'localStorageDirectory': '../files'
 };
 
-// The configuration that can be used to generate secure HTTP cookies.
-// It's strongly recommended that you change this value.
-// Make sure that this value is the same accross each app server.
+/**
+ * `config.cookie`
+ *
+ * Configuration namespace for cookies.
+ *
+ * @param  {String}     name        The name of the cookie in which to store the session information
+ * @param  {String}     secret      The key to securely sign the cookies with. It's strongly recommended that you change this value
+ */
 config.cookie = {
+    'name': 'session',
     'secret': 'this secret will be used to sign your cookies, change me!'
 };
 

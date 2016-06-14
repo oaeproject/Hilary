@@ -98,11 +98,16 @@ OAE.init(config, function(err) {
                 return _exit(1);
             }
 
+            if (_.isEmpty(mappedUsers)) {
+                util.format('No users were mapped for tenant %s', tenantAlias)
+            } else {
+                util.format('%s users were migrated to Shibboleth logins.', mappedUsers.length);
+            }
+
             if (errors > 0) {
                 log().warn('Some users were not mapped to Shibboleth users, check the CSV file for more information');
             }
 
-            log().info('%s users were migrated to Shibboleth login.', mappedUsers.length);
             return _exit(0);
         });
     });
@@ -128,8 +133,6 @@ var _getAllUsersForTenant = function(tenantAlias, callback) {
         }
 
         log().info('Found %s users for specified tenant', userHashes.length);
-
-        return callback(null, userHashes);
     });
 
     /*
@@ -146,19 +149,49 @@ var _getAllUsersForTenant = function(tenantAlias, callback) {
                 return principalHash.tenantAlias === tenantAlias && PrincipalsDAO.isUser(principalHash.principalId) && principalHash.email;
             })
             .each(function(userHash) {
-                // Add the external ID for each user
-                _findExternalId(userHash, function(err, userHash) {
-                    if (err) {
-                        return callback(err);
-                    }
-
-                    log().info('Adding user %s to tenant users', userHash.email);
-                    userHashes.push(userHash);
-                });
+                log().info('Adding user %s to tenant users', userHash.email);
+                userHashes.push(userHash);
             });
 
         return callback();
     }
+
+    _getExternalIds(userHashes, function(err, hashesWithId) {
+        if (err) {
+            return callback(err);
+        }
+        return callback(null, hashesWithId);
+    });
+};
+
+/**
+ * Get the external login ids for all users in a tenancy
+ *
+ * @param  {Object[]}   userHashes            The users for a tenancy
+ * @param  {Function}   callback              Standard callback function
+ * @param  {Object[]}   callback.userHashes   The users for a tenancy with ID
+ * @api private
+ */
+var _getExternalIds = function(userHashes, callback, _userHashes) {
+  _userHashes = _userHashes || [];
+
+  if (_.isEmpty(userHashes)) {
+    return callback(null, _userHashes);
+  }
+
+  // Take the next principal hash from the collection
+  var principalHash = user.shift();
+  _findExternalId(principalHash, function(err, userHash) {
+    if (err) {
+      return callback(err);
+    }
+
+    // Accumulate the return information we want
+    _userHashes.push(userHash);
+
+    // Our recursive step inside the callback for _findExternalId
+    return _getExternalIds(principalHashes, callback, _userHashes);
+  });
 };
 
 /**
@@ -202,54 +235,66 @@ var _mapUsersToShibUsers = function(allUsers, callback) {
         return user.loginId && user.loginId.split(':')[1] === 'shibboleth';
     });
 
-    if (shibbolethUsers.length < 1) {
+    if (_.isEmpty(shibbolethUsers)) {
         log().info('No Shibboleth users found for tenant %s', tenantAlias);
-        _exit(0);
+        callback(null, null);
     }
 
     log().info('Found %s users with Shibboleth accounts', shibbolethUsers.length);
 
     var nonShibUsers = _.difference(allUsers, shibbolethUsers);
 
-    var mappedUsers = [];
+    _findMatchesAndMap(shibbolethUsers, nonShibUsers, function(err, mappedUsers) {
+        if (err) {
+            callback(err);
+        }
 
-    _.each(shibbolethUsers, function(userHash) {
-        log().info('Processing user %s', userHash.email);
+        callback(null, mappedUsers);
+    });
+};
 
-        // Find Shibboleth EPPN for each user (if exists)
-        _findShibbolethEppn(userHash.loginId, function(err, eppn) {
-            if (!eppn) {
-                _writeErrorRow(userHash, null, 'This Shibboleth user has no EPPN');
+var _findMatchesAndMap = function(shibbolethUsers, nonShibUsers, callback, _mappedUsers) {
+    if (_.isEmpty(shibbolethUsers)) {
+        _.each(_.difference(nonShibUsers, _mappedUsers), function(user) {
+            _writeErrorRow(null, user, util.format('No matching Shibboleth user found for user %s', user.email));
+        });
+
+        return callback(null, _mappedUsers);
+    }
+
+    var userHash = shibbolethUsers.shift();
+
+    log().info('Processing user %s', userHash.email);
+
+    // Find Shibboleth EPPN for each user (if exists)
+    _findShibbolethEppn(userHash.loginId, function(err, eppn) {
+        if (!eppn) {
+            _writeErrorRow(userHash, null, 'This Shibboleth user has no EPPN');
+            _findMatchesAndMap(shibbolethUsers, nonShibUsers, _mappedUsers);
+        }
+
+        // Extend the user object with the EPPN
+        var userWithEppn = _.extend(userHash, {'eppn': eppn});
+
+        // Find a non-Shibboleth user account with an email that matches the EPPN
+        _getUserMatches(nonShibUsers, userWithEppn, function(err, userMatch) {
+            if (err) {
+                log().warn(err);
+                _findMatchesAndMap(shibbolethUsers, nonShibUsers, _mappedUsers);
             }
 
-            // Extend the user object with the EPPN
-            var userWithEppn = _.extend(userHash, {'eppn': eppn});
-
-            // Find a non-Shibboleth user account with an email that matches the EPPN
-            _getUserMatches(nonShibUsers, userWithEppn, function(err, userMatch) {
+            // Link the Shibboleth account to the old user account
+            _swapUserLogin(userMatch, userWithEppn, function(err) {
                 if (err) {
-                    log().warn(err);
+                    _writeErrorRow(userWithEppn, userMatch, 'Failed to link Shibboleth login to existing user');
+                } else {
+                    _mappedUsers.push(userMatch);
                 }
-
-                // Link the Shibboleth account to the old user account
-                _swapUserLogin(userMatch, userWithEppn, function(err) {
-                    if (err) {
-                        _writeErrorRow(userWithEppn, userMatch, 'Failed to link Shibboleth login to existing user');
-                    } else {
-                        mappedUsers.push(userMatch);
-                    }
-
-                    if ((shibbolethUsers.length -1) === shibbolethUsers.indexOf(userHash)) {
-                        _.each(_.difference(nonShibUsers, mappedUsers), function(user) {
-                            _writeErrorRow(null, user, util.format('No matching Shibboleth user found for user %s', user.email));
-                        });
-
-                        callback(null, mappedUsers);
-                    }
-                });
             });
         });
     });
+
+    _findMatchesAndMap(shibbolethUsers, nonShibUsers, _mappedUsers);
 };
 
 /**
@@ -260,7 +305,7 @@ var _mapUsersToShibUsers = function(allUsers, callback) {
  * @param  {String}     message                 A short message detailing the issue
  * @api private
  */
-var _writeErrorRow = function(shibUser, oldUser, message) {
+function _writeErrorRow(shibUser, oldUser, message) {
     csvStream.write({
         'shib_principal_id': shibUser && shibUser.principalId ? shibUser.principalId : '',
         'shib_email': shibUser && shibUser.email ? shibUser.email : '',
@@ -270,7 +315,7 @@ var _writeErrorRow = function(shibUser, oldUser, message) {
         'message': message ? message : ''
     });
     errors++;
-};
+}
 
 /**
  * Find the Shibboleth EPPN of the user
@@ -362,15 +407,8 @@ var _swapUserLogin = function(oldUser, shibUser, callback) {
                     log().error({'err': err}, 'Failed to update AuthenticationLoginId table in Cassandra');
                     callback(err);
                 }
-                Cassandra.runQuery('DELETE FROM "Principals" WHERE "principalId" = ?', [shibbolethUserId], function(err, results) {
-                    if (err) {
-                        log().error({'err': err}, 'Failed to delete Shibboleth user from Principals in Cassandra');
-                        callback(err);
-                    }
-
-                    log().info(util.format('Mapped user %s to user %s', shibUser.email, oldUser.email));
-                    callback();
-                })
+                log().info(util.format('Mapped user %s to user %s', shibUser.email, oldUser.email));
+                callback();
              });
         });
     });

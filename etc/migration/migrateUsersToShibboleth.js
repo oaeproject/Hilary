@@ -77,7 +77,7 @@ fileStream.on('error', function(err) {
     process.exit(1);
 });
 var csvStream = csv.stringify({
-    'columns': ['principal_id', 'email', 'message'],
+    'columns': ['principal_id', 'email', 'login_id', 'message'],
     'header': true,
     'quoted': true
 });
@@ -94,6 +94,7 @@ function _writeErrorRow(userHash, message) {
     csvStream.write({
         'principal_id': userHash.principalId ? userHash.principalId : '',
         'email': userHash.email ? userHash.email : '',
+        'login_id': userHash.loginId ? userHash.loginId : '';,
         'message': message ? message : ''
     });
     errors++;
@@ -115,9 +116,9 @@ OAE.init(config, function(err) {
                 }
 
                 if (_.isEmpty(mappedUsers)) {
-                    util.format('No users were migrated for tenant %s', tenantAlias);
+                    log().info('No users were migrated for tenant %s', tenantAlias);
                 } else {
-                    util.format('%s users were migrated to Shibboleth logins.', mappedUsers.length);
+                    log().info('%s users were migrated to Shibboleth logins.', mappedUsers.length);
                 }
 
                 if (errors > 0) {
@@ -141,7 +142,7 @@ OAE.init(config, function(err) {
 var _getAllUsersForTenant = function(tenantAlias, callback) {
     var userHashes = [];
 
-    PrincipalsDAO.iterateAll(['principalId', 'tenantAlias', 'email'], 100, _aggregateUsers, function(err) {
+    PrincipalsDAO.iterateAll(['principalId', 'tenantAlias', 'email', 'displayName'], 100, _aggregateUsers, function(err) {
         if (err) {
             log().error({'err': err}, 'Failed to iterate all users');
             return _exit(1);
@@ -162,10 +163,10 @@ var _getAllUsersForTenant = function(tenantAlias, callback) {
         log().info('Checking %s principals for tenancy', principalHashes.length);
         _.chain(principalHashes)
             .filter(function(principalHash) {
-                return principalHash.tenantAlias === tenantAlias && PrincipalsDAO.isUser(principalHash.principalId) && principalHash.email;
+                return principalHash.tenantAlias === tenantAlias && PrincipalsDAO.isUser(principalHash.principalId);
             })
             .each(function(userHash) {
-                log().info('Adding user %s to tenant users', userHash.email);
+                log().info('Adding user %s to tenant users', userHash.displayName);
                 userHashes.push(userHash);
             });
 
@@ -214,14 +215,18 @@ function _findExternalId(userHash, callback) {
     var userId = userHash.principalId;
     Cassandra.runQuery('SELECT "loginId" FROM "AuthenticationUserLoginId" WHERE "userId" = ?', [userId], function(err, rows) {
         if (err) {
-            log().error({'err': err}, 'Failed Cassandra query for user %s\'s loginId', userHash.email);
-            _writeErrorRow(user, 'Could not retrieve loginId for this user');
+            log().error({'err': err}, 'Failed Cassandra query for user %s\'s loginId', userHash.displayName);
+            _writeErrorRow(userHash, 'Could not retrieve loginId for this user');
             return callback(err);
         }
 
         var loginId = _.chain(rows)
             .map(Cassandra.rowToHash)
             .pluck('loginId')
+            .filter(function(loginId) {
+                // If user has more than one loginId, take the Google one
+                return loginId.split(':')[1] === 'google';
+            })
             .first()
             .value();
 
@@ -244,36 +249,25 @@ var _mapUsersToShibLogin = function(allUsers, callback) {
         .filter(function(user) {
             var valid = user.loginId;
             if (!valid) {
+                // We'll also end up here if they have a non-Google loginId
                 _writeErrorRow(user, 'This user has an invalid loginId');
             }
             return valid;
-        })
-        .groupBy(function(user) {
-            return user.email;
-        })
-        .map(function(grouped) {
-            if (grouped.length === 1) {
-                return grouped[0];
-            } else {
-                _.each(grouped, function(dupe) {
-                    _writeErrorRow(dupe, 'Found more than one user with this email');
-                });
-            }
         })
         .compact()
         .value();
 
     if (_.isEmpty(cleanedUsers)) {
         log().info('No suitable users found for tenant %s', tenantAlias);
-        callback(null, null);
+        return callback(null, null);
     }
 
     _createShibLoginRecords(cleanedUsers, function(err, mappedUsers) {
         if (err) {
-            callback(err);
+            return callback(err);
         }
 
-        callback(null, mappedUsers);
+        return callback(null, mappedUsers);
     });
 };
 
@@ -295,12 +289,12 @@ var _createShibLoginRecords = function(users, callback, _mappedUsers) {
 
     var userHash = users.shift();
 
-    log().info('Processing user %s', userHash.email);
+    log().info('Processing user %s', userHash.displayName);
 
     // Create a new login record for user
     _createNewUserLogin(userHash, function(err) {
         if (err) {
-            callback(err);
+            return callback(err);
         }
 
         _mappedUsers.push(userHash);
@@ -317,8 +311,8 @@ var _createShibLoginRecords = function(users, callback, _mappedUsers) {
  * @api private
  */
 var _createNewUserLogin = function(userHash, callback) {
-    var email = userHash.email;
     var userId = userHash.principalId;
+    var email = userHash.loginId.slice(userHash.loginId.lastIndexOf(':') + 1);
     var newLoginId = util.format('%s:shibboleth:%s', tenantAlias, email);
 
     Cassandra.runQuery('INSERT INTO "AuthenticationUserLoginId" ("loginId", "userId", "value") VALUES (?, ?, ?)', [newLoginId, userId, '1'], function(err, results) {
@@ -334,7 +328,7 @@ var _createNewUserLogin = function(userHash, callback) {
                 return callback(err);
             }
 
-            log().info('Created Shibboleth login record for user %s', email);
+            log().info('Created Shibboleth login record for user %s', userHash.displayName);
             return callback();
          });
     });

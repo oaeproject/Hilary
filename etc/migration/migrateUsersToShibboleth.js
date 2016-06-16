@@ -94,7 +94,7 @@ function _writeErrorRow(userHash, message) {
     csvStream.write({
         'principal_id': userHash.principalId ? userHash.principalId : '',
         'email': userHash.email ? userHash.email : '',
-        'login_id': userHash.loginId ? userHash.loginId : '';,
+        'login_id': userHash.loginId ? userHash.loginId : '',
         'message': message ? message : ''
     });
     errors++;

@@ -20,68 +20,14 @@
 
 var _ = require('underscore');
 var bunyan = require('bunyan');
-var csv = require('csv');
-var fs = require('fs');
-var optimist = require('optimist');
-var path = require('path');
 var util = require('util');
 
 var Cassandra = require('oae-util/lib/cassandra');
 var log = require('oae-logger').logger('oae-script-main');
-var OAE = require('oae-util/lib/oae');
 var PrincipalsDAO = require('oae-principals/lib/internal/dao');
 
-var argv = optimist.usage('$0 [-t cam] [--config <path/to/config.js>]')
-    .alias('t', 'tenant')
-    .describe('t', 'Specify the tenant alias of the tenant whose users who wish to migrate')
-
-    .alias('c', 'config')
-    .describe('c', 'Specify an alternate config file')
-    .default('c', 'config.js')
-
-    .alias('h', 'help')
-    .describe('h', 'Show usage information')
-    .argv;
-
-if (argv.help) {
-    optimist.showHelp();
-    return process.exit(1);
-}
-
+var csvStream = {};
 var errors = 0;
-
-// Get the config
-var configPath = path.resolve(process.cwd(), argv.config);
-var config = require(configPath).config;
-
-// ...and the tenant
-var tenantAlias = argv.tenant;
-
-// Ensure that this application server does NOT start processing any preview images
-config.previews.enabled = false;
-
-// Ensure that we're logging to standard out/err
-config.log = {
-    'streams': [
-        {
-            'level': 'info',
-            'stream': process.stdout
-        }
-    ]
-};
-
-// Set up the CSV file for errors
-var fileStream = fs.createWriteStream(tenantAlias + '-shibboleth-migration.csv');
-fileStream.on('error', function(err) {
-    log().error({'err': err}, 'Error occurred when writing to the warnings file');
-    process.exit(1);
-});
-var csvStream = csv.stringify({
-    'columns': ['principal_id', 'email', 'login_id', 'message'],
-    'header': true,
-    'quoted': true
-});
-csvStream.pipe(fileStream);
 
 /**
  * Write errors to a CSV file
@@ -100,19 +46,30 @@ function _writeErrorRow(userHash, message) {
     errors++;
 }
 
-// Spin up the application container. This will allow us to re-use existing APIs
-OAE.init(config, function(err) {
-    if (err) {
-        log().error({'err': err}, 'Unable to spin up the application server');
-        return _exit(err.code);
-    }
+/**
+ * Migrate users to Shibboleth login
+ *
+ * @param  {String}     tenantAlias             The tenant we want to do migration for
+ * @param  {Function}   callback                Standard callback function
+ * @param  {Object}     callback.err            An error that occurred, if any
+ * @param  {Object}     callback.errorCount     Whether there were errors in the migration
+ */
+var doMigration = module.exports.doMigration = function(tenantAlias, stream, callback) {
+    csvStream = stream;
+    _getAllUsersForTenant(tenantAlias, function(err, userHashes) {
+        if (err) {
+            return callback(err);
+        }
 
-    _getAllUsersForTenant(tenantAlias, function(userHashes) {    
-        _getExternalIds(userHashes, function(usersWithIds) {
+        _getExternalIds(userHashes, function(err, usersWithIds) {
+            if (err) {
+                return callback(err);
+            }
+
             _mapUsersToShibLogin(usersWithIds, function(err, mappedUsers) {
                 if (err) {
                     log().error({'err':err}, 'Encountered error when migrating %s users to Shibboleth', tenantAlias);
-                    return _exit(1);
+                    return callback(err);
                 }
 
                 if (_.isEmpty(mappedUsers)) {
@@ -121,21 +78,19 @@ OAE.init(config, function(err) {
                     log().info('%s users were migrated to Shibboleth logins.', mappedUsers.length);
                 }
 
-                if (errors > 0) {
-                    log().warn('Some users could not be mapped to Shibboleth logins, check the CSV file for more information');
-                }
 
-                return _exit(0);
+                return callback(null, errors);
             });
         });
     });
-});
+};
 
 /**
  * Page through all the users in the system, and filter them by tenant
  *
  * @param  {String}     tenantAlias             The tenant alias to filter by
  * @param  {Function}   callback                Invoked when users have been collected
+ * @param  {Object}     callback.err            An error that occurred, if any
  * @param  {Object[]}   callback.userHashes     An array of user hashes
  * @api private
  */
@@ -145,19 +100,19 @@ var _getAllUsersForTenant = function(tenantAlias, callback) {
     PrincipalsDAO.iterateAll(['principalId', 'tenantAlias', 'email', 'displayName'], 100, _aggregateUsers, function(err) {
         if (err) {
             log().error({'err': err}, 'Failed to iterate all users');
-            return _exit(1);
+            return callback(err);
         }
 
         log().info('Found %s users for specified tenant', userHashes.length);
 
-        return callback(userHashes);
+        return callback(null, userHashes);
     });
 
     /*!
      * Filter users down to those that are part of the specified tenant. Then add them to the `userHashes` array
      *
-     * @param  {Object[]}   principalHashes     The principals to filter and aggregate
-     * @param  {Function}   callback            Will be invoked when the principals are aggregated
+     * @param  {Object[]}   principalHashes       The principals to filter and aggregate
+     * @param  {Function}   callback              Will be invoked when the principals are aggregated
      */
     function _aggregateUsers(principalHashes, callback) {
         log().info('Checking %s principals for tenancy', principalHashes.length);
@@ -177,24 +132,32 @@ var _getAllUsersForTenant = function(tenantAlias, callback) {
 /**
  * Get the external login ids for all users in a tenancy
  *
- * @param  {Object[]}   userHashes            The users for a tenancy
- * @param  {Function}   callback              Standard callback function
- * @param  {Object[]}   callback.userHashes   The users for a tenancy with ID
+ * @param  {Object[]}   userHashes              The users for a tenancy
+ * @param  {Function}   callback                Standard callback function
+ * @param  {Object}     callback.err            An error that occurred, if any
+ * @param  {Object[]}   callback.userHashes     The users for a tenancy with ID
  * @api private
  */
 var _getExternalIds = function(userHashes, callback, _userHashes) {
     _userHashes = _userHashes || [];
 
     if (_.isEmpty(userHashes)) {
-        return callback(_userHashes);
+        return callback(null, _userHashes);
     }
 
     // Take the next principal hash from the collection
     var principalHash = userHashes.shift();
     _findExternalId(principalHash, function(err, userHash) {
-        if (!err && userHash) {
+        if (err) {
+            log().error({'err': err}, 'Failed Cassandra query for user %s\'s loginId', principalHash.principalId);
+            return callback(err);
+        }
+
+        if (userHash.loginId) {
             // Accumulate the return information we want
             _userHashes.push(userHash);
+        } else {
+            _writeErrorRow(userHash, 'This user has no Google loginId');
         }
 
         // Our recursive step inside the callback for _findExternalId
@@ -215,8 +178,6 @@ function _findExternalId(userHash, callback) {
     var userId = userHash.principalId;
     Cassandra.runQuery('SELECT "loginId" FROM "AuthenticationUserLoginId" WHERE "userId" = ?', [userId], function(err, rows) {
         if (err) {
-            log().error({'err': err}, 'Failed Cassandra query for user %s\'s loginId', userHash.displayName);
-            _writeErrorRow(userHash, 'Could not retrieve loginId for this user');
             return callback(err);
         }
 
@@ -230,7 +191,9 @@ function _findExternalId(userHash, callback) {
             .first()
             .value();
 
-        return callback(null, _.extend(userHash, {'loginId': loginId}));
+        userHash = loginId ? _.extend(userHash, {'loginId': loginId}) : userHash;
+
+        return callback(null, userHash);
     });
 }
 
@@ -244,25 +207,12 @@ function _findExternalId(userHash, callback) {
  * @api private
  */
 var _mapUsersToShibLogin = function(allUsers, callback) {
-    // Remove users with duplicate emails or invalid login IDs
-    var cleanedUsers = _.chain(allUsers)
-        .filter(function(user) {
-            var valid = user.loginId;
-            if (!valid) {
-                // We'll also end up here if they have a non-Google loginId
-                _writeErrorRow(user, 'This user has an invalid loginId');
-            }
-            return valid;
-        })
-        .compact()
-        .value();
-
-    if (_.isEmpty(cleanedUsers)) {
-        log().info('No suitable users found for tenant %s', tenantAlias);
-        return callback(null, null);
+    if (_.isEmpty(allUsers)) {
+        log().info('No suitable users found for this tenant');
+        return callback();
     }
 
-    _createShibLoginRecords(cleanedUsers, function(err, mappedUsers) {
+    _createShibLoginRecords(allUsers, function(err, mappedUsers) {
         if (err) {
             return callback(err);
         }
@@ -274,20 +224,20 @@ var _mapUsersToShibLogin = function(allUsers, callback) {
 /**
  * Create new authentication records linked to Shibboleth EPPN for all users within the tenant
  *
- * @param  {Object[]}   users                   The users to map
+ * @param  {Object[]}   userHashes              The users to map
  * @param  {Function}   callback                Standard callback function
  * @param  {Object}     callback.err            An error that occurred, if any
  * @param  {Object[]}   callback.mappedUsers    The Shibboleth users that were mapped to existing users
  * @api private
  */
-var _createShibLoginRecords = function(users, callback, _mappedUsers) {
+var _createShibLoginRecords = function(userHashes, callback, _mappedUsers) {
     _mappedUsers = _mappedUsers || [];
 
-    if (_.isEmpty(users)) {
+    if (_.isEmpty(userHashes)) {
         return callback(null, _mappedUsers);
     }
 
-    var userHash = users.shift();
+    var userHash = userHashes.shift();
 
     log().info('Processing user %s', userHash.displayName);
 
@@ -298,7 +248,7 @@ var _createShibLoginRecords = function(users, callback, _mappedUsers) {
         }
 
         _mappedUsers.push(userHash);
-        _createShibLoginRecords(users, callback, _mappedUsers);
+        _createShibLoginRecords(userHashes, callback, _mappedUsers);
     });
 };
 
@@ -313,7 +263,7 @@ var _createShibLoginRecords = function(users, callback, _mappedUsers) {
 var _createNewUserLogin = function(userHash, callback) {
     var userId = userHash.principalId;
     var email = userHash.loginId.slice(userHash.loginId.lastIndexOf(':') + 1);
-    var newLoginId = util.format('%s:shibboleth:%s', tenantAlias, email);
+    var newLoginId = util.format('%s:shibboleth:%s', userHash.tenantAlias, email);
 
     Cassandra.runQuery('INSERT INTO "AuthenticationUserLoginId" ("loginId", "userId", "value") VALUES (?, ?, ?)', [newLoginId, userId, '1'], function(err, results) {
         if (err) {
@@ -331,16 +281,5 @@ var _createNewUserLogin = function(userHash, callback) {
             log().info('Created Shibboleth login record for user %s', userHash.displayName);
             return callback();
          });
-    });
-};
-
-/**
- * Exit the migration script, but wait until the CSV stream has been properly closed down
- *
- * @param  {Number}     code    The exit code that should be used to stop the process with
- */
-var _exit = function(code) {
-    csvStream.end(function() {
-        process.exit(code);
     });
 };

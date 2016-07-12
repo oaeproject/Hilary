@@ -457,3 +457,19 @@ config.mixpanel = {
     'enabled': false,
     'token': 'f3e9fce119d357b745a8dfa36248d632'
 };
+
+/**
+ * `config.zencoder`
+ *
+ * Configuration namespace for Zencoder
+ *
+ * @param  {String}     apiKey           The Zencoder api key
+ * @param  {String}     output           The output URL
+ * @param  {String}     watermark        The URL for the watermark logo
+*/
+config.zencoder = {
+    'enabled': true,
+    'apiKey': '',
+    'output': '',
+    'watermark': 'http://www.researchresearch.com/images/marketing-images/unity-secondary-inverse.png'
+};

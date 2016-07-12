@@ -127,7 +127,8 @@
     "watch": "latest",
     "webshot": "latest",
     "xml2js": "latest",
-    "youtube-api": "latest"
+    "youtube-api": "latest",
+    "zencoder": "latest"
   },
   "devDependencies": {
     "coveralls": "latest",

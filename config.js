@@ -283,20 +283,20 @@ config.mq = {
  * @param  {String}      credentials.password           The password to login with on the global admin server
  */
 config.previews = {
-    'enabled': true,
+    'enabled': false,
     'tmpDir': tmpDir + '/previews',
     'office': {
         'binary': 'soffice',
         'timeout': 120000
     },
-/*    'pdf2htmlEX': {
+    'pdf2htmlEX': {
         'binary': 'pdf2htmlEX',
         'timeout': 120000
     },
     'pdftotext': {
         'binary': 'pdftotext',
         'timeout': 120000
-    },*/
+    },
     'link': {
         'renderDelay': 7500,
         'renderTimeout': 30000,

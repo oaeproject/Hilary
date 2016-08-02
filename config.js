@@ -463,17 +463,29 @@ config.mixpanel = {
  *
  * Configuration namespace for Zencoder
  *
+ * @param  {Boolean}    enabled                     Whether or not Zencoder video encoding should be enabled
  * @param  {String}     apiKey                      The Zencoder api key
- * @param  {String}     amazons3-bucket             The S3 bucket for storing output videos
- * @param  {String}     amazons3-access-key         The S3 bucket access key
- * @param  {String}     amazons3-secret-key         The S3 bucket secret key
  * @param  {String}     watermark                   The URL for the watermark logo
 */
 config.zencoder = {
-    'enabled': true,
+    'enabled': false,
     'apiKey': '',
-    'amazons3-bucket': '',
-    'amazons3-access-key': '',
-    'amazons3-secret-key': '',
     'watermark': ''
+};
+
+/**
+ * `config.storage`
+ *
+ * Configuration namespace for storage
+ *
+ * @param  {String}     amazons3-bucket             The S3 bucket for storing output videos
+ * @param  {String}     amazons3-access-key         The S3 bucket access key
+ * @param  {String}     amazons3-secret-key         The S3 bucket secret key
+ * @param  {String}     amazons3-region             The S3 bucket region
+*/
+config.storage = {
+    'amazons3-bucket': '',
+    'amazons3-region': '',
+    'amazons3-access-key': '',
+    'amazons3-secret-key': ''
 };

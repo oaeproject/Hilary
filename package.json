@@ -23,6 +23,7 @@
   "dependencies": {
     "amqp": "git://github.com/oaeproject/node-amqp#0.1.8.x",
     "awssum-amazon-s3": "latest",
+    "aws-sdk": "^2.4.11",
     "body-parser": "latest",
     "bunyan": "latest",
     "bunyan-prettystream": "latest",
@@ -76,7 +77,6 @@
     "oae-google-analytics": "",
     "oae-library": "",
     "oae-logger": "",
-    "oae-mediacore": "",
     "oae-messagebox": "",
     "oae-mixpanel": "",
     "oae-preview-processor": "",
@@ -169,7 +169,6 @@
     "oae-google-analytics",
     "oae-library",
     "oae-logger",
-    "oae-mediacore",
     "oae-messagebox",
     "oae-mixpanel",
     "oae-preview-processor",
@@ -182,7 +181,8 @@
     "oae-ui",
     "oae-uservoice",
     "oae-util",
-    "oae-version"
+    "oae-version",
+    "oae-zencoder"
   ],
   "engines": {
     "node": ">=0.10"

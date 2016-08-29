@@ -1,0 +1,18 @@
+{
+    "name": "oae-jitsi",
+    "version": "0.0.1",
+    "description": "An OAE backend module for a visio conference system using Jitsi.",
+    "author": "Jimmy Kasprzak",
+    "dependencies": {
+        
+    },
+    "homepage": "https://github.com/Orodan/oae-jitsi",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Orodan/oae-jitsi.git"
+    },
+    "main": "lib/api.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    }
+}

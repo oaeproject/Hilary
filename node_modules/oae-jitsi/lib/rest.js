@@ -131,7 +131,7 @@ OAE.tenantRouter.on('get', '/api/meeting-jitsi/:meetingId/invitations', function
  */
 OAE.tenantRouter.on('get', '/api/meeting-jitsi/:meetingId/members', function (req, res) {
 
-    var limit = OaeUtil.getNumberParam(req.query.limot, 10, 1, 25);
+    var limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
     MeetingsAPI.Meetings.getMeetingMembers(req.ctx, req.params.meetingId, req.query.start, limit, function (err, members, nextToken) {
         if (err) {
             return res.send(err.code, err.msg);

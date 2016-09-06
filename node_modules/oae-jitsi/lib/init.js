@@ -8,7 +8,9 @@ module.exports = function (config, callback) {
     log().info('Initializing the oae-jitsi module');
 
     _ensureSchema(function (err) {
-        if (err) return callback(err);
+        if (err) {
+            return callback(err);
+        }
 
         // Register the activity functionality
         require('./activity');

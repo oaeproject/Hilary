@@ -47,12 +47,20 @@ var createMeeting = module.exports.createMeeting = function (ctx, displayName, d
 
     // Convert chat and contactList value to boolean for validation (if there are present)
     if (chat) {
-        if (chat === 'true') chat = true;
-        else if (chat === 'false') chat = false;
+        if (chat === 'true') {
+            chat = true;
+        }
+        else if (chat === 'false') {
+            chat = false;
+        }
     }
     if (contactList) {
-        if (contactList === 'true') contactList = true;
-        else if (contactList === 'false') contactList = false;
+        if (contactList === 'true') {
+            contactList = true;
+        }
+        else if (contactList === 'false') {
+            contactList = false;
+        }
     }
 
     // Verify basic properties
@@ -60,27 +68,39 @@ var createMeeting = module.exports.createMeeting = function (ctx, displayName, d
     validator.check(null, {'code': 401, 'msg': 'Anonymous users cannot create a meeting'}).isLoggedInUser(ctx);
     validator.check(displayName, {'code': 400, 'msg': 'Must provide a display name for the meeting'}).notEmpty();
     validator.check(displayName, {'code': 400, 'msg': 'A display name can be at most 1000 characters long'}).isShortString();
-    if (description && description.length > 0) validator.check(description, {'code': 400, 'msg': 'A description can be at most 10000 characters long'}).isMediumString();
-    if (chat) validator.check(null, {'code': 400, 'msg': 'An invalid chat value was specified, must be boolean'}).isBoolean(chat);
-    if (contactList) validator.check(null, {'code': 400, 'msg': 'An invalid contactList value was specified, must be boolean'}).isBoolean(contactList);
     validator.check(visibility, {'code': 400, 'msg': 'An invalid meeting visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')}).isIn(allVisibilities);
+    if (description && description.length > 0) {
+        validator.check(description, {'code': 400, 'msg': 'A description can be at most 10000 characters long'}).isMediumString();
+    }
+    if (chat) {
+        validator.check(null, {'code': 400, 'msg': 'An invalid chat value was specified, must be boolean'}).isBoolean(chat);
+    }
+    if (contactList) {
+        validator.check(null, {'code': 400, 'msg': 'An invalid contactList value was specified, must be boolean'}).isBoolean(contactList);
+    }
 
     // Verify each role is valid
     _.each(additionalMembers, function (role, memberId) {
         validator.check(role, {'code': 400, 'msg': 'The role: ' + role + ' is not a valid member role for a meeting'}).isIn(MeetingsConstants.roles.ALL_PRIORITY);
     });
 
-    if (validator.hasErrors()) return callback(validator.getFirstError());
+    if (validator.hasErrors()) {
+        return callback(validator.getFirstError());
+    }
 
     // The current user is always a manager
     additionalMembers[ctx.user().id] = AuthzConstants.role.MANAGER;
 
     var createFn = _.partial(MeetingsDAO.createMeeting, ctx.user().id, displayName, description, chat, contactList, visibility);
     ResourceActions.create(ctx, additionalMembers, createFn, function (err, meeting, memberChangeInfo) {
-        if (err) return callback(err);
+        if (err) {
+            return callback(err);
+        }
 
         MeetingsAPI.emit(MeetingsConstants.events.CREATED_MEETING, ctx, meeting, memberChangeInfo, function (errs) {
-            if (errs) return callback(_.first(errs));
+            if (errs) {
+                return callback(_.first(errs));
+            }
 
             return callback(null, meeting);
         });
@@ -100,15 +120,20 @@ var getFullMeetingProfile = module.exports.getFullMeetingProfile = function (ctx
 
     var validator = new Validator();
     validator.check(meetingId, {'code': 400, 'msg': 'meetingId must be a valid resource id'}).isResourceId();
-    if (validator.hasErrors())
+    if (validator.hasErrors()) {
 	    return callback(validator.getFirstError());
+    }
 
     _getMeeting(meetingId, function (err, meeting) {
-        if (err) return callback(err);
+        if (err) {
+            return callback(err);
+        }
 
         // Resolve the full meeting access information for the current user
         AuthzPermissions.resolveEffectivePermissions(ctx, meeting, function (err, permissions) {
-            if (err) return callback(err);
+            if (err) {
+                return callback(err);
+            }
             else if (!permissions.canView) {
                 // The user has no effective role, which means they are not allowed to view (this has already taken into
                 // consideration implicit privacy rules, such as whether or not the meeting is public).
@@ -133,8 +158,9 @@ var getFullMeetingProfile = module.exports.getFullMeetingProfile = function (ctx
                             'meetingId': meeting.id
                         }, 'An error occurred getting the creator of a meeting. Proceeding with empty user for full profile');
                 }
-                else
+                else {
                     meeting.createdBy = creator;
+                }
 
                 MeetingsAPI.emit(MeetingsConstants.events.GET_MEETING_PROFILE, ctx, meeting);
                 return callback(null, meeting);
@@ -155,14 +181,19 @@ var getMeeting = function (ctx, meetingId, callback) {
 
     var validator = new Validator();
     validator.check(meetingId, {'code': 400, 'msg': 'A valid resource id must be specified'}).isResourceId();
-    if (validator.hasErrors())
+    if (validator.hasErrors()) {
         return callback(validator.getFirstError());
+    }
 
     _getMeeting(meetingId, function (err, meeting) {
-        if (err) return callback(err);
+        if (err) {
+            return callback(err);
+        }
 
         AuthzPermissions.canView(ctx, meeting, function (err) {
-            if (err) return callback(err);
+            if (err) {
+                return callback(err);
+            }
 
             return callback(null, meeting);
         });
@@ -182,11 +213,14 @@ var getMeetingInvitations = module.exports.getMeetingInvitations = function (ctx
 
     var validator = new Validator();
     validator.check(meetingId, {'code': 400, 'msg': 'A valid resource id must be specified'}).isResourceId();
-    if (validator.hasErrors())
+    if (validator.hasErrors()) {
         return callback(validator.getFirstError());
+    }
 
     _getMeeting(meetingId, function (err, meeting) {
-        if (err) return callback(err);
+        if (err) {
+            return callback(err);
+        }
 
         return AuthzInvitations.getAllInvitations(ctx, meeting, callback);
     });
@@ -206,20 +240,27 @@ var getMeetingMembers = module.exports.getMeetingMembers = function (ctx, meetin
 
     var validator = new Validator();
     validator.check(meetingId, {'code': 400, 'msg': 'A valid resource id must be specified'}).isResourceId();
-    if (validator.hasErrors())
+    if (validator.hasErrors()) {
         return callback(validator.getFirstError());
+    }
 
     getMeeting(ctx, meetingId, function (err, meeting) {
-        if (err) return callback(err);
+        if (err) {
+            return callback(err);
+        }
 
         // Get the meeting members
         AuthzAPI.getAuthzMembers(meetingId, start, limit, function (err, memberRoles, nextToken) {
-            if (err) return callback(err);
+            if (err) {
+                return callback(err);
+            }
 
             // Get the basic profiles for all of these principals
             var memberIds = _.pluck(memberRoles, 'id');
             PrincipalsUtil.getPrincipals(ctx, memberIds, function (err, memberProfiles) {
-                if (err) return callback(err);
+                if (err) {
+                    return callback(err);
+                }
 
                 // Merge the member profiles and roles into a single object
                 var memberList = _.map(memberRoles, function (memberRole) {
@@ -250,12 +291,18 @@ var updateMeeting = module.exports.updateMeeting = function (ctx, meetingId, pro
 
     // Convert chat and contactList value to boolean for validation (if there are present)
     if (profileFields.chat) {
-        if (profileFields.chat === 'true') profileFields.chat = true;
-        else if (profileFields.chat === 'false') profileFields.chat = false;
+        if (profileFields.chat === 'true') {
+            profileFields.chat = true;
+        } else if (profileFields.chat === 'false') {
+            profileFields.chat = false;
+        }
     }
     if (profileFields.contactList) {
-        if (profileFields.contactList === 'true') profileFields.contactList = true;
-        else if (profileFields.contactList === 'false') profileFields.contactList = false;
+        if (profileFields.contactList === 'true') {
+            profileFields.contactList = true;
+        } else if (profileFields.contactList === 'false') {
+            profileFields.contactList = false;
+        }
     }
 
     var validator = new Validator();
@@ -264,31 +311,38 @@ var updateMeeting = module.exports.updateMeeting = function (ctx, meetingId, pro
     validator.check(_.keys(profileFields).length, {'code': 400, 'msg': 'You should at least provide one profile field to update'}).min(1);
     _.each(profileFields, function (value, field) {
         validator.check(field, {'code': 400, 'msg': 'The field \'' + field + '\' is not a valid field. Must be one of: ' + MeetingsConstants.updateFields.join(', ')}).isIn(MeetingsConstants.updateFields);
-        if (field === 'visibility')
+        if (field === 'visibility') {
             validator.check(value, {'code': 400, 'msg': 'An invalid visibility was specified. Must be one of: ' + allVisibilities.join(', ')}).isIn(allVisibilities);
-        else if (field === 'displayName') {
+        } else if (field === 'displayName') {
             validator.check(value, {'code': 400, 'msg': 'A display name cannot be empty'}).notEmpty();
             validator.check(value, {'code': 400, 'msg': 'A display name can be at most 1000 characters long'}).isShortString();
-        }
-        else if (field === 'description' && value.length > 0)
+        } else if (field === 'description' && value.length > 0) {
             validator.check(value, {'code': 400, 'msg': 'A description can be at most 10000 characters long'}).isMediumString();    
-        else if (field === 'chat')
+        } else if (field === 'chat') {
             validator.check(null, {'code': 400, 'msg': 'An invalid chat value was specified, must be boolean'}).isBoolean(value);
-        else if (field === 'contactList')
+        } else if (field === 'contactList') {
             validator.check(null, {'code': 400, 'msg': 'An invalid contactList value was specified, must be boolean'}).isBoolean(value);
+        }
     });
 
-    if (validator.hasErrors())
+    if (validator.hasErrors()) {
         return callback(validator.getFirstError());
+    }
 
     _getMeeting(meetingId, function (err, meeting) {
-        if (err) return callback(err);
+        if (err) {
+            return callback(err);
+        }
 
         AuthzPermissions.canManage(ctx, meeting, function (err) {
-            if (err) return callback(err);
+            if (err) {
+                return callback(err);
+            }
 
             MeetingsDAO.updateMeeting(meeting, profileFields, function (err, updatedMeeting) {
-                if (err) return callback(err);
+                if (err) {
+                    return callback(err);
+                }
 
                 // Fill in the full profile, the user is inevitably a manager
                 updatedMeeting.isManager = true;
@@ -296,7 +350,9 @@ var updateMeeting = module.exports.updateMeeting = function (ctx, meetingId, pro
                 updatedMeeting.canShare = true;
 
                 MeetingsAPI.emit(MeetingsConstants.events.UPDATED_MEETING, ctx, updatedMeeting, meeting, function (errs) {
-                    if (errs) return callback(_.first(errs));
+                    if (errs) {
+                        return callback(_.first(errs));
+                    }
 
                     return callback(null, updatedMeeting);
                 });
@@ -320,17 +376,24 @@ var deleteMeeting = module.exports.deleteMeeting = function (ctx, meetingId, cal
     validator.check(meetingId, {'code': 400, 'msg': 'A valid resource id must be specified'}).isResourceId();
     validator.check(null, {'code': 401, 'msg': 'You must be authenticated to delete a meeting'}).isLoggedInUser(ctx);
 
-    if (validator.hasErrors())
+    if (validator.hasErrors()) {
         return callback(validator.getFirstError());
-    
+    }
+        
     _getMeeting(meetingId, function (err, meeting) {
-        if (err) return callback(err);
+        if (err) {
+            return callback(err);
+        }
 
         AuthzPermissions.canManage(ctx, meeting, function (err) {
-            if (err) return callback(err);
+            if (err) {
+                return callback(err);
+            }
 
             AuthzAPI.getAllAuthzMembers(meeting.id, function (err, members) {
-                if (err) return callback(err);
+                if (err) {
+                    return callback(err);
+                }
 
                 var roleChanges = {};
                 var memberIds = _.pluck(members, 'id');
@@ -340,14 +403,20 @@ var deleteMeeting = module.exports.deleteMeeting = function (ctx, meetingId, cal
 
                 // Remove the meeting members
                 AuthzAPI.updateRoles(meeting.id, roleChanges, function (err) {
-                    if (err) return callback(err);
+                    if (err) {
+                        return callback(err);
+                    }
 
                     // Delete the meeting itself
                     MeetingsDAO.deleteMeeting(meeting.id, function (err) {
-                        if (err) return callback(err);
+                        if (err) {
+                            return callback(err);
+                        }
 
                         MeetingsAPI.emit(MeetingsConstants.events.DELETED_MEETING, ctx, meeting, memberIds, function (errs) {
-                            if (errs) return callback(_.first(errs));
+                            if (errs) {
+                                return callback(_.first(errs));
+                            }
 
                             return callback();
                         });
@@ -375,21 +444,29 @@ var setMeetingMembers = module.exports.setMeetingMembers = function (ctx, meetin
     validator.check(null, {'code': 401, 'msg': 'You must be authenticated to update meeting members'}).isLoggedInUser(ctx);
     _.each(changes, function (role, principalId) {
         validator.check(role, {'code': 400, 'msg': 'The role change : ' + role + ' is not a valid value. Must either be a string, or false'}).isValidRoleChange();
-        if (role)
+        if (role) {
             validator.check(role, {'code': 400, 'msg': 'The role "' + role + '" is not a valid value. Must be one of : ' + MeetingsConstants.roles.ALL_PRIORITY.join(', ') + ', or false'}).isIn(MeetingsConstants.roles.ALL_PRIORITY);
+        }
     });
 
-    if (validator.hasErrors())
+    if (validator.hasErrors()) {
         return callback(validator.getFirstError());
+    }
 
     _getMeeting(meetingId, function (err, meeting) {
-        if (err) return callback(err);
+        if (err) {
+            return callback(err);
+        }
 
         ResourceActions.setRoles(ctx, meeting, changes, function (err, memberChangeInfo) {
-            if (err) return callback(err);
+            if (err) {
+                return callback(err);
+            }
 
             MeetingsAPI.emit(MeetingsConstants.events.UPDATED_MEETING_MEMBERS, ctx, meeting, memberChangeInfo, {}, function (errs) {
-                if (errs) return callback(_.first(errs));
+                if (errs) {
+                    return callback(_.first(errs));
+                }
 
                 return callback();
             });
@@ -418,14 +495,20 @@ var getMessages = module.exports.getMessages = function (ctx, meetingId, start, 
     validator.check(meetingId, {'code': 400, 'msg': 'Must provide a valid meeting id'}).isResourceId();
     validator.check(limit, {'code': 400, 'msg': 'Must provide a valid limit'}).isInt();
 
-    if (validator.hasErrors()) return callback(validator.getFirstError());
+    if (validator.hasErrors()) {
+        return callback(validator.getFirstError());
+    }
 
     getMeeting(ctx, meetingId, function (err, meeting) {
-        if(err) return callback(err);
+        if(err) {
+            return callback(err);
+        }
 
         // Fetch the messages from the message box
         MessageBoxAPI.getMessagesFromMessageBox(meetingId, start, limit, null, function(err, messages, nextToken) {
-            if (err) return callback(err);
+            if (err) {
+                return callback(err);
+            }
 
             var userIds = _.map(messages, function(message) {
                 return message.createdBy;
@@ -436,7 +519,9 @@ var getMessages = module.exports.getMessages = function (ctx, meetingId, start, 
 
             // Get the basic principal profiles of the messagers to add to the messages as `createdBy`.
             PrincipalsUtil.getPrincipals(ctx, userIds, function(err, users) {
-                if (err) return callback(err);
+                if (err) {
+                    return callback(err);
+                }
 
                 // Attach the user profiles to the message objects
                 _.each(messages, function(message) {
@@ -471,33 +556,45 @@ var createMessage = module.exports.createMessage = function (ctx, meetingId, bod
     validator.check(meetingId, {'code': 400, 'msg': 'Invalid meeting id provided'}).isResourceId();
     validator.check(body, {'code': 400, 'msg': 'A meeting body must be provided'}).notEmpty();
     validator.check(body, {'code': 400, 'msg': 'A meeting body can only be 100000 characters long'}).isLongString();
-    if (replyToCreatedTimestamp)
+    if (replyToCreatedTimestamp) {
         validator.check(replyToCreatedTimestamp, {'code': 400, 'msg': 'Invalid reply-to timestamp provided'}).isInt();
+    }
 
-    if (validator.hasErrors())
+    if (validator.hasErrors()) {
         return callback(validator.getFirstError());
+    }
 
     // Get the meeting, throwing an error if it doesn't exist, avoiding permission checks for now
     _getMeeting(meetingId, function(err, meeting) {
-        if (err) return callback(err);
+        if (err) {
+            return callback(err);
+        }
 
         // Determine if the current user can post meeting messages to this meeting
         AuthzPermissions.canInteract(ctx, meeting, function(err) {
-            if (err) return callback(err);
+            if (err) {
+                return callback(err);
+            }
 
             // Create the message
             MessageBoxAPI.createMessage(meetingId, ctx.user().id, body, {'replyToCreated': replyToCreatedTimestamp}, function(err, message) {
-                if (err) return callback(err);
+                if (err) {
+                    return callback(err);
+                }
 
                 // Get a UI-appropriate representation of the current user
                 PrincipalsUtil.getPrincipal(ctx, ctx.user().id, function(err, createdBy) {
-                    if (err) return callback(err);
+                    if (err) {
+                        return callback(err);
+                    }
 
                     message.createdBy = createdBy;
 
                     // The message has been created in the database so we can emit the `created-message` event
                     MeetingsAPI.emit(MeetingsConstants.events.CREATED_MEETING_MESSAGE, ctx, message, meeting, function(errs) {
-                        if (errs) return callback(_.first(errs));
+                        if (errs) {
+                            return callback(_.first(errs));
+                        }
 
                         return callback(null, message);
                     });
@@ -525,37 +622,46 @@ var deleteMessage = module.exports.deleteMessage = function(ctx, meetingId, mess
     validator.check(null, {'code': 401, 'msg': 'Only authenticated users can delete messages'}).isLoggedInUser(ctx);
     validator.check(meetingId, {'code': 400, 'msg': 'A meeting id must be provided'}).isResourceId();
     validator.check(messageCreatedDate, {'code': 400, 'msg': 'A valid integer message created timestamp must be specified'}).isInt();
-    if (validator.hasErrors()) 
+    if (validator.hasErrors()) {
         return callback(validator.getFirstError());
+    }
 
     // Get the meeting without permissions check
     _getMeeting(meetingId, function(err, meeting) {
-        if (err) return callback(err);
+        if (err) {
+            return callback(err);
+        }
 
         // Ensure that the message exists. We also need it so we can make sure we have access to deleted it
         MessageBoxAPI.getMessages(meetingId, [messageCreatedDate], {'scrubDeleted': false}, function(err, messages) {
-            if (err)
+            if (err) {
                 return callback(err);
-            else if (!messages[0])
+            } else if (!messages[0]) {
                 return callback({'code': 404, 'msg': 'The specified message does not exist'});
+            }
 
             var message = messages[0];
 
             // Determine if we have access to delete the meeting message
             AuthzPermissions.canManageMessage(ctx, meeting, message, function(err) {
-                if (err) return callback(err);
+                if (err) {
+                    return callback(err);
+                }
 
                 // Delete the message using the "leaf" method, which will SOFT delete if the message has replies, or HARD delete if it does not
                 MessageBoxAPI.deleteMessage(meetingId, messageCreatedDate, {'deleteType': MessageBoxConstants.deleteTypes.LEAF}, function(err, deleteType, deletedMessage) {
-                    if (err) return callback(err);
+                    if (err) {
+                        return callback(err);
+                    }
 
                     MeetingsAPI.emit(MeetingsConstants.events.DELETED_MEETING_MESSAGE, ctx, message, meeting, deleteType);
 
                     // If a soft-delete occurred, we want to inform the consumer of the soft-delete message model
-                    if (deleteType === MessageBoxConstants.deleteTypes.SOFT)
+                    if (deleteType === MessageBoxConstants.deleteTypes.SOFT) {
                         return callback(null, deletedMessage);
-                    else
+                    } else {
                         return callback();
+                    }
                 });
             });
         });
@@ -582,28 +688,36 @@ var getMeetingsLibrary = module.exports.getMeetingsLibrary = function(ctx, princ
 
     var validator = new Validator();
     validator.check(principalId, {'code': 400, 'msg': 'A user or group id must be provided'}).isPrincipalId();
-    if (validator.hasErrors())
+    if (validator.hasErrors()) {
         return callback(validator.getFirstError());
+    }
 
     // Get the principal
     PrincipalsUtil.getPrincipal(ctx, principalId, function(err, principal) {
-        if (err) return callback(err);
+        if (err) {
+            return callback(err);
+        }
 
         // Determine which library visibility the current user should receive
         LibraryAPI.Authz.resolveTargetLibraryAccess(ctx, principal.id, principal, function(err, hasAccess, visibility) {
-            if (err) 
+            if (err) {
                 return callback(err);
-            else if (!hasAccess)
+            } else if (!hasAccess) {
                 return callback({'code': 401, 'msg': 'You do not have have access to this library'});
+            }
 
             // Get the meeting ids from the library index
             LibraryAPI.Index.list(MeetingsConstants.library.MEETINGS_LIBRARY_INDEX_NAME, principalId, visibility, {'start': start, 'limit': limit}, function(err, entries, nextToken) {
-                if (err) return callback(err);
+                if (err) {
+                    return callback(err);
+                }
 
                 // Get the meeting objects from the meeting ids
                 var meetingIds = _.pluck(entries, 'resourceId');
                 MeetingsDAO.getMeetingsById(meetingIds, function(err, meetings) {
-                    if (err) return callback(err);
+                    if (err) {
+                        return callback(err);
+                    }
 
                     // Emit an event indicating that the meeting library has been retrieved
                     MeetingsAPI.emit(MeetingsConstants.events.GET_MEETING_LIBRARY, ctx, principalId, visibility, start, limit, meetings);
@@ -640,22 +754,32 @@ var removeMeetingFromLibrary = module.exports.removeMeetingFromLibrary = functio
 
     // Make sure the meeting exists
     _getMeeting(meetingId, function (err, meeting) {
-        if (err) return callback(err);
+        if (err) {
+            return callback(err);
+        }
 
         // Ensure the library owner exists
         PrincipalsDAO.getPrincipal(libraryOwnerId, function (err, principal) {
-            if (err) return callback(err);
+            if (err) {
+                return callback(err);
+            }
 
             // Ensure the user can remove the content item from the library owner's resource
             AuthzPermissions.canRemoveRole(ctx, principal, meeting, function (err, memberChangeInfo) {
-                if (err) return callback(err);
+                if (err) {
+                    return callback(err);
+                }
 
                 // All validation checks have passed, finally persist the role change and update the user library
                 AuthzAPI.updateRoles(meetingId, memberChangeInfo.changes, function (err) {
-                    if (err) return callback(err);
+                    if (err) {
+                        return callback(err);
+                    }
 
                     MeetingsAPI.emit(MeetingsConstants.events.UPDATED_MEETING_MEMBERS, ctx, meeting, memberChangeInfo, {}, function (errs) {
-                        if (errs) return callback(_.first(errs));
+                        if (errs) {
+                            return callback(_.first(errs));
+                        }
 
                         return callback();
                     });
@@ -679,10 +803,11 @@ var removeMeetingFromLibrary = module.exports.removeMeetingFromLibrary = functio
 var _getMeeting = function (meetingId, callback) {
 
     MeetingsDAO.getMeeting(meetingId, function (err, meeting) {
-        if (err) 
+        if (err) {
             return callback(err);
-        else if (!meeting)
+        } else if (!meeting) {
             return callback({'code': 404, 'msg': 'Could not find meeting : ' + meetingId});
+        }
 
         return callback(null, meeting);
     });

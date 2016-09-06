@@ -50,7 +50,9 @@ OAE.tenantRouter.on('post', '/api/meeting-jitsi/create', function (req, res) {
     });
 
     MeetingsAPI.Meetings.createMeeting(req.ctx, req.body.displayName, req.body.description, req.body.chat, req.body.contactList, req.body.visibility, additionalMembers, function (err, meeting) {
-        if (err) return res.send(err.code, err.msg);
+        if (err) {
+            return res.send(err.code, err.msg);
+        }
         return res.send(201, meeting);
     });
 
@@ -74,7 +76,9 @@ OAE.tenantRouter.on('post', '/api/meeting-jitsi/create', function (req, res) {
 OAE.tenantRouter.on('get', '/api/meeting-jitsi/:meetingId', function (req, res) {
 
     MeetingsAPI.Meetings.getFullMeetingProfile(req.ctx, req.params.meetingId, function (err, meeting) {
-        if (err) return res.send(err.code, err.msg);
+        if (err) {
+            return res.send(err.code, err.msg);
+        }
 
         return res.send(200, meeting);
     });
@@ -99,7 +103,9 @@ OAE.tenantRouter.on('get', '/api/meeting-jitsi/:meetingId', function (req, res) 
 OAE.tenantRouter.on('get', '/api/meeting-jitsi/:meetingId/invitations', function (req, res) {
 
     MeetingsAPI.Meetings.getMeetingInvitations(req.ctx, req.params.meetingId, function (err, invitations) {
-        if (err) return res.send(err.code, err.msg);
+        if (err) {
+            return res.send(err.code, err.msg);
+        }
 
         return res.send(200, {'results': invitations});
     });
@@ -127,7 +133,9 @@ OAE.tenantRouter.on('get', '/api/meeting-jitsi/:meetingId/members', function (re
 
     var limit = OaeUtil.getNumberParam(req.query.limot, 10, 1, 25);
     MeetingsAPI.Meetings.getMeetingMembers(req.ctx, req.params.meetingId, req.query.start, limit, function (err, members, nextToken) {
-        if (err) return res.send(err.code, err.msg);
+        if (err) {
+            return res.send(err.code, err.msg);
+        }
 
         return res.send(200, {'results': members, 'nextToken': nextToken}); 
     });
@@ -162,7 +170,9 @@ OAE.tenantRouter.on('get', '/api/meeting-jitsi/:meetingId/members', function (re
 OAE.tenantRouter.on('put', '/api/meeting-jitsi/:meetingId', function (req, res) {
 
     MeetingsAPI.Meetings.updateMeeting(req.ctx, req.params.meetingId, req.body, function (err, meeting) {
-        if (err) return res.send(err.code, err.msg);
+        if (err) {
+            return res.send(err.code, err.msg);
+        }
 
         return res.send(200, meeting);
     });
@@ -186,7 +196,9 @@ OAE.tenantRouter.on('put', '/api/meeting-jitsi/:meetingId', function (req, res) 
 OAE.tenantRouter.on('delete', '/api/meeting-jitsi/:meetingId', function (req, res) {
 
     MeetingsAPI.Meetings.deleteMeeting(req.ctx, req.params.meetingId, function (err) {
-        if (err) return res.send(err.code, err.msg);
+        if (err) {
+            return res.send(err.code, err.msg);
+        }
 
         return res.send(200);
     });
@@ -224,7 +236,9 @@ OAE.tenantRouter.on('put', '/api/meeting-jitsi/:meetingId/members', function (re
     });
 
     MeetingsAPI.Meetings.setMeetingMembers(req.ctx, req.params.meetingId, permissionUpdates, function (err) {
-        if (err) return res.send(err.code, err.msg);
+        if (err) {
+            return res.send(err.code, err.msg);
+        }
 
         return res.send(200);
     });
@@ -256,7 +270,9 @@ OAE.tenantRouter.on('get', '/api/meeting-jitsi/:meetingId/messages', function(re
 
     var limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
     MeetingsAPI.Meetings.getMessages(req.ctx, req.params.meetingId, req.query.start, limit, function(err, messages, nextToken) {
-        if (err) return res.send(err.code, err.msg);
+        if (err) {
+            return res.send(err.code, err.msg);
+        }
 
         res.send(200, {'results': messages, 'nextToken': nextToken});
     });
@@ -288,7 +304,9 @@ OAE.tenantRouter.on('get', '/api/meeting-jitsi/:meetingId/messages', function(re
 OAE.tenantRouter.on('post', '/api/meeting-jitsi/:meetingId/messages', function(req, res) {
 
     MeetingsAPI.Meetings.createMessage(req.ctx, req.params.meetingId, req.body.body, req.body.replyTo, function(err, message) {
-        if (err) return res.send(err.code, err.msg);
+        if (err) {
+            return res.send(err.code, err.msg);
+        }
 
         res.send(200, message);
     });
@@ -318,7 +336,9 @@ OAE.tenantRouter.on('post', '/api/meeting-jitsi/:meetingId/messages', function(r
 OAE.tenantRouter.on('delete', '/api/meeting-jitsi/:meetingId/messages/:created', function(req, res) {
 
     MeetingsAPI.Meetings.deleteMessage(req.ctx, req.params.meetingId, req.params.created, function(err, message) {
-        if (err) return res.send(err.code, err.msg);
+        if (err) {
+            return res.send(err.code, err.msg);
+        }
 
         res.send(200, message);
     });
@@ -345,7 +365,9 @@ OAE.tenantRouter.on('get', '/api/meeting-jitsi/library/:principalId', function(r
 
     var limit = OaeUtil.getNumberParam(req.query.limit, 12, 1, 25);
     MeetingsAPI.Meetings.getMeetingsLibrary(req.ctx, req.params.principalId, req.query.start, limit, function(err, meetings, nextToken) {
-        if (err) return res.send(err.code, err.msg);
+        if (err) {
+            return res.send(err.code, err.msg);
+        }
 
         res.send(200, {'results': meetings, 'nextToken': nextToken});
     });
@@ -373,7 +395,9 @@ OAE.tenantRouter.on('get', '/api/meeting-jitsi/library/:principalId', function(r
 OAE.tenantRouter.on('delete', '/api/meeting-jitsi/library/:principalId/:meetingId', function (req, res) {
 
     MeetingsAPI.Meetings.removeMeetingFromLibrary(req.ctx, req.params.principalId, req.params.meetingId, function (err) {
-        if (err) return res.send(err.code, err.msg);
+        if (err) {
+            return res.send(err.code, err.msg);
+        }
 
         return res.send(200);
     });  

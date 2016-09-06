@@ -15,12 +15,16 @@ LibraryAPI.Index.registerLibraryIndex(MeetingsConstants.library.MEETINGS_LIBRARY
 
         // Query all the meeting ids ('d') to which the library owner is directly associated
         AuthzAPI.getRolesForPrincipalAndResourceType(libraryId, 'd', start, limit, function (err, roles, nextToken) {
-            if (err) return callback(err);
+            if (err) {
+                return callback(err);
+            }
 
             var ids = _.pluck(roles, 'id');
 
             MeetingsDAO.getMeetingsById(ids, function (err, meetings) {
-                if (err) return callback(err);
+                if (err) { 
+                    return callback(err);
+                }
 
                 // Convert all the meetings into the light-weight library items that describe how its placed in a library index
                 var resources = _.chain(meetings)
@@ -58,7 +62,7 @@ MeetingsAPI.when(MeetingsConstants.events.CREATED_MEETING, function (ctx, meetin
         }
 
         return callback();
-    })
+    });
 
 });
 
@@ -69,7 +73,9 @@ MeetingsAPI.on(MeetingsConstants.events.UPDATED_MEETING, function (ctx, updatedM
 
     // Get all the member ids of the updated meeting
     _getAllMemberIds(updatedMeeting.id, function (err, memberIds) {
-        if (err) return callback(err);
+        if (err) {
+            return callback(err);
+        }
 
         // Perform the libraries updates
         return _updateLibrary(memberIds, updatedMeeting, oldMeeting.lastModified);
@@ -118,7 +124,9 @@ MeetingsAPI.when(MeetingsConstants.events.UPDATED_MEETING_MEMBERS, function (ctx
             }, 'Error removing meeting from principal libraries. Ignoring.');
         }
         
-        if (_.isEmpty(updatedMemberIds) && _.isEmpty(addedMemberIds)) return callback();
+        if (_.isEmpty(updatedMemberIds) && _.isEmpty(addedMemberIds)) {
+            return callback();
+        }
 
         // Update the last modified time of the meeting
         _touch(meeting, function (err, touchedMeeting) {
@@ -176,14 +184,16 @@ MeetingsAPI.when(MeetingsConstants.events.UPDATED_MEETING_MEMBERS, function (ctx
  */
 var _insertLibrary = function (principalIds, meeting, callback) {
 
-    if (_.isEmpty(principalIds) || !meeting) return callback();
+    if (_.isEmpty(principalIds) || !meeting) {
+        return callback();
+    }
 
     var entries = _.map(principalIds, function (principalId) {
         return {
             'id': principalId,
             'rank': meeting.lastModified,
             'resource': meeting
-        }
+        };
     });
 
     LibraryAPI.Index.insert(MeetingsConstants.library.MEETINGS_LIBRARY_INDEX_NAME, entries, callback);
@@ -202,7 +212,9 @@ var _insertLibrary = function (principalIds, meeting, callback) {
 var _getAllMemberIds = function (meetingId, callback) {
 
     AuthzAPI.getAllAuthzMembers(meetingId, function (err, memberIdRoles) {
-        if (err) return callback(err);
+        if (err) {
+            return callback(err);
+        }
 
         // Return only the ids
         return callback(null, _.pluck(memberIdRoles, 'id'));
@@ -232,7 +244,9 @@ var _updateLibrary = function (principalIds, meeting, oldLastModified, callback)
         }
     };
 
-    if (_.isEmpty(principalIds) || !meeting) return callback();
+    if (_.isEmpty(principalIds) || !meeting) {
+        return callback();
+    }
 
     var entries = _.map(principalIds, function (principalId) {
         return {
@@ -258,7 +272,9 @@ var _updateLibrary = function (principalIds, meeting, oldLastModified, callback)
  */
 var _removeFromLibrary = function (principalIds, meeting, callback) {
 
-    if (_.isEmpty(principalIds) || !meeting) return callback();
+    if (_.isEmpty(principalIds) || !meeting) {
+        return callback();
+    }
 
     var entries = _.map(principalIds, function (principalId) {
         return {

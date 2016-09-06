@@ -39,7 +39,9 @@ describe('Meeting Jitsi', function () {
                 // Stores how many meetings we currently have in db
                 var numMeetingsOrig = 0;
                 MeetingsDAO.iterateAll(null, 1000, function (meetingRows, done) {
-                    if (meetingRows) numMeetingsOrig += meetingRows.length;
+                    if (meetingRows) {
+                        numMeetingsOrig += meetingRows.length;
+                    }
 
                     return done();
                 }, function (err) {
@@ -82,7 +84,9 @@ describe('Meeting Jitsi', function () {
                                 if (meetingRows) {
                                     numMeetingAfter += meetingRows.length;
                                     _.each(meetingRows, function (meetingRow) {
-                                        if (meetingRow.id === meeting.id) hasNewMeeting = true;
+                                        if (meetingRow.id === meeting.id) {
+                                            hasNewMeeting = true;
+                                        }
                                     });
                                 }
 
@@ -1185,7 +1189,7 @@ describe('Meeting Jitsi', function () {
                 var chat = true;
                 var contactList = false;
                 var visibility = 'private';
-                var members = [fifi.user.id]
+                var members = [fifi.user.id];
 
                 // Create a meeting
                 RestAPI.MeetingsJitsi.createMeeting(riri.restContext, displayName, description, chat, contactList, visibility, null, members, function (err, meeting) {

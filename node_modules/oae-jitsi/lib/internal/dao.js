@@ -36,7 +36,9 @@ var createMeeting = module.exports.createMeeting = function (createdBy, displayN
 
     var query = Cassandra.constructUpsertCQL('MeetingsJitsi', 'id', meetingId, storageHash);
     Cassandra.runQuery(query.query, query.parameters, function (err) {
-        if (err) return callback(err);
+        if (err) {
+            return callback(err);
+        }
 
         return callback(null, _storageHashToMeeting(meetingId, storageHash));
     });
@@ -48,7 +50,9 @@ var createMeeting = module.exports.createMeeting = function (createdBy, displayN
  */
 var getMeeting = module.exports.getMeeting = function (meetingId, callback) {
     getMeetingsById([meetingId], function (err, meetings) {
-        if (err) return callback(err);
+        if (err) {
+            return callback(err);
+        }
 
         return callback(null, meetings[0]);
     });
@@ -64,7 +68,9 @@ var getMeeting = module.exports.getMeeting = function (meetingId, callback) {
  */
 var getMeetingsById = module.exports.getMeetingsById = function (meetingIds, callback) {
 
-    if (_.isEmpty(meetingIds)) return callback(null, []);
+    if (_.isEmpty(meetingIds)) {
+        return callback(null, []);
+    }
 
     var query = 'SELECT * FROM "MeetingsJitsi" WHERE "id" in (?)';
     // Create a copy of the meetingIds array, otherwise the runQuery function will empty it
@@ -72,7 +78,9 @@ var getMeetingsById = module.exports.getMeetingsById = function (meetingIds, cal
     parameters.push(meetingIds);
 
     Cassandra.runQuery(query, parameters, function (err, rows) {
-        if (err) return callback(err);
+        if (err) {
+            return callback(err);
+        }
 
         // Convert the retrieved storage hashes into the Meeting model
         var meetings = {};
@@ -108,7 +116,6 @@ var updateMeeting = module.exports.updateMeeting = function (meeting, profileFie
     var query = Cassandra.constructUpsertCQL('MeetingsJitsi', 'id', meeting.id, storageHash);
     Cassandra.runQuery(query.query, query.parameters, function(err) {
         if (err) {
-            console.info(err);
             return callback(err);
         }
 
@@ -126,9 +133,7 @@ var updateMeeting = module.exports.updateMeeting = function (meeting, profileFie
  * @param {Object}      callback.err        An error that occured, if any
  */
 var deleteMeeting = module.exports.deleteMeeting = function (meetingId, callback) {
-
     Cassandra.runQuery('DELETE FROM "MeetingsJitsi" WHERE id = ?', [meetingId], callback);
-
 };
 
 /**
@@ -150,7 +155,9 @@ var deleteMeeting = module.exports.deleteMeeting = function (meetingId, callback
  */
 var iterateAll = module.exports.iterateAll = function (properties, batchSize, onEach, callback) {
 
-    if (_.isEmpty(properties)) properties = ['id'];
+    if (_.isEmpty(properties)) {
+        properties = ['id'];
+    }
 
     /*
      * Handles each batch from the cassandra iterateAll method
@@ -219,14 +226,26 @@ var _createUpdatedMeetingFromStorageHash = function (meeting, hash) {
     var contactList = null;
     var description = null;
 
-    if (typeof hash.chat !== 'undefined') chat = hash.chat;
-    else chat = meeting.chat;
+    if (typeof hash.chat !== 'undefined') {
+        chat = hash.chat;
+    }
+    else { 
+        chat = meeting.chat;
+    }
 
-    if (typeof hash.contactList !== 'undefined') contactList = hash.contactList;
-    else contactList = meeting.contactList;
+    if (typeof hash.contactList !== 'undefined') {
+        contactList = hash.contactList;
+    }
+    else {
+        contactList = meeting.contactList;
+    }
 
-    if (typeof hash.description !== 'undefined') description = hash.description;
-    else description = meeting.description;
+    if (typeof hash.description !== 'undefined') {
+        description = hash.description;
+    }
+    else {
+        description = meeting.description;
+    }
 
     return new Meeting(
         meeting.tenant,

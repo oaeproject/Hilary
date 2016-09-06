@@ -88,7 +88,7 @@ describe('Meeting Push', function () {
                                     });
                                 });
                             });
-                        })
+                        });
 
                     });
                 });

@@ -198,8 +198,8 @@ describe('Meeting libraries', function () {
                     checkLibrary(otherTenantUser.restContext, users.loggedin.user.user.id, false, [], function () {
                         checkLibrary(otherTenantUser.restContext, users.private.user.user.id, false, [], function () {
                             return callback();
-                        })
-                    })
+                        });
+                    });
                 });
             });
 

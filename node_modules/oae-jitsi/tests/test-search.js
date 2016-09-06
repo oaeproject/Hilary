@@ -42,7 +42,7 @@ describe('Meeting Search', function () {
                         assert.equal(doc.id, meeting.id);
                         assert.equal(doc.displayName, randomText);
                         assert.equal(doc.description, randomText);
-                        assert.equal(doc.profilePath, '/meeting-jitsi/' + global.oaeTests.tenants.cam.alias + '/' + AuthzUtil.getResourceFromId(meeting.id).resourceId)
+                        assert.equal(doc.profilePath, '/meeting-jitsi/' + global.oaeTests.tenants.cam.alias + '/' + AuthzUtil.getResourceFromId(meeting.id).resourceId);
 
                         return callback();
                     });
@@ -78,7 +78,7 @@ describe('Meeting Search', function () {
                             assert.equal(doc.id, meeting.id);
                             assert.equal(doc.displayName, randomTextB);
                             assert.equal(doc.description, randomTextB);
-                            assert.equal(doc.profilePath, '/meeting-jitsi/' + global.oaeTests.tenants.cam.alias + '/' + AuthzUtil.getResourceFromId(meeting.id).resourceId)
+                            assert.equal(doc.profilePath, '/meeting-jitsi/' + global.oaeTests.tenants.cam.alias + '/' + AuthzUtil.getResourceFromId(meeting.id).resourceId);
 
                             return callback();
                         });

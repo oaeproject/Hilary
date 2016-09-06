@@ -39,7 +39,9 @@ var _produceMeetingMessageDocuments = function (resources, callback, _documents,
 
     _documents = _documents || [];
 
-    if (_.isEmpty(resources)) return callback(_errs, _documents);
+    if (_.isEmpty(resources)) {
+        return callback(_errs, _documents);
+    }
 
     var resource = resources.pop();
 
@@ -51,7 +53,9 @@ var _produceMeetingMessageDocuments = function (resources, callback, _documents,
 
     // If there were no messages stored on the resource object, we go ahead and index all messages for the meeting
     MessageBoxSearch.createAllMessageSearchDocuments(MeetingsConstants.search.MAPPING_MEETING_MESSAGE, resource.id, resource.id, function (err, documents) {
-        if (err) _errs = _.union(_errs, [err]);
+        if (err) {
+            _errs = _.union(_errs, [err]);
+        }
 
         _documents = _.union(_documents, documents);
         return _produceMeetingMessageDocuments(resources, callback, _documents, _errs);
@@ -68,8 +72,12 @@ var _produceMeetingMessageDocuments = function (resources, callback, _documents,
 var _produceMeetingSearchDocuments = function (resources, callback) {
 
     _getMeetings(resources, function (err, meetings) {
-        if (err) return callback([err]);        
-        if (_.isEmpty(meetings)) return callback();
+        if (err) {
+            return callback([err]);
+        }
+        if (_.isEmpty(meetings)) {
+            return callback();
+        }
 
         var docs = _.map(meetings, _produceMeetingSearchDocument);
         return callback(null, docs);
@@ -90,16 +98,21 @@ var _getMeetings = function (resources, callback) {
     var meetingIdsToFetch = [];
 
     _.each(resources, function (resource) {
-        if (resource.meeting) 
+        if (resource.meeting) {
             meetings.push(resource.meeting);
-        else
-            meetingIdsToFetch.push(resource.id); 
+        } else {
+            meetingIdsToFetch.push(resource.id);
+        }
     });
 
-    if (_.isEmpty(meetingIdsToFetch)) return callback(null, meetings);
+    if (_.isEmpty(meetingIdsToFetch)) {
+        return callback(null, meetings);
+    }
 
     MeetingsDAO.getMeetingsById(meetingIdsToFetch, function (err, extraMeetings) {
-        if (err) return callback(err);
+        if (err) {
+            return callback(err);
+        }
 
         // Some meetings might have already been deleted
         extraMeetings = _.compact(extraMeetings);
@@ -139,7 +152,9 @@ var _produceMeetingSearchDocument = function (meeting) {
         }
     };
 
-    if (meeting.description) doc.description = meeting.description
+    if (meeting.description) {
+        doc.description = meeting.description;
+    }
 
     return doc;
 
@@ -239,9 +254,7 @@ MeetingsAPI.on(MeetingsConstants.events.UPDATED_MEETING_MEMBERS, function (ctx, 
  * When a meeting is deleted, we must cascade delete its resource document and children
  */
 MeetingsAPI.on(MeetingsConstants.events.DELETED_MEETING, function (ctx, meeting) {
-
     SearchAPI.postDeleteTask(meeting.id);
-
 });
 
 /**
@@ -266,9 +279,7 @@ MeetingsAPI.on(MeetingsConstants.events.CREATED_MEETING_MESSAGE, function (ctx, 
  * When a meeting message is deleted, we must delete the child message document
  */
 MeetingsAPI.on(MeetingsConstants.events.DELETED_MEETING_MESSAGE, function (ctx, message, meeting, deleteType) {
-
     return MessageBoxSearch.deleteMessageSearchDocument(MeetingsConstants.search.MAPPING_MEETING_MESSAGE, meeting.id, message);
-
 });
 
 /////////////////////////

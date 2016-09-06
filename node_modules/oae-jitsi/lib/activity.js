@@ -77,7 +77,7 @@ MeetingsAPI.on(MeetingsConstants.events.CREATED_MEETING, function(ctx, meeting, 
     var extraMembers = _.chain(memberChangeInfo.changes)
         .keys()
         .filter(function (member) {
-            return (member !== ctx.user().id)
+            return (member !== ctx.user().id);
         })
         .value();
 
@@ -316,10 +316,14 @@ var _meetingProducer = function(resource, callback) {
     var meeting = (resource.resourceData && resource.resourceData['meeting-jitsi']) ? resource.resourceData['meeting-jitsi'] : null;
 
     // If the meeting item was fired with the resource, use it instead of fetching
-    if (meeting) return callback(null, _createPersistentMeetingActivityEntity(meeting));
+    if (meeting) {
+        return callback(null, _createPersistentMeetingActivityEntity(meeting));
+    }
 
     MeetingsDAO.getMeeting(resource.resourceId, function(err, meeting) {
-        if (err) return callback(err);
+        if (err) { 
+            return callback(err);
+        }
 
         return callback(null, _createPersistentMeetingActivityEntity(meeting));
     });
@@ -370,8 +374,8 @@ var _createPersistentMeetingActivityEntity = function(meeting) {
 var _meetingTransformer = function(ctx, activityEntities, callback) {
 
     var transformedActivityEntities = {};
-
     var allRevisionIds = [];
+
     _.each(activityEntities, function(entities, activityId) {
         transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
 
@@ -492,7 +496,7 @@ ActivityAPI.registerActivityEntityType('meeting-jitsi-message', {
     'propagation': function (associationsCtx, entity, callback) {
         return callback(null, [{'type': ActivityConstants.entityPropagation.ALL}]);
     }
-})
+});
 
 //////////////////////////////////
 // ACTIVITY ENTITY ASSOCIATIONS //

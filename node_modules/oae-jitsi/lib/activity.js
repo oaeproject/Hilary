@@ -32,6 +32,7 @@ var Tenant = require('oae-tenants/lib/model').Tenant;
 var TenantsAPI = require('oae-tenants');
 var TenantsUtil = require('oae-tenants/lib/util');
 var User = require('oae-principals/lib/model').User;
+var util = require('util');
 
 var MeetingsAPI = require('./api');
 var MeetingsConstants = require('./constants').MeetingsConstants;
@@ -402,7 +403,7 @@ var _meetingMessageTransformer = function(ctx, activityEntities, callback) {
             var entity = activityEntities[activityId][entityId];
             var meetingId = entity.meetingId;
             var resource = AuthzUtil.getResourceFromId(meetingId);
-            var profilePath = '/meeting-jitsi/' + resource.tenantAlias + '/' + resource.resourceId;
+            var profilePath = util.format('/meeting-jitsi/%s/%s', resource.tenanAlias, resource.resourceId);
             var urlFormat = '/api/meeting-jitsi/' + meetingId + '/messages/%s';
             transformedActivityEntities[activityId][entityId] = MessageBoxUtil.transformPersistentMessageActivityEntity(ctx, entity, profilePath, urlFormat);
         });

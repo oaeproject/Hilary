@@ -4,9 +4,9 @@ module.exports = {
     'title': 'OAE Jitsi Module',
     'visibility': {
         'name': 'Default Visibility Value',
-        'description': 'Default visibility setting for new meeting',
+        'description': 'Default visibility setting for new meetings',
         'elements': {
-            'meeting': new Fields.List('Meetings Visibility', 'Default visibility for a new meetings', 'public', [
+            'meeting': new Fields.List('Meetings Visibility', 'Default visibility for a new meeting', 'public', [
                 {
                     'name': 'Public',
                     'value': 'public'

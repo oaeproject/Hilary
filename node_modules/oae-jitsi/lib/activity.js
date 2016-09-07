@@ -23,7 +23,7 @@ var AuthzAPI = require('oae-authz');
 var AuthzConstants = require('oae-authz/lib/constants').AuthzConstants;
 var AuthzUtil = require('oae-authz/lib/util');
 var Context = require('oae-context').Context;
-var log = require('oae-logger').logger('oae-bbb');
+var log = require('oae-logger').logger('oae-jitsi');
 var MessageBoxAPI = require('oae-messagebox');
 var MessageBoxUtil = require('oae-messagebox/lib/util');
 var PrincipalsDAO = require('oae-principals/lib/internal/dao');
@@ -83,8 +83,9 @@ MeetingsAPI.on(MeetingsConstants.events.CREATED_MEETING, function(ctx, meeting, 
 
     // If we only added 1 extra user or group, we set the target to that entity
     if (extraMembers.length === 1) {
-        var targetResourceType = (PrincipalsUtil.isGroup(extraMembers[0])) ? 'group' : 'user';
-        targetResource = new ActivityModel.ActivitySeedResource(targetResourceType, extraMembers[0]);
+        var extraMember = _.first(extraMembers);
+        var targetResourceType = (PrincipalsUtil.isGroup(extraMember)) ? 'group' : 'user';
+        targetResource = new ActivityModel.ActivitySeedResource(targetResourceType, extraMember);
     }
 
     // Generate the activity seed and post it to the queue
@@ -296,7 +297,7 @@ MeetingsAPI.on(MeetingsConstants.events.CREATED_MEETING_MESSAGE, function (ctx, 
     var millis = Date.now();
     var actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {'user': ctx.user()});
     var objectResource = new ActivityModel.ActivitySeedResource('meeting-jitsi-message', message.id, {'meetingId': meeting.id, 'message': message});
-    var targetResource = new ActivityModel.ActivitySeedResource('meeting-jitsi', meeting.id, {'meeting-jisti': meeting});
+    var targetResource = new ActivityModel.ActivitySeedResource('meeting-jitsi', meeting.id, {'meeting-jitsi': meeting});
     var activitySeed = new ActivityModel.ActivitySeed(MeetingsConstants.activity.ACTIVITY_MEETING_MESSAGE, millis, ActivityConstants.verbs.POST, actorResource, objectResource, targetResource);
 
     ActivityAPI.postActivity(ctx, activitySeed);

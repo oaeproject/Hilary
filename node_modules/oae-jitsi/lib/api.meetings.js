@@ -47,20 +47,10 @@ var createMeeting = module.exports.createMeeting = function (ctx, displayName, d
 
     // Convert chat and contactList value to boolean for validation (if there are present)
     if (chat) {
-        if (chat === 'true') {
-            chat = true;
-        }
-        else if (chat === 'false') {
-            chat = false;
-        }
+        chat = String(chat) === 'true';
     }
     if (contactList) {
-        if (contactList === 'true') {
-            contactList = true;
-        }
-        else if (contactList === 'false') {
-            contactList = false;
-        }
+        contactList = String(contactList) === 'true';
     }
 
     // Verify basic properties
@@ -71,12 +61,6 @@ var createMeeting = module.exports.createMeeting = function (ctx, displayName, d
     validator.check(visibility, {'code': 400, 'msg': 'An invalid meeting visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')}).isIn(allVisibilities);
     if (description && description.length > 0) {
         validator.check(description, {'code': 400, 'msg': 'A description can be at most 10000 characters long'}).isMediumString();
-    }
-    if (chat) {
-        validator.check(null, {'code': 400, 'msg': 'An invalid chat value was specified, must be boolean'}).isBoolean(chat);
-    }
-    if (contactList) {
-        validator.check(null, {'code': 400, 'msg': 'An invalid contactList value was specified, must be boolean'}).isBoolean(contactList);
     }
 
     // Verify each role is valid

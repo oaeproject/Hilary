@@ -255,7 +255,7 @@ Once it's working, go to the administration page of OAE and search for the OAE-j
 
 Make sure to access at least once the ip address of your container to make sure your browser will allow it (if you chose to use self-signed certificate).
 
-Docker is very easy to use, but you need to be carefull if you work behind a corporate proxy. Most of the time, if you can't access a container, it's because your computer is trying to access it through your proxy. Use the "NO_PROXY" environment variable to avoid this problem.
+Docker is very easy to use, but you need to be carefull if you work behind a corporate proxy. Most of the time, if you can't access a container, it is because your computer is trying to access it through your proxy. Use the "NO_PROXY" environment variable to avoid this problem.
 
 #### Windows Dependencies
 

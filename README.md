@@ -251,7 +251,7 @@ Go to the [docker hub](https://hub.docker.com/r/robertoandrade/jitsi-meet/), dow
 
 Once it's working, go to the administration page of OAE and search for the OAE-jitsi module, there you can enter the ip address of you jitsi running container instead of the default value.
 
-###### Troubleshoting
+###### Troubleshooting
 
 Make sure to access at least once the ip address of your container to make sure your browser will allow it (if you chose to use self-signed certificate).
 

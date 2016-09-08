@@ -313,3 +313,4 @@ SearchAPI.registerReindexAllHandler('meeting-jitsi', function (callback) {
     MeetingsDAO.iterateAll(['id'], 100, _onEach, callback);
 
 });
+

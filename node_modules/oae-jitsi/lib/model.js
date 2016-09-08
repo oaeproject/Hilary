@@ -20,3 +20,4 @@ var Meeting = module.exports.Meeting = function (tenant, id, createdBy, displayN
     
     return that;
 };
+

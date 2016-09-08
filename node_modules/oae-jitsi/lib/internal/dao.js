@@ -260,3 +260,4 @@ var _createUpdatedMeetingFromStorageHash = function (meeting, hash) {
         OaeUtil.getNumberParam(hash.lastModified || meeting.lastModified)
     );  
 };
+

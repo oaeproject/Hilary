@@ -300,3 +300,4 @@ var _removeFromLibrary = function (principalIds, meeting, callback) {
 var _touch = function (meeting, callback) {
     MeetingsDAO.updateMeeting(meeting, {'lastModified': Date.now()}, callback);
 };
+

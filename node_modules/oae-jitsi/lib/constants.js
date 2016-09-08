@@ -45,3 +45,4 @@ MeetingsConstants.library = {
 MeetingsConstants.search = {
     'MAPPING_MEETING_MESSAGE': 'meeting-jitsi_message'
 };
+

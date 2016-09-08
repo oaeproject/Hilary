@@ -557,3 +557,4 @@ ActivityAPI.registerActivityEntityAssociation('meeting-jitsi', 'message-contribu
 ActivityAPI.registerActivityEntityAssociation('meeting-jitsi-message', 'self', function(associationsCtx, entity, callback) {
     return callback(null, [entity.meetingId]);
 });
+

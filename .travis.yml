@@ -64,7 +64,7 @@ before_install:
 
   # Install etherpad
   - cd /usr/src
-  - sudo wget https://s3.amazonaws.com/oae-releases/etherpad/1.5/etherpad-1.5.6_node-0.10.17.tar.gz
+  - sudo wget https://s3-eu-west-1.amazonaws.com/oae-releases/etherpad/1.5/etherpad-1.5.6_node-0.10.17.tar.gz
   - sudo mkdir /opt/etherpad
   - cd /opt/etherpad
   - sudo tar -zxvf /usr/src/etherpad-1.5.6_node-0.10.17.tar.gz > /dev/null

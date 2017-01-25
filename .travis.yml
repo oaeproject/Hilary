@@ -19,7 +19,7 @@ before_install:
 
   # Add ElasticSearch apt repo
   - wget -qO - http://packages.elasticsearch.org/GPG-KEY-elasticsearch | sudo apt-key add -
-  - echo "deb http://packages.elasticsearch.org/elasticsearch/1.1/debian stable main" | sudo tee -a /etc/apt/sources.list.d/elasticsearch.sources.list
+  - echo "deb http://packages.elasticsearch.org/elasticsearch/1.5/debian stable main" | sudo tee -a /etc/apt/sources.list.d/elasticsearch.sources.list
 
   # Add PPA repos for miscellaneous dependencies
   - echo 'yes' | sudo add-apt-repository ppa:oae/deps
@@ -38,9 +38,9 @@ before_install:
   - sleep 5
   - sudo service cassandra status
 
-  # Install elasticsearch 1.1.1 manually
+  # Install elasticsearch 1.5.2  manually
   - sudo service elasticsearch stop
-  - sudo apt-get install -y --force-yes -o Dpkg::Options::=--force-confnew elasticsearch=1.1.1
+  - sudo apt-get install -y --force-yes -o Dpkg::Options::=--force-confnew elasticsearch=1.5.2
   - sudo service elasticsearch start
 
   # Turn off unneeded services to free some memory
@@ -64,10 +64,10 @@ before_install:
 
   # Install etherpad
   - cd /usr/src
-  - sudo wget https://s3.amazonaws.com/oae-releases/etherpad/1.4/etherpad-1.4.0-63-14f9c91_node-0.10.17.tar.gz
+  - sudo wget https://s3-eu-west-1.amazonaws.com/oae-releases/etherpad/1.5/etherpad-1.5.6_node-0.10.17.tar.gz
   - sudo mkdir /opt/etherpad
   - cd /opt/etherpad
-  - sudo tar -zxvf /usr/src/etherpad-1.4.0-63-14f9c91_node-0.10.17.tar.gz > /dev/null
+  - sudo tar -zxvf /usr/src/etherpad-1.5.6_node-0.10.17.tar.gz > /dev/null
   - sudo touch APIKEY.txt
   - sudo chmod -R 777 .
 
@@ -78,7 +78,7 @@ before_install:
 
   # Configure etherpad
   - "sed -i 's/dbType\" : \"dirty/dbType\" : \"cassandra/g' settings.json"
-  - "sed -i 's/\"filename\" : \"var\\/dirty.db\"/\"hosts\": [ \"localhost:9160\" ], \"keyspace\": \"etherpad\", \"cfName\": \"Etherpad\", \"user\": \"\", \"pass\": \"\", \"timeout\": 3000, \"replication\": \"1\", \"strategyClass\": \"SimpleStrategy\", \"cqlVersion\": \"2.0.0\"/g' settings.json"
+  - "sed -i 's/\"filename\" : \"var\\/dirty.db\"/\"clientOptions\": {\"keyspace\": \"etherpad\", \"contactPoints\": [\"localhost\"]},\"columnFamily\": \"Etherpad\"/g' settings.json"
   - "sed -i 's/defaultPadText\" : \".*\"/defaultPadText\" : \"\"/g' settings.json"
   - echo "13SirapH8t3kxUh5T5aqWXhXahMzoZRA" > APIKEY.txt
 
@@ -94,18 +94,29 @@ before_install:
   - printf "\nconfig.previews.pdf2htmlEX.binary = '/usr/bin/pdf2htmlEX';" >> config.js
   - printf "\nconfig.previews.pdftotext.binary = '/usr/bin/pdftotext';" >> config.js
 
+install:
+  - npm install
+  # Ensure that phantomjs was properly installed
+  - test -d node_modules/webshot/node_modules/phantomjs-prebuilt
+
 services:
   - rabbitmq
   - redis-server
 
 script:
-  - grunt test-coverage-coveralls
+  - /bin/true
 
 after_success:
+  - ps aux --sort -rss | head
+  - top -n1 -b
+  - df -h
   # Package and upload to Amazon S3
   - etc/scripts/travis-upload.sh
 
 after_failure:
+  - ps aux --sort -rss | head
+  - top -n1 -b
+  - df -h
   # Compress the logs and upload them to Amazon S3
   - gzip tests.log
   - bin/upload_logs

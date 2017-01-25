@@ -39,7 +39,7 @@ var _done = function(err) {
     }
     console.log('Migration complete');
     process.exit();
-}
+};
 
 /**
  * Migrate a set of rows by adding a `created` timestamp to each (the timestamp will be when the row was
@@ -60,7 +60,7 @@ var _migrateRows = function(rows, callback) {
 
     // Add the created timestamp and move on to the next page
     return Cassandra.runBatchQuery(queries, callback);
-}
+};
 
 /**
  * Start the migration

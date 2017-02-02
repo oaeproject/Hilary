@@ -58,7 +58,7 @@
     "multiparty": "latest",
     "node-esapi": "latest",
     "nodemailer": "2.4.1",
-    "nodemailer-html-to-xt": "latest",
+    "nodemailer-html-to-text": "latest",
     "nodemailer-sendmail-transport": "latest",
     "nodemailer-stub-transport": "latest",
     "oae-rest": "latest",

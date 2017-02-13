@@ -118,8 +118,7 @@
   },
   "optionalDependencies": {
     "bunyan-syslog": "latest",
-    "hiredis": "latest",
-    "webshot": "latest"
+    "hiredis": "latest"
   },
   "bundleDependencies": [
     "oae-activity",

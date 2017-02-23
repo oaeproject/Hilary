@@ -94,10 +94,10 @@ before_install:
   - printf "\nconfig.previews.pdf2htmlEX.binary = '/usr/bin/pdf2htmlEX';" >> config.js
   - printf "\nconfig.previews.pdftotext.binary = '/usr/bin/pdftotext';" >> config.js
 
-install:
-  - npm install
-  # Ensure that phantomjs was properly installed
-  - test -d node_modules/webshot/node_modules/phantomjs-prebuilt
+# install:
+#   - npm install
+#   # Ensure that phantomjs was properly installed
+#   - test -d node_modules/webshot/node_modules/phantomjs-prebuilt
 
 services:
   - rabbitmq

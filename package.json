@@ -140,11 +140,12 @@
     "istanbul": "latest",
     "mocha": "latest",
     "nock": "2.17.0",
+    "nodemon": "^1.11.0",
     "oae-release-tools": "git://github.com/oaeproject/oae-release-tools",
     "oauth": "latest",
-    "tough-cookie": "latest",
     "shelljs": "latest",
     "sockjs-client-ws": "latest",
+    "tough-cookie": "latest",
     "ws": "1.1.2"
   },
   "optionalDependencies": {

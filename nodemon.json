@@ -1,0 +1,8 @@
+{
+  "verbose": true,
+  "watch": [
+    "node_modules/oae*/"
+  ],
+  "ignoreRoot": [".git"],
+  "ext": "js json"
+}

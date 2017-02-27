@@ -335,10 +335,16 @@ npm install -d
 Now we're ready to start the app server. You can do so by going into the Hilary directory and running:
 
 ```
-node app.js | node_modules/.bin/bunyan
+nodemon app.js | node_modules/.bin/bunyan # auto-reload ON
 ```
 
-To start it in the background, you can run: `node app.js | node_modules/.bin/bunyan &`. An [upstart script](https://github.com/oaeproject/puppet-hilary/blob/master/modules/hilary/templates/upstart_hilary.conf.erb) can also be used to spawn and manage Hilary as a daemon process. The benefit of tying into upstart is that you get first-class support from deployment tools like MCollective and Puppet.
+or
+
+```
+node app.js | node_modules/.bin/bunyan # auto-reload OFF 
+```
+
+To start it in the background, you can run: `nodemon app.js | node_modules/.bin/bunyan &`. An [upstart script](https://github.com/oaeproject/puppet-hilary/blob/master/modules/hilary/templates/upstart_hilary.conf.erb) can also be used to spawn and manage Hilary as a daemon process. The benefit of tying into upstart is that you get first-class support from deployment tools like MCollective and Puppet.
 
 The server is now running and you can access the administration UI at http://admin.oae.com/!
 

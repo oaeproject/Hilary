@@ -240,16 +240,16 @@ To run it in the background, simply fork the process: `bin/run.sh &`
 
 #### Jitsi
 
-OAE needs to communicate with a Jitsi server to allow videoconferencing. By default, it will communicate with the jitsi server available at "https://meet.jit.si/".
+OAE needs to communicate with a Jitsi server to allow videoconferencing. If you want to just test the feature, go to the administration page of OAE and enter the Jitsi test server at "https://meet.jit.si" as the `Jitsi server address`.
 
-If you want to install a local jitsi server, here is the simplest way to do so :
+If you want to install a local Jitsi server, here is the simplest way to do so :
 
 Install [docker](http://docker.com/).
 Docker containers wrap a piece of software in a complete filesystem that contains everything needed to run: code, runtime, system tools, system libraries – anything that can be installed on a server. This guarantees that the software will always run the same, regardless of its environment.
 
-Go to the [docker hub](https://hub.docker.com/r/robertoandrade/jitsi-meet/), download the jitsi image you can find at the following address and follow the user guide :
+Go to the [docker hub](https://hub.docker.com/r/robertoandrade/jitsi-meet/), download the Jitsi image,and follow the user guide.
 
-Once it's working, go to the administration page of OAE and search for the OAE-jitsi module, there you can enter the ip address of you jitsi running container instead of the default value.
+Once it's working, go to the administration page of OAE and search for the OAE Jitsi module, there you can enter the IP address of your container running Jitsi instead of the above value.
 
 ###### Troubleshooting
 

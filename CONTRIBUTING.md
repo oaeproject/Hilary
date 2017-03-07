@@ -69,7 +69,7 @@ We use Grunt to run our tests. To test a single module, run `grunt test-module:<
 - Create a new branch for your changes - if you are writing a fix for an existing issue, use the issue number as your branch name (eg. issue-1331), otherwise make sure to give your branch a descriptive name!
 - __Remember to include tests in your pull request__ - untested features can not be merged!
 - Before you submit your pull request, run `grunt jshint` and fix any style issues that may have popped up;
-- Double check that you haven't included anything you didn't mean to in your commits - configuration changes have an annoying tendency to sneak into PRs;
+- Double-check that you haven't included anything you didn't mean to in your commits - configuration changes have an annoying tendency to sneak into PRs;
 - Push your branch and [submit a pull request](https://help.github.com/articles/creating-a-pull-request/) for it;
 
 ### Ask for help

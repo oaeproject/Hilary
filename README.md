@@ -16,7 +16,7 @@ If you're installing on Windows (not recommended for production) there's a packa
 
 #### Node.js
 
-Download and install the latest version of [Node.js](http://nodejs.org/). Hilary is best tested with node 0.10.x (0.10.25 at the time of writing).
+Download and install the latest 6.x version of [Node.js](http://nodejs.org/).
 
 The Hilary back-end is written completely in JavaScript, powered by Node.js.
 
@@ -145,7 +145,7 @@ Nginx is the most tested load balancer and web server used for OAE. A web server
 
 #### Etherpad lite
 
-[Etherpad](http://etherpad.org/) is an open-source editor for online collaborative editing in real-time and is used to power the OAE collaborative documents. Follow the [Etherpad README](https://github.com/ether/etherpad-lite/blob/develop/README.md) to get it installed. Make sure you get the 1.5.6 release.
+[Etherpad](http://etherpad.org/) is an open-source editor for online collaborative editing in real-time and is used to power the OAE collaborative documents. Follow the [Etherpad README](https://github.com/ether/etherpad-lite/blob/develop/README.md) to get it installed. Make sure you get the 1.6.1 release.
 
 Once you've installed Etherpad, you will also need the [Etherpad OAE](https://github.com/oaeproject/ep_oae) plugin. This is the glue for authenticating users between Hilary and etherpad-lite. The simplest method of installing the plugin is cloning it in the top node_modules folder that can be found in your etherpad-lite directory.
 
@@ -158,7 +158,15 @@ npm install
 cd ../..
 ```
 
-You can copy or symlink the `static/css/pad.css` in the `ep_oae` module to `your-etherpad-dir/src/static/custom/pad.css` in order to apply the OAE skin on etherpad. The module needs to send events back to OAE, which happens over RabbitMQ. If you're not running RabbitMQ on the IP or port, you can configure the settings by adding the following block to Etherpad's `settings.json` file.
+You can copy or symlink the `static/css/pad.css` in the `ep_oae` module to `your-etherpad-dir/src/static/custom/pad.css` in order to apply the OAE skin on etherpad.
+
+```
+cd your-etherpad-dir
+rm src/static/custom/pad.css
+ln -s ../../../node_modules/ep_oae/static/css/pad.css src/static/custom/pad.css
+```
+
+The module needs to send events back to OAE, which happens over RabbitMQ. If you're not running RabbitMQ on the IP or port, you can configure the settings by adding the following block to Etherpad's `settings.json` file.
 
 ```javascript
 "ep_oae": {
@@ -167,12 +175,6 @@ You can copy or symlink the `static/css/pad.css` in the `ep_oae` module to `your
         "port": 5672
     }
 }
-```
-
-```
-cd your-etherpad-dir
-rm src/static/custom/pad.css
-ln -s ../../../node_modules/ep_oae/static/css/pad.css src/static/custom/pad.css
 ```
 
 Next, we need to enable websockets as a way of communicating between Etherpad and Hilary. In order to do this, open the settings.json file in your favourite editor and change

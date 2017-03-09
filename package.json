@@ -5,7 +5,7 @@
   "homepage": "http://www.oaeproject.org",
   "author": {
     "name": "The Apereo Foundation",
-    "email": "oae-dev@collab.sakaiproject.org"
+    "email": "oaeproject@gmail.com"
   },
   "repository": {
     "type": "git",
@@ -14,12 +14,7 @@
   "bugs": {
     "url": "https://github.com/oaeproject/Hilary/issues"
   },
-  "licenses": [
-    {
-      "type": "ECLv2",
-      "url": "http://opensource.org/licenses/ecl2.php"
-    }
-  ],
+  "license" : "ECL-2.0",
   "dependencies": {
     "amqp": "git://github.com/oaeproject/node-amqp#0.1.8.x",
     "awssum-amazon-s3": "latest",
@@ -45,11 +40,11 @@
     "globalize": "0.1.1",
     "gm": "latest",
     "helenus": "latest",
-    "juice": "2.0",
+    "juice": "latest",
     "less": "1.7.5",
     "locale": "latest",
     "lunr": "latest",
-    "mailparser": "0.6.2",
+    "mailparser": "latest",
     "marked": "latest",
     "mime": "latest",
     "mixpanel": "latest",
@@ -57,41 +52,11 @@
     "mobile-detect": "latest",
     "multiparty": "latest",
     "node-esapi": "latest",
-    "nodemailer": "2.4.1",
+    "nodemailer": "latest",
     "nodemailer-html-to-text": "latest",
     "nodemailer-sendmail-transport": "latest",
     "nodemailer-stub-transport": "latest",
-    "oae-activity": "",
-    "oae-authentication": "",
-    "oae-authz": "",
-    "oae-config": "",
-    "oae-content": "",
-    "oae-context": "",
-    "oae-discussions": "",
-    "oae-doc": "",
-    "oae-email": "",
-    "oae-emitter": "",
-    "oae-folders": "",
-    "oae-following": "",
-    "oae-google-analytics": "",
-    "oae-library": "",
-    "oae-logger": "",
-    "oae-mediacore": "",
-    "oae-messagebox": "",
-    "oae-mixpanel": "",
-    "oae-preview-processor": "",
-    "oae-principals": "",
-    "oae-resource": "",
     "oae-rest": "latest",
-    "oae-search": "",
-    "oae-telemetry": "",
-    "oae-tenants": "",
-    "oae-tests": "",
-    "oae-tincanapi": "",
-    "oae-ui": "",
-    "oae-uservoice": "",
-    "oae-util": "",
-    "oae-version": "",
     "oauth2orize": "latest",
     "optimist": "latest",
     "passport": "0.2.2",
@@ -172,6 +137,7 @@
     "oae-mixpanel",
     "oae-preview-processor",
     "oae-principals",
+    "oae-resource",
     "oae-search",
     "oae-telemetry",
     "oae-tenants",
@@ -183,7 +149,7 @@
     "oae-version"
   ],
   "engines": {
-    "node": ">=0.10"
+    "node": "6.x"
   },
   "scripts": {
     "test": "grunt"

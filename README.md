@@ -145,7 +145,7 @@ Nginx is the most tested load balancer and web server used for OAE. A web server
 
 #### Etherpad lite
 
-[Etherpad](http://etherpad.org/) is an open-source editor for online collaborative editing in real-time and is used to power the OAE collaborative documents. Follow the [Etherpad README](https://github.com/ether/etherpad-lite/blob/develop/README.md) to get it installed. Make sure you get the 1.6.1 release.
+[Etherpad](http://etherpad.org/) is an open-source editor for online collaborative editing in real-time and is used to power the OAE collaborative documents. Follow the [Etherpad README](https://github.com/ether/etherpad-lite/blob/develop/README.md) to get it installed. Make sure you get the 1.6.x release.
 
 Once you've installed Etherpad, you will also need the [Etherpad OAE](https://github.com/oaeproject/ep_oae) plugin. This is the glue for authenticating users between Hilary and etherpad-lite. The simplest method of installing the plugin is cloning it in the top node_modules folder that can be found in your etherpad-lite directory.
 
@@ -337,16 +337,10 @@ npm install -d
 Now we're ready to start the app server. You can do so by going into the Hilary directory and running:
 
 ```
-nodemon app.js | node_modules/.bin/bunyan # auto-reload ON
+node app.js | node_modules/.bin/bunyan
 ```
 
-or
-
-```
-node app.js | node_modules/.bin/bunyan # auto-reload OFF 
-```
-
-To start it in the background, you can run: `nodemon app.js | node_modules/.bin/bunyan &`. An [upstart script](https://github.com/oaeproject/puppet-hilary/blob/master/modules/hilary/templates/upstart_hilary.conf.erb) can also be used to spawn and manage Hilary as a daemon process. The benefit of tying into upstart is that you get first-class support from deployment tools like MCollective and Puppet.
+To start it in the background, you can run: `node app.js | node_modules/.bin/bunyan &`. An [upstart script](https://github.com/oaeproject/puppet-hilary/blob/master/modules/hilary/templates/upstart_hilary.conf.erb) can also be used to spawn and manage Hilary as a daemon process. The benefit of tying into upstart is that you get first-class support from deployment tools like MCollective and Puppet.
 
 The server is now running and you can access the administration UI at http://admin.oae.com/!
 

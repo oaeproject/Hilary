@@ -22,10 +22,10 @@ The Hilary back-end is written completely in JavaScript, powered by Node.js.
 
 #### Apache Cassandra
 
-Download the latest version of [Apache Cassandra](http://cassandra.apache.org/download/) and extract it to a directory of your choice.
+Download the latest 2.1 version of [Apache Cassandra](http://cassandra.apache.org/download/) and extract it to a directory of your choice.
 
 **Important:**
-* Cassandra is best supported with the latest version of Oracle Java 6. Trying to run vanilla Cassandra with OpenJDK can result in a silent segmentation fault
+* Cassandra is best supported with the latest version of Oracle Java 7. Trying to run vanilla Cassandra with OpenJDK can result in a silent segmentation fault
 
 Create the following directories and set the owner to be the user that will be running Cassandra:
 
@@ -116,6 +116,18 @@ sudo apt-get install pdf2htmlEX
 
 Download and install [LibreOffice](http://www.libreoffice.org/download/). This dependency takes care of converting Microsoft Office files to PDFs so they may be further split into previews by PDFTK.
 
+##### pdftotext (only if preview processor is desired)
+
+`pdftotext` is used to extract text out of PDF documents so that the contents of document uploads can be searched in OAE.
+
+The required version of `pdftotext` comes with a library called Poppler which is installed when you install `pdf2htmlEX`. Note that this version of `pdftotext` is approximately **0.29**. The latest stand-alone version of `pdftotext` is approximately 3+ and it is not supported.
+
+  * If you installed `pdf2htmlEX` with the Ubuntu PPA, then you probably already have the correct version of pdftotext in your path
+  * If you installed `pdf2htmlEX` with Homebrew for MacOSX, then you probably have it available. If you can't find it on your path, try running `brew unlink poppler` then `brew link poppler`, and that should ensure all binary links (including `pdftotext`) get installed to your path
+  * If you compiled `pdf2htmlEX` yourself, you're a wizard. `pdftotext` is available in your poppler distribution's `bin` directory
+
+If none of these work for you, you can download and compile the latest [Poppler](http://poppler.freedesktop.org/releases.html) tarball. `pdftotext` will be available in the installed `bin` directory.
+
 #### Nginx
 
 Download [Nginx **version 1.4.2 or higher**](http://nginx.org/en/download.html). You will also need to download and extract [PCRE](http://www.pcre.org/), which will be used to configure Nginx.
@@ -133,7 +145,7 @@ Nginx is the most tested load balancer and web server used for OAE. A web server
 
 #### Etherpad lite
 
-[Etherpad](http://etherpad.org/) is an open-source editor for online collaborative editing in real-time and is used to power the OAE collaborative documents. Follow the [Etherpad README](https://github.com/ether/etherpad-lite/blob/develop/README.md) to get it installed. Make sure you get the 1.4.0 release.
+[Etherpad](http://etherpad.org/) is an open-source editor for online collaborative editing in real-time and is used to power the OAE collaborative documents. Follow the [Etherpad README](https://github.com/ether/etherpad-lite/blob/develop/README.md) to get it installed. Make sure you get the 1.5.6 release.
 
 Once you've installed Etherpad, you will also need the [Etherpad OAE](https://github.com/oaeproject/ep_oae) plugin. This is the glue for authenticating users between Hilary and etherpad-lite. The simplest method of installing the plugin is cloning it in the top node_modules folder that can be found in your etherpad-lite directory.
 
@@ -151,7 +163,7 @@ You can copy or symlink the `static/css/pad.css` in the `ep_oae` module to `your
 ```javascript
 "ep_oae": {
     "mq": {
-        "host": "10.1.2.3",
+        "host": "127.0.0.1",
         "port": 5672
     }
 }
@@ -286,7 +298,7 @@ Where "admin.oae.com" is the hostname that we will use to access the global admi
 
 Open the `config.js` file in the root of the Hilary directory. This file contains a JavaScript object that represents the configuration for your server.
 
-* Configure the `config.files.uploadDir` property to point to a directory that exists. The reference to this directory should not have a trailing slash. This directory is used to store files such as profile pictures, content bodies, previews, etc...
+* Configure the `config.files.localStorageDirectory` property to point to a directory that exists. The reference to this directory should not have a trailing slash. This directory is used to store files such as profile pictures, content bodies, previews, etc...
 * Ensure that the property `config.servers.globalAdminHost` is configured to the same host name you set for your global admin host in /etc/hosts
 * Configure the `config.etherpad.apikey` property to the API Key that can be found in `your-etherpad-dir/APIKEY.txt`
 
@@ -300,7 +312,7 @@ Open the `config.js` file in the root of the Hilary directory. This file contain
 Find the "nginx.conf" template file located in the nginx folder of the 3akai-ux (3akai-ux/nginx/nginx.conf) repository that you cloned earlier and perform the following edits:
 
 * Replace `<%= nginxConf.NGINX_USER %>` and `<%= nginxConf.NGINX_GROUP %>` with the OS user and group that the nginx process should run as
-* Replace `<%= nginxConf.NGINX_HOSTNAME %>` with the same value you configured for the global administration server host in `/etc/hosts` (the one whose current value would be "admin.oae.com"). **Note:** The `server_name` property for the *user tenant server* further down the configuration file should remain set to "*".
+* Replace `<%= nginxConf.NGINX_HOSTNAME %>` with the same value you configured for the global administration server host in `/etc/hosts` (the one whose current value would be "admin.oae.com"). **Note:** The `server_name` property for the *user tenant server* further down the configuration file should remain set to "\*".
 * Replace all instances of `<%= nginxConf.UX_HOME %>` with the full absolute path to your cloned 3akai-ux directory (e.g., /Users/branden/oae/3akai-ux) or the 3akai-ux production build directory (e.g., /Users/branden/oae/3akai-ux/target/optimized)
 * Replace `<%= nginxConf.LOCAL_FILE_STORAGE_DIRECTORY %>` with the full absolute path that you configured as the `localStorageDirectory` in the `files` section of the  Hilary `config.js` file. This path should not have a trailing slash
 
@@ -323,27 +335,40 @@ npm install -d
 Now we're ready to start the app server. You can do so by going into the Hilary directory and running:
 
 ```
-node app.js | node_modules/.bin/bunyan
+nodemon app.js | node_modules/.bin/bunyan # auto-reload ON
 ```
 
-To start it in the background, you can run: `node app.js | node_modules/.bin/bunyan &`. An [upstart script](https://github.com/oaeproject/puppet-hilary/blob/master/modules/hilary/templates/upstart_hilary.conf.erb) can also be used to spawn and manage Hilary as a daemon process. The benefit of tying into upstart is that you get first-class support from deployment tools like MCollective and Puppet.
+or
+
+```
+node app.js | node_modules/.bin/bunyan # auto-reload OFF 
+```
+
+To start it in the background, you can run: `nodemon app.js | node_modules/.bin/bunyan &`. An [upstart script](https://github.com/oaeproject/puppet-hilary/blob/master/modules/hilary/templates/upstart_hilary.conf.erb) can also be used to spawn and manage Hilary as a daemon process. The benefit of tying into upstart is that you get first-class support from deployment tools like MCollective and Puppet.
 
 The server is now running and you can access the administration UI at http://admin.oae.com/!
 
-**Tip:** If you install bunyan as a global depency with `npm install -g bunyan`, you can start the app instead with 'node app | bunyan'.
+**Tip:** If you install bunyan as a global dependency with `npm install -g bunyan`, you can start the app instead with 'node app | bunyan'.
 
 ### Creating your first user tenant
 
 When you start the server, all data schemas will be created for you if they don't already exist. A global administrator user and global administration tenant will be ready for you as well. You can use these to create a new user tenant that hosts the actual OAE user interface.
 
 1. Visit http://admin.oae.com/  (substitute "admin.oae.com" with the administration host you configured in `/etc/hosts`)
-2. Log in with username and password: administrator / administrator
-3. Click "Create a new tenant"
-4. Choose an alias (a short, unique 2-5 character alphanumeric string such as "oae"), and a name of your liking.
-5. For the Host field, use the host you configured for your user tenant in `/etc/hosts` (e.g., "tenant1.oae.com")
-6. Click "Create new tenant"
+1. Log in with username and password: administrator / administrator
+1. Click the "Tenants" header to open up the actions
+1. Click "Create tenant"
+1. Choose an alias (a short, unique 2-5 character alphanumeric string such as "oae"), and a name of your liking.
+1. For the Host field, use the host you configured for your user tenant in `/etc/hosts` (e.g., "tenant1.oae.com")
+1. Click "Create new tenant"
 
-That's it! You can now access the user tenant by their host http://tenant1.oae.com and start creating new users.
+You can now access the user tenant by their host http://tenant1.oae.com and start creating new users.
+
+### Creating your first user
+
+To create a new user, use either the Sign Up link at the top left, or the Sign In link at the top right.
+
+**Tip:** OAE requires that users have an email address that is verified VIA an email that is sent to the user. To avoid the requirement of having a valid email server configuration, you can instead watch the app server logs when a user is created or their email address is updated. When `config.email.debug` is set to `true` in `config.js`, the content of the verification email can be seen in the logs, and you can copy/paste the email verification link from the log to your browser to verify your email. The URL will look similar to: `http://tenant1.oae.com/?verifyEmail=abc123`
 
 We're looking forward to seeing your contributions to the OAE project!
 

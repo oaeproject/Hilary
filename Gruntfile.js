@@ -31,6 +31,7 @@ module.exports = function(grunt) {
         'jslint': {
             'files': [
                 'Gruntfile.js',
+                'etc/**/*.js',
                 'node_modules/oae-*/lib/**/*.js',
                 'node_modules/oae-*/tests/**/*.js',
                 'node_modules/oae-*/config/**/*.js'
@@ -63,6 +64,7 @@ module.exports = function(grunt) {
                 'options': {
                     'timeout': MOCHA_TIMEOUT,
                     'ignoreLeaks': false,
+                    'fullStackTrace': true,
                     'reporter': 'spec',
                     'grep': mocha_grep,
                     'bail': false,
@@ -142,12 +144,7 @@ module.exports = function(grunt) {
     grunt.registerTask('test-module', 'Test a single module', function(module) {
         var config = {
             'src': ['node_modules/oae-tests/runner/beforeTests.js', 'node_modules/' + module + '/tests/**/*.js'],
-            'options': {
-                'timeout': MOCHA_TIMEOUT,
-                'ignoreLeaks': true,
-                'reporter': 'spec',
-                'grep': mocha_grep
-            }
+            'options': grunt.config.get('mocha-hack.all.options')
         };
         grunt.config.set('mocha-hack.' + module, config);
         grunt.task.run('mocha-hack:' + module);
@@ -159,7 +156,7 @@ module.exports = function(grunt) {
         report = report || 'lcov';
 
         // Get the modules that should be excluded
-        var excludeDirectories = grunt.file.expand({'filter': 'isDirectory'}, 'node_modules/*', '!node_modules/oae-*', 'node_modules/oae-*/node_modules');
+        var excludeDirectories = grunt.file.expand({'filter': 'isDirectory'}, 'node_modules/*', '!node_modules/oae-*', 'node_modules/oae-tests', 'node_modules/oae-*/node_modules');
         var excludeDirectoriesParameters = _.map(excludeDirectories, function(module) {
             return util.format('-x %s/\\*\\*', module);
         });

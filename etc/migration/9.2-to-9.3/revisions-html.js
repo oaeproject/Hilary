@@ -52,7 +52,7 @@ OAE.init(config, function(err) {
 
         log().info('Migration completed, migrated %d revisions, it took %d milliseconds', total, (Date.now() - start));
         process.exit();
-    })
+    });
 });
 
 

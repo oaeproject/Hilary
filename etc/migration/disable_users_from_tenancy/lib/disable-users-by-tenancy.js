@@ -34,20 +34,20 @@ var PrincipalsDAO = require('oae-principals/lib/internal/dao');
  * @return {type} {description}
  */
 var doMigration = function (tenantAlias, callback) {
-    _getAllUsersForTenant(tenantAlias, function(error, users) {
-        if (error) {
+    _getAllUsersForTenant(tenantAlias, function(err, users) {
+        if (err) {
             log().error({
                 'err': err
             }, 'Unable to get all users from a tenant');
-            process.exit(error.code);
+            process.exit(err.code);
         }
 
-        _deletePrincipals(users, function(error, users) {
-            if (error) {
+        _deletePrincipals(users, function(err, users) {
+            if (err) {
                 log().error({
                     'err': err
                 }, 'Unable to delete principals from tenant');
-                process.exit(error.code);
+                process.exit(err.code);
             }
 
             log().info("Exiting...");
@@ -91,8 +91,7 @@ var _getAllUsersForTenant = function (tenantAlias, callback) {
      */
     function _aggregateUsers(principalHashes, callback) {
         log().info('Checking %s principals and filtering...', principalHashes.length);
-        _
-            .chain(principalHashes)
+        _.chain(principalHashes)
             .filter(function (principalHash) {
                 return principalHash.tenantAlias === tenantAlias && PrincipalsDAO.isUser(principalHash.principalId);
             })

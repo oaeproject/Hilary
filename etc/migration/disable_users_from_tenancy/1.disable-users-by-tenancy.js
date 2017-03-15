@@ -77,12 +77,13 @@ OAE.init(config, function (err) {
     log().error({
       'err': err
     }, 'Unable to spin up the application server');
-    return process.exit(err.code);
+    process.exit(err.code);
   }
 
   DisableUsersMigration.doMigration(tenantAlias, function(err, users) {
     if (err) {
       log().warn("Migration not completed successfully.");
+      process.exit(err.code);
     }
 
     log().info("Finished migration for " + users.length + " users.");
@@ -90,5 +91,4 @@ OAE.init(config, function (err) {
     // Nothing left to do, exiting.
     process.exit(0);
   });
-
 });

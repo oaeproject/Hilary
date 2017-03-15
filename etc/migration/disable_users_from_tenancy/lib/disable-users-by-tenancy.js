@@ -24,9 +24,8 @@ var PrincipalsAPI = require('oae-principals');
  * Disable users from the system by updating the deleted flag
  * 
  * @function doMigration
- * @param  {type} tenantAlias {description}
- * @param  {type} callback    {description}
- * @return {type} {description}
+ * @param  {String}     tenantAlias     Tenant alias we want to delete users from
+ * @param  {Function}   callback        Standard callback function
  */
 var doMigration = function (tenantAlias, callback) {
     PrincipalsAPI.deleteOrRestoreUsersByTenancy(tenantAlias, true, function(err, users) {

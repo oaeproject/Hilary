@@ -22,8 +22,12 @@ var optimist = require('optimist');
 var path = require('path');
 var util = require('util');
 
+var Context = require('oae-context').Context;
 var log = require('oae-logger').logger('oae-script-main');
 var OAE = require('oae-util/lib/oae');
+var TenantsAPI = require('oae-tenants');
+var User = require('oae-principals/lib/model').User;
+
 var DisableUsersMigration = require('./lib/disable-users-by-tenancy');
 
 /**
@@ -79,14 +83,19 @@ OAE.init(config, function (err) {
     }, 'Unable to spin up the application server');
     process.exit(err.code);
   }
+  var globalTenant = TenantsAPI.getTenant(config.servers.globalAdminAlias);
+  var globalAdmin = new User(globalTenant.alias, util.format('u:%s:admin', globalTenant.alias), 'Global Administrator', null, {
+    'visibility': AuthzConstants.visibility.PRIVATE,
+    'isGlobalAdmin': true
+  });
 
-  DisableUsersMigration.doMigration(tenantAlias, function(err, users) {
+  DisableUsersMigration.doMigration(new Context(globalTenant, globalAdmin), tenantAlias, function(err, users) {
     if (err) {
-      log().warn("Migration not completed successfully.");
+      log().warn('Migration not completed successfully.');
       process.exit(err.code);
     }
 
-    log().info("Finished migration for " + users.length + " users.");
+    log().info('Finished migration for ' + users.length + ' users.');
 
     // Nothing left to do, exiting.
     process.exit(0);

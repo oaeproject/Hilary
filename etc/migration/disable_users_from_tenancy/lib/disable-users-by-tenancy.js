@@ -17,27 +17,28 @@
 * Disable users belonging to a disabled tenancy
 * Github issue #1304
 */
-var log = require('oae-logger').logger('oae-script-main'); 
+var log = require('oae-logger').logger('oae-script-main');
 var PrincipalsAPI = require('oae-principals');
 
 /**
  * Disable users from the system by updating the deleted flag
- * 
+ *
  * @function doMigration
+ * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
  * @param  {String}     tenantAlias     Tenant alias we want to delete users from
  * @param  {Function}   callback        Standard callback function
  */
-var doMigration = function (tenantAlias, callback) {
-    PrincipalsAPI.deleteOrRestoreUsersByTenancy(tenantAlias, true, function(err, users) {
+var doMigration = function (ctx, tenantAlias, callback) {
+    PrincipalsAPI.deleteOrRestoreUsersByTenancy(ctx, tenantAlias, true, function(err, users) {
         if (err) {
             callback(err);
         }
 
-        log().info("Migration successful.");
+        log().info('Migration successful.');
         callback(null, users);
     });
 };
 
 module.exports = {
-    "doMigration": doMigration
+    'doMigration': doMigration
 };

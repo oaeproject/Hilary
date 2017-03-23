@@ -112,6 +112,7 @@ RUN set -ex \
 # Install node_modules
 RUN npm install --global nodemon
 RUN npm install --global bunyan
+RUN npm install --global grunt
 WORKDIR /usr/src/app
 RUN mkdir -p /usr/src/app/node_modules
 COPY package.json /tmp/package.json
@@ -122,17 +123,19 @@ RUN npm install && npm ls
 EXPOSE 2000
 EXPOSE 2001
 
-# libreoffice from xcgd/libreoffice
+# Install libreoffice as described in xcgd/libreoffice
+RUN apt-get update
 RUN apt-get -y -q install libreoffice libreoffice-writer ure libreoffice-java-common libreoffice-core libreoffice-common openjdk-7-jre
-RUN apt-get -q -y remove libreoffice-gnome
+RUN apt-get -y -q remove libreoffice-gnome
 RUN adduser --home=/opt/libreoffice --disabled-password --gecos "" --shell=/bin/bash libreoffice
 
-# pdf2htmlex
+# Install pdf2htmlex
 RUN apt-get install -y python-poppler poppler-utils libpoppler-glib-dev chrpath
 RUN echo "deb http://ftp.de.debian.org/debian sid main" >> /etc/apt/sources.list && \
     apt-get -qqy update && \
     apt-get -qqy install pdf2htmlex && \
     rm -rf /var/lib/apt/lists/*
 
-# Run the app
-CMD ["/bin/sh", "-c", "nodemon -L app.js | bunyan"]
+# Run the app - you may override CMD via docker run command line instruction
+ENTRYPOINT ["/bin/sh", "-c"]
+CMD ["nodemon -L app.js | bunyan"]

@@ -28,12 +28,12 @@ var config = module.exports.config = {};
  * @param  {String}    path            The path to the UI static assets
  */
 config.ui = {
-    'path': '../3akai-ux'
+    'path': './3akai-ux'
 };
 
 // Cassandra related config information.
 config.cassandra = {
-    'hosts': ['127.0.0.1:9160'],
+    'hosts': ['oae-cassandra:9160'],
     'keyspace': 'oae',
     'user': '',
     'pass': '',
@@ -51,7 +51,7 @@ config.cassandra = {
 //  0 = production
 //  1 = unit tests
 config.redis = {
-    'host': '127.0.0.1',
+    'host': 'oae-redis',
     'port': 6379,
     'pass': '',
     'dbIndex': 0
@@ -175,7 +175,7 @@ config.telemetry = {
 config.search = {
     'hosts': [
         {
-            'host': 'localhost',
+            'host': 'oae-elasticsearch',
             'port': 9200
         }
     ],
@@ -252,7 +252,7 @@ config.search = {
  */
 config.mq = {
     'connection': {
-        'host': 'localhost',
+        'host': 'oae-rabbitmq',
         'port': 5672
     },
     'purgeQueuesOnStartup': false
@@ -283,7 +283,7 @@ config.mq = {
  * @param  {String}      credentials.password           The password to login with on the global admin server
  */
 config.previews = {
-    'enabled': false,
+    'enabled': true,
     'tmpDir': tmpDir + '/previews',
     'office': {
         'binary': 'soffice',
@@ -428,7 +428,7 @@ config.etherpad = {
     'apikey': '13SirapH8t3kxUh5T5aqWXhXahMzoZRA',
     'hosts': [
         {
-            'host': '127.0.0.1',
+            'host': 'oae-etherpad',
             'port': 9001
         }
     ]

@@ -1,0 +1,133 @@
+#
+# Copyright 2017 Apereo Foundation (AF) Licensed under the
+# Educational Community License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may
+# obtain a copy of the License at
+#
+#     http://opensource.org/licenses/ECL-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an "AS IS"
+# BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+# or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+#
+
+#
+# Useful commands:
+# Create images: `docker -f docker-compose.debug.yaml Create`
+# Run/Stop containers: `docker -f docker-compose.debug.yaml up / down`
+# Check container network configuration: `docker network inspect bridge`
+# Fetch the IP address of a specific container: `docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' oae-nginx`
+# Tail the logs for a specific container: `docker logs -f oae-hilary`
+#
+
+version: '2'
+
+services:
+#   oae-3akai-ux:
+#     image: oae-3akai-ux:latest
+#     container_name: oae-3akai-ux
+#     build:
+#       context: ./3akai-ux/
+#       dockerfile: ./3akai-ux/Dockerfile
+  oae-hilary:
+    image: hilary:latest
+    network_mode: "bridge"
+    # volumes_from:
+    #   - oae-3akai-ux
+    build:
+      context: .
+      dockerfile: Dockerfile
+    links:
+      - oae-cassandra
+      - oae-rabbitmq
+      - oae-elasticsearch
+      - oae-redis
+      - oae-etherpad
+    tty: false
+    ports:
+      - 2000:2000
+      - 2001:2001
+    volumes: # TODO make these relative paths maybe?
+      - /src/brecke/Hilary:/usr/src/app
+      - /src/brecke/files:/usr/src/files
+    #   - ./3akai-ux:/usr/src/3akai-ux
+    container_name: oae-hilary
+    # command: nodemon -L app.js | bunyan # default
+    # command: grunt test:oae-principals # for running tests
+  oae-redis:
+    tty: false
+    network_mode: "bridge"
+    image: redis:3.2.8-alpine
+    container_name: oae-redis
+    ports:
+      - 6379:6379
+  oae-elasticsearch:
+    tty: false
+    network_mode: "bridge"
+    image: elasticsearch:1-alpine
+    container_name: oae-elasticsearch
+    volumes:
+      - /data/elasticsearch:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+  oae-rabbitmq:
+    tty: false
+    network_mode: "bridge"
+    image: rabbitmq:3.6.6-management-alpine
+    container_name: oae-rabbitmq
+    ports:
+      - 5672:5672
+  oae-nginx:
+    tty: false
+    network_mode: "bridge"
+    image: nginx:stable-alpine
+    container_name: oae-nginx
+    volumes: # make these relative paths maybe
+      - /src/brecke/files:/usr/share/files
+      - /src/brecke/3akai-ux/nginx/nginx.conf.docker:/etc/nginx/nginx.conf
+      - /src/brecke/3akai-ux/nginx/mime.conf:/etc/nginx/mime.conf
+      - /src/brecke/3akai-ux:/usr/share/3akai
+    ports:
+      - 80:80
+      - 443:443
+    links:
+      - oae-hilary
+  oae-cassandra:
+    tty: false
+    network_mode: "bridge"
+    image: oaeproject/cassandra-docker
+    volumes:
+      - /data/cassandra/:/var/lib/cassandra
+    container_name: oae-cassandra
+    ports:
+      - 9160:9160
+  oae-etherpad:
+    tty: false
+    network_mode: "bridge"
+    # TODO replace this image with oaeproject/oae-etherpad
+    image: oaeproject/oae-etherpad
+    container_name: oae-etherpad
+    links:
+      - oae-rabbitmq
+    ports:
+      - 9001:9001
+  portainer:
+    tty: false
+    network_mode: "bridge"
+    container_name: portainer
+    image: portainer/portainer
+    ports:
+      - 9000:9000
+    volumes:
+      - /data/portainer/data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+#   elk:
+#     network_mode: "bridge"
+#     image: sebp/elk
+#     ports:
+#       - 5601:5601
+#       - 9200:9200
+#       - 5044:5044
+#     container_name: oae-elk

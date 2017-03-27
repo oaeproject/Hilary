@@ -39,6 +39,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    depends_on:
+      - oae-cassandra
+      - oae-elasticsearch
+      - oae-rabbitmq
+      - oae-redis
+      - oae-etherpad
     links:
       - oae-cassandra
       - oae-rabbitmq
@@ -50,7 +56,7 @@ services:
       - 2000:2000
       - 2001:2001
     volumes: # TODO make these relative paths maybe?
-      - /src/brecke/Hilary:/usr/src/app
+      - /src/brecke/Hilary:/usr/src/Hilary
       - /src/brecke/files:/usr/src/files
     #   - ./3akai-ux:/usr/src/3akai-ux
     container_name: oae-hilary
@@ -84,16 +90,21 @@ services:
     network_mode: "bridge"
     image: nginx:stable-alpine
     container_name: oae-nginx
+    volumes_from:
+      - oae-hilary
     volumes: # make these relative paths maybe
       - /src/brecke/files:/usr/share/files
-      - /src/brecke/3akai-ux/nginx/nginx.conf.docker:/etc/nginx/nginx.conf
-      - /src/brecke/3akai-ux/nginx/mime.conf:/etc/nginx/mime.conf
-      - /src/brecke/3akai-ux:/usr/share/3akai
+      - /src/brecke/Hilary/3akai-ux/nginx/nginx.conf.docker:/etc/nginx/nginx.conf
+      - /src/brecke/Hilary/3akai-ux/nginx/mime.conf:/etc/nginx/mime.conf
+      - /src/brecke/Hilary/3akai-ux:/usr/share/3akai
+    depends_on:
+      - oae-hilary
     ports:
       - 80:80
       - 443:443
     links:
       - oae-hilary
+      - oae-etherpad
   oae-cassandra:
     tty: false
     network_mode: "bridge"
@@ -109,6 +120,8 @@ services:
     # TODO replace this image with oaeproject/oae-etherpad
     image: oaeproject/oae-etherpad
     container_name: oae-etherpad
+    depends_on:
+      - oae-rabbitmq
     links:
       - oae-rabbitmq
     ports:

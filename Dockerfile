@@ -19,7 +19,7 @@
 # Step 1: Build the image
 # $ docker build -f Dockerfile -t hilary:latest .
 # Step 2: Run the docker
-# $ docker run -it --name=node --net=host -v /src/brecke/Hilary:/usr/src/app -v /src/brecke/3akai-ux:/usr/src/3akai-ux hilary:latest
+# $ docker run -it --name=node --net=host -v /src/brecke/Hilary:/usr/src/Hilary -v /src/brecke/3akai-ux:/usr/src/3akai-ux hilary:latest
 #
 
 # FROM buildpack-deps:jessie-scm
@@ -32,23 +32,26 @@ RUN npm install --global nodemon
 RUN npm install --global bunyan
 RUN npm install --global grunt
 
+# Create the temp directory
+RUN mkdir -p /tmp/oae
+
 # Set the base directory
-RUN mkdir -p /usr/src/app
-WORKDIR /usr/src/app
+RUN mkdir -p /usr/src/Hilary
+WORKDIR /usr/src/Hilary
 
 # Install 3akai-ux dependencies
-RUN mkdir -p /usr/src/app/3akai-ux/node_modules
-COPY ./3akai-ux/node_modules /usr/src/app/3akai-ux/node_modules/
+RUN mkdir -p /usr/src/Hilary/3akai-ux/node_modules
+COPY ./3akai-ux/node_modules /usr/src/Hilary/3akai-ux/node_modules/
 
-COPY ./3akai-ux/package.json /usr/src/app/3akai-ux/
-RUN cd /usr/src/app/3akai-ux && npm install
+COPY ./3akai-ux/package.json /usr/src/Hilary/3akai-ux/
+RUN cd /usr/src/Hilary/3akai-ux && npm install
 
 # Install hilary dependencies
-RUN mkdir -p /usr/src/app/node_modules
-COPY ./node_modules/ /usr/src/app/node_modules/
+RUN mkdir -p /usr/src/Hilary/node_modules
+COPY ./node_modules/ /usr/src/Hilary/node_modules/
 
-COPY package.json /usr/src/app/
-RUN cd /usr/src/app && npm install
+COPY package.json /usr/src/Hilary/
+RUN cd /usr/src/Hilary && npm install
 
 # Expose ports for node server
 EXPOSE 2000

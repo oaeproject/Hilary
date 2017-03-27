@@ -15,8 +15,8 @@
 
 #
 # Useful commands:
-# Create images: `docker -f docker-compose.debug.yaml Create`
-# Run/Stop containers: `docker -f docker-compose.debug.yaml up / down`
+# Create images: `docker create`
+# Run/Stop containers: `docker up / down`
 # Check container network configuration: `docker network inspect bridge`
 # Fetch the IP address of a specific container: `docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' oae-nginx`
 # Tail the logs for a specific container: `docker logs -f oae-hilary`

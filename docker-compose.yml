@@ -24,18 +24,13 @@
 
 version: '2'
 
+networks:
+  my_network:
+    driver: bridge
+
 services:
-#   oae-3akai-ux:
-#     image: oae-3akai-ux:latest
-#     container_name: oae-3akai-ux
-#     build:
-#       context: ./3akai-ux/
-#       dockerfile: ./3akai-ux/Dockerfile
   oae-hilary:
     image: hilary:latest
-    network_mode: "bridge"
-    # volumes_from:
-    #   - oae-3akai-ux
     build:
       context: .
       dockerfile: Dockerfile
@@ -45,54 +40,60 @@ services:
       - oae-rabbitmq
       - oae-redis
       - oae-etherpad
-    links:
-      - oae-cassandra
-      - oae-rabbitmq
-      - oae-elasticsearch
-      - oae-redis
-      - oae-etherpad
+    # links:
+    #   - oae-cassandra
+    #   - oae-rabbitmq
+    #   - oae-elasticsearch
+    #   - oae-redis
+    #   - oae-etherpad
+    #   - oae-nginx
+    networks:
+      - my_network
     tty: false
     ports:
       - 2000:2000
       - 2001:2001
-    volumes: # TODO make these relative paths maybe?
+    volumes:
       - /src/brecke/Hilary:/usr/src/Hilary
       - /src/brecke/files:/usr/src/files
-    #   - ./3akai-ux:/usr/src/3akai-ux
     container_name: oae-hilary
     # command: nodemon -L app.js | bunyan # default
     # command: grunt test:oae-principals # for running tests
   oae-redis:
     tty: false
-    network_mode: "bridge"
     image: redis:3.2.8-alpine
     container_name: oae-redis
     ports:
       - 6379:6379
+    networks:
+      - my_network
   oae-elasticsearch:
     tty: false
-    network_mode: "bridge"
     image: elasticsearch:1-alpine
     container_name: oae-elasticsearch
     volumes:
       - /data/elasticsearch:/usr/share/elasticsearch/data
     ports:
       - 9200:9200
+    networks:
+      - my_network
   oae-rabbitmq:
     tty: false
-    network_mode: "bridge"
     image: rabbitmq:3.6.6-management-alpine
     container_name: oae-rabbitmq
     ports:
       - 5672:5672
+    networks:
+      - my_network
   oae-nginx:
     tty: false
-    network_mode: "bridge"
+    networks:
+      - my_network
     image: nginx:stable-alpine
     container_name: oae-nginx
     volumes_from:
       - oae-hilary
-    volumes: # make these relative paths maybe
+    volumes:
       - /src/brecke/files:/usr/share/files
       - /src/brecke/Hilary/3akai-ux/nginx/nginx.conf.docker:/etc/nginx/nginx.conf
       - /src/brecke/Hilary/3akai-ux/nginx/mime.conf:/etc/nginx/mime.conf
@@ -102,37 +103,39 @@ services:
     ports:
       - 80:80
       - 443:443
-    links:
-      - oae-hilary
-      - oae-etherpad
+    # links:
+    #   - oae-hilary
+    #   - oae-etherpad
   oae-cassandra:
     tty: false
-    network_mode: "bridge"
     image: oaeproject/cassandra-docker
     volumes:
       - /data/cassandra/:/var/lib/cassandra
     container_name: oae-cassandra
     ports:
       - 9160:9160
+    networks:
+      - my_network
   oae-etherpad:
     tty: false
-    network_mode: "bridge"
-    # TODO replace this image with oaeproject/oae-etherpad
     image: oaeproject/oae-etherpad
     container_name: oae-etherpad
     depends_on:
       - oae-rabbitmq
-    links:
-      - oae-rabbitmq
+    # links:
+    #   - oae-rabbitmq
+    networks:
+      - my_network
     ports:
       - 9001:9001
   portainer:
     tty: false
-    network_mode: "bridge"
     container_name: portainer
     image: portainer/portainer
     ports:
       - 9000:9000
+    networks:
+      - my_network
     volumes:
       - /data/portainer/data:/data
       - /var/run/docker.sock:/var/run/docker.sock

@@ -15,6 +15,8 @@ Otherwise, please follow our docker quickstart guide:
 
 ### Docker Quickstart Guide
 
+The recommended way to install docker is to follow the official guide at https://docs.docker.com/engine/installation/. After you have installed docker, proceed to cloning the repos:
+
 #### Clone the repos
 
 ```
@@ -32,6 +34,18 @@ docker-compose up
 # as a temporary measure, we will need to start hilary again to make sure it boots after cassandra:
 docker-compose restart oae-hilary
 ```
+
+### Extra docker utilities
+
+The service names and description are in the `docker-compose.yml` file.
+
+To start and stop all containers at once, run `docker-compose up` and `docker-compose down` respectively. Check `docker-compose` documentation for more information.
+
+If you need to rebuild the `hilary:latest` docker image, try running `docker build -f Dockerfile -t hilary:latest .`.
+
+If you need to tail the logs of a specific server for debugging, try running `docker logs -f oae-hilary` (for the `oae-hilary` service).
+
+If you're having network problems, run `docker network inspect bridge` for check container network configuration or `docker inspect oae-hilary` to take a look at `oae-hilary` container details.
 
 ### Setup
 

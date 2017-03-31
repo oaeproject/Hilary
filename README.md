@@ -9,7 +9,8 @@ Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject
 
 ## Installation
 
-If you're looking to install the OAE project manually, check out [this page]() and then go the the [Setup section]() below.
+If you're looking to install the OAE project manually, check out [this page](https://github.com/brecke/Hilary/wiki/Manual-installation-&-setup) and then go the the [Setup section](#setup) below.
+
 Otherwise, please follow our docker quickstart guide:
 
 ### Docker Quickstart Guide

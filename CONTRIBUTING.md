@@ -58,9 +58,56 @@ OAE Project has tools that can help you style your code according to our guideli
     - Trim trailing whitespace;
 - In Hilary, dependencies should be in alphabetised groups - first external dependencies, then dependencies to other OAE modules, then dependencies to the same module;
 
+### Using submodules
+
+In `git` terms, here are some tips to help you get started:
+
+#### Checkout
+
+For pulling changes from the parent repository:
+
+```
+git pull
+```
+
+If there are new commits from submodules, we need to pull those explicitly:
+
+```
+git submodule update
+````
+
+However, if we go inside the recently updated submodule, we get the `Not currently on any branch` message. This is because the `git submodule update` command checks out submodules in a `HEADLESS` state by default. So, before you commit anything at all, be sure to `git checkout <your-branch>` (e.g. master) immediately after running `git submodule update`.
+
+#### Push
+
+It is important to remember that the parent repository (`Hilary`) needs to pushed every time a submodule is pushed as well, otherwise it will always point to the same commit even if the submodule has been updated. If you want to make sure that doesn't happen, there are two things you can do:
+
+```
+# Option 1: make sure it checks it for you **from the parent directory**
+git push —recursive-submodules=check # Will abort a push if you haven't pushed a submodule
+
+# Option 2: make sure everything is pushed at the same time
+git push —recursive-submodules=on-demand # Will push all repositories even submodules
+````
+
+You may want to create a `git alias` for either option as follows:
+```
+# Option 1:
+git config alias.pushall "push —recursive-submodules=check" # run from the parent repository
+
+# Option 2:
+git config alias.pushall "push —recursive-submodules=on-demand" # run from the parent repository
+```
+
 ### Run tests
 
 We use Grunt to run our tests. To test a single module, run `grunt test-module:<module-name>`. You can also run tests for the whole project by typing `grunt test`, but take into account that this will take a while!
+
+If you're using the docker setup, run the container with a custom command (example for module `oae-principals`):
+
+```
+docker-compose stop oae-hilary && docker-compose run oae-hilary grunt test:oae-principals
+```
 
 ### Submit a pull request
 

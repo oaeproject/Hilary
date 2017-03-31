@@ -7,6 +7,9 @@ doc_data.txt
 /node_modules/*
 !/node_modules/oae-*
 
+# watch out
+/temp/*
+
 # This line is needed to work around a bug with Atom IDE TreeView
 # https://github.com/atom/tree-view/issues/196
 !/node_modules/oae-*/*

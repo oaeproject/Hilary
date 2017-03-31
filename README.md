@@ -25,6 +25,29 @@ git submodules init
 git submodule update
 ```
 
+#### Customize the folder paths
+
+The `docker-compose.yml` file includes the folder paths (mountpoints) where the container volumes will be mounted, namely:
+
+- `oae-hilary`:
+  - `/src/Hilary`
+  - `/src/files`
+- `oae-elasticsearch`:
+  - `/data/elasticsearch`
+- `oae-nginx`:
+  - `/src/files`
+  - `/src/Hilary/3akai-ux/nginx/nginx.conf.docker`
+  - `/src/Hilary/3akai-ux/nginx/mime.conf`
+  - `/src/Hilary/3akai-ux`
+- `oae-cassandra`:
+  - `oae-cassandra`
+- `oae-etherpad`:
+  - `/data/etherpad/dirty.db`
+- `oae-portainer`:
+  - `/data/portainer/data and /var/run/docker.sock`
+
+Either make sure these paths are the ones you're using or change them in the `docker-compose.yml` file to match your own paths.
+
 #### Build the docker image locally
 
 ```
@@ -46,6 +69,10 @@ If you need to rebuild the `hilary:latest` docker image, try running `docker bui
 If you need to tail the logs of a specific server for debugging, try running `docker logs -f oae-hilary` (for the `oae-hilary` service).
 
 If you're having network problems, run `docker network inspect bridge` for check container network configuration or `docker inspect oae-hilary` to take a look at `oae-hilary` container details.
+
+--
+
+For making it easy to manage docker containers and images, we have included [portainer](http://portainer.io/) in the `docker-compose.yml` file. Portainer is easily installed and becomes accessible via `http://DOCKER_HOST:9000` when `docker-compose up` is ran. More information on Portainer at [the official documentation website](https://portainer.readthedocs.io/en/stable/).
 
 ### Setup
 

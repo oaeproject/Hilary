@@ -30,104 +30,92 @@ networks:
 
 services:
   oae-hilary:
-    image: hilary:latest
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: oae-hilary
+    # command: nodemon -L app.js | bunyan # default
+    # command: grunt test:oae-principals # for running tests
     depends_on:
       - oae-cassandra
       - oae-elasticsearch
       - oae-rabbitmq
       - oae-redis
       - oae-etherpad
-    # links:
-    #   - oae-cassandra
-    #   - oae-rabbitmq
-    #   - oae-elasticsearch
-    #   - oae-redis
-    #   - oae-etherpad
-    #   - oae-nginx
+    image: hilary:latest
     networks:
       - my_network
-    tty: false
     ports:
       - 2000:2000
       - 2001:2001
+    tty: false
     volumes:
       - /src/brecke/Hilary:/usr/src/Hilary
       - /src/brecke/files:/usr/src/files
-    container_name: oae-hilary
-    # command: nodemon -L app.js | bunyan # default
-    # command: grunt test:oae-principals # for running tests
   oae-redis:
-    tty: false
-    image: redis:3.2.8-alpine
     container_name: oae-redis
+    image: redis:3.2.8-alpine
     ports:
       - 6379:6379
+    tty: false
     networks:
       - my_network
   oae-elasticsearch:
-    tty: false
-    image: elasticsearch:1-alpine
     container_name: oae-elasticsearch
-    volumes:
-      - /data/elasticsearch:/usr/share/elasticsearch/data
-    ports:
-      - 9200:9200
+    image: elasticsearch:1-alpine
     networks:
       - my_network
-  oae-rabbitmq:
+    ports:
+      - 9200:9200
     tty: false
-    image: rabbitmq:3.6.6-management-alpine
+    volumes:
+      - /data/elasticsearch:/usr/share/elasticsearch/data
+  oae-rabbitmq:
     container_name: oae-rabbitmq
+    image: rabbitmq:3.6.6-management-alpine
     ports:
       - 5672:5672
     networks:
       - my_network
-  oae-nginx:
     tty: false
+  oae-nginx:
+    container_name: oae-nginx
+    depends_on:
+      - oae-hilary
+    image: nginx:stable-alpine
     networks:
       - my_network
-    image: nginx:stable-alpine
-    container_name: oae-nginx
-    volumes_from:
-      - oae-hilary
+    tty: false
     volumes:
       - /src/brecke/files:/usr/share/files
       - /src/brecke/Hilary/3akai-ux/nginx/nginx.conf.docker:/etc/nginx/nginx.conf
       - /src/brecke/Hilary/3akai-ux/nginx/mime.conf:/etc/nginx/mime.conf
       - /src/brecke/Hilary/3akai-ux:/usr/share/3akai
-    depends_on:
+    volumes_from:
       - oae-hilary
     ports:
       - 80:80
       - 443:443
-    # links:
-    #   - oae-hilary
-    #   - oae-etherpad
   oae-cassandra:
-    tty: false
-    image: oaeproject/cassandra-docker
-    volumes:
-      - /data/cassandra/:/var/lib/cassandra
     container_name: oae-cassandra
-    ports:
-      - 9160:9160
+    image: oaeproject/cassandra-docker
     networks:
       - my_network
-  oae-etherpad:
+    ports:
+      - 9160:9160
     tty: false
-    image: oaeproject/oae-etherpad
+    volumes:
+      - /data/cassandra:/var/lib/cassandra
+  oae-etherpad:
     container_name: oae-etherpad
     depends_on:
       - oae-rabbitmq
-    # links:
-    #   - oae-rabbitmq
+    image: oaeproject/oae-etherpad
     networks:
       - my_network
     ports:
       - 9001:9001
+    tty: false
   portainer:
     tty: false
     container_name: portainer

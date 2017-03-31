@@ -84,19 +84,19 @@ It is important to remember that the parent repository (`Hilary`) needs to pushe
 
 ```
 # Option 1: make sure it checks it for you **from the parent directory**
-git push —recursive-submodules=check # Will abort a push if you haven't pushed a submodule
+git push --recurse-submodules=check # Will abort a push if you haven't pushed a submodule
 
 # Option 2: make sure everything is pushed at the same time
-git push —recursive-submodules=on-demand # Will push all repositories even submodules
+git push --recurse-submodules=on-demand # Will push all repositories even submodules
 ````
 
 You may want to create a `git alias` for either option as follows:
 ```
 # Option 1:
-git config alias.pushall "push —recursive-submodules=check" # run from the parent repository
+git config alias.pushall "push --recurse-submodules=check" # run from the parent repository
 
 # Option 2:
-git config alias.pushall "push —recursive-submodules=on-demand" # run from the parent repository
+git config alias.pushall "push --recurse-submodules=on-demand" # run from the parent repository
 ```
 
 ### Run tests

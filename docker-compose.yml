@@ -50,8 +50,8 @@ services:
       - 2001:2001
     tty: false
     volumes:
-      - /src/Hilary:/usr/src/Hilary
-      - /src/files:/usr/src/files
+      - /src/brecke/Hilary:/usr/src/Hilary
+      - /src/brecke/files:/usr/src/files
   oae-redis:
     container_name: oae-redis
     image: redis:3.2.8-alpine
@@ -87,10 +87,10 @@ services:
       - my_network
     tty: false
     volumes:
-      - /src/files:/usr/share/files
-      - /src/Hilary/3akai-ux/nginx/nginx.conf.docker:/etc/nginx/nginx.conf
-      - /src/Hilary/3akai-ux/nginx/mime.conf:/etc/nginx/mime.conf
-      - /src/Hilary/3akai-ux:/usr/share/3akai
+      - /src/brecke/files:/usr/share/files
+      - /src/brecke/Hilary/3akai-ux/nginx/nginx.conf.docker:/etc/nginx/nginx.conf
+      - /src/brecke/Hilary/3akai-ux/nginx/mime.conf:/etc/nginx/mime.conf
+      - /src/brecke/Hilary/3akai-ux:/usr/share/3akai
     volumes_from:
       - oae-hilary
     ports:
@@ -117,7 +117,7 @@ services:
       - 9001:9001
     tty: false
     volumes:
-      - /data/etherpad/dirty.db:/opt/etherpad/var/dirty.db
+      - /data/etherpad:/opt/etherpad/var
   portainer:
     tty: false
     container_name: portainer

@@ -85,9 +85,23 @@ OAE is a multi-tenant system that discriminates the tenant by the host name with
 127.0.0.1   tenant1.oae.com
 ```
 
-Where `admin.oae.com` is the hostname that we will use to access the global administration tenant and `tenant1.oae.com` would be one of many potential user tenant hosts.
+Where `admin.oae.com` is the hostname that we will use to access the global administration tenant and `tenant1.oae.com` would be one of many potential user tenant hosts. After making this change, you should now be able to visit http://admin.oae.com \o/
 
-You should now be able to visit http://admin.oae.com \o/
+#### Change the docker-compose DNS entries
+
+This same DNS information must be made explicit be done in the `docker-compose.yml` file, to make sure that the `oae-hilary` container can connect to the `oae-nginx` container holding HTTP server (for instance, for preview processing purposes). Go to the file and look for the following section:
+
+```
+extra_hosts:
+- "admin.oae.com:172.20.0.9"
+- "tenant1.oae.com:172.20.0.9"
+```
+
+As you see, we already included both `admin.oae.com` and `tenant1.oae.com`, both associated with the `oae-nginx` static IP. If you're looking to add an extra host, say, `tenant2.oae.com`, then you should add the following line and you're good to go:
+
+```
+- "tenant2.oae.com:172.20.0.9"
+```
 
 #### Creating your first user tenant
 

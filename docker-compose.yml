@@ -27,6 +27,9 @@ version: '2'
 networks:
   my_network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
 
 services:
   oae-hilary:
@@ -42,6 +45,10 @@ services:
       - oae-rabbitmq
       - oae-redis
       - oae-etherpad
+    extra_hosts:
+      - "admin.oae.com:172.20.0.9"
+      - "tenant1.oae.com:172.20.0.9"
+      # - "any.other.host.oae.com:172.20.0.9"
     image: hilary:latest
     networks:
       - my_network
@@ -84,7 +91,8 @@ services:
       - oae-hilary
     image: nginx:stable-alpine
     networks:
-      - my_network
+      my_network:
+        ipv4_address: 172.20.0.9 # this is needed because of multi-tenancy
     tty: false
     volumes:
       - /src/brecke/files:/usr/share/files

@@ -47,28 +47,39 @@ The `docker-compose.yml` file includes the folder paths (mountpoints) where the 
   - `/src/Hilary/3akai-ux/nginx/mime.conf`
   - `/src/Hilary/3akai-ux`
 - `oae-cassandra`:
-  - `oae-cassandra`
+  - `/data/cassandra`
 - `oae-etherpad`:
   - `/data/etherpad/dirty.db`
 - `oae-portainer`:
-  - `/data/portainer/data and /var/run/docker.sock`
+  - `/data/portainer/data`
+  - `/var/run/docker.sock`
 
-Either make sure these paths are the ones you're using or change them in the `docker-compose.yml` file to match your own paths. You may want to do that via the `rpl` tool, which you may install via `sudo apt-get install rpl` (debian-based) or `brew install rpl` (mac osx) and then run `rpl /src /oae docker-compose.yml` (if we're looking to replace `/src` with `/oae` e.g.).
+Either make sure these paths are the ones you're using or change them in the `docker-compose.yml` file to match your own paths.
 
-Similarly, in `Dockerfile` the `/usr/src` path must be changed to the one where you cloned the repo. Once again, you may install `rpl` and run `rpl /usr/src /oae Dockerfile` (e.g.) on the `Hilary` folder.
+Similarly, in `Dockerfile` the `/usr/src` path must be changed to the one where you cloned the repo.
 
 #### Build the docker image locally
 
 ```
 docker-compose create --build # this will build the hilary:latest image
-
-# NOTE: if the previous step fails due to network problems, try changing the DNS server to Google's: 8.8.8.8 or 8.8.4.4
-
-docker-compose up
-
-# as a temporary measure, we will need to start hilary again to make sure it boots after cassandra:
-docker-compose restart oae-hilary
 ```
+
+NOTE: if the previous step fails due to network problems, try changing the DNS server to Google's: 8.8.8.8 or 8.8.4.4
+
+#### Install dependencies
+
+In order to install dependencies for the frontend and the backend, we need to run a one-off command for each:
+
+```
+docker-compose run oae-hilary "cd 3akai-ux && npm install" # install dependencies for 3akai-ux
+docker-compose run oae-hilary "npm install" # install dependencies for Hilary
+```
+
+#### Run the containers
+
+Run `docker-compose up` and all the containers will boot.
+
+As a temporary measure, we will need to start hilary again to make sure it boots after cassandra is accepting connections: `docker-compose restart oae-hilary`
 
 ### Extra docker utilities
 

@@ -15,7 +15,14 @@ Otherwise, please follow our docker quickstart guide:
 
 ### Docker Quickstart Guide
 
-The recommended way to install docker is to follow the official guide at https://docs.docker.com/engine/installation/. After you have installed docker, proceed to cloning the repos:
+The recommended way to install docker is to follow the official guide at https://docs.docker.com/engine/installation/. Check that you have working versions of both `docker` and `docker-compose` before you proceed to cloning the repos:
+
+```
+$ docker -v
+Docker version 17.03.0-ce, build 60ccb2265
+$ docker-compose -v
+docker-compose version 1.11.2, build dfed245
+```
 
 #### Clone the repos
 

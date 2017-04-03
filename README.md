@@ -21,7 +21,7 @@ The recommended way to install docker is to follow the official guide at https:/
 
 ```
 git clone git@github.com:oaeproject/Hilary.git && cd Hilary
-git submodules init
+git submodule init
 git submodule update
 ```
 

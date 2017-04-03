@@ -58,7 +58,10 @@ Either make sure these paths are the ones you're using or change them in the `do
 #### Build the docker image locally
 
 ```
-docker-compose create # this will build the hilary:latest image
+docker-compose create --build # this will build the hilary:latest image
+
+# NOTE: if the previous step fails due to network problems, try changing the DNS server to Google's: 8.8.8.8 or 8.8.4.4
+
 docker-compose up
 
 # as a temporary measure, we will need to start hilary again to make sure it boots after cassandra:

@@ -23,7 +23,7 @@
 #
 
 # FROM buildpack-deps:jessie-scm
-FROM oaeproject/oae-hilary-deps
+FROM oaeproject/oae-hilary-deps-docker
 LABEL Name=hilary Version=12.5.0
 MAINTAINER Apereo Foundation <which.email@here.question>
 

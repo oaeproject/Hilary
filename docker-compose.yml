@@ -57,8 +57,8 @@ services:
       - 2001:2001
     tty: false
     volumes:
-      - /src/brecke/Hilary:/usr/src/Hilary
-      - /src/brecke/files:/usr/src/files
+      - /src/Hilary:/usr/src/Hilary
+      - /src/files:/usr/src/files
   oae-redis:
     container_name: oae-redis
     image: redis:3.2.8-alpine
@@ -95,10 +95,10 @@ services:
         ipv4_address: 172.20.0.9 # this is needed because of multi-tenancy
     tty: false
     volumes:
-      - /src/brecke/files:/usr/share/files
-      - /src/brecke/Hilary/3akai-ux/nginx/nginx.conf.docker:/etc/nginx/nginx.conf
-      - /src/brecke/Hilary/3akai-ux/nginx/mime.conf:/etc/nginx/mime.conf
-      - /src/brecke/Hilary/3akai-ux:/usr/share/3akai
+      - /src/files:/usr/share/files
+      - /src/Hilary/3akai-ux/nginx/nginx.conf.docker:/etc/nginx/nginx.conf
+      - /src/Hilary/3akai-ux/nginx/mime.conf:/etc/nginx/mime.conf
+      - /src/Hilary/3akai-ux:/usr/share/3akai
     volumes_from:
       - oae-hilary
     ports:

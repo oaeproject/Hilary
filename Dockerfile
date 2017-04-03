@@ -19,7 +19,7 @@
 # Step 1: Build the image
 # $ docker build -f Dockerfile -t hilary:latest .
 # Step 2: Run the docker
-# $ docker run -it --name=node --net=host -v /src/brecke/Hilary:/usr/src/Hilary -v /src/brecke/3akai-ux:/usr/src/3akai-ux hilary:latest
+# $ docker run -it --name=node --net=host -v /src/brecke/Hilary:/usr/src/Hilary hilary:latest
 #
 
 # FROM buildpack-deps:jessie-scm
@@ -38,20 +38,6 @@ RUN mkdir -p /tmp/oae
 # Set the base directory
 RUN mkdir -p /usr/src/Hilary
 WORKDIR /usr/src/Hilary
-
-# Install 3akai-ux dependencies
-RUN mkdir -p /usr/src/Hilary/3akai-ux/node_modules
-COPY ./3akai-ux/node_modules /usr/src/Hilary/3akai-ux/node_modules/
-
-COPY ./3akai-ux/package.json /usr/src/Hilary/3akai-ux/
-RUN cd /usr/src/Hilary/3akai-ux && npm install
-
-# Install hilary dependencies
-RUN mkdir -p /usr/src/Hilary/node_modules
-COPY ./node_modules/ /usr/src/Hilary/node_modules/
-
-COPY package.json /usr/src/Hilary/
-RUN cd /usr/src/Hilary && npm install
 
 # Expose ports for node server
 EXPOSE 2000

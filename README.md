@@ -27,7 +27,7 @@ docker-compose version 1.11.2, build dfed245
 #### Clone the repos
 
 ```
-git clone git@github.com:oaeproject/Hilary.git && cd Hilary
+git clone https://github.com/oaeproject/Hilary.git && cd Hilary
 git submodule init
 git submodule update
 ```
@@ -53,7 +53,9 @@ The `docker-compose.yml` file includes the folder paths (mountpoints) where the 
 - `oae-portainer`:
   - `/data/portainer/data and /var/run/docker.sock`
 
-Either make sure these paths are the ones you're using or change them in the `docker-compose.yml` file to match your own paths.
+Either make sure these paths are the ones you're using or change them in the `docker-compose.yml` file to match your own paths. You may want to do that via the `rpl` tool, which you may install via `sudo apt-get install rpl` (debian-based) or `brew install rpl` (mac osx) and then run `rpl /src /oae docker-compose.yml` (if we're looking to replace `/src` with `/oae` e.g.).
+
+Similarly, in `Dockerfile` the `/usr/src` path must be changed to the one where you cloned the repo. Once again, you may install `rpl` and run `rpl /usr/src /oae Dockerfile` (e.g.) on the `Hilary` folder.
 
 #### Build the docker image locally
 

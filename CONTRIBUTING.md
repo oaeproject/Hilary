@@ -14,11 +14,13 @@ First things first: thank you! As an open source project, Open Academic Environm
 
     1.4 [Style your code](#style-your-code)
 
-    1.5 [Run test](#run-tests)
+    1.5 [Using submodules](#using-submodules)
 
-    1.6 [Submit a pull request](#submit-a-pull-request)
+    1.6 [Run tests](#run-tests)
 
-    1.7 [Ask for help](#ask-for-help)
+    1.7 [Submit a pull request](#submit-a-pull-request)
+
+    1.8 [Ask for help](#ask-for-help)
 
 2. [Code of Conduct](#code-of-conduct)
 
@@ -60,7 +62,7 @@ OAE Project has tools that can help you style your code according to our guideli
 
 ### Using submodules
 
-In `git` terms, here are some tips to help you get started:
+In `git` terms, here are some tips to help you get started!
 
 #### Checkout
 
@@ -83,7 +85,7 @@ However, if we go inside the recently updated submodule, we get the `Not current
 It is important to remember that the parent repository (`Hilary`) needs to pushed every time a submodule is pushed as well, otherwise it will always point to the same commit even if the submodule has been updated. If you want to make sure that doesn't happen, there are two things you can do:
 
 ```
-# Option 1: make sure it checks it for you **from the parent directory**
+# Option 1: make sure git checks it for you **from the parent directory**
 git push --recurse-submodules=check # Will abort a push if you haven't pushed a submodule
 
 # Option 2: make sure everything is pushed at the same time
@@ -101,7 +103,7 @@ git config alias.pushall "push --recurse-submodules=on-demand" # run from the pa
 
 ### Run tests
 
-We use Grunt to run our tests. To test a single module, run `grunt test-module:<module-name>`. You can also run tests for the whole project by typing `grunt test`, but take into account that this will take a while!
+We use Grunt to run our tests. To test a single module, run `grunt test-module:<module-name>`. You can also run tests for the whole project by typing `grunt test`, but remember that this will take a while!
 
 If you're using the docker setup, run the container with a custom command (example for module `oae-principals`):
 

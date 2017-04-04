@@ -24,6 +24,8 @@ $ docker-compose -v
 docker-compose version 1.11.2, build dfed245
 ```
 
+Also, don't forget the [post-install instructions](https://docs.docker.com/engine/installation/linux/linux-postinstall/) if you're using linux.
+
 #### Clone the repos
 
 ```

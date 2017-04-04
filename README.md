@@ -15,7 +15,7 @@ Otherwise, please follow our docker quickstart guide:
 
 ### Docker Quickstart Guide
 
-The recommended way to install docker is to follow the official guide at https://docs.docker.com/engine/installation/. Check that you have working versions of both `docker` and `docker-compose` before you proceed to cloning the repos:
+The recommended way to install docker is to follow the official guide at https://docs.docker.com/engine/installation/. Make sure you have `docker-compose` version `>= 1.6.0` before you proceed to cloning the repos. Check your versions by running the following commands:
 
 ```
 $ docker -v
@@ -56,15 +56,18 @@ The `docker-compose.yml` file includes the folder paths (mountpoints) where the 
 
 Either make sure these paths are the ones you're using or change them in the `docker-compose.yml` file to match your own paths.
 
-Similarly, in `Dockerfile` the `/usr/src` path must be changed to the one where you cloned the repo.
-
 #### Build the docker image locally
 
 ```
 docker-compose create --build # this will build the hilary:latest image
 ```
 
-NOTE: if the previous step fails due to network problems, try changing the DNS server to Google's: 8.8.8.8 or 8.8.4.4
+NOTE: if the previous step fails due to network problems, try changing the DNS server to Google's: 8.8.8.8 or 8.8.4.4. In order to do this, either use your operating system's settings or do it via the command line interface by editing `/etc/resolv.conf` and making sure these two lines are on top:
+
+```
+nameserver 8.8.8.8
+nameserver 8.8.4.4
+```
 
 #### Install dependencies
 

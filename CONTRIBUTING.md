@@ -78,7 +78,16 @@ If there are new commits from submodules, we need to pull those explicitly:
 git submodule update
 ````
 
-However, if we go inside the recently updated submodule, we get the `Not currently on any branch` message. This is because the `git submodule update` command checks out submodules in a `HEADLESS` state by default. So, before you commit anything at all, be sure to `git checkout <your-branch>` (e.g. master) immediately after running `git submodule update`.
+However, if we go inside the recently updated submodule and run `git status`, we get the `Not currently on any branch` message. This is because the `git submodule update` command checks out submodules in a `HEADLESS` state by default, meaning we're not on any branch. Because of this, be sure to `git checkout <your-branch>` (e.g. master) before you commit anything to the `3akai-ux` repository. Always follow these steps in this exact same order:
+
+```
+# step 1
+git submodule update
+# step 2
+git checkout <your-branch>
+# step 3
+git commit -m "commit message"
+```
 
 #### Push
 

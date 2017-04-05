@@ -15,7 +15,7 @@ Otherwise, please follow our docker quickstart guide:
 
 ### Docker Quickstart Guide
 
-The recommended way to install docker is to follow the official guide at https://docs.docker.com/engine/installation/. Make sure you have `docker-compose` version `>= 1.6.0` before you proceed to cloning the repos. Check your versions by running the following commands:
+The recommended way to install docker is to follow the official guide at https://docs.docker.com/engine/installation/. Make sure you have `docker` version `>= 17.x` and `docker-compose` version `>= 1.6.0` before you proceed to cloning the repos. Check your versions by running the following commands:
 
 ```
 $ docker -v
@@ -117,7 +117,7 @@ Where `admin.oae.com` is the hostname that we will use to access the global admi
 
 #### Change the docker-compose DNS entries
 
-This same DNS information must be made explicit be done in the `docker-compose.yml` file, to make sure that the `oae-hilary` container can connect to the `oae-nginx` container holding HTTP server (for instance, for preview processing purposes). Go to the file and look for the following section:
+This same DNS information must be made explicit in the `docker-compose.yml` file, to make sure that the `oae-hilary` container can connect to the `oae-nginx` container holding HTTP server (for instance, for preview processing purposes). Go to the file and look for the following section:
 
 ```
 extra_hosts:

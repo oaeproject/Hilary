@@ -22,7 +22,6 @@
 # $ docker run -it --name=node --net=host -v /src/brecke/Hilary:/usr/src/Hilary hilary:latest
 #
 
-# FROM buildpack-deps:jessie-scm
 FROM oaeproject/oae-hilary-deps-docker
 LABEL Name=hilary Version=12.5.0
 MAINTAINER Apereo Foundation oaeproject@gmail.com

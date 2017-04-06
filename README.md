@@ -98,7 +98,7 @@ This will create two new files: `3akai-ux/nginx/nginx-selfsigned.key` and `3akai
 Then, run the following command:
 
 ```
-openssl dhparam -out nginx/dhparam.pem 2048
+openssl dhparam -out 3akai-ux/nginx/dhparam.pem 2048
 ```
 
 This may take a few minutes, but when it's done you will have the file `nginx/dhparam.pem` that you can use in your configuration.

@@ -90,10 +90,10 @@ docker-compose run oae-hilary "npm install" # install dependencies for Hilary
 If we're looking to use HTTPS via nginx, first we need to create the SSL certificate. You can do do that by running:
 
 ```
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout nginx/nginx-selfsigned.key -out nginx/nginx-selfsigned.crt
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout 3akai-ux/nginx/nginx-selfsigned.key -out 3akai-ux/nginx/nginx-selfsigned.crt
 ```
 
-This will create two new files: `nginx/nginx-selfsigned.key` and `nginx/nginx-selfsigned.crt`.
+This will create two new files: `3akai-ux/nginx/nginx-selfsigned.key` and `3akai-ux/nginx/nginx-selfsigned.crt`.
 
 Then, run the following command:
 

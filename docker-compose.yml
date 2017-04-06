@@ -98,6 +98,11 @@ services:
       - /src/files:/usr/share/files
       - /src/Hilary/3akai-ux/nginx/nginx.conf.docker:/etc/nginx/nginx.conf
       - /src/Hilary/3akai-ux/nginx/mime.conf:/etc/nginx/mime.conf
+      - /src/Hilary/3akai-ux/nginx/nginx-selfsigned.crt:/etc/nginx/nginx-selfsigned.crt
+      - /src/Hilary/3akai-ux/nginx/nginx-selfsigned.key:/etc/nginx/nginx-selfsigned.key
+      - /src/Hilary/3akai-ux/nginx/self-signed.conf:/etc/nginx/self-signed.conf
+      - /src/Hilary/3akai-ux/nginx/ssl-params.conf:/etc/nginx/ssl-params.conf
+      - /src/Hilary/3akai-ux/nginx/dhparam.pem:/etc/nginx/dhparam.pem
       - /src/Hilary/3akai-ux:/usr/share/3akai
     volumes_from:
       - oae-hilary

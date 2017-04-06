@@ -47,6 +47,11 @@ The `docker-compose.yml` file includes the folder paths (mountpoints) where the 
   - `/src/files`
   - `/src/Hilary/3akai-ux/nginx/nginx.conf.docker`
   - `/src/Hilary/3akai-ux/nginx/mime.conf`
+  - `/src/Hilary/3akai-ux/nginx/nginx-selfsigned.crt`
+  - `/src/Hilary/3akai-ux/nginx/nginx-selfsigned.key`
+  - `/src/Hilary/3akai-ux/nginx/self-signed.conf`
+  - `/src/Hilary/3akai-ux/nginx/ssl-params.conf`
+  - `/src/Hilary/3akai-ux/nginx/dhparam.pem`
   - `/src/Hilary/3akai-ux`
 - `oae-cassandra`:
   - `/data/cassandra`
@@ -79,6 +84,28 @@ In order to install dependencies for the frontend and the backend, we need to ru
 docker-compose run oae-hilary "cd 3akai-ux && npm install" # install dependencies for 3akai-ux
 docker-compose run oae-hilary "npm install" # install dependencies for Hilary
 ```
+
+#### Create the SSL Certificate
+
+If we're looking to use HTTPS via nginx, first we need to create the SSL certificate. You can do do that by running:
+
+```
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout nginx/nginx-selfsigned.key -out nginx/nginx-selfsigned.crt
+```
+
+This will create two new files: `nginx/nginx-selfsigned.key` and `nginx/nginx-selfsigned.crt`.
+
+Then, run the following command:
+
+```
+openssl dhparam -out nginx/dhparam.pem 2048
+```
+
+This may take a few minutes, but when it's done you will have the file `nginx/dhparam.pem` that you can use in your configuration.
+
+--
+
+Before moving on to the next step, make sure these three files exist otherwise there will be errors.
 
 #### Run the containers
 

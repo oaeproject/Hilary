@@ -89,7 +89,7 @@ OAE.init(config, function (err) {
     'isGlobalAdmin': true
   });
 
-  DisableUsersMigration.doMigration(new Context(globalTenant, globalAdmin), tenantAlias, function(err, users) {
+  DisableUsersMigration.doMigration(new Context(globalTenant, globalAdmin), tenantAlias, true, function(err, users) {
     if (err) {
       log().warn('Migration not completed successfully.');
       process.exit(err.code);

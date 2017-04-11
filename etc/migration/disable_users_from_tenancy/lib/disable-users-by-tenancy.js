@@ -28,8 +28,8 @@ var PrincipalsAPI = require('oae-principals');
  * @param  {String}     tenantAlias     Tenant alias we want to delete users from
  * @param  {Function}   callback        Standard callback function
  */
-var doMigration = function (ctx, tenantAlias, callback) {
-    PrincipalsAPI.deleteOrRestoreUsersByTenancy(ctx, tenantAlias, true, function(err, users) {
+var doMigration = function (ctx, tenantAlias, disabled, callback) {
+    PrincipalsAPI.deleteOrRestoreUsersByTenancy(ctx, tenantAlias, disabled, function(err, users) {
         if (err) {
             callback(err);
         }

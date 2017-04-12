@@ -81,6 +81,7 @@ nameserver 8.8.4.4
 In order to install dependencies for the frontend and the backend, we need to run a one-off command for each:
 
 ```
+docker-compose run oae-hilary "cd node_modules/oae-rest && npm install" # install dependencies for oae-rest
 docker-compose run oae-hilary "cd 3akai-ux && npm install" # install dependencies for 3akai-ux
 docker-compose run oae-hilary "npm install" # install dependencies for Hilary
 ```

@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 /*!
  * Copyright 2017 Apereo Foundation (AF) Licensed under the
  * Educational Community License, Version 2.0 (the "License"); you may
@@ -22,6 +24,7 @@ var optimist = require('optimist');
 var path = require('path');
 var util = require('util');
 
+var AuthzConstants = require('oae-authz/lib/constants').AuthzConstants;
 var Context = require('oae-context').Context;
 var log = require('oae-logger').logger('oae-script-main');
 var OAE = require('oae-util/lib/oae');
@@ -47,7 +50,7 @@ var argv = optimist
 
 if (argv.help) {
   optimist.showHelp();
-  return process.exit(1);
+  return;
 }
 
 // Get the config
@@ -58,7 +61,7 @@ var config = require(configPath).config;
 var tenantAlias = argv.tenant;
 if (!tenantAlias) {
   log().error('You need to specify the tenant alias');
-  process.exit(0);
+  return;
 }
 
 // Ensure that this application server does NOT start processing any preview

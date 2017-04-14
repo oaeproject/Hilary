@@ -17,8 +17,16 @@
 * Disable users belonging to a disabled tenancy
 * Github issue #1304
 */
+var path = require('path');
+var util = require('util');
+
+var AuthzConstants = require('oae-authz/lib/constants').AuthzConstants;
+var Context = require('oae-context').Context;
 var log = require('oae-logger').logger('oae-script-main');
 var PrincipalsAPI = require('oae-principals');
+var TenantsAPI = require('oae-tenants');
+var User = require('oae-principals/lib/model').User;
+
 
 /**
  * Disable users from the system by updating the deleted flag
@@ -29,6 +37,9 @@ var PrincipalsAPI = require('oae-principals');
  * @param  {Function}   callback        Standard callback function
  */
 var doMigration = function (ctx, tenantAlias, disabled, callback) {
+
+    ctx = ctx || _createNewContext();
+
     PrincipalsAPI.deleteOrRestoreUsersByTenancy(ctx, tenantAlias, disabled, function(err, users) {
         if (err) {
             callback(err);
@@ -37,6 +48,19 @@ var doMigration = function (ctx, tenantAlias, disabled, callback) {
         log().info('Migration successful.');
         callback(null, users);
     });
+
+    function _createNewContext() {
+        // Get the config
+        var configPath = path.resolve(process.cwd(), 'config.js');
+        var config = require(configPath).config;
+
+        var globalTenant = TenantsAPI.getTenant(config.servers.globalAdminAlias);
+        var globalAdmin = new User(globalTenant.alias, util.format('u:%s:admin', globalTenant.alias), 'Global Administrator', null, {
+            'visibility': AuthzConstants.visibility.PRIVATE,
+            'isGlobalAdmin': true
+        });
+        return new Context(globalTenant, globalAdmin);
+    }
 };
 
 module.exports = {

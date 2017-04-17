@@ -104,7 +104,7 @@ services:
   - redis-server
 
 script:
-  - /bin/true
+  - grunt test-coverage-coveralls
 
 after_success:
   - ps aux --sort -rss | head

@@ -84,11 +84,11 @@ OAE.init(config, function (err) {
 
   DisableUsersMigration.doMigration(null, tenantAlias, true, function(err, users) {
     if (err) {
-      log().warn("Migration not completed successfully.");
+      log().warn('Migration not completed successfully.');
       process.exit(err.code);
     }
 
-    log().info("Finished migration for " + users.length + " users.");
+    log().info('Finished migration for ' + users.length + ' users.');
 
     // Nothing left to do, exiting.
     process.exit(0);

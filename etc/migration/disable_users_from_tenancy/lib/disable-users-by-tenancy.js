@@ -20,6 +20,7 @@
 var path = require('path');
 var util = require('util');
 
+var AuthzConstants = require('oae-authz/lib/constants').AuthzConstants;
 var Context = require('oae-context').Context;
 var log = require('oae-logger').logger('oae-script-main');
 var PrincipalsAPI = require('oae-principals');

@@ -14,12 +14,10 @@
 #
 
 #
-# Useful commands:
-# Create images: `docker create`
-# Run/Stop containers: `docker up / down`
-# Check container network configuration: `docker network inspect bridge`
-# Fetch the IP address of a specific container: `docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' oae-nginx`
-# Tail the logs for a specific container: `docker logs -f oae-hilary`
+# Setup in two steps
+#
+# docker-compose create --build
+# docker-compose up
 #
 
 version: '2'
@@ -69,14 +67,14 @@ services:
       - my_network
   oae-elasticsearch:
     container_name: oae-elasticsearch
-    image: elasticsearch:1-alpine
+    image: barnybug/elasticsearch:1.1.2
     networks:
       - my_network
     ports:
       - 9200:9200
     tty: false
     volumes:
-      - /data/elasticsearch:/usr/share/elasticsearch/data
+      - /data/elasticsearch:/data
   oae-rabbitmq:
     container_name: oae-rabbitmq
     image: rabbitmq:3.6.6-management-alpine
@@ -132,13 +130,13 @@ services:
     volumes:
       - /data/etherpad:/opt/etherpad/var
   portainer:
-    tty: false
     container_name: portainer
     image: portainer/portainer
     ports:
       - 9000:9000
     networks:
       - my_network
+    tty: false
     volumes:
       - /data/portainer/data:/data
       - /var/run/docker.sock:/var/run/docker.sock

@@ -112,8 +112,6 @@ Before moving on to the next step, make sure these three files exist otherwise t
 
 Run `docker-compose up` and all the containers will boot.
 
-As a temporary measure, we will need to start hilary again to make sure it boots after cassandra is accepting connections: `docker-compose restart oae-hilary`
-
 ### Extra docker utilities
 
 The service names and description are in the `docker-compose.yml` file.
@@ -180,6 +178,39 @@ To create a new user, use either the Sign Up link at the top left, or the Sign I
 **Tip:** OAE requires that users have an email address that is verified VIA an email that is sent to the user. To avoid the requirement of having a valid email server configuration, you can instead watch the app server logs when a user is created or their email address is updated. When `config.email.debug` is set to `true` in `config.js`, the content of the verification email can be seen in the logs, and you can copy/paste the email verification link from the log to your browser to verify your email. The URL will look similar to: `http://tenant1.oae.com/?verifyEmail=abc123`
 
 We're looking forward to seeing your contributions to the OAE project!
+
+### Troubleshooting
+
+#### Booting takes too much time
+
+If you're on OSX, you might experience very slow booting especially for the Hilary server. This is a well known issue due to volume mounting. As a workaround, we recommend using [docker-sync](https://github.com/EugenMayer/docker-sync). Just follow the installation instructions on the website, edit the `docker-sync.yml` file so that `syncs > oae-hilary-sync > src` contains your Hilary source path as follows:
+
+```
+syncs:
+  oae-hilary-sync:
+    ...
+    src: '/src/Hilary' # <- make sure this path is correct
+    dest: '/usr/src/Hilary'
+  ...
+```
+
+Then, make sure you rename the mac-specific `docker-compose.mac.json` file we've included:
+
+```
+cp docker-compose.yml docker-compose.backup.yml
+mv docker-compose.mac.yml docker-compose.yml
+```
+
+Finally, try one of these two alternatives to boot all the containers:
+
+1. Run `docker-sync start` on a terminal window and then `docker-compose up` on another, in this order
+2. Run `docker-sync-stack start` which combines both commands above
+
+More information on docker-sync is available [here](https://github.com/EugenMayer/docker-sync/wiki).
+
+#### All I see is the 502 service unavailable page
+
+If you still can't see the Web interface correctly by the time the containers start, it might be due to Hilary starting before Cassandra was available. This usually results in 502 _Service unavailable_ pages. We recommend to start hilary again to make sure it boots after cassandra is accepting connections: `docker-compose restart oae-hilary`. This is something we're looking to fix in the future.
 
 ## Get in touch
 

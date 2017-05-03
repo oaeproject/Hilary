@@ -94,6 +94,7 @@
     "oae-util": "",
     "oae-version": "",
     "oauth2orize": "latest",
+    "oauth-sign": "latest",
     "optimist": "latest",
     "passport": "0.2.2",
     "passport-cas": "git://github.com/oaeproject/passport-cas#samlValidateLoginUrl",

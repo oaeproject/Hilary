@@ -1,0 +1,1 @@
+ALTER TABLE AuthenticationLoginId ADD secret varchar;

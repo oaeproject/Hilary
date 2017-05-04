@@ -404,8 +404,8 @@ config.email = {
     'smtpTransport': {
         'service': 'Gmail',
         'auth': {
-            'user': 'taybson@gmail.com',
-            'pass': 'Zxy78945612'
+            'user': 'my.email@gmail.com',
+            'pass': 'myemailpassword'
         }
     }
 };

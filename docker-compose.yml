@@ -57,6 +57,7 @@ services:
     volumes:
       - /src/Hilary:/usr/src/Hilary
       - /src/files:/usr/src/files
+      - /src/tmp/oae:/tmp/oae
   oae-redis:
     container_name: oae-redis
     image: redis:3.2.8-alpine

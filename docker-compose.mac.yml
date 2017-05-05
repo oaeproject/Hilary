@@ -75,6 +75,7 @@ services:
     volumes:
       - oae-hilary-sync:/usr/src/Hilary:rw
       - oae-hilary-files-sync:/usr/src/files:rw
+      - /src/brecke/tmp/oae:/tmp/oae
   oae-redis:
     container_name: oae-redis
     image: redis:3.2.8-alpine

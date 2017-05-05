@@ -41,6 +41,7 @@ The `docker-compose.yml` file includes the folder paths (mountpoints) where the 
 - `oae-hilary`:
   - `/src/Hilary`
   - `/src/files`
+  - `/src/tmp/oae`
 - `oae-elasticsearch`:
   - `/data/elasticsearch`
 - `oae-nginx`:
@@ -190,7 +191,6 @@ syncs:
   oae-hilary-sync:
     ...
     src: '/src/Hilary' # <- make sure this path is correct
-    dest: '/usr/src/Hilary'
   ...
 ```
 
@@ -198,12 +198,12 @@ Then, make sure you rename the mac-specific `docker-compose.mac.json` file we've
 
 ```
 cp docker-compose.yml docker-compose.backup.yml
-mv docker-compose.mac.yml docker-compose.yml
+cp docker-compose.mac.yml docker-compose.yml
 ```
 
 Finally, try one of these two alternatives to boot all the containers:
 
-1. Run `docker-sync start` on a terminal window and then `docker-compose up` on another, in this order
+1. Run `docker-sync start` on a terminal window and then `docker-compose -f docker-compose.mac.yml up` on another, in this order
 2. Run `docker-sync-stack start` which combines both commands above
 
 More information on docker-sync is available [here](https://github.com/EugenMayer/docker-sync/wiki).

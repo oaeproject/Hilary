@@ -3,33 +3,25 @@ version: "2"
 syncs:
   oae-hilary-sync:
     notify_terminal: true
-    src: '/src/Hilary'
-    dest: '/usr/src/Hilary'
+    src: '/src/brecke/Hilary'
   oae-hilary-files-sync:
     notify_terminal: true
     src: '/src/files'
-    dest: '/usr/src/files'
   oae-elasticsearch-sync:
     notify_terminal: true
     src: '/data/elasticsearch'
-    dest: '/data'
   oae-nginx-sync1:
     notify_terminal: true
-    src: '/src/files'
-    dest: '/usr/share/files'
+    src: '/src/brecke/files'
   oae-nginx-sync2:
     notify_terminal: true
-    src: '/src/Hilary/3akai-ux'
-    dest: '/usr/share/3akai'
+    src: '/src/brecke/Hilary/3akai-ux'
   oae-cassandra-sync:
     notify_terminal: true
     src: '/data/cassandra'
-    dest: '/var/lib/cassandra'
   oae-etherpad-sync:
     notify_terminal: true
     src: '/data/etherpad'
-    dest: '/opt/etherpad/var'
   oae-portainer-sync:
     notify_terminal: true
     src: '/data/portainer/data'
-    dest: '/data'

@@ -1,1 +1,2 @@
-ALTER TABLE AuthenticationLoginId ADD secret varchar;
+ALTER TABLE AuthenticationLoginId ADD secret text;
+

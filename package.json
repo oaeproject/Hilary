@@ -108,6 +108,7 @@
     "passport-twitter": "latest",
     "properties-parser": "latest",
     "rails-timezone": "latest",
+    "range_check": "^1.4.0",
     "readdirp": "latest",
     "recaptcha": "latest",
     "redback": "latest",

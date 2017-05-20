@@ -133,6 +133,7 @@ services:
       - my_network
     ports:
       - 9160:9160
+      - 9042:9042
     tty: false
     volumes:
       - oae-cassandra-sync:/var/lib/cassandra:rw

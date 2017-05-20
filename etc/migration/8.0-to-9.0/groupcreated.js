@@ -52,8 +52,8 @@ var _migrateRows = function(rows, callback) {
     var queries = [];
 
     _.each(rows, function(row) {
-        var created = Math.floor(row.get('wt').value / 1000);
-        var principalId = row.get('principalId').value;
+        var created = Math.floor(row.get('wt') / 1000);
+        var principalId = row.get('principalId');
         var query = Cassandra.constructUpsertCQL('Principals', 'principalId', principalId, {'created': created});
         queries.push(query);
     });

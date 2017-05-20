@@ -22,6 +22,7 @@
     "body-parser": "latest",
     "bunyan": "latest",
     "bunyan-prettystream": "latest",
+    "cassandra-driver": "^3.2.1",
     "chance": "latest",
     "cheerio": "latest",
     "clone": "latest",

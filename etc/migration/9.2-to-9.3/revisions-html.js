@@ -70,9 +70,9 @@ var _handleRows = function(rows, callback) {
     var toReprocess = [];
 
     _.each(rows, function(row) {
-        var revisionId = row.get('revisionId').value;
-        var contentId = row.get('contentId').value;
-        var etherpadHtml = row.get('etherpadHtml').value;
+        var revisionId = row.get('revisionId');
+        var contentId = row.get('contentId');
+        var etherpadHtml = row.get('etherpadHtml');
 
         // Check if we're dealing with an Etherpad revision
         if (etherpadHtml) {

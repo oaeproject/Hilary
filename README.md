@@ -64,6 +64,22 @@ The `docker-compose.yml` file includes the folder paths (mountpoints) where the 
 
 Either make sure these paths are the ones you're using or change them in the `docker-compose.yml` file to match your own paths.
 
+Then, we need to edit the `config.js` file and change the `config.ui` path from:
+
+```
+config.ui = {
+    'path': '../3akai-ux'
+};
+```
+
+to
+
+```
+config.ui = {
+    'path': './3akai-ux'
+};
+```
+
 #### Build the docker image locally
 
 ```

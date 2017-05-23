@@ -228,6 +228,42 @@ More information on docker-sync is available [here](https://github.com/EugenMaye
 
 If you still can't see the Web interface correctly by the time the containers start, it might be due to Hilary starting before Cassandra was available. This usually results in 502 _Service unavailable_ pages. We recommend to start hilary again to make sure it boots after cassandra is accepting connections: `docker-compose restart oae-hilary`. This is something we're looking to fix in the future.
 
+#### I would like to run node directly on my machine instead of inside a container
+
+We understand that, and we do that ourselves too :) You can have that with just a few changes:
+
+In `config.js` change the following values:
+
+- `oae-rabbitmq`
+- `oae-cassandra`
+- `oae-elasticsearch`
+- `oae-etherpad`
+- `oae-redis`
+
+...all to `localhost`.
+
+Then, edit `nginx.conf.docker` and make sure these lines:
+
+```
+...
+server oae-hilary:2000;
+...
+server oae-hilary:2001;
+```
+
+..become:
+
+```
+...
+server 172.20.0.1:2000;
+...
+server 172.20.0.1:2001;
+```
+
+By the way, `172.20.0.1` is the IP address of the host machine, which can be obtained by running `/sbin/ip route|awk '/default/ { print $3 }'` from any container (e.g. `docker exec -it oae-nginx sh`).
+
+Now if you run `nodemon app.js | bunyan` on the terminal, you should be able to start the server.
+
 ## Get in touch
 
 The project website can be found at http://www.oaeproject.org. The [project blog](http://www.oaeproject.org/blog) will be updated with the latest project news from time to time.

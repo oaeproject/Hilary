@@ -1,7 +1,6 @@
 .DS_Store
 /dump.rdb
 /target/
-
 *.log
 doc_data.txt
 

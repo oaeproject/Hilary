@@ -28,7 +28,7 @@
     "bunyan": "latest",
     "bunyan-prettystream": "latest",
     "chance": "latest",
-    "cheerio": "latest",
+    "cheerio": "0.22",
     "clone": "latest",
     "connect": "latest",
     "connect-redis": "latest",

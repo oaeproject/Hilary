@@ -173,6 +173,7 @@
     "oae-jitsi",
     "oae-library",
     "oae-logger",
+    "oae-lti",
     "oae-mediacore",
     "oae-messagebox",
     "oae-mixpanel",

@@ -32,6 +32,7 @@ Also, don't forget the [post-install instructions](https://docs.docker.com/engin
 git clone https://github.com/oaeproject/Hilary.git && cd Hilary
 git submodule init
 git submodule update
+cd 3akai-ux && git checkout master # because HEAD is detached after pulling submodules by default
 ```
 
 #### Customize the folder paths

@@ -24,6 +24,7 @@
     "amqp": "git://github.com/oaeproject/node-amqp#0.1.8.x",
     "async": "^2.1.5",
     "awssum-amazon-s3": "latest",
+    "aws-sdk": "^2.4.11",
     "body-parser": "latest",
     "bunyan": "latest",
     "bunyan-prettystream": "latest",
@@ -77,7 +78,6 @@
     "oae-jitsi": "",
     "oae-library": "",
     "oae-logger": "",
-    "oae-mediacore": "",
     "oae-messagebox": "",
     "oae-mixpanel": "",
     "oae-preview-processor": "",
@@ -93,6 +93,7 @@
     "oae-uservoice": "",
     "oae-util": "",
     "oae-version": "",
+    "oae-zencoder": "",
     "oauth2orize": "latest",
     "oauth-sign": "latest",
     "optimist": "latest",
@@ -131,7 +132,8 @@
     "watch": "latest",
     "webshot": "0.15.1",
     "xml2js": "latest",
-    "youtube-api": "latest"
+    "youtube-api": "latest",
+    "zencoder": "latest"
   },
   "devDependencies": {
     "coveralls": "latest",
@@ -173,7 +175,6 @@
     "oae-jitsi",
     "oae-library",
     "oae-logger",
-    "oae-mediacore",
     "oae-messagebox",
     "oae-mixpanel",
     "oae-preview-processor",
@@ -186,7 +187,8 @@
     "oae-ui",
     "oae-uservoice",
     "oae-util",
-    "oae-version"
+    "oae-version",
+    "oae-zencoder"
   ],
   "engines": {
     "node": ">=0.10"

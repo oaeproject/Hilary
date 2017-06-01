@@ -81,7 +81,7 @@ config.ui = {
 };
 ```
 
-and then make sure you change the following settings as well:
+and then make sure you change the following settings in `config.js` as well:
 
 ```
     'hosts': ['127.0.0.1:9160'], # replace this

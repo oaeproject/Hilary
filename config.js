@@ -33,7 +33,7 @@ config.ui = {
 
 // Cassandra related config information.
 config.cassandra = {
-    'hosts': ['oae-cassandra:9160'],
+    'hosts': ['127.0.0.1:9160'],
     'keyspace': 'oae',
     'user': '',
     'pass': '',
@@ -51,7 +51,7 @@ config.cassandra = {
 //  0 = production
 //  1 = unit tests
 config.redis = {
-    'host': 'oae-redis',
+    'host': '127.0.0.1',
     'port': 6379,
     'pass': '',
     'dbIndex': 0
@@ -175,7 +175,7 @@ config.telemetry = {
 config.search = {
     'hosts': [
         {
-            'host': 'oae-elasticsearch',
+            'host': 'localhost',
             'port': 9200
         }
     ],
@@ -252,7 +252,7 @@ config.search = {
  */
 config.mq = {
     'connection': {
-        'host': 'oae-rabbitmq',
+        'host': 'localhost',
         'port': 5672
     },
     'purgeQueuesOnStartup': false
@@ -283,7 +283,7 @@ config.mq = {
  * @param  {String}      credentials.password           The password to login with on the global admin server
  */
 config.previews = {
-    'enabled': true,
+    'enabled': false,
     'tmpDir': tmpDir + '/previews',
     'office': {
         'binary': 'soffice',
@@ -428,7 +428,7 @@ config.etherpad = {
     'apikey': '13SirapH8t3kxUh5T5aqWXhXahMzoZRA',
     'hosts': [
         {
-            'host': 'oae-etherpad',
+            'host': '127.0.0.1',
             'port': 9001
         }
     ]

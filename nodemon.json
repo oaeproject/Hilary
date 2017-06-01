@@ -38,8 +38,16 @@
     "node_modules/oae-ui",
     "node_modules/oae-uservoice",
     "node_modules/oae-util",
-    "node_modules/oae-version"
+    "node_modules/oae-version",
+    "3akai-ux/node_modules/oae*/"
   ],
-  "ignoreRoot": [".git"],
-  "ext": "js json"
+  "ignoreRoot": [
+    ".git",
+    "3akai-ux/.git",
+    "node_modules/oae-rest/.git",
+    "test/",
+    "node_modules/**/node_modules"
+  ],
+  "ext": "js json",
+  "delay": "2500"
 }

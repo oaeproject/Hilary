@@ -1,0 +1,6 @@
+[submodule "node_modules/oae-rest"]
+	path = node_modules/oae-rest
+	url = https://github.com/oaeproject/oae-rest
+[submodule "3akai-ux"]
+	path = 3akai-ux
+  url = https://github.com/oaeproject/3akai-ux

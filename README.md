@@ -81,6 +81,40 @@ config.ui = {
 };
 ```
 
+and then make sure you change the following settings as well:
+
+```
+    'hosts': ['127.0.0.1:9160'], # replace this
+    'hosts': ['oae-cassandra:9160'], # by this
+```
+
+```
+    'host': '127.0.0.1', # replace this
+    'host': 'oae-redis', # by this
+```
+
+```
+    'host': 'localhost', # replace this
+    'host': 'oae-elasticsearch', # by this
+```
+
+```
+    'host': 'localhost', # replace this
+    'host': 'oae-rabbitmq', # by this
+```
+
+```
+config.previews = {
+    'enabled': false, # replace this
+    'enabled': true, # by this (optional)
+```
+
+```
+    'host': '127.0.0.1', # replace this
+    'host': 'oae-etherpad', # by this
+```
+
+
 #### Build the docker image locally
 
 ```

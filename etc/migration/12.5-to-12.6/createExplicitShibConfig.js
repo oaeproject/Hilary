@@ -85,7 +85,7 @@ OAE.init(config, function(err) {
         // Update all the tenants
         _updateTenants(tenantsToUpdate, function(err) {
             if (err) {
-                log().error({'err': err}, 'Unable to create Shibboleth configs');
+                log().error({'err': err}, 'Unable to create explicit Shibboleth configs');
                 return process.exit(err.code);
             }
 
@@ -106,6 +106,7 @@ function _filterTenants(tenants, callback) {
             tenantsWithShibEnabled.push(tenant.alias);
         }
     });
+    log().info('Found %s tenants with Shibboleth enabled', tenantsWithShibEnabled.length);
 
     // ...that have at least one user
     _getTenantsWithPrincipals(tenants, function(err, tenantsWithPrincipals) {
@@ -114,8 +115,8 @@ function _filterTenants(tenants, callback) {
             return callback(err);
         }
 
-        var tenantsWithShibAndUsers = _.intersection(tenantsWithShibEnabled, tenantsWithPrincipals)
-        log().info(tenantsWithShibAndUsers);
+        var tenantsWithShibAndUsers = _.intersection(tenantsWithShibEnabled, tenantsWithPrincipals);
+        log().info('Found %s tenants with users and Shibboleth enabled', tenantsWithShibAndUsers.length);
         return callback(null, tenantsWithShibAndUsers);
     });
 }
@@ -126,7 +127,7 @@ function _filterTenants(tenants, callback) {
  * @param  {String}     tenants                             The list of tenants to filter
  * @param  {Function}   callback                            Invoked when users have been collected
  * @param  {Object}     callback.err                        An error that occurred, if any
- * @param  {Object[]}   callback.tenantsWithPrincipals      An array of user hashes
+ * @param  {Object[]}   callback.tenantsWithPrincipals      An array of tenant aliases
  * @api private
  */
 function _getTenantsWithPrincipals(tenants, callback) {
@@ -151,9 +152,10 @@ function _getTenantsWithPrincipals(tenants, callback) {
      */
     function _addToTenantsWithPrincipals(rows, callback) {
         _.each(rows, function(principalHash) {
-            if (PrincipalsDAO.isUser(principalHash.principalId)) {
-                log().info('Adding tenant %s to tenants with users', principalHash.tenantAlias);
-                tenantsWithPrincipals.push(principalHash.tenantAlias);
+            var tenantAlias = principalHash.tenantAlias;
+            if (!_.contains(tenantsWithPrincipals, tenantAlias) && PrincipalsDAO.isUser(principalHash.principalId)) {
+                log().info('Adding tenant %s to tenants with users', tenantAlias);
+                tenantsWithPrincipals.push(tenantAlias);
             }
         });
 

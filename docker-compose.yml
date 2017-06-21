@@ -1,0 +1,143 @@
+#
+# Copyright 2017 Apereo Foundation (AF) Licensed under the
+# Educational Community License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may
+# obtain a copy of the License at
+#
+#     http://opensource.org/licenses/ECL-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an "AS IS"
+# BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+# or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+#
+
+#
+# Setup in two steps
+#
+# docker-compose create --build
+# docker-compose up
+#
+
+version: '2'
+
+networks:
+  my_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+
+services:
+  oae-hilary:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: oae-hilary
+    # command: nodemon -L app.js | bunyan # default
+    # command: grunt test-module:oae-principals # for running tests
+    depends_on:
+      - oae-cassandra
+      - oae-elasticsearch
+      - oae-rabbitmq
+      - oae-redis
+      - oae-etherpad
+    extra_hosts:
+      - "admin.oae.com:172.20.0.9"
+      - "tenant1.oae.com:172.20.0.9"
+      # - "any.other.host.oae.com:172.20.0.9"
+    image: hilary:latest
+    networks:
+      - my_network
+    ports:
+      - 2000:2000
+      - 2001:2001
+    tty: false
+    volumes:
+      - /src/Hilary:/usr/src/Hilary
+      - /src/files:/usr/src/files
+      - /src/tmp/oae:/tmp/oae
+  oae-redis:
+    container_name: oae-redis
+    image: redis:3.2.8-alpine
+    ports:
+      - 6379:6379
+    tty: false
+    networks:
+      - my_network
+  oae-elasticsearch:
+    container_name: oae-elasticsearch
+    image: barnybug/elasticsearch:1.1.2
+    networks:
+      - my_network
+    ports:
+      - 9200:9200
+    tty: false
+    volumes:
+      - /data/elasticsearch:/data
+  oae-rabbitmq:
+    container_name: oae-rabbitmq
+    image: rabbitmq:3.6.6-management-alpine
+    ports:
+      - 5672:5672
+    networks:
+      - my_network
+    tty: false
+  oae-nginx:
+    container_name: oae-nginx
+    depends_on:
+      - oae-hilary
+    image: nginx:stable-alpine
+    networks:
+      my_network:
+        ipv4_address: 172.20.0.9 # this is needed because of multi-tenancy
+    tty: false
+    volumes:
+      - /src/files:/usr/share/files
+      - /src/Hilary/3akai-ux/nginx/nginx.conf.docker:/etc/nginx/nginx.conf
+      - /src/Hilary/3akai-ux/nginx/mime.conf:/etc/nginx/mime.conf
+      - /src/Hilary/3akai-ux/nginx/nginx-selfsigned.crt:/etc/nginx/nginx-selfsigned.crt
+      - /src/Hilary/3akai-ux/nginx/nginx-selfsigned.key:/etc/nginx/nginx-selfsigned.key
+      - /src/Hilary/3akai-ux/nginx/self-signed.conf:/etc/nginx/self-signed.conf
+      - /src/Hilary/3akai-ux/nginx/ssl-params.conf:/etc/nginx/ssl-params.conf
+      - /src/Hilary/3akai-ux/nginx/dhparam.pem:/etc/nginx/dhparam.pem
+      - /src/Hilary/3akai-ux:/usr/share/3akai
+    volumes_from:
+      - oae-hilary
+    ports:
+      - 80:80
+      - 443:443
+  oae-cassandra:
+    container_name: oae-cassandra
+    image: oaeproject/cassandra-docker
+    networks:
+      - my_network
+    ports:
+      - 9160:9160
+    tty: false
+    volumes:
+      - /data/cassandra:/var/lib/cassandra
+  oae-etherpad:
+    container_name: oae-etherpad
+    depends_on:
+      - oae-rabbitmq
+    image: oaeproject/oae-etherpad
+    networks:
+      - my_network
+    ports:
+      - 9001:9001
+    tty: false
+    volumes:
+      - /data/etherpad:/opt/etherpad/var
+  portainer:
+    container_name: portainer
+    image: portainer/portainer
+    ports:
+      - 9000:9000
+    networks:
+      - my_network
+    tty: false
+    volumes:
+      - /data/portainer/data:/data
+      - /var/run/docker.sock:/var/run/docker.sock

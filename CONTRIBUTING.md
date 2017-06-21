@@ -14,11 +14,13 @@ First things first: thank you! As an open source project, Open Academic Environm
 
     1.4 [Style your code](#style-your-code)
 
-    1.5 [Run test](#run-tests)
+    1.5 [Using submodules](#using-submodules)
 
-    1.6 [Submit a pull request](#submit-a-pull-request)
+    1.6 [Run tests](#run-tests)
 
-    1.7 [Ask for help](#ask-for-help)
+    1.7 [Submit a pull request](#submit-a-pull-request)
+
+    1.8 [Ask for help](#ask-for-help)
 
 2. [Code of Conduct](#code-of-conduct)
 
@@ -58,9 +60,65 @@ OAE Project has tools that can help you style your code according to our guideli
     - Trim trailing whitespace;
 - In Hilary, dependencies should be in alphabetised groups - first external dependencies, then dependencies to other OAE modules, then dependencies to the same module;
 
+### Using submodules
+
+In `git` terms, here are some tips to help you get started!
+
+#### Checkout
+
+For pulling changes from the parent repository:
+
+```
+git pull
+```
+
+If there are new commits from submodules, we need to pull those explicitly:
+
+```
+git submodule update
+````
+
+However, if we go inside the recently updated submodule and run `git status`, we get the `Not currently on any branch` message. This is because the `git submodule update` command checks out submodules in a `HEADLESS` state by default, meaning we're not on any branch. Because of this, be sure to `git checkout <your-branch>` (e.g. master) before you commit anything to the `3akai-ux` repository. Always follow these steps in this exact same order:
+
+```
+# step 1
+git submodule update
+# step 2
+git checkout <your-branch>
+# step 3
+git commit -m "commit message"
+```
+
+#### Push
+
+It is important to remember that the parent repository (`Hilary`) needs to pushed every time a submodule is pushed as well, otherwise it will always point to the same commit even if the submodule has been updated. If you want to make sure that doesn't happen, there are two things you can do:
+
+```
+# Option 1: make sure git checks it for you **from the parent directory**
+git push --recurse-submodules=check # Will abort a push if you haven't pushed a submodule
+
+# Option 2: make sure everything is pushed at the same time
+git push --recurse-submodules=on-demand # Will push all repositories even submodules
+````
+
+You may want to create a `git alias` for either option as follows:
+```
+# Option 1:
+git config alias.pushall "push --recurse-submodules=check" # run from the parent repository
+
+# Option 2:
+git config alias.pushall "push --recurse-submodules=on-demand" # run from the parent repository
+```
+
 ### Run tests
 
-We use Grunt to run our tests. To test a single module, run `grunt test-module:<module-name>`. You can also run tests for the whole project by typing `grunt test`, but take into account that this will take a while!
+We use Grunt to run our tests. To test a single module, run `grunt test-module:<module-name>`. You can also run tests for the whole project by typing `grunt test`, but remember that this will take a while!
+
+If you're using the docker setup, run the container with a custom command (example for module `oae-principals`):
+
+```
+docker-compose stop oae-hilary && docker-compose run oae-hilary grunt test:oae-principals
+```
 
 ### Submit a pull request
 

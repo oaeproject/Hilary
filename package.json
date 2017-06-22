@@ -5,7 +5,7 @@
   "homepage": "http://www.oaeproject.org",
   "author": {
     "name": "The Apereo Foundation",
-    "email": "oae-dev@collab.sakaiproject.org"
+    "email": "oaeproject@gmail.com"
   },
   "repository": {
     "type": "git",
@@ -14,12 +14,7 @@
   "bugs": {
     "url": "https://github.com/oaeproject/Hilary/issues"
   },
-  "licenses": [
-    {
-      "type": "ECLv2",
-      "url": "http://opensource.org/licenses/ecl2.php"
-    }
-  ],
+  "license" : "ECL-2.0",
   "dependencies": {
     "amqp": "git://github.com/oaeproject/node-amqp#0.1.8.x",
     "async": "^2.1.5",
@@ -28,7 +23,7 @@
     "bunyan": "latest",
     "bunyan-prettystream": "latest",
     "chance": "latest",
-    "cheerio": "0.22",
+    "cheerio": "latest",
     "clone": "latest",
     "connect": "latest",
     "connect-redis": "latest",
@@ -46,19 +41,19 @@
     "globalize": "0.1.1",
     "gm": "latest",
     "helenus": "latest",
-    "juice": "2.0",
+    "juice": "latest",
     "less": "1.7.5",
     "locale": "latest",
     "lunr": "1.0.0",
-    "mailparser": "0.6.2",
-    "marked": "^0.3.6",
+    "mailparser": "latest",
+    "marked": "latest",
     "mime": "latest",
     "mixpanel": "latest",
     "mkdirp": "latest",
     "mobile-detect": "latest",
     "multiparty": "latest",
     "node-esapi": "latest",
-    "nodemailer": "2.4.1",
+    "nodemailer": "latest",
     "nodemailer-html-to-text": "latest",
     "nodemailer-sendmail-transport": "latest",
     "nodemailer-stub-transport": "latest",
@@ -105,7 +100,7 @@
     "passport-google-oauth": "latest",
     "passport-http": "latest",
     "passport-http-bearer": "latest",
-    "passport-ldapauth": "1.0.0",
+    "passport-ldapauth": "latest",
     "passport-local": "latest",
     "passport-oauth2-client-password": "latest",
     "passport-openid": "latest",
@@ -181,6 +176,7 @@
     "oae-mixpanel",
     "oae-preview-processor",
     "oae-principals",
+    "oae-resource",
     "oae-search",
     "oae-telemetry",
     "oae-tenants",
@@ -192,7 +188,7 @@
     "oae-version"
   ],
   "engines": {
-    "node": ">=0.10"
+    "node": "6.x"
   },
   "scripts": {
     "test": "grunt"

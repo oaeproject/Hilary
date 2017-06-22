@@ -44,7 +44,7 @@
     "juice": "latest",
     "less": "1.7.5",
     "locale": "latest",
-    "lunr": "latest",
+    "lunr": "1.0.0",
     "mailparser": "latest",
     "marked": "latest",
     "mime": "latest",

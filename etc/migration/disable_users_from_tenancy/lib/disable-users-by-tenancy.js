@@ -45,7 +45,7 @@ var doMigration = function (ctx, tenantAlias, disabled, callback) {
             callback(err);
         }
 
-        log().info("Migration successful.");
+        log().info('Migration successful.');
         callback(null, users);
     });
 
@@ -64,5 +64,5 @@ var doMigration = function (ctx, tenantAlias, disabled, callback) {
 };
 
 module.exports = {
-    "doMigration": doMigration
+    'doMigration': doMigration
 };

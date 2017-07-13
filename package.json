@@ -57,7 +57,7 @@
     "nodemailer-html-to-text": "latest",
     "nodemailer-sendmail-transport": "latest",
     "nodemailer-stub-transport": "latest",
-    "oae-rest": "latest",
+
     "oauth-sign": "latest",
     "oauth2orize": "latest",
     "optimist": "latest",

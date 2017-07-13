@@ -61,11 +61,11 @@ install:
 # - docker-compose run oae-hilary 'ls -la 3akai-ux'
 # - docker-compose run oae-hilary 'ls -la node_modules | grep oae-rest'
 
-# install dependencies for oae-rest
-- docker-compose run oae-hilary 'npm install node_modules/oae-rest'
-
 # install dependencies for 3akai-ux
-- docker-compose run oae-hilary 'npm install 3akai-ux'
+- docker-compose run oae-hilary 'cd 3akai-ux && npm install'
+
+# install dependencies for oae-rest
+- docker-compose run oae-hilary 'cd node_modules/oae-rest && npm install'
 
 # install dependencies for Hilary
 - docker-compose run oae-hilary 'npm install'

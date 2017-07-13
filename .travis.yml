@@ -1,130 +1,85 @@
+sudo: required
+
 language: node_js
+
 node_js:
   - "6.11.1"
 
-branches:
-  only:
-    - master
-
-env:
-  global:
-    - OAE_TEST_INTEGRATION=false
-    - secure: T23GAZQqZsNKK7OXEr0d3UwFoE/8hAgPOF5jgdTAJTHI6Jq+OjOv9jt+QvuKxpfqt3/yz+JzztRJAw12CD1BHej4L6NSXIalUfnn2EF93otFRSTRBQ2uzofBJ+MtUQqyCRG7Ha8sjEWoWc/QkdZbFGTaJpQpUuBt1oSabT0D3zA=
-    - secure: T1wEYmk7AhKxIGtDbb12ERT18sNb/92vL1VBo42Q4JMd4ww/Z3E7su5T3IsVY3cjaE2X7oKNVBWx9TWvkJJnHk5UiN3SmKiIGcFNKOvp6ha9BW0JyVAk5lPRh5poq33GrCvkZT3YKX7AgI/+7TutrbYVE/o5Bs599rF+8l8dSkk=
-
-before_install:
-  # Add DataStax apt repo for Cassandra
-  - curl -L http://debian.datastax.com/debian/repo_key | sudo apt-key add -
-  - echo "deb http://debian.datastax.com/community stable main" | sudo tee -a /etc/apt/sources.list.d/dsc.sources.list
-
-  # Add ElasticSearch apt repo
-  - wget -qO - http://packages.elasticsearch.org/GPG-KEY-elasticsearch | sudo apt-key add -
-  - echo "deb http://packages.elasticsearch.org/elasticsearch/1.5/debian stable main" | sudo tee -a /etc/apt/sources.list.d/elasticsearch.sources.list
-
-  # Add PPA repos for miscellaneous dependencies
-  - echo 'yes' | sudo add-apt-repository ppa:oae/deps
-  - sudo apt-get update
-
-  # Install cassandra 2 manually
-  - sudo service cassandra stop
-  - sudo apt-get install -y -o Dpkg::Options::=--force-confnew cassandra=2.0.8
-  - "sudo sed -i '1iMAX_HEAP_SIZE=512M\\nHEAP_NEWSIZE=48M\\n' /etc/cassandra/cassandra-env.sh"
-  - "sudo sed -i 's/rpc_server_type: sync/rpc_server_type: hsha/g' /etc/cassandra/cassandra.yaml"
-  - "sudo sed -i 's/key_cache_size_in_mb:/key_cache_size_in_mb: 0/g' /etc/cassandra/cassandra.yaml"
-  - sudo service cassandra stop
-  # Give Cassandra some time to shut down
-  - sleep 5
-  - sudo service cassandra start
-  - sleep 5
-  - sudo service cassandra status
-
-  # Install elasticsearch 1.5.2  manually
-  - sudo service elasticsearch stop
-  - sudo apt-get install -y --force-yes -o Dpkg::Options::=--force-confnew elasticsearch=1.5.2
-  - sudo service elasticsearch start
-
-  # Turn off unneeded services to free some memory
-  - sudo service mysql stop
-  - sudo service memcached stop
-  - sudo service postgresql stop
-
-  # Do not let Redis save to disk
-  - "sudo sed -i 's/save 900 1/#save 900 1/g' /etc/redis/redis.conf"
-  - "sudo sed -i 's/save 300 10/#save 300 10/g' /etc/redis/redis.conf"
-  - "sudo sed -i 's/save 60 10000/#save 60 10000/g' /etc/redis/redis.conf"
-  - sudo service redis-server restart
-
-  # We must ensure phantomjs is not available so the travis build will include it in node_modules when deploying
-  - sudo rm -rf /usr/local/phantomjs
-
-  # Install Hilary deps
-  - sudo apt-get install -qq graphicsmagick libreoffice chrpath pdf2htmlex poppler-utils
-  - npm install -g grunt-cli
-  - git clone --depth 1 --branch master git://github.com/oaeproject/3akai-ux.git ../3akai-ux
-
-  # Install etherpad
-  - cd /usr/src
-  - sudo wget https://s3-eu-west-1.amazonaws.com/oae-releases/etherpad/1.5/etherpad-1.5.6_node-0.10.17.tar.gz
-  - sudo mkdir /opt/etherpad
-  - cd /opt/etherpad
-  - sudo tar -zxvf /usr/src/etherpad-1.5.6_node-0.10.17.tar.gz > /dev/null
-  - sudo touch APIKEY.txt
-  - sudo chmod -R 777 .
-
-  # Create a keyspace that we can start etherpad up into. There is a chicken-and-egg problem by having unit tests drop/create and have
-  # etherpad be available, so we just create a separate keyspace for it
-  - "echo \"CREATE KEYSPACE etherpad WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};\" > /tmp/.create_etherpad_keyspace.cql3"
-  - cqlsh -f /tmp/.create_etherpad_keyspace.cql3
-
-  # Configure etherpad
-  - "sed -i 's/dbType\" : \"dirty/dbType\" : \"cassandra/g' settings.json"
-  - "sed -i 's/\"filename\" : \"var\\/dirty.db\"/\"clientOptions\": {\"keyspace\": \"etherpad\", \"contactPoints\": [\"localhost\"]},\"columnFamily\": \"Etherpad\"/g' settings.json"
-  - "sed -i 's/defaultPadText\" : \".*\"/defaultPadText\" : \"\"/g' settings.json"
-  - echo "13SirapH8t3kxUh5T5aqWXhXahMzoZRA" > APIKEY.txt
-
-  # Start etherpad
-  - node node_modules/ep_etherpad-lite/node/server.js &> /dev/null &
-
-  # Position ourselves to start the test in "script" phase
-  - cd ~/build/oaeproject/Hilary
-
-  # Enable preview processing
-  - printf "\n\nconfig.previews.enabled = true;" >> config.js
-  - printf "\nconfig.previews.office.binary = '/usr/bin/soffice';" >> config.js
-  - printf "\nconfig.previews.pdf2htmlEX.binary = '/usr/bin/pdf2htmlEX';" >> config.js
-  - printf "\nconfig.previews.pdftotext.binary = '/usr/bin/pdftotext';" >> config.js
-
-# install:
-#   - npm install
-#   # Ensure that phantomjs was properly installed
-#   - test -d node_modules/webshot/node_modules/phantomjs-prebuilt
-
 services:
-  - rabbitmq
-  - redis-server
+  - docker
+
+# you can install additional dependencies required by your project such as Ubuntu packages or custom services
+before_install:
+
+#
+# Changes in config.js for docker containers to run properly
+#
+
+- sed -i -e 's/\/src\/Hilary/\/home\/travis\/build\/brecke\/Hilary/g' docker-compose.yml
+- sed -i -e 's/\/src\/files/\/home\/travis\/build\/brecke\/files/g' docker-compose.yml
+- sed -i -e 's/\/src\/tmp/\/home\/travis\/build\/brecke\/tmp/g' docker-compose.yml
+
+# Cassandra volume
+# etherpad volume
+
+# config.ui path
+- printf "\n\nconfig.ui.path = './3akai-ux'" >> config.js
+
+# cassandra
+- printf "\n\nconfig.cassandra.hosts = ['oae-cassandra:9160']" >> config.js
+
+# redis
+- printf "\n\nconfig.redis.host = 'oae-redis';" >> config.js
+
+# elasticsearch
+- printf "\n\nconfig.search.hosts[0].host = 'oae-elasticsearch'" >> config.js
+- printf "\n\nconfig.search.hosts[0].port = 9200" >> config.js
+
+# rabbitmq
+- printf "\n\nconfig.mq.connection.host = 'oae-rabbitmq'" >> config.js
+
+# etherpad
+- printf "\n\nconfig.etherpad.hosts[0].host = 'oae-etherpad'" >> config.js
+- printf "\n\nconfig.etherpad.hosts[0].port = 9001" >> config.js
+
+# previews
+- printf "\n\nconfig.previews.enabled = true;" >> config.js
+
+# e-mail
+- printf "\n\nconfig.email.debug = false" >> config.js
+- printf "\n\nconfig.email.transport = 'sendmail'" >> config.js
+
+- ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
+# - 'echo -e "Host *\n\tStrictHostKeyChecking no\n" >> ~/.ssh/config'
+
+install:
+
+# build the hilary:latest image
+- docker-compose create --build
+
+# debug
+# - docker-compose run oae-hilary 'ls -la 3akai-ux'
+# - docker-compose run oae-hilary 'ls -la node_modules | grep oae-rest'
+
+# install dependencies for oae-rest
+- docker-compose run oae-hilary 'npm install node_modules/oae-rest'
+
+# install dependencies for 3akai-ux
+- docker-compose run oae-hilary 'npm install 3akai-ux'
+
+# install dependencies for Hilary
+- docker-compose run oae-hilary 'npm install'
+
+before_script:
+
+- docker-compose up
+- sleep 10
 
 script:
-  - /bin/true
+- docker-compose run oae-hilary 'grunt test-module:oae-content'
 
-after_success:
-  - ps aux --sort -rss | head
-  - top -n1 -b
-  - df -h
-  # Package and upload to Amazon S3
-  - etc/scripts/travis-upload.sh
+# after_success:
 
-after_failure:
-  - ps aux --sort -rss | head
-  - top -n1 -b
-  - df -h
-  # Compress the logs and upload them to Amazon S3
-  - gzip tests.log
-  - bin/upload_logs
+# after_failure:
 
-notifications:
-  email:
-    - oae-team@collab.sakaiproject.org
-  irc:
-    channels:
-        - "irc.freenode.org#oae"
-    skip_join: true
+# after_script:

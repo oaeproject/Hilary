@@ -30,28 +30,32 @@ networks:
         - subnet: 172.20.0.0/24
 
 services:
-  oae-rest:
-    build:
-      context: ./node_modules/oae-rest
-      dockerfile: Dockerfile
-    container_name: oae-rest
-    image: oae-rest:latest
-    tty: false
-    volumes:
-      - /src/Hilary/node_modules/oae-rest:/usr/src/Hilary/node_modules/oae-rest
-    depends_on:
-      - oae-hilary
-  oae-3akai-ux:
-    build:
-      context: ./3akai-ux
-      dockerfile: Dockerfile
-    container_name: oae-3akai-ux
-    image: oae-3akai-ux:latest
-    tty: false
-    volumes:
-      - /src/Hilary/3akai-ux:/usr/src/Hilary/3akai-ux
-    depends_on:
-      - oae-hilary
+#   oae-rest:
+#     build:
+#       context: ./node_modules/oae-rest
+#       dockerfile: Dockerfile
+#     container_name: oae-rest
+#     image: oae-rest:latest
+#     tty: false
+#     # volumes:
+#     #   - /Users/miguel/Work/Hilary/node_modules/oae-rest:/usr/src/Hilary/node_modules/oae-rest
+#     depends_on:
+#       - oae-hilary
+#     volumes_from:
+#       - oae-hilary
+#   oae-3akai-ux:
+#     build:
+#       context: ./3akai-ux
+#       dockerfile: Dockerfile
+#     container_name: oae-3akai-ux
+#     image: oae-3akai-ux:latest
+#     tty: false
+#     # volumes:
+#     #   - /Users/miguel/Work/Hilary/3akai-ux:/usr/src/Hilary/3akai-ux
+#     depends_on:
+#       - oae-hilary
+#     volumes_from:
+#       - oae-hilary
   oae-hilary:
     build:
       context: .
@@ -67,7 +71,7 @@ services:
       - oae-etherpad
     extra_hosts:
       - "admin.oae.com:172.20.0.9"
-      - "tenant1.oae.com:172.20.0.9"
+    #   - "tenant1.oae.com:172.20.0.9"
       # - "any.other.host.oae.com:172.20.0.9"
     image: hilary:latest
     networks:
@@ -153,14 +157,14 @@ services:
     tty: false
     volumes:
       - /data/etherpad:/opt/etherpad/var
-  portainer:
-    container_name: portainer
-    image: portainer/portainer
-    ports:
-      - 9000:9000
-    networks:
-      - my_network
-    tty: false
-    volumes:
-      - /data/portainer/data:/data
-      - /var/run/docker.sock:/var/run/docker.sock
+#   portainer:
+#     container_name: portainer
+#     image: portainer/portainer
+#     ports:
+#       - 9000:9000
+#     networks:
+#       - my_network
+#     tty: false
+#     volumes:
+#       - /Users/miguel/Work/data/portainer/data:/data
+#       - /var/run/docker.sock:/var/run/docker.sock

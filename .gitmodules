@@ -4,3 +4,6 @@
 [submodule "3akai-ux"]
 	path = 3akai-ux
   url = https://github.com/oaeproject/3akai-ux
+[submodule "node_modules/restjsdoc"]
+	path = node_modules/restjsdoc
+	url = https://github.com/oaeproject/restjsdoc.git

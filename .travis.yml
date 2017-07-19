@@ -1,4 +1,4 @@
-sudo: required
+sudo: false
 
 language: node_js
 
@@ -8,15 +8,12 @@ node_js:
 services:
   - docker
 
-# you can install additional dependencies required by your project such as Ubuntu packages or custom services
+git:
+  depth: 200
+
 before_install:
-# checkout master in 3akai-ux
-- cd 3akai-ux
-- git checkout master
-# checkout master in oae-rest
-- cd ../node_modules/oae-rest
-- git checkout master
-- cd ../..
+# checkout master branch for all submodules
+- git submodule foreach -q --recursive 'branch="$(git config -f $toplevel/.gitmodules submodule.$name.branch)"; [ -z "$branch" ] && git checkout master || git checkout $branch'
 
 # Changes in config.js for docker containers to run properly
 - sed -i -e 's/- \/src\/Hilary/- \/home\/travis\/build\/brecke\/Hilary/g' docker-compose.yml
@@ -57,37 +54,37 @@ before_script:
 # - sleep 60
 
 script:
-- docker-compose run oae-hilary 'grunt test-module:oae-activity'
-- docker-compose run oae-hilary 'grunt test-module:oae-authentication'
-- docker-compose run oae-hilary 'grunt test-module:oae-authz'
-- docker-compose run oae-hilary 'grunt test-module:oae-config'
-- docker-compose run oae-hilary 'grunt test-module:oae-content'
-- docker-compose run oae-hilary 'grunt test-module:oae-context'
-- docker-compose run oae-hilary 'grunt test-module:oae-discussions'
-- docker-compose run oae-hilary 'grunt test-module:oae-doc'
-- docker-compose run oae-hilary 'grunt test-module:oae-emitter'
-- docker-compose run oae-hilary 'grunt test-module:oae-email'
-- docker-compose run oae-hilary 'grunt test-module:oae-following'
-- docker-compose run oae-hilary 'grunt test-module:oae-folders'
-- docker-compose run oae-hilary 'grunt test-module:oae-google-analytics'
-- docker-compose run oae-hilary 'grunt test-module:oae-library'
-- docker-compose run oae-hilary 'grunt test-module:oae-logger'
-- docker-compose run oae-hilary 'grunt test-module:oae-messagebox'
-- docker-compose run oae-hilary 'grunt test-module:oae-mediacore'
-- docker-compose run oae-hilary 'grunt test-module:oae-mixpanel'
-- docker-compose run oae-hilary 'grunt test-module:oae-preview-processor'
-- docker-compose run oae-hilary 'grunt test-module:oae-principals'
-- docker-compose run oae-hilary 'grunt test-module:oae-resource'
-- docker-compose run oae-hilary 'grunt test-module:oae-release-tools'
-- docker-compose run oae-hilary 'grunt test-module:oae-rest'
-- docker-compose run oae-hilary 'grunt test-module:oae-search'
-- docker-compose run oae-hilary 'grunt test-module:oae-telemetry'
-- docker-compose run oae-hilary 'grunt test-module:oae-tincanapi'
-- docker-compose run oae-hilary 'grunt test-module:oae-tests'
-- docker-compose run oae-hilary 'grunt test-module:oae-tenants'
-- docker-compose run oae-hilary 'grunt test-module:oae-util'
-- docker-compose run oae-hilary 'grunt test-module:oae-ui'
-- docker-compose run oae-hilary 'grunt test-module:oae-uservoice'
+# - docker-compose run oae-hilary 'grunt test-module:oae-activity'
+# - docker-compose run oae-hilary 'grunt test-module:oae-authentication'
+# - docker-compose run oae-hilary 'grunt test-module:oae-authz'
+# - docker-compose run oae-hilary 'grunt test-module:oae-config'
+# - docker-compose run oae-hilary 'grunt test-module:oae-content'
+# - docker-compose run oae-hilary 'grunt test-module:oae-context'
+# - docker-compose run oae-hilary 'grunt test-module:oae-discussions'
+# - docker-compose run oae-hilary 'grunt test-module:oae-doc'
+# - docker-compose run oae-hilary 'grunt test-module:oae-emitter'
+# - docker-compose run oae-hilary 'grunt test-module:oae-email'
+# - docker-compose run oae-hilary 'grunt test-module:oae-following'
+# - docker-compose run oae-hilary 'grunt test-module:oae-folders'
+# - docker-compose run oae-hilary 'grunt test-module:oae-google-analytics'
+# - docker-compose run oae-hilary 'grunt test-module:oae-library'
+# - docker-compose run oae-hilary 'grunt test-module:oae-logger'
+# - docker-compose run oae-hilary 'grunt test-module:oae-messagebox'
+# - docker-compose run oae-hilary 'grunt test-module:oae-mediacore'
+# - docker-compose run oae-hilary 'grunt test-module:oae-mixpanel'
+# - docker-compose run oae-hilary 'grunt test-module:oae-preview-processor'
+# - docker-compose run oae-hilary 'grunt test-module:oae-principals'
+# - docker-compose run oae-hilary 'grunt test-module:oae-resource'
+# - docker-compose run oae-hilary 'grunt test-module:oae-release-tools'
+# - docker-compose run oae-hilary 'grunt test-module:oae-rest'
+# - docker-compose run oae-hilary 'grunt test-module:oae-search'
+# - docker-compose run oae-hilary 'grunt test-module:oae-telemetry'
+# - docker-compose run oae-hilary 'grunt test-module:oae-tincanapi'
+# - docker-compose run oae-hilary 'grunt test-module:oae-tests'
+# - docker-compose run oae-hilary 'grunt test-module:oae-tenants'
+# - docker-compose run oae-hilary 'grunt test-module:oae-util'
+# - docker-compose run oae-hilary 'grunt test-module:oae-ui'
+# - docker-compose run oae-hilary 'grunt test-module:oae-uservoice'
 - docker-compose run oae-hilary 'grunt test-module:oae-version'
 
 # after_success:

@@ -4,8 +4,11 @@ Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject
 
 ## Build status
 
-[![Build Status](https://travis-ci.org/oaeproject/Hilary.png?branch=master)](https://travis-ci.org/oaeproject/Hilary)
+[![CircleCI](https://circleci.com/gh/brecke/Hilary/tree/master.svg?style=svg)](https://circleci.com/gh/oaeproject/Hilary/tree/master)
 [![Coverage Status](https://coveralls.io/repos/oaeproject/Hilary/badge.png)](https://coveralls.io/r/oaeproject/Hilary)
+[![Code Climate](https://codeclimate.com/github/oaeproject/Hilary/badges/gpa.svg)](https://codeclimate.com/github/oaeproject/Hilary)
+[![dependencies](https://david-dm.org/oaeproject/Hilary.svg)](https://david-dm.org/oaeproject/Hilary)
+[![devdependencies](https://david-dm.org/oaeproject/Hilary/dev-status.svg)](https://david-dm.org/oaeproject/Hilary#info=devDependencies)
 
 ## Installation
 

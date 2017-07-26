@@ -268,7 +268,7 @@ If you still can't see the Web interface correctly by the time the containers st
 
 #### I would like to run node directly on my machine instead of inside a container
 
-We understand that, and we do that ourselves too :) You can have that with just a few changes:
+We understand that, and we do that ourselves too :) You can have that with just a few changes. If you're using linux:
 
 In `config.js` change the following values:
 
@@ -288,25 +288,31 @@ server oae-hilary:2000;
 ...
 server oae-hilary:2001;
 ...
-proxy_pass http://oae-etherpad:9001;
-...
 ```
 
 ..become:
 
 ```
 ...
-server 172.20.0.1:2000;
+server 172.20.0.1:2000; # `172.20.0.1` is the IP address of the host machine, which can be obtained by running `/sbin/ip route|awk '/default/ { print $3 }'` from any container (e.g. `docker exec -it oae-nginx sh`).
 ...
 server 172.20.0.1:2001;
 ...
-proxy_pass http://172.20.0.1:9001;
+```
+
+If you're using mac osx, you'll need to use the external IP address (e.g. `en0`) instead of the `docker0` IP address for `oae-nginx` to access `Hilary`, like this:
+
+```
+...
+server 192.168.1.2:2000; # assuming 192.168.1.2 is the external network IP address
+...
+server 192.168.1.2:2001; # assuming 192.168.1.2 is the external network IP address
 ...
 ```
 
-By the way, `172.20.0.1` is the IP address of the host machine, which can be obtained by running `/sbin/ip route|awk '/default/ { print $3 }'` from any container (e.g. `docker exec -it oae-nginx sh`).
+Also, don't forget that running `Hilary` locally implies installing several other packages, namely `soffice` (libreoffice), `pdftotext` and `pdf2htmlEX`. You can find instructions on how to do this [here](https://github.com/brecke/Hilary/wiki/Manual-installation-&-setup).
 
-Now if you comment out the `oae-hilary` service in the `docker-compose.yml` file and run `docker-compose up`, all services boot except for Hilary. Then you may then run `nodemon app.js | bunyan` on the terminal and you should be able to start the server.
+Now if you comment out the `oae-hilary` service in the `docker-compose.yml` file and run `docker-compose up`, all services boot except for Hilary. Then you may then run `nodemon app.js | bunyan` locally on the terminal and you should be able to start the server.
 
 ## Get in touch
 

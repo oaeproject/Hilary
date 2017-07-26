@@ -287,6 +287,9 @@ Then, edit `nginx.conf.docker` and make sure these lines:
 server oae-hilary:2000;
 ...
 server oae-hilary:2001;
+...
+proxy_pass http://oae-etherpad:9001;
+...
 ```
 
 ..become:
@@ -296,11 +299,14 @@ server oae-hilary:2001;
 server 172.20.0.1:2000;
 ...
 server 172.20.0.1:2001;
+...
+proxy_pass http://172.20.0.1:9001;
+...
 ```
 
 By the way, `172.20.0.1` is the IP address of the host machine, which can be obtained by running `/sbin/ip route|awk '/default/ { print $3 }'` from any container (e.g. `docker exec -it oae-nginx sh`).
 
-Now if you run `nodemon app.js | bunyan` on the terminal, you should be able to start the server.
+Now if you comment out the `oae-hilary` service in the `docker-compose.yml` file and run `docker-compose up`, all services boot except for Hilary. Then you may then run `nodemon app.js | bunyan` on the terminal and you should be able to start the server.
 
 ## Get in touch
 

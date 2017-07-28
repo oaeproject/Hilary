@@ -14,7 +14,7 @@
   "bugs": {
     "url": "https://github.com/oaeproject/Hilary/issues"
   },
-  "license" : "ECL-2.0",
+  "license": "ECL-2.0",
   "dependencies": {
     "amqp": "git://github.com/oaeproject/node-amqp#0.1.8.x",
     "async": "^2.1.5",
@@ -45,15 +45,15 @@
     "less": "1.7.5",
     "locale": "latest",
     "lunr": "1.0.0",
-    "mailparser": "latest",
+    "mailparser": "0.6.2",
     "make-dir": "^1.0.0",
-    "marked": "latest",
+    "marked": "^0.3.6",
     "mime": "latest",
     "mixpanel": "latest",
     "mobile-detect": "latest",
     "multiparty": "latest",
     "node-esapi": "latest",
-    "nodemailer": "latest",
+    "nodemailer": "2.4.1",
     "nodemailer-html-to-text": "latest",
     "nodemailer-sendmail-transport": "latest",
     "nodemailer-stub-transport": "latest",
@@ -143,6 +143,7 @@
     "oae-preview-processor",
     "oae-principals",
     "oae-resource",
+    "oae-rest",
     "oae-search",
     "oae-telemetry",
     "oae-tenants",
@@ -151,7 +152,8 @@
     "oae-ui",
     "oae-uservoice",
     "oae-util",
-    "oae-version"
+    "oae-version",
+    "restjsdoc"
   ],
   "engines": {
     "node": ">=6.11.1"

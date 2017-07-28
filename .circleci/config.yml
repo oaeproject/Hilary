@@ -26,7 +26,9 @@ jobs:
       # build the hilary:latest image
       - run: docker-compose create --build
       # install dependencies for oae-rest
-      - run: docker-compose run oae-hilary 'npm install --prefix ./node_modules/oae-rest -s'
+      # - run: docker-compose run oae-hilary 'npm install --prefix ./node_modules/oae-rest -s'
+      # install dependencies for restjsdoc
+      # - run: docker-compose run oae-hilary 'npm install --prefix ./node_modules/restjsdoc -s'
       # install dependencies for 3akai-ux
       - run: docker-compose run oae-hilary 'npm install --prefix ./3akai-ux -s '
       # install dependencies for Hilary

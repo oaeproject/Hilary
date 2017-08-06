@@ -50,6 +50,7 @@
     "marked": "^0.3.6",
     "mime": "latest",
     "mixpanel": "latest",
+    "mkdirp": "latest",
     "mobile-detect": "latest",
     "multiparty": "latest",
     "node-esapi": "latest",
@@ -57,7 +58,6 @@
     "nodemailer-html-to-text": "latest",
     "nodemailer-sendmail-transport": "latest",
     "nodemailer-stub-transport": "latest",
-
     "oauth-sign": "latest",
     "oauth2orize": "latest",
     "optimist": "latest",

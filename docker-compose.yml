@@ -131,14 +131,3 @@ services:
     tty: false
     volumes:
       - /data/etherpad:/opt/etherpad/var
-#   portainer:
-#     container_name: portainer
-#     image: portainer/portainer
-#     ports:
-#       - 9000:9000
-#     networks:
-#       - my_network
-#     tty: false
-#     volumes:
-#       - /Users/miguel/Work/data/portainer/data:/data
-#       - /var/run/docker.sock:/var/run/docker.sock

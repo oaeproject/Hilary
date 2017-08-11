@@ -78,7 +78,7 @@ var _deleteSessionRows = function(rows, callback) {
     // Get the session keys
     var keysToDelete = _.chain(rows)
         .map(function(row) {
-            return row.get('key').value;
+            return row.get('key');
         })
         .filter(function(key) {
             return (key.indexOf('session') !== -1);
@@ -92,5 +92,5 @@ var _deleteSessionRows = function(rows, callback) {
 
     totalDeletedKeys += keysToDelete.length;
     log().info('Deleting %d keys', keysToDelete.length);
-    return Cassandra.runQuery('DELETE FROM "Etherpad" WHERE key IN (?)', [keysToDelete], callback);
+    return Cassandra.runQuery('DELETE FROM "Etherpad" WHERE key IN ?', [keysToDelete], callback);
 };

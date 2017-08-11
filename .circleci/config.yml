@@ -1,0 +1,33 @@
+version: 2
+jobs:
+  build:
+    machine: true
+    working_directory: ~/Hilary
+    steps:
+      - checkout
+      # checkout submodules
+      - run: git submodule update --init --recursive
+      # checkout master branch of all submodules (default is detached)
+      - run: git submodule foreach -q --recursive 'branch="$(git config -f $toplevel/.gitmodules submodule.$name.branch)"; [ -z "$branch" ] && git checkout master || git checkout $branch'
+      # change docker-compose absolute paths for volume mounting
+      - run: sed -i -e 's/- \/src\/Hilary/- \/home\/circleci\/Hilary/g' docker-compose.yml
+      - run: sed -i -e 's/- \/src\/files/- \/home\/circleci\/files/g' docker-compose.yml
+      - run: sed -i -e 's/\/src\/tmp/\/home\/circleci\/tmp/g' docker-compose.yml
+      # change some configuration
+      - run: printf "\n\nconfig.ui.path = './3akai-ux';" >> config.js
+      - run: printf "\n\nconfig.cassandra.hosts = ['oae-cassandra'];" >> config.js
+      - run: printf "\n\nconfig.redis.host = 'oae-redis';" >> config.js
+      - run: printf "\n\nconfig.search.hosts[0].host = 'oae-elasticsearch';" >> config.js
+      - run: printf "\n\nconfig.mq.connection.host = 'oae-rabbitmq';" >> config.js
+      - run: printf "\n\nconfig.etherpad.hosts[0].host = 'oae-etherpad';" >> config.js
+      - run: printf "\n\nconfig.previews.enabled = true;" >> config.js
+      - run: printf "\n\nconfig.email.debug = false;" >> config.js
+      - run: printf "\n\nconfig.email.transport = 'sendmail';" >> config.js
+      # build the hilary:latest image
+      - run: docker-compose create --build
+      # install dependencies for 3akai-ux
+      - run: docker-compose run oae-hilary 'npm install --prefix ./3akai-ux -s '
+      # install dependencies for Hilary
+      - run: docker-compose run oae-hilary 'npm install -s'
+      # run tests for all modules
+      - run: docker-compose run oae-hilary 'grunt test'

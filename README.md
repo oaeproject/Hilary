@@ -4,12 +4,17 @@ Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject
 
 ## Build status
 
-[![Build Status](https://travis-ci.org/oaeproject/Hilary.png?branch=master)](https://travis-ci.org/oaeproject/Hilary)
+[![CircleCI](https://circleci.com/gh/oaeproject/Hilary/tree/master.svg?style=svg)](https://circleci.com/gh/oaeproject/Hilary/tree/master)
 [![Coverage Status](https://coveralls.io/repos/oaeproject/Hilary/badge.png)](https://coveralls.io/r/oaeproject/Hilary)
+[![Code Climate](https://codeclimate.com/github/oaeproject/Hilary/badges/gpa.svg)](https://codeclimate.com/github/oaeproject/Hilary)
+[![dependencies](https://david-dm.org/oaeproject/Hilary.svg)](https://david-dm.org/oaeproject/Hilary)
+[![devdependencies](https://david-dm.org/oaeproject/Hilary/dev-status.svg)](https://david-dm.org/oaeproject/Hilary#info=devDependencies)
 
 ## Installation
 
 If you're looking to install the OAE project manually, check out [this page](https://github.com/brecke/Hilary/wiki/Manual-installation-&-setup) and then go the the [Setup section](#setup) below.
+
+If you're looking to setup a development environment, you might want to run node locally instead of inside a docker container. If that's the case, follow through the instructions below and then check the troubleshooting section.
 
 Otherwise, please follow our docker quickstart guide:
 
@@ -265,7 +270,7 @@ If you still can't see the Web interface correctly by the time the containers st
 
 #### I would like to run node directly on my machine instead of inside a container
 
-We understand that, and we do that ourselves too :) You can have that with just a few changes:
+We understand that, and we do that ourselves too :) You can have that with just a few changes. If you're using linux:
 
 In `config.js` change the following values:
 
@@ -284,20 +289,32 @@ Then, edit `nginx.conf.docker` and make sure these lines:
 server oae-hilary:2000;
 ...
 server oae-hilary:2001;
+...
 ```
 
 ..become:
 
 ```
 ...
-server 172.20.0.1:2000;
+server 172.20.0.1:2000; # `172.20.0.1` is the IP address of the host machine, which can be obtained by running `/sbin/ip route|awk '/default/ { print $3 }'` from any container (e.g. `docker exec -it oae-nginx sh`).
 ...
 server 172.20.0.1:2001;
+...
 ```
 
-By the way, `172.20.0.1` is the IP address of the host machine, which can be obtained by running `/sbin/ip route|awk '/default/ { print $3 }'` from any container (e.g. `docker exec -it oae-nginx sh`).
+If you're using mac osx, you'll need to use the external IP address (e.g. `en0`) instead of the `docker0` IP address for `oae-nginx` to access `Hilary`, like this:
 
-Now if you run `nodemon app.js | bunyan` on the terminal, you should be able to start the server.
+```
+...
+server 192.168.1.2:2000; # assuming 192.168.1.2 is the external network IP address
+...
+server 192.168.1.2:2001; # assuming 192.168.1.2 is the external network IP address
+...
+```
+
+Also, don't forget that running `Hilary` locally implies installing several other packages, namely `soffice` (libreoffice), `pdftotext` and `pdf2htmlEX`. You can find instructions on how to do this [here](https://github.com/brecke/Hilary/wiki/Manual-installation-&-setup).
+
+Now if you comment out the `oae-hilary` service in the `docker-compose.yml` file and run `docker-compose up`, all services boot except for Hilary. Then you may then run `nodemon app.js | bunyan` locally on the terminal and you should be able to start the server.
 
 ## Get in touch
 

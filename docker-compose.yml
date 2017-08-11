@@ -45,7 +45,7 @@ services:
       - oae-etherpad
     extra_hosts:
       - "admin.oae.com:172.20.0.9"
-      - "tenant1.oae.com:172.20.0.9"
+    #   - "tenant1.oae.com:172.20.0.9"
       # - "any.other.host.oae.com:172.20.0.9"
     image: hilary:latest
     networks:
@@ -115,6 +115,7 @@ services:
       - my_network
     ports:
       - 9160:9160
+      - 9042:9042
     tty: false
     volumes:
       - /data/cassandra:/var/lib/cassandra
@@ -130,14 +131,3 @@ services:
     tty: false
     volumes:
       - /data/etherpad:/opt/etherpad/var
-  portainer:
-    container_name: portainer
-    image: portainer/portainer
-    ports:
-      - 9000:9000
-    networks:
-      - my_network
-    tty: false
-    volumes:
-      - /data/portainer/data:/data
-      - /var/run/docker.sock:/var/run/docker.sock

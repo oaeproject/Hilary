@@ -8,32 +8,24 @@ syncs:
   oae-hilary-sync:
     notify_terminal: true
     src: '/src/brecke/Hilary'
-    sync_strategy: 'native_osx'
   oae-hilary-files-sync:
     notify_terminal: true
     src: '/src/files'
-    sync_strategy: 'native_osx'
   oae-elasticsearch-sync:
     notify_terminal: true
     src: '/data/elasticsearch'
-    sync_strategy: 'native_osx'
   oae-nginx-sync1:
     notify_terminal: true
     src: '/src/brecke/files'
-    sync_strategy: 'native_osx'
   oae-nginx-sync2:
     notify_terminal: true
     src: '/src/brecke/Hilary/3akai-ux'
-    sync_strategy: 'native_osx'
   oae-cassandra-sync:
     notify_terminal: true
     src: '/data/cassandra'
-    sync_strategy: 'native_osx'
   oae-etherpad-sync:
     notify_terminal: true
     src: '/data/etherpad'
-    sync_strategy: 'native_osx'
   oae-portainer-sync:
     notify_terminal: true
     src: '/data/portainer/data'
-    sync_strategy: 'native_osx'

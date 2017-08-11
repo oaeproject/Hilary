@@ -14,6 +14,8 @@ Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject
 
 If you're looking to install the OAE project manually, check out [this page](https://github.com/brecke/Hilary/wiki/Manual-installation-&-setup) and then go the the [Setup section](#setup) below.
 
+If you're looking to setup a development environment, you might want to run node locally instead of inside a docker container. If that's the case, follow through the instructions below and then check the troubleshooting section.
+
 Otherwise, please follow our docker quickstart guide:
 
 ### Docker Quickstart Guide

@@ -33,6 +33,7 @@
     "csv": "latest",
     "data-structures": "latest",
     "dox": "latest",
+    "dotenv": "latest",
     "elasticsearchclient": "latest",
     "ent": "latest",
     "etherpad-lite-client": "latest",

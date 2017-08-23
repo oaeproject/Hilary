@@ -1,7 +1,7 @@
 # Contributing
 ## Welcome!
 
-First things first: thank you! As an open source project, Open Academic Environment relies on contributions and we really appreciate that you're taking the time to think about contributing. If you don't know where to start, have a look at our [API issue tracker](https://github.com/oaeproject/Hilary/issues) and [front-end issue tracker](https://github.com/oaeproject/3akai-ux/issues) for a list of current problems you could help us solve.
+First things first: thank you! As an open source project, Open Academic Environment relies on contributions and we really appreciate that you're taking the time to think about contributing. If you don't know where to start, have a look at our [API issue tracker](https://github.com/oaeproject/Hilary/issues) and [front-end issue tracker](https://github.com/oaeproject/3akai-ux/issues) for a list of current problems you could help us solve. (PS. If you're new to open source, we use the `first-timers-only` tag for issues that would make a good first contribution!)
 
 ## Table of contents
 1. [How-to](#how-to)

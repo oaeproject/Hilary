@@ -53,8 +53,8 @@ if (argv.config.match(/^\.\//)) {
 }
 
 var config = require(argv.config).config;
-var env = require('./' + (process.env.NODE_ENV || 'development') + '.js');
-config = _.extend({}, config, env);
+var envConfig = require('./' + (process.env.NODE_ENV || 'development') + '.js').config;
+config = _.extend({}, config, envConfig);
 
 // If the user asked for pretty output change the log stream
 if (argv.pretty || argv.interactive) {

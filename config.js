@@ -33,7 +33,7 @@ config.ui = {
 
 // Cassandra related config information.
 config.cassandra = {
-    'hosts': ['127.0.0.1:9160'],
+    'hosts': ['127.0.0.1'],
     'keyspace': 'oae',
     'user': '',
     'pass': '',

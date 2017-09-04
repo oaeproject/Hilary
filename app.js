@@ -15,6 +15,7 @@
  * permissions and limitations under the License.
  */
 
+var _ = require('underscore');
 var PrettyStream = require('bunyan-prettystream');
 var optimist = require('optimist');
 var repl = require('repl');
@@ -52,6 +53,8 @@ if (argv.config.match(/^\.\//)) {
 }
 
 var config = require(argv.config).config;
+var envConfig = require(process.cwd() + '/' + (process.env.NODE_ENV || 'local')).config;
+config = _.extend({}, config, envConfig);
 
 // If the user asked for pretty output change the log stream
 if (argv.pretty || argv.interactive) {

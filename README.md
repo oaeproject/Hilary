@@ -2,6 +2,8 @@
 
 Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject.org/)
 
+[![Gitter](https://badges.gitter.im/gitterHQ/gitter.svg)](https://gitter.im/oaeproject)
+
 ## Build status
 
 [![CircleCI](https://circleci.com/gh/oaeproject/Hilary/tree/master.svg?style=svg)](https://circleci.com/gh/oaeproject/Hilary/tree/master)

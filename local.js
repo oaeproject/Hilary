@@ -30,7 +30,7 @@ var config = module.exports.config = {};
  */
 config.test = {
     'timeout': 60000,
-    'level': process.env.OAE_TEST_LOG_LEVEL || 'info',
-    'path': process.env.OAE_TEST_LOG_PATH || './tests.log'
+    'level': 'info',
+    'path': './tests.log'
 };
 

@@ -1,0 +1,13 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.7.1
+ignore: {}
+# patches apply the minimum changes required to fix a vulnerability
+patch:
+  'npm:debug:20170905':
+    - gm > debug:
+        patched: '2017-09-26T22:30:10.495Z'
+  'npm:tough-cookie:20170905':
+    - webshot > phantomjs > request > tough-cookie:
+        patched: '2017-09-26T22:30:10.495Z'
+    - youtube-api > googleapis > request > tough-cookie:
+        patched: '2017-09-26T22:30:10.495Z'

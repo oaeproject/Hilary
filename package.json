@@ -96,7 +96,8 @@
     "watch": "latest",
     "webshot": "0.15.1",
     "xml2js": "latest",
-    "youtube-api": "latest"
+    "youtube-api": "latest",
+    "snyk": "^1.46.0"
   },
   "devDependencies": {
     "coveralls": "latest",
@@ -162,6 +163,9 @@
     "node": ">=6.11.1"
   },
   "scripts": {
-    "test": "grunt"
-  }
+    "test": "grunt",
+    "snyk-protect": "snyk protect",
+    "prepublish": "npm run snyk-protect"
+  },
+  "snyk": true
 }

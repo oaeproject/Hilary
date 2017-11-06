@@ -41,7 +41,7 @@
     "etherpad-lite-client": "latest",
     "expand-url": "latest",
     "express": "4.2.0",
-    "gift": "git://github.com/notatestuser/gift",
+    "gift": "git://github.com/notatestuser/gift#c484d36dd684b1760617f4241cc1940ec29a7dea",
     "globalize": "0.1.1",
     "gm": "latest",
     "juice": "latest",

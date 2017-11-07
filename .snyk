@@ -8,3 +8,6 @@ patch:
         patched: '2017-11-06T21:20:43.463Z'
     - webshot > phantomjs > request > tough-cookie:
         patched: '2017-11-06T21:20:43.463Z'
+  'npm:marked:20170907':
+    - marked:
+        patched: '2017-11-07T09:51:41.458Z'

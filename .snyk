@@ -14,3 +14,12 @@ patch:
   'npm:marked:20170112':
     - marked:
         patched: '2017-11-07T10:24:54.317Z'
+  'npm:debug:20170905':
+    - gm > debug:
+        patched: '2017-11-07T12:42:50.901Z'
+  'npm:ms:20170412':
+    - gm > debug > ms:
+        patched: '2017-11-07T12:42:50.901Z'
+  'npm:request:20160119':
+    - webshot > phantomjs > request:
+        patched: '2017-11-07T12:42:50.901Z'

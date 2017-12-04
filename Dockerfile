@@ -17,19 +17,18 @@
 # Setup in two steps
 #
 # Step 1: Build the image
-# $ docker build -f Dockerfile -t hilary:latest .
+# $ docker build -f Dockerfile -t oae-hilary:latest .
 # Step 2: Run the docker
-# $ docker run -it --name=node --net=host -v /src/brecke/Hilary:/usr/src/Hilary hilary:latest
+# $ docker run -it --name=hilary --net=host oae-hilary:latest
 #
 
 FROM oaeproject/oae-hilary-deps-docker
-LABEL Name=hilary Version=12.5.0
-MAINTAINER Apereo Foundation oaeproject@gmail.com
+LABEL Name=OAE-Hilary
+LABEL Author=ApereoFoundation
+LABEL Email=oae@apereo.org
 
 # Install global dependencies
-RUN npm install --global nodemon
-RUN npm install --global bunyan
-RUN npm install --global grunt
+RUN npm install --global nodemon bunyan grunt grunt-cli
 
 # Create the temp directory
 RUN mkdir -p /tmp/oae

@@ -68,7 +68,7 @@ services:
       - my_network
   oae-elasticsearch:
     container_name: oae-elasticsearch
-    image: barnybug/elasticsearch:1.1.2
+    image: oaeproject/oae-elasticsearch-docker
     networks:
       - my_network
     ports:
@@ -110,7 +110,7 @@ services:
       - 443:443
   oae-cassandra:
     container_name: oae-cassandra
-    image: oaeproject/cassandra-docker
+    image: oaeproject/oae-cassandra-docker
     networks:
       - my_network
     ports:
@@ -123,7 +123,7 @@ services:
     container_name: oae-etherpad
     depends_on:
       - oae-rabbitmq
-    image: oaeproject/oae-etherpad
+    image: oaeproject/oae-etherpad-docker
     networks:
       - my_network
     ports:

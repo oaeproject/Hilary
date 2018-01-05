@@ -15,6 +15,7 @@
 
 /*
  * Update all the fields that hold a storage type for an instance of OAE in Cassandra.
+ * Usage: node 1.setCassandraToS3Paths.js --config <path-to-config> -t <new-storage-type> | bunyan
  */
 
 const _ = require('underscore');

@@ -94,7 +94,7 @@ const _updateStorageTypeInCassandra = function(tables, callback) {
                 done(err);
             } else if (rows) {
                 log().info(`Fetched ${rows.length} values from ${table.name}`);
-                _updateColumnsInCassandra(table.primaryKey, table.name, table.columns, rows, done);
+                _updateColumnsInCassandra(table, rows, done);
             }
         });
     }, callback);
@@ -121,39 +121,38 @@ const _fetchValueFromCassandra = function(table, callback) {
 /**
  * Update all the rows with the new storage type in Cassandra
  *
- * @param  {String}     primaryKey              The primary key column for this table
  * @param  {String}     table                   The table to be updated
- * @param  {String}     columns                 The column(s) with values that need updating
  * @param  {String}     rows                    The rows that should be updated with the new storage type
  * @param  {Function}   callback                Invoked when rows have been fetched
  * @param  {Object}     callback.err            An error that occurred, if any
  * @api private
  */
-const _updateColumnsInCassandra = function(primaryKey, table, columns, rows, callback) {
+const _updateColumnsInCassandra = function(table, rows, callback) {
+    const primaryKey = table.primaryKey;
+    const columns = table.columns;
      async.each(rows, function(row, done) {
-        let changes = false;
         let values = [];
-        let query = `UPDATE "${table}" SET `;
+        let query = `UPDATE "${table.name}" SET `;
         _.each(columns, function(column, i) {
             let value = _replaceLocalWithAmazonS3(row[column]);
             if (value && value !== row[column]) {
-                changes = true;
                 values.push(value);
                 query = i === columns.length - 1 ? query + `"${column}" = ? ` : query + `"${column}" = ?, `;
             }
         });
         query = _.isArray(primaryKey) ? query + `WHERE "${primaryKey[0]}" = '${row[primaryKey[0]]}' AND "${primaryKey[1]}" = '${row[primaryKey[1]]}'` : query + `WHERE "${primaryKey}" = '${row[primaryKey]}'`;
-        if (changes) {
+        if (values.length > 0) {
             Cassandra.runQuery(query, values, function(err, results) {
                 if (err) {
                     log().error({'err': err}, 'Failed to update storage type in Cassandra');
-                    _writeErrorRow(table, columns, row, 'Failed to update storage type in Cassandra for this row');
+                    _writeErrorRow(table.name, columns, row, 'Failed to update storage type in Cassandra for this row');
                 }
-                log().info(`Updated ${table}, ${columns}`);
+                log().info(`Updated ${table.name}, ${columns}`);
                 done();
             });
+        } else {
+            done();
         }
-        done();
     }, callback);
 };
 

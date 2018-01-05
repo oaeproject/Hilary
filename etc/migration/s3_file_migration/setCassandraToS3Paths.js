@@ -49,6 +49,7 @@ const storageTypeTables = [
  * @api private
  */
 function _writeErrorRow(table, column, value, message) {
+    log().error({'err': message}, `Failed to update storage type in Cassandra for ${table}, ${column}`);
     csvStream.write({
         'table': table,
         'column': column,
@@ -144,8 +145,7 @@ const _updateColumnsInCassandra = function(table, rows, callback) {
         if (values.length > 0) {
             Cassandra.runQuery(query, values, function(err, results) {
                 if (err) {
-                    log().error({'err': err}, 'Failed to update storage type in Cassandra');
-                    _writeErrorRow(table.name, columns, row, 'Failed to update storage type in Cassandra for this row');
+                    _writeErrorRow(table.name, columns, row, err);
                 }
                 log().info(`Updated ${table.name}, ${columns}`);
                 done();

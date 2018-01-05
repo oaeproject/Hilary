@@ -93,10 +93,10 @@ OAE.init(config, function(err) {
         }
 
         if (errors > 0) {
-            log().warn('There were errors when changing paths to S3 in Cassandra, check the CSV file for more information');
+            log().warn(`There were errors when changing paths to ${type} in Cassandra, check the CSV file for more information`);
 
         } else {
-            log().info('All paths in Cassandra were successfully migrated to S3');
+            log().info(`All paths in Cassandra were successfully migrated to ${type}`);
         }
 
         _exit(0);

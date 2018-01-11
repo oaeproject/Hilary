@@ -28,7 +28,8 @@ LABEL Author=ApereoFoundation
 LABEL Email=oae@apereo.org
 
 # Install global dependencies
-RUN npm install --global nodemon bunyan grunt grunt-cli
+RUN npm install --silent --global npm@4.6.1
+RUN npm install --silent --global nodemon bunyan grunt grunt-cli
 
 # Create the temp directory
 RUN mkdir -p /tmp/oae

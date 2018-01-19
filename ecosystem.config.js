@@ -24,13 +24,9 @@ module.exports = {
     {
       name      : 'Hilary',
       script    : 'app.js',
-      env: {
-        // NODE_ENV: 'development',
-        ETHERPAD_APIKEY: 'abc'
-      },
-      watch: false,
+      watch: true,
       ignore_watch: ['test', '.git', 'files'],
-      instances: 2,
+      instances: 1,
       exec_mode: "cluster",
       log_file: 'hilary.log',
       error_file: 'hilary-err.log'

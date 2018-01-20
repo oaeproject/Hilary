@@ -42,7 +42,7 @@
     "expand-url": "^0.1.3",
     "express": "4.15.5",
     "gift": "^0.10.1",
-    "globalize": "0.1.1",
+    "globalize": "1.3.0",
     "gm": "^1.23.0",
     "juice": "^4.2.2",
     "less": "1.7.5",

@@ -115,7 +115,7 @@
     "oae-release-tools": "git://github.com/oaeproject/oae-release-tools",
     "oauth": "^0.9.15",
     "repl-promised": "^0.1.0",
-    "shelljs": "^0.7.8",
+    "shelljs": "^0.8.0",
     "sockjs-client-ws": "^0.1.0",
     "tough-cookie": "^2.3.3",
     "ws": "1.1.2"

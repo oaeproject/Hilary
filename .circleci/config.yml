@@ -1,6 +1,6 @@
 version: 2
 jobs:
-  test-with-dockers:
+  build:
     docker:
       - image: alpine:3.7
     working_directory: ~/Hilary
@@ -75,4 +75,4 @@ workflows:
   version: 2
   test-all:
     jobs:
-      - test-with-dockers
+      - build

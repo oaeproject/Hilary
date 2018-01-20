@@ -27,7 +27,6 @@ var PrincipalsAPI = require('oae-principals');
 var TenantsAPI = require('oae-tenants');
 var User = require('oae-principals/lib/model').User;
 
-
 /**
  * Disable users from the system by updating the deleted flag
  *
@@ -36,33 +35,43 @@ var User = require('oae-principals/lib/model').User;
  * @param  {String}     tenantAlias     Tenant alias we want to delete users from
  * @param  {Function}   callback        Standard callback function
  */
-var doMigration = function (ctx, tenantAlias, disabled, callback) {
+var doMigration = function(ctx, tenantAlias, disabled, callback) {
+  ctx = ctx || _createNewContext();
 
-    ctx = ctx || _createNewContext();
+  PrincipalsAPI.deleteOrRestoreUsersByTenancy(
+    ctx,
+    tenantAlias,
+    disabled,
+    function(err, users) {
+      if (err) {
+        callback(err);
+      }
 
-    PrincipalsAPI.deleteOrRestoreUsersByTenancy(ctx, tenantAlias, disabled, function(err, users) {
-        if (err) {
-            callback(err);
-        }
+      log().info('Migration successful.');
+      callback(null, users);
+    },
+  );
 
-        log().info('Migration successful.');
-        callback(null, users);
-    });
+  function _createNewContext() {
+    // Get the config
+    var configPath = path.resolve(process.cwd(), 'config.js');
+    var config = require(configPath).config;
 
-    function _createNewContext() {
-        // Get the config
-        var configPath = path.resolve(process.cwd(), 'config.js');
-        var config = require(configPath).config;
-
-        var globalTenant = TenantsAPI.getTenant(config.servers.globalAdminAlias);
-        var globalAdmin = new User(globalTenant.alias, util.format('u:%s:admin', globalTenant.alias), 'Global Administrator', null, {
-            'visibility': AuthzConstants.visibility.PRIVATE,
-            'isGlobalAdmin': true
-        });
-        return new Context(globalTenant, globalAdmin);
-    }
+    var globalTenant = TenantsAPI.getTenant(config.servers.globalAdminAlias);
+    var globalAdmin = new User(
+      globalTenant.alias,
+      util.format('u:%s:admin', globalTenant.alias),
+      'Global Administrator',
+      null,
+      {
+        visibility: AuthzConstants.visibility.PRIVATE,
+        isGlobalAdmin: true,
+      },
+    );
+    return new Context(globalTenant, globalAdmin);
+  }
 };
 
 module.exports = {
-    'doMigration': doMigration
+  doMigration: doMigration,
 };

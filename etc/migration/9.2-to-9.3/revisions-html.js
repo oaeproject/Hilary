@@ -39,22 +39,25 @@ config.previews.enabled = false;
 // the entire application server. This allows us to re-use some logic such as PP
 // reprocessing and logging
 OAE.init(config, function(err) {
+  if (err) {
+    log().error({ err: err }, 'Unable to spin up the application server');
+    process.exit(err.code);
+  }
+
+  migrate(function(err) {
     if (err) {
-        log().error({'err': err}, 'Unable to spin up the application server');
-        process.exit(err.code);
+      log().error({ err: err }, 'Unable to migrate the revisions');
+      process.exit(err.code);
     }
 
-    migrate(function(err) {
-        if (err) {
-            log().error({'err': err}, 'Unable to migrate the revisions');
-            process.exit(err.code);
-        }
-
-        log().info('Migration completed, migrated %d revisions, it took %d milliseconds', total, (Date.now() - start));
-        process.exit();
-    });
+    log().info(
+      'Migration completed, migrated %d revisions, it took %d milliseconds',
+      total,
+      Date.now() - start,
+    );
+    process.exit();
+  });
 });
-
 
 /**
  * Ensure that the `etherpadHtml` of each collabdoc revision is wrapped in the
@@ -66,51 +69,64 @@ OAE.init(config, function(err) {
  * @api private
  */
 var _handleRows = function(rows, callback) {
-    var queries = [];
-    var toReprocess = [];
+  var queries = [];
+  var toReprocess = [];
 
-    _.each(rows, function(row) {
-        var revisionId = row.get('revisionId');
-        var contentId = row.get('contentId');
-        var etherpadHtml = row.get('etherpadHtml');
+  _.each(rows, function(row) {
+    var revisionId = row.get('revisionId');
+    var contentId = row.get('contentId');
+    var etherpadHtml = row.get('etherpadHtml');
 
-        // Check if we're dealing with an Etherpad revision
-        if (etherpadHtml) {
+    // Check if we're dealing with an Etherpad revision
+    if (etherpadHtml) {
+      // Check if we're dealing with a pre-8.0 revision
+      var $ = cheerio.load(etherpadHtml);
+      if ($('body').length === 0) {
+        log().info(
+          { contentId: contentId, revisionId: revisionId },
+          'Migrating a revision',
+        );
 
-            // Check if we're dealing with a pre-8.0 revision
-            var $ = cheerio.load(etherpadHtml);
-            if ($('body').length === 0) {
-                log().info({'contentId': contentId, 'revisionId': revisionId}, 'Migrating a revision');
+        // Wrap the html fragment in an html and body tag
+        var wrappedHtml = util.format(
+          '<!DOCTYPE HTML><html><body>%s</body></html>',
+          etherpadHtml,
+        );
+        var query = Cassandra.constructUpsertCQL(
+          'Revisions',
+          'revisionId',
+          revisionId,
+          { etherpadHtml: wrappedHtml },
+        );
+        queries.push(query);
 
-                // Wrap the html fragment in an html and body tag
-                var wrappedHtml = util.format('<!DOCTYPE HTML><html><body>%s</body></html>', etherpadHtml);
-                var query = Cassandra.constructUpsertCQL('Revisions', 'revisionId', revisionId, {'etherpadHtml': wrappedHtml});
-                queries.push(query);
-
-                // Keep track of this revision so we can reprocess it once we've persisted the wrapped HTML
-                toReprocess.push({
-                    'contentId': contentId,
-                    'revisionId': revisionId
-                });
-                total++;
-            }
-        }
-    });
-
-    // Persist the wrapped etherpad html values, if any
-    Cassandra.runBatchQuery(queries, function(err) {
-        if (err) {
-            return callback(err);
-        }
-
-        // Reprocess each revision, if any
-        _.each(toReprocess, function(revision) {
-            PreviewProcesserAPI.submitForProcessing(revision.contentId, revision.revisionId);
+        // Keep track of this revision so we can reprocess it once we've persisted the wrapped HTML
+        toReprocess.push({
+          contentId: contentId,
+          revisionId: revisionId,
         });
+        total++;
+      }
+    }
+  });
 
-        // Proceed to the next batch
-        return callback();
+  // Persist the wrapped etherpad html values, if any
+  Cassandra.runBatchQuery(queries, function(err) {
+    if (err) {
+      return callback(err);
+    }
+
+    // Reprocess each revision, if any
+    _.each(toReprocess, function(revision) {
+      PreviewProcesserAPI.submitForProcessing(
+        revision.contentId,
+        revision.revisionId,
+      );
     });
+
+    // Proceed to the next batch
+    return callback();
+  });
 };
 
 /**
@@ -121,6 +137,15 @@ var _handleRows = function(rows, callback) {
  * @api private
  */
 var migrate = function(callback) {
-    log().info('Starting migration process, please be patient as this might take a while\nThe process will exit when the migration has been completed');
-    return Cassandra.iterateAll(['revisionId', 'contentId', 'etherpadHtml'], 'Revisions', 'revisionId', {'batchSize': 30}, _handleRows, callback);
+  log().info(
+    'Starting migration process, please be patient as this might take a while\nThe process will exit when the migration has been completed',
+  );
+  return Cassandra.iterateAll(
+    ['revisionId', 'contentId', 'etherpadHtml'],
+    'Revisions',
+    'revisionId',
+    { batchSize: 30 },
+    _handleRows,
+    callback,
+  );
 };

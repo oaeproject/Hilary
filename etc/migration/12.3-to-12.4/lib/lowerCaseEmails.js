@@ -33,16 +33,21 @@ var BATCH_SIZE = 30;
  * @param  {Number}     callback.stats.nUpdated     The number of users whose emails were updated
  * @param  {Number}     callback.stats.nFailed      The number of users that attempted to be migrated but failed
  */
-var doMigration = module.exports.doMigration = function(callback) {
-    var stats = {'nSkipped': 0, 'nUpdated': 0, 'nFailed': 0};
-    PrincipalsDAO.iterateAll(['principalId', 'displayName', 'email'], BATCH_SIZE, _lowerCaseEmails(stats), function(err) {
-        if (err) {
-            return callback(err);
-        }
+var doMigration = (module.exports.doMigration = function(callback) {
+  var stats = { nSkipped: 0, nUpdated: 0, nFailed: 0 };
+  PrincipalsDAO.iterateAll(
+    ['principalId', 'displayName', 'email'],
+    BATCH_SIZE,
+    _lowerCaseEmails(stats),
+    function(err) {
+      if (err) {
+        return callback(err);
+      }
 
-        return callback(null, stats);
-    });
-};
+      return callback(null, stats);
+    },
+  );
+});
 
 /**
  * Perform the lower-casing migration
@@ -51,28 +56,37 @@ var doMigration = module.exports.doMigration = function(callback) {
  * @api private
  */
 var _lowerCaseEmails = function(stats) {
-    // The function to pass into iterateAll that proesses all batches of
-    // principals
-    return function(principals, callback) {
-        _lowerCaseEmailsRecursive(principals, function(err, nSkipped, nUpdated, nFailed) {
-            if (err) {
-                return callback(err);
-            }
+  // The function to pass into iterateAll that proesses all batches of
+  // principals
+  return function(principals, callback) {
+    _lowerCaseEmailsRecursive(principals, function(
+      err,
+      nSkipped,
+      nUpdated,
+      nFailed,
+    ) {
+      if (err) {
+        return callback(err);
+      }
 
-            // Update the stats from this iteration
-            stats.nSkipped += nSkipped;
-            stats.nUpdated += nUpdated;
-            stats.nFailed += nFailed;
+      // Update the stats from this iteration
+      stats.nSkipped += nSkipped;
+      stats.nUpdated += nUpdated;
+      stats.nFailed += nFailed;
 
-            log().info({
-                'nSkipped': nSkipped,
-                'nUpdated': nUpdated,
-                'nFailed': nFailed,
-                'total': stats
-            }, 'Finished migrating a batch of %s principals', BATCH_SIZE);
-            return callback();
-        });
-    };
+      log().info(
+        {
+          nSkipped: nSkipped,
+          nUpdated: nUpdated,
+          nFailed: nFailed,
+          total: stats,
+        },
+        'Finished migrating a batch of %s principals',
+        BATCH_SIZE,
+      );
+      return callback();
+    });
+  };
 };
 
 /**
@@ -86,31 +100,58 @@ var _lowerCaseEmails = function(stats) {
  * @param  {Number}         callback.nFailed    The number of users that attempted to be migrated but failed
  * @api private
  */
-var _lowerCaseEmailsRecursive = function(principals, callback, _nSkipped, _nUpdated, _nFailed) {
-    principals = principals.slice();
-    _nSkipped = _nSkipped || 0;
-    _nUpdated = _nUpdated || 0;
-    _nFailed = _nFailed || 0;
-    if (_.isEmpty(principals)) {
-        return callback(null, _nSkipped, _nUpdated, _nFailed);
-    }
+var _lowerCaseEmailsRecursive = function(
+  principals,
+  callback,
+  _nSkipped,
+  _nUpdated,
+  _nFailed,
+) {
+  principals = principals.slice();
+  _nSkipped = _nSkipped || 0;
+  _nUpdated = _nUpdated || 0;
+  _nFailed = _nFailed || 0;
+  if (_.isEmpty(principals)) {
+    return callback(null, _nSkipped, _nUpdated, _nFailed);
+  }
 
-    // Check if the principal is all lower case. If not, we persist and update
-    // for it
-    var principal = principals.shift();
-    var newEmail = (_.isString(principal.email)) ? principal.email.toLowerCase() : principal.email;
-    var shouldUpdate = (principal.email !== newEmail);
-    OaeUtil.invokeIfNecessary(shouldUpdate, PrincipalsDAO.updatePrincipal, principal.principalId, {'email': newEmail}, function(err) {
-        if (err) {
-            log().warn({'err': err, 'principal': principal}, 'Failed to migrate a user email');
-            _nFailed++;
-        } else if (shouldUpdate) {
-            log().info({'before': principal.email, 'after': newEmail}, 'Email migrated for user "%s"', principal.displayName);
-            _nUpdated++;
-        } else {
-            _nSkipped++;
-        }
+  // Check if the principal is all lower case. If not, we persist and update
+  // for it
+  var principal = principals.shift();
+  var newEmail = _.isString(principal.email)
+    ? principal.email.toLowerCase()
+    : principal.email;
+  var shouldUpdate = principal.email !== newEmail;
+  OaeUtil.invokeIfNecessary(
+    shouldUpdate,
+    PrincipalsDAO.updatePrincipal,
+    principal.principalId,
+    { email: newEmail },
+    function(err) {
+      if (err) {
+        log().warn(
+          { err: err, principal: principal },
+          'Failed to migrate a user email',
+        );
+        _nFailed++;
+      } else if (shouldUpdate) {
+        log().info(
+          { before: principal.email, after: newEmail },
+          'Email migrated for user "%s"',
+          principal.displayName,
+        );
+        _nUpdated++;
+      } else {
+        _nSkipped++;
+      }
 
-        return _lowerCaseEmailsRecursive(principals, callback, _nSkipped, _nUpdated, _nFailed);
-    });
+      return _lowerCaseEmailsRecursive(
+        principals,
+        callback,
+        _nSkipped,
+        _nUpdated,
+        _nFailed,
+      );
+    },
+  );
 };

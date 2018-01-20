@@ -33,23 +33,27 @@ var OAE = require('oae-util/lib/oae');
 var PrincipalsDAO = require('oae-principals/lib/internal/dao');
 var Validator = require('oae-util/lib/validator').Validator;
 
+var argv = optimist
+  .usage(
+    '$0 [--config <path/to/config.js>] [--warnings <path/to/warnings.csv>]',
+  )
+  .alias('c', 'config')
+  .describe('c', 'Specify an alternate config file')
+  .default('c', 'config.js')
 
-var argv = optimist.usage('$0 [--config <path/to/config.js>] [--warnings <path/to/warnings.csv>]')
-    .alias('c', 'config')
-    .describe('c', 'Specify an alternate config file')
-    .default('c', 'config.js')
+  .alias('w', 'warnings')
+  .describe(
+    'w',
+    'Specify the path to the file where unmappable users should be dumped to',
+  )
+  .default('w', 'email-migration.csv')
 
-    .alias('w', 'warnings')
-    .describe('w', 'Specify the path to the file where unmappable users should be dumped to')
-    .default('w', 'email-migration.csv')
-
-    .alias('h', 'help')
-    .describe('h', 'Show usage information')
-    .argv;
+  .alias('h', 'help')
+  .describe('h', 'Show usage information').argv;
 
 if (argv.help) {
-    optimist.showHelp();
-    return;
+  optimist.showHelp();
+  return;
 }
 
 // Get the config
@@ -61,12 +65,12 @@ config.previews.enabled = false;
 
 // Ensure that we're logging to standard out/err
 config.log = {
-    'streams': [
-        {
-            'level': 'info',
-            'stream': process.stdout
-        }
-    ]
+  streams: [
+    {
+      level: 'info',
+      stream: process.stdout,
+    },
+  ],
 };
 
 // Keep track of when we started the migration process so we can output how
@@ -78,36 +82,46 @@ var totalUsers = 0;
 var mappedUsers = 0;
 
 // Set up the CSV file
-var fileStream = fs.createWriteStream(argv.warnings, {'flags': 'a'});
+var fileStream = fs.createWriteStream(argv.warnings, { flags: 'a' });
 fileStream.on('error', function(err) {
-    log().error({'err': err}, 'Error occurred when writing to the warnings file');
-    process.exit(1);
+  log().error({ err: err }, 'Error occurred when writing to the warnings file');
+  process.exit(1);
 });
 var csvStream = csv.stringify({
-    'columns': ['principalId', 'displayName', 'email', 'message']
+  columns: ['principalId', 'displayName', 'email', 'message'],
 });
 csvStream.pipe(fileStream);
 
 // Spin up the application container. This will allow us to re-use existing APIs
 OAE.init(config, function(err) {
-    if (err) {
-        log().error({'err': err}, 'Unable to spin up the application server');
-        return _exit(err.code);
-    }
+  if (err) {
+    log().error({ err: err }, 'Unable to spin up the application server');
+    return _exit(err.code);
+  }
 
-    PrincipalsDAO.iterateAll(['principalId', 'displayName', 'email'], 30, _mapPrincipals, function(err) {
-        if (err) {
-            log().error({'err': err}, 'Failed to migrate all users');
-            return _exit(1);
-        }
+  PrincipalsDAO.iterateAll(
+    ['principalId', 'displayName', 'email'],
+    30,
+    _mapPrincipals,
+    function(err) {
+      if (err) {
+        log().error({ err: err }, 'Failed to migrate all users');
+        return _exit(1);
+      }
 
-        log().info('Migration completed, it took %d milliseconds', (Date.now() - start));
-        log().info('Total users: %d, mapped users: %d', totalUsers, mappedUsers);
-        if (mappedUsers !== totalUsers) {
-            log().warn('Not all users could be mapped, check the warning CSV file for which ones couldn\'t and why');
-        }
-        _exit(0);
-    });
+      log().info(
+        'Migration completed, it took %d milliseconds',
+        Date.now() - start,
+      );
+      log().info('Total users: %d, mapped users: %d', totalUsers, mappedUsers);
+      if (mappedUsers !== totalUsers) {
+        log().warn(
+          "Not all users could be mapped, check the warning CSV file for which ones couldn't and why",
+        );
+      }
+      _exit(0);
+    },
+  );
 });
 
 /**
@@ -119,48 +133,56 @@ OAE.init(config, function(err) {
  * @api private
  */
 var _mapPrincipals = function(principals, callback) {
-    var queries = [];
+  var queries = [];
 
-    _.each(principals, function(principal) {
-        var principalId = principal.principalId;
-        var displayName = principal.displayName;
-        var email = principal.email;
+  _.each(principals, function(principal) {
+    var principalId = principal.principalId;
+    var displayName = principal.displayName;
+    var email = principal.email;
 
-        // We only care about users in this migration process
-        if (!PrincipalsDAO.isUser(principalId)) {
-            return;
-        }
-        totalUsers++;
+    // We only care about users in this migration process
+    if (!PrincipalsDAO.isUser(principalId)) {
+      return;
+    }
+    totalUsers++;
 
-        // Check if the user has an email address
-        if (!email) {
-            return csvStream.write({
-                'principalId': principalId,
-                'displayName': displayName,
-                'message': 'No email'
-            });
-        }
+    // Check if the user has an email address
+    if (!email) {
+      return csvStream.write({
+        principalId: principalId,
+        displayName: displayName,
+        message: 'No email',
+      });
+    }
 
-        // Check whether the persisted email address is valid
-        var validator = new Validator();
-        validator.check(email, {'code': 400, 'msg': 'An invalid email address has been persisted'}).isEmail();
-        if (validator.hasErrors()) {
-            return csvStream.write({
-                'principalId': principalId,
-                'displayName': displayName,
-                'email': email,
-                'message':
-                'Invalid email'
-            });
-        }
+    // Check whether the persisted email address is valid
+    var validator = new Validator();
+    validator
+      .check(email, {
+        code: 400,
+        msg: 'An invalid email address has been persisted',
+      })
+      .isEmail();
+    if (validator.hasErrors()) {
+      return csvStream.write({
+        principalId: principalId,
+        displayName: displayName,
+        email: email,
+        message: 'Invalid email',
+      });
+    }
 
-        // Create a mapping for the valid email address
-        queries.push({'query': 'INSERT INTO "PrincipalsByEmail" ("email", "principalId") VALUES (?, ?)', 'parameters': [email, principalId]});
-        mappedUsers++;
+    // Create a mapping for the valid email address
+    queries.push({
+      query:
+        'INSERT INTO "PrincipalsByEmail" ("email", "principalId") VALUES (?, ?)',
+      parameters: [email, principalId],
     });
+    mappedUsers++;
+  });
 
-    // Create the mappings and move on to the next set of principals
-    Cassandra.runBatchQuery(queries, callback);
+  // Create the mappings and move on to the next set of principals
+  Cassandra.runBatchQuery(queries, callback);
 };
 
 /**
@@ -169,7 +191,7 @@ var _mapPrincipals = function(principals, callback) {
  * @param  {Number}     code    The exit code that should be used to stop the process with
  */
 var _exit = function(code) {
-    csvStream.end(function() {
-        process.exit(code);
-    });
+  csvStream.end(function() {
+    process.exit(code);
+  });
 };

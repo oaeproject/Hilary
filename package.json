@@ -110,7 +110,7 @@
     "grunt-text-replace": "^0.4.0",
     "istanbul": "^0.4.5",
     "mocha": "^4.0.1",
-    "nock": "^2.17.0",
+    "nock": "^9.1.6",
     "nodemon": "^1.11.0",
     "oae-release-tools": "git://github.com/oaeproject/oae-release-tools",
     "oauth": "^0.9.15",

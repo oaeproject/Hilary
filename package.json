@@ -65,7 +65,8 @@
     "oauth2orize": "^1.11.0",
     "optimist": "^0.6.1",
     "passport": "0.2.2",
-    "passport-cas": "git://github.com/oaeproject/passport-cas#samlValidateLoginUrl",
+    "passport-cas":
+      "git://github.com/oaeproject/passport-cas#samlValidateLoginUrl",
     "passport-facebook": "git://github.com/oaeproject/passport-facebook",
     "passport-google-oauth": "^1.0.0",
     "passport-http": "^0.3.0",
@@ -106,14 +107,18 @@
     "grunt-cli": "^1.2.0",
     "grunt-contrib-clean": "^1.1.0",
     "grunt-contrib-jshint": "^1.1.0",
-    "grunt-mocha-hack": "git://github.com/mrvisser/grunt-mocha-hack#full-stack-trace",
+    "grunt-mocha-hack":
+      "git://github.com/mrvisser/grunt-mocha-hack#full-stack-trace",
     "grunt-text-replace": "^0.4.0",
+    "husky": "^0.14.3",
     "istanbul": "^0.4.5",
     "mocha": "^4.0.1",
     "nock": "^2.17.0",
     "nodemon": "^1.11.0",
     "oae-release-tools": "git://github.com/oaeproject/oae-release-tools",
     "oauth": "^0.9.15",
+    "prettier": "^1.10.2",
+    "pretty-quick": "^1.2.2",
     "repl-promised": "^0.1.0",
     "shelljs": "^0.7.8",
     "sockjs-client-ws": "^0.1.0",
@@ -161,12 +166,13 @@
     "restjsdoc"
   ],
   "engines": {
-    "node": ">=6.11.5"
+    "node": "8.9.4"
   },
   "scripts": {
     "test": "grunt",
     "snyk-protect": "snyk protect",
-    "prepublish": "npm run snyk-protect"
+    "prepublish": "npm run snyk-protect",
+    "precommit": "pretty-quick --staged"
   },
   "snyk": true
 }

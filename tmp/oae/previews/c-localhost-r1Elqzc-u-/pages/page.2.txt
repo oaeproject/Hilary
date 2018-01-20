@@ -1,0 +1,25 @@
+2) Public information: John -- this is where things are trending. MIT public directory and Cornell VIVO
+project. Ability to make this public at least.
+Jon: For UCB, it's about the individual's ability to make it public or not.
+In zip files,
+02LHN Long Name -- user's info was in a header that spanned the whole page; now it's been moved to
+the left side. Which do people prefer?
+The header action buttons used to have text in them to tell you what they do. Now they are buttons that
+just show icons.
+David: Buttons are fine if you provide rollover text. John: Also don't create buttons for things people don't
+expect to find there.
+Footer: We would like to start using the footer for useful things like navigation but we are uncertain what
+to use it for.
+John: Gaining popularity; not unexpected to find stuff at the bottom now. Wouldn't want us to be the first to
+do this. Widely enough used now that it's not a big deal.
+Alan: Amazon is an example.
+Greg: how easy is it to customize the footer? We have a number of things we'd want to put in there.
+Nico: It would be interesting to know so it could inform the design
+John: the main thing we're contrasting this with is the cascading dropdowns across the top. It seems like
+a slightly cleaner way of achieving the same thing. Key issue of how well it works is how often you need
+to click on it. Best for infrequently clicked links -- a pain to have to scroll down to get to something you
+have to click all the time.
+Nico: Next week, progress report for Milestone 2 and milestone 1 remaining work. Clickable wireframe for
+worlds.
+Nico not available on Tuesday. Reschedule for Thursday April 14 at 5 pm.
+

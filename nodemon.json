@@ -23,6 +23,7 @@
     "node_modules/oae-logger",
     "node_modules/oae-lti",
     "node_modules/oae-mediacore",
+    "node_modules/oae-meetups",
     "node_modules/oae-messagebox",
     "node_modules/oae-mixpanel",
     "node_modules/oae-preview-processor",
@@ -39,9 +40,11 @@
     "node_modules/oae-uservoice",
     "node_modules/oae-util",
     "node_modules/oae-version",
-    "3akai-ux/node_modules/oae*/"
-  ],
-  "ignoreRoot": [
+    "3akai-ux/node_modules/oae*/",
+    "3akai-ux/shared/*",
+    "3akai-ux/ui/*"
+],
+"ignoreRoot": [
     ".git",
     "3akai-ux/.git",
     "node_modules/oae-rest/.git",

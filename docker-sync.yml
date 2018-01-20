@@ -5,27 +5,33 @@ options:
   compose-file-path: 'docker-compose.mac.yml'
 
 syncs:
-  oae-hilary-sync:
-    notify_terminal: true
-    src: '/src/brecke/Hilary'
-  oae-hilary-files-sync:
-    notify_terminal: true
-    src: '/src/files'
-  oae-elasticsearch-sync:
-    notify_terminal: true
-    src: '/data/elasticsearch'
-  oae-nginx-sync1:
-    notify_terminal: true
-    src: '/src/brecke/files'
-  oae-nginx-sync2:
-    notify_terminal: true
-    src: '/src/brecke/Hilary/3akai-ux'
-  oae-cassandra-sync:
-    notify_terminal: true
-    src: '/data/cassandra'
-  oae-etherpad-sync:
-    notify_terminal: true
-    src: '/data/etherpad'
-  oae-portainer-sync:
-    notify_terminal: true
-    src: '/data/portainer/data'
+#   oae-hilary-sync:
+    # notify_terminal: true
+    # src: '/Users/miguel/Work/Hilary'
+#   oae-hilary-files-sync:
+    # notify_terminal: true
+    # src: '/Users/miguel/Work/Hilary/files'
+#   oae-hilary-tmp-sync:
+    # notify_terminal: true
+    # src: '/Users/miguel/Work/Hilary/tmp'
+#   oae-elasticsearch-sync:
+#     notify_terminal: true
+    # src: '/data/elasticsearch'
+#   oae-nginx-sync1:
+    # notify_terminal: true
+    # src: '/Users/miguel/Work/Hilary/files'
+#   oae-nginx-sync2:
+    # notify_terminal: true
+    # src: '/Users/miguel/Work/Hilary/3akai-ux'
+#   oae-nginx-sync3:
+    # notify_terminal: true
+    # src: '/home/miguel/Work/Hilary/3akai-ux/nginx/'
+#   oae-cassandra-sync:
+    # notify_terminal: true
+    # src: '/Users/miguel/Work/data/cassandra'
+#   oae-etherpad-sync:
+    # notify_terminal: true
+    # src: '/Users/miguel/Work/data/etherpad'
+#   oae-portainer-sync:
+#     notify_terminal: true
+#     src: '/data/portainer/data'

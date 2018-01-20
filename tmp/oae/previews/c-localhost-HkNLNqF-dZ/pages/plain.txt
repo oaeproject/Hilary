@@ -1,0 +1,56 @@
+URG Notes 4/5/11
+Nico shared these documents with us:
+Downloadable prototypes:
+http://3akai.sakaiproject.org/p/HEtmmeRYI5ozCcmM9RHk4Soa/UsersA+B_Users_Scenario_v03.pdf
+http://3akai.sakaiproject.org/p/ggz9eSK1Peyuu0dGBv68maW/artwork05042011.zip
+Clickable versions of these prototypes:
+http://3akai.sakaiproject.org/p/F5gqVoMflgug8EqtQgoIraTqe/S106_Prototype_Content.zip
+http://3akai.sakaiproject.org/p/e8gR5O1EsHTDo3MECM3hYee/S106_Prototype_Users.zip
+Would like for us to go back to our institutional groups to decide what should actually be featured on these
+pages.
+Now "My Library" rather than "My Content" throughout the UI.
+Left hand panel of recommended stuff is now an activity wall that updates constantly so users have
+p. 2 Categories menu -- clicking on it would bring down a selection of stuff from the first tier of the
+hierarchy. Would like to move the stuff in the directory page now as that stuff is already available on
+institutions' websites.
+John: generally likes the designs but not the content window controls. Better model is google where the
+controls appear when you mouse over. Tags look a bit odd.
+David: Agree it looks good. On p. 2, there are 10 boxes -- maybe go for fewer?
+Recommended and related -- replaced with activity stream
+This site, http://www.tumblr.com/explore , is the inspiration for the button on p.2 under show more
+p. 28 -- not technically impossible to connect with a bibliographic tool -- could be a good side project.
+
+BUT, technically difficult to do this for the 1.0 release.
+p. 2: Question 1: Very focused on content -- is that the right focus for it?
+John: It doesn't have to be content -- maybe that is all that's in there right now. Nico: Yes we can repurpose some of these boxes to show other features (like discussions).
+Question 2: Categories button only shows top level of hierarchies. Is that okay?
+-- hard to be sure without that button open for us.
+p. 38: 1) recommended content on the hover -- more will show up throughout the system. How do we feel
+about that?
+
+2) Public information: John -- this is where things are trending. MIT public directory and Cornell VIVO
+project. Ability to make this public at least.
+Jon: For UCB, it's about the individual's ability to make it public or not.
+In zip files,
+02LHN Long Name -- user's info was in a header that spanned the whole page; now it's been moved to
+the left side. Which do people prefer?
+The header action buttons used to have text in them to tell you what they do. Now they are buttons that
+just show icons.
+David: Buttons are fine if you provide rollover text. John: Also don't create buttons for things people don't
+expect to find there.
+Footer: We would like to start using the footer for useful things like navigation but we are uncertain what
+to use it for.
+John: Gaining popularity; not unexpected to find stuff at the bottom now. Wouldn't want us to be the first to
+do this. Widely enough used now that it's not a big deal.
+Alan: Amazon is an example.
+Greg: how easy is it to customize the footer? We have a number of things we'd want to put in there.
+Nico: It would be interesting to know so it could inform the design
+John: the main thing we're contrasting this with is the cascading dropdowns across the top. It seems like
+a slightly cleaner way of achieving the same thing. Key issue of how well it works is how often you need
+to click on it. Best for infrequently clicked links -- a pain to have to scroll down to get to something you
+have to click all the time.
+Nico: Next week, progress report for Milestone 2 and milestone 1 remaining work. Clickable wireframe for
+worlds.
+Nico not available on Tuesday. Reschedule for Thursday April 14 at 5 pm.
+
+

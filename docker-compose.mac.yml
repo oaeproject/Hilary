@@ -30,53 +30,53 @@ networks:
         - subnet: 172.20.0.0/24
 
 volumes:
-  oae-hilary-sync:
-    external: true
-  oae-hilary-files-sync:
-    external: true
-  oae-elasticsearch-sync:
-    external: true
-  oae-nginx-sync1:
-    external: true
-  oae-nginx-sync2:
-    external: true
-  oae-cassandra-sync:
-    external: true
-  oae-etherpad-sync:
-    external: true
-  oae-portainer-sync:
-    external: true
+#   oae-hilary-sync:
+    # external: true
+#   oae-hilary-files-sync:
+    # external: true
+#   oae-hilary-tmp-sync:
+    # external: true
+#   oae-elasticsearch-sync:
+    # external: true
+#   oae-nginx-sync1:
+    # external: true
+#   oae-nginx-sync2:
+    # external: true
+#   oae-nginx-sync3:
+    # external: true
+#   oae-cassandra-sync:
+    # external: true
+#   oae-etherpad-sync:
+    # external: true
+#   oae-portainer-sync:
+    # external: true
 
 services:
-  oae-hilary:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: oae-hilary
-    # command: nodemon -L app.js | bunyan # default
-    # command: grunt test-module:oae-principals # for running tests
-    depends_on:
-      - oae-cassandra
-      - oae-elasticsearch
-      - oae-rabbitmq
-      - oae-redis
-      - oae-etherpad
-    extra_hosts:
-      - "admin.oae.com:172.20.0.9"
-    #   - "tenant1.oae.com:172.20.0.9"
-      # - "any.other.host.oae.com:172.20.0.9"
-    image: hilary:latest
-    networks:
-      my_network:
-        ipv4_address: 172.20.0.7
-    ports:
-      - 2000:2000
-      - 2001:2001
-    tty: false
-    volumes:
-      - oae-hilary-sync:/usr/src/Hilary:rw
-      - oae-hilary-files-sync:/usr/src/files:rw
-      - /src/brecke/tmp/oae:/tmp/oae
+#   oae-hilary:
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    # container_name: oae-hilary
+    # depends_on:
+    #   - oae-cassandra
+    #   - oae-elasticsearch
+    #   - oae-rabbitmq
+    #   - oae-redis
+    #   - oae-etherpad
+    # extra_hosts:
+    #   - "admin.oae.com:172.20.0.9"
+    # image: hilary:latest
+    # networks:
+    #   my_network:
+        # ipv4_address: 172.20.0.7
+    # ports:
+    #   - 2000:2000
+    #   - 2001:2001
+    # tty: false
+    # volumes:
+    #   - oae-hilary-sync:/usr/src/Hilary:rw
+    #   - oae-hilary-files-sync:/usr/src/files:rw
+    #   - oae-hilary-tmp-sync:/tmp/oae:rw
   oae-redis:
     container_name: oae-redis
     image: redis:3.2.8-alpine
@@ -93,8 +93,8 @@ services:
     ports:
       - 9200:9200
     tty: false
-    volumes:
-      - oae-elasticsearch-sync:/data:rw
+    # volumes:
+    #   - oae-elasticsearch-sync:/data:rw
   oae-rabbitmq:
     container_name: oae-rabbitmq
     image: rabbitmq:3.6.6-management-alpine
@@ -105,25 +105,26 @@ services:
     tty: false
   oae-nginx:
     container_name: oae-nginx
-    depends_on:
-      - oae-hilary
+    # depends_on:
+    #   - oae-hilary
     image: nginx:stable-alpine
     networks:
       my_network:
         ipv4_address: 172.20.0.9 # this is needed because of multi-tenancy
     tty: false
-    volumes:
-      - /src/brecke/Hilary/3akai-ux/nginx/nginx.conf.docker:/etc/nginx/nginx.conf
-      - /src/brecke/Hilary/3akai-ux/nginx/mime.conf:/etc/nginx/mime.conf
-      - /src/brecke/Hilary/3akai-ux/nginx/nginx-selfsigned.crt:/etc/nginx/nginx-selfsigned.crt
-      - /src/brecke/Hilary/3akai-ux/nginx/nginx-selfsigned.key:/etc/nginx/nginx-selfsigned.key
-      - /src/brecke/Hilary/3akai-ux/nginx/self-signed.conf:/etc/nginx/self-signed.conf
-      - /src/brecke/Hilary/3akai-ux/nginx/ssl-params.conf:/etc/nginx/ssl-params.conf
-      - /src/brecke/Hilary/3akai-ux/nginx/dhparam.pem:/etc/nginx/dhparam.pem
-      - oae-nginx-sync1:/usr/share/files
-      - oae-nginx-sync2:/usr/share/3akai
-    volumes_from:
-      - oae-hilary
+    # volumes:
+    #   - /nginx.conf.docker:/etc/nginx/nginx.conf:ro
+    #   - /mime.conf:/etc/nginx/mime.conf:ro
+    #   - /nginx-selfsigned.crt:/etc/nginx/nginx-selfsigned.crt:ro
+    #   - /nginx-selfsigned.key:/etc/nginx/nginx-selfsigned.key:ro
+    #   - /self-signed.conf:/etc/nginx/self-signed.conf:ro
+    #   - /ssl-params.conf:/etc/nginx/ssl-params.conf:ro
+    #   - /dhparam.pem:/etc/nginx/dhparam.pem:ro
+#       - oae-nginx-sync1:/usr/share/files
+#       - oae-nginx-sync2:/usr/share/3akai
+#       - oae-nginx-sync3:/etc/nginx
+    # volumes_from:
+    #   - oae-hilary
     ports:
       - 80:80
       - 443:443
@@ -136,8 +137,8 @@ services:
       - 9160:9160
       - 9042:9042
     tty: false
-    volumes:
-      - oae-cassandra-sync:/var/lib/cassandra:rw
+    # volumes:
+    #   - oae-cassandra-sync:/var/lib/cassandra:rw
   oae-etherpad:
     container_name: oae-etherpad
     depends_on:
@@ -149,5 +150,5 @@ services:
     ports:
       - 9001:9001
     tty: false
-    volumes:
-      - oae-etherpad-sync:/opt/etherpad/var:rw
+    # volumes:
+    #   - oae-etherpad-sync:/opt/etherpad/var:rw

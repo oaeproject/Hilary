@@ -76,4 +76,3 @@
  * @Required  []
  * @Property  {number}          {serverStatistic}               Value of named server statistic
  */
-

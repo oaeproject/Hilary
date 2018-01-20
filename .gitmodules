@@ -7,3 +7,6 @@
 [submodule "node_modules/restjsdoc"]
 	path = node_modules/restjsdoc
 	url = https://github.com/oaeproject/restjsdoc.git
+[submodule "node_modules/oae-meetups"]
+	path = node_modules/oae-meetups
+	url = https://github.com/blindsidenetworks/oae-meetups

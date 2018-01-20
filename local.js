@@ -29,7 +29,7 @@ var config = (module.exports.config = {});
  * @param  {String}    path               The log path that should be used for testing
  */
 config.test = {
-  timeout: 120000,
-  level: 'info',
-  path: './tests.log',
+    'timeout': 880000,
+    'level': 'info',
+    'path': './tests.log'
 };

@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-
 /**
  * @RESTModel BasicUser
  *
@@ -175,4 +174,3 @@
  * @Property    {BasicTenant}       tenant                  The tenant to which this user is associated
  * @Property    {string}            visibility              The visibility of the user               [loggedin,private,public]
  */
-

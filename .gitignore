@@ -12,3 +12,8 @@ doc_data.txt
 .DS_Store
 
 /node_modules/oae-release-tools
+
+tmp*
+.python-version
+.ruby-version
+.vscode/*

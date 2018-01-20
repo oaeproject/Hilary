@@ -463,3 +463,45 @@ config.mixpanel = {
   enabled: false,
   token: 'f3e9fce119d357b745a8dfa36248d632',
 };
+
+/**
+ * Uncomment below for non-docker node
+ */
+const LOCALHOST = 'localhost';
+// const LOCALHOST = 'aspiredor.local';
+config.ui.path = './3akai-ux';
+// config.cassandra.hosts = ['oae-cassandra'];
+config.cassandra.hosts = [LOCALHOST];
+config.cassandra.timeout = 90000;
+config.tincanapi.timeout = 20000;
+// config.redis.host = 'oae-redis';
+config.redis.host = LOCALHOST;
+config.servers.serverInternalAddress = '0.0.0.0'; // null otherwise
+tmpDir = '/Users/miguel/Work/tmp'; // change to your own Hilary temp path
+config.search.hosts = [
+    {
+        // 'host': 'oae-elasticsearch',
+        'host': LOCALHOST,
+        'port': 9200
+    }
+];
+// config.mq.connection.host = 'oae-rabbitmq';
+config.mq.connection.host = LOCALHOST;
+config.previews.enabled = true;
+config.previews.office.binary = '/Applications/LibreOffice.app/Contents/MacOS/soffice'; // change to your own path
+// config.previews.office.binary = 'docker run -d -v /Users:/Users -v /var:/var instructure/libreoffice soffice'; // change to your own path
+config.previews.office.timeout = 900000;
+config.previews.pdf2htmlEX.binary = '/usr/local/bin/pdf2htmlEX'; // change to your own path
+config.previews.pdf2htmlEX.timeout = 240000;
+config.previews.pdftotext.binary = '/usr/local/bin/pdftotext'; // change to your own path
+config.previews.pdftotext.timeout = 260000;
+config.previews.link.renderTimeout = 260000;
+config.previews.link.embeddableCheckTimeout = 60000;
+config.email.transport = 'sendmail';
+config.etherpad.hosts = [
+    {
+        // 'host': 'oae-etherpad',
+        'host': LOCALHOST,
+        'port': 9001
+    }
+];

@@ -21,7 +21,7 @@ module.exports = function(grunt) {
   var mocha_grep = process.env['MOCHA_GREP'] || undefined;
 
   // Timeout used to determine when a test has failed
-  var MOCHA_TIMEOUT = 60000;
+  var MOCHA_TIMEOUT = 300000;
 
   var regexErrors = false;
 
@@ -41,7 +41,7 @@ module.exports = function(grunt) {
       options: {
         node: true,
         sub: true,
-        indent: 4,
+        indent: 2,
         trailing: true,
         quotmark: 'single',
         curly: true,
@@ -184,6 +184,7 @@ module.exports = function(grunt) {
       return util.format('-x %s/\\*\\*', module);
     });
 
+<<<<<<< Updated upstream
     // Exclude the tests from the coverage reports
     var oaeModules = grunt.file.expand(
       { filter: 'isDirectory' },
@@ -191,6 +192,49 @@ module.exports = function(grunt) {
     );
     var testDirectories = _.map(oaeModules, function(directory) {
       return util.format('-x %s/tests/\\*\\*', directory);
+=======
+    grunt.registerTask('test-all', 'Test all modules one by one', function(){
+        var modules = ['oae-activity','oae-authentication','oae-authz','oae-config','oae-content','oae-context','oae-discussions','oae-doc','oae-email','oae-emitter','oae-folders','oae-following','oae-google-analytics','oae-jitsi','oae-library','oae-logger','oae-lti','oae-mediacore','oae-messagebox','oae-mixpanel','oae-principals','oae-release-tools','oae-resource','oae-rest','oae-search','oae-telemetry','oae-tenants','oae-tests','oae-tincanapi','oae-ui','oae-uservoice','oae-util','oae-version'];
+        modules.forEach(function(module) {
+            grunt.task.run('test-module:' + module);
+        });
+    });
+
+    // Runs the unit tests and dumps some coverage data
+    grunt.registerTask('test-instrumented', function(report) {
+        // If no report format was provided, we default to `lcov` which generates lcov and html
+        report = report || 'lcov';
+
+        // Get the modules that should be excluded
+        var excludeDirectories = grunt.file.expand({'filter': 'isDirectory'}, 'node_modules/*', '!node_modules/oae-*', 'node_modules/oae-tests', 'node_modules/oae-*/node_modules');
+        var excludeDirectoriesParameters = _.map(excludeDirectories, function(module) {
+            return util.format('-x %s/\\*\\*', module);
+        });
+
+        // Exclude the tests from the coverage reports
+        var oaeModules = grunt.file.expand({'filter': 'isDirectory'}, 'node_modules/oae-*');
+        var testDirectories = _.map(oaeModules, function(directory) {
+            return util.format('-x %s/tests/\\*\\*', directory);
+        });
+        var testUtilDirectories = _.map(oaeModules, function(directory) {
+            return util.format('-x %s/lib/test/\\*\\*', directory);
+        });
+
+        // Exclude the config directories
+        var configDirectories = _.map(oaeModules, function(module) {
+            return util.format('-x %s/config/\\*\\*', module);
+        });
+
+        // Build up one big set of exlusion filters
+        var excludeFilters = _.union(excludeDirectoriesParameters, testDirectories, testUtilDirectories, configDirectories);
+        excludeFilters.push('-x Gruntfile.js');
+
+        var cmd = util.format('node_modules/.bin/istanbul cover --verbose --dir target --no-default-excludes %s --report %s ./node_modules/grunt-cli/bin/grunt', excludeFilters.join(' '), report);
+        var code = shell.exec(cmd).code;
+        if (code !== 0) {
+            process.exit(code);
+        }
+>>>>>>> Stashed changes
     });
     var testUtilDirectories = _.map(oaeModules, function(directory) {
       return util.format('-x %s/lib/test/\\*\\*', directory);

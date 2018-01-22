@@ -28,18 +28,18 @@ var LowerCaseEmailsMigrator = require('./lib/lowerCaseEmails');
 var OAE = require('oae-util/lib/oae');
 var TenantsAPI = require('oae-tenants');
 
-var argv = optimist.usage('$0 [--config <path/to/config.js>]')
-    .alias('c', 'config')
-    .describe('c', 'Specify an alternate config file')
-    .default('c', 'config.js')
+var argv = optimist
+  .usage('$0 [--config <path/to/config.js>]')
+  .alias('c', 'config')
+  .describe('c', 'Specify an alternate config file')
+  .default('c', 'config.js')
 
-    .alias('h', 'help')
-    .describe('h', 'Show usage information')
-    .argv;
+  .alias('h', 'help')
+  .describe('h', 'Show usage information').argv;
 
 if (argv.help) {
-    optimist.showHelp();
-    process.exit(0);
+  optimist.showHelp();
+  process.exit(0);
 }
 
 // Get the config
@@ -48,18 +48,21 @@ var config = require(configPath).config;
 
 // Start the application container. This will allow us to re-use existing APIs
 OAE.init(config, function(err) {
+  if (err) {
+    log().error({ err: err }, 'Unable to spin up the application server');
+    return process.exit(err.code);
+  }
+
+  LowerCaseEmailsMigrator.doMigration(function(err, stats) {
     if (err) {
-        log().error({'err': err}, 'Unable to spin up the application server');
-        return process.exit(err.code);
+      log().error(
+        { err: err },
+        'An error occurred while migrating emails to lower case',
+      );
+    } else {
+      log().info({ stats: stats }, 'Migration complete');
     }
 
-    LowerCaseEmailsMigrator.doMigration(function(err, stats) {
-        if (err) {
-            log().error({'err': err}, 'An error occurred while migrating emails to lower case');
-        } else {
-            log().info({'stats': stats}, 'Migration complete');
-        }
-
-        return process.exit(0);
-    });
+    return process.exit(0);
+  });
 });

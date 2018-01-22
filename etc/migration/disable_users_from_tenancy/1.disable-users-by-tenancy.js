@@ -35,13 +35,15 @@ var argv = optimist
   .usage('$0 -t cam [--config <path/to/config.js>]')
   .demand('t')
   .alias('t', 'tenant')
-  .describe('t', 'Specify the tenant alias of the tenant whose users who wish to migrate')
+  .describe(
+    't',
+    'Specify the tenant alias of the tenant whose users who wish to migrate',
+  )
   .alias('c', 'config')
   .describe('c', 'Specify an alternate config file')
   .default('c', 'config.js')
   .alias('h', 'help')
-  .describe('h', 'Show usage information')
-  .argv;
+  .describe('h', 'Show usage information').argv;
 
 if (argv.help) {
   optimist.showHelp();
@@ -65,24 +67,30 @@ config.previews.enabled = false;
 
 // Ensure that we're logging to standard out/err
 config.log = {
-  'streams': [
+  streams: [
     {
-      'level': 'info',
-      'stream': process.stdout
-    }
-  ]
+      level: 'info',
+      stream: process.stdout,
+    },
+  ],
 };
 
 // Spin up the application container. This will allow us to re-use existing APIs
-OAE.init(config, function (err) {
+OAE.init(config, function(err) {
   if (err) {
-    log().error({
-      'err': err
-    }, 'Unable to spin up the application server');
+    log().error(
+      {
+        err: err,
+      },
+      'Unable to spin up the application server',
+    );
     process.exit(err.code);
   }
 
-  DisableUsersMigration.doMigration(null, tenantAlias, true, function(err, users) {
+  DisableUsersMigration.doMigration(null, tenantAlias, true, function(
+    err,
+    users,
+  ) {
     if (err) {
       log().warn('Migration not completed successfully.');
       process.exit(err.code);

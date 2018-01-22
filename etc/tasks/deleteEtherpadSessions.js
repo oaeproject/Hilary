@@ -23,18 +23,17 @@ var log = require('oae-logger').logger('delete-etherpad-sessions');
 var OAE = require('oae-util/lib/oae');
 
 var argv = optimist
-    .usage('Delete the Etherpad session keys\n$0 [--config <path/to/config.js>]')
-    .alias('c', 'config')
-    .describe('c', 'Specify an alternate config file')
-    .default('c', 'config.js')
+  .usage('Delete the Etherpad session keys\n$0 [--config <path/to/config.js>]')
+  .alias('c', 'config')
+  .describe('c', 'Specify an alternate config file')
+  .default('c', 'config.js')
 
-    .alias('h', 'help')
-    .describe('h', 'Show usage information')
-    .argv;
+  .alias('h', 'help')
+  .describe('h', 'Show usage information').argv;
 
 if (argv.help) {
-    optimist.showHelp();
-    return;
+  optimist.showHelp();
+  return;
 }
 
 // Get the config
@@ -49,22 +48,33 @@ var totalDeletedKeys = 0;
 
 // Initialize the application container
 OAE.init(config, function(err) {
-    if (err) {
-        log().error({'err': err}, 'Unable to spin up the application server');
-        process.exit(err.code);
-    }
+  if (err) {
+    log().error({ err: err }, 'Unable to spin up the application server');
+    process.exit(err.code);
+  }
 
+  log().info(
+    'Iterating over etherpad keys, depending on the amount of data in Etherpad this could take a while',
+  );
+  Cassandra.iterateAll(
+    ['key'],
+    'Etherpad',
+    'key',
+    { batchSize: 500 },
+    _deleteSessionRows,
+    function(err) {
+      if (err) {
+        log().error(
+          { err: err },
+          'An error occurred whilst deleting Etherpad keys',
+        );
+        process.exit(1);
+      }
 
-    log().info('Iterating over etherpad keys, depending on the amount of data in Etherpad this could take a while');
-    Cassandra.iterateAll(['key'], 'Etherpad', 'key', {'batchSize': 500}, _deleteSessionRows, function(err) {
-        if (err) {
-            log().error({'err': err}, 'An error occurred whilst deleting Etherpad keys');
-            process.exit(1);
-        }
-
-        log().info('%d session keys have been deleted', totalDeletedKeys);
-        process.exit(0);
-    });
+      log().info('%d session keys have been deleted', totalDeletedKeys);
+      process.exit(0);
+    },
+  );
 });
 
 /**
@@ -75,22 +85,26 @@ OAE.init(config, function(err) {
  * @api private
  */
 var _deleteSessionRows = function(rows, callback) {
-    // Get the session keys
-    var keysToDelete = _.chain(rows)
-        .map(function(row) {
-            return row.get('key');
-        })
-        .filter(function(key) {
-            return (key.indexOf('session') !== -1);
-        })
-        .value();
+  // Get the session keys
+  var keysToDelete = _.chain(rows)
+    .map(function(row) {
+      return row.get('key');
+    })
+    .filter(function(key) {
+      return key.indexOf('session') !== -1;
+    })
+    .value();
 
-    // If there were no session keys in this batch, we return immediately
-    if (_.isEmpty(keysToDelete)) {
-        return callback();
-    }
+  // If there were no session keys in this batch, we return immediately
+  if (_.isEmpty(keysToDelete)) {
+    return callback();
+  }
 
-    totalDeletedKeys += keysToDelete.length;
-    log().info('Deleting %d keys', keysToDelete.length);
-    return Cassandra.runQuery('DELETE FROM "Etherpad" WHERE key IN ?', [keysToDelete], callback);
+  totalDeletedKeys += keysToDelete.length;
+  log().info('Deleting %d keys', keysToDelete.length);
+  return Cassandra.runQuery(
+    'DELETE FROM "Etherpad" WHERE key IN ?',
+    [keysToDelete],
+    callback,
+  );
 };

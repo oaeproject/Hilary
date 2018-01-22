@@ -210,10 +210,10 @@ config.search = {
                 },
                 'tokenizer': {
                     'display_name_tokenizer': {
-                        "type" : "edgeNGram",
-                        "min_gram" : "2",
-                        "max_gram" : "10",
-                        "token_chars": []
+                        'type' : 'edgeNGram',
+                        'min_gram' : '2',
+                        'max_gram' : '10',
+                        'token_chars': []
                     }
                 },
                 'filter': {

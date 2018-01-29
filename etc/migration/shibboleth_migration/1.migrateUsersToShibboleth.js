@@ -15,10 +15,7 @@
 
 /*
  * Map user accounts created with Shibboleth to the earlier ones created
- * with Google auth - Shibboleth EPPN should match email account. Before
- * using this script, move the files themselves over using the AWS CLI
- * tool using the following command:
- * `aws s3 sync ${oae-local-storage-directory} "s3://${oae-s3-bucket}"`
+ * with Google auth - Shibboleth EPPN should match email account.
  */
 
 var _ = require('underscore');

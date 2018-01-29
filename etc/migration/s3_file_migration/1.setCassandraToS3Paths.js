@@ -14,7 +14,9 @@
  */
 
 /*
- * Update all the fields that hold a storage type for an instance of OAE in Cassandra.
+ * Update all the fields that hold a storage type for an instance of OAE in Cassandra. Before
+ * using this script, move the files themselves over using the AWS CLI  tool using the following
+ * command: `aws s3 sync ${oae-local-storage-directory} "s3://${oae-s3-bucket}"`
  * Usage: node 1.setCassandraToS3Paths.js --config <path-to-config> -t <new-storage-type> | bunyan
  */
 

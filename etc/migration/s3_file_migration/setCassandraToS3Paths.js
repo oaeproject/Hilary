@@ -13,11 +13,6 @@
  * permissions and limitations under the License.
  */
 
-/*
- * Map user accounts created with Shibboleth to the earlier ones
- * created with Google auth - Shibboleth EPPN should match email account.
- */
-
 const _ = require('underscore');
 const async = require('async');
 

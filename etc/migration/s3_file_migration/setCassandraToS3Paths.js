@@ -26,7 +26,7 @@ let storageType = 'amazons3';
 
 // All the tables and columns that hold storage type in Cassandra
 const storageTypeTables = [
-    {'name': 'Content', 'primaryKey': 'contentId', 'columns': 'previews'},
+    {'name': 'Content', 'primaryKey': 'contentId', 'columns': ['previews', 'largeUri', 'mediumUri', 'smallUri', 'thumbnailUri', 'wideUri', 'uri']},
     {'name': 'Folders', 'primaryKey': 'id', 'columns': 'previews'},
     {'name': 'PreviewItems', 'primaryKey': ['revisionId', 'name'], 'columns': 'value'},
     {'name': 'Config', 'primaryKey': ['tenantAlias', 'configKey'], 'columns': 'value'},

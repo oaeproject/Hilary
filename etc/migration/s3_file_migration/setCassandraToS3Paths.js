@@ -130,17 +130,19 @@ const _fetchValueFromCassandra = function(table, callback) {
  */
 const _updateColumnsInCassandra = function(table, rows, callback) {
     const primaryKey = table.primaryKey;
-    const columns = table.columns;
      async.each(rows, function(row, done) {
         let values = [];
         let query = `UPDATE "${table.name}" SET `;
+        let columns = _.filter(table.columns, function(column) {
+            return row[column] && row[column] !== _replaceLocalWithAmazonS3(row[column]);
+        });
+
         _.each(columns, function(column, i) {
             let value = _replaceLocalWithAmazonS3(row[column]);
-            if (value && value !== row[column]) {
-                values.push(value);
-                query = i === columns.length - 1 ? query + `"${column}" = ? ` : query + `"${column}" = ?, `;
-            }
+            values.push(value);
+            query = (i === columns.length - 1) ? query + `"${column}" = ? ` : query + `"${column}" = ?, `;
         });
+
         query = _.isArray(primaryKey) ? query + `WHERE "${primaryKey[0]}" = '${row[primaryKey[0]]}' AND "${primaryKey[1]}" = '${row[primaryKey[1]]}'` : query + `WHERE "${primaryKey}" = '${row[primaryKey]}'`;
         if (values.length > 0) {
             Cassandra.runQuery(query, values, function(err, results) {
@@ -155,6 +157,7 @@ const _updateColumnsInCassandra = function(table, rows, callback) {
         }
     }, callback);
 };
+
 
 /**
  * Replace all instances of `local` with `amazons3` or vice versa

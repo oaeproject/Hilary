@@ -425,7 +425,8 @@ config.email = {
  * @param  {Number}     hosts[i].port   The port number on which Hilary will be accessing the etherpad API.
  */
 config.etherpad = {
-    'apikey': '13SirapH8t3kxUh5T5aqWXhXahMzoZRA',
+    'apikey': '44548c94a7d5aa29c43b8b4f02924f19cf59eb7be72249d0532430a4e0d4aad9',
+    // 'apikey': '13SirapH8t3kxUh5T5aqWXhXahMzoZRA',
     'hosts': [
         {
             'host': '127.0.0.1',

@@ -14,22 +14,21 @@
  */
 
 module.exports = {
-  /**
-   * Application configuration section
-   * http://pm2.keymetrics.io/docs/usage/application-declaration/
-   */
-  apps : [
-
-    // Running application
-    {
-      name      : 'Hilary',
-      script    : 'app.js',
-      watch: true,
-      ignore_watch: ['test', '.git', 'files'],
-      instances: 1,
-      exec_mode: "cluster",
-      log_file: 'hilary.log',
-      error_file: 'hilary-err.log'
-    },
-  ]
+    /**
+     * Application configuration section
+     * http://pm2.keymetrics.io/docs/usage/application-declaration/
+     */
+    apps: [
+        // Running application
+        {
+            name: 'Hilary',
+            script: 'app.js',
+            watch: false,
+            ignore_watch: ['test', '.git', 'files'],
+            instances: 0,
+            exec_mode: 'cluster',
+            log_file: 'hilary.log',
+            error_file: 'hilary-err.log'
+        }
+    ]
 };

@@ -1,0 +1,14 @@
+{
+    "apps": [
+        {
+            "name": "Hilary",
+            "script": "app.js",
+            "watch": true,
+            "instances": 1,
+            "exec_mode": "cluster",
+            "log_file": "hilary.log",
+            "error_file": "hilary-err.log",
+            "ignore_watch": ["test", ".git", "files"]
+        }
+    ]
+}

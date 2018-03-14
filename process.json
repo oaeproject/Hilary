@@ -6,8 +6,8 @@
             "watch": true,
             "instances": 1,
             "exec_mode": "cluster",
-            "log_file": "hilary.log",
-            "error_file": "hilary-err.log",
+            "log_file": "/var/log/Hilary/hilary.log",
+            "error_file": "/var/log/Hilary/hilary-err.log",
             "ignore_watch": ["test", ".git", "files"]
         }
     ]

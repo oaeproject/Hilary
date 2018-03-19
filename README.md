@@ -44,51 +44,24 @@ cd 3akai-ux && git checkout master # because HEAD is detached after pulling subm
 
 #### Customize the folder paths
 
-The `docker-compose.yml` file includes the folder paths (mountpoints) where the container volumes will be mounted, namely:
-
-- `oae-hilary`:
-  - `/src/Hilary`
-  - `/src/files`
-  - `/src/tmp/oae`
-- `oae-elasticsearch`:
-  - `/data/elasticsearch`
-- `oae-nginx`:
-  - `/src/files`
-  - `/src/Hilary/3akai-ux/nginx/nginx.conf.docker`
-  - `/src/Hilary/3akai-ux/nginx/mime.conf`
-  - `/src/Hilary/3akai-ux/nginx/nginx-selfsigned.crt`
-  - `/src/Hilary/3akai-ux/nginx/nginx-selfsigned.key`
-  - `/src/Hilary/3akai-ux/nginx/self-signed.conf`
-  - `/src/Hilary/3akai-ux/nginx/ssl-params.conf`
-  - `/src/Hilary/3akai-ux/nginx/dhparam.pem`
-  - `/src/Hilary/3akai-ux`
-- `oae-cassandra`:
-  - `/data/cassandra`
-- `oae-etherpad`:
-  - `/data/etherpad/dirty.db`
-- `oae-portainer`:
-  - `/data/portainer/data`
-  - `/var/run/docker.sock`
-
-Either make sure these paths are the ones you're using or change them in the `docker-compose.yml` file to match your own paths.
-
-Then, we need to edit the `config.js` file and change the `config.ui` path from:
+If you accept the following directory structure, `docker-compose` will work out of the box.
 
 ```
-config.ui = {
-    'path': '../3akai-ux'
-};
+<some-local-path>
+|-- Hilary
+    |-- 3akai-ux
+|-- files
+|-- tmp
+    |-- oae
+|-- data
+    |-- elasticsearch
+    |-- cassandra
+    |-- etherpad
 ```
 
-to
+If you want to use different (local) paths, make sure to change container volumes accordingly on `docker-compose.yml`:
 
-```
-config.ui = {
-    'path': './3akai-ux'
-};
-```
-
-and then make sure you change the following settings in `config.js` as well:
+Then, we need to edit the `config.js` file and make sure we change the following settings:
 
 ```
     'hosts': ['127.0.0.1:9160'], # replace this
@@ -184,9 +157,6 @@ If you need to tail the logs of a specific server for debugging, try running `do
 If you're having network problems, run `docker network inspect bridge` for check container network configuration or `docker inspect oae-hilary` to take a look at `oae-hilary` container details.
 
 --
-
-For making it easy to manage docker containers and images, we have included [portainer](http://portainer.io/) in the `docker-compose.yml` file. Portainer is easily installed and becomes accessible via `http://DOCKER_HOST:9000` when `docker-compose up` is ran. More information on Portainer at [the official documentation website](https://portainer.readthedocs.io/en/stable/).
-
 ### Setup
 
 #### Change the /etc/hosts file
@@ -316,7 +286,7 @@ server 192.168.1.2:2001; # assuming 192.168.1.2 is the external network IP addre
 
 Also, don't forget that running `Hilary` locally implies installing several other packages, namely `soffice` (libreoffice), `pdftotext` and `pdf2htmlEX`. You can find instructions on how to do this [here](https://github.com/brecke/Hilary/wiki/Manual-installation-&-setup).
 
-Now if you comment out the `oae-hilary` service in the `docker-compose.yml` file and run `docker-compose up`, all services boot except for Hilary. Then you may then run `nodemon app.js | bunyan` locally on the terminal and you should be able to start the server.
+Now run `docker-compose up -d oae-cassandra oae-redis oae-rabbitmq oae-elasticsearch` and then `docker-compose logs -f` to check the logs. Once cassandra is listening for connections, you may run the remaining containers: `docker-compose up -d oae-etherpad oae-nginx`. You may then run `nodemon app.js | bunyan` locally on the terminal to start the server.
 
 ## Get in touch
 

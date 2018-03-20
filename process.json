@@ -3,6 +3,7 @@
         {
             "name": "Hilary",
             "script": "app.js",
+            "cwd": "/opt/current",
             "watch": true,
             "instances": 1,
             "exec_mode": "cluster",

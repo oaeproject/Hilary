@@ -38,6 +38,7 @@
     "dox": "^0.9.0",
     "elasticsearchclient": "^0.5.3",
     "ent": "^2.2.0",
+    "ethercalc-client": "^0.0.2",
     "etherpad-lite-client": "^0.8.0",
     "expand-url": "^0.1.3",
     "express": "4.15.5",
@@ -87,6 +88,7 @@
     "selectn": "^1.1.2",
     "shortid": "^2.2.8",
     "slideshare": "git://github.com/oaeproject/node-slideshare",
+    "snyk": "^1.48.1",
     "sockjs": "^0.3.19",
     "strftime": "^0.10.0",
     "temp": "^0.8.3",
@@ -98,8 +100,7 @@
     "watch": "^1.0.2",
     "webshot": "0.15.1",
     "xml2js": "^0.4.19",
-    "youtube-api": "^2.0.9",
-    "snyk": "^1.48.1"
+    "youtube-api": "^2.0.9"
   },
   "devDependencies": {
     "coveralls": "^3.0.0",

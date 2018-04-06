@@ -76,12 +76,3 @@ workflows:
   test-all:
     jobs:
       - test-with-dockers
-  scheduled:
-    triggers:
-      - schedule:
-          cron: "0 1 * * *"
-          filters:
-            branches:
-              only: master
-    jobs:
-      - test-with-dockers

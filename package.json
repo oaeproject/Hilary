@@ -88,6 +88,7 @@
     "selectn": "^1.1.2",
     "shortid": "^2.2.8",
     "slideshare": "git://github.com/oaeproject/node-slideshare",
+    "snyk": "^1.48.1",
     "sockjs": "^0.3.19",
     "strftime": "^0.10.0",
     "temp": "^0.8.3",
@@ -99,8 +100,7 @@
     "watch": "^1.0.2",
     "webshot": "0.15.1",
     "xml2js": "^0.4.19",
-    "youtube-api": "^2.0.9",
-    "snyk": "^1.48.1"
+    "youtube-api": "^2.0.9"
   },
   "devDependencies": {
     "coveralls": "^3.0.0",
@@ -119,7 +119,11 @@
     "repl-promised": "^0.1.0",
     "shelljs": "^0.7.8",
     "sockjs-client-ws": "^0.1.0",
-    "ws": "1.1.2"
+    "ws": "1.1.2",
+    "eslint-config-prettier": "^2.9.0",
+    "eslint-plugin-prettier": "^2.5.0",
+    "husky": "^0.14.3",
+    "xo": "^0.20.3"
   },
   "optionalDependencies": {
     "bunyan-syslog": "^0.3.1",
@@ -162,12 +166,28 @@
     "restjsdoc"
   ],
   "engines": {
-    "node": ">=6.11.5"
+    "node": ">=8.11.1"
   },
   "scripts": {
     "test": "grunt",
     "snyk-protect": "snyk protect",
-    "prepublish": "npm run snyk-protect"
+    "prepublish": "npm run snyk-protect",
+    "lint": "xo lib/*.js"
   },
-  "snyk": true
+  "xo": {
+    "prettier": true,
+    "extends": ["prettier"],
+    "plugins": ["prettier"],
+    "ignores": ["Gruntfile.js"],
+    "rules": {
+      "import/no-extraneous-dependencies": "off",
+      "prettier/prettier": "error"
+    }
+  },
+  "snyk": true,
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run lint"
+    }
+  }
 }

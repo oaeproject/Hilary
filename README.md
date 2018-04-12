@@ -7,12 +7,14 @@ Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject
 
 ## Build status
 
-[![CircleCI](https://circleci.com/gh/oaeproject/Hilary/tree/master.svg?style=svg)](https://circleci.com/gh/oaeproject/Hilary/tree/master)
+[![CircleCI](https://circleci.com/gh/oaeproject/Hilary/tree/master.svg?style=shield)](https://circleci.com/gh/oaeproject/Hilary/tree/master)
 [![Coverage Status](https://coveralls.io/repos/oaeproject/Hilary/badge.png)](https://coveralls.io/r/oaeproject/Hilary)
 [![Code Climate](https://codeclimate.com/github/oaeproject/Hilary/badges/gpa.svg)](https://codeclimate.com/github/oaeproject/Hilary)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/d26faffabfac4ce0a84a1d533d3e005c)](https://www.codacy.com/app/brecke/brecke-3akai-ux?utm_source=github.com&utm_medium=referral&utm_content=brecke/3akai-ux&utm_campaign=Badge_Grade)
 [![dependencies](https://david-dm.org/oaeproject/Hilary.svg)](https://david-dm.org/oaeproject/Hilary)
 [![devdependencies](https://david-dm.org/oaeproject/Hilary/dev-status.svg)](https://david-dm.org/oaeproject/Hilary#info=devDependencies)
+![code style](https://img.shields.io/badge/code_style-prettier-ff69b4.svg)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Foaeproject%2FHilary.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Foaeproject%2FHilary?ref=badge_shield) +[![Known Vulnerabilities](https://snyk.io/test/github/oaeproject/Hilary/badge.svg)](https://snyk.io/test/github/oaeproject/{repo})
 
 ## Installation
 
@@ -269,11 +271,11 @@ We understand that, and we do that ourselves too :) You can have that with just 
 
 In `config.js` change the following values:
 
--   `oae-rabbitmq`
--   `oae-cassandra`
--   `oae-elasticsearch`
--   `oae-etherpad`
--   `oae-redis`
+- `oae-rabbitmq`
+- `oae-cassandra`
+- `oae-elasticsearch`
+- `oae-etherpad`
+- `oae-redis`
 
 ...all to `localhost`.
 

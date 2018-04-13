@@ -17,10 +17,10 @@
  * Usage: `node repl.js` and then `PrincipalsAPI.createUser(...);` e.g.
  */
 
-const repl = require("repl").start({});
-const promisify = require("repl-promised").promisify;
+const repl = require('repl').start({});
+const promisify = require('repl-promised').promisify;
 
-// import the app models
+// Import the app models
 repl.context.ActivityAPI = require('oae-activity/lib/api.js');
 repl.context.AuthenticationAPI = require('oae-authentication/lib/api.js');
 repl.context.AuthzAPI = require('oae-authz/lib/api.js');

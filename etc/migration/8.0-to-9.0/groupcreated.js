@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 /*!
  * Copyright 2014 Apereo Foundation (AF) Licensed under the
  * Educational Community License, Version 2.0 (the "License"); you may
@@ -13,32 +15,22 @@
  * permissions and limitations under the License.
  */
 
-var _ = require('underscore');
+const _ = require('underscore');
 
-var Cassandra = require('oae-util/lib/cassandra');
+const Cassandra = require('oae-util/lib/cassandra');
 
-var config = require('../../../config').config;
-
-// Connect to cassandra and start the migration
-Cassandra.init(config.cassandra, function(err) {
-    if (err) {
-        console.error(err.msg);
-        process.exit(err.code);
-    }
-
-    startProcessing();
-});
+const { config } = require('../../../config');
 
 /**
  * Notify the user that the migration is complete
  */
-var _done = function(err) {
-    if (err) {
-        console.error(err.msg);
-        process.exit(err.code);
-    }
-    console.log('Migration complete');
-    process.exit();
+const _done = function(err) {
+  if (err) {
+    console.error(err.msg);
+    process.exit(err.code);
+  }
+  console.log('Migration complete');
+  process.exit();
 };
 
 /**
@@ -48,27 +40,46 @@ var _done = function(err) {
  * @param  {Row[]}      rows        An array of cassandra rows to update
  * @param  {Function}   callback    A standard callback function
  */
-var _migrateRows = function(rows, callback) {
-    var queries = [];
+const _migrateRows = function(rows, callback) {
+  const queries = [];
 
-    _.each(rows, function(row) {
-        var created = Math.floor(row.get('wt') / 1000);
-        var principalId = row.get('principalId');
-        var query = Cassandra.constructUpsertCQL('Principals', 'principalId', principalId, {'created': created});
-        queries.push(query);
+  _.each(rows, row => {
+    const created = Math.floor(row.get('wt') / 1000);
+    const principalId = row.get('principalId');
+    const query = Cassandra.constructUpsertCQL('Principals', 'principalId', principalId, {
+      created
     });
+    queries.push(query);
+  });
 
-    // Add the created timestamp and move on to the next page
-    return Cassandra.runBatchQuery(queries, callback);
+  // Add the created timestamp and move on to the next page
+  return Cassandra.runBatchQuery(queries, callback);
 };
 
 /**
  * Start the migration
  */
-var startProcessing = function() {
-    Cassandra.runQuery('ALTER TABLE "Principals" ADD "created" timestamp', null, function() {
-        Cassandra.runQuery('ALTER TABLE "Principals" ADD "createdBy" text', null, function() {
-            return Cassandra.iterateAll(['principalId', 'WRITETIME("tenantAlias") AS wt'], 'Principals', 'principalId', {'batchSize': 30}, _migrateRows, _done);
-        });
+const startProcessing = function() {
+  Cassandra.runQuery('ALTER TABLE "Principals" ADD "created" timestamp', null, () => {
+    Cassandra.runQuery('ALTER TABLE "Principals" ADD "createdBy" text', null, () => {
+      return Cassandra.iterateAll(
+        ['principalId', 'WRITETIME("tenantAlias") AS wt'],
+        'Principals',
+        'principalId',
+        { batchSize: 30 },
+        _migrateRows,
+        _done
+      );
     });
+  });
 };
+
+// Connect to cassandra and start the migration
+Cassandra.init(config.cassandra, err => {
+  if (err) {
+    console.error(err.msg);
+    process.exit(err.code);
+  }
+
+  startProcessing();
+});

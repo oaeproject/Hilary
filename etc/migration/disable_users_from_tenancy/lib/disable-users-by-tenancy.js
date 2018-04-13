@@ -17,16 +17,15 @@
 * Disable users belonging to a disabled tenancy
 * Github issue #1304
 */
-var path = require('path');
-var util = require('util');
+const path = require('path');
+const util = require('util');
 
-var AuthzConstants = require('oae-authz/lib/constants').AuthzConstants;
-var Context = require('oae-context').Context;
-var log = require('oae-logger').logger('oae-script-main');
-var PrincipalsAPI = require('oae-principals');
-var TenantsAPI = require('oae-tenants');
-var User = require('oae-principals/lib/model').User;
-
+const { AuthzConstants } = require('oae-authz/lib/constants');
+const { Context } = require('oae-context');
+const log = require('oae-logger').logger('oae-script-main');
+const PrincipalsAPI = require('oae-principals');
+const TenantsAPI = require('oae-tenants');
+const { User } = require('oae-principals/lib/model');
 
 /**
  * Disable users from the system by updating the deleted flag
@@ -36,33 +35,38 @@ var User = require('oae-principals/lib/model').User;
  * @param  {String}     tenantAlias     Tenant alias we want to delete users from
  * @param  {Function}   callback        Standard callback function
  */
-var doMigration = function (ctx, tenantAlias, disabled, callback) {
+const doMigration = function(ctx, tenantAlias, disabled, callback) {
+  ctx = ctx || _createNewContext();
 
-    ctx = ctx || _createNewContext();
-
-    PrincipalsAPI.deleteOrRestoreUsersByTenancy(ctx, tenantAlias, disabled, function(err, users) {
-        if (err) {
-            callback(err);
-        }
-
-        log().info('Migration successful.');
-        callback(null, users);
-    });
-
-    function _createNewContext() {
-        // Get the config
-        var configPath = path.resolve(process.cwd(), 'config.js');
-        var config = require(configPath).config;
-
-        var globalTenant = TenantsAPI.getTenant(config.servers.globalAdminAlias);
-        var globalAdmin = new User(globalTenant.alias, util.format('u:%s:admin', globalTenant.alias), 'Global Administrator', null, {
-            'visibility': AuthzConstants.visibility.PRIVATE,
-            'isGlobalAdmin': true
-        });
-        return new Context(globalTenant, globalAdmin);
+  PrincipalsAPI.deleteOrRestoreUsersByTenancy(ctx, tenantAlias, disabled, (err, users) => {
+    if (err) {
+      callback(err);
     }
+
+    log().info('Migration successful.');
+    callback(null, users);
+  });
+
+  function _createNewContext() {
+    // Get the config
+    const configPath = path.resolve(process.cwd(), 'config.js');
+    const { config } = require(configPath);
+
+    const globalTenant = TenantsAPI.getTenant(config.servers.globalAdminAlias);
+    const globalAdmin = new User(
+      globalTenant.alias,
+      util.format('u:%s:admin', globalTenant.alias),
+      'Global Administrator',
+      null,
+      {
+        visibility: AuthzConstants.visibility.PRIVATE,
+        isGlobalAdmin: true
+      }
+    );
+    return new Context(globalTenant, globalAdmin);
+  }
 };
 
 module.exports = {
-    'doMigration': doMigration
+  doMigration
 };

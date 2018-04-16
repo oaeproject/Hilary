@@ -172,7 +172,7 @@
     "test": "grunt",
     "snyk-protect": "snyk protect",
     "prepublish": "npm run snyk-protect",
-    "lint": "xo lib/*.js"
+    "lint": "xo --quiet *.js"
   },
   "xo": {
     "prettier": true,
@@ -181,8 +181,19 @@
     "ignores": ["Gruntfile.js"],
     "rules": {
       "import/no-extraneous-dependencies": "off",
-      "prettier/prettier": "error"
-    }
+      "prettier/prettier": "error",
+      "no-use-before-define": "off"
+    },
+    "env": ["mocha"],
+    "overrides": [
+      {
+        "files": "tests/*.js",
+        "rules": {
+          "max-lines": 0,
+          "no-unused-vars": "off"
+        }
+      }
+    ]
   },
   "snyk": true,
   "husky": {

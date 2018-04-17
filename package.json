@@ -172,7 +172,7 @@
     "test": "grunt",
     "snyk-protect": "snyk protect",
     "prepublish": "npm run snyk-protect",
-    "lint": "xo lib/*.js"
+    "lint": "xo --quiet *.js"
   },
   "xo": {
     "prettier": true,

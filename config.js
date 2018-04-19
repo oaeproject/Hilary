@@ -444,7 +444,7 @@ config.etherpad = {
  */
 config.ethercalc = {
     'host': 'localhost',
-    'port': 8989
+    'port': 8000
 };
 
 /**

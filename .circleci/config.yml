@@ -41,6 +41,7 @@ jobs:
             && printf "\nconfig.previews.enabled = true;" >> config.js
             && printf "\nconfig.email.debug = false;" >> config.js
             && printf "\nconfig.email.transport = 'sendmail';" >> config.js
+            && printf "\nconfig.ethercalc.host = 'oae-ethercalc';" >> config.js
       - run:
           name: Install docker and docker-compose
           command: >
@@ -61,7 +62,7 @@ jobs:
             oae-rabbitmq
             oae-elasticsearch
             && sleep 25s
-            && docker-compose up -d oae-etherpad
+            && docker-compose up -d oae-etherpad oae-ethercalc
       - run:
           name: Install Hilary dependencies
           command: >

@@ -124,3 +124,16 @@ services:
     ports:
       - 9001:9001
     tty: false
+  oae-ethercalc:
+    command:
+      - sh
+      - '-c'
+      - REDIS_HOST='oae-redis' REDIS_PORT=6379 pm2 start -x `which ethercalc` -- --cors && pm2 logs
+    container_name: oae-ethercalc
+    image: oaeproject/ethercalc
+    restart: always
+    networks:
+      - my_network
+    ports:
+      - '8000:8000'
+    tty: false

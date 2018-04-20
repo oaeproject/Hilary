@@ -128,9 +128,11 @@ services:
     command:
       - sh
       - '-c'
-      - REDIS_HOST='oae-redis' REDIS_PORT=6379 pm2 start -x `which ethercalc` -- --cors && pm2 logs
+      - >-
+        REDIS_HOST=oae-redis REDIS_PORT=6379 pm2 start /opt/ethercalc/app.js --
+        --cors && pm2 logs
     container_name: oae-ethercalc
-    image: oaeproject/ethercalc
+    image: 'oaeproject/oae-ethercalc-docker'
     restart: always
     networks:
       - my_network

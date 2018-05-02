@@ -124,3 +124,17 @@ services:
     ports:
       - 9001:9001
     tty: false
+  oae-ethercalc:
+    command:
+      - sh
+      - '-c'
+      - >-
+        REDIS_HOST=oae-redis REDIS_PORT=6379 RABBIT_HOST=oae-rabbitmq RABBIT_PORT=5672 pm2 start /opt/ethercalc/app.js && pm2 logs
+    container_name: oae-ethercalc
+    image: 'oaeproject/oae-ethercalc-docker'
+    restart: always
+    networks:
+      - my_network
+    ports:
+      - '8000:8000'
+    tty: false

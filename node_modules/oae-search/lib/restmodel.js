@@ -23,7 +23,7 @@
  * @Property  {number}              lastModified        The timestamp (millis since epoch) at which the content item was last modified
  * @Property  {string}              mime                The mime type of the content item
  * @Property  {string}              profilePath         The relative path to the user profile
- * @Property  {string}              resourceSubType     The content item type                           [collabdoc,file,link]
+ * @Property  {string}              resourceSubType     The content item type                           [collabdoc,collabsheet,file,link]
  * @Property  {string}              resourceType        The resource type of the content item           [content]
  * @Property  {BasicTenant}         tenant              The tenant to which this content item is associated
  * @Property  {string}              tenantAlias         The alias of the tenant to which this content item is associated

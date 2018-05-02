@@ -435,6 +435,20 @@ config.etherpad = {
 };
 
 /**
+ * `config.ethercalc`
+ *
+ * Configuration namespace for the ethercalc logic.
+ *
+ * @param  {String}     host            The hostname or IP address on which Hilary will be accessing the Ethercalc API.
+ * @param  {Number}     port            The port number on which Hilary will be accessing the ethercalc API.
+ */
+config.ethercalc = {
+    'host': 'localhost',
+    'port': 8000,
+    'protocol': 'http'
+};
+
+/**
 * `config.tincanapi`
 *
 * Configuration namespace for the TinCan API logic

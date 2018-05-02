@@ -252,7 +252,7 @@ config.search = {
  */
 config.mq = {
     'connection': {
-        'host': 'localhost',
+        'host': ['localhost'],
         'port': 5672
     },
     'purgeQueuesOnStartup': false

@@ -36,7 +36,7 @@ jobs:
             && printf "\nconfig.cassandra.timeout = 9000;" >> config.js
             && printf "\nconfig.redis.host = 'oae-redis';" >> config.js
             && printf "\nconfig.search.hosts[0].host = 'oae-elasticsearch';" >> config.js
-            && printf "\nconfig.mq.connection.host = 'oae-rabbitmq';" >> config.js
+            && printf "\nconfig.mq.connection.host = ['oae-rabbitmq'];" >> config.js
             && printf "\nconfig.etherpad.hosts[0].host = 'oae-etherpad';" >> config.js
             && printf "\nconfig.previews.enabled = true;" >> config.js
             && printf "\nconfig.email.debug = false;" >> config.js

@@ -22,6 +22,7 @@
     "awssum": "^1.2.0",
     "awssum-amazon": "^1.4.0",
     "awssum-amazon-s3": "^1.5.0",
+    "blob": "0.0.4",
     "body-parser": "^1.18.2",
     "bunyan": "^1.8.12",
     "bunyan-prettystream": "^0.1.3",
@@ -41,9 +42,11 @@
     "etherpad-lite-client": "^0.8.0",
     "expand-url": "^0.1.3",
     "express": "4.15.5",
+    "file-saver": "^1.3.3",
     "gift": "^0.10.1",
     "globalize": "0.1.1",
     "gm": "^1.23.0",
+    "jszip": "^3.1.5",
     "juice": "^4.2.2",
     "less": "1.7.5",
     "locale": "^0.1.0",
@@ -87,6 +90,7 @@
     "selectn": "^1.1.2",
     "shortid": "^2.2.8",
     "slideshare": "git://github.com/oaeproject/node-slideshare",
+    "snyk": "^1.48.1",
     "sockjs": "^0.3.19",
     "strftime": "^0.10.0",
     "temp": "^0.8.3",
@@ -98,8 +102,7 @@
     "watch": "^1.0.2",
     "webshot": "0.15.1",
     "xml2js": "^0.4.19",
-    "youtube-api": "^2.0.9",
-    "snyk": "^1.48.1"
+    "youtube-api": "^2.0.9"
   },
   "devDependencies": {
     "coveralls": "^3.0.0",

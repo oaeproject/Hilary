@@ -2,75 +2,64 @@ version: 2
 jobs:
   test-with-dockers:
     docker:
-      - image: alpine:3.7
+      - image: 'alpine:3.7'
     working_directory: ~/Hilary
     steps:
       - setup_remote_docker
       - run:
           name: Install dependencies
-          command: >
-            apk add --update --no-cache
-            curl
-            git
-            openssh-client
+          command: |
+            apk add --update --no-cache curl git openssh-client
       - checkout
       - run:
           name: Checkout submodules
           command: git submodule update --init --recursive
       - run:
           name: Creating folders for file storage and tmp files
-          command: >
+          command: |
             mkdir -p ../files
-            && mkdir -p ../tmp
+            mkdir -p ../tmp
       - run:
           name: Setting up volumes in docker-compose
-          command: >
+          command: |
             sed -i -e 's/- \/src\/Hilary/- \/root\/Hilary/g' docker-compose.yml
-            && sed -i -e 's/- \/src\/files/- \/root\/files/g' docker-compose.yml
-            && sed -i -e 's/\/src\/tmp/\/root\/tmp/g' docker-compose.yml
+            sed -i -e 's/- \/src\/files/- \/root\/files/g' docker-compose.yml
+            sed -i -e 's/\/src\/tmp/\/root\/tmp/g' docker-compose.yml
       - run:
           name: Adjusting Hilary configuration for tests to run
-          command: >
+          command: |
             printf "\nconfig.ui.path = './3akai-ux';" >> config.js
-            && printf "\nconfig.cassandra.hosts = ['oae-cassandra'];" >> config.js
-            && printf "\nconfig.cassandra.timeout = 9000;" >> config.js
-            && printf "\nconfig.redis.host = 'oae-redis';" >> config.js
-            && printf "\nconfig.search.hosts[0].host = 'oae-elasticsearch';" >> config.js
-            && printf "\nconfig.mq.connection.host = ['oae-rabbitmq'];" >> config.js
-            && printf "\nconfig.etherpad.hosts[0].host = 'oae-etherpad';" >> config.js
-            && printf "\nconfig.previews.enabled = true;" >> config.js
-            && printf "\nconfig.email.debug = false;" >> config.js
-            && printf "\nconfig.email.transport = 'sendmail';" >> config.js
+            printf "\nconfig.cassandra.hosts = ['oae-cassandra'];" >> config.js
+            printf "\nconfig.cassandra.timeout = 9000;" >> config.js
+            printf "\nconfig.redis.host = 'oae-redis';" >> config.js
+            printf "\nconfig.search.hosts[0].host = 'oae-elasticsearch';" >> config.js
+            printf "\nconfig.mq.connection.host = ['oae-rabbitmq'];" >> config.js
+            printf "\nconfig.etherpad.hosts[0].host = 'oae-etherpad';" >> config.js
+            printf "\nconfig.previews.enabled = true;" >> config.js
+            printf "\nconfig.email.debug = false;" >> config.js
+            printf "\nconfig.email.transport = 'sendmail';" >> config.js
       - run:
           name: Install docker and docker-compose
-          command: >
-            apk add --update --no-cache
-            docker
-            py-pip
-            && pip install docker-compose
+          command: |
+            apk add --update --no-cache docker py-pip
+            pip install docker-compose
       - run:
           name: Create the containers
           command: docker-compose up --no-start --build
       - run:
           name: Start the containers we need
-          # we need some time for cassandra to boot before starting etherpad
-          command: >
-            docker-compose up -d
-            oae-cassandra
-            oae-redis
-            oae-rabbitmq
-            oae-elasticsearch
-            && sleep 25s
-            && docker-compose up -d oae-etherpad
+          command: |
+            docker-compose up -d oae-cassandra oae-redis oae-rabbitmq oae-elasticsearch
+            sleep 25s
+            docker-compose up -d oae-etherpad
       - run:
           name: Install Hilary dependencies
-          command: >
+          command: | 
             docker cp /root/Hilary oae-hilary:/usr/src
-            && docker-compose run oae-hilary 'npm install'
+            docker-compose run oae-hilary 'npm install'
       - run:
           name: Run tests
-          command: docker-compose run oae-hilary 'grunt test'
-
+          command: docker-compose run oae-hilary TWITTER_KEY=$TWITTER_KEY TWITTER_SECRET=$TWITTER_SECRET FACEBOOK_APP_ID=$FACEBOOK_APP_ID FACEBOOK_APP_SECRET=$FACEBOOK_APP_SECRET GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET grunt test
 workflows:
   version: 2
   test-all:
@@ -79,9 +68,10 @@ workflows:
   scheduled:
     triggers:
       - schedule:
-          cron: "0 1 * * *"
+          cron: 0 1 * * *
           filters:
             branches:
               only: master
     jobs:
       - test-with-dockers
+

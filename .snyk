@@ -1,5 +1,5 @@
 # Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
-version: v1.8.0
+version: v1.12.0
 ignore: {}
 # patches apply the minimum changes required to fix a vulnerability
 patch:
@@ -14,3 +14,28 @@ patch:
   'npm:marked:20170112':
     - marked:
         patched: '2017-11-07T10:24:54.317Z'
+  'npm:hoek:20180212':
+    - youtube-api > googleapis > request > hawk > sntp > hoek:
+        patched: '2018-06-19T07:16:16.623Z'
+    - webshot > phantomjs > request > hawk > hoek:
+        patched: '2018-06-19T07:16:16.623Z'
+    - webshot > phantomjs > request > hawk > sntp > hoek:
+        patched: '2018-06-19T07:16:16.623Z'
+    - webshot > phantomjs > request > hawk > cryptiles > boom > hoek:
+        patched: '2018-06-19T07:16:16.623Z'
+    - youtube-api > googleapis > request > hawk > hoek:
+        patched: '2018-06-19T07:16:16.623Z'
+    - youtube-api > googleapis > request > hawk > boom > hoek:
+        patched: '2018-06-19T07:16:16.623Z'
+    - webshot > phantomjs > request > hawk > boom > hoek:
+        patched: '2018-06-19T07:16:16.623Z'
+    - youtube-api > googleapis > request > hawk > cryptiles > boom > hoek:
+        patched: '2018-06-19T07:16:16.623Z'
+    - youtube-api > googleapis > google-auth-library > request > hawk > hoek:
+        patched: '2018-06-19T07:16:16.623Z'
+    - youtube-api > googleapis > google-auth-library > request > hawk > boom > hoek:
+        patched: '2018-06-19T07:16:16.623Z'
+    - youtube-api > googleapis > google-auth-library > request > hawk > sntp > hoek:
+        patched: '2018-06-19T07:16:16.623Z'
+    - youtube-api > googleapis > google-auth-library > request > hawk > cryptiles > boom > hoek:
+        patched: '2018-06-19T07:16:16.623Z'

@@ -9,6 +9,7 @@ Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject
 [![CircleCI](https://circleci.com/gh/oaeproject/Hilary/tree/master.svg?style=svg)](https://circleci.com/gh/oaeproject/Hilary/tree/master)
 [![Coverage Status](https://coveralls.io/repos/oaeproject/Hilary/badge.png)](https://coveralls.io/r/oaeproject/Hilary)
 [![Code Climate](https://codeclimate.com/github/oaeproject/Hilary/badges/gpa.svg)](https://codeclimate.com/github/oaeproject/Hilary)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/d26faffabfac4ce0a84a1d533d3e005c)](https://www.codacy.com/app/brecke/brecke-3akai-ux?utm_source=github.com&utm_medium=referral&utm_content=brecke/3akai-ux&utm_campaign=Badge_Grade)
 [![dependencies](https://david-dm.org/oaeproject/Hilary.svg)](https://david-dm.org/oaeproject/Hilary)
 [![devdependencies](https://david-dm.org/oaeproject/Hilary/dev-status.svg)](https://david-dm.org/oaeproject/Hilary#info=devDependencies)
 
@@ -94,7 +95,6 @@ config.previews = {
     'host': 'oae-etherpad', # by this
 ```
 
-
 #### Build the docker image locally
 
 ```
@@ -157,7 +157,29 @@ If you need to tail the logs of a specific server for debugging, try running `do
 If you're having network problems, run `docker network inspect bridge` for check container network configuration or `docker inspect oae-hilary` to take a look at `oae-hilary` container details.
 
 --
+
 ### Setup
+
+#### Set up external authentication strategies (optional)
+
+In order to set up twitter authentication, you'll need to set your twitter dev account environment variables like this:
+
+```
+export TWITTER_KEY="<your key here>"
+export TWITTER_SECRET"="<your secret here>"
+```
+
+Same thing goes for google auth and facebook auth. The environment variables for each are:
+
+```
+export GOOGLE_CLIENT_ID=""
+export GOOGLE_CLIENT_SECRET=""
+
+export FACEBOOK_APP_ID=""
+export FACEBOOK_APP_SECRET=""
+```
+
+This is enough to run all the tests locally in a dev environment. For production purposes, all environment variables can and should be overwritten by the admin in the tenant configuration form.
 
 #### Change the /etc/hosts file
 
@@ -190,13 +212,13 @@ As you see, we already included both `admin.oae.com` and `tenant1.oae.com`, both
 
 When you start the server, all data schemas will be created for you if they don't already exist. A global administrator user and global administration tenant will be ready for you as well. You can use these to create a new user tenant that hosts the actual OAE user interface.
 
-1. Visit http://admin.oae.com/  (substitute "admin.oae.com" with the administration host you configured in `/etc/hosts`)
-1. Log in with username and password: `administrator` / `administrator`
-1. Click the "Tenants" header to open up the actions
-1. Click "Create tenant"
-1. Choose an alias (a short, unique 2-5 character alphanumeric string such as "oae"), and a name of your liking.
-1. For the Host field, use the host you configured for your user tenant in `/etc/hosts` (e.g., "tenant1.oae.com")
-1. Click "Create new tenant"
+1.  Visit http://admin.oae.com/ (substitute "admin.oae.com" with the administration host you configured in `/etc/hosts`)
+1.  Log in with username and password: `administrator` / `administrator`
+1.  Click the "Tenants" header to open up the actions
+1.  Click "Create tenant"
+1.  Choose an alias (a short, unique 2-5 character alphanumeric string such as "oae"), and a name of your liking.
+1.  For the Host field, use the host you configured for your user tenant in `/etc/hosts` (e.g., "tenant1.oae.com")
+1.  Click "Create new tenant"
 
 You can now access the user tenant by their host http://tenant1.oae.com and start creating new users.
 
@@ -231,8 +253,8 @@ cp docker-compose.mac.yml docker-compose.yml
 
 Finally, try one of these two alternatives to boot all the containers:
 
-1. Run `docker-sync start` on a terminal window and then `docker-compose -f docker-compose.mac.yml up` on another, in this order
-2. Run `docker-sync-stack start` which combines both commands above
+1.  Run `docker-sync start` on a terminal window and then `docker-compose -f docker-compose.mac.yml up` on another, in this order
+2.  Run `docker-sync-stack start` which combines both commands above
 
 More information on docker-sync is available [here](https://github.com/EugenMayer/docker-sync/wiki).
 
@@ -246,11 +268,11 @@ We understand that, and we do that ourselves too :) You can have that with just 
 
 In `config.js` change the following values:
 
-- `oae-rabbitmq`
-- `oae-cassandra`
-- `oae-elasticsearch`
-- `oae-etherpad`
-- `oae-redis`
+-   `oae-rabbitmq`
+-   `oae-cassandra`
+-   `oae-elasticsearch`
+-   `oae-etherpad`
+-   `oae-redis`
 
 ...all to `localhost`.
 

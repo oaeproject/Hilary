@@ -59,7 +59,7 @@ jobs:
             docker-compose run oae-hilary 'npm install'
       - run:
           name: Run tests
-          command: docker-compose run oae-hilary TWITTER_KEY=$TWITTER_KEY TWITTER_SECRET=$TWITTER_SECRET FACEBOOK_APP_ID=$FACEBOOK_APP_ID FACEBOOK_APP_SECRET=$FACEBOOK_APP_SECRET GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET grunt test
+          command: docker-compose run oae-hilary "TWITTER_KEY=$TWITTER_KEY TWITTER_SECRET=$TWITTER_SECRET FACEBOOK_APP_ID=$FACEBOOK_APP_ID FACEBOOK_APP_SECRET=$FACEBOOK_APP_SECRET GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET grunt test"
 workflows:
   version: 2
   test-all:

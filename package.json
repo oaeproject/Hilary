@@ -44,7 +44,6 @@
     "gift": "^0.10.1",
     "globalize": "0.1.1",
     "gm": "^1.23.0",
-    "jszip": "^3.1.5",
     "juice": "^4.2.2",
     "less": "1.7.5",
     "locale": "^0.1.0",
@@ -88,7 +87,6 @@
     "selectn": "^1.1.2",
     "shortid": "^2.2.8",
     "slideshare": "git://github.com/oaeproject/node-slideshare",
-    "snyk": "^1.48.1",
     "sockjs": "^0.3.19",
     "strftime": "^0.10.0",
     "temp": "^0.8.3",
@@ -100,7 +98,8 @@
     "watch": "^1.0.2",
     "webshot": "0.15.1",
     "xml2js": "^0.4.19",
-    "youtube-api": "^2.0.9"
+    "youtube-api": "^2.0.9",
+    "snyk": "^1.48.1"
   },
   "devDependencies": {
     "coveralls": "^3.0.0",

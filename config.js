@@ -28,7 +28,7 @@ var config = module.exports.config = {};
  * @param  {String}    path            The path to the UI static assets
  */
 config.ui = {
-    'path': '../3akai-ux'
+    'path': './3akai-ux'
 };
 
 // Cassandra related config information.
@@ -210,10 +210,10 @@ config.search = {
                 },
                 'tokenizer': {
                     'display_name_tokenizer': {
-                        "type" : "edgeNGram",
-                        "min_gram" : "2",
-                        "max_gram" : "10",
-                        "token_chars": []
+                        'type' : 'edgeNGram',
+                        'min_gram' : '2',
+                        'max_gram' : '10',
+                        'token_chars': []
                     }
                 },
                 'filter': {
@@ -425,8 +425,7 @@ config.email = {
  * @param  {Number}     hosts[i].port   The port number on which Hilary will be accessing the etherpad API.
  */
 config.etherpad = {
-    'apikey': '44548c94a7d5aa29c43b8b4f02924f19cf59eb7be72249d0532430a4e0d4aad9',
-    // 'apikey': '13SirapH8t3kxUh5T5aqWXhXahMzoZRA',
+    'apikey': '13SirapH8t3kxUh5T5aqWXhXahMzoZRA',
     'hosts': [
         {
             'host': '127.0.0.1',

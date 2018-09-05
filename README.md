@@ -2,7 +2,8 @@
 
 Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject.org/)
 
-[![Gitter](https://badges.gitter.im/gitterHQ/gitter.svg)](https://gitter.im/oaeproject)
+[![Discord](https://img.shields.io/badge/chat-on_discord-green.svg)](https://discord.gg/RShTcdq)
+[![Koding](https://koding-cdn.s3.amazonaws.com/badges/made-with-koding/v1/koding_badge_ReadmeDark.png)](https://koding.com/)
 
 ## Build status
 

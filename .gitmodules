@@ -7,3 +7,6 @@
 [submodule "node_modules/restjsdoc"]
 	path = node_modules/restjsdoc
 	url = https://github.com/oaeproject/restjsdoc.git
+[submodule "etc/migration/tenant-migration"]
+	path = etc/migration/tenant-migration
+	url = https://github.com/oaeproject/tenant-migration.git

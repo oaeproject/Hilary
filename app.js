@@ -15,68 +15,70 @@
  * permissions and limitations under the License.
  */
 
-var _ = require('underscore');
-var PrettyStream = require('bunyan-prettystream');
-var optimist = require('optimist');
-var repl = require('repl');
-var argv = optimist.usage('$0 [--config <path/to/config.js>]')
-    .alias('c', 'config')
-    .describe('c', 'Specify an alternate config file')
-    .default('c', __dirname + '/config.js')
+const path = require('path');
+const repl = require('repl');
+const PrettyStream = require('bunyan-prettystream');
+const optimist = require('optimist');
+const _ = require('underscore');
 
-    .alias('h', 'help')
-    .describe('h', 'Show usage information')
+const { argv } = optimist
+  .usage('$0 [--config <path/to/config.js>]')
+  .alias('c', 'config')
+  .describe('c', 'Specify an alternate config file')
+  .default('c', path.join(__dirname, '/config.js'))
 
-    .alias('i', 'interactive')
-    .describe('i', 'Start an interactive shell, implies --pretty')
+  .alias('h', 'help')
+  .describe('h', 'Show usage information')
 
-    .alias('p', 'pretty')
-    .describe('p', 'Pretty print the logs')
-    .argv;
+  .alias('i', 'interactive')
+  .describe('i', 'Start an interactive shell, implies --pretty')
 
-var OAE = require('oae-util/lib/oae');
-var log = require('oae-logger').logger();
+  .alias('p', 'pretty')
+  .describe('p', 'Pretty print the logs');
+
+const OAE = require('oae-util/lib/oae');
+const log = require('oae-logger').logger();
 
 if (argv.help) {
-    optimist.showHelp();
-    return;
+  optimist.showHelp();
+  process.exit(0);
 }
 
 // If a relative path that starts with `./` has been provided,
 // we turn it into an absolute path based on the current working directory
 if (argv.config.match(/^\.\//)) {
-    argv.config = process.cwd() + argv.config.substring(1);
-// If a different non-absolute path has been provided, we turn
-// it into an absolute path based on the current working directory
+  argv.config = process.cwd() + argv.config.substring(1);
+  // If a different non-absolute path has been provided, we turn
+  // it into an absolute path based on the current working directory
 } else if (!argv.config.match(/^\//)) {
-    argv.config = process.cwd() + '/' + argv.config;
+  argv.config = process.cwd() + '/' + argv.config;
 }
 
-var config = require(argv.config).config;
-var envConfig = require(process.cwd() + '/' + (process.env.NODE_ENV || 'local')).config;
+let { config } = require(argv.config);
+const envConfig = require(`${process.cwd()}/${process.env.NODE_ENV || 'local'}`).config;
 config = _.extend({}, config, envConfig);
 
 // If the user asked for pretty output change the log stream
 if (argv.pretty || argv.interactive) {
-    var prettyStdOut = new PrettyStream();
-    prettyStdOut.pipe(process.stdout);
+  const prettyStdOut = new PrettyStream();
+  prettyStdOut.pipe(process.stdout);
 
-    config.log.streams[0].stream = prettyStdOut;
+  config.log.streams[0].stream = prettyStdOut;
 }
 
 // Start the server and all of its tenants
-OAE.init(config, function(err) {
-    if (err) {
-        log().error({err: err}, 'Error initializing server.');
-    }
-    log().info('Initialization all done ... Firing up tenants ... Enjoy!');
+OAE.init(config, err => {
+  if (err) {
+    log().error({ err }, 'Error initializing server.');
+  }
+  log().info('Initialization all done ... Firing up tenants ... Enjoy!');
 
-    // If the user asked for an interactive shell start the node REPL and pass in the OAE and log objects
-    if (argv.interactive) {
-        var replServer = repl.start({
-            prompt: 'oae > '
-        });
-        replServer.context.OAE = OAE;
-        replServer.context.log = log;
-    }
+  // If the user asked for an interactive shell start the node REPL and pass in the OAE and log objects
+  if (argv.interactive) {
+    const replServer = repl.start({
+      prompt: 'oae > '
+    });
+    replServer.context.OAE = OAE;
+    replServer.context.log = log;
+  }
 });

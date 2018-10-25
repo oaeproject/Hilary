@@ -66,7 +66,7 @@ config.log = {
 };
 
 // Set up the CSV file for errors
-const fileStream = fs.createWriteStream(tenantAlias + '-shibboleth-migration.csv');
+const fileStream = fs.createWriteStream(`${tenantAlias}-shibboleth-migration.csv`);
 fileStream.on('error', err => {
   log().error({ err }, 'Error occurred when writing to the warnings file');
   process.exit(1);

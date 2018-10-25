@@ -37,8 +37,7 @@ if (argv.help) {
 }
 
 // Get the config
-const configPath = path.resolve(process.cwd(), argv.config);
-const { config } = require(configPath);
+const { config } = require(path.resolve(process.cwd(), argv.config));
 
 // Ensure that this application server does NOT start processing any preview images
 config.previews.enabled = false;

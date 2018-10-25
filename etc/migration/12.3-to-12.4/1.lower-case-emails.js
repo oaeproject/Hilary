@@ -41,8 +41,7 @@ if (argv.help) {
 }
 
 // Get the config
-const configPath = path.resolve(process.cwd(), argv.config);
-const { config } = require(configPath);
+const { config } = require(path.resolve(process.cwd(), argv.config));
 
 // Start the application container. This will allow us to re-use existing APIs
 OAE.init(config, err => {

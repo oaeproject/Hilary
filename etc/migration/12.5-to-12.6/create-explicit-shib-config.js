@@ -46,8 +46,7 @@ if (argv.help) {
 }
 
 // Get the config
-const configPath = path.resolve(process.cwd(), argv.config);
-const { config } = require(configPath);
+const { config } = require(path.resolve(process.cwd(), argv.config));
 
 // Ensure that this application server does NOT start processing any preview images
 config.previews.enabled = false;
@@ -67,35 +66,6 @@ const configKey = 'oae-authentication/shibboleth/externalIdAttributes';
 
 // Current default attribute order
 const currentDefault = 'eppn persistent-id targeted-id';
-
-// Spin up the application container. This will allow us to re-use existing APIs
-OAE.init(config, err => {
-  if (err) {
-    log().error({ err }, 'Unable to spin up the application server');
-    return process.exit(err.code);
-  }
-
-  // Get all the tenants that are not disabled
-  const tenants = TenantsAPI.getTenants(true);
-
-  _filterTenants(tenants, (err, tenantsToUpdate) => {
-    if (err) {
-      log().error({ err }, 'Failed to filter out tenants with no users or Shibboleth');
-      return process.exit(err.code);
-    }
-
-    // Update all the tenants
-    _updateTenants(tenantsToUpdate, err => {
-      if (err) {
-        log().error({ err }, 'Unable to create explicit Shibboleth configs');
-        return process.exit(err.code);
-      }
-
-      log().info('Updated all tenants');
-      process.exit(0);
-    });
-  });
-});
 
 function _filterTenants(tenants, callback) {
   const AuthenticationConfig = ConfigAPI.config('oae-authentication');
@@ -210,3 +180,32 @@ function _updateTenants(tenants, callback) {
     return _updateTenants(tenants, callback);
   });
 }
+
+// Spin up the application container. This will allow us to re-use existing APIs
+OAE.init(config, err => {
+  if (err) {
+    log().error({ err }, 'Unable to spin up the application server');
+    return process.exit(err.code);
+  }
+
+  // Get all the tenants that are not disabled
+  const tenants = TenantsAPI.getTenants(true);
+
+  _filterTenants(tenants, (err, tenantsToUpdate) => {
+    if (err) {
+      log().error({ err }, 'Failed to filter out tenants with no users or Shibboleth');
+      return process.exit(err.code);
+    }
+
+    // Update all the tenants
+    _updateTenants(tenantsToUpdate, err => {
+      if (err) {
+        log().error({ err }, 'Unable to create explicit Shibboleth configs');
+        return process.exit(err.code);
+      }
+
+      log().info('Updated all tenants');
+      process.exit(0);
+    });
+  });
+});

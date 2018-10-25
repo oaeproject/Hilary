@@ -61,6 +61,37 @@ config.log = {
   ]
 };
 
+/**
+ * Update a set of tenants their email domains
+ *
+ * @param  {Object[]}   tenants         Each object represent a tenant that needs to be updated. The `alias` and `emailDomain` keys should be present
+ * @param  {Function}   callback        Standard callback function
+ * @param  {Object}     callback.err    An error that occurred, if any
+ * @api private
+ */
+function _updateTenants(tenants, callback) {
+  if (_.isEmpty(tenants)) {
+    return callback();
+  }
+
+  // Update tenants in batches
+  const numberOfTenants = 250;
+  const tenantsToUpdate = tenants.splice(0, numberOfTenants);
+  const queries = _.map(tenantsToUpdate, tenant => {
+    return Cassandra.constructUpsertCQL('Tenant', 'alias', tenant.alias, {
+      emailDomains: tenant.emailDomain
+    });
+  });
+  Cassandra.runBatchQuery(queries, err => {
+    if (err) {
+      return callback(err);
+    }
+
+    log().info('Updated %d tenants their email domains', tenantsToUpdate.length);
+    return _updateTenants(tenants, callback);
+  });
+}
+
 // Spin up the application container. This will allow us to re-use existing APIs
 OAE.init(config, err => {
   if (err) {
@@ -95,34 +126,3 @@ OAE.init(config, err => {
     });
   });
 });
-
-/**
- * Update a set of tenants their email domains
- *
- * @param  {Object[]}   tenants         Each object represent a tenant that needs to be updated. The `alias` and `emailDomain` keys should be present
- * @param  {Function}   callback        Standard callback function
- * @param  {Object}     callback.err    An error that occurred, if any
- * @api private
- */
-function _updateTenants(tenants, callback) {
-  if (_.isEmpty(tenants)) {
-    return callback();
-  }
-
-  // Update tenants in batches
-  const numberOfTenants = 250;
-  const tenantsToUpdate = tenants.splice(0, numberOfTenants);
-  const queries = _.map(tenantsToUpdate, tenant => {
-    return Cassandra.constructUpsertCQL('Tenant', 'alias', tenant.alias, {
-      emailDomains: tenant.emailDomain
-    });
-  });
-  Cassandra.runBatchQuery(queries, err => {
-    if (err) {
-      return callback(err);
-    }
-
-    log().info('Updated %d tenants their email domains', tenantsToUpdate.length);
-    return _updateTenants(tenants, callback);
-  });
-}

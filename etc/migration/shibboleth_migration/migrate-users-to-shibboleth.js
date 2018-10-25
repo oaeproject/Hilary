@@ -62,6 +62,7 @@ const _getAllUsersForTenant = function(tenantAlias, callback) {
   PrincipalsDAO.iterateAll(
     ['principalId', 'tenantAlias', 'email', 'displayName'],
     100,
+    // eslint-disable-next-line no-use-before-define
     _aggregateUsers,
     err => {
       if (err) {
@@ -312,6 +313,7 @@ const doMigration = function(tenantAlias, stream, callback) {
     });
   });
 };
+
 module.exports = {
   doMigration
 };

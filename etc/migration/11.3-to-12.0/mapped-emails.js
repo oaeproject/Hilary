@@ -52,8 +52,7 @@ if (argv.help) {
 }
 
 // Get the config
-const configPath = path.resolve(process.cwd(), argv.config);
-const { config } = require(configPath);
+const { config } = require(path.resolve(process.cwd(), argv.config));
 
 // Ensure that this application server does NOT start processing any preview images
 config.previews.enabled = false;
@@ -77,7 +76,7 @@ let totalUsers = 0;
 let mappedUsers = 0;
 
 // Set up the CSV file
-const fileStream = fs.createWriteStream(argv.warnings, { flags: 'a' });
+const fileStream = fs.createWriteStream(`${argv.warnings}`, { flags: 'a' });
 fileStream.on('error', err => {
   log().error({ err }, 'Error occurred when writing to the warnings file');
   process.exit(1);

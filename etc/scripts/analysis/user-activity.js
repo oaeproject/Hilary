@@ -53,8 +53,7 @@ if (argv.help) {
 }
 
 // Get the config
-const configPath = path.resolve(process.cwd(), argv.config);
-const { config } = require(configPath);
+const { config } = require(path.resolve(process.cwd(), argv.config));
 const tenantAlias = argv.tenant;
 
 // Ensure that this application server does NOT start processing any preview images
@@ -78,40 +77,6 @@ config.log = {
 const streamInfo = _createCsvStream();
 const csvStream = streamInfo.csv;
 const fileStream = streamInfo.file;
-
-// Spin up the application container. This will allow us to re-use existing APIs
-OAE.init(config, err => {
-  if (err) {
-    log().error({ err }, 'Unable to spin up the application server');
-    return process.exit(err.code);
-  }
-
-  _groupUsersByEmail(tenantAlias, usersByEmail => {
-    const batches = _.chain(usersByEmail)
-      // Only keep profiles that have duplicate emails
-      .filter(userHashes => {
-        return userHashes.length > 1;
-      })
-      .flatten()
-      .tap(userHashes => {
-        log().info(
-          'Preparing to write a total of %s users who have duplicate emails',
-          userHashes.length
-        );
-      })
-
-      // Re-group things into sane concurrent batches
-      .groupBy((userHash, i) => {
-        return Math.floor(i / 5);
-      })
-      .values()
-      .value();
-
-    log().info('Begin writing %s batches of user activity to CSV', batches.length);
-
-    return _writeUserRows(batches);
-  });
-});
 
 /**
  * Build and write all user rows concurrently for the given batches of user hashes
@@ -590,3 +555,37 @@ function _exit(code) {
     });
   });
 }
+
+// Spin up the application container. This will allow us to re-use existing APIs
+OAE.init(config, err => {
+  if (err) {
+    log().error({ err }, 'Unable to spin up the application server');
+    return process.exit(err.code);
+  }
+
+  _groupUsersByEmail(tenantAlias, usersByEmail => {
+    const batches = _.chain(usersByEmail)
+      // Only keep profiles that have duplicate emails
+      .filter(userHashes => {
+        return userHashes.length > 1;
+      })
+      .flatten()
+      .tap(userHashes => {
+        log().info(
+          'Preparing to write a total of %s users who have duplicate emails',
+          userHashes.length
+        );
+      })
+
+      // Re-group things into sane concurrent batches
+      .groupBy((userHash, i) => {
+        return Math.floor(i / 5);
+      })
+      .values()
+      .value();
+
+    log().info('Begin writing %s batches of user activity to CSV', batches.length);
+
+    return _writeUserRows(batches);
+  });
+});

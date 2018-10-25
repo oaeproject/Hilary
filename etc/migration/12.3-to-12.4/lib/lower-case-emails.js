@@ -34,6 +34,7 @@ const BATCH_SIZE = 30;
  * @param  {Number}         callback.nFailed    The number of users that attempted to be migrated but failed
  * @api private
  */
+// eslint-disable-next-line complexity
 const _lowerCaseEmailsRecursive = function(...args) {
   let [principals, callback, _nSkipped, _nUpdated, _nFailed] = args;
   principals = principals.slice();

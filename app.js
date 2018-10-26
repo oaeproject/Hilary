@@ -54,8 +54,11 @@ if (argv.config.match(/^\.\//)) {
   argv.config = process.cwd() + '/' + argv.config;
 }
 
-let { config } = require(argv.config);
-const envConfig = require(`${process.cwd()}/${process.env.NODE_ENV || 'local'}`).config;
+const configPath = argv.config;
+let { config } = require(configPath);
+
+const envConfigPath = `${process.cwd()}/${process.env.NODE_ENV || 'local'}`;
+const envConfig = require(envConfigPath).config;
 config = _.extend({}, config, envConfig);
 
 // If the user asked for pretty output change the log stream

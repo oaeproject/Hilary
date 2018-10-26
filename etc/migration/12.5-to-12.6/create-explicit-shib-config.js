@@ -46,6 +46,7 @@ if (argv.help) {
 }
 
 // Get the config
+// eslint-disable-next-line security/detect-non-literal-require
 const { config } = require(path.resolve(process.cwd(), argv.config));
 
 // Ensure that this application server does NOT start processing any preview images

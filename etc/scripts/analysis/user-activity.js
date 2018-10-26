@@ -53,6 +53,7 @@ if (argv.help) {
 }
 
 // Get the config
+// eslint-disable-next-line security/detect-non-literal-require
 const { config } = require(path.resolve(process.cwd(), argv.config));
 const tenantAlias = argv.tenant;
 

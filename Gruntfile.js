@@ -13,17 +13,18 @@
  * permissions and limitations under the License.
  */
 
-module.exports = function(grunt) {
-  var _ = require('underscore');
-  var path = require('path');
-  var shell = require('shelljs');
-  var util = require('util');
-  var mocha_grep = process.env['MOCHA_GREP'] || undefined;
+module.exports = grunt => {
+  const _ = require('underscore');
+  const path = require('path');
+  const shell = require('shelljs');
+  const util = require('util');
+  // eslint-disable-next-line camelcase
+  const mocha_grep = process.env['MOCHA_GREP'] || undefined;
 
   // Timeout used to determine when a test has failed
-  var MOCHA_TIMEOUT = 60000;
+  const MOCHA_TIMEOUT = 60000;
 
-  var regexErrors = false;
+  const regexErrors = false;
 
   // Project configuration.
   grunt.initConfig({
@@ -82,37 +83,37 @@ module.exports = function(grunt) {
         replacements: [
           {
             from: /@param (\S|\s\s)/,
-            to: function(matchedWord, index, fullText, regexMatches) {
-              var msg = '@param should be followed by 2 spaces';
+            to: (matchedWord, index, fullText, regexMatches) => {
+              const msg = '@param should be followed by 2 spaces';
               // eslint-disable-next-line no-use-before-define
               return logMatch(msg, matchedWord, index, fullText, regexMatches);
             }
           },
           {
             from: /@return \s/,
-            to: function(matchedWord, index, fullText, regexMatches) {
-              var msg = '@return should be followed by 1 space';
+            to: (matchedWord, index, fullText, regexMatches) => {
+              const msg = '@return should be followed by 1 space';
               return logMatch(msg, matchedWord, index, fullText, regexMatches);
             }
           },
           {
             from: /@returns/,
-            to: function(matchedWord, index, fullText, regexMatches) {
-              var msg = 'Use @return instead of @returns';
+            to: (matchedWord, index, fullText, regexMatches) => {
+              const msg = 'Use @return instead of @returns';
               return logMatch(msg, matchedWord, index, fullText, regexMatches);
             }
           },
           {
             from: /@throws \s/,
-            to: function(matchedWord, index, fullText, regexMatches) {
-              var msg = '@throws should be followed by 1 space';
+            to: (matchedWord, index, fullText, regexMatches) => {
+              const msg = '@throws should be followed by 1 space';
               return logMatch(msg, matchedWord, index, fullText, regexMatches);
             }
           },
           {
             from: /(tenant|globalAdmin)Server\.(get|post|put|head|del)\((.*)/,
-            to: function(matchedWord, index, fullText, regexMatches) {
-              var msg =
+            to: (matchedWord, index, fullText, regexMatches) => {
+              const msg =
                 'Do not use the tenantServer or globalAdminServer to bind routes. Use the Router object like this:\n\n  ' +
                 regexMatches[0] +
                 "Router.on('" +
@@ -128,7 +129,7 @@ module.exports = function(grunt) {
   });
 
   // Utility function for logging regex matches
-  var logMatch = function(msg, matchedWord, index, fullText, regexMatches) {
+  var logMatch = (msg, matchedWord, index, fullText, regexMatches) => {
     var lineNum = fullText.substring(0, index).match(/\n/g).length + 1;
     var line = fullText.split('\n')[lineNum - 1];
     grunt.log.writeln(msg.red + ': ' + lineNum + ': ' + line);
@@ -138,7 +139,7 @@ module.exports = function(grunt) {
 
   // Task to run the regex task and fail if it matches anything
   grunt.registerTask('check-style', ['replace', 'jshint', 'checkRegexErrors']);
-  grunt.registerTask('checkRegexErrors', function() {
+  grunt.registerTask('checkRegexErrors', () => {
     grunt.task.requires('replace');
     if (regexErrors) {
       grunt.warn('Style rule validation failed');
@@ -149,8 +150,8 @@ module.exports = function(grunt) {
   grunt.registerTask('test', ['mocha-hack']);
 
   // Make a task for running tests on a single module
-  grunt.registerTask('test-module', 'Test a single module', function(module) {
-    var config = {
+  grunt.registerTask('test-module', 'Test a single module', module => {
+    const config = {
       src: [
         'node_modules/oae-tests/runner/beforeTests.js',
         'node_modules/' + module + '/tests/**/*.js'
@@ -162,7 +163,7 @@ module.exports = function(grunt) {
   });
 
   // Runs the unit tests and dumps some coverage data
-  grunt.registerTask('test-instrumented', function(report) {
+  grunt.registerTask('test-instrumented', report => {
     // If no report format was provided, we default to `lcov` which generates lcov and html
     report = report || 'lcov';
 
@@ -174,21 +175,21 @@ module.exports = function(grunt) {
       'node_modules/oae-tests',
       'node_modules/oae-*/node_modules'
     );
-    var excludeDirectoriesParameters = _.map(excludeDirectories, function(module) {
+    var excludeDirectoriesParameters = _.map(excludeDirectories, module => {
       return util.format('-x %s/\\*\\*', module);
     });
 
     // Exclude the tests from the coverage reports
     var oaeModules = grunt.file.expand({ filter: 'isDirectory' }, 'node_modules/oae-*');
-    var testDirectories = _.map(oaeModules, function(directory) {
+    var testDirectories = _.map(oaeModules, directory => {
       return util.format('-x %s/tests/\\*\\*', directory);
     });
-    var testUtilDirectories = _.map(oaeModules, function(directory) {
+    var testUtilDirectories = _.map(oaeModules, directory => {
       return util.format('-x %s/lib/test/\\*\\*', directory);
     });
 
     // Exclude the config directories
-    var configDirectories = _.map(oaeModules, function(module) {
+    var configDirectories = _.map(oaeModules, module => {
       return util.format('-x %s/config/\\*\\*', module);
     });
 
@@ -213,7 +214,7 @@ module.exports = function(grunt) {
   });
 
   // Sends a coverage report to coveralls.io
-  grunt.registerTask('coveralls', function() {
+  grunt.registerTask('coveralls', () => {
     // This assumes we're executing within the context of Travis CI
     // If not, you'll have to add a .converalls.yml file with `repo_token: ...` in it
     shell.exec('cat ./target/lcov.info | ./node_modules/coveralls/bin/coveralls.js');
@@ -235,7 +236,7 @@ module.exports = function(grunt) {
 
   // Make a task to open the browser
   // eslint-disable-next-line complexity
-  grunt.registerTask('showFile', 'Open a file with the OS default viewer', function(file) {
+  grunt.registerTask('showFile', 'Open a file with the OS default viewer', file => {
     var browser = shell.env['BROWSER'];
     if (!browser) {
       if (process.platform === 'linux') {
@@ -264,7 +265,7 @@ module.exports = function(grunt) {
   // Example:
   //     grunt release:/tmp/release
   // will copy only those files you really need in order to run Hilary in a folder at `/tmp/release`.
-  grunt.registerTask('release', function(outputDir) {
+  grunt.registerTask('release', outputDir => {
     if (!outputDir) {
       return grunt.log.writeln('Please provide a path where the files should be copied to'.red);
     }

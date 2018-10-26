@@ -195,26 +195,27 @@ const _createNewUserLogin = function(userHash, callback) {
     [newLoginId, userId, '1'],
     err => {
       if (err) {
-        log().error({ err }, 'Failed to update AuthenticationUserLoginId table in Cassandra');
-        _writeErrorRow(userHash, 'Failed to update AuthenticationUserLoginId for this user');
-        return callback(err);
+        _notifyOfError('AuthenticationUserLoginId', userHash, err, callback);
       }
       Cassandra.runQuery(
         'INSERT INTO "AuthenticationLoginId" ("loginId", "userId") VALUES (?, ?)',
         [newLoginId, userId],
         err => {
           if (err) {
-            log().error({ err }, 'Failed to update AuthenticationLoginId table in Cassandra');
-            _writeErrorRow(userHash, 'Failed to update AuthenticationLoginId for this user');
-            return callback(err);
+            _notifyOfError('AuthenticationLoginId', userHash, err, callback);
           }
-
           log().info('Created Shibboleth login record for user %s', userHash.displayName);
           return callback();
         }
       );
     }
   );
+};
+
+const _notifyOfError = (table, userHash, err, callback) => {
+  log().error({ err }, `Failed to update ${table} table in Cassandra`);
+  _writeErrorRow(userHash, `Failed to update ${table} for this user`);
+  return callback(err);
 };
 
 /**

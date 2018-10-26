@@ -47,6 +47,7 @@ if (argv.help) {
 
 // Get the config
 const configPath = path.resolve(process.cwd(), argv.config);
+// eslint-disable-next-line security/detect-non-literal-require
 const { config } = require(configPath);
 
 // ...and the tenant

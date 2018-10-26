@@ -49,6 +49,7 @@ const doMigration = function(ctx, tenantAlias, disabled, callback) {
 
   function _createNewContext() {
     // Get the config
+    // eslint-disable-next-line security/detect-non-literal-require
     const configPath = path.resolve(process.cwd(), 'config.js');
     const { config } = require(configPath);
 

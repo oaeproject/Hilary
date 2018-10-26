@@ -17,6 +17,7 @@
 * Disable users belonging to a disabled tenancy
 * Github issue #1304
 */
+/* eslint-disable */
 const path = require('path');
 const util = require('util');
 

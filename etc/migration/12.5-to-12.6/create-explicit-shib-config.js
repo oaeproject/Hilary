@@ -20,6 +20,7 @@
  * that have users and Shibboleth enabled
  */
 
+/* eslint-disable */
 const path = require('path');
 const _ = require('underscore');
 const optimist = require('optimist');
@@ -147,6 +148,12 @@ function _getTenantsWithPrincipals(tenants, callback) {
   }
 }
 
+function returnOnError(err, callback) {
+  if (err) {
+    return callback(err);
+  }
+}
+
 /**
  * Update Shibboleth config for a set of tenants
  *
@@ -173,37 +180,33 @@ function _updateTenants(tenants, callback) {
   });
 
   Cassandra.runBatchQuery(queries, err => {
-    if (err) {
-      return callback(err);
-    }
+    returnOnError(err, callback);
 
     log().info('Updated %d tenants to explicit Shibboleth config', tenantsToUpdate.length);
     return _updateTenants(tenants, callback);
   });
 }
 
-// Spin up the application container. This will allow us to re-use existing APIs
-OAE.init(config, err => {
+function exitIfError(err, message) {
   if (err) {
-    log().error({ err }, 'Unable to spin up the application server');
+    log().error({ err }, message);
     return process.exit(err.code);
   }
+}
+
+// Spin up the application container. This will allow us to re-use existing APIs
+OAE.init(config, err => {
+  exitIfError(err, 'Unable to spin up the application server');
 
   // Get all the tenants that are not disabled
   const tenants = TenantsAPI.getTenants(true);
 
   _filterTenants(tenants, (err, tenantsToUpdate) => {
-    if (err) {
-      log().error({ err }, 'Failed to filter out tenants with no users or Shibboleth');
-      return process.exit(err.code);
-    }
+    exitIfError(err, 'Failed to filter out tenants with no users or Shibboleth');
 
     // Update all the tenants
     _updateTenants(tenantsToUpdate, err => {
-      if (err) {
-        log().error({ err }, 'Unable to create explicit Shibboleth configs');
-        return process.exit(err.code);
-      }
+      exitIfError(err, 'Unable to create explicit Shibboleth configs');
 
       log().info('Updated all tenants');
       process.exit(0);

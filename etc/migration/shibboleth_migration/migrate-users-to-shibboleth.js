@@ -18,6 +18,7 @@
  * created with Google auth - Shibboleth EPPN should match email account.
  */
 
+/* eslint-disable */
 const util = require('util');
 const _ = require('underscore');
 

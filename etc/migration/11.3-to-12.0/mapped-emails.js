@@ -22,6 +22,7 @@
  *   -  Ensure that the user's email address is valid
  */
 
+/* eslint-disable */
 const fs = require('fs');
 const path = require('path');
 const _ = require('underscore');
@@ -75,12 +76,14 @@ const start = Date.now();
 let totalUsers = 0;
 let mappedUsers = 0;
 
-// Set up the CSV file
-const fileStream = fs.createWriteStream(`${argv.warnings}`, { flags: 'a' });
-fileStream.on('error', err => {
+function exitOnError(err) {
   log().error({ err }, 'Error occurred when writing to the warnings file');
   process.exit(1);
-});
+}
+
+// Set up the CSV file
+const fileStream = fs.createWriteStream(`${argv.warnings}`, { flags: 'a' });
+fileStream.on('error', exitOnError);
 const csvStream = csv.stringify({
   columns: ['principalId', 'displayName', 'email', 'message']
 });

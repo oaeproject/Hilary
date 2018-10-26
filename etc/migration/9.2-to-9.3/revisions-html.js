@@ -103,20 +103,21 @@ const _handleRows = function(rows, callback) {
     );
   };
 
+  function exitIfError(err, message) {
+    if (err) {
+      log().error({ err }, message);
+      return process.exit(err.code);
+    }
+  }
+
   // Rather than just initializing the Casandra and RabbitMQ components, we initialize
   // the entire application server. This allows us to re-use some logic such as PP
   // reprocessing and logging
   OAE.init(config, err => {
-    if (err) {
-      log().error({ err }, 'Unable to spin up the application server');
-      process.exit(err.code);
-    }
+    exitIfError(err, 'Unable to spin up the application server');
 
     migrate(err => {
-      if (err) {
-        log().error({ err }, 'Unable to migrate the revisions');
-        process.exit(err.code);
-      }
+      exitIfError(err, 'Unable to migrate the revisions');
 
       log().info(
         'Migration completed, migrated %d revisions, it took %d milliseconds',

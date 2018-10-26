@@ -20,6 +20,7 @@
  * created with Google auth - Shibboleth EPPN should match email account.
  */
 
+/* eslint-disable */
 const fs = require('fs');
 const path = require('path');
 const csv = require('csv');
@@ -66,12 +67,14 @@ config.log = {
   ]
 };
 
-// Set up the CSV file for errors
-const fileStream = fs.createWriteStream(`${tenantAlias}-shibboleth-migration.csv`);
-fileStream.on('error', err => {
+function exitOnError(err) {
   log().error({ err }, 'Error occurred when writing to the warnings file');
   process.exit(1);
-});
+}
+
+// Set up the CSV file for errors
+const fileStream = fs.createWriteStream(`${tenantAlias}-shibboleth-migration.csv`);
+fileStream.on('error', exitOnError);
 const csvStream = csv.stringify({
   columns: ['principal_id', 'email', 'display_name', 'login_id', 'message'],
   header: true,

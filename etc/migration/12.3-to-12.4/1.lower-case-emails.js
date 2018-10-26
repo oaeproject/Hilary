@@ -20,6 +20,7 @@
  * case.
  */
 
+/* eslint-disable */
 const path = require('path');
 const optimist = require('optimist');
 

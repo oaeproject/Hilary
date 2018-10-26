@@ -19,6 +19,7 @@
  * This migration script will copy each row's `emailDomain` value to `emailDomains`
  */
 
+/* eslint-disable */
 const path = require('path');
 const _ = require('underscore');
 const optimist = require('optimist');
@@ -61,6 +62,12 @@ config.log = {
   ]
 };
 
+function returnOnError(err, callback) {
+  if (err) {
+    return callback(err);
+  }
+}
+
 /**
  * Update a set of tenants their email domains
  *
@@ -83,28 +90,26 @@ function _updateTenants(tenants, callback) {
     });
   });
   Cassandra.runBatchQuery(queries, err => {
-    if (err) {
-      return callback(err);
-    }
-
+    returnOnError(err, callback);
     log().info('Updated %d tenants their email domains', tenantsToUpdate.length);
     return _updateTenants(tenants, callback);
   });
 }
 
-// Spin up the application container. This will allow us to re-use existing APIs
-OAE.init(config, err => {
+function exitIfError(err, message) {
   if (err) {
-    log().error({ err }, 'Unable to spin up the application server');
+    log().error({ err }, message);
     return process.exit(err.code);
   }
+}
+
+// Spin up the application container. This will allow us to re-use existing APIs
+OAE.init(config, err => {
+  exitIfError(err, 'Unable to spin up the application server');
 
   // Get all the tenants
   Cassandra.runQuery('SELECT "alias", "emailDomain" FROM "Tenant"', [], (err, rows) => {
-    if (err) {
-      log().error({ err }, 'Unable to get all the tenants from the database');
-      return process.exit(err.code);
-    }
+    exitIfError(err, 'Unable to get all the tenants from the database');
 
     // Iterate through all the tenants and copy the emailDomain
     const tenantsToUpdate = _.chain(rows)
@@ -116,11 +121,7 @@ OAE.init(config, err => {
 
     // Update all the tenants
     _updateTenants(tenantsToUpdate, err => {
-      if (err) {
-        log().error({ err }, 'Unable to copy the emailDomain value');
-        return process.exit(err.code);
-      }
-
+      exitIfError(err, 'Unable to copy the emailDomain value');
       log().info('Updated all tenants');
       process.exit(0);
     });

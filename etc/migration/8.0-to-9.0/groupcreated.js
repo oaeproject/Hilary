@@ -15,10 +15,9 @@
  * permissions and limitations under the License.
  */
 
+/* eslint-disable */
 const _ = require('underscore');
-
 const Cassandra = require('oae-util/lib/cassandra');
-
 const { config } = require('../../../config');
 
 /**

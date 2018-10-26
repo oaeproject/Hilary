@@ -70,26 +70,19 @@ config.log = {
   ]
 };
 
+function exitIfError(err, message) {
+  if (err) {
+    log().error({ err }, message);
+    return process.exit(err.code);
+  }
+}
+
 // Spin up the application container. This will allow us to re-use existing APIs
 OAE.init(config, err => {
-  if (err) {
-    log().error(
-      {
-        err
-      },
-      'Unable to spin up the application server'
-    );
-    process.exit(err.code);
-  }
-
+  exitIfError(err, 'Unable to spin up the application server');
   DisableUsersMigration.doMigration(null, tenantAlias, true, (err, users) => {
-    if (err) {
-      log().warn('Migration not completed successfully.');
-      process.exit(err.code);
-    }
-
+    exitIfError(err, 'Migration not completed successfully.');
     log().info('Finished migration for ' + users.length + ' users.');
-
     // Nothing left to do, exiting.
     process.exit(0);
   });

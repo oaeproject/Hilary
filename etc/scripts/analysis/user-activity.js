@@ -19,6 +19,7 @@
  * An analysis script designed to determine how active user accounts are for a tenant.
  */
 
+/* eslint-disable */
 const fs = require('fs');
 const path = require('path');
 const util = require('util');
@@ -498,6 +499,11 @@ function _rowToCount(callback) {
   };
 }
 
+function exitOnError(err) {
+  log().error({ err }, 'Error occurred when writing to the CSV file');
+  process.exit(1);
+}
+
 /**
  * Create a CSV file stream to the specified CSV file
  *
@@ -513,10 +519,7 @@ function _createCsvStream(csvFileName) {
 
   // Set up the CSV file
   const fileStream = fs.createWriteStream(csvFileName, { flags: 'w' });
-  fileStream.on('error', err => {
-    log().error({ err }, 'Error occurred when writing to the CSV file');
-    process.exit(1);
-  });
+  fileStream.on('error', exitOnError);
   const csvStream = csv.stringify({
     columns: [
       'tenant_alias',

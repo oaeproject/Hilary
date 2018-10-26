@@ -13,18 +13,20 @@
  * permissions and limitations under the License.
  */
 
+/* eslint-disable no-use-before-define */
+
 module.exports = grunt => {
   const _ = require('underscore');
   const path = require('path');
   const shell = require('shelljs');
   const util = require('util');
   // eslint-disable-next-line camelcase
-  const mocha_grep = process.env['MOCHA_GREP'] || undefined;
+  const mocha_grep = process.env['MOCHA_GREP'];
 
   // Timeout used to determine when a test has failed
   const MOCHA_TIMEOUT = 60000;
 
-  const regexErrors = false;
+  let regexErrors = false;
 
   // Project configuration.
   grunt.initConfig({

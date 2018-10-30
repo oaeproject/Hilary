@@ -46,7 +46,7 @@
     "gm": "^1.23.0",
     "juice": "^4.2.2",
     "jszip": "^3.1.5",
-    "less": "1.7.5",
+    "less": "2.1.0",
     "locale": "^0.1.0",
     "lunr": "1.0.0",
     "mailparser": "0.6.2",
@@ -83,7 +83,7 @@
     "recaptcha": "^1.2.1",
     "redback": "^0.5.1",
     "redis": "^2.8.0",
-    "request": "2.47.0",
+    "request": "2.81.0",
     "rimraf": "^2.6.2",
     "selectn": "^1.1.2",
     "shortid": "^2.2.8",
@@ -100,7 +100,7 @@
     "webshot": "0.15.1",
     "xml2js": "^0.4.19",
     "youtube-api": "^2.0.9",
-    "snyk": "^1.48.1"
+    "snyk": "^1.105.0"
   },
   "devDependencies": {
     "coveralls": "^3.0.0",
@@ -167,7 +167,8 @@
   "scripts": {
     "test": "grunt",
     "snyk-protect": "snyk protect",
-    "prepublish": "npm run snyk-protect"
+    "prepublish": "npm run snyk-protect",
+    "prepare": "npm run snyk-protect"
   },
   "snyk": true
 }

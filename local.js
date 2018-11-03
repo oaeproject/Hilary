@@ -13,9 +13,8 @@
  * permissions and limitations under the License.
  */
 
-var bunyan = require('bunyan');
-
-var config = module.exports.config = {};
+const config = {};
+module.exports = { config };
 
 // Configuration for running tests
 
@@ -29,8 +28,7 @@ var config = module.exports.config = {};
  * @param  {String}    path               The log path that should be used for testing
  */
 config.test = {
-    'timeout': 120000,
-    'level': 'info',
-    'path': './tests.log'
+  timeout: 120000,
+  level: 'info',
+  path: './tests.log'
 };
-

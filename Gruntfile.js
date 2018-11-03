@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /*
  * Copyright 2014 Apereo Foundation (AF) Licensed under the
  * Educational Community License, Version 2.0 (the "License"); you may
@@ -13,15 +14,13 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable no-use-before-define */
+/* eslint-disable no-use-before-define, camelcase, unicorn/filename-case, no-unused-vars, no-use-extend-native/no-use-extend-native */
 
 module.exports = grunt => {
   const _ = require('underscore');
-  const path = require('path');
   const shell = require('shelljs');
   const util = require('util');
-  // eslint-disable-next-line camelcase
-  const mocha_grep = process.env['MOCHA_GREP'];
+  const mocha_grep = process.env.MOCHA_GREP;
 
   // Timeout used to determine when a test has failed
   const MOCHA_TIMEOUT = 60000;
@@ -131,9 +130,9 @@ module.exports = grunt => {
   });
 
   // Utility function for logging regex matches
-  var logMatch = (msg, matchedWord, index, fullText, regexMatches) => {
-    var lineNum = fullText.substring(0, index).match(/\n/g).length + 1;
-    var line = fullText.split('\n')[lineNum - 1];
+  const logMatch = (msg, matchedWord, index, fullText, regexMatches) => {
+    const lineNum = fullText.substring(0, index).match(/\n/g).length + 1;
+    const line = fullText.split('\n')[lineNum - 1];
     grunt.log.writeln(msg.red + ': ' + lineNum + ': ' + line);
     regexErrors = true;
     return matchedWord;
@@ -170,33 +169,33 @@ module.exports = grunt => {
     report = report || 'lcov';
 
     // Get the modules that should be excluded
-    var excludeDirectories = grunt.file.expand(
+    const excludeDirectories = grunt.file.expand(
       { filter: 'isDirectory' },
       'node_modules/*',
       '!node_modules/oae-*',
       'node_modules/oae-tests',
       'node_modules/oae-*/node_modules'
     );
-    var excludeDirectoriesParameters = _.map(excludeDirectories, module => {
+    const excludeDirectoriesParameters = _.map(excludeDirectories, module => {
       return util.format('-x %s/\\*\\*', module);
     });
 
     // Exclude the tests from the coverage reports
-    var oaeModules = grunt.file.expand({ filter: 'isDirectory' }, 'node_modules/oae-*');
-    var testDirectories = _.map(oaeModules, directory => {
+    const oaeModules = grunt.file.expand({ filter: 'isDirectory' }, 'node_modules/oae-*');
+    const testDirectories = _.map(oaeModules, directory => {
       return util.format('-x %s/tests/\\*\\*', directory);
     });
-    var testUtilDirectories = _.map(oaeModules, directory => {
+    const testUtilDirectories = _.map(oaeModules, directory => {
       return util.format('-x %s/lib/test/\\*\\*', directory);
     });
 
     // Exclude the config directories
-    var configDirectories = _.map(oaeModules, module => {
+    const configDirectories = _.map(oaeModules, module => {
       return util.format('-x %s/config/\\*\\*', module);
     });
 
     // Build up one big set of exlusion filters
-    var excludeFilters = _.union(
+    const excludeFilters = _.union(
       excludeDirectoriesParameters,
       testDirectories,
       testUtilDirectories,
@@ -204,12 +203,12 @@ module.exports = grunt => {
     );
     excludeFilters.push('-x Gruntfile.js');
 
-    var cmd = util.format(
+    const cmd = util.format(
       'node_modules/.bin/istanbul cover --verbose --dir target --no-default-excludes %s --report %s ./node_modules/grunt-cli/bin/grunt',
       excludeFilters.join(' '),
       report
     );
-    var code = shell.exec(cmd).code;
+    const { code } = shell.exec(cmd);
     if (code !== 0) {
       process.exit(code);
     }
@@ -239,7 +238,7 @@ module.exports = grunt => {
   // Make a task to open the browser
   // eslint-disable-next-line complexity
   grunt.registerTask('showFile', 'Open a file with the OS default viewer', file => {
-    var browser = shell.env['BROWSER'];
+    let browser = shell.env.BROWSER;
     if (!browser) {
       if (process.platform === 'linux') {
         browser = 'xdg-open';

@@ -20,18 +20,18 @@
  * Github issue #1304
  */
 
-var optimist = require('optimist');
-var path = require('path');
+const path = require('path');
+const optimist = require('optimist');
 
-var log = require('oae-logger').logger('oae-script-main');
-var OAE = require('oae-util/lib/oae');
+const log = require('oae-logger').logger('oae-script-main');
+const OAE = require('oae-util/lib/oae');
 
-var DisableUsersMigration = require('./lib/disable-users-by-tenancy');
+const DisableUsersMigration = require('./lib/disable-users-by-tenancy');
 
 /**
  * $ node 1.disable-users-by-tenancy.js -t rp | bunyan
  */
-var argv = optimist
+const { argv } = optimist
   .usage('$0 -t cam [--config <path/to/config.js>]')
   .demand('t')
   .alias('t', 'tenant')
@@ -40,23 +40,20 @@ var argv = optimist
   .describe('c', 'Specify an alternate config file')
   .default('c', 'config.js')
   .alias('h', 'help')
-  .describe('h', 'Show usage information')
-  .argv;
+  .describe('h', 'Show usage information');
 
 if (argv.help) {
   optimist.showHelp();
-  return;
 }
 
 // Get the config
-var configPath = path.resolve(process.cwd(), argv.config);
-var config = require(configPath).config;
+// eslint-disable-next-line security/detect-non-literal-require
+const { config } = require(path.resolve(process.cwd(), argv.config));
 
 // Get the tenant
-var tenantAlias = argv.tenant;
+const tenantAlias = argv.tenant;
 if (!tenantAlias) {
   log().error('You need to specify the tenant alias');
-  return;
 }
 
 // Ensure that this application server does NOT start processing any preview
@@ -65,31 +62,27 @@ config.previews.enabled = false;
 
 // Ensure that we're logging to standard out/err
 config.log = {
-  'streams': [
+  streams: [
     {
-      'level': 'info',
-      'stream': process.stdout
+      level: 'info',
+      stream: process.stdout
     }
   ]
 };
 
-// Spin up the application container. This will allow us to re-use existing APIs
-OAE.init(config, function (err) {
+function exitIfError(err, message) {
   if (err) {
-    log().error({
-      'err': err
-    }, 'Unable to spin up the application server');
-    process.exit(err.code);
+    log().error({ err }, message);
+    return process.exit(err.code);
   }
+}
 
-  DisableUsersMigration.doMigration(null, tenantAlias, true, function(err, users) {
-    if (err) {
-      log().warn('Migration not completed successfully.');
-      process.exit(err.code);
-    }
-
+// Spin up the application container. This will allow us to re-use existing APIs
+OAE.init(config, err => {
+  exitIfError(err, 'Unable to spin up the application server');
+  DisableUsersMigration.doMigration(null, tenantAlias, true, (err, users) => {
+    exitIfError(err, 'Migration not completed successfully.');
     log().info('Finished migration for ' + users.length + ' users.');
-
     // Nothing left to do, exiting.
     process.exit(0);
   });

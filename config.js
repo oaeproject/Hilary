@@ -13,9 +13,11 @@
  * permissions and limitations under the License.
  */
 
-var bunyan = require('bunyan');
+/* eslint-disable camelcase, capitalized-comments */
+const bunyan = require('bunyan');
 
-var config = module.exports.config = {};
+const config = {};
+module.exports.config = config;
 
 // UI related config information. By default, we assume that the UI repostory
 // can be found on the same level as the Hilary folder.
@@ -28,19 +30,19 @@ var config = module.exports.config = {};
  * @param  {String}    path            The path to the UI static assets
  */
 config.ui = {
-    'path': './3akai-ux'
+  path: './3akai-ux'
 };
 
 // Cassandra related config information.
 config.cassandra = {
-    'hosts': ['127.0.0.1'],
-    'keyspace': 'oae',
-    'user': '',
-    'pass': '',
-    'timeout': 3000,
-    'replication': 1,
-    'strategyClass': 'SimpleStrategy',
-    'cqlVersion': '3.0.0'
+  hosts: ['127.0.0.1'],
+  keyspace: 'oae',
+  user: '',
+  pass: '',
+  timeout: 3000,
+  replication: 1,
+  strategyClass: 'SimpleStrategy',
+  cqlVersion: '3.0.0'
 };
 
 // The redis related configuration information.
@@ -51,10 +53,10 @@ config.cassandra = {
 //  0 = production
 //  1 = unit tests
 config.redis = {
-    'host': '127.0.0.1',
-    'port': 6379,
-    'pass': '',
-    'dbIndex': 0
+  host: '127.0.0.1',
+  port: 6379,
+  pass: '',
+  dbIndex: 0
 };
 
 /**
@@ -72,20 +74,20 @@ config.redis = {
  * @param  {Boolean}    [strictHttps]               Whether or not the server is using a valid SSL certificate. If `true`, any attempts to connect to the REST endpoints using an invalid certificate should result in an error and not be ignored. If `false`, a valid certificate will not be required
  */
 config.servers = {
-    'globalAdminAlias': 'admin',
-    'globalAdminHost': 'admin.oae.com',
-    'globalAdminPort': 2000,
-    'guestTenantAlias': 'guest',
-    'guestTenantHost': 'guest.oae.com',
-    'shibbolethSPHost': 'shib-sp.oae.com',
-    'serverInternalAddress': null,
-    'tenantPort': 2001,
-    'useHttps': false,
-    'strictHttps': true
+  globalAdminAlias: 'admin',
+  globalAdminHost: 'admin.oae.com',
+  globalAdminPort: 2000,
+  guestTenantAlias: 'guest',
+  guestTenantHost: 'guest.oae.com',
+  shibbolethSPHost: 'shib-sp.oae.com',
+  serverInternalAddress: null,
+  tenantPort: 2001,
+  useHttps: false,
+  strictHttps: true
 };
 
-var tmpDir = process.env.TMP || process.env.TMPDIR || process.env.TEMP || '/tmp' || process.cwd();
-tmpDir += '/oae';
+let tmpDir = process.env.TMP || process.env.TMPDIR || process.env.TEMP || '/tmp' || process.cwd();
+tmpDir = '/home/miguel/Work/tmp';
 
 /**
  * `config.files`
@@ -101,14 +103,14 @@ tmpDir += '/oae';
  * @param  {String}    limit                    The maximum file upload size, accepted formats look like "5mb", "200kb", "1gb". You should also adjust your front-end proxy (e.g., Nginx, Apache) to also handle files of this size
  */
 config.files = {
-    'tmpDir': tmpDir,
-    'uploadDir': tmpDir + '/uploads',
-    'cleaner': {
-        'enabled': true,
-        'interval': 2*60*60
-    },
-    'limit': '4096mb',
-    'localStorageDirectory': '../files'
+  tmpDir,
+  uploadDir: tmpDir + '/uploads',
+  cleaner: {
+    enabled: true,
+    interval: 2 * 60 * 60
+  },
+  limit: '4096mb',
+  localStorageDirectory: '../files'
 };
 
 /**
@@ -120,22 +122,22 @@ config.files = {
  * @param  {String}     secret      The key to securely sign the cookies with. It's strongly recommended that you change this value
  */
 config.cookie = {
-    'name': 'session',
-    'secret': 'this secret will be used to sign your cookies, change me!'
+  name: 'session',
+  secret: 'this secret will be used to sign your cookies, change me!'
 };
 
 config.log = {
-    'streams': [
-        {
-            'level': 'info',
-            'stream': process.stdout
-        }
-    ],
-    'serializers': {
-        'err': bunyan.stdSerializers.err,
-        'req': bunyan.stdSerializers.req,
-        'res': bunyan.stdSerializers.res
+  streams: [
+    {
+      level: 'info',
+      stream: process.stdout
     }
+  ],
+  serializers: {
+    err: bunyan.stdSerializers.err,
+    req: bunyan.stdSerializers.req,
+    res: bunyan.stdSerializers.res
+  }
 };
 
 /**
@@ -151,13 +153,13 @@ config.log = {
  * @param  {String}     [circonus.url]          The Circonus url to which data should be published (required param if circonus is the publisher)
  */
 config.telemetry = {
-    'enabled': false,
-    'publishInterval': 30,
-    'resetInterval': 86400,
-    'publisher': 'console',
-    'circonus': {
-        'url': 'https://trap.noit.circonus.net/module/httptrap/check-uuid/secret-here'
-    }
+  enabled: false,
+  publishInterval: 30,
+  resetInterval: 86400,
+  publisher: 'console',
+  circonus: {
+    url: 'https://trap.noit.circonus.net/module/httptrap/check-uuid/secret-here'
+  }
 };
 
 /**
@@ -173,71 +175,71 @@ config.telemetry = {
  * @param  {Boolean}   [processIndexJobs]       Whether or not this node should act as an indexer. Only disable this if you have another dedicated set of machines performing index processing. Defaults to `true`.
  */
 config.search = {
-    'hosts': [
-        {
-            'host': 'localhost',
-            'port': 9200
-        }
-    ],
-    'index': {
-        'name': 'oae',
-        'settings': {
-            'number_of_shards': 5,
-            'number_of_replicas': 1,
-            'analysis': {
-                'analyzer': {
-                    'q': {
-                        'type': 'custom',
-                        'char_filter': ['html_strip'],
-                        'tokenizer': 'letter',
-                        'filter': ['lowercase', 'q_edgengram']
-                    },
-                    'message': {
-                        'type': 'custom',
-                        'tokenizer': 'letter',
-                        'filter': ['lowercase', 'message_edgengram']
-                    },
-                    'text_content': {
-                        'type': 'custom',
-                        'tokenizer': 'letter',
-                        'filter': ['lowercase', 'content_edgengram']
-                    },
-                    'display_name': {
-                        'type': 'custom',
-                        'tokenizer': 'display_name_tokenizer',
-                        'filter': ['lowercase']
-                    }
-                },
-                'tokenizer': {
-                    'display_name_tokenizer': {
-                        'type' : 'edgeNGram',
-                        'min_gram' : '2',
-                        'max_gram' : '10',
-                        'token_chars': []
-                    }
-                },
-                'filter': {
-                    'q_edgengram': {
-                        'type': 'edgeNGram',
-                        'min_gram': 2,
-                        'max_gram': 15
-                    },
-                    'message_edgengram': {
-                        'type': 'edgeNGram',
-                        'min_gram': 5,
-                        'max_gram': 15
-                    },
-                    'content_edgengram': {
-                        'type': 'edgeNGram',
-                        'min_gram': 5,
-                        'max_gram': 15
-                    }
-                }
-            }
+  hosts: [
+    {
+      host: 'localhost',
+      port: 9200
+    }
+  ],
+  index: {
+    name: 'oae',
+    settings: {
+      number_of_shards: 5,
+      number_of_replicas: 1,
+      analysis: {
+        analyzer: {
+          q: {
+            type: 'custom',
+            char_filter: ['html_strip'],
+            tokenizer: 'letter',
+            filter: ['lowercase', 'q_edgengram']
+          },
+          message: {
+            type: 'custom',
+            tokenizer: 'letter',
+            filter: ['lowercase', 'message_edgengram']
+          },
+          text_content: {
+            type: 'custom',
+            tokenizer: 'letter',
+            filter: ['lowercase', 'content_edgengram']
+          },
+          display_name: {
+            type: 'custom',
+            tokenizer: 'display_name_tokenizer',
+            filter: ['lowercase']
+          }
         },
-        'destroyOnStartup': false
+        tokenizer: {
+          display_name_tokenizer: {
+            type: 'edgeNGram',
+            min_gram: '2',
+            max_gram: '10',
+            token_chars: []
+          }
+        },
+        filter: {
+          q_edgengram: {
+            type: 'edgeNGram',
+            min_gram: 2,
+            max_gram: 15
+          },
+          message_edgengram: {
+            type: 'edgeNGram',
+            min_gram: 5,
+            max_gram: 15
+          },
+          content_edgengram: {
+            type: 'edgeNGram',
+            min_gram: 5,
+            max_gram: 15
+          }
+        }
+      }
     },
-    'processIndexJobs': true
+    destroyOnStartup: true
+  },
+  processIndexJobs: true
 };
 
 /**
@@ -251,11 +253,11 @@ config.search = {
  * @param  {Boolean}    [purgeQueuesOnStartup]  If `true`, the application will **delete** all messages in a queue when a worker is first bound. This setting only takes effect if the NODE_ENV environment variable is not set to `production` to indicate a production environment. Default: `false`
  */
 config.mq = {
-    'connection': {
-        'host': ['localhost'],
-        'port': 5672
-    },
-    'purgeQueuesOnStartup': false
+  connection: {
+    host: ['localhost'],
+    port: 5672
+  },
+  purgeQueuesOnStartup: false
 };
 
 /**
@@ -283,29 +285,29 @@ config.mq = {
  * @param  {String}      credentials.password           The password to login with on the global admin server
  */
 config.previews = {
-    'enabled': false,
-    'tmpDir': tmpDir + '/previews',
-    'office': {
-        'binary': 'soffice',
-        'timeout': 120000
-    },
-    'pdf2htmlEX': {
-        'binary': 'pdf2htmlEX',
-        'timeout': 120000
-    },
-    'pdftotext': {
-        'binary': 'pdftotext',
-        'timeout': 120000
-    },
-    'link': {
-        'renderDelay': 7500,
-        'renderTimeout': 30000,
-        'embeddableCheckTimeout': 15000
-    },
-    'credentials': {
-        'username': 'administrator',
-        'password': 'administrator'
-    }
+  enabled: false,
+  tmpDir: tmpDir + '/previews',
+  office: {
+    binary: 'soffice',
+    timeout: 120000
+  },
+  pdf2htmlEX: {
+    binary: 'pdf2htmlEX',
+    timeout: 120000
+  },
+  pdftotext: {
+    binary: 'pdftotext',
+    timeout: 120000
+  },
+  link: {
+    renderDelay: 7500,
+    renderTimeout: 30000,
+    embeddableCheckTimeout: 15000
+  },
+  credentials: {
+    username: 'administrator',
+    password: 'administrator'
+  }
 };
 
 /**
@@ -316,7 +318,7 @@ config.previews = {
  * @param  {String}    key     This key will be used to sign URLs like profile pictures, content previews, etc.. . It's vital to the security of the system that you change this in production.
  */
 config.signing = {
-    'key': 'The default signing key, please change me.'
+  key: 'The default signing key, please change me.'
 };
 
 /**
@@ -349,28 +351,28 @@ config.signing = {
  * @param  {Number}     [redis.dbIndex]                 The index number of the dedicated redis server index
  */
 config.activity = {
-    'processActivityJobs': true,
-    'activityTtl': 2 * 30 * 24 * 60 * 60,   // 2 months (in seconds)
-    'numberOfProcessingBuckets': 3,
-    'aggregateIdleExpiry': 3 * 60 * 60,     // 3 hours (in seconds)
-    'aggregateMaxExpiry': 24 * 60 * 60,     // 1 day (in seconds)
-    'collectionExpiry': 60,                 // 1 minute (in seconds)
-    'maxConcurrentCollections': 3,
-    'maxConcurrentRouters': 5,
-    'collectionPollingFrequency': 5,        // 5 seconds
-    'collectionBatchSize': 1000,
-    'mail': {
-        'pollingFrequency': 15 * 60,        // 15 minutes
-        'gracePeriod':  3 * 60,             // 3 minutes
-        'daily': {
-            'hour': 8                       // 8AM
-        },
-        'weekly': {
-            'day': 3,                       // Wednesday, 0-based where 0 = Sunday
-            'hour': 12                      // Noon
-        }
+  processActivityJobs: true,
+  activityTtl: 2 * 30 * 24 * 60 * 60, // 2 months (in seconds)
+  numberOfProcessingBuckets: 3,
+  aggregateIdleExpiry: 3 * 60 * 60, // 3 hours (in seconds)
+  aggregateMaxExpiry: 24 * 60 * 60, // 1 day (in seconds)
+  collectionExpiry: 60, // 1 minute (in seconds)
+  maxConcurrentCollections: 3,
+  maxConcurrentRouters: 5,
+  collectionPollingFrequency: 5, // 5 seconds
+  collectionBatchSize: 1000,
+  mail: {
+    pollingFrequency: 15 * 60, // 15 minutes
+    gracePeriod: 3 * 60, // 3 minutes
+    daily: {
+      hour: 8 // 8AM
     },
-    'redis': null
+    weekly: {
+      day: 3, // Wednesday, 0-based where 0 = Sunday
+      hour: 12 // Noon
+    }
+  },
+  redis: null
 };
 
 /**
@@ -390,24 +392,24 @@ config.activity = {
  * @param  {Object}     [smtpTransport]             The SMTP connection information for sending emails. This is the settings object that will be used by nodemailer to form an smtp connection: https://github.com/andris9/Nodemailer
  */
 config.email = {
-    'debug': true,
-    'customEmailTemplatesDir': null,
-    'deduplicationInterval': 7 * 24 * 60 * 60,   //  7 days
-    'throttling': {
-        'count': 10,
-        'timespan': 2 * 60                       //  2 minutes
-    },
-    'transport': 'SMTP',
-    'sendmailTransport': {
-        'path': '/usr/sbin/sendmail'
-    },
-    'smtpTransport': {
-        'service': 'Gmail',
-        'auth': {
-            'user': 'my.email@gmail.com',
-            'pass': 'myemailpassword'
-        }
+  debug: true,
+  customEmailTemplatesDir: null,
+  deduplicationInterval: 7 * 24 * 60 * 60, //  7 days
+  throttling: {
+    count: 10,
+    timespan: 2 * 60 //  2 minutes
+  },
+  transport: 'SMTP',
+  sendmailTransport: {
+    path: '/usr/sbin/sendmail'
+  },
+  smtpTransport: {
+    service: 'Gmail',
+    auth: {
+      user: 'my.email@gmail.com',
+      pass: 'myemailpassword'
     }
+  }
 };
 
 /**
@@ -425,24 +427,24 @@ config.email = {
  * @param  {Number}     hosts[i].port   The port number on which Hilary will be accessing the etherpad API.
  */
 config.etherpad = {
-    'apikey': '13SirapH8t3kxUh5T5aqWXhXahMzoZRA',
-    'hosts': [
-        {
-            'host': '127.0.0.1',
-            'port': 9001
-        }
-    ]
+  apikey: '13SirapH8t3kxUh5T5aqWXhXahMzoZRA',
+  hosts: [
+    {
+      host: '127.0.0.1',
+      port: 9001
+    }
+  ]
 };
 
 /**
-* `config.tincanapi`
-*
-* Configuration namespace for the TinCan API logic
-*
-* @param  {Number}  timeout             Defines the timeout (in ms) when the request to the LRS should be killed
-*/
+ * `config.tincanapi`
+ *
+ * Configuration namespace for the TinCan API logic
+ *
+ * @param  {Number}  timeout             Defines the timeout (in ms) when the request to the LRS should be killed
+ */
 config.tincanapi = {
-    'timeout': 4000
+  timeout: 4000
 };
 
 /**
@@ -454,6 +456,6 @@ config.tincanapi = {
  * @param  {String}     token           The mixpanel api token
  */
 config.mixpanel = {
-    'enabled': false,
-    'token': 'f3e9fce119d357b745a8dfa36248d632'
+  enabled: false,
+  token: 'f3e9fce119d357b745a8dfa36248d632'
 };

@@ -25,7 +25,7 @@ elif [ -z "$LOG_FILE" ]; then
     usage;
 fi
 
-START_LINE=`cat -n "$LOG_FILE" | grep "$GREP_FROM" | head -1 | awk '{print $1;}'`
-END_LINE=`cat -n "$LOG_FILE" | grep "$GREP_TO" | tail -1 | awk '{print $1;}'`
+START_LINE=$(cat -n "$LOG_FILE" | grep "$GREP_FROM" | head -1 | awk '{print $1;}')
+END_LINE=$(cat -n "$LOG_FILE" | grep "$GREP_TO" | tail -1 | awk '{print $1;}')
 
-cat $LOG_FILE | sed -n "$START_LINE,$END_LINE p"
+< $LOG_FILE sed -n "$START_LINE,$END_LINE p"

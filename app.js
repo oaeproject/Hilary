@@ -15,6 +15,7 @@
  * permissions and limitations under the License.
  */
 
+/* eslint-disable security/detect-non-literal-require */
 const path = require('path');
 const repl = require('repl');
 const PrettyStream = require('bunyan-prettystream');

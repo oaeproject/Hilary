@@ -459,38 +459,3 @@ config.mixpanel = {
   enabled: false,
   token: 'f3e9fce119d357b745a8dfa36248d632'
 };
-
-/**
- * Uncomment below for non-docker node
- */
-const LOCALHOST = 'localhost';
-// const LOCALHOST = "aspiredor.local";
-// const LOCALHOST = "192.168.3.123";
-
-config.ui.path = './3akai-ux';
-config.cassandra.hosts = [LOCALHOST + ':9043'];
-config.cassandra.timeout = 18000;
-// config.cassandra.replication = 1;
-config.redis.host = LOCALHOST;
-config.servers.serverInternalAddress = '0.0.0.0';
-config.search.hosts = [
-  {
-    host: LOCALHOST,
-    port: 9200
-  }
-];
-config.mq.connection.host = [LOCALHOST];
-config.previews.enabled = true;
-// config.previews.office.binary = "/usr/local/bin/soffice"; // Change to your own path
-// config.previews.pdf2htmlEX.binary = "/usr/local/bin/pdf2htmlEX"; // Change to your own path
-// config.previews.pdftotext.binary = "/usr/local/bin/pdftotext"; // Change to your own path
-config.previews.office.timeout = 260000;
-config.previews.pdf2htmlEX.timeout = 260000;
-config.previews.pdftotext.timeout = 260000;
-config.email.transport = 'sendmail';
-config.etherpad.hosts = [
-  {
-    host: LOCALHOST,
-    port: 9001
-  }
-];

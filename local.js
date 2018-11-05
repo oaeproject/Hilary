@@ -14,7 +14,6 @@
  */
 
 const config = {};
-module.exports = { config };
 
 // Configuration for running tests
 
@@ -32,3 +31,5 @@ config.test = {
   level: 'info',
   path: './tests.log'
 };
+
+module.exports = { config };

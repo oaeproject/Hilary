@@ -1,0 +1,6 @@
+--check-leaks
+--globals oaeTests
+--slow 3000
+--timeout 90000
+--full-trace
+--exit

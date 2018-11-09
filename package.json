@@ -1,7 +1,7 @@
 {
   "name": "Hilary",
   "description": "Open Academic Environment (OAE) Back-end",
-  "version": "14.0.2",
+  "version": "15.0.0",
   "homepage": "http://www.oaeproject.org",
   "author": {
     "name": "The Apereo Foundation",
@@ -108,13 +108,8 @@
     "youtube-api": "^2.0.9"
   },
   "devDependencies": {
-    "coveralls": "^3.0.0",
     "grunt": "^1.0.1",
     "grunt-cli": "^1.2.0",
-    "grunt-contrib-clean": "^1.1.0",
-    "grunt-contrib-jshint": "^1.1.0",
-    "grunt-mocha-hack": "git://github.com/mrvisser/grunt-mocha-hack#full-stack-trace",
-    "grunt-text-replace": "^0.4.0",
     "istanbul": "^0.4.5",
     "mocha": "^4.0.1",
     "nock": "^2.17.0",
@@ -173,11 +168,14 @@
     "node": ">=9.11.2"
   },
   "scripts": {
-    "test": "nyc grunt",
+    "test": "mocha 'node_modules/oae-tests/runner/beforeTests.js' 'node_modules/oae-*/tests/**/*.js'",
+    "test-module": "func() { mocha 'node_modules/oae-tests/runner/beforeTests.js' 'node_modules/'$1'/tests/**/*.js'; }; func",
+    "server": "node app.js | bunyan",
+    "dev-server": "nodemon app.js | bunyan",
     "snyk-protect": "snyk protect",
     "prepublish": "npm run snyk-protect",
     "lint": "xo --prettier --quiet *.js",
-    "test-with-coverage": "nyc grunt && cat ./target/lcov.info | codacy-coverage"
+    "test-with-coverage": "nyc npm test && cat ./target/lcov.info | codacy-coverage"
   },
   "xo": {
     "prettier": true,

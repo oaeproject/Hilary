@@ -233,6 +233,10 @@ To create a new user, use either the Sign Up link at the top left, or the Sign I
 
 We're looking forward to seeing your contributions to the OAE project!
 
+### Running tests
+
+To run tests just make sure you have installed all dependencies (`npm i`) and run `npm test`. To run tests on a specific module, just append its name as follows: `npm run test-module -- oae-principals`.
+
 ### Troubleshooting
 
 #### Booting takes too much time

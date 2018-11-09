@@ -1,4 +1,3 @@
-#! /bin/node
 /*!
  * Copyright 2014 Apereo Foundation (AF) Licensed under the
  * Educational Community License, Version 2.0 (the "License"); you may
@@ -74,9 +73,9 @@ const _preShutdown = function(defaultTimeoutMillis, callback) {
     let complete = false;
 
     /*!
-         * Keeps track of which pre-shutdown hooks have completed, including those that may have
-         * timed out. Invokes the callback when all handlers have been accounted for.
-         */
+     * Keeps track of which pre-shutdown hooks have completed, including those that may have
+     * timed out. Invokes the callback when all handlers have been accounted for.
+     */
     const _monitorPreShutdown = function() {
       if (!complete) {
         complete = true;

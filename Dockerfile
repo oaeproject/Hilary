@@ -22,14 +22,10 @@
 # $ docker run -it --name=hilary --net=host oae-hilary:latest
 #
 
-FROM oaeproject/oae-hilary-deps-docker:v0.1
+FROM oaeproject/oae-hilary-deps-docker:v0.2
 LABEL Name=OAE-Hilary
 LABEL Author=ApereoFoundation
 LABEL Email=oae@apereo.org
-
-# Install global dependencies
-RUN npm install --silent --global npm@4.6.1
-RUN npm install --silent --global nodemon bunyan grunt grunt-cli
 
 # Create the temp directory
 RUN mkdir -p /tmp/oae

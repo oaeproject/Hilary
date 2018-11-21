@@ -63,8 +63,6 @@ ActivityAPI.registerActivityEntityType('email', {
     },
     internal(ctx, activityEntities, callback) {
       const currentUserId = ctx.user() && ctx.user().id;
-      // Debug
-      console.dir(ctx.user(), { colors: true });
       // eslint-disable-next-line no-unused-vars
       const transformedEntities = _.mapObject(activityEntities, (entities, activityId) => {
         return _.mapObject(entities, entity => {
@@ -88,28 +86,28 @@ ActivityAPI.registerActivityEntityType('email', {
   },
   propagation(associationsCtx, entity, callback) {
     /*!
-         * TODO: We say an email entity can only be propagated to itself, due to lack of obfuscation
-         * on the email. This is OK currently because email resources are only delivered in "invite"
-         * activities, and we do not deliver invite activities to anyone but the recipient of the
-         * email. This is an aggressive approach to ensure we don't leak email address to, for
-         * example, members of groups.
-         *
-         * If we want to expand this propagation to allow activities containing email recipients to
-         * be routed to larger audiences, the following must happen:
-         *
-         *  1.  The "id" of the entity (e.g., the entity id and the route id) MUST be changed to
-         *      something that is a unique obfuscation of the email. For example, a sha1 hash salted
-         *      by the domain would likely work (i.e., "mrvisser@gmail.com" ->
-         *      "sha1('mrvisser@gmail.com')@gmail.com" -> "abcdefabcdef1234567890@gmail.com")
-         *  2.  The "oae:email" field must always exist on the entity however for any user in
-         *      context that is not the recipient of the email itself (or someone who does not have
-         *      a verified email that is the email address itself), we use only the first character
-         *      of the email username, followed by an ellipses (i.e., "mrvisser@gmail.com" ->
-         *      "m...@gmail.com")
-         *
-         * Once the above 2 obfuscation approaches are taken, we should be able to expand this
-         * propagation rule to ALL.
-         */
+     * TODO: We say an email entity can only be propagated to itself, due to lack of obfuscation
+     * on the email. This is OK currently because email resources are only delivered in "invite"
+     * activities, and we do not deliver invite activities to anyone but the recipient of the
+     * email. This is an aggressive approach to ensure we don't leak email address to, for
+     * example, members of groups.
+     *
+     * If we want to expand this propagation to allow activities containing email recipients to
+     * be routed to larger audiences, the following must happen:
+     *
+     *  1.  The "id" of the entity (e.g., the entity id and the route id) MUST be changed to
+     *      something that is a unique obfuscation of the email. For example, a sha1 hash salted
+     *      by the domain would likely work (i.e., "mrvisser@gmail.com" ->
+     *      "sha1('mrvisser@gmail.com')@gmail.com" -> "abcdefabcdef1234567890@gmail.com")
+     *  2.  The "oae:email" field must always exist on the entity however for any user in
+     *      context that is not the recipient of the email itself (or someone who does not have
+     *      a verified email that is the email address itself), we use only the first character
+     *      of the email username, followed by an ellipses (i.e., "mrvisser@gmail.com" ->
+     *      "m...@gmail.com")
+     *
+     * Once the above 2 obfuscation approaches are taken, we should be able to expand this
+     * propagation rule to ALL.
+     */
     return callback(null, [{ type: ActivityConstants.entityPropagation.SELF }]);
   }
 });

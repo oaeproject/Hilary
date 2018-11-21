@@ -23,9 +23,6 @@ describe('TZ', () => {
      * Verifies that given a rails timezone, a "standard" timezone is returned.
      */
     it('verify proper rails conversion', () => {
-      // debug
-      console.dir(tz, {colors: true});
-
       assert.strictEqual(tz.getTimezoneFromRails('Brussels'), 'Europe/Brussels');
       assert.strictEqual(
         tz.getTimezoneFromRails('Pacific Time (US & Canada)'),

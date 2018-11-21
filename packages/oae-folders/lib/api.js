@@ -382,8 +382,8 @@ const _updateFolderContentVisibility = function(ctx, folder, visibility, callbac
       const failedContent = [];
 
       /*!
-             * Executed once all the content items have been updated
-             */
+       * Executed once all the content items have been updated
+       */
       const done = function() {
         FoldersContentLibrary.purge(folder, err => {
           if (err) {
@@ -408,8 +408,8 @@ const _updateFolderContentVisibility = function(ctx, folder, visibility, callbac
       };
 
       /*!
-             * Update a batch of content items
-             */
+       * Update a batch of content items
+       */
       const updateBatch = function() {
         // If there are no items to update, we can move on
         if (_.isEmpty(contentItems)) {

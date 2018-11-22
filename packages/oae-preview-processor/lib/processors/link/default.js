@@ -49,14 +49,18 @@ const webshotOptions = {
 const init = function(_config, callback) {
   _config = _config || {};
   webshotOptions.renderDelay = OaeUtil.getNumberParam(
-    _config.renderDelay,
+    _config.link.renderDelay,
     webshotOptions.renderDelay
   );
-  webshotOptions.timeout = OaeUtil.getNumberParam(_config.renderTimeout, webshotOptions.timeout);
+  webshotOptions.timeout = OaeUtil.getNumberParam(
+    _config.link.renderTimeout,
+    webshotOptions.timeout
+  );
   webshotOptions.embeddableCheckTimeout = OaeUtil.getNumberParam(
-    _config.embeddableCheckTimeout,
+    _config.link.embeddableCheckTimeout,
     webshotOptions.embeddableCheckTimeout
   );
+  webshotOptions.phantomPath = _config.phantomjs.binary;
   return callback();
 };
 
@@ -122,16 +126,16 @@ const generatePreviews = function(ctx, contentObj, callback) {
       forcedDownload =
         forcedDownload || response.headers['content-type'] === PreviewConstants.TYPES.DEFAULT;
 
-      /*!
-             * See https://developer.mozilla.org/en-US/docs/HTTP/X-Frame-Options
-             * There are 3 options for the x-frame-options header:
-             *      - DENY
-             *      - SAMEORIGIN
-             *      - ALLOW-FROM uri
-             *
-             * All 3 of these would block embedding so as soon as the header is defined,
-             * we add some metadata that tells the UI this link cannot be embedded.
-             */
+      /*
+       * See https://developer.mozilla.org/en-US/docs/HTTP/X-Frame-Options
+       * There are 3 options for the x-frame-options header:
+       *      - DENY
+       *      - SAMEORIGIN
+       *      - ALLOW-FROM uri
+       *
+       * All 3 of these would block embedding so as soon as the header is defined,
+       * we add some metadata that tells the UI this link cannot be embedded.
+       */
       if (response.headers['x-frame-options'] || forcedDownload) {
         ctx.addPreviewMetadata('embeddable', false);
       } else {
@@ -143,8 +147,8 @@ const generatePreviews = function(ctx, contentObj, callback) {
     }
 
     /*!
-         * Generate a thumbnail
-         */
+     * Generate a thumbnail
+     */
     const generateThumbnail = function() {
       const imgPath = ctx.baseDir + '/webshot.png';
       // If the link target is an image just grab it instead of screenshotting it

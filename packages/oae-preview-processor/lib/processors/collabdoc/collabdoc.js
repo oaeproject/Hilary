@@ -26,7 +26,7 @@ const RestAPI = require('oae-rest');
 const PreviewConstants = require('oae-preview-processor/lib/constants');
 const webshot = require('oae-preview-processor/lib/internal/webshot');
 
-const options = {
+const webshotOptions = {
   windowSize: {
     width: PreviewConstants.SIZES.IMAGE.WIDE_WIDTH,
     height: PreviewConstants.SIZES.IMAGE.WIDE_HEIGHT
@@ -43,6 +43,21 @@ let wrapperHtml = null;
 const basePath = Path.normalize(Path.join(__dirname, '/../../../static/collabdoc/'));
 const HTML_FILE = basePath + 'collabdoc.html';
 const CSS_FILE = basePath + 'collabdoc.css';
+
+/**
+ * Initializes the CollabDoc Processor
+ *
+ * @param  {Object}     [_config]                           The config object containing options for webshot
+ * @param  {String}     [_config.phantomPath]               Defines the binary path for phantomjs
+ * @param  {Function}   callback                            Standard callback function
+ * @param  {Object}     callback.err                        An error that occurred, if any
+ */
+const init = function(_config, callback) {
+  _config = _config || {};
+
+  webshotOptions.phantomPath = _config.binary;
+  return callback();
+};
 
 /**
  * @borrows Interface.test as CollabDocProcessor.test
@@ -80,7 +95,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
       // Generate a screenshot that is suitable to display in the activity feed.
       const etherpadFileUri = 'file://' + etherpadFilePath;
       const path = ctx.baseDir + '/wide.png';
-      webshot.getImage(etherpadFileUri, path, options, err => {
+      webshot.getImage(etherpadFileUri, path, webshotOptions, err => {
         if (err) {
           log().error({ err, contentId: ctx.contentId }, 'Could not generate an image');
           return callback(err);
@@ -208,6 +223,7 @@ const _getWrappedEtherpadHtml = function(ctx, etherpadHtml, callback) {
 };
 
 module.exports = {
+  init,
   test,
   generatePreviews
 };

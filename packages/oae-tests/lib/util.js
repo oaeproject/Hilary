@@ -110,8 +110,8 @@ const clearAllData = function(callback) {
   ];
 
   /*!
-     * Once all column families have been truncated, we re-populate the administrators
-     */
+   * Once all column families have been truncated, we re-populate the administrators
+   */
   const truncated = _.after(columnFamiliesToClear.length, () => {
     // Flush the data from redis, so we can recreate our admins
     Redis.flush(err => {

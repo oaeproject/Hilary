@@ -53,6 +53,15 @@ services:
       - .:/usr/src/Hilary
       - ../files:/usr/src/files
       - ../tmp/oae:/tmp/oae
+  oae-pdf2htmlex:
+    container_name: oae-pdf2htmlex
+    image: oaeproject/oae-pdf2htmlex-docker:v0.1
+    restart: always
+    networks:
+      - my_network
+    tty: false
+    volumes:
+      - ${TMP}:${TMP}
   oae-redis:
     container_name: oae-redis
     image: redis:3.2.8-alpine

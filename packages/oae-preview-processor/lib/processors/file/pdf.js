@@ -63,7 +63,7 @@ const init = function(config, callback) {
   }
 
   // Try to execute `pdf2htmlEX --version`
-  let cmd = util.format('"%s" --version', config.pdf2htmlEX.binary);
+  let cmd = util.format('%s --version', config.pdf2htmlEX.binary);
   log().trace(
     'Executing %s to verify if the path to the pdf2htmlEX binary is configured correctly.',
     cmd
@@ -207,7 +207,7 @@ const previewPDF = function(ctx, path, callback) {
  */
 const _convertPDFToHTMLPages = function(ctx, path, pagesDir, callback) {
   const cmd = util.format(
-    '"%s" --split-pages=1 --page-filename=page..html --embed-css=0 --css-filename=lines.css --embed-javascript=0 --fit-width=700 --no-drm=1 --dest-dir "%s" "%s"',
+    '%s --split-pages=1 --page-filename=page..html --embed-css=0 --css-filename=lines.css --embed-javascript=0 --fit-width=700 --no-drm=1 --dest-dir "%s" "%s"',
     _pdf2htmlEXBinary,
     pagesDir,
     path

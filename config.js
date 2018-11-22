@@ -87,7 +87,13 @@ config.servers = {
 };
 
 let tmpDir = process.env.TMP || process.env.TMPDIR || process.env.TEMP || '/tmp' || process.cwd();
-tmpDir = '/home/miguel/Work/tmp';
+/*
+ * If you change `tmpDir` below, you also need to set the TMP environment variable
+ * This is because that variable is needed in docker-compose.yml
+ * Alternatively, you can just `export TMP=/your/temporary/directory` and remove both lines below
+ */
+tmpDir = '/Users/miguel/Work/tmp';
+process.env.TMP = tmpDir;
 
 /**
  * `config.files`
@@ -292,12 +298,15 @@ config.previews = {
     timeout: 120000
   },
   pdf2htmlEX: {
-    binary: 'pdf2htmlEX',
+    binary: 'docker-compose run --rm oae-pdf2htmlex pdf2htmlEX',
     timeout: 120000
   },
   pdftotext: {
     binary: 'pdftotext',
     timeout: 120000
+  },
+  phantomjs: {
+    binary: 'phantomjs'
   },
   link: {
     renderDelay: 7500,

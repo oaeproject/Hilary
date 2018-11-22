@@ -2,7 +2,9 @@ version: 2
 jobs:
   test-with-dockers:
     docker:
-      - image: 'alpine:3.7'
+      - image: 'alpine:3.8'
+    environment:
+      TMP: /root/tmp
     working_directory: ~/Hilary
     steps:
       - setup_remote_docker

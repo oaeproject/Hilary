@@ -313,7 +313,7 @@ server 192.168.1.2:2001; # assuming 192.168.1.2 is the external network IP addre
 ...
 ```
 
-Also, don't forget that running `Hilary` locally implies installing several other packages, namely `soffice` (libreoffice), `pdftotext` and `pdf2htmlEX`. You can find instructions on how to do this [here](https://github.com/brecke/Hilary/wiki/Manual-installation-&-setup).
+Also, don't forget that running `Hilary` locally implies installing several other packages, namely `soffice` (libreoffice), `pdftotext` and `pdf2htmlEX`. You can find instructions on how to do this [here](https://github.com/brecke/Hilary/wiki/Manual-installation-&-setup). If you can't get pdf2htmlEX installed on your system, you may use a docker container instead, by replacing the `config.previews.pdf2htmlEX.binary` setting to `docker-compose run --rm oae-pdf2htmlex pdf2htmlEX`.
 
 Now run `docker-compose up -d oae-cassandra oae-redis oae-rabbitmq oae-elasticsearch` and then `docker-compose logs -f` to check the logs. Once cassandra is listening for connections, you may run the remaining containers: `docker-compose up -d oae-etherpad oae-nginx`. You may then run `nodemon app.js | bunyan` locally on the terminal to start the server.
 

@@ -40,7 +40,7 @@ LABEL Author=ApereoFoundation
 LABEL Email=oae@apereo.org
 
 # Dependencies for pdf2htmlEX and poppler
-RUN apk --update -no-cache add \
+RUN apk --update --no-cache add \
 		alpine-sdk \
 		xz \
 		pango-dev \
@@ -117,7 +117,7 @@ RUN echo "Removing sources ..." \
 	  && cd "$HOME_PATH" && rm -rf "pdf2htmlEX"
 
 # Install libreoffice
-RUN apk add -no-cache libreoffice
+RUN apk add --no-cache libreoffice
 
 # Debug just because
 RUN pdf2htmlEX -v

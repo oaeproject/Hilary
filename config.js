@@ -298,10 +298,12 @@ config.previews = {
     timeout: 120000
   },
   pdf2htmlEX: {
-    binary: 'docker-compose run --rm oae-pdf2htmlex pdf2htmlEX',
+    /* binary: 'docker-compose run --rm oae-pdf2htmlex pdf2htmlEX', */
+    binary: 'pdf2htmlEX',
     timeout: 120000
   },
   pdftotext: {
+    /* binary 'docker-compose run --rm oae-pdf2htmlex pdftotext', */
     binary: 'pdftotext',
     timeout: 120000
   },

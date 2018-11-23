@@ -26,7 +26,7 @@
 # $ docker run -it --name=hilary --net=host oae-hilary:latest
 #
 
-FROM oaeproject/oae-hilary-deps:v0.3
+FROM oaeproject/oae-hilary-deps-docker:v0.3
 
 LABEL Name=OAE-Hilary
 LABEL Author=ApereoFoundation

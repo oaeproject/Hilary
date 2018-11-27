@@ -122,7 +122,6 @@
     "eslint": "latest",
     "eslint-config-prettier": "^3.3.0",
     "eslint-plugin-prettier": "^2.5.0",
-    "husky": "^0.14.3",
     "xo": "^0.20.3",
     "oae-activity": "file:packages/oae-activity",
     "oae-authentication": "file:packages/oae-authentication",
@@ -201,10 +200,5 @@
       }
     ]
   },
-  "snyk": true,
-  "husky": {
-    "hooks": {
-      "pre-commit": "npm run lint"
-    }
-  }
+  "snyk": true
 }

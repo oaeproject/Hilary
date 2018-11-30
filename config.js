@@ -15,8 +15,8 @@
 
 /* eslint-disable camelcase, capitalized-comments */
 const bunyan = require('bunyan');
-
 const config = {};
+const LOCALHOST = 'localhost';
 module.exports.config = config;
 
 // UI related config information. By default, we assume that the UI repostory
@@ -35,7 +35,7 @@ config.ui = {
 
 // Cassandra related config information.
 config.cassandra = {
-  hosts: ['127.0.0.1'],
+  hosts: [LOCALHOST],
   keyspace: 'oae',
   user: '',
   pass: '',
@@ -53,7 +53,7 @@ config.cassandra = {
 //  0 = production
 //  1 = unit tests
 config.redis = {
-  host: '127.0.0.1',
+  host: LOCALHOST,
   port: 6379,
   pass: '',
   dbIndex: 0
@@ -183,7 +183,7 @@ config.telemetry = {
 config.search = {
   hosts: [
     {
-      host: 'localhost',
+      host: LOCALHOST,
       port: 9200
     }
   ],
@@ -260,7 +260,7 @@ config.search = {
  */
 config.mq = {
   connection: {
-    host: ['localhost'],
+    host: [LOCALHOST],
     port: 5672
   },
   purgeQueuesOnStartup: false
@@ -307,13 +307,8 @@ config.previews = {
     binary: 'pdftotext',
     timeout: 120000
   },
-  phantomjs: {
-    binary: 'phantomjs'
-  },
-  link: {
-    renderDelay: 7500,
-    renderTimeout: 30000,
-    embeddableCheckTimeout: 15000
+  screenShotting: {
+    timeout: 30000
   },
   credentials: {
     username: 'administrator',
@@ -441,7 +436,7 @@ config.etherpad = {
   apikey: '13SirapH8t3kxUh5T5aqWXhXahMzoZRA',
   hosts: [
     {
-      host: '127.0.0.1',
+      host: LOCALHOST,
       port: 9001
     }
   ]

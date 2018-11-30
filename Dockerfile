@@ -26,23 +26,29 @@
 # $ docker run -it --name=hilary --net=host oae-hilary:latest
 #
 
-FROM oaeproject/oae-hilary-deps-docker:v0.3
+FROM oaeproject/oae-hilary-deps-docker:v0.4
 
 LABEL Name=OAE-Hilary
 LABEL Author=ApereoFoundation
 LABEL Email=oae@apereo.org
 
+# Set the base directory
+ENV HILARY_DIR "/usr/src/Hilary"
+RUN mkdir -p "$HILARY_DIR" \
+    && chown node:node -R "$HILARY_DIR"
+WORKDIR "$HILARY_DIR"
+
 # Create the temp directory for Hilary
 ENV TMP_DIR "/tmp/oae"
-RUN mkdir -p "$TMP_DIR" && export TMP="$TMP_DIR"
-
-# Set the base directory
-RUN mkdir -p /usr/src/Hilary
-WORKDIR /usr/src/Hilary
+RUN mkdir -p "$TMP_DIR" \
+    && chown node:node -R /tmp \
+    && export TMP="$TMP_DIR"
 
 # Expose ports for node server
 EXPOSE 2000
 EXPOSE 2001
+
+USER node
 
 # Run the app - you may override CMD via docker run command line instruction
 ENTRYPOINT ["/bin/sh", "-c"]

@@ -78,7 +78,7 @@ const init = function(config, callback) {
     _pdf2htmlEXTimeout = OaeUtil.getNumberParam(config.pdf2htmlEX.timeout, _pdf2htmlEXTimeout);
 
     // Try to execute `pdftotext -v`
-    cmd = util.format('"%s" -v', config.pdftotext.binary);
+    cmd = util.format('%s -v', config.pdftotext.binary);
     log().trace(
       'Executing %s to verify if the path to the pdftotext binary is configured correctly.',
       cmd
@@ -340,7 +340,7 @@ const _generateThumbnail = function(ctx, path, pagesDir, callback) {
  */
 const _convertToText = function(ctx, input, pagesDir, callback) {
   const output = pagesDir + '/plain.txt';
-  const cmd = util.format('"%s" -q "%s" "%s"', _pdftotextBinary, input, output);
+  const cmd = util.format('%s -q "%s" "%s"', _pdftotextBinary, input, output);
   // Execute the command
   log().trace({ contentId: ctx.contentId }, 'Executing %s', cmd);
   const options = {

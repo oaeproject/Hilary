@@ -61,7 +61,7 @@ jobs:
             docker-compose run --rm oae-hilary 'npm install'
       - run:
           name: Run tests
-          command: docker-compose run --rm oae-hilary "TWITTER_KEY=$TWITTER_KEY TWITTER_SECRET=$TWITTER_SECRET FACEBOOK_APP_ID=$FACEBOOK_APP_ID FACEBOOK_APP_SECRET=$FACEBOOK_APP_SECRET GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET npm test"
+          command: docker-compose run --rm oae-hilary "TMP=/root/tmp TWITTER_KEY=$TWITTER_KEY TWITTER_SECRET=$TWITTER_SECRET FACEBOOK_APP_ID=$FACEBOOK_APP_ID FACEBOOK_APP_SECRET=$FACEBOOK_APP_SECRET GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET npm test"
 workflows:
   version: 2
   test-all:
@@ -76,4 +76,3 @@ workflows:
               only: master
     jobs:
       - test-with-dockers
-

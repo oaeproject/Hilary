@@ -764,7 +764,7 @@ const _initializeDefaultProcessors = function(callback) {
           return callback(err);
         }
 
-        CollabDocProcessor.init(config.previews.phantomjs, callback);
+        return callback();
       });
     });
   });

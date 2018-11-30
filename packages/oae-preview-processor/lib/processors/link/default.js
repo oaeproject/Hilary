@@ -27,40 +27,24 @@ const PrincipalsConfig = require('oae-config').config('oae-principals');
 
 const LinkProcessorUtil = require('oae-preview-processor/lib/processors/link/util');
 const PreviewConstants = require('oae-preview-processor/lib/constants');
-const webshot = require('oae-preview-processor/lib/internal/webshot');
+const puppeteerHelper = require('oae-preview-processor/lib/internal/puppeteer');
 
-// The default webshot options. These will be overwritten on initialization with the values from ./config.js
-const webshotOptions = {
-  renderDelay: 7500,
-  timeout: 30000,
-  embeddableCheckTimeout: 15000
-};
-
+const screenShottingOptions = {};
 /**
  * Initializes the Default Link Preview Processor
  *
  * @param  {Object}     [_config]                           The config object containing the timeouts for generating an image from a webpage
- * @param  {String}     [_config.renderDelay]               Defines the timeout (in ms) that should be waited between loading the page and taking a screencapture. Defaults to 7500ms
- * @param  {Number}     [_config.renderTimeout]             Defines the timeout (in ms) when the screencapturing should be stopped. This should include the renderDelay. Defaults to 30000ms
- * @param  {Number}     [_config.embeddableCheckTimeout]    Defines the timeout (in ms) when the embeddable link check should be stopped. Defaults to 15000ms
+ * @param  {Number}     [_config.timeout]                   Defines the timeout (in ms) when the screencapturing should be stopped.  Defaults to 30000ms
  * @param  {Function}   callback                            Standard callback function
  * @param  {Object}     callback.err                        An error that occurred, if any
  */
 const init = function(_config, callback) {
   _config = _config || {};
-  webshotOptions.renderDelay = OaeUtil.getNumberParam(
-    _config.link.renderDelay,
-    webshotOptions.renderDelay
+  screenShottingOptions.timeout = OaeUtil.getNumberParam(
+    _config.screenShotting.timeout,
+    screenShottingOptions.timeout
   );
-  webshotOptions.timeout = OaeUtil.getNumberParam(
-    _config.link.renderTimeout,
-    webshotOptions.timeout
-  );
-  webshotOptions.embeddableCheckTimeout = OaeUtil.getNumberParam(
-    _config.link.embeddableCheckTimeout,
-    webshotOptions.embeddableCheckTimeout
-  );
-  webshotOptions.phantomPath = _config.phantomjs.binary;
+
   return callback();
 };
 
@@ -97,7 +81,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
   const options = {
     url: contentObj.link,
     method: 'HEAD',
-    timeout: webshotOptions.embeddableCheckTimeout,
+    timeout: screenShottingOptions.timeout,
     headers: {
       // Certain webservers will not send an `x-frame-options` header when no browser user agent is not specified
       'User-Agent':
@@ -165,14 +149,14 @@ const generatePreviews = function(ctx, contentObj, callback) {
           .pipe(image);
       } else {
         // Try to localize the screenshot of the link to the default tenant language
-        webshotOptions.customHeaders = {
+        screenShottingOptions.customHeaders = {
           'Accept-Language': PrincipalsConfig.getValue(
             contentObj.tenant.alias,
             'user',
             'defaultLanguage'
           )
         };
-        webshot.getImage(contentObj.link, imgPath, webshotOptions, err => {
+        puppeteerHelper.getImage(contentObj.link, imgPath, screenShottingOptions, err => {
           if (err) {
             log().error({ err, contentId: ctx.contentId }, 'Could not generate an image');
             return callback(err);
@@ -233,7 +217,7 @@ const _checkHttps = function(link, callback) {
   const options = {
     url: link,
     method: 'HEAD',
-    timeout: webshotOptions.embeddableCheckTimeout
+    timeout: screenShottingOptions.timeout
   };
   // eslint-disable-next-line no-unused-vars
   request(options, (err, response) => {

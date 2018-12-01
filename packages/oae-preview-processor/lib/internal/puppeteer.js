@@ -25,7 +25,7 @@ const log = require('oae-logger').logger('oae-preview-processor');
  * and generate preview images of those. It's up to the caller to sanitize their input!
  *
  * @param  {String}         url             The URL to generate images for. This method will not verify that the URL does not point to sensitive information on the filesystem, such as /etc/passwd, and thus could end up generating an image of the password file if not used properly.
- * @param  {String}         path            The path where the generated image should be stored.
+ * @param  {String}         imgPath         The path where the generated image should be stored.
  * @param  {Object}         options         The options object that will be passed into the webshot module.
  * @param  {Function}       callback        Standard callback function
  * @param  {Object}         callback.err    An error that occurred, if any
@@ -35,13 +35,15 @@ const getPuppeteerImage = function(url, imgPath, options, callback) {
 
   const isFile = url.startsWith('file://');
   const isUrl = !isFile;
+  const launchOptions = {
+    args: ['--disable-dev-shm-usage']
+  };
+  if (options.executablePath) {
+    launchOptions.executablePath = options.executablePath;
+  }
 
   (async () => {
-    // const browser = await puppeteer.launch();
-    const browser = await puppeteer.launch({
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-      executablePath: '/usr/bin/chromium-browser'
-    });
+    const browser = await puppeteer.launch(launchOptions);
     const page = await browser.newPage();
     if (options.customHeaders) {
       await page.setExtraHTTPHeaders(options.customHeaders);
@@ -66,7 +68,7 @@ const getPuppeteerImage = function(url, imgPath, options, callback) {
     });
 
     try {
-      // we don't need to navigate in case its a file we're previewing
+      // We don't need to navigate in case its a file we're previewing
       if (isUrl) {
         await page.goto(url, { waitUntil: 'domcontentloaded' });
       }

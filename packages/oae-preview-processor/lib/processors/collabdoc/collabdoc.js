@@ -22,6 +22,7 @@ const ImageUtil = require('oae-util/lib/image');
 const IO = require('oae-util/lib/io');
 const log = require('oae-logger').logger('oae-preview-processor');
 const RestAPI = require('oae-rest');
+const OaeUtil = require('oae-util/lib/util');
 
 const PreviewConstants = require('oae-preview-processor/lib/constants');
 const puppeteerHelper = require('oae-preview-processor/lib/internal/puppeteer');
@@ -31,6 +32,30 @@ const screenShottingOptions = {
     width: PreviewConstants.SIZES.IMAGE.WIDE_WIDTH,
     height: PreviewConstants.SIZES.IMAGE.WIDE_HEIGHT
   }
+};
+
+/**
+ * Initializes the CollabDocProcessor
+ *
+ * @param  {Object}     [_config]                           The config object containing the timeouts for generating an image from a webpage
+ * @param  {Number}     [_config.timeout]                   Defines the timeout (in ms) when the screencapturing should be stopped.  Defaults to 30000ms
+ * @param  {Function}   callback                            Standard callback function
+ * @param  {Object}     callback.err                        An error that occurred, if any
+ */
+const init = function(_config, callback) {
+  _config = _config || {};
+
+  screenShottingOptions.timeout = OaeUtil.getNumberParam(
+    _config.screenShotting.timeout,
+    screenShottingOptions.timeout
+  );
+
+  const chromiumExecutable = _config.screenShotting.binary;
+  if (chromiumExecutable) {
+    screenShottingOptions.executablePath = chromiumExecutable;
+  }
+
+  return callback();
 };
 
 // Variable that will be used to lazy-load the collabdoc.html template
@@ -208,6 +233,7 @@ const _getWrappedEtherpadHtml = function(ctx, etherpadHtml, callback) {
 };
 
 module.exports = {
+  init,
   test,
   generatePreviews
 };

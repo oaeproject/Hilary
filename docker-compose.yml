@@ -51,9 +51,9 @@ services:
     tty: false
     volumes:
       - .:/usr/src/Hilary
-      - ../files:/usr/src/files
-      - ../tmp/oae:/tmp/oae
-  oae-pdf2htmlex:
+    cap_add:
+      - SYS_ADMIN
+  oae-pdf2htmlex: # this is for dev only
     container_name: oae-pdf2htmlex
     image: oaeproject/oae-pdf2htmlex-docker:v0.1
     restart: always

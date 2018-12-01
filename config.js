@@ -14,6 +14,7 @@
  */
 
 /* eslint-disable camelcase, capitalized-comments */
+const Path = require('path');
 const bunyan = require('bunyan');
 const config = {};
 const LOCALHOST = 'localhost';
@@ -86,14 +87,13 @@ config.servers = {
   strictHttps: true
 };
 
-let tmpDir = process.env.TMP || process.env.TMPDIR || process.env.TEMP || '/tmp' || process.cwd();
+let tmpDir =
+  process.env.TMP || process.env.TMPDIR || process.env.TEMP || Path.join(process.cwd(), 'tmp');
 /*
  * If you change `tmpDir` below, you also need to set the TMP environment variable
  * This is because that variable is needed in docker-compose.yml
  * Alternatively, you can just `export TMP=/your/temporary/directory` and remove both lines below
  */
-tmpDir = '/Users/miguel/Work/tmp';
-process.env.TMP = tmpDir;
 
 /**
  * `config.files`
@@ -110,13 +110,13 @@ process.env.TMP = tmpDir;
  */
 config.files = {
   tmpDir,
-  uploadDir: tmpDir + '/uploads',
+  uploadDir: Path.join(tmpDir, 'uploads'),
   cleaner: {
     enabled: true,
     interval: 2 * 60 * 60
   },
   limit: '4096mb',
-  localStorageDirectory: '../files'
+  localStorageDirectory: Path.join(tmpDir, 'files')
 };
 
 /**
@@ -292,7 +292,7 @@ config.mq = {
  */
 config.previews = {
   enabled: false,
-  tmpDir: tmpDir + '/previews',
+  tmpDir: Path.join(tmpDir, 'previews'),
   office: {
     binary: 'soffice',
     timeout: 120000

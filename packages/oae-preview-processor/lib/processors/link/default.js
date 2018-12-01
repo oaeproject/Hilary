@@ -30,6 +30,7 @@ const PreviewConstants = require('oae-preview-processor/lib/constants');
 const puppeteerHelper = require('oae-preview-processor/lib/internal/puppeteer');
 
 const screenShottingOptions = {};
+
 /**
  * Initializes the Default Link Preview Processor
  *
@@ -40,10 +41,16 @@ const screenShottingOptions = {};
  */
 const init = function(_config, callback) {
   _config = _config || {};
+
   screenShottingOptions.timeout = OaeUtil.getNumberParam(
     _config.screenShotting.timeout,
     screenShottingOptions.timeout
   );
+
+  const chromiumExecutable = _config.screenShotting.binary;
+  if (chromiumExecutable) {
+    screenShottingOptions.executablePath = chromiumExecutable;
+  }
 
   return callback();
 };

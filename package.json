@@ -151,7 +151,7 @@
     "oae-version": "file:packages/oae-version",
     "oauth": "^0.9.15",
     "prettier": "latest",
-    "puppeteer": "^1.4.0",
+    "puppeteer": "1.4.0",
     "repl-promised": "^0.1.0",
     "restjsdoc": "file:packages/restjsdoc",
     "shelljs": "^0.7.8",

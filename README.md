@@ -16,13 +16,11 @@ Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Foaeproject%2FHilary.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Foaeproject%2FHilary?ref=badge_shield)
 [![Known Vulnerabilities](https://snyk.io/test/github/oaeproject/Hilary/badge.svg)](https://snyk.io/test/github/oaeproject/Hilary)
 
-## Installation
+## Install
 
-If you're looking to install the OAE project manually, check out [this page](https://github.com/brecke/Hilary/wiki/Manual-installation-&-setup) and then go the the [Setup section](#setup) below.
+If you're looking to install the OAE project the hard way (not recommended), check out [this page](https://github.com/brecke/Hilary/wiki/Manual-installation-&-setup) and then go the the [Setup section](#setup) below. If not, read along.
 
-If you're looking to setup a development environment, you might want to run node locally instead of inside a docker container. If that's the case, follow through the instructions below and then check the troubleshooting section.
-
-Otherwise, please follow our docker quickstart guide:
+This guide will install OAE locally for a development setup. Node is required on the host machine whereas the remaining servers will run as docker containers.
 
 ### Docker Quickstart Guide
 
@@ -54,9 +52,10 @@ If you accept the following directory structure, `docker-compose` will work out 
 <some-local-path>
 |-- Hilary
     |-- 3akai-ux
-|-- files
-|-- tmp
-    |-- oae
+    |-- tmp
+        |-- previews
+        |-- uploads
+        |-- files
 |-- data
     |-- elasticsearch
     |-- cassandra
@@ -65,43 +64,11 @@ If you accept the following directory structure, `docker-compose` will work out 
 
 If you want to use different (local) paths, make sure to change container volumes accordingly on `docker-compose.yml`:
 
-Then, we need to edit the `config.js` file and make sure we change the following settings:
-
-```
-    'hosts': ['127.0.0.1:9160'], # replace this
-    'hosts': ['oae-cassandra:9160'], # by this
-```
-
-```
-    'host': '127.0.0.1', # replace this
-    'host': 'oae-redis', # by this
-```
-
-```
-    'host': 'localhost', # replace this
-    'host': 'oae-elasticsearch', # by this
-```
-
-```
-    'host': 'localhost', # replace this
-    'host': 'oae-rabbitmq', # by this
-```
-
-```
-config.previews = {
-    'enabled': false, # replace this
-    'enabled': true, # by this (optional)
-```
-
-```
-    'host': '127.0.0.1', # replace this
-    'host': 'oae-etherpad', # by this
-```
-
 #### Build the docker image locally
 
 ```
-docker-compose create --build # this will build the hilary:latest image
+# this will build the hilary:latest image and create all containers
+docker-compose up --no-start --build oae-cassandra oae-redis oae-rabbitmq oae-elasticsearch oae-hilary
 ```
 
 NOTE: if the previous step fails due to network problems, try changing the DNS server to Google's: 8.8.8.8 or 8.8.4.4. In order to do this, either use your operating system's settings or do it via the command line interface by editing `/etc/resolv.conf` and making sure these two lines are on top:
@@ -116,9 +83,8 @@ nameserver 8.8.4.4
 In order to install dependencies for the frontend and the backend, we need to run a one-off command for each:
 
 ```
-docker-compose run oae-hilary "cd node_modules/oae-rest && npm install" # install dependencies for oae-rest
-docker-compose run oae-hilary "cd 3akai-ux && npm install" # install dependencies for 3akai-ux
-docker-compose run oae-hilary "npm install" # install dependencies for Hilary
+npm install # install dependencies locally for Hilary
+cd 3akai-ux && npm install" # install dependencies for 3akai-ux
 ```
 
 #### Create the SSL Certificate
@@ -143,9 +109,43 @@ This may take a few minutes, but when it's done you will have the file `nginx/dh
 
 Before moving on to the next step, make sure these three files exist otherwise there will be errors.
 
-#### Run the containers
+#### Setup nginx
 
-Run `docker-compose up` and all the containers will boot.
+Open the file `nginx.conf.docker` and make sure these lines:
+
+```
+...
+server oae-hilary:2000;
+...
+server oae-hilary:2001;
+...
+```
+
+..become:
+
+```
+...
+server 172.20.0.1:2000; # `172.20.0.1` is the IP address of the host machine, which can be obtained by running `/sbin/ip route|awk '/default/ { print $3 }'` from any container (e.g. `docker exec -it oae-nginx sh`).
+...
+server 172.20.0.1:2001;
+...
+```
+
+If you're using mac osx, you'll need to use the external IP address (e.g. `en0`) instead of the `docker0` IP address for `oae-nginx` to access `Hilary`, like this:
+
+```
+...
+server 192.168.1.2:2000; # assuming 192.168.1.2 is the external network IP address
+...
+server 192.168.1.2:2001; # assuming 192.168.1.2 is the external network IP address
+...
+```
+
+Also, don't forget that running `Hilary` locally implies installing several other packages, namely `soffice` (libreoffice), `pdftotext` and `pdf2htmlEX`. You can find instructions on how to do this [here](https://github.com/brecke/Hilary/wiki/Manual-installation-&-setup). If you can't get pdf2htmlEX installed on your system, you may use a docker container instead, by replacing the `config.previews.pdf2htmlEX.binary` setting to `docker-compose run --rm oae-pdf2htmlex pdf2htmlEX`. On mac osx you can find all three in homebrew.
+
+#### Run the server and the containers
+
+Now run `docker-compose up -d oae-cassandra oae-redis oae-rabbitmq oae-elasticsearch oae-etherpad` and then `docker-compose logs -f` to check the logs. You may then run `nodemon app.js | bunyan` (or `npm start` for short) locally on the terminal to start the server.
 
 ### Extra docker utilities
 
@@ -155,7 +155,7 @@ To start and stop all containers at once, run `docker-compose up` and `docker-co
 
 If you need to rebuild the `hilary:latest` docker image, try running `docker build -f Dockerfile -t hilary:latest .`.
 
-If you need to tail the logs of a specific server for debugging, try running `docker logs -f oae-hilary` (for the `oae-hilary` service).
+If you need to tail the logs of a specific server for debugging, try running `docker logs -f oae-cassandra` (for the `oae-cassandra` service).
 
 If you're having network problems, run `docker network inspect bridge` for check container network configuration or `docker inspect oae-hilary` to take a look at `oae-hilary` container details.
 
@@ -239,83 +239,9 @@ To run tests just make sure you have installed all dependencies (`npm i`) and ru
 
 ### Troubleshooting
 
-#### Booting takes too much time
-
-If you're on OSX, you might experience very slow booting especially for the Hilary server. This is a well known issue due to volume mounting. As a workaround, we recommend using [docker-sync](https://github.com/EugenMayer/docker-sync). Just follow the installation instructions on the website, edit the `docker-sync.yml` file so that `syncs > oae-hilary-sync > src` contains your Hilary source path as follows:
-
-```
-syncs:
-  oae-hilary-sync:
-    ...
-    src: '/src/Hilary' # <- make sure this path is correct
-  ...
-```
-
-Then, make sure you rename the mac-specific `docker-compose.mac.json` file we've included:
-
-```
-cp docker-compose.yml docker-compose.backup.yml
-cp docker-compose.mac.yml docker-compose.yml
-```
-
-Finally, try one of these two alternatives to boot all the containers:
-
-1.  Run `docker-sync start` on a terminal window and then `docker-compose -f docker-compose.mac.yml up` on another, in this order
-2.  Run `docker-sync-stack start` which combines both commands above
-
-More information on docker-sync is available [here](https://github.com/EugenMayer/docker-sync/wiki).
-
 #### All I see is the 502 service unavailable page
 
 If you still can't see the Web interface correctly by the time the containers start, it might be due to Hilary starting before Cassandra was available. This usually results in 502 _Service unavailable_ pages. We recommend to start hilary again to make sure it boots after cassandra is accepting connections: `docker-compose restart oae-hilary`. This is something we're looking to fix in the future.
-
-#### I would like to run node directly on my machine instead of inside a container
-
-We understand that, and we do that ourselves too :) You can have that with just a few changes. If you're using linux:
-
-In `config.js` change the following values:
-
-- `oae-rabbitmq`
-- `oae-cassandra`
-- `oae-elasticsearch`
-- `oae-etherpad`
-- `oae-redis`
-
-...all to `localhost`.
-
-Then, edit `nginx.conf.docker` and make sure these lines:
-
-```
-...
-server oae-hilary:2000;
-...
-server oae-hilary:2001;
-...
-```
-
-..become:
-
-```
-...
-server 172.20.0.1:2000; # `172.20.0.1` is the IP address of the host machine, which can be obtained by running `/sbin/ip route|awk '/default/ { print $3 }'` from any container (e.g. `docker exec -it oae-nginx sh`).
-...
-server 172.20.0.1:2001;
-...
-```
-
-If you're using mac osx, you'll need to use the external IP address (e.g. `en0`) instead of the `docker0` IP address for `oae-nginx` to access `Hilary`, like this:
-
-```
-...
-server 192.168.1.2:2000; # assuming 192.168.1.2 is the external network IP address
-...
-server 192.168.1.2:2001; # assuming 192.168.1.2 is the external network IP address
-...
-```
-
-Also, don't forget that running `Hilary` locally implies installing several other packages, namely `soffice` (libreoffice), `pdftotext` and `pdf2htmlEX`. You can find instructions on how to do this [here](https://github.com/brecke/Hilary/wiki/Manual-installation-&-setup). If you can't get pdf2htmlEX installed on your system, you may use a docker container instead, by replacing the `config.previews.pdf2htmlEX.binary` setting to `docker-compose run --rm oae-pdf2htmlex pdf2htmlEX`.
-
-Now run `docker-compose up -d oae-cassandra oae-redis oae-rabbitmq oae-elasticsearch` and then `docker-compose logs -f` to check the logs. Once cassandra is listening for connections, you may run the remaining containers: `docker-compose up -d oae-etherpad oae-nginx`. You may then run `nodemon app.js | bunyan` locally on the terminal to start the server.
 
 ## Get in touch
 

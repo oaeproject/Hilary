@@ -101,7 +101,6 @@
     "uservoice-sso": "^0.1.0",
     "validator": "1.1.3",
     "watch": "^1.0.2",
-    "webshot": "^0.15.0",
     "xml2js": "^0.4.19",
     "youtube-api": "^2.0.9"
   },

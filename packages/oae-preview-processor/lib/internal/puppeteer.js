@@ -13,11 +13,49 @@
  * permissions and limitations under the License.
  */
 
+/* eslint-disable security/detect-non-literal-fs-filename */
 const fs = require('fs');
 const path = require('path');
 const puppeteer = require('puppeteer');
 
 const log = require('oae-logger').logger('oae-preview-processor');
+
+const launchOptions = {
+  args: ['--disable-dev-shm-usage']
+};
+
+const setHTTPHeadersIfAny = async function(page, customHeaders) {
+  if (customHeaders) {
+    await page.setExtraHTTPHeaders(customHeaders);
+  }
+};
+
+const setViewportIfAny = async function(page, viewport) {
+  if (viewport) {
+    await page.setViewport(viewport);
+  }
+};
+
+const setContentIfFile = async function(page, url) {
+  const isFile = url.startsWith('file://');
+  if (isFile) {
+    const htmlContent = fs.readFileSync(url.slice(7), { encoding: 'utf-8' });
+    await page.setContent(htmlContent);
+  }
+};
+
+const navigateToPageIfUrl = async function(page, url) {
+  const isUrl = url.startsWith('http');
+  if (isUrl) {
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
+  }
+};
+
+const setChromiumPathIfAny = function(launchOptions, executablePath) {
+  if (executablePath) {
+    launchOptions.executablePath = executablePath;
+  }
+};
 
 /**
  * Takes a snapshot of the provided url by loading it in a headless browser. All javascript and CSS stylesheets will be applied.
@@ -33,29 +71,11 @@ const log = require('oae-logger').logger('oae-preview-processor');
 const getPuppeteerImage = function(url, imgPath, options, callback) {
   log().trace({ url, imgPath }, 'Generating image for an url.');
 
-  const isFile = url.startsWith('file://');
-  const isUrl = !isFile;
-  const launchOptions = {
-    args: ['--disable-dev-shm-usage']
-  };
-  if (options.executablePath) {
-    launchOptions.executablePath = options.executablePath;
-  }
+  setChromiumPathIfAny(launchOptions, options.executablePath);
 
   (async () => {
     const browser = await puppeteer.launch(launchOptions);
     const page = await browser.newPage();
-    if (options.customHeaders) {
-      await page.setExtraHTTPHeaders(options.customHeaders);
-    }
-    if (options.viewport) {
-      await page.setViewport(options.viewport);
-    }
-    if (isFile) {
-      const filePath = url.slice(7);
-      const htmlContent = fs.readFileSync(filePath, { encoding: 'utf-8' });
-      await page.setContent(htmlContent);
-    }
 
     let isAttachment = false;
     page.on('response', response => {
@@ -68,10 +88,11 @@ const getPuppeteerImage = function(url, imgPath, options, callback) {
     });
 
     try {
-      // We don't need to navigate in case its a file we're previewing
-      if (isUrl) {
-        await page.goto(url, { waitUntil: 'domcontentloaded' });
-      }
+      await setHTTPHeadersIfAny(page, options.customHeaders);
+      await setViewportIfAny(page, options.viewport);
+      await setContentIfFile(page, url);
+      await navigateToPageIfUrl(page, url);
+
       await page.screenshot({ path: imgPath });
     } catch (ex) {
       if (isAttachment) {

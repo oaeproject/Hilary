@@ -33,18 +33,18 @@ LABEL Author=ApereoFoundation
 LABEL Email=oae@apereo.org
 
 # Set the base directory
-ENV HILARY_DIR "/usr/src/Hilary"
-RUN mkdir -p "$HILARY_DIR" \
-    && chown -R node:node "$HILARY_DIR" \
-    && chmod -R 755 "$HILARY_DIR"
-WORKDIR "$HILARY_DIR"
+ENV HILARY_DIR usr/src/Hilary
+RUN mkdir -p ${HILARY_DIR} \
+    && chown -R node:node ${HILARY_DIR} \
+    && chmod -R 755 ${HILARY_DIR}
+WORKDIR ${HILARY_DIR}
 
 # Create the temp directory for Hilary
-ENV TMP_DIR "/tmp"
-RUN mkdir -p "$TMP_DIR" \
-    && chown -R node:node "$TMP_DIR" \
-    && chmod -R 755 "$TMP_DIR" \
-    && export TMP="$TMP_DIR"
+ENV TMP_DIR /tmp
+RUN mkdir -p ${TMP_DIR} \
+    && chown -R node:node ${TMP_DIR} \
+    && chmod -R 755 ${TMP_DIR} \
+    && export TMP=${TMP_DIR}
 
 # Expose ports for node server
 EXPOSE 2000

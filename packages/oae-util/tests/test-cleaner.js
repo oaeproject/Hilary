@@ -24,8 +24,9 @@ const Cleaner = require('oae-util/lib/cleaner');
 
 describe('Content', () => {
   describe('Cleaner', () => {
-    let dir = process.env.TMP || process.env.TMPDIR || process.env.TEMP || '/tmp' || process.cwd();
-    dir += '/oae/tests';
+    let dir =
+      process.env.TMP || process.env.TMPDIR || process.env.TEMP || path.join(process.cwd(), 'tmp');
+    dir = path.join(dir, 'oae', 'tests');
 
     // We need to normalize as some OSes (like Mac OS X) return a path with double slashes.
     dir = path.normalize(dir);

@@ -14,9 +14,10 @@
  */
 
 /* eslint-disable camelcase, capitalized-comments */
+const Path = require('path');
 const bunyan = require('bunyan');
-
 const config = {};
+const LOCALHOST = 'localhost';
 module.exports.config = config;
 
 // UI related config information. By default, we assume that the UI repostory
@@ -35,7 +36,7 @@ config.ui = {
 
 // Cassandra related config information.
 config.cassandra = {
-  hosts: ['127.0.0.1'],
+  hosts: [LOCALHOST],
   keyspace: 'oae',
   user: '',
   pass: '',
@@ -53,7 +54,7 @@ config.cassandra = {
 //  0 = production
 //  1 = unit tests
 config.redis = {
-  host: '127.0.0.1',
+  host: LOCALHOST,
   port: 6379,
   pass: '',
   dbIndex: 0
@@ -86,8 +87,13 @@ config.servers = {
   strictHttps: true
 };
 
-let tmpDir = process.env.TMP || process.env.TMPDIR || process.env.TEMP || '/tmp' || process.cwd();
-tmpDir = '/home/miguel/Work/tmp';
+let tmpDir =
+  process.env.TMP || process.env.TMPDIR || process.env.TEMP || Path.join(process.cwd(), 'tmp');
+/*
+ * If you change `tmpDir` below, you also need to set the TMP environment variable
+ * This is because that variable is needed in docker-compose.yml
+ * Alternatively, you can just `export TMP=/your/temporary/directory` and remove both lines below
+ */
 
 /**
  * `config.files`
@@ -104,13 +110,13 @@ tmpDir = '/home/miguel/Work/tmp';
  */
 config.files = {
   tmpDir,
-  uploadDir: tmpDir + '/uploads',
+  uploadDir: Path.join(tmpDir, 'uploads'),
   cleaner: {
     enabled: true,
     interval: 2 * 60 * 60
   },
   limit: '4096mb',
-  localStorageDirectory: '../files'
+  localStorageDirectory: Path.join(tmpDir, 'files')
 };
 
 /**
@@ -177,7 +183,7 @@ config.telemetry = {
 config.search = {
   hosts: [
     {
-      host: 'localhost',
+      host: LOCALHOST,
       port: 9200
     }
   ],
@@ -254,7 +260,7 @@ config.search = {
  */
 config.mq = {
   connection: {
-    host: ['localhost'],
+    host: [LOCALHOST],
     port: 5672
   },
   purgeQueuesOnStartup: false
@@ -286,23 +292,23 @@ config.mq = {
  */
 config.previews = {
   enabled: false,
-  tmpDir: tmpDir + '/previews',
+  tmpDir: Path.join(tmpDir, 'previews'),
   office: {
     binary: 'soffice',
     timeout: 120000
   },
   pdf2htmlEX: {
+    /* binary: 'docker-compose run --rm oae-pdf2htmlex pdf2htmlEX', */
     binary: 'pdf2htmlEX',
     timeout: 120000
   },
   pdftotext: {
+    /* binary 'docker-compose run --rm oae-pdf2htmlex pdftotext', */
     binary: 'pdftotext',
     timeout: 120000
   },
-  link: {
-    renderDelay: 7500,
-    renderTimeout: 30000,
-    embeddableCheckTimeout: 15000
+  screenShotting: {
+    timeout: 30000
   },
   credentials: {
     username: 'administrator',
@@ -430,7 +436,7 @@ config.etherpad = {
   apikey: '13SirapH8t3kxUh5T5aqWXhXahMzoZRA',
   hosts: [
     {
-      host: '127.0.0.1',
+      host: LOCALHOST,
       port: 9001
     }
   ]

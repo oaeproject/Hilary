@@ -22,18 +22,40 @@ const ImageUtil = require('oae-util/lib/image');
 const IO = require('oae-util/lib/io');
 const log = require('oae-logger').logger('oae-preview-processor');
 const RestAPI = require('oae-rest');
+const OaeUtil = require('oae-util/lib/util');
 
 const PreviewConstants = require('oae-preview-processor/lib/constants');
-const webshot = require('oae-preview-processor/lib/internal/webshot');
+const puppeteerHelper = require('oae-preview-processor/lib/internal/puppeteer');
 
-const options = {
-  windowSize: {
+const screenShottingOptions = {
+  viewport: {
     width: PreviewConstants.SIZES.IMAGE.WIDE_WIDTH,
     height: PreviewConstants.SIZES.IMAGE.WIDE_HEIGHT
-  },
+  }
+};
 
-  // Since we're dealing with simple static files, there is no need to delay taking a screenshot
-  renderDelay: 0
+/**
+ * Initializes the CollabDocProcessor
+ *
+ * @param  {Object}     [_config]                           The config object containing the timeouts for generating an image from a webpage
+ * @param  {Number}     [_config.timeout]                   Defines the timeout (in ms) when the screencapturing should be stopped.  Defaults to 30000ms
+ * @param  {Function}   callback                            Standard callback function
+ * @param  {Object}     callback.err                        An error that occurred, if any
+ */
+const init = function(_config, callback) {
+  _config = _config || {};
+
+  screenShottingOptions.timeout = OaeUtil.getNumberParam(
+    _config.screenShotting.timeout,
+    screenShottingOptions.timeout
+  );
+
+  const chromiumExecutable = _config.screenShotting.binary;
+  if (chromiumExecutable) {
+    screenShottingOptions.executablePath = chromiumExecutable;
+  }
+
+  return callback();
 };
 
 // Variable that will be used to lazy-load the collabdoc.html template
@@ -41,8 +63,9 @@ let wrapperHtml = null;
 
 // The absolute path to the html & css files
 const basePath = Path.normalize(Path.join(__dirname, '/../../../static/collabdoc/'));
-const HTML_FILE = basePath + 'collabdoc.html';
-const CSS_FILE = basePath + 'collabdoc.css';
+const HTML_FILE = Path.join(basePath, 'collabdoc.html');
+const CSS_FILE = Path.join(basePath, 'collabdoc.css');
+const FILE_URI = 'file://';
 
 /**
  * @borrows Interface.test as CollabDocProcessor.test
@@ -78,15 +101,16 @@ const generatePreviews = function(ctx, contentObj, callback) {
       }
 
       // Generate a screenshot that is suitable to display in the activity feed.
-      const etherpadFileUri = 'file://' + etherpadFilePath;
-      const path = ctx.baseDir + '/wide.png';
-      webshot.getImage(etherpadFileUri, path, options, err => {
+      etherpadFilePath = FILE_URI + etherpadFilePath;
+      const imgPath = Path.join(ctx.baseDir, '/wide.png');
+
+      puppeteerHelper.getImage(etherpadFilePath, imgPath, screenShottingOptions, err => {
         if (err) {
           log().error({ err, contentId: ctx.contentId }, 'Could not generate an image');
           return callback(err);
         }
 
-        ctx.addPreview(path, 'wide');
+        ctx.addPreview(imgPath, 'wide');
 
         // Crop out a thumbnail, manually since we know the image is 1070x500.
         // We'll crop out a top-left box.
@@ -97,7 +121,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
           height: PreviewConstants.SIZES.IMAGE.WIDE_HEIGHT
         };
         ImageUtil.cropAndResize(
-          path,
+          imgPath,
           selectedArea,
           [
             {
@@ -114,7 +138,8 @@ const generatePreviews = function(ctx, contentObj, callback) {
             // Move the files to the thumbnail path
             const key =
               PreviewConstants.SIZES.IMAGE.THUMBNAIL + 'x' + PreviewConstants.SIZES.IMAGE.THUMBNAIL;
-            const thumbnailPath = ctx.baseDir + '/thumbnail.png';
+            const thumbnailPath = Path.join(ctx.baseDir, '/thumbnail.png');
+
             IO.moveFile(files[key].path, thumbnailPath, err => {
               if (err) {
                 return callback(err);
@@ -147,7 +172,7 @@ const _writeEtherpadHtml = function(ctx, etherpadHtml, callback) {
     }
 
     // Write the resulting HTML file to a temporary file on disk
-    const etherpadFilePath = ctx.baseDir + '/etherpad.html';
+    const etherpadFilePath = Path.join(ctx.baseDir, 'etherpad.html');
     fs.writeFile(etherpadFilePath, wrappedHtml, err => {
       if (err) {
         log().error({ err, contentId: ctx.contentId }, 'Could not write the etherpad HTML to disk');
@@ -208,6 +233,7 @@ const _getWrappedEtherpadHtml = function(ctx, etherpadHtml, callback) {
 };
 
 module.exports = {
+  init,
   test,
   generatePreviews
 };

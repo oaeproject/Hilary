@@ -110,8 +110,8 @@ const clearAllData = function(callback) {
   ];
 
   /*!
-     * Once all column families have been truncated, we re-populate the administrators
-     */
+   * Once all column families have been truncated, we re-populate the administrators
+   */
   const truncated = _.after(columnFamiliesToClear.length, () => {
     // Flush the data from redis, so we can recreate our admins
     Redis.flush(err => {
@@ -1120,9 +1120,7 @@ const createInitialTestConfig = function() {
   // In order to speed up some of the tests and to avoid mocha timeouts, we reduce the default time outs
   config.previews.office.timeout = 30000;
   config.previews.pdf2htmlEX.timeout = 100000;
-  config.previews.link.renderDelay = 200;
-  config.previews.link.renderTimeout = 15000;
-  config.previews.link.embeddableCheckTimeout = 5000;
+  config.previews.screenShotting.timeout = 30000;
 
   config.search.index.name = 'oaetest';
   // eslint-disable-next-line camelcase

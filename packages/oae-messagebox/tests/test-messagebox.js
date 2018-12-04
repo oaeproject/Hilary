@@ -60,66 +60,82 @@ describe('Messagebox', () => {
     const messageBoxId = util.format('msg-box-test-%s', ShortId.generate());
     MessageBoxAPI.createMessage(messageBoxId, 'u:camtest:foo', 'A1', {}, (err, a1Message) => {
       assert.ok(!err);
-      MessageBoxAPI.createMessage(
+      setTimeout(
+        MessageBoxAPI.createMessage,
+        10,
         messageBoxId,
         'u:camtest:foo',
         'A2',
         { replyToCreated: a1Message.created },
         (err, a2Message) => {
           assert.ok(!err);
-          MessageBoxAPI.createMessage(messageBoxId, 'u:camtest:foo', 'B1', {}, (err, b1Message) => {
-            assert.ok(!err);
-            MessageBoxAPI.createMessage(
-              messageBoxId,
-              'u:camtest:foo',
-              'C1',
-              {},
-              (err, c1Message) => {
-                assert.ok(!err);
-                MessageBoxAPI.createMessage(
-                  messageBoxId,
-                  'u:camtest:foo',
-                  'A3',
-                  { replyToCreated: a2Message.created },
-                  (err, a3Message) => {
-                    assert.ok(!err);
-                    MessageBoxAPI.createMessage(
-                      messageBoxId,
-                      'u:camtest:foo',
-                      'A4',
-                      { replyToCreated: a1Message.created },
-                      (err, a4Message) => {
-                        assert.ok(!err);
-                        const tree = {
-                          a1: a1Message,
-                          a2: a2Message,
-                          a3: a3Message,
-                          a4: a4Message,
-                          b1: b1Message,
-                          c1: c1Message
-                        };
+          setTimeout(
+            MessageBoxAPI.createMessage,
+            10,
+            messageBoxId,
+            'u:camtest:foo',
+            'B1',
+            {},
+            (err, b1Message) => {
+              assert.ok(!err);
+              setTimeout(
+                MessageBoxAPI.createMessage,
+                10,
+                messageBoxId,
+                'u:camtest:foo',
+                'C1',
+                {},
+                (err, c1Message) => {
+                  assert.ok(!err);
+                  setTimeout(
+                    MessageBoxAPI.createMessage,
+                    10,
+                    messageBoxId,
+                    'u:camtest:foo',
+                    'A3',
+                    { replyToCreated: a2Message.created },
+                    (err, a3Message) => {
+                      assert.ok(!err);
+                      setTimeout(
+                        MessageBoxAPI.createMessage,
+                        10,
+                        messageBoxId,
+                        'u:camtest:foo',
+                        'A4',
+                        { replyToCreated: a1Message.created },
+                        (err, a4Message) => {
+                          assert.ok(!err);
+                          const tree = {
+                            a1: a1Message,
+                            a2: a2Message,
+                            a3: a3Message,
+                            a4: a4Message,
+                            b1: b1Message,
+                            c1: c1Message
+                          };
 
-                        // Ensuring that all the created timestamps are different.
-                        const createdTimestamps = {};
-                        _.each(tree, (message, name) => {
-                          // Check the created timestamp has not been set yet.
-                          assert.ok(
-                            !createdTimestamps[message.created],
-                            JSON.stringify(tree, null, 4)
-                          );
+                          // Ensuring that all the created timestamps are different.
+                          const createdTimestamps = {};
+                          _.each(tree, (message, name) => {
+                            // Check the created timestamp has not been set yet.
+                            assert.ok(
+                              !createdTimestamps[message.created],
+                              JSON.stringify(tree, null, 4)
+                            );
 
-                          // Remember this timestamp.
-                          createdTimestamps[message.created] = name;
-                        });
+                            // Remember this timestamp.
+                            createdTimestamps[message.created] = name;
+                          });
 
-                        callback(messageBoxId, tree);
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          });
+                          callback(messageBoxId, tree);
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
         }
       );
     });
@@ -462,36 +478,46 @@ describe('Messagebox', () => {
         (err, message) => {
           assert.strictEqual(err.code, 400);
 
-          MessageBoxAPI.createMessage(messageBoxId, 'u:camtest:foo', 'body', {}, (err, message) => {
-            assert.ok(!err);
-            assert.ok(message);
+          setTimeout(
+            MessageBoxAPI.createMessage,
+            10,
+            messageBoxId,
+            'u:camtest:foo',
+            'body',
+            {},
+            (err, message) => {
+              assert.ok(!err);
+              assert.ok(message);
 
-            MessageBoxAPI.createMessage(
-              messageBoxId,
-              'u:camtest:foo',
-              'body',
-              { replyToCreated: message.created },
-              (err, reply) => {
-                assert.ok(!err);
-                assert.ok(reply);
-                assert.strictEqual(reply.replyTo, message.created);
+              setTimeout(
+                MessageBoxAPI.createMessage,
+                10,
+                messageBoxId,
+                'u:camtest:foo',
+                'body',
+                { replyToCreated: message.created },
+                (err, reply) => {
+                  assert.ok(!err);
+                  assert.ok(reply);
+                  assert.strictEqual(reply.replyTo, message.created);
 
-                // Sanity check: retrieve them back
-                MessageBoxAPI.getMessagesFromMessageBox(
-                  messageBoxId,
-                  null,
-                  null,
-                  null,
-                  (err, messages) => {
-                    assert.ok(!err);
-                    verifyMessage(message.id, 'body', null, messages);
-                    verifyMessage(reply.id, 'body', message.created, messages);
-                    return callback();
-                  }
-                );
-              }
-            );
-          });
+                  // Sanity check: retrieve them back
+                  MessageBoxAPI.getMessagesFromMessageBox(
+                    messageBoxId,
+                    null,
+                    null,
+                    null,
+                    (err, messages) => {
+                      assert.ok(!err);
+                      verifyMessage(message.id, 'body', null, messages);
+                      verifyMessage(reply.id, 'body', message.created, messages);
+                      return callback();
+                    }
+                  );
+                }
+              );
+            }
+          );
         }
       );
     });
@@ -665,83 +691,93 @@ describe('Messagebox', () => {
       MessageBoxAPI.createMessage(messageBoxId, 'u:camtest:foo', 'alfa', {}, (err, message1) => {
         assert.ok(!err);
         assert.ok(message1);
-        MessageBoxAPI.createMessage(messageBoxId, 'u:camtest:foo', 'beta', {}, (err, message2) => {
-          assert.ok(!err);
-          assert.ok(message2);
-          MessageBoxAPI.createMessage(
-            messageBoxId,
-            'u:camtest:foo',
-            'charly',
-            {},
-            (err, message3) => {
-              assert.ok(!err);
-              assert.ok(message3);
-              // Sanity check that the three messages are there
-              MessageBoxAPI.getMessagesFromMessageBox(
-                messageBoxId,
-                null,
-                null,
-                null,
-                (err, messages) => {
-                  assert.ok(!err);
-                  verifyMessage(message1.id, 'alfa', null, messages);
-                  verifyMessage(message2.id, 'beta', null, messages);
-                  verifyMessage(message3.id, 'charly', null, messages);
+        setTimeout(
+          MessageBoxAPI.createMessage,
+          10,
+          messageBoxId,
+          'u:camtest:foo',
+          'beta',
+          {},
+          (err, message2) => {
+            assert.ok(!err);
+            assert.ok(message2);
+            setTimeout(
+              MessageBoxAPI.createMessage,
+              10,
+              messageBoxId,
+              'u:camtest:foo',
+              'charly',
+              {},
+              (err, message3) => {
+                assert.ok(!err);
+                assert.ok(message3);
+                // Sanity check that the three messages are there
+                MessageBoxAPI.getMessagesFromMessageBox(
+                  messageBoxId,
+                  null,
+                  null,
+                  null,
+                  (err, messages) => {
+                    assert.ok(!err);
+                    verifyMessage(message1.id, 'alfa', null, messages);
+                    verifyMessage(message2.id, 'beta', null, messages);
+                    verifyMessage(message3.id, 'charly', null, messages);
 
-                  // Soft delete message2, this should remove the body
-                  MessageBoxAPI.deleteMessage(
-                    messageBoxId,
-                    message2.created,
-                    { deleteType: 'soft' },
-                    (err, deleteType, deletedMessage) => {
-                      assert.ok(!err);
-                      assert.strictEqual(deleteType, 'soft');
-                      assert.ok(deletedMessage.deleted);
-                      assert.ok(!deletedMessage.body);
+                    // Soft delete message2, this should remove the body
+                    MessageBoxAPI.deleteMessage(
+                      messageBoxId,
+                      message2.created,
+                      { deleteType: 'soft' },
+                      (err, deleteType, deletedMessage) => {
+                        assert.ok(!err);
+                        assert.strictEqual(deleteType, 'soft');
+                        assert.ok(deletedMessage.deleted);
+                        assert.ok(!deletedMessage.body);
 
-                      MessageBoxAPI.getMessagesFromMessageBox(
-                        messageBoxId,
-                        null,
-                        null,
-                        { scrubDeleted: true },
-                        (err, messages) => {
-                          assert.ok(!err);
+                        MessageBoxAPI.getMessagesFromMessageBox(
+                          messageBoxId,
+                          null,
+                          null,
+                          { scrubDeleted: true },
+                          (err, messages) => {
+                            assert.ok(!err);
 
-                          // DeletedMessage's body should be null and it's deleted flag should be set to true.
-                          const deletedMessage = _.find(messages, message => {
-                            return message.id === message2.id;
-                          });
-                          assert.ok(deletedMessage.deleted);
-                          assert.ok(!deletedMessage.body);
+                            // DeletedMessage's body should be null and it's deleted flag should be set to true.
+                            const deletedMessage = _.find(messages, message => {
+                              return message.id === message2.id;
+                            });
+                            assert.ok(deletedMessage.deleted);
+                            assert.ok(!deletedMessage.body);
 
-                          // The other messages should still be there though.
-                          verifyMessage(message1.id, 'alfa', null, messages);
-                          verifyMessage(message3.id, 'charly', null, messages);
+                            // The other messages should still be there though.
+                            verifyMessage(message1.id, 'alfa', null, messages);
+                            verifyMessage(message3.id, 'charly', null, messages);
 
-                          // Sanity check that using no scrubDeleted flag returns the message.
-                          MessageBoxAPI.getMessagesFromMessageBox(
-                            messageBoxId,
-                            null,
-                            null,
-                            { scrubDeleted: false },
-                            (err, messages) => {
-                              assert.ok(!err);
+                            // Sanity check that using no scrubDeleted flag returns the message.
+                            MessageBoxAPI.getMessagesFromMessageBox(
+                              messageBoxId,
+                              null,
+                              null,
+                              { scrubDeleted: false },
+                              (err, messages) => {
+                                assert.ok(!err);
 
-                              verifyMessage(message1.id, 'alfa', null, messages);
-                              verifyMessage(message2.id, 'beta', null, messages);
-                              verifyMessage(message3.id, 'charly', null, messages);
-                              return callback();
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        });
+                                verifyMessage(message1.id, 'alfa', null, messages);
+                                verifyMessage(message2.id, 'beta', null, messages);
+                                verifyMessage(message3.id, 'charly', null, messages);
+                                return callback();
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
       });
     });
   });

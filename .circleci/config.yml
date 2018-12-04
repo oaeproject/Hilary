@@ -2,7 +2,9 @@ version: 2
 jobs:
   test-with-dockers:
     docker:
-      - image: 'alpine:3.7'
+      - image: 'alpine:3.8'
+    environment:
+      TMP: /root/tmp
     working_directory: ~/Hilary
     steps:
       - setup_remote_docker
@@ -38,14 +40,16 @@ jobs:
             printf "\nconfig.previews.enabled = true;" >> config.js
             printf "\nconfig.email.debug = false;" >> config.js
             printf "\nconfig.email.transport = 'sendmail';" >> config.js
+            printf "\nconfig.previews.office.binary = '/usr/bin/soffice';" >> config.js
+            printf "\nconfig.previews.screenShotting.binary = '/usr/bin/chromium-browser';" >> config.js
       - run:
           name: Install docker and docker-compose
           command: |
             apk add --update --no-cache docker py-pip
             pip install docker-compose
       - run:
-          name: Create the containers
-          command: docker-compose up --no-start --build
+          name: Create the containers (except for pdf2htmlex)
+          command: docker-compose up --no-start --build oae-cassandra oae-redis oae-rabbitmq oae-elasticsearch oae-hilary
       - run:
           name: Start the containers we need
           command: |
@@ -55,11 +59,14 @@ jobs:
       - run:
           name: Install Hilary dependencies
           command: |
+            addgroup -g 1000 node
+            adduser -u 1000 -G node -s /bin/sh -D node
+            chown -R node:node .
             docker cp /root/Hilary oae-hilary:/usr/src
-            docker-compose run oae-hilary 'npm install'
+            docker-compose run --rm oae-hilary 'npm install'
       - run:
           name: Run tests
-          command: docker-compose run oae-hilary "TWITTER_KEY=$TWITTER_KEY TWITTER_SECRET=$TWITTER_SECRET FACEBOOK_APP_ID=$FACEBOOK_APP_ID FACEBOOK_APP_SECRET=$FACEBOOK_APP_SECRET GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET npm test"
+          command: docker-compose run --rm oae-hilary "TWITTER_KEY=$TWITTER_KEY TWITTER_SECRET=$TWITTER_SECRET FACEBOOK_APP_ID=$FACEBOOK_APP_ID FACEBOOK_APP_SECRET=$FACEBOOK_APP_SECRET GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET npm test"
 workflows:
   version: 2
   test-all:
@@ -74,4 +81,3 @@ workflows:
               only: master
     jobs:
       - test-with-dockers
-

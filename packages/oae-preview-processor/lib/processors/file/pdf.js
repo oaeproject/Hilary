@@ -63,7 +63,7 @@ const init = function(config, callback) {
   }
 
   // Try to execute `pdf2htmlEX --version`
-  let cmd = util.format('"%s" --version', config.pdf2htmlEX.binary);
+  let cmd = util.format('%s --version', config.pdf2htmlEX.binary);
   log().trace(
     'Executing %s to verify if the path to the pdf2htmlEX binary is configured correctly.',
     cmd
@@ -78,7 +78,7 @@ const init = function(config, callback) {
     _pdf2htmlEXTimeout = OaeUtil.getNumberParam(config.pdf2htmlEX.timeout, _pdf2htmlEXTimeout);
 
     // Try to execute `pdftotext -v`
-    cmd = util.format('"%s" -v', config.pdftotext.binary);
+    cmd = util.format('%s -v', config.pdftotext.binary);
     log().trace(
       'Executing %s to verify if the path to the pdftotext binary is configured correctly.',
       cmd
@@ -207,7 +207,7 @@ const previewPDF = function(ctx, path, callback) {
  */
 const _convertPDFToHTMLPages = function(ctx, path, pagesDir, callback) {
   const cmd = util.format(
-    '"%s" --split-pages=1 --page-filename=page..html --embed-css=0 --css-filename=lines.css --embed-javascript=0 --fit-width=700 --no-drm=1 --dest-dir "%s" "%s"',
+    '%s --split-pages=1 --page-filename=page..html --embed-css=0 --css-filename=lines.css --embed-javascript=0 --fit-width=700 --no-drm=1 --dest-dir "%s" "%s"',
     _pdf2htmlEXBinary,
     pagesDir,
     path
@@ -340,7 +340,7 @@ const _generateThumbnail = function(ctx, path, pagesDir, callback) {
  */
 const _convertToText = function(ctx, input, pagesDir, callback) {
   const output = pagesDir + '/plain.txt';
-  const cmd = util.format('"%s" -q "%s" "%s"', _pdftotextBinary, input, output);
+  const cmd = util.format('%s -q "%s" "%s"', _pdftotextBinary, input, output);
   // Execute the command
   log().trace({ contentId: ctx.contentId }, 'Executing %s', cmd);
   const options = {

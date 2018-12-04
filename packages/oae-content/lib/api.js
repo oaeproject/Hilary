@@ -1716,11 +1716,11 @@ const setPreviewItems = function(
       let called = false;
 
       /*!
-             * Convenience method that handles the completion of storing a preview item to backend storage. When all
-             * items have completed and invoked this method, it will call the final callback to exit this method.
-             *
-             * @param  {Object}     err     An error that occurred, if any
-             */
+       * Convenience method that handles the completion of storing a preview item to backend storage. When all
+       * items have completed and invoked this method, it will call the final callback to exit this method.
+       *
+       * @param  {Object}     err     An error that occurred, if any
+       */
       const _finishIteration = function(err) {
         // If we have already called back (e.g., because of an error), ignore this invokation
         if (called) {
@@ -2648,10 +2648,10 @@ const restoreRevision = function(ctx, contentId, revisionId, callback) {
           }
 
           /*!
-                 * We need to update the content item in the Content CF.
-                 * We do so by copying all the non-standard fields from the revision
-                 * to the Content CF.
-                 */
+           * We need to update the content item in the Content CF.
+           * We do so by copying all the non-standard fields from the revision
+           * to the Content CF.
+           */
           const blacklist = [
             'revisionId',
             'contentId',

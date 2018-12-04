@@ -14,6 +14,7 @@
  */
 
 const util = require('util');
+const path = require('path');
 const _ = require('underscore');
 const request = require('request');
 
@@ -66,13 +67,13 @@ const generatePreviews = function(ctx, contentObj, callback) {
 
     // Download it.
     const imageUrl = info[0].thumbnail_medium;
-    const path = ctx.baseDir + '/vimeo.png';
-    PreviewUtil.downloadRemoteFile(imageUrl, path, (err, path) => {
+    const imgPath = path.resolve(ctx.baseDir, 'vimeo.png');
+    PreviewUtil.downloadRemoteFile(imageUrl, imgPath, (err, filePath) => {
       if (err) {
         return callback(err);
       }
 
-      LinkProcessorUtil.generatePreviewsFromImage(ctx, path, opts, callback);
+      LinkProcessorUtil.generatePreviewsFromImage(ctx, filePath, opts, callback);
     });
   });
 };

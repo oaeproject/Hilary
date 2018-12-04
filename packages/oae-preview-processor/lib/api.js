@@ -639,11 +639,11 @@ const _handleRegeneratePreviewsTask = function(data, callback) {
   let totalReprocessed = 0;
 
   /*!
-     * Handles each batch from the ContentDAO.Content.iterateAll method.
-     *
-     * @see ContentDAO.Content#iterateAll
-     * @api private
-     */
+   * Handles each batch from the ContentDAO.Content.iterateAll method.
+   *
+   * @see ContentDAO.Content#iterateAll
+   * @api private
+   */
   const _onEach = function(contentRows, done) {
     log().info(
       'Scanning %d content items to see if previews need to be reprocessed',
@@ -759,7 +759,19 @@ const _initializeDefaultProcessors = function(callback) {
         return callback(err);
       }
 
-      DefaultLinkProcessor.init(config.previews.link, callback);
+      DefaultLinkProcessor.init(config.previews, err => {
+        if (err) {
+          return callback(err);
+        }
+
+        CollabDocProcessor.init(config.previews, err => {
+          if (err) {
+            return callback(err);
+          }
+
+          return callback();
+        });
+      });
     });
   });
 };

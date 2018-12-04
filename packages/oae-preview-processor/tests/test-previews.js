@@ -300,13 +300,13 @@ describe('Preview processor', () => {
   });
 
   /*!
-     * Create a file and wait until its preview has been processed
-     *
-     * @param  {String}      resourceSubType    The resourceSubType of the content item that should be created. One of `collabdoc`, `file` or `link`
-     * @param  {String}      link               The stream that points to the file that should be uploaded
-     * @param  {Stream}      stream             The stream that points to the file that should be uploaded
-     * @param  {Function}    callback           Standard callback function
-     */
+   * Create a file and wait until its preview has been processed
+   *
+   * @param  {String}      resourceSubType    The resourceSubType of the content item that should be created. One of `collabdoc`, `file` or `link`
+   * @param  {String}      link               The stream that points to the file that should be uploaded
+   * @param  {Stream}      stream             The stream that points to the file that should be uploaded
+   * @param  {Function}    callback           Standard callback function
+   */
   const _createContentAndWait = function(resourceSubType, link, stream, callback) {
     // When the queue is empty, we create a piece of content for which we can generate preview items
     MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
@@ -424,15 +424,15 @@ describe('Preview processor', () => {
   };
 
   /*!
-     * Test that verifies that the `downloadUrl` can in fact be downloaded.
-     *
-     * @param  {RestContext}    restContext         The RestContext that we should use to download the file
-     * @param  {String}         downloadUrl         The signed URL that should be verified
-     * @param  {Function}       callback            Standard callback function
-     * @param  {String}         callback.body       The full response body
-     * @param  {Response}       callback.response   The full response object
-     * @throws {Error}                              An assertion error gets thrown if the file could not be downloaded
-     */
+   * Test that verifies that the `downloadUrl` can in fact be downloaded.
+   *
+   * @param  {RestContext}    restContext         The RestContext that we should use to download the file
+   * @param  {String}         downloadUrl         The signed URL that should be verified
+   * @param  {Function}       callback            Standard callback function
+   * @param  {String}         callback.body       The full response body
+   * @param  {Response}       callback.response   The full response object
+   * @throws {Error}                              An assertion error gets thrown if the file could not be downloaded
+   */
   const _verifySignedUriDownload = function(restContext, downloadUrl, callback) {
     // Verify we can download it.
     const parsedUrl = url.parse(downloadUrl, true);
@@ -452,8 +452,8 @@ describe('Preview processor', () => {
 
   describe('Preview generation', () => {
     /*!
-         * Enable the Preview Processor if the config specifies we can run with it enabled
-         */
+     * Enable the Preview Processor if the config specifies we can run with it enabled
+     */
     beforeEach(callback => {
       // Ignore this test if the PP is disabled.
       if (!defaultConfig.previews.enabled) {
@@ -478,8 +478,8 @@ describe('Preview processor', () => {
     });
 
     /*!
-         * Disable the Preview Processor in case we enabled it earlier
-         */
+     * Disable the Preview Processor in case we enabled it earlier
+     */
     afterEach(callback => {
       // Ignore this test if the PP is disabled
       if (!defaultConfig.previews.enabled) {
@@ -2355,14 +2355,14 @@ describe('Preview processor', () => {
 
   describe('Preview Reprocessing', () => {
     /*!
-         * Sets up the environment to quickly reprocess content by trashing all the content in the system and purging the previews queue.
-         * It will also set up a user who creates two pieces of content (one file and one link) to allow for easy testing
-         *
-         * @param  {Boolean}    enableProcessor     Whether or not the processor should be enabled before handing control over to the callback
-         * @param  {User}       callback.user       The user who created a piece of content
-         * @param  {Content}    callback.file       The created file
-         * @param  {Content}    callback.link       The created link
-         */
+     * Sets up the environment to quickly reprocess content by trashing all the content in the system and purging the previews queue.
+     * It will also set up a user who creates two pieces of content (one file and one link) to allow for easy testing
+     *
+     * @param  {Boolean}    enableProcessor     Whether or not the processor should be enabled before handing control over to the callback
+     * @param  {User}       callback.user       The user who created a piece of content
+     * @param  {Content}    callback.file       The created file
+     * @param  {Content}    callback.link       The created link
+     */
     const _setupForReprocessing = function(enableProcessor, callback) {
       // Disable preview processing so we don't immediately process our piece of content
       PreviewAPI.disable(err => {
@@ -2438,16 +2438,16 @@ describe('Preview processor', () => {
     };
 
     /*!
-         * Utility function to bind a listener to the preview reprocessing queue and let a
-         * consumer handle the data of the resulting message.
-         *
-         * @param  {RestContext}    restCtx         The rest context with which to invoke the reprocess request. Should be bound to the global admin interface.
-         * @param  {Object}         [filters]       The filter parameter of the reprocessing request
-         * @param  {Function}       handler         The handler to handle the MQ data
-         * @param  {Object}         handler.data    The arbitrary MQ data
-         * @param  {Function}       [callback]      Invoked after the reprocessing rest request has been executed
-         * @param  {Object}         [callback.err]  An error that occurred invokeing the reprocess previews rest request, if any
-         */
+     * Utility function to bind a listener to the preview reprocessing queue and let a
+     * consumer handle the data of the resulting message.
+     *
+     * @param  {RestContext}    restCtx         The rest context with which to invoke the reprocess request. Should be bound to the global admin interface.
+     * @param  {Object}         [filters]       The filter parameter of the reprocessing request
+     * @param  {Function}       handler         The handler to handle the MQ data
+     * @param  {Object}         handler.data    The arbitrary MQ data
+     * @param  {Function}       [callback]      Invoked after the reprocessing rest request has been executed
+     * @param  {Object}         [callback.err]  An error that occurred invokeing the reprocess previews rest request, if any
+     */
     const _reprocessWithHandler = function(restCtx, filters, handler, callback) {
       callback =
         callback ||
@@ -2456,12 +2456,12 @@ describe('Preview processor', () => {
         };
 
       /*!
-             * A convenience handler that takes care of invoking the MQ callback to let it acknowledge
-             * the request.
-             *
-             * @param  {Object}     data            The MQ data for the message
-             * @param  {Function}   mqCallback      The function to invoke to acknowledge handling the message
-             */
+       * A convenience handler that takes care of invoking the MQ callback to let it acknowledge
+       * the request.
+       *
+       * @param  {Object}     data            The MQ data for the message
+       * @param  {Function}   mqCallback      The function to invoke to acknowledge handling the message
+       */
       const _handler = function(data, mqCallback) {
         mqCallback();
         return handler(data);
@@ -2659,10 +2659,10 @@ describe('Preview processor', () => {
      */
     it('verify non-global admin users cannot reprocess previews', callback => {
       /*!
-             * Task handler that will fail the test if invoked.
-             *
-             * @see MQ#bind
-             */
+       * Task handler that will fail the test if invoked.
+       *
+       * @see MQ#bind
+       */
       const _handleTaskFail = function(data) {
         assert.fail('Did not expect the task to be invoked.');
       };
@@ -2711,10 +2711,10 @@ describe('Preview processor', () => {
      */
     it('verify parameter validation for reprocessing previews requests', callback => {
       /*!
-             * Task handler that will fail the test if invoked.
-             *
-             * @see MQ#bind
-             */
+       * Task handler that will fail the test if invoked.
+       *
+       * @see MQ#bind
+       */
       const _handleTaskFail = function(data) {
         assert.fail('Did not expect the task to be invoked.');
       };

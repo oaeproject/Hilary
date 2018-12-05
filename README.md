@@ -9,6 +9,7 @@ Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject
 [![CircleCI](https://circleci.com/gh/oaeproject/Hilary/tree/master.svg?style=shield)](https://circleci.com/gh/oaeproject/Hilary/tree/master)
 [![Code Climate](https://codeclimate.com/github/oaeproject/Hilary/badges/gpa.svg)](https://codeclimate.com/github/oaeproject/Hilary)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/8a6104cadb6b442596c418534cf97db3)](https://www.codacy.com/app/brecke/Hilary?utm_source=github.com&utm_medium=referral&utm_content=oaeproject/Hilary&utm_campaign=Badge_Grade)
+[![Codacy Badge](https://api.codacy.com/project/badge/Coverage/8a6104cadb6b442596c418534cf97db3)](https://www.codacy.com/app/oaeproject/Hilary?utm_source=github.com&utm_medium=referral&utm_content=oaeproject/Hilary&utm_campaign=Badge_Coverage)
 [![dependencies](https://david-dm.org/oaeproject/Hilary.svg)](https://david-dm.org/oaeproject/Hilary)
 [![devdependencies](https://david-dm.org/oaeproject/Hilary/dev-status.svg)](https://david-dm.org/oaeproject/Hilary#info=devDependencies)
 ![code style](https://img.shields.io/badge/code_style-prettier-ff69b4.svg)

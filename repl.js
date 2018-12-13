@@ -49,7 +49,6 @@ repl.context.TelemetryAPI = require('oae-telemetry/lib/api.js');
 repl.context.TenantsAPI = require('oae-tenants/lib/api.js');
 repl.context.TinCanApiAPI = require('oae-tincanapi/lib/api.js');
 repl.context.UiAPI = require('oae-ui/lib/api.js');
-repl.context.UserVoiceAPI = require('oae-uservoice/lib/api.js');
 repl.context.VersionAPI = require('oae-version/lib/api.js');
 
 promisify(repl);

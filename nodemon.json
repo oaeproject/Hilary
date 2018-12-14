@@ -24,7 +24,6 @@
     "node_modules/oae-lti",
     "node_modules/oae-mediacore",
     "node_modules/oae-messagebox",
-    "node_modules/oae-mixpanel",
     "node_modules/oae-preview-processor",
     "node_modules/oae-principals",
     "node_modules/oae-release-tools",

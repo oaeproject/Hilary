@@ -81,6 +81,7 @@ config.servers = {
   guestTenantAlias: 'guest',
   guestTenantHost: 'guest.oae.com',
   shibbolethSPHost: 'shib-sp.oae.com',
+  /* if on mac osx change next line to 0.0.0.0 */
   serverInternalAddress: null,
   tenantPort: 2001,
   useHttps: false,
@@ -291,9 +292,10 @@ config.mq = {
  * @param  {String}      credentials.password           The password to login with on the global admin server
  */
 config.previews = {
-  enabled: false,
+  enabled: true,
   tmpDir: Path.join(tmpDir, 'previews'),
   office: {
+    /* if on mac osx change next line to '/Applications/LibreOffice.app/Contents/MacOS/soffice' */
     binary: 'soffice',
     timeout: 120000
   },
@@ -303,7 +305,7 @@ config.previews = {
     timeout: 120000
   },
   pdftotext: {
-    /* binary 'docker-compose run --rm oae-pdf2htmlex pdftotext', */
+    /* binary: 'docker-compose run --rm oae-pdf2htmlex pdftotext', */
     binary: 'pdftotext',
     timeout: 120000
   },

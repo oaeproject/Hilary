@@ -5,3 +5,4 @@ doc_data.txt
 .DS_Store
 tmp
 .nyc_output
+coverage

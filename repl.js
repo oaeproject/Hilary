@@ -37,7 +37,6 @@ repl.context.JitsiAPI = require('oae-jitsi/lib/api.js');
 repl.context.LibraryAPI = require('oae-library/lib/api.js');
 repl.context.LoggerAPI = require('oae-logger/lib/api.js');
 repl.context.LtiAPI = require('oae-lti/lib/api.js');
-repl.context.MediaCoreAPI = require('oae-mediacore/lib/api.js');
 // repl.context.MeetupsAPI = require('oae-meetups/lib/api.js');
 repl.context.MessageBoxAPI = require('oae-messagebox/lib/api.js');
 repl.context.PreviewProcessorAPI = require('oae-preview-processor/lib/api.js');

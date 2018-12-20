@@ -1,15 +1,15 @@
 {
-    "apps": [
-        {
-            "name": "Hilary",
-            "script": "app.js",
-            "cwd": "/opt/current",
-            "watch": true,
-            "instances": 1,
-            "exec_mode": "cluster",
-            "log_file": "/var/log/Hilary/hilary.log",
-            "error_file": "/var/log/Hilary/hilary-err.log",
-            "ignore_watch": ["test", ".git", "files"]
-        }
-    ]
+  "apps": [
+    {
+      "name": "Hilary",
+      "script": "app.js",
+      "cwd": "/opt/current",
+      "watch": true,
+      "instances": 1,
+      "exec_mode": "cluster",
+      "log_file": "/var/log/Hilary/hilary.log",
+      "error_file": "/var/log/Hilary/hilary-err.log",
+      "ignore_watch": ["test", ".git", "files", "*.log", "tmp"]
+    }
+  ]
 }

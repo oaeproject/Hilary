@@ -81,7 +81,6 @@
     "oae-messagebox": "file:packages/oae-messagebox",
     "oae-preview-processor": "file:packages/oae-preview-processor",
     "oae-principals": "file:packages/oae-principals",
-    "oae-release-tools": "git://github.com/oaeproject/oae-release-tools",
     "oae-resource": "file:packages/oae-resource",
     "oae-rest": "file:packages/oae-rest",
     "oae-search": "file:packages/oae-search",

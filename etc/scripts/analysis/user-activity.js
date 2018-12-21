@@ -62,6 +62,7 @@ const tenantAlias = argv.tenant;
 config.previews.enabled = false;
 
 // Ensure that we're logging to standard out/err
+/*
 config.log = {
   streams: [
     {
@@ -75,6 +76,7 @@ config.log = {
     res: bunyan.stdSerializers.res
   }
 };
+*/
 
 const streamInfo = _createCsvStream();
 const csvStream = streamInfo.csv;
@@ -150,13 +152,13 @@ function _groupUsersByEmail(tenantAlias, callback) {
   );
 
   /*!
-     * Given a paged result set of principal hashes, filter them down to those with email addresses
-     * and those that are part of the specified tenant. Then add them to the shared `userHashes`
-     * array
-     *
-     * @param  {Object[]}   principalHashes     The principals to filter and aggregate
-     * @param  {Function}   callback            Will be invoked when the principals are aggregated
-     */
+   * Given a paged result set of principal hashes, filter them down to those with email addresses
+   * and those that are part of the specified tenant. Then add them to the shared `userHashes`
+   * array
+   *
+   * @param  {Object[]}   principalHashes     The principals to filter and aggregate
+   * @param  {Function}   callback            Will be invoked when the principals are aggregated
+   */
   function _aggregateUsers(principalHashes, callback) {
     log().info('Analyzing %s principals to index by email', principalHashes.length);
     _.chain(principalHashes)

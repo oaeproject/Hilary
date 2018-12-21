@@ -105,7 +105,6 @@
     "passport-oauth2-client-password": "^0.1.2",
     "passport-openid": "^0.4.0",
     "passport-twitter": "^1.0.4",
-    "pm2": "^3.2.4",
     "properties-parser": "^0.3.1",
     "rails-timezone": "^1.0.0",
     "range_check": "^1.4.0",

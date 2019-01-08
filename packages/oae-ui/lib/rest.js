@@ -13,11 +13,10 @@
  * permissions and limitations under the License.
  */
 
-var OAE = require('oae-util/lib/oae');
-var OaeUtil = require('oae-util/lib/util');
+const OAE = require('oae-util/lib/oae');
+const OaeUtil = require('oae-util/lib/util');
 
-var UIAPI = require('./api');
-
+const UIAPI = require('./api');
 
 /**
  * @REST getUiWidgets
@@ -30,9 +29,9 @@ var UIAPI = require('./api');
  * @Return      {WidgetConfigs}                 Object containing the list aggregated widget manifests
  * @HttpResponse                200             widget manifests available
  */
-var _getWidgetManifests = function(req, res) {
-    var widgetConfigs = UIAPI.getWidgetManifests();
-    res.status(200).send(widgetConfigs);
+const _getWidgetManifests = function(req, res) {
+  const widgetConfigs = UIAPI.getWidgetManifests();
+  res.status(200).send(widgetConfigs);
 };
 
 OAE.globalAdminRouter.on('get', '/api/ui/widgets', _getWidgetManifests);
@@ -54,16 +53,16 @@ OAE.tenantRouter.on('get', '/api/ui/widgets', _getWidgetManifests);
  * @HttpResponse                400             Only absolute paths are allowed
  * @HttpResponse                400             The files parameter must be an array
  */
-var _getStaticBatch = function(req, res) {
-    var files = OaeUtil.toArray(req.query.files);
+const _getStaticBatch = function(req, res) {
+  const files = OaeUtil.toArray(req.query.files);
 
-    UIAPI.getStaticBatch(files, function(err, results) {
-        if (err) {
-            return res.status(err.code).send(err.msg);
-        }
+  UIAPI.getStaticBatch(files, (err, results) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
+    }
 
-        return res.status(200).send(results);
-    });
+    return res.status(200).send(results);
+  });
 };
 
 OAE.globalAdminRouter.on('get', '/api/ui/staticbatch', _getStaticBatch);
@@ -81,15 +80,15 @@ OAE.tenantRouter.on('get', '/api/ui/staticbatch', _getStaticBatch);
  * @Produces    [text/css]
  * @HttpResponse                200             UI skin available
  */
-var _getSkin = function(req, res) {
-    UIAPI.getSkin(req.ctx, function(err, css) {
-        if (err) {
-            return res.status(err.code).send(err.msg);
-        }
+const _getSkin = function(req, res) {
+  UIAPI.getSkin(req.ctx, (err, css) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
+    }
 
-        res.set('Content-Type', 'text/css');
-        return res.status(200).send(css);
-    });
+    res.set('Content-Type', 'text/css');
+    return res.status(200).send(css);
+  });
 };
 
 OAE.globalAdminRouter.on('get', '/api/ui/skin', _getSkin);
@@ -106,17 +105,16 @@ OAE.tenantRouter.on('get', '/api/ui/skin', _getSkin);
  * @Return      {string}                        Logo URL for the current tenant
  * @HttpResponse                200             UI logo available
  */
-let _getLogo = function(req, res) {
-    UIAPI.getLogo(req.ctx, function(err, css) {
-        if (err) {
-            return res.status(err.code).send(err.msg);
-        }
-        return res.status(200).send(css);
-    });
+const _getLogo = function(req, res) {
+  UIAPI.getLogo(req.ctx, (err, css) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
+    }
+    return res.status(200).send(css);
+  });
 };
 
 OAE.tenantRouter.on('get', '/api/ui/logo', _getLogo);
-
 
 /**
  * @REST getUiSkinVariables
@@ -131,14 +129,14 @@ OAE.tenantRouter.on('get', '/api/ui/logo', _getLogo);
  * @HttpResponse                200             UI skin variables available
  * @HttpResponse                401             Only administrators can retrieve the skin variables
  */
-OAE.globalAdminRouter.on('get', '/api/ui/skin/variables', function(req, res) {
-    UIAPI.getSkinVariables(req.ctx, req.query.tenant, function(err, variables) {
-        if (err) {
-            return res.status(err.code).send(err.msg);
-        }
+OAE.globalAdminRouter.on('get', '/api/ui/skin/variables', (req, res) => {
+  UIAPI.getSkinVariables(req.ctx, req.query.tenant, (err, variables) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
+    }
 
-        return res.status(200).send({'results': variables});
-    });
+    return res.status(200).send({ results: variables });
+  });
 });
 
 /**
@@ -153,14 +151,14 @@ OAE.globalAdminRouter.on('get', '/api/ui/skin/variables', function(req, res) {
  * @HttpResponse                200             UI skin variables available
  * @HttpResponse                401             Only administrators can retrieve the skin variables
  */
-OAE.tenantRouter.on('get', '/api/ui/skin/variables', function(req, res) {
-    UIAPI.getSkinVariables(req.ctx, null, function(err, variables) {
-        if (err) {
-            return res.status(err.code).send(err.msg);
-        }
+OAE.tenantRouter.on('get', '/api/ui/skin/variables', (req, res) => {
+  UIAPI.getSkinVariables(req.ctx, null, (err, variables) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
+    }
 
-        return res.status(200).send({'results': variables});
-    });
+    return res.status(200).send({ results: variables });
+  });
 });
 
 /**
@@ -175,18 +173,18 @@ OAE.tenantRouter.on('get', '/api/ui/skin/variables', function(req, res) {
  * @HttpResponse                201             New logo was uploaded
  * @HttpResponse                401             Only administrators can upload a logo for tenant
  */
-var _uploadLogo = function(req, res) {
-    if (!req.files && !req.files.file) {
-        return res.status(400).send('Missing file parameter');
+const _uploadLogo = function(req, res) {
+  if (!req.files && !req.files.file) {
+    return res.status(400).send('Missing file parameter');
+  }
+
+  UIAPI.uploadLogoFile(req.ctx, req.files.file, req.body.tenant, (err, url) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
 
-    UIAPI.uploadLogoFile(req.ctx, req.files.file, req.body.tenant, function(err, url) {
-        if (err) {
-            return res.status(err.code).send(err.msg);
-        }
-
-        return res.status(200).send({'url': url});
-    });
+    return res.status(200).send({ url });
+  });
 };
 
 OAE.globalAdminRouter.on('post', '/api/ui/skin/logo', _uploadLogo);

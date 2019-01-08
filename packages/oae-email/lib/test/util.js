@@ -42,10 +42,10 @@ const sendEmail = function(templateModule, templateId, toUser, data, opts, callb
         let returned = false;
 
         /*!
-                 * Takes care of invoking the callback when the email is "successfully sent".
-                 *
-                 * @see EmailAPI events
-                 */
+         * Takes care of invoking the callback when the email is "successfully sent".
+         *
+         * @see EmailAPI events
+         */
         const _handleDebugSent = function(message) {
           if (!returned) {
             returned = true;
@@ -88,9 +88,9 @@ const startCollectingEmail = function(startCallback) {
     const messages = [];
 
     /*!
-         * Handle the debugSent event, filling up the messages array with the
-         * messages we receive
-         */
+     * Handle the debugSent event, filling up the messages array with the
+     * messages we receive
+     */
     const _handleDebugSent = function(message) {
       messages.push(message);
     };
@@ -146,8 +146,8 @@ const collectAndFetchAllEmails = function(callback) {
       // work
       EmailAPI.whenAllEmailsSent(() => {
         /*!
-                 * Handle the debugSent event, filling up the messages array with the messages we receive
-                 */
+         * Handle the debugSent event, filling up the messages array with the messages we receive
+         */
         const _handleDebugSent = function(message) {
           messages.push(message);
         };
@@ -173,6 +173,7 @@ const collectAndFetchAllEmails = function(callback) {
                 // to extremely long values (e.g., ~400 characters long) for click-tracking
                 //
                 // @see https://github.com/oaeproject/Hilary/issues/1168
+
                 _.each(messages, message => {
                   _assertEmailTemplateFieldValid(message, 'subject');
                   _assertEmailTemplateFieldValid(message, 'html');
@@ -230,8 +231,8 @@ const collectAndFetchEmailsForBucket = function(
   MqTestsUtil.whenTasksEmpty(ActivityConstants.mq.TASK_ACTIVITY, () => {
     ActivityNotifications.whenNotificationsEmpty(() => {
       /*!
-             * Handle the debugSent event, filling up the messages array with the messages we receive
-             */
+       * Handle the debugSent event, filling up the messages array with the messages we receive
+       */
       const _handleDebugSent = function(message) {
         messages.push(message);
       };

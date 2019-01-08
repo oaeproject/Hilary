@@ -156,7 +156,7 @@ const updateFileCaches = function(filename) {
   delete staticFileCache[filename];
 
   // If the changed file is a widget config file, we re-cache the widget config files
-  if (/^\/node_modules\/(.*?)\/manifest.json$/.test(filename)) {
+  if (/^\/packages\/(.*?)\/manifest.json$/.test(filename)) {
     cacheWidgetManifests();
 
     // If the changed file is the base skin file, we re-cache it
@@ -191,15 +191,16 @@ const getWidgetManifests = function() {
 };
 
 /**
- * Cache all widget manifests under the UI's node_modules directory
+ * Cache all widget manifests under the UI's packages directory
  *
  * @api private
  */
 const cacheWidgetManifests = function() {
   widgetManifestCache = {};
+
   readdirp({
-    // Cache all of the widget config files under node_modules
-    root: uiDirectory + '/node_modules/',
+    // Cache all of the widget config files under packages
+    root: path.join(uiDirectory, 'packages'),
 
     // Only recurse in folders that contain widgets
     directoryFilter: _widgetDirectoryFilter,
@@ -241,7 +242,7 @@ const cacheWidgetManifests = function() {
  * @api private
  */
 const _widgetDirectoryFilter = function(entry) {
-  return entry.fullPath.indexOf('/node_modules/oae-') !== -1;
+  return entry.fullPath.indexOf('/packages/oae-') !== -1;
 };
 
 /// ///////////////
@@ -348,12 +349,12 @@ const cacheFile = function(path, callback) {
  */
 const sortSections = function(sections) {
   /*!
-     * A comparator that can be used to sort an array of sections or subsections.
-     *
-     * @param  {Section}    sectionA    First section to compare.
-     * @param  {Section}    sectionB    Second section to compare.
-     * @return {Number}                 An integer that expresses the relative order of the passed in sections.
-     */
+   * A comparator that can be used to sort an array of sections or subsections.
+   *
+   * @param  {Section}    sectionA    First section to compare.
+   * @param  {Section}    sectionB    Second section to compare.
+   * @return {Number}                 An integer that expresses the relative order of the passed in sections.
+   */
   const comparator = function(sectionA, sectionB) {
     return sectionA.index - sectionB.index;
   };
@@ -444,38 +445,38 @@ const getSkinVariables = function(ctx, tenantAlias, callback) {
     });
 
     /*!
-         * Morph it to a structure that the UI can use.
-         *
-         * We'll return an array of sections, which are defined in the LESS file through `@section`.
-         * Each section can have a number of subsections, used to subdivide variables inside of a given
-         * section.
-         *
-         * By default, each section will have a `main` subsection that contains all of the variables
-         * that are not part of a specific subsection. This will be followed by all of the other subsections,
-         * which are defined in the LESS file through @subsection.
-         *
-         * Each subsection will have one or more CSS variables that will be used for skinning through
-         * the Admin UI.
-         *
-         * ex:
-         *   [
-         *      {
-         *          'name': 'Section name A',
-         *          'subsections': [
-         *              {
-         *                  'name': 'main',
-         *                  'variables': [ <var A_V1>, <var A_V2>, ... ]
-         *              },
-         *              {
-         *                  'name': <subsection A_S1>,
-         *                  'variables': [ <var A_V3>, <var a_V4>, ... ]
-         *              },
-         *              ...
-         *          ]
-         *      },
-         *      ...
-         *   ]
-         */
+     * Morph it to a structure that the UI can use.
+     *
+     * We'll return an array of sections, which are defined in the LESS file through `@section`.
+     * Each section can have a number of subsections, used to subdivide variables inside of a given
+     * section.
+     *
+     * By default, each section will have a `main` subsection that contains all of the variables
+     * that are not part of a specific subsection. This will be followed by all of the other subsections,
+     * which are defined in the LESS file through @subsection.
+     *
+     * Each subsection will have one or more CSS variables that will be used for skinning through
+     * the Admin UI.
+     *
+     * ex:
+     *   [
+     *      {
+     *          'name': 'Section name A',
+     *          'subsections': [
+     *              {
+     *                  'name': 'main',
+     *                  'variables': [ <var A_V1>, <var A_V2>, ... ]
+     *              },
+     *              {
+     *                  'name': <subsection A_S1>,
+     *                  'variables': [ <var A_V3>, <var a_V4>, ... ]
+     *              },
+     *              ...
+     *          ]
+     *      },
+     *      ...
+     *   ]
+     */
     let sections = {};
     // eslint-disable-next-line no-unused-vars
     _.each(variables, (variable, name) => {
@@ -613,40 +614,40 @@ const _cacheSkinVariables = function(callback) {
     const variables = {};
 
     /*!
-         * Get all the variables out of the skin file.
-         * Unfortunately we can't use tree.variables() as that doesn't give us the section and subsection names..
-         * We loop over each rule in the less file and apply the following checks
-         *
-         *   1.  Is this rule a section declaration?
-         *
-         *       Sections are used to logically group skinning variables.
-         *       Sections are defined in the following way:
-         *
-         *       \/************************
-         *         ** @section  Branding **
-         *         ************************\/
-         *
-         *   2.  Is this rule a subsection declaration?
-         *
-         *       Subsections are used to created logical skinning variable groups inside of
-         *       a section. Subsections are defined in the following way:
-         *
-         *       \/* @subsection  Link colors *\/
-         *
-         *   3.  Is this rule a variable comment?
-         *
-         *       Variable comments are rules that come right above a variable declaration.
-         *       These are used to give each variable a description.
-         *
-         *   4.  Is this rule a variable declaration?
-         *
-         *       Variables that can be re-used troughout the skin.
-         *       The 'type' of the variable will be determined by looking at the suffix of the variable name.
-         *
-         *       Looks like:
-         *       \/* The background color for the body *\/    --> variable comment
-         *       @body-background-color: #ECEAE5;           --> variable declaration, the variable is of type 'color'.
-         */
+     * Get all the variables out of the skin file.
+     * Unfortunately we can't use tree.variables() as that doesn't give us the section and subsection names..
+     * We loop over each rule in the less file and apply the following checks
+     *
+     *   1.  Is this rule a section declaration?
+     *
+     *       Sections are used to logically group skinning variables.
+     *       Sections are defined in the following way:
+     *
+     *       \/************************
+     *         ** @section  Branding **
+     *         ************************\/
+     *
+     *   2.  Is this rule a subsection declaration?
+     *
+     *       Subsections are used to created logical skinning variable groups inside of
+     *       a section. Subsections are defined in the following way:
+     *
+     *       \/* @subsection  Link colors *\/
+     *
+     *   3.  Is this rule a variable comment?
+     *
+     *       Variable comments are rules that come right above a variable declaration.
+     *       These are used to give each variable a description.
+     *
+     *   4.  Is this rule a variable declaration?
+     *
+     *       Variables that can be re-used troughout the skin.
+     *       The 'type' of the variable will be determined by looking at the suffix of the variable name.
+     *
+     *       Looks like:
+     *       \/* The background color for the body *\/    --> variable comment
+     *       @body-background-color: #ECEAE5;           --> variable declaration, the variable is of type 'color'.
+     */
 
     let section = 'Default';
     let subsection = 'main';
@@ -873,7 +874,6 @@ const _replaceOptimizedPaths = function(skinVariables) {
  */
 const uploadLogoFile = function(ctx, file, tenantAlias, callback) {
   tenantAlias = tenantAlias || ctx.tenant().alias;
-  // const tenant = ctx.tenant();
   if (!ctx.user() || !ctx.user().isAdmin(tenantAlias)) {
     return callback({ code: 401, msg: 'Only administrators can upload new logos for tenants' });
   }
@@ -952,7 +952,7 @@ const _cacheI18nKeys = function(callback) {
       return callback(err);
     }
 
-    return _cacheI18nKeysInDirectory('/node_modules', _widgetDirectoryFilter, callback);
+    return _cacheI18nKeysInDirectory('/packages', _widgetDirectoryFilter, callback);
   });
 };
 
@@ -1046,30 +1046,30 @@ const renderTemplate = function(template, data, locale) {
   _.extend(data.util, {
     html: {
       /*!
-             * @see Sanitization.encodeForHTML
-             */
+       * @see Sanitization.encodeForHTML
+       */
       encodeForHTML(str) {
         return Sanitization.encodeForHTML(str);
       },
 
       /*!
-             * @see Sanitization.encodeForHTMLAttribute
-             */
+       * @see Sanitization.encodeForHTMLAttribute
+       */
       encodeForHTMLAttribute(str) {
         return Sanitization.encodeForHTMLAttribute(str);
       },
 
       /*!
-             * Returns the text for a given HTML string. If desired, links can be formatted in plain-text.
-             * e.g.,
-             *     <p>The <a href="/fox">quick brown fox</a> jumped over the <a href="/moon">moon</a>.
-             * becomes
-             *     The quick brown fox (/fox) jumped over the moon (/moon)
-             *
-             * @param  {String}     str             The HTML string to parse and extra text from
-             * @param  {Boolean}    retainLinks     Set to `true` to convert links to a plain-text link.
-             * @return {String}                     The extracted text
-             */
+       * Returns the text for a given HTML string. If desired, links can be formatted in plain-text.
+       * e.g.,
+       *     <p>The <a href="/fox">quick brown fox</a> jumped over the <a href="/moon">moon</a>.
+       * becomes
+       *     The quick brown fox (/fox) jumped over the moon (/moon)
+       *
+       * @param  {String}     str             The HTML string to parse and extra text from
+       * @param  {Boolean}    retainLinks     Set to `true` to convert links to a plain-text link.
+       * @return {String}                     The extracted text
+       */
       toText(str, retainLinks) {
         const html = $('<div>' + str + '</div>');
         if (retainLinks) {
@@ -1089,11 +1089,11 @@ const renderTemplate = function(template, data, locale) {
     },
     text: {
       /*!
-             * Standard string trimming + strips out HTML comments
-             *
-             * @param  {String}     str     The string to trim
-             * @return {String}             The trimmed string
-             */
+       * Standard string trimming + strips out HTML comments
+       *
+       * @param  {String}     str     The string to trim
+       * @return {String}             The trimmed string
+       */
       trim(str) {
         str = str.replace(/<!--(?:.|\n)*?-->/gm, '');
         str = str.trim();
@@ -1101,14 +1101,14 @@ const renderTemplate = function(template, data, locale) {
       },
 
       /*!
-             * Truncate a string and append three dots if the length of the string is longer
-             * than `maxChars`. Before truncating, the string will be trimmed. If the given
-             * string is not longer than `maxChars` characters, the string is returned as-is.
-             *
-             * @param  {String}     text        The text to truncate
-             * @param  {Number}     maxChars    The maximum length of the string before cutting it off and appending three dots
-             * @return {String}                 The truncated string
-             */
+       * Truncate a string and append three dots if the length of the string is longer
+       * than `maxChars`. Before truncating, the string will be trimmed. If the given
+       * string is not longer than `maxChars` characters, the string is returned as-is.
+       *
+       * @param  {String}     text        The text to truncate
+       * @param  {Number}     maxChars    The maximum length of the string before cutting it off and appending three dots
+       * @return {String}                 The truncated string
+       */
       truncate(text, maxChars) {
         text = data.util.text.trim(text);
         if (text.length > maxChars) {
@@ -1118,14 +1118,14 @@ const renderTemplate = function(template, data, locale) {
       },
 
       /*!
-             * Given plain text content, convert it to an appropriate HTML string. Particularly:
-             *
-             *  * Escape all HTML characters so the content shows as it is in plain text; and
-             *  * Convert all line-breaks to <br/> so that line breaks in the content are preserved
-             *
-             * @param  {String}     content     The plain-text content to convert to HTML
-             * @return {String}                 The HTML version of the content
-             */
+       * Given plain text content, convert it to an appropriate HTML string. Particularly:
+       *
+       *  * Escape all HTML characters so the content shows as it is in plain text; and
+       *  * Convert all line-breaks to <br/> so that line breaks in the content are preserved
+       *
+       * @param  {String}     content     The plain-text content to convert to HTML
+       * @return {String}                 The HTML version of the content
+       */
       toHtml(str) {
         // First escape HTML
         const sanitized = Sanitization.encodeForHTML(str);
@@ -1150,11 +1150,11 @@ const renderTemplate = function(template, data, locale) {
 
     markdown: {
       /*!
-             * Convert markdown input into an HTML string
-             *
-             * @param  {String}     str         The markdown input to convert to HTML
-             * @return {String}                 The converted HTML
-             */
+       * Convert markdown input into an HTML string
+       *
+       * @param  {String}     str         The markdown input to convert to HTML
+       * @return {String}                 The converted HTML
+       */
       toHtml(str) {
         return marked(str, {
           gfm: true,
@@ -1166,11 +1166,11 @@ const renderTemplate = function(template, data, locale) {
 
     json: {
       /*!
-             * Makes a string safe to embed in a json value
-             *
-             * @param  {String}     str     The string to place in a json value
-             * @return {String}             The safe string
-             */
+       * Makes a string safe to embed in a json value
+       *
+       * @param  {String}     str     The string to place in a json value
+       * @return {String}             The safe string
+       */
       escape(str) {
         if (!_.isString(str)) {
           return '';
@@ -1182,24 +1182,24 @@ const renderTemplate = function(template, data, locale) {
 
     i18n: {
       /*!
-             * Translates a key
-             *
-             * @param  {String}     key             The i18n key to translate
-             * @param  {Object}     [properties]    A set of properties that can be used to translate the key
-             * @return {String}                     The translated key
-             */
+       * Translates a key
+       *
+       * @param  {String}     key             The i18n key to translate
+       * @param  {Object}     [properties]    A set of properties that can be used to translate the key
+       * @return {String}                     The translated key
+       */
       translate(key, properties) {
         return translate(key, locale, properties);
       },
 
       /*!
-             * Format a date
-             *
-             * @param  {Date}       date            The date to format
-             * @param  {String}     dateFormat      The format in which the date should be formatted. See https://github.com/jquery/globalize/tree/v0.1.1#dates
-             * @param  {String}     [timezone]      The timezone the date should be presented in. Defaults to UTC
-             * @return {String}                     The formatted date
-             */
+       * Format a date
+       *
+       * @param  {Date}       date            The date to format
+       * @param  {String}     dateFormat      The format in which the date should be formatted. See https://github.com/jquery/globalize/tree/v0.1.1#dates
+       * @param  {String}     [timezone]      The timezone the date should be presented in. Defaults to UTC
+       * @return {String}                     The formatted date
+       */
       formatDate(date, dateFormat, timezone) {
         timezone = timezone || 'UTC';
         // Gloablize requires the locale to use a `-` rather than a `_`
@@ -1217,20 +1217,20 @@ const renderTemplate = function(template, data, locale) {
 
     ui: {
       /*!
-             * Get the optimized path in the UI for a pre-optimized path
-             *
-             * @param  {String}     path    The pre-optimized path to resolve
-             * @return {String}             The optimized path. In case no optimized path could be found, the given path is returned
-             */
+       * Get the optimized path in the UI for a pre-optimized path
+       *
+       * @param  {String}     path    The pre-optimized path to resolve
+       * @return {String}             The optimized path. In case no optimized path could be found, the given path is returned
+       */
       getHashedPath
     },
 
     url: {
       /*!
-             * Take a URL string, and return an object.
-             *
-             * @see http://nodejs.org/docs/latest/api/url.html#url_url_parse_urlstr_parsequerystring_slashesdenotehost
-             */
+       * Take a URL string, and return an object.
+       *
+       * @see http://nodejs.org/docs/latest/api/url.html#url_url_parse_urlstr_parsequerystring_slashesdenotehost
+       */
       parse: url.parse,
 
       /**

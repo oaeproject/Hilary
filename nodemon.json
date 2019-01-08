@@ -22,9 +22,7 @@
     "node_modules/oae-library",
     "node_modules/oae-logger",
     "node_modules/oae-lti",
-    "node_modules/oae-mediacore",
     "node_modules/oae-messagebox",
-    "node_modules/oae-mixpanel",
     "node_modules/oae-preview-processor",
     "node_modules/oae-principals",
     "node_modules/oae-release-tools",
@@ -36,7 +34,6 @@
     "node_modules/oae-tests",
     "node_modules/oae-tincanapi",
     "node_modules/oae-ui",
-    "node_modules/oae-uservoice",
     "node_modules/oae-util",
     "node_modules/oae-version",
     "3akai-ux/node_modules/oae*/"

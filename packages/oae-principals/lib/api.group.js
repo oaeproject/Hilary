@@ -132,7 +132,7 @@ const getFullGroupProfile = function(ctx, groupId, callback) {
                 // Add the members list to the full group profile
                 group.members = _.filter(members, member => {
                   // We should not show any members whose profile is not linkable
-                  return member.profile.profilePath;
+                  if (member.profile) return member.profile.profilePath;
                 });
 
                 PrincipalsEmitter.emit(PrincipalsConstants.events.GET_GROUP_PROFILE, ctx, group);
@@ -290,6 +290,8 @@ const _getMembersLibrary = function(ctx, group, hasRole, start, limit, callback)
           if (err) {
             return callback(err);
           }
+
+          // console.dir(memberEntries, { colors: true });
 
           const memberIds = _.pluck(memberEntries, 'id');
           PrincipalsUtil.getPrincipals(ctx, memberIds, (err, memberProfiles) => {

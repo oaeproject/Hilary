@@ -91,7 +91,9 @@ describe('Activity Email', () => {
     extraConfig,
     callback
   ) {
-    const now = timezoneString ? new TZ.timezone.Date(timezoneString) : new TZ.timezone.Date('Etc/UTC');
+    const now = timezoneString
+      ? new TZ.timezone.Date(timezoneString)
+      : new TZ.timezone.Date('Etc/UTC');
 
     let dailyHour = null;
     if (expectDaily) {
@@ -181,17 +183,17 @@ describe('Activity Email', () => {
           };
 
           /*!
-                     * Ensure the email footer contains / doesn't contain the specified tenant
-                     * configuration information for instance and host
-                     *
-                     * @param  {Object}         message                                     The email message to test
-                     * @param  {Object}         [assertions]                                The assertions to apply
-                     * @param  {Boolean}        [assertions.expectInstanceName]             Whether or not the instance information should be present. Default: `false`
-                     * @param  {Boolean}        [assertions.expectInstanceURL]              Whether or not the instance link should be present. Default: `false`
-                     * @param  {Boolean}        [assertions.expectHostingOrganizationName]  Whether or not the hosting organization name should be present. Default: `false`
-                     * @param  {Boolean}        [assertions.expectHostingOrganizationURL]   Whether or not the host organization link should be present. Default: `false`
-                     * @throws {AssertionError}                                             Thrown if any of the assertions fail
-                     */
+           * Ensure the email footer contains / doesn't contain the specified tenant
+           * configuration information for instance and host
+           *
+           * @param  {Object}         message                                     The email message to test
+           * @param  {Object}         [assertions]                                The assertions to apply
+           * @param  {Boolean}        [assertions.expectInstanceName]             Whether or not the instance information should be present. Default: `false`
+           * @param  {Boolean}        [assertions.expectInstanceURL]              Whether or not the instance link should be present. Default: `false`
+           * @param  {Boolean}        [assertions.expectHostingOrganizationName]  Whether or not the hosting organization name should be present. Default: `false`
+           * @param  {Boolean}        [assertions.expectHostingOrganizationURL]   Whether or not the host organization link should be present. Default: `false`
+           * @throws {AssertionError}                                             Thrown if any of the assertions fail
+           */
           const _assertEmailFooter = function(message, assertions) {
             assertions = assertions || {};
 
@@ -478,6 +480,7 @@ describe('Activity Email', () => {
                           //  - 1 content-create: Branden created 2 links
                           //  - 1 content-create: Simon created 2 links
                           //  - 1 discussion-create: Simon created a discussion
+
                           EmailTestUtil.collectAndFetchAllEmails(messages => {
                             assert.strictEqual(messages.length, 1);
                             assert.strictEqual(messages[0].to[0].address, nico.user.email);
@@ -511,7 +514,6 @@ describe('Activity Email', () => {
                               [nico.user.id, mrvisser.user.id],
                               (err, secondDiscussion) => {
                                 assert.ok(!err);
-
                                 EmailTestUtil.collectAndFetchAllEmails(messages => {
                                   assert.strictEqual(messages.length, 2);
                                   _.each(messages, message => {

@@ -49,6 +49,14 @@ services:
       - 2000:2000
       - 2001:2001
     tty: false
+    environment:
+      - CODACY_PROJECT_TOKEN
+      - TWITTER_KEY
+      - TWITTER_SECRET
+      - FACEBOOK_APP_ID
+      - FACEBOOK_APP_SECRET
+      - GOOGLE_CLIENT_ID
+      - GOOGLE_CLIENT_SECRET
     volumes:
       - .:/usr/src/Hilary
     cap_add:
@@ -119,8 +127,8 @@ services:
     networks:
       - my_network
     ports:
-      - 9160:9160
-      - 9042:9042
+      - 9161:9160
+      - 9043:9042
     tty: false
     volumes:
       - ../data/cassandra:/var/lib/cassandra

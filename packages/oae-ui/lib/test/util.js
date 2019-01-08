@@ -37,12 +37,12 @@ const updateSkinAndWait = function(restCtx, tenantAlias, skinConfig, callback) {
   let responseArgs = null;
 
   /*!
-     * Monitors the result of both the updateConfig web request and the internal `skinParsed` event
-     * to only callback when both the request has executed completely and the asynchronous parse process
-     * has completed.
-     *
-     * @param  {Object}     err     An error that occured in either request
-     */
+   * Monitors the result of both the updateConfig web request and the internal `skinParsed` event
+   * to only callback when both the request has executed completely and the asynchronous parse process
+   * has completed.
+   *
+   * @param  {Object}     err     An error that occured in either request
+   */
   const _callback = function(err) {
     if (calledBack) {
       // Already called back, do nothing
@@ -75,10 +75,10 @@ const updateSkinAndWait = function(restCtx, tenantAlias, skinConfig, callback) {
   });
 
   /*!
-     * Handles the `skinParsed` event, simply notifying the `_callback` that the skin has been parsed.
-     *
-     * @see UIAPI events for parameter description
-     */
+   * Handles the `skinParsed` event, simply notifying the `_callback` that the skin has been parsed.
+   *
+   * @see UIAPI events for parameter description
+   */
   const _updateListener = function() {
     skinFileParsed = true;
     return _callback();

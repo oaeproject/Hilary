@@ -1,5 +1,5 @@
 # Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
-version: v1.8.0
+version: v1.13.3
 ignore: {}
 # patches apply the minimum changes required to fix a vulnerability
 patch:
@@ -14,3 +14,18 @@ patch:
   'npm:marked:20170112':
     - marked:
         patched: '2017-11-07T10:24:54.317Z'
+  'npm:hawk:20160119':
+    - oae-rest > request > hawk:
+        patched: '2019-01-08T14:50:12.362Z'
+  'npm:http-signature:20150122':
+    - oae-rest > request > http-signature:
+        patched: '2019-01-08T14:50:12.362Z'
+  'npm:mime:20170907':
+    - oae-rest > request > form-data > mime:
+        patched: '2019-01-08T14:50:12.362Z'
+  'npm:request:20160119':
+    - oae-rest > request:
+        patched: '2019-01-08T14:50:12.362Z'
+  'npm:tunnel-agent:20170305':
+    - oae-rest > request > tunnel-agent:
+        patched: '2019-01-08T14:50:12.362Z'

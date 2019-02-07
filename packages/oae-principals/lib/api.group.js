@@ -291,20 +291,25 @@ const _getMembersLibrary = function(ctx, group, hasRole, start, limit, callback)
             return callback(err);
           }
 
-          // console.dir(memberEntries, { colors: true });
-
           const memberIds = _.pluck(memberEntries, 'id');
           PrincipalsUtil.getPrincipals(ctx, memberIds, (err, memberProfiles) => {
             if (err) {
               return callback(err);
             }
 
-            const members = _.map(memberEntries, memberEntry => {
-              return {
-                profile: memberProfiles[memberEntry.id],
-                role: memberEntry.role
-              };
-            });
+            const members = _.chain(memberEntries)
+              .map(memberEntry => {
+                let result;
+                if (_.contains(_.keys(memberProfiles), memberEntry.id)) {
+                  result = {
+                    profile: memberProfiles[memberEntry.id],
+                    role: memberEntry.role
+                  };
+                }
+                return result;
+              })
+              .compact()
+              .value();
 
             return callback(null, members, nextToken);
           });
@@ -437,7 +442,7 @@ const _getMembershipsLibrary = function(
         // It's possible that we pulled more items from the database than we're returning
         // to the caller. In that case the `nextToken` is incorrect and needs to be adjusted
         if (pagedItems.length < _items.length) {
-          nextToken = _items[limit].id;
+          nextToken = _items[limit].lastModified + '#' + _items[limit].id;
         }
 
         // Emit an event indicating that the memberships library has been retrieved

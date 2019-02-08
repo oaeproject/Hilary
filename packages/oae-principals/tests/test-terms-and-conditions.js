@@ -286,7 +286,9 @@ describe('Terms and Conditions', () => {
                                                 mrvisser.user.id,
                                                 err => {
                                                   assert.ok(!err);
-                                                  RestAPI.User.getMe(
+                                                  setTimeout(
+                                                    RestAPI.User.getMe,
+                                                    1000,
                                                     mrvisser.restContext,
                                                     (err, data) => {
                                                       assert.ok(!err);

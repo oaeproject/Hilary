@@ -65,18 +65,17 @@ const init = function(config, callback) {
       if (exists) {
         client = _createNewClient(CONFIG.hosts, keyspace);
         return callback();
-      } else {
-        createKeyspace(keyspace, err => {
-          if (err) {
-            return close(() => {
-              callback(err);
-            });
-          }
-
-          client = _createNewClient(CONFIG.hosts, keyspace);
-          return callback();
-        });
       }
+      createKeyspace(keyspace, err => {
+        if (err) {
+          return close(() => {
+            callback(err);
+          });
+        }
+
+        client = _createNewClient(CONFIG.hosts, keyspace);
+        return callback();
+      });
     });
   });
 };
@@ -144,19 +143,18 @@ const createKeyspace = function(name, callback) {
     }
     if (exists) {
       return callback(null, false);
-    } else {
-      const query = `CREATE KEYSPACE "${name}" WITH REPLICATION = { 'class': '${
-        options.strategyClass
-      }', 'replication_factor': ${options.replication} }`;
-
-      client.execute(query, err => {
-        if (err) {
-          return callback(err);
-        }
-        // Pause for a second to ensure the keyspace gets agreed upon across the cluster.
-        setTimeout(callback, 1000, null, true);
-      });
     }
+    const query = `CREATE KEYSPACE "${name}" WITH REPLICATION = { 'class': '${
+      options.strategyClass
+    }', 'replication_factor': ${options.replication} }`;
+
+    client.execute(query, err => {
+      if (err) {
+        return callback(err);
+      }
+      // Pause for a second to ensure the keyspace gets agreed upon across the cluster.
+      setTimeout(callback, 1000, null, true);
+    });
   });
 };
 

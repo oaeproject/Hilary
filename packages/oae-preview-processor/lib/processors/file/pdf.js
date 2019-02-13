@@ -36,6 +36,18 @@ const RESOURCE_SUBTYPE = 'file';
 let viewportScale = 1.5;
 const pdfContents = [];
 
+// Implements https://nodejs.org/api/stream.html#stream_readable_read_size_1
+ReadableSVGStream.prototype._read = function() {
+  let chunk;
+  while ((chunk = this.serializer.getNext()) !== null) {
+    if (!this.push(chunk)) {
+      return;
+    }
+  }
+  this.push(null);
+};
+util.inherits(ReadableSVGStream, stream.Readable);
+
 /**
  * Initializes the PDF Processor. This method will check if the configuration has been set up correctly to deal with PDF files
  *
@@ -103,17 +115,6 @@ const previewPDF = async function(ctx, pdfPath, callback) {
     // Create a directory where we can store the files
     await fsMakeDir(pagesDir);
 
-    ReadableSVGStream.prototype._read = function() {
-      // Implements https://nodejs.org/api/stream.html#stream_readable_read_size_1
-      let chunk;
-      while ((chunk = this.serializer.getNext()) !== null) {
-        if (!this.push(chunk)) {
-          return;
-        }
-      }
-      this.push(null);
-    };
-    util.inherits(ReadableSVGStream, stream.Readable);
     // Will be using promises to load document, pages and misc data instead of
     // callback.
     const loadedPDFDocument = pdfjsLib.getDocument({

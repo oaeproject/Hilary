@@ -42,9 +42,9 @@ let viewportScale = 1.5;
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const init = function(config, callback) {
-  if (!config) {
+  if (!config || !config.pdfPreview || !config.pdfPreview.viewportScale) {
     return callback({
-      code: 400,
+      code: 500,
       msg: 'Missing configuration for the pdf preview / processing'
     });
   }

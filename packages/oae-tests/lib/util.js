@@ -1119,7 +1119,6 @@ const createInitialTestConfig = function() {
 
   // In order to speed up some of the tests and to avoid mocha timeouts, we reduce the default time outs
   config.previews.office.timeout = 30000;
-  config.previews.pdf2htmlEX.timeout = 100000;
   config.previews.screenShotting.timeout = 30000;
 
   config.search.index.name = 'oaetest';

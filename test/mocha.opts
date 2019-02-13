@@ -1,8 +1,8 @@
 #--no-timeouts
 #--retries 3
+#--check-leaks
 --bail
 --timeout 30s
---check-leaks
 --globals oaeTests
 --slow 3000
 --full-trace

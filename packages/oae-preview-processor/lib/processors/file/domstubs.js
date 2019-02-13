@@ -1,9 +1,10 @@
+/* eslint-disable */
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 function xmlEncode(s) {
-  let i = 0,
-    ch;
+  let i = 0;
+  let ch;
   s = String(s);
   while (
     i < s.length &&
@@ -184,7 +185,7 @@ DOMElementSerializer.prototype = {
         this._loopIndex = 0;
       /* Falls through */
       case 5: // Serialize child nodes (only for non-tspan/style elements).
-        var value;
+        let value;
         while (true) {
           value = this._childSerializer && this._childSerializer.getNext();
           if (value !== null) {
@@ -223,7 +224,7 @@ const document = {
   },
 
   createElementNS(NS, element) {
-    let elObject = new DOMElement(element);
+    const elObject = new DOMElement(element);
     return elObject;
   },
 
@@ -262,13 +263,13 @@ const exported_symbols = Object.keys(exports);
 
 exports.setStubs = function(namespace) {
   exported_symbols.forEach(key => {
-    console.assert(!(key in namespace), 'property should not be set: ' + key);
+    // console.assert(!(key in namespace), 'property should not be set: ' + key);
     namespace[key] = exports[key];
   });
 };
 exports.unsetStubs = function(namespace) {
   exported_symbols.forEach(key => {
-    console.assert(key in namespace, 'property should be set: ' + key);
+    // console.assert(key in namespace, 'property should be set: ' + key);
     delete namespace[key];
   });
 };

@@ -296,18 +296,11 @@ config.previews = {
   tmpDir: Path.join(tmpDir, 'previews'),
   office: {
     /* if on mac osx change next line to '/Applications/LibreOffice.app/Contents/MacOS/soffice' */
-    binary: 'soffice',
+    binary: '/Applications/LibreOffice.app/Contents/MacOS/soffice',
     timeout: 120000
   },
-  pdf2htmlEX: {
-    /* binary: 'docker-compose run --rm oae-pdf2htmlex pdf2htmlEX', */
-    binary: 'pdf2htmlEX',
-    timeout: 120000
-  },
-  pdftotext: {
-    /* binary: 'docker-compose run --rm oae-pdf2htmlex pdftotext', */
-    binary: 'pdftotext',
-    timeout: 120000
+  pdfPreview: {
+    viewportScale: '1.6'
   },
   screenShotting: {
     timeout: 30000

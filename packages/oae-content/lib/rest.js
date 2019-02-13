@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+const querystring = require('querystring');
 const _ = require('underscore');
 
 const { AuthzConstants } = require('oae-authz/lib/constants');
@@ -1114,7 +1115,10 @@ const _handleDownload = function(res, downloadInfo, expiresMax) {
       res.setHeader('Cache-Control', 'max-age=315360000');
     }
 
-    res.setHeader('Content-Disposition', 'attachment; filename="' + downloadInfo.filename + '"');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="' + querystring.escape(downloadInfo.filename) + '"'
+    );
     res.status(204).send(downloadStrategy.target);
 
     // A redirect strategy will invoke a redirect to the target

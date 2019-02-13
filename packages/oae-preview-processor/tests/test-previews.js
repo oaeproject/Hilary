@@ -282,13 +282,8 @@ describe('Preview processor', () => {
      */
     it('verify the PDF PP can detect if it is configured correctly', callback => {
       const config = {
-        pdftotext: {
-          binary: 'some-none-existinant-binary',
-          timeout: 120000
-        },
-        pdf2htmlEX: {
-          binary: 'some-none-existinant-binary',
-          timeout: 120000
+        pdfPreview: {
+          /* No viewport defined */
         }
       };
       PreviewPDF.init(config, err => {
@@ -623,24 +618,24 @@ describe('Preview processor', () => {
                   // The PDF has 1 page, there should only be 1 corresponding HTML file
                   assert.ok(
                     _.find(previews.files, file => {
-                      return file.filename === 'page.1.html';
+                      return file.filename === 'page.1.svg';
                     })
                   );
                   assert.ok(
                     !_.find(previews.files, file => {
-                      return file.filename === 'page.2.html';
+                      return file.filename === 'page.2.svg';
                     })
                   );
 
                   // The PDF has 1 page, there should only be 1 corresponding txt file
                   assert.ok(
                     _.find(previews.files, file => {
-                      return file.filename === 'page.1.txt';
+                      return file.filename === 'page.1.svg';
                     })
                   );
                   assert.ok(
                     !_.find(previews.files, file => {
-                      return file.filename === 'page.2.txt';
+                      return file.filename === 'page.2.svg';
                     })
                   );
 
@@ -648,13 +643,6 @@ describe('Preview processor', () => {
                   assert.ok(
                     _.find(previews.files, file => {
                       return file.filename === 'plain.txt';
-                    })
-                  );
-
-                  // There should be a combined CSS file
-                  assert.ok(
-                    _.find(previews.files, file => {
-                      return file.filename === 'combined.css';
                     })
                   );
 
@@ -734,19 +722,12 @@ describe('Preview processor', () => {
                   // The PDF has 2 pages, there should be 2 corresponding HTML files
                   assert.ok(
                     _.find(previews.files, file => {
-                      return file.filename === 'page.1.html';
+                      return file.filename === 'page.1.svg';
                     })
                   );
                   assert.ok(
                     _.find(previews.files, file => {
-                      return file.filename === 'page.2.html';
-                    })
-                  );
-
-                  // There should be a combined CSS file
-                  assert.ok(
-                    _.find(previews.files, file => {
-                      return file.filename === 'combined.css';
+                      return file.filename === 'page.2.svg';
                     })
                   );
 
@@ -817,12 +798,12 @@ describe('Preview processor', () => {
             // The PDF has 2 pages, there should be 2 corresponding HTML files
             assert.ok(
               _.find(previews.files, file => {
-                return file.filename === 'page.1.html';
+                return file.filename === 'page.1.svg';
               })
             );
             assert.ok(
               _.find(previews.files, file => {
-                return file.filename === 'page.2.html';
+                return file.filename === 'page.2.svg';
               })
             );
 
@@ -849,88 +830,18 @@ describe('Preview processor', () => {
                       // The PDF has 1 pages, there should only be one corresponding HTML file
                       assert.ok(
                         _.find(previews.files, file => {
-                          return file.filename === 'page.1.html';
+                          return file.filename === 'page.1.svg';
                         })
                       );
                       assert.ok(
                         !_.find(previews.files, file => {
-                          return file.filename === 'page.2.html';
+                          return file.filename === 'page.2.svg';
                         })
                       );
                       callback();
                     }
                   );
                 });
-              });
-            });
-          }
-        );
-      });
-    });
-
-    /**
-     * Test that verifies that the CSS rules from PDF previews are scoped
-     */
-    it('verify CSS rules for PDF previews are scoped', function(callback) {
-      // Ignore this test if the PP is disabled
-      if (!defaultConfig.previews.enabled) {
-        return callback();
-      }
-
-      // OpenOffice can sometimes be painfully slow to start up
-      this.timeout(50000);
-
-      _createContentAndWait('file', null, getMultiplePagesPDFStream, (restCtx, content) => {
-        assert.strictEqual(content.previews.status, 'done');
-        assert.strictEqual(content.previews.pageCount, 2);
-        RestAPI.Content.getRevision(
-          restCtx,
-          content.id,
-          content.latestRevisionId,
-          (err, revision) => {
-            assert.ok(!err);
-
-            // Verify that the CSS scope class is exposed
-            const cssScopeClass = util.format(
-              '%s-%s-pdf2html',
-              content.id.replace(/:/g, '-'),
-              revision.previewsId.replace(/:/g, '-')
-            );
-            assert.strictEqual(content.previews.cssScopeClass, cssScopeClass);
-
-            // Download the combined CSS file
-            const params = {
-              signature: content.signature.signature,
-              expires: content.signature.expires,
-              lastmodified: content.signature.lastModified
-            };
-            const url = util.format(
-              '/api/content/%s/revisions/%s/previews/combined.css',
-              content.id,
-              content.latestRevisionId
-            );
-            RestUtil.performRestRequest(restCtx, url, 'GET', params, (err, body, response) => {
-              assert.ok(!err);
-              assert.strictEqual(response.statusCode, 200);
-              assert.ok(body);
-
-              // Parse the CSS file with less to assert that all CSS rules are properly scoped
-              // eslint-disable-next-line new-cap
-              const parser = less.Parser({});
-              parser.parse(body, (err, tree) => {
-                assert.ok(!err);
-
-                _.each(tree.rules, (rule, index) => {
-                  if (rule.selectors && rule.selectors[0].elements) {
-                    // Each CSS rule should be of the form `.contentId-previewsId-pdf2html <pdf2html rule>`
-                    assert.strictEqual(
-                      rule.selectors[0].elements[0].value,
-                      '.' + cssScopeClass,
-                      'Inappropriate scoping for rule ' + index
-                    );
-                  }
-                });
-                return callback();
               });
             });
           }

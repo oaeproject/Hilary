@@ -1,5 +1,5 @@
 /*!
- * Copyright 2014 Apereo Foundation (AF) Licensed under the
+ * Copyright 2018 Apereo Foundation (AF) Licensed under the
  * Educational Community License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License. You may
  * obtain a copy of the License at
@@ -88,7 +88,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
  * 1 html will be generated for each page.
  *
  * @param  {PreviewContext}      ctx             The preview context associated to this file
- * @param  {String}              path            The path where the PDF file is stored
+ * @param  {String}              pdfPath         The path where the PDF file is stored
  * @param  {Function}            callback        Standard callback function
  * @param  {Object}              callback.err    An error that occurred, if any
  */
@@ -103,6 +103,16 @@ const previewPDF = async function(ctx, pdfPath, callback) {
     // Create a directory where we can store the files
     await fsMakeDir(pagesDir);
 
+    ReadableSVGStream.prototype._read = function() {
+      // Implements https://nodejs.org/api/stream.html#stream_readable_read_size_1
+      let chunk;
+      while ((chunk = this.serializer.getNext()) !== null) {
+        if (!this.push(chunk)) {
+          return;
+        }
+      }
+      this.push(null);
+    };
     util.inherits(ReadableSVGStream, stream.Readable);
     // Will be using promises to load document, pages and misc data instead of
     // callback.
@@ -163,6 +173,14 @@ const _generateThumbnail = function(ctx, path, pagesDir, callback) {
     });
 };
 
+/**
+ * Utility function
+ *
+ * @function getFilePathForPage
+ * @param  {String} pagesDir  The directory where the pages can be stored in
+ * @param  {Number} pageNum  The page number
+ * @return {String} The file path for the svg file corresponding to the page
+ */
 function getFilePathForPage(pagesDir, pageNum) {
   return path.join(pagesDir, 'page.' + pageNum + '.svg');
 }
@@ -182,17 +200,11 @@ function ReadableSVGStream(options) {
   this.serializer = options.svgElement.getSerializer();
 }
 
-ReadableSVGStream.prototype._read = function() {
-  // Implements https://nodejs.org/api/stream.html#stream_readable_read_size_1
-  let chunk;
-  while ((chunk = this.serializer.getNext()) !== null) {
-    if (!this.push(chunk)) {
-      return;
-    }
-  }
-  this.push(null);
-};
-
+/**
+ * @function writeSvgToFile
+ * @param  {svgElement} svgElement the SVG representation of one pdf page
+ * @param  {filePath} filePath     file path for writing the svg file to disk
+ */
 function writeSvgToFile(svgElement, filePath) {
   // Streams the SVG element to the given file path.
   let readableSvgStream = new ReadableSVGStream({
@@ -212,6 +224,13 @@ function writeSvgToFile(svgElement, filePath) {
   });
 }
 
+/**
+ * @function previewAndIndexEachPage
+ * @param  {PreviewContext} ctx  The preview context associated to this file
+ * @param  {pagesDir} pagesDir   The direcotry holding the svg previews on disk
+ * @param  {Number} pageNum     The page number we're dealing with
+ * @param  {Object} doc          Object representing the PDF
+ */
 const previewAndIndexEachPage = async function(ctx, pagesDir, pageNum, doc) {
   try {
     const page = await doc.getPage(pageNum);
@@ -243,6 +262,15 @@ const previewAndIndexEachPage = async function(ctx, pagesDir, pageNum, doc) {
   }
 };
 
+/**
+ * Utility function
+ *
+ * @function processAllPages
+ * @param  {PreviewContext} ctx  The preview context associated to this file
+ * @param  {pagesDir} pagesDir   The direcotry holding the svg previews on disk
+ * @param  {Number} pageNum     The page number we're dealing with
+ * @param  {Object} doc          Object representing the PDF
+ */
 const processAllPages = async function(ctx, pagesDir, numPages, doc) {
   for (let i = 1; i <= numPages; i++) {
     // eslint-disable-next-line no-await-in-loop

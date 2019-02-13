@@ -34,6 +34,8 @@ const PAGES_SUBDIRECTORY = 'pages';
 const TXT_CONTENT_FILENAME = 'plain.txt';
 const RESOURCE_SUBTYPE = 'file';
 let viewportScale = 1.5;
+const pdfContents = [];
+
 /**
  * Initializes the PDF Processor. This method will check if the configuration has been set up correctly to deal with PDF files
  *
@@ -96,130 +98,30 @@ const previewPDF = async function(ctx, pdfPath, callback) {
   const pagesDir = path.join(ctx.baseDir, PAGES_SUBDIRECTORY);
   const output = path.join(pagesDir, TXT_CONTENT_FILENAME);
   const data = new Uint8Array(fs.readFileSync(pdfPath));
-  const pdfContents = [];
 
   try {
     // Create a directory where we can store the files
     await fsMakeDir(pagesDir);
-  } catch (e) {
-    log().error(
-      { e, contentId: ctx.contentId },
-      'Could not create a directory %s to store the pages in',
-      pagesDir
-    );
-    return callback({
-      code: 500,
-      msg: 'Could not create a directory to store the splitted pages in'
+
+    util.inherits(ReadableSVGStream, stream.Readable);
+    // Will be using promises to load document, pages and misc data instead of
+    // callback.
+    const loadedPDFDocument = pdfjsLib.getDocument({
+      data,
+      // Try to export JPEG images directly if they don't need any further
+      // processing.
+      nativeImageDecoderSupport: pdfjsLib.NativeImageDecoding.NONE
     });
-  }
 
-  function getFilePathForPage(pageNum) {
-    return path.join(pagesDir, 'page.' + pageNum + '.svg');
-  }
-
-  /**
-   * A readable stream which offers a stream representing the serialization of a
-   * given DOM element (as defined by domstubs.js).
-   *
-   * @param {object} options
-   * @param {DOMElement} options.svgElement The element to serialize
-   */
-  function ReadableSVGStream(options) {
-    if (!(this instanceof ReadableSVGStream)) {
-      return new ReadableSVGStream(options);
-    }
-    stream.Readable.call(this, options);
-    this.serializer = options.svgElement.getSerializer();
-  }
-
-  util.inherits(ReadableSVGStream, stream.Readable);
-  // Implements https://nodejs.org/api/stream.html#stream_readable_read_size_1
-  ReadableSVGStream.prototype._read = function() {
-    let chunk;
-    while ((chunk = this.serializer.getNext()) !== null) {
-      if (!this.push(chunk)) {
-        return;
-      }
-    }
-    this.push(null);
-  };
-
-  // Streams the SVG element to the given file path.
-  function writeSvgToFile(svgElement, filePath) {
-    let readableSvgStream = new ReadableSVGStream({
-      svgElement
-    });
-    const writableStream = fs.createWriteStream(filePath);
-
-    return new Promise((resolve, reject) => {
-      readableSvgStream.once('error', reject);
-      writableStream.once('error', reject);
-      writableStream.once('finish', resolve);
-      readableSvgStream.pipe(writableStream);
-    }).catch(err => {
-      readableSvgStream = null; // Explicitly null because of v8 bug 6512.
-      writableStream.end();
-      throw err;
-    });
-  }
-
-  // Will be using promises to load document, pages and misc data instead of
-  // callback.
-  const loadedPDFDocument = pdfjsLib.getDocument({
-    data,
-    // Try to export JPEG images directly if they don't need any further
-    // processing.
-    nativeImageDecoderSupport: pdfjsLib.NativeImageDecoding.NONE
-  });
-
-  const previewAndIndexEachPage = async function(pageNum, doc) {
-    try {
-      const page = await doc.getPage(pageNum);
-      const viewport = page.getViewport({ scale: viewportScale });
-      ctx.addPreview(getFilePathForPage(pageNum), 'html');
-
-      const opList = await page.getOperatorList();
-      const svgGfx = new pdfjsLib.SVGGraphics(page.commonObjs, page.objs);
-      svgGfx.embedFonts = true;
-
-      const svg = await svgGfx.getSVG(opList, viewport);
-      await writeSvgToFile(svg, getFilePathForPage(pageNum));
-      const content = await page.getTextContent();
-
-      // Content contains lots of information about the text layout and
-      // styles, but we need only strings at the moment
-      const pageContents = _.pluck(content.items, 'str').join(' ');
-      const pageName = util.format('page.%s.txt', pageNum);
-      const pagePath = util.format('%s/%s', pagesDir, pageName);
-
-      pdfContents.push(pageContents);
-      ctx.addPreview(pagePath, pageName);
-
-      return fsWriteFile(pagePath, pageContents);
-    } catch (e) {
-      const errorMessage = 'Preview processing for pdf file failed';
-
-      log().error({ e }, errorMessage);
-      return callback({ code: 500, msg: errorMessage });
-    }
-  };
-
-  const processAllPages = async function(numPages, doc) {
-    for (let i = 1; i <= numPages; i++) {
-      // eslint-disable-next-line no-await-in-loop
-      await previewAndIndexEachPage(i, doc);
-    }
-  };
-
-  try {
     const doc = await loadedPDFDocument.promise;
     const { numPages } = doc;
 
     ctx.addPreview(output, 'txt');
     ctx.addPreviewMetadata('pageCount', numPages);
 
-    await processAllPages(numPages, doc);
+    await processAllPages(ctx, pagesDir, numPages, doc);
     await fsWriteFile(output, pdfContents.join(' '));
+
     _generateThumbnail(ctx, pdfPath, pagesDir, callback);
   } catch (e) {
     const errorMessage = 'Unable to process PDF';
@@ -259,6 +161,93 @@ const _generateThumbnail = function(ctx, path, pagesDir, callback) {
       // Crop a thumbnail out of the png file
       PreviewUtil.generatePreviewsFromImage(ctx, output, { cropMode: 'TOP' }, callback);
     });
+};
+
+function getFilePathForPage(pagesDir, pageNum) {
+  return path.join(pagesDir, 'page.' + pageNum + '.svg');
+}
+
+/**
+ * A readable stream which offers a stream representing the serialization of a
+ * given DOM element (as defined by domstubs.js).
+ *
+ * @param {object} options
+ * @param {DOMElement} options.svgElement The element to serialize
+ */
+function ReadableSVGStream(options) {
+  if (!(this instanceof ReadableSVGStream)) {
+    return new ReadableSVGStream(options);
+  }
+  stream.Readable.call(this, options);
+  this.serializer = options.svgElement.getSerializer();
+}
+
+ReadableSVGStream.prototype._read = function() {
+  // Implements https://nodejs.org/api/stream.html#stream_readable_read_size_1
+  let chunk;
+  while ((chunk = this.serializer.getNext()) !== null) {
+    if (!this.push(chunk)) {
+      return;
+    }
+  }
+  this.push(null);
+};
+
+function writeSvgToFile(svgElement, filePath) {
+  // Streams the SVG element to the given file path.
+  let readableSvgStream = new ReadableSVGStream({
+    svgElement
+  });
+  const writableStream = fs.createWriteStream(filePath);
+
+  return new Promise((resolve, reject) => {
+    readableSvgStream.once('error', reject);
+    writableStream.once('error', reject);
+    writableStream.once('finish', resolve);
+    readableSvgStream.pipe(writableStream);
+  }).catch(err => {
+    readableSvgStream = null; // Explicitly null because of v8 bug 6512.
+    writableStream.end();
+    throw err;
+  });
+}
+
+const previewAndIndexEachPage = async function(ctx, pagesDir, pageNum, doc) {
+  try {
+    const page = await doc.getPage(pageNum);
+    const viewport = page.getViewport({ scale: viewportScale });
+    ctx.addPreview(getFilePathForPage(pagesDir, pageNum), 'html');
+
+    const opList = await page.getOperatorList();
+    const svgGfx = new pdfjsLib.SVGGraphics(page.commonObjs, page.objs);
+    svgGfx.embedFonts = true;
+
+    const svg = await svgGfx.getSVG(opList, viewport);
+    await writeSvgToFile(svg, getFilePathForPage(pagesDir, pageNum));
+    const content = await page.getTextContent();
+
+    // Content contains lots of information about the text layout and
+    // styles, but we need only strings at the moment
+    const pageContents = _.pluck(content.items, 'str').join(' ');
+    const pageName = util.format('page.%s.txt', pageNum);
+    const pagePath = util.format('%s/%s', pagesDir, pageName);
+
+    pdfContents.push(pageContents);
+    ctx.addPreview(pagePath, pageName);
+
+    return fsWriteFile(pagePath, pageContents);
+  } catch (e) {
+    const errorMessage = `Preview processing for pdf page ${pageNum} file failed`;
+    log().error({ e }, errorMessage);
+    throw e;
+  }
+};
+
+const processAllPages = async function(ctx, pagesDir, numPages, doc) {
+  for (let i = 1; i <= numPages; i++) {
+    // eslint-disable-next-line no-await-in-loop
+    await previewAndIndexEachPage(ctx, pagesDir, i, doc);
+  }
 };
 
 module.exports = {

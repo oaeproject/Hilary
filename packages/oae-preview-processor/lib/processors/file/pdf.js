@@ -17,6 +17,7 @@ const fs = require('fs');
 const util = require('util');
 
 const fsWriteFile = util.promisify(fs.writeFile);
+const fsMakeDir = util.promisify(fs.mkdir);
 const path = require('path');
 const stream = require('stream');
 const gm = require('gm');
@@ -89,7 +90,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
  * @param  {Function}            callback        Standard callback function
  * @param  {Object}              callback.err    An error that occurred, if any
  */
-const previewPDF = function(ctx, pdfPath, callback) {
+const previewPDF = async function(ctx, pdfPath, callback) {
   require('./domstubs.js').setStubs(global);
 
   const pagesDir = path.join(ctx.baseDir, PAGES_SUBDIRECTORY);
@@ -97,145 +98,134 @@ const previewPDF = function(ctx, pdfPath, callback) {
   const data = new Uint8Array(fs.readFileSync(pdfPath));
   const pdfContents = [];
 
-  // Create a directory where we can store the files
-  fs.mkdir(pagesDir, err => {
-    if (err) {
-      log().error(
-        { err, contentId: ctx.contentId },
-        'Could not create a directory %s to store the pages in',
-        pagesDir
-      );
-      return callback({
-        code: 500,
-        msg: 'Could not create a directory to store the splitted pages in'
-      });
-    }
-
-    function getFilePathForPage(pageNum) {
-      return path.join(pagesDir, 'page.' + pageNum + '.svg');
-    }
-
-    /**
-     * A readable stream which offers a stream representing the serialization of a
-     * given DOM element (as defined by domstubs.js).
-     *
-     * @param {object} options
-     * @param {DOMElement} options.svgElement The element to serialize
-     */
-    function ReadableSVGStream(options) {
-      if (!(this instanceof ReadableSVGStream)) {
-        return new ReadableSVGStream(options);
-      }
-      stream.Readable.call(this, options);
-      this.serializer = options.svgElement.getSerializer();
-    }
-
-    util.inherits(ReadableSVGStream, stream.Readable);
-    // Implements https://nodejs.org/api/stream.html#stream_readable_read_size_1
-    ReadableSVGStream.prototype._read = function() {
-      let chunk;
-      while ((chunk = this.serializer.getNext()) !== null) {
-        if (!this.push(chunk)) {
-          return;
-        }
-      }
-      this.push(null);
-    };
-
-    // Streams the SVG element to the given file path.
-    function writeSvgToFile(svgElement, filePath) {
-      let readableSvgStream = new ReadableSVGStream({
-        svgElement
-      });
-      const writableStream = fs.createWriteStream(filePath);
-
-      return new Promise((resolve, reject) => {
-        readableSvgStream.once('error', reject);
-        writableStream.once('error', reject);
-        writableStream.once('finish', resolve);
-        readableSvgStream.pipe(writableStream);
-      }).catch(err => {
-        readableSvgStream = null; // Explicitly null because of v8 bug 6512.
-        writableStream.end();
-        throw err;
-      });
-    }
-
-    // Will be using promises to load document, pages and misc data instead of
-    // callback.
-    const loadedPDFDocument = pdfjsLib.getDocument({
-      data,
-      // Try to export JPEG images directly if they don't need any further
-      // processing.
-      nativeImageDecoderSupport: pdfjsLib.NativeImageDecoding.NONE
+  try {
+    // Create a directory where we can store the files
+    await fsMakeDir(pagesDir);
+  } catch (e) {
+    log().error(
+      { e, contentId: ctx.contentId },
+      'Could not create a directory %s to store the pages in',
+      pagesDir
+    );
+    return callback({
+      code: 500,
+      msg: 'Could not create a directory to store the splitted pages in'
     });
+  }
 
-    const previewAndIndexEachPage = function(pageNum, doc) {
-      const data = {};
-      return doc
-        .getPage(pageNum)
-        .then(page => {
-          data.page = page;
-          data.viewport = page.getViewport({ scale: viewportScale });
-          return page.getOperatorList();
-        })
-        .then(opList => {
-          const svgGfx = new pdfjsLib.SVGGraphics(data.page.commonObjs, data.page.objs);
-          svgGfx.embedFonts = true;
-          return svgGfx.getSVG(opList, data.viewport);
-        })
-        .then(svg => {
-          return writeSvgToFile(svg, getFilePathForPage(pageNum));
-        })
-        .then(() => {
-          ctx.addPreview(getFilePathForPage(pageNum), 'html');
-          return data.page.getTextContent();
-        })
-        .then(content => {
-          // Content contains lots of information about the text layout and
-          // styles, but we need only strings at the moment
-          const pageContents = _.pluck(content.items, 'str').join(' ');
-          const pageName = util.format('page.%s.txt', pageNum);
-          const pagePath = util.format('%s/%s', pagesDir, pageName);
+  function getFilePathForPage(pageNum) {
+    return path.join(pagesDir, 'page.' + pageNum + '.svg');
+  }
 
-          pdfContents.push(pageContents);
-          ctx.addPreview(pagePath, pageName);
-          return fsWriteFile(pagePath, pageContents);
-        })
-        .catch(e => {
-          const errorMessage = 'Preview processing for pdf file failed';
-          log().error({ e }, errorMessage);
-          return callback({ code: 500, msg: errorMessage });
-        });
-    };
+  /**
+   * A readable stream which offers a stream representing the serialization of a
+   * given DOM element (as defined by domstubs.js).
+   *
+   * @param {object} options
+   * @param {DOMElement} options.svgElement The element to serialize
+   */
+  function ReadableSVGStream(options) {
+    if (!(this instanceof ReadableSVGStream)) {
+      return new ReadableSVGStream(options);
+    }
+    stream.Readable.call(this, options);
+    this.serializer = options.svgElement.getSerializer();
+  }
 
-    const processAllPages = async function(numPages, doc) {
-      for (let i = 1; i <= numPages; i++) {
-        // eslint-disable-next-line no-await-in-loop
-        await previewAndIndexEachPage(i, doc);
+  util.inherits(ReadableSVGStream, stream.Readable);
+  // Implements https://nodejs.org/api/stream.html#stream_readable_read_size_1
+  ReadableSVGStream.prototype._read = function() {
+    let chunk;
+    while ((chunk = this.serializer.getNext()) !== null) {
+      if (!this.push(chunk)) {
+        return;
       }
-    };
+    }
+    this.push(null);
+  };
 
-    loadedPDFDocument.promise
-      .then(doc => {
-        const { numPages } = doc;
+  // Streams the SVG element to the given file path.
+  function writeSvgToFile(svgElement, filePath) {
+    let readableSvgStream = new ReadableSVGStream({
+      svgElement
+    });
+    const writableStream = fs.createWriteStream(filePath);
 
-        ctx.addPreview(output, 'txt');
-        ctx.addPreviewMetadata('pageCount', numPages);
-        return processAllPages(numPages, doc);
-      })
-      .then(() => {
-        return fsWriteFile(output, pdfContents.join(' '));
-      })
-      .then(() => {
-        _generateThumbnail(ctx, pdfPath, pagesDir, callback);
-      })
-      .catch(e => {
-        const errorMessage = 'Unable to process PDF';
-        log().error({ e }, errorMessage);
-        return callback({ code: 500, msg: errorMessage });
-      });
+    return new Promise((resolve, reject) => {
+      readableSvgStream.once('error', reject);
+      writableStream.once('error', reject);
+      writableStream.once('finish', resolve);
+      readableSvgStream.pipe(writableStream);
+    }).catch(err => {
+      readableSvgStream = null; // Explicitly null because of v8 bug 6512.
+      writableStream.end();
+      throw err;
+    });
+  }
+
+  // Will be using promises to load document, pages and misc data instead of
+  // callback.
+  const loadedPDFDocument = pdfjsLib.getDocument({
+    data,
+    // Try to export JPEG images directly if they don't need any further
+    // processing.
+    nativeImageDecoderSupport: pdfjsLib.NativeImageDecoding.NONE
   });
+
+  const previewAndIndexEachPage = async function(pageNum, doc) {
+    try {
+      const page = await doc.getPage(pageNum);
+      const viewport = page.getViewport({ scale: viewportScale });
+      ctx.addPreview(getFilePathForPage(pageNum), 'html');
+
+      const opList = await page.getOperatorList();
+      const svgGfx = new pdfjsLib.SVGGraphics(page.commonObjs, page.objs);
+      svgGfx.embedFonts = true;
+
+      const svg = await svgGfx.getSVG(opList, viewport);
+      await writeSvgToFile(svg, getFilePathForPage(pageNum));
+      const content = await page.getTextContent();
+
+      // Content contains lots of information about the text layout and
+      // styles, but we need only strings at the moment
+      const pageContents = _.pluck(content.items, 'str').join(' ');
+      const pageName = util.format('page.%s.txt', pageNum);
+      const pagePath = util.format('%s/%s', pagesDir, pageName);
+
+      pdfContents.push(pageContents);
+      ctx.addPreview(pagePath, pageName);
+
+      return fsWriteFile(pagePath, pageContents);
+    } catch (e) {
+      const errorMessage = 'Preview processing for pdf file failed';
+
+      log().error({ e }, errorMessage);
+      return callback({ code: 500, msg: errorMessage });
+    }
+  };
+
+  const processAllPages = async function(numPages, doc) {
+    for (let i = 1; i <= numPages; i++) {
+      // eslint-disable-next-line no-await-in-loop
+      await previewAndIndexEachPage(i, doc);
+    }
+  };
+
+  try {
+    const doc = await loadedPDFDocument.promise;
+    const { numPages } = doc;
+
+    ctx.addPreview(output, 'txt');
+    ctx.addPreviewMetadata('pageCount', numPages);
+
+    await processAllPages(numPages, doc);
+    await fsWriteFile(output, pdfContents.join(' '));
+    _generateThumbnail(ctx, pdfPath, pagesDir, callback);
+  } catch (e) {
+    const errorMessage = 'Unable to process PDF';
+    log().error({ e }, errorMessage);
+    return callback({ code: 500, msg: errorMessage });
+  }
 };
 
 /**

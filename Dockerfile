@@ -26,25 +26,56 @@
 # $ docker run -it --name=hilary --net=host oae-hilary:latest
 #
 
-FROM oaeproject/oae-hilary-deps-docker:v0.4
-
+FROM node:10-alpine
 LABEL Name=OAE-Hilary
 LABEL Author=ApereoFoundation
 LABEL Email=oae@apereo.org
 
+RUN apk --update --no-cache add \
+  git \
+  alpine-sdk \
+  xz \
+  pango-dev \
+  m4 \
+  libtool \
+  perl \
+  autoconf \
+  automake \
+  coreutils \
+  python-dev \
+  zlib-dev \
+  freetype-dev \
+  glib-dev \
+  cmake \
+  libxml2-dev \
+  libpng \
+  libjpeg-turbo-dev \
+  python \
+  glib \
+  libintl \
+  libxml2 \
+  libltdl \
+  cairo \
+  pango \
+  ghostscript \
+  graphicsmagick
+
+# Install libreoffice
+RUN apk add --no-cache libreoffice openjdk8-jre
+
 # Set the base directory
 ENV HILARY_DIR usr/src/Hilary
 RUN mkdir -p ${HILARY_DIR} \
-    && chown -R node:node ${HILARY_DIR} \
-    && chmod -R 755 ${HILARY_DIR}
+  && chown -R node:node ${HILARY_DIR} \
+  && chmod -R 755 ${HILARY_DIR}
 WORKDIR ${HILARY_DIR}
 
 # Create the temp directory for Hilary
 ENV TMP_DIR /tmp
 RUN mkdir -p ${TMP_DIR} \
-    && chown -R node:node ${TMP_DIR} \
-    && chmod -R 755 ${TMP_DIR} \
-    && export TMP=${TMP_DIR}
+  && chown -R node:node ${TMP_DIR} \
+  && chmod -R 755 ${TMP_DIR} \
+  && export TMP=${TMP_DIR}
 
 # Expose ports for node server
 EXPOSE 2000

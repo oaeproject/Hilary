@@ -61,15 +61,6 @@ services:
       - .:/usr/src/Hilary
     cap_add:
       - SYS_ADMIN
-  oae-pdf2htmlex: # this is for dev only
-    container_name: oae-pdf2htmlex
-    image: oaeproject/oae-pdf2htmlex-docker:v0.1
-    restart: always
-    networks:
-      - my_network
-    tty: false
-    volumes:
-      - ${TMP}:${TMP}
   oae-redis:
     container_name: oae-redis
     image: redis:3.2.8-alpine
@@ -127,8 +118,8 @@ services:
     networks:
       - my_network
     ports:
-      - 9161:9160
-      - 9043:9042
+      - 9160:9160
+      - 9042:9042
     tty: false
     volumes:
       - ../data/cassandra:/var/lib/cassandra

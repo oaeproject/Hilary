@@ -1,7 +1,7 @@
 /dump.rdb
 *.log
 doc_data.txt
-/node_modules/*
+node_modules
 .DS_Store
 tmp
 .nyc_output

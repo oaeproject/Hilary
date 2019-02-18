@@ -48,7 +48,7 @@ jobs:
             apk add --update --no-cache docker py-pip
             pip install docker-compose
       - run:
-          name: Create the containers (except for pdf2htmlex)
+          name: Create the containers
           command: docker-compose up --no-start --build oae-cassandra oae-redis oae-rabbitmq oae-elasticsearch oae-hilary
       - run:
           name: Start the containers we need

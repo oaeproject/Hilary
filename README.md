@@ -24,8 +24,6 @@ Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject
 
 ## Install
 
-If you're looking to install the OAE project the hard way (not recommended), check out [this page](https://github.com/brecke/Hilary/wiki/Manual-installation-&-setup) and then go the the [Setup section](#setup) below. If not, read along.
-
 This guide will install OAE locally for a development setup. Node is required on the host machine whereas the remaining servers will run as docker containers.
 
 ### Docker Quickstart Guide
@@ -146,8 +144,6 @@ server 192.168.1.2:2000; # assuming 192.168.1.2 is the external network IP addre
 server 192.168.1.2:2001; # assuming 192.168.1.2 is the external network IP address
 ...
 ```
-
-Also, don't forget that running `Hilary` locally implies installing several other packages, namely `soffice` (libreoffice), `pdftotext` and `pdf2htmlEX`. You can find instructions on how to do this [here](https://github.com/brecke/Hilary/wiki/Manual-installation-&-setup). If you can't get pdf2htmlEX installed on your system, you may use a docker container instead, by replacing the `config.previews.pdf2htmlEX.binary` setting to `docker-compose run --rm oae-pdf2htmlex pdf2htmlEX`. On mac osx you can find all three in homebrew.
 
 #### Run the server and the containers
 

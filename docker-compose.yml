@@ -127,8 +127,8 @@ services:
     networks:
       - my_network
     ports:
-      - 9161:9160
-      - 9043:9042
+      - 9160:9160
+      - 9042:9042
     tty: false
     volumes:
       - ../data/cassandra:/var/lib/cassandra

@@ -277,16 +277,10 @@ config.mq = {
  * @param  {Object}      office                         Holds the configuration for anything Office related
  * @param  {String}      office.binary                  The path to the 'soffice' binary that starts up Libre Office. ex: On OS X it is `/Applications/LibreOffice.app/Contents/MacOS/soffice` with a default install
  * @param  {Number}      office.timeout                 Defines the timeout (in ms) when the Office process should be killed
- * @param  {Object}      pdf2htmlEX                     Holds the configuration for anything related to converting a PDF file into an HTML file
- * @param  {String}      pdf2htmlEX.binary              The path to the `pdf2htmlEX` binary that can be used to convert a PDF file into an HTML file
- * @param  {Number}      pdf2htmlEX.timeout             Defines the timeout (in ms) when the pdf2htmlEX process should be killed
- * @param  {Object}      pdftotext                      Holds the configuration for anything related to converting a PDF file into a text file
- * @param  {String}      pdftotext.binary               The path to the `pdftotext` binary that can be used to convert a PDF file into a text file
- * @param  {Number}      pdftotext.timeout              Defines the timeout (in ms) when the pdftotext process should be killed
- * @param  {Object}      link                           Holds the configuration for anything related to link processing
- * @param  {String}      link.renderDelay               Defines the timeout (in ms) that should be waited between loading the page and taking a screenshot
- * @param  {Number}      link.renderTimeout             Defines the timeout (in ms) when the screencapturing should be stopped. This should include the renderDelay
- * @param  {Number}      link.embeddableCheckTimeout    Defines the timeout (in ms) when the embeddable link check should be stopped
+ * @param  {Object}      pdfPreview                     Holds the configuration for pdfjs
+ * @param  {String}      pdfPreview.viewportScale       Defines the scale for the viewport when generating svg from PDFs
+ * @param  {Object}      screenShotting                 Holds the configuration for puppeteer.js
+ * @param  {Number}      screenShotting.timeout         Defines the timeout in ms for puppeteer to take screenshots
  * @param  {Object}      credentials                    Holds the credentials that can be used to log on the global admin server
  * @param  {String}      credentials.username           The username to login with on the global admin server
  * @param  {String}      credentials.password           The password to login with on the global admin server
@@ -296,7 +290,7 @@ config.previews = {
   tmpDir: Path.join(tmpDir, 'previews'),
   office: {
     /* if on mac osx change next line to '/Applications/LibreOffice.app/Contents/MacOS/soffice' */
-    binary: '/Applications/LibreOffice.app/Contents/MacOS/soffice',
+    binary: 'soffice',
     timeout: 120000
   },
   pdfPreview: {

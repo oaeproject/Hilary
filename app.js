@@ -75,7 +75,6 @@ OAE.init(config, err => {
   if (err) {
     log().error({ err }, 'Error initializing server.');
   }
-  log().info('Initialization all done ... Firing up tenants ... Enjoy!');
 
   // If the user asked for an interactive shell start the node REPL and pass in the OAE and log objects
   if (argv.interactive) {

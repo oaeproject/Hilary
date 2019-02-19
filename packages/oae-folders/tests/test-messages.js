@@ -15,29 +15,22 @@
 
 const assert = require('assert');
 const fs = require('fs');
-const util = require('util');
-const _ = require('underscore');
 const path = require('path');
+const _ = require('underscore');
 
-const AuthzAPI = require('oae-authz');
-const ConfigTestUtil = require('oae-config/lib/test/util');
-const ContentTestUtil = require('oae-content/lib/test/util');
 const RestAPI = require('oae-rest');
 const TestsUtil = require('oae-tests');
 
-const FoldersContentLibrary = require('oae-folders/lib/internal/contentLibrary');
 const FoldersDAO = require('oae-folders/lib/internal/dao');
-const FoldersFolderLibrary = require('oae-folders/lib/internal/foldersLibrary');
-const FoldersLibrary = require('oae-folders/lib/library');
 const FoldersTestUtil = require('oae-folders/lib/test/util');
 
 describe('Folders', () => {
   let camAdminRestContext = null;
 
   /*!
-     * Set up all the REST contexts for admin and anonymous users with which we
-     * will invoke requests
-     */
+   * Set up all the REST contexts for admin and anonymous users with which we
+   * will invoke requests
+   */
   before(callback => {
     camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     return callback();
@@ -478,7 +471,9 @@ describe('Folders', () => {
                         null,
                         message => {
                           // Ensure the new lastModified is greater than the original creation one
-                          FoldersTestUtil.assertGetFolderSucceeds(
+                          setTimeout(
+                            FoldersTestUtil.assertGetFolderSucceeds,
+                            200,
                             simong.restContext,
                             folder.id,
                             folder => {
@@ -573,14 +568,14 @@ describe('Folders', () => {
      */
     it('verify listing messages, model and permissions', callback => {
       /*!
-             * Ensure that the message model is correct between the message to test and the message against which to test.
-             *
-             * @param  {Message}    messageToTest           The message to test
-             * @param  {Message}    messageToTestAgainst    The message against which to test
-             * @param  {User}       creatorToTestAgainst    The user data (i.e., `createdBy`) to test against for the message creator
-             * @param  {Boolean}    userScrubbed            Whether or not the createdBy field should have scrubbed user data
-             * @throws {Error}                              Throws an assertion error if the data fails assertions
-             */
+       * Ensure that the message model is correct between the message to test and the message against which to test.
+       *
+       * @param  {Message}    messageToTest           The message to test
+       * @param  {Message}    messageToTestAgainst    The message against which to test
+       * @param  {User}       creatorToTestAgainst    The user data (i.e., `createdBy`) to test against for the message creator
+       * @param  {Boolean}    userScrubbed            Whether or not the createdBy field should have scrubbed user data
+       * @throws {Error}                              Throws an assertion error if the data fails assertions
+       */
       const _assertMessageModel = function(
         messageToTest,
         messageToTestAgainst,

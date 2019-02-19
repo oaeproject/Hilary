@@ -1394,7 +1394,9 @@ const assertGeneralFolderSearchEquals = function(
   missingFolders,
   callback
 ) {
-  SearchTestUtil.searchAll(
+  setTimeout(
+    SearchTestUtil.searchAll,
+    200,
     restContext,
     'general',
     null,

@@ -1801,7 +1801,7 @@ describe('Preview processor', () => {
       }
 
       _createContentAndWait('collabdoc', null, null, (restCtx, content) => {
-        assert.strictEqual(content.previews.status, 'done');
+        setTimeout(assert.strictEqual, 200, content.previews.status, 'done');
         // Ensure we have a thumbnail url.
         assert.strictEqual(content.previews.thumbnailUrl.indexOf('/api/download/signed'), 0);
         _verifySignedUriDownload(restCtx, content.previews.thumbnailUrl, () => {

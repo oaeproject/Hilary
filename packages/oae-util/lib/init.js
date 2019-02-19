@@ -29,11 +29,10 @@ const init = function(config, callback) {
   // Create Cassandra database.
   // TODO: Move Cassandra into its own oae-cassandra module with a high priority. All of the init(..) stuff then goes in its init.js
   const errorCallback = function(err) {
-    const timeout = 10;
+    const timeout = 5;
     if (err) {
-      log().error({ err }, 'Error connecting to cassandra, trying again in ' + timeout + 's...');
-      setTimeout(Cassandra.init.bind(this, config.cassandra, errorCallback), timeout);
-      // Return callback(err);
+      log().error('Error connecting to cassandra, trying again in ' + timeout + 's...');
+      return setTimeout(Cassandra.init, timeout * 1000, config.cassandra, errorCallback);
     }
 
     // Allows for simple redis client creations

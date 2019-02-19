@@ -94,9 +94,9 @@ OaeEmitter.on('ready', () => {
   let returned = false;
 
   /*!
-     * Monitors all the deferred task handlers that have been bound, emitting a 'ready' event
-     * when all have been bound.
-     */
+   * Monitors all the deferred task handlers that have been bound, emitting a 'ready' event
+   * when all have been bound.
+   */
   const _monitorBinding = function(err) {
     if (returned) {
       // Do nothing, we've called back
@@ -159,10 +159,7 @@ const init = function(mqConfig, callback) {
   const arrayOfHostsToConnectTo = _.map(mqConfig.connection.host, eachHost => {
     return `amqp://${eachHost}`;
   });
-  connection = amqp.connect(
-    arrayOfHostsToConnectTo,
-    { json: true }
-  );
+  connection = amqp.connect(arrayOfHostsToConnectTo, { json: true });
   // Connect to channel
   channelWrapper = connection.createChannel({
     json: true,
@@ -785,9 +782,9 @@ const _waitUntilIdle = function(maxWaitMillis, callback) {
   }
 
   /*!
-     * Gives at most `maxWaitMillis` time to finish. If it doesn't, we suspect we have leaked messages and
-     * output a certain amount of them to the logs for inspection.
-     */
+   * Gives at most `maxWaitMillis` time to finish. If it doesn't, we suspect we have leaked messages and
+   * output a certain amount of them to the logs for inspection.
+   */
   const forceContinueHandle = setTimeout(() => {
     _dumpProcessingMessages(
       'Timed out ' + maxWaitMillis + 'ms while waiting for tasks to complete.'
@@ -866,10 +863,10 @@ const purgeAll = function(callback) {
   log().info({ queues: toPurge }, 'Purging all known queues.');
 
   /*!
-     * Purges one of the known queues and calls the callback method when they are all purged (or when an error occurs)
-     *
-     * @param  {Object}  err    Standard error object (if any)
-     */
+   * Purges one of the known queues and calls the callback method when they are all purged (or when an error occurs)
+   *
+   * @param  {Object}  err    Standard error object (if any)
+   */
   const doPurge = function(err) {
     if (err) {
       return callback(err);

@@ -55,7 +55,7 @@ let globalAdminRouter = null;
 const init = function(config, callback) {
   callback = callback || function() {};
 
-  log().info('Starting OAE');
+  log().info('Starting OAE...');
 
   // Make sure all Dates are in UTC
   process.env.TZ = 'UTC';
@@ -81,7 +81,6 @@ const init = function(config, callback) {
   globalAdminRouter = Server.setupRouter(globalAdminServer);
   module.exports.globalAdminRouter = globalAdminRouter;
 
-
   // Initialize the modules and their CFs, as well as registering the Rest endpoints
   Modules.bootstrapModules(config, err => {
     log().info('All modules are bootstrapped, initializing servers');
@@ -94,6 +93,7 @@ const init = function(config, callback) {
 
     OaeEmitter.emit('ready');
 
+    log().info('Initialization all done ... Firing up tenants ... Enjoy!');
     return callback();
   });
 };

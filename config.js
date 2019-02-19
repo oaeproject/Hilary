@@ -244,7 +244,7 @@ config.search = {
         }
       }
     },
-    destroyOnStartup: true
+    destroyOnStartup: false
   },
   processIndexJobs: true
 };

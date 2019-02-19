@@ -88,8 +88,7 @@ const init = function(config, callback) {
     _sofficeBinary = config.binary;
     _timeout = config.timeout;
 
-    // Remove our test file.
-    fs.unlink(tmpDir.path + '/office.pdf', callback);
+    return callback();
   });
 };
 

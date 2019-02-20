@@ -16,63 +16,84 @@
 const redis = require('redis');
 const log = require('oae-logger').logger('oae-redis');
 
-let config = null;
 let client = null;
+let isDown = false;
+const retryTimeout = 5;
 
 /**
  * Initialize this Redis utility.
  *
- * @param  {Object}     redisConfig     The redis configuration object
+ * @param  {Object}   redisConfig     The redis configuration object
+ * @param  {Function} callback          Standard callback function
  */
-const init = function(redisConfig) {
-  config = redisConfig;
-  client = createClient();
-};
-
-/**
- * Sets up a redis connection.
- *
- * @return {RedisClient} A redis client that is connected to one of redis db indexes.
- */
-const createClient = function() {
-  return createClientFromConfig(config);
+const init = function(redisConfig, callback) {
+  createClient(redisConfig, (err, _client) => {
+    if (err) {
+      return callback(err);
+    }
+    client = _client;
+    return callback();
+  });
 };
 
 /**
  * Creates a redis connection from a defined set of configuration.
  *
- * @param  {Object}     config      A redis configuration object
+ * @param  {Object}   config      A redis configuration object
+ * @param  {Function} callback      Standard callback function
  * @return {RedisClient}            A redis client that is configured with the given configuration
  */
-const createClientFromConfig = function(_config) {
-  // Open a socket.
-  const client = redis.createClient(_config.port, _config.host);
+const createClient = function(_config, callback) {
+  const connectionOptions = {
+    port: _config.port,
+    host: _config.host,
+    // eslint-disable-next-line camelcase
+    retry_strategy: () => {
+      log().error('Error connecting to redis, retrying in ' + retryTimeout + 's...');
+      isDown = true;
+      return retryTimeout * 1000;
+    }
+  };
+  const client = redis.createClient(connectionOptions);
+
+  // Register an error handler.
+  const redisErrorHandler = function() {
+    log().error('Error connecting to redis...');
+  };
+  client.on('error', redisErrorHandler);
+
+  const isReadyHandler = function() {
+    if (isDown) {
+      log().error('Reconnected to redis \\o/');
+    }
+    isDown = false;
+  };
+  client.on('ready', isReadyHandler);
+
+  const selectIndex = function(_config, callback) {
+    // Select the correct DB index.
+    const dbIndex = _config.dbIndex || 0;
+    client.select(dbIndex, err => {
+      if (err) {
+        log().error({ err }, "Couldn't select the redis DB index '%s'", dbIndex);
+        return callback(err);
+      }
+      return callback(null, client);
+    });
+  };
 
   // Authenticate (if required, redis allows for async auth)
   if (_config.pass && _config.pass !== '') {
     client.auth(_config.pass, err => {
       if (err) {
         log().error({ err }, "Couldn't authenticate with redis.");
+        return callback(err);
       }
+      selectIndex(_config, callback);
     });
   }
 
-  // Select the correct DB index.
-  const dbIndex = _config.dbIndex || 0;
-  client.select(dbIndex, err => {
-    if (err) {
-      log().error({ err }, "Couldn't select the redis DB index '%s'", dbIndex);
-    }
-  });
-
-  // Register an error handler.
-  const redisErrorHandler = function(err) {
-    log().error({ err }, 'Got an error when dealing with redis.');
-  };
-  client.on('error', redisErrorHandler);
-
-  // Done.
-  return client;
+  selectIndex(_config, callback);
 };
 
 /**
@@ -99,7 +120,6 @@ const flush = function(callback) {
 
 module.exports = {
   createClient,
-  createClientFromConfig,
   getClient,
   flush,
   init

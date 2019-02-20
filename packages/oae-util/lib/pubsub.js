@@ -32,19 +32,35 @@ let redisPublisher = null;
 /**
  * Initializes the connection to redis.
  */
-const init = function() {
+const init = function(config, callback) {
   // Only init if the connections haven't been opened.
   if (redisManager === null) {
     // Create 3 clients, one for managing redis and 2 for the actual pub/sub communication.
-    redisManager = Redis.createClient();
-    redisSubscriber = Redis.createClient();
-    redisPublisher = Redis.createClient();
+    Redis.createClient(config, (err, client) => {
+      if (err) {
+        return callback(err);
+      }
+      redisManager = client;
+      Redis.createClient(config, (err, client) => {
+        if (err) {
+          return callback(err);
+        }
+        redisSubscriber = client;
+        Redis.createClient(config, (err, client) => {
+          if (err) {
+            return callback(err);
+          }
+          redisPublisher = client;
 
-    // Listen to all channels and emit them as events.
-    redisSubscriber.on('pmessage', (pattern, channel, message) => {
-      emitter.emit(channel, message);
+          // Listen to all channels and emit them as events.
+          redisSubscriber.on('pmessage', (pattern, channel, message) => {
+            emitter.emit(channel, message);
+          });
+          redisSubscriber.psubscribe('*');
+          return callback();
+        });
+      });
     });
-    redisSubscriber.psubscribe('*');
   }
 };
 

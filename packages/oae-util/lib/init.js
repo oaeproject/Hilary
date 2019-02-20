@@ -37,35 +37,42 @@ const init = function(config, callback) {
 
     // Allows for simple redis client creations
     // TODO: Move this into its own oae-redis module with a high priority. All of the init(..) stuff then goes in its init.js
-    Redis.init(config.redis);
-
-    // Initialize the Redis based locking
-    Locking.init();
-
-    // Setup the Pubsub communication
-    // This requires that the redis utility has already been loaded.
-    // TODO: Move this into its own oae-pubsub module with a high priority. All of the init(..) stuff then goes in its init.js
-    Pubsub.init();
-
-    // Setup the key signing utility
-    Signature.init(config.signing);
-
-    // Setup the temporary file generator
-    Tempfile.init(config.files.tmpDir);
-
-    // Clean up temp files that might be accidentally left in the temp directory
-    if (config.files.cleaner.enabled) {
-      Cleaner.start(config.files.tmpDir, config.files.cleaner.interval);
-    }
-
-    // Initialize the RabbitMQ listener
-    MQ.init(config.mq, err => {
+    Redis.init(config.redis, err => {
       if (err) {
         return callback(err);
       }
+      // Initialize the Redis based locking
+      Locking.init();
 
-      // Initialize the task queue
-      TaskQueue.init(callback);
+      // Setup the Pubsub communication
+      // This requires that the redis utility has already been loaded.
+      // TODO: Move this into its own oae-pubsub module with a high priority. All of the init(..) stuff then goes in its init.js
+      Pubsub.init(config.redis, err => {
+        if (err) {
+          return callback(err);
+        }
+
+        // Setup the key signing utility
+        Signature.init(config.signing);
+
+        // Setup the temporary file generator
+        Tempfile.init(config.files.tmpDir);
+
+        // Clean up temp files that might be accidentally left in the temp directory
+        if (config.files.cleaner.enabled) {
+          Cleaner.start(config.files.tmpDir, config.files.cleaner.interval);
+        }
+
+        // Initialize the RabbitMQ listener
+        MQ.init(config.mq, err => {
+          if (err) {
+            return callback(err);
+          }
+
+          // Initialize the task queue
+          TaskQueue.init(callback);
+        });
+      });
     });
   };
 

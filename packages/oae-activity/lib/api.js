@@ -82,7 +82,7 @@ const refreshConfiguration = function(config, callback) {
   // Configure redis. Either uses the main connection pool, or a dedicated one if config.activity.redis was configured
   let redisClient = Redis.getClient();
   if (config.redis) {
-    redisClient = Redis.createClientFromConfig(config.redis);
+    redisClient = Redis.createClient(config.redis);
   }
 
   ActivityDAO.init(redisClient);

@@ -281,7 +281,9 @@ describe('Terms and Conditions', () => {
                                               assert.strictEqual(err.code, 419);
 
                                               // Sanity check that re-accepting it, allows mrvisser to perform POST requests again
-                                              RestAPI.User.acceptTermsAndConditions(
+                                              setTimeout(
+                                                RestAPI.User.acceptTermsAndConditions,
+                                                200,
                                                 mrvisser.restContext,
                                                 mrvisser.user.id,
                                                 err => {
@@ -614,26 +616,38 @@ describe('Terms and Conditions', () => {
     // Set a Terms and Conditions
     enableAndSetTC(camAdminRestContext, 'default', 'Default legalese', true, () => {
       // Get the Terms and Conditions
-      RestAPI.User.getTermsAndConditions(anonymousCamRestContext, null, (err, firstTC) => {
-        assert.ok(!err);
-        assert.strictEqual(firstTC.text, 'Default legalese');
-        assert.ok(firstTC.lastUpdate);
-        assert.ok(firstTC.lastUpdate <= Date.now());
-        assert.ok(firstTC.lastUpdate > 0);
+      setTimeout(
+        RestAPI.User.getTermsAndConditions,
+        200,
+        anonymousCamRestContext,
+        null,
+        (err, firstTC) => {
+          assert.ok(!err);
+          assert.strictEqual(firstTC.text, 'Default legalese');
+          assert.ok(firstTC.lastUpdate);
+          assert.ok(firstTC.lastUpdate <= Date.now());
+          assert.ok(firstTC.lastUpdate > 0);
 
-        // Update the Terms and Conditions
-        enableAndSetTC(camAdminRestContext, 'default', 'Other legalese', true, () => {
-          RestAPI.User.getTermsAndConditions(anonymousCamRestContext, null, (err, updatedTC) => {
-            assert.ok(!err);
-            assert.strictEqual(updatedTC.text, 'Other legalese');
-            assert.ok(updatedTC.lastUpdate);
-            assert.ok(updatedTC.lastUpdate <= Date.now());
-            assert.ok(updatedTC.lastUpdate > 0);
-            assert.ok(updatedTC.lastUpdate > firstTC.lastUpdate);
-            callback();
+          // Update the Terms and Conditions
+          enableAndSetTC(camAdminRestContext, 'default', 'Other legalese', true, () => {
+            setTimeout(
+              RestAPI.User.getTermsAndConditions,
+              200,
+              anonymousCamRestContext,
+              null,
+              (err, updatedTC) => {
+                assert.ok(!err);
+                assert.strictEqual(updatedTC.text, 'Other legalese');
+                assert.ok(updatedTC.lastUpdate);
+                assert.ok(updatedTC.lastUpdate <= Date.now());
+                assert.ok(updatedTC.lastUpdate > 0);
+                assert.ok(updatedTC.lastUpdate > firstTC.lastUpdate);
+                callback();
+              }
+            );
           });
-        });
-      });
+        }
+      );
     });
   });
 

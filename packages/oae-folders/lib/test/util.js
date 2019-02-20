@@ -1401,7 +1401,7 @@ const assertGeneralFolderSearchEquals = function(
     { resourceTypes: 'folder', q, scope: '_network' },
     (err, results) => {
       assert.ok(!err);
-      _assertSearchResults(results, expectedFolders, missingFolders);
+      setTimeout(_assertSearchResults, 200, results, expectedFolders, missingFolders);
       return callback();
     }
   );

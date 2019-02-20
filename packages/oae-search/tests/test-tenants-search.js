@@ -28,8 +28,8 @@ describe('Tenants Search', () => {
   let globalAdminRestContext = null;
 
   /*!
-     * Initialize our rest contexts before each test
-     */
+   * Initialize our rest contexts before each test
+   */
   beforeEach(callback => {
     // Fill up anonymous rest context
     anonymousRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
@@ -157,7 +157,9 @@ describe('Tenants Search', () => {
       const host = tenant.host.toLowerCase().slice(0, 3);
 
       // Take just the first 3 characters of each field and ensure we get the tenant
-      SearchTestsUtil.assertSearchSucceeds(
+      setTimeout(
+        SearchTestsUtil.assertSearchSucceeds,
+        200,
         anonymousRestContext,
         'tenants',
         null,

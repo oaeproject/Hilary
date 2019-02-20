@@ -1221,43 +1221,43 @@ const setUpBeforeTests = function(config, dropKeyspaceBeforeTest, callback) {
       }
 
       Cassandra.close(() => {
-        Redis.init(config.redis);
-
-        log().info('Flushing redis DB index "%d" to clean up before tests', config.redis.dbIndex);
-        Redis.flush(err => {
-          if (err) {
-            return callback(new Error(err.msg));
-          }
-
-          // Initialize the application modules
-          OAE.init(config, err => {
+        Redis.init(config.redis, () => {
+          log().info('Flushing redis DB index "%d" to clean up before tests', config.redis.dbIndex);
+          Redis.flush(err => {
             if (err) {
               return callback(new Error(err.msg));
             }
 
-            _bindRequestLogger();
-          });
-
-          // Defer the test setup until after the task handlers are successfully bound and all the queues are drained.
-          // This will always be fired after OAE.init has successfully finished.
-          MQ.emitter.on('ready', err => {
-            if (err) {
-              return callback(new Error(err.msg));
-            }
-
-            // Set up a couple of test tenants
-            setUpTenants(err => {
+            // Initialize the application modules
+            OAE.init(config, err => {
               if (err) {
                 return callback(new Error(err.msg));
               }
 
-              log().info('Disabling the preview processor during tests');
-              PreviewAPI.disable(err => {
+              _bindRequestLogger();
+            });
+
+            // Defer the test setup until after the task handlers are successfully bound and all the queues are drained.
+            // This will always be fired after OAE.init has successfully finished.
+            MQ.emitter.on('ready', err => {
+              if (err) {
+                return callback(new Error(err.msg));
+              }
+
+              // Set up a couple of test tenants
+              setUpTenants(err => {
                 if (err) {
                   return callback(new Error(err.msg));
                 }
 
-                return callback();
+                log().info('Disabling the preview processor during tests');
+                PreviewAPI.disable(err => {
+                  if (err) {
+                    return callback(new Error(err.msg));
+                  }
+
+                  return callback();
+                });
               });
             });
           });

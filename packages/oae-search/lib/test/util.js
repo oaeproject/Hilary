@@ -83,7 +83,7 @@ const assertSearchSucceeds = function(restCtx, searchType, params, opts, callbac
  * @throws {AssertionError}                     Thrown if the search fails or not all ids are found in the results
  */
 const assertSearchContains = function(restCtx, searchType, params, opts, containIds, callback) {
-  searchAll(restCtx, searchType, params, opts, (err, response) => {
+  setTimeout(searchAll, 200, restCtx, searchType, params, opts, (err, response) => {
     assert.ok(!err);
     assert.deepStrictEqual(
       _.chain(response.results)

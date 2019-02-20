@@ -159,7 +159,16 @@ const init = function(mqConfig, callback) {
   const arrayOfHostsToConnectTo = _.map(mqConfig.connection.host, eachHost => {
     return `amqp://${eachHost}`;
   });
-  connection = amqp.connect(arrayOfHostsToConnectTo, { json: true });
+
+  const retryTimeout = 5;
+  connection = amqp.connect(arrayOfHostsToConnectTo, {
+    json: true,
+    reconnectTimeInSeconds: retryTimeout
+  });
+  connection.on('disconnect', () => {
+    log().error('Error connecting to rabbitmq, retrying in ' + retryTimeout + 's...');
+  });
+
   // Connect to channel
   channelWrapper = connection.createChannel({
     json: true,

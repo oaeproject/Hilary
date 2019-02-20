@@ -1888,12 +1888,12 @@ describe('Discussions', () => {
 
   describe('Discussions Library', () => {
     /*!
-         * Verify that the set of discussion library results has the item with id `id`
-         *
-         * @param  {Message[]}  results         The array of messages to check
-         * @param  {String}     id              The id to search for in the messages
-         * @throws {Error}                      Throws an assertion error if the id is not in the list of messages
-         */
+     * Verify that the set of discussion library results has the item with id `id`
+     *
+     * @param  {Message[]}  results         The array of messages to check
+     * @param  {String}     id              The id to search for in the messages
+     * @throws {Error}                      Throws an assertion error if the id is not in the list of messages
+     */
     const _assertContainsItem = function(results, id) {
       let hasItem = false;
       _.each(results, item => {
@@ -1906,12 +1906,12 @@ describe('Discussions', () => {
     };
 
     /*!
-         * Verify that the set of discussion library results does not have the item with id `id`
-         *
-         * @param  {Message[]}  results         The array of messages to check
-         * @param  {String}     id              The id to search for in the messages
-         * @throws {Error}                      Throws an assertion error if the id is in the list of messages
-         */
+     * Verify that the set of discussion library results does not have the item with id `id`
+     *
+     * @param  {Message[]}  results         The array of messages to check
+     * @param  {String}     id              The id to search for in the messages
+     * @throws {Error}                      Throws an assertion error if the id is in the list of messages
+     */
     const _assertDoesNotContainItem = function(results, id) {
       _.each(results, item => {
         assert.notStrictEqual(item.id, id);
@@ -3498,14 +3498,14 @@ describe('Discussions', () => {
                               // through.
 
                               /*!
-                                         * Continue checking the library feed until the tries run out. When the feed reaches a state where it is inconsistent
-                                         * (i.e., a fetch of 2 items only returns 1, and there are more to fetch), then we proceed to fetch the feed until it
-                                         * has become consistent again (i.e., the fetch of 2 items once again returns exactly 2 items)
-                                         *
-                                         * If this fails, it means the feed has not become inconsistent. What gives?
-                                         *
-                                         * @param  {Number}     triesLeft   The number of tries to perform
-                                         */
+                               * Continue checking the library feed until the tries run out. When the feed reaches a state where it is inconsistent
+                               * (i.e., a fetch of 2 items only returns 1, and there are more to fetch), then we proceed to fetch the feed until it
+                               * has become consistent again (i.e., the fetch of 2 items once again returns exactly 2 items)
+                               *
+                               * If this fails, it means the feed has not become inconsistent. What gives?
+                               *
+                               * @param  {Number}     triesLeft   The number of tries to perform
+                               */
                               const _checkDuplicatedFeed = function(triesLeft) {
                                 if (triesLeft === 0) {
                                   // Fail if we have run out of tries
@@ -3541,12 +3541,12 @@ describe('Discussions', () => {
                               };
 
                               /*!
-                                         * Continue checking the library feed until it comes consistent.
-                                         *
-                                         * If this fails, it means the feed never returned to be consistent. What gives?
-                                         *
-                                         * @param  {Number}     triesLeft   The number of tries to perform
-                                         */
+                               * Continue checking the library feed until it comes consistent.
+                               *
+                               * If this fails, it means the feed never returned to be consistent. What gives?
+                               *
+                               * @param  {Number}     triesLeft   The number of tries to perform
+                               */
                               const _checkRepairedFeed = function(triesLeft) {
                                 if (triesLeft === 0) {
                                   assert.fail(
@@ -4088,7 +4088,9 @@ describe('Discussions', () => {
                             assert.ok(!err);
 
                             // Ensure the new lastModified is greater than the original creation one
-                            RestAPI.Discussions.getDiscussion(
+                            setTimeout(
+                              RestAPI.Discussions.getDiscussion,
+                              200,
                               user.restContext,
                               discussion.id,
                               (err, discussion) => {
@@ -4199,14 +4201,14 @@ describe('Discussions', () => {
      */
     it('verify listing messages, model and permissions', callback => {
       /*!
-             * Ensure that the message model is correct between the message to test and the message against which to test.
-             *
-             * @param  {Message}    messageToTest           The message to test
-             * @param  {Message}    messageToTestAgainst    The message against which to test
-             * @param  {User}       creatorToTestAgainst    The user data (i.e., `createdBy`) to test against for the message creator
-             * @param  {Boolean}    userScrubbed            Whether or not the createdBy field should have scrubbed user data
-             * @throws {Error}                              Throws an assertion error if the data fails assertions
-             */
+       * Ensure that the message model is correct between the message to test and the message against which to test.
+       *
+       * @param  {Message}    messageToTest           The message to test
+       * @param  {Message}    messageToTestAgainst    The message against which to test
+       * @param  {User}       creatorToTestAgainst    The user data (i.e., `createdBy`) to test against for the message creator
+       * @param  {Boolean}    userScrubbed            Whether or not the createdBy field should have scrubbed user data
+       * @throws {Error}                              Throws an assertion error if the data fails assertions
+       */
       const _assertMessageModel = function(
         messageToTest,
         messageToTestAgainst,
@@ -4558,16 +4560,16 @@ describe('Discussions', () => {
     });
 
     /*!
-         * Ensure that deleting messages works as expected with the given tenant, users and discussion
-         *
-         * @param  {Object}         tenant          The tenant info object for the tenant under which the test occurs
-         * @param  {Object}         managerUser     The user info object (as per DiscussionsTestsUtil#setupMultiTenantPrivacyEntities) for the user who will act as the manager of the discussion
-         * @param  {Object}         memberUser      The user info object (as per DiscussionsTestsUtil#setupMultiTenantPrivacyEntities) for the user who will act as the member of the discussion
-         * @param  {Object}         nonMemberUser   The user info object (as per DiscussionsTestsUtil#setupMultiTenantPrivacyEntities) for the user who will not be explicitly associated to the discussion, but will be authenticated to the tenant
-         * @param  {Discussion}     discussion      The discussion against which to create and delete messages, verifying the expected outcomes
-         * @param  {Function}       callback        Invoked when all assertions have passed
-         * @throws {AssertionError}                 Thrown if any of the assertions failed while creating and deleting messages
-         */
+     * Ensure that deleting messages works as expected with the given tenant, users and discussion
+     *
+     * @param  {Object}         tenant          The tenant info object for the tenant under which the test occurs
+     * @param  {Object}         managerUser     The user info object (as per DiscussionsTestsUtil#setupMultiTenantPrivacyEntities) for the user who will act as the manager of the discussion
+     * @param  {Object}         memberUser      The user info object (as per DiscussionsTestsUtil#setupMultiTenantPrivacyEntities) for the user who will act as the member of the discussion
+     * @param  {Object}         nonMemberUser   The user info object (as per DiscussionsTestsUtil#setupMultiTenantPrivacyEntities) for the user who will not be explicitly associated to the discussion, but will be authenticated to the tenant
+     * @param  {Discussion}     discussion      The discussion against which to create and delete messages, verifying the expected outcomes
+     * @param  {Function}       callback        Invoked when all assertions have passed
+     * @throws {AssertionError}                 Thrown if any of the assertions failed while creating and deleting messages
+     */
     const _assertDeleteMessagePermissions = function(
       tenant,
       managerUser,

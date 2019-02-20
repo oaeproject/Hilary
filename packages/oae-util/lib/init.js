@@ -28,11 +28,11 @@ const Tempfile = require('./tempfile');
 const init = function(config, callback) {
   // Create Cassandra database.
   // TODO: Move Cassandra into its own oae-cassandra module with a high priority. All of the init(..) stuff then goes in its init.js
-  const errorCallback = function(err) {
+  const retryCallback = function(err) {
     const timeout = 5;
     if (err) {
-      log().error('Error connecting to cassandra, trying again in ' + timeout + 's...');
-      return setTimeout(Cassandra.init, timeout * 1000, config.cassandra, errorCallback);
+      log().error('Error connecting to cassandra, retrying in ' + timeout + 's...');
+      return setTimeout(Cassandra.init, timeout * 1000, config.cassandra, retryCallback);
     }
 
     // Allows for simple redis client creations
@@ -69,7 +69,7 @@ const init = function(config, callback) {
     });
   };
 
-  Cassandra.init(config.cassandra, errorCallback);
+  Cassandra.init(config.cassandra, retryCallback);
 };
 
 module.exports = init;

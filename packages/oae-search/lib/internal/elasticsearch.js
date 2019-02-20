@@ -57,17 +57,16 @@ const createIndex = function(indexName, settings, callback) {
 
     if (exists) {
       return callback();
-    } else {
-      log().info(
-        {
-          indexName,
-          indexSettings: settings
-        },
-        'Creating new search index.'
-      );
-
-      _exec('createIndex', client.createIndex(indexName, settings, null), callback);
     }
+    log().info(
+      {
+        indexName,
+        indexSettings: settings
+      },
+      'Creating new search index.'
+    );
+
+    _exec('createIndex', client.createIndex(indexName, settings, null), callback);
   });
 };
 
@@ -102,15 +101,20 @@ const deleteIndex = function(indexName, callback) {
  * @param  {Boolean}     callback.exists Whether or not the index exists
  */
 const indexExists = function(indexName, callback) {
-  _exec('indexStatus', client.status(indexName, null), err => {
+  const retryCallback = err => {
     if (err && err.error === 'IndexMissingException[[' + indexName + '] missing]') {
       return callback(null, false);
     }
     if (err) {
-      return callback(err);
+      const timeout = 5;
+      log().error('Error connecting to elasticsearch, retrying in ' + timeout + 's...');
+
+      return setTimeout(indexExists, timeout * 1000, indexName, callback);
     }
     return callback(null, true);
-  });
+  };
+
+  _exec('indexStatus', client.status(indexName, null), retryCallback);
 };
 
 /**

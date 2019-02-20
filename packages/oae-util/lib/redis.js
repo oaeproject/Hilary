@@ -55,9 +55,6 @@ const _selectIndex = function(client, _config, callback) {
  * @return {RedisClient}            A redis client that is configured with the given configuration
  */
 const createClient = function(_config, callback) {
-  console.log('createClient');
-  console.dir(_config);
-
   const connectionOptions = {
     port: _config.port,
     host: _config.host,
@@ -83,7 +80,13 @@ const createClient = function(_config, callback) {
   });
 
   // Authenticate (if required, redis allows for async auth)
-  if (_config.pass && _config.pass !== '') {
+  _authenticateRedis(client, _config, callback);
+};
+
+const _authenticateRedis = (client, _config, callback) => {
+  const isAuthenticationEnabled = _config.pass && _config.pass !== '';
+
+  if (isAuthenticationEnabled) {
     client.auth(_config.pass, err => {
       if (err) {
         log().error({ err }, "Couldn't authenticate with redis.");
@@ -92,7 +95,6 @@ const createClient = function(_config, callback) {
       _selectIndex(client, _config, callback);
     });
   }
-
   _selectIndex(client, _config, callback);
 };
 

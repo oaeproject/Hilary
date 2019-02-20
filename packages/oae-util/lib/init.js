@@ -28,55 +28,77 @@ const Tempfile = require('./tempfile');
 const init = function(config, callback) {
   // Create Cassandra database.
   // TODO: Move Cassandra into its own oae-cassandra module with a high priority. All of the init(..) stuff then goes in its init.js
+  bootCassandra(config, () => {
+    bootRedis(config, () => {
+      bootPubSub(config, () => {
+        bootRabbitMQ(config, () => {
+          return callback();
+        });
+      });
+    });
+  });
+};
+
+const bootCassandra = (config, callback) => {
   const retryCallback = function(err) {
     const timeout = 5;
     if (err) {
       log().error('Error connecting to cassandra, retrying in ' + timeout + 's...');
       return setTimeout(Cassandra.init, timeout * 1000, config.cassandra, retryCallback);
     }
-
-    // Allows for simple redis client creations
-    // TODO: Move this into its own oae-redis module with a high priority. All of the init(..) stuff then goes in its init.js
-    Redis.init(config.redis, err => {
-      if (err) {
-        return callback(err);
-      }
-      // Initialize the Redis based locking
-      Locking.init();
-
-      // Setup the Pubsub communication
-      // This requires that the redis utility has already been loaded.
-      // TODO: Move this into its own oae-pubsub module with a high priority. All of the init(..) stuff then goes in its init.js
-      Pubsub.init(config.redis, err => {
-        if (err) {
-          return callback(err);
-        }
-
-        // Setup the key signing utility
-        Signature.init(config.signing);
-
-        // Setup the temporary file generator
-        Tempfile.init(config.files.tmpDir);
-
-        // Clean up temp files that might be accidentally left in the temp directory
-        if (config.files.cleaner.enabled) {
-          Cleaner.start(config.files.tmpDir, config.files.cleaner.interval);
-        }
-
-        // Initialize the RabbitMQ listener
-        MQ.init(config.mq, err => {
-          if (err) {
-            return callback(err);
-          }
-
-          // Initialize the task queue
-          TaskQueue.init(callback);
-        });
-      });
-    });
+    return callback();
   };
-
   Cassandra.init(config.cassandra, retryCallback);
+};
+
+const bootRedis = (config, callback) => {
+  // Allows for simple redis client creations
+  // TODO: Move this into its own oae-redis module with a high priority. All of the init(..) stuff then goes in its init.js
+  Redis.init(config.redis, err => {
+    if (err) {
+      return callback(err);
+    }
+    // Initialize the Redis based locking
+    Locking.init();
+
+    return callback();
+  });
+};
+
+const bootPubSub = (config, callback) => {
+  // Setup the Pubsub communication
+  // This requires that the redis utility has already been loaded.
+  // TODO: Move this into its own oae-pubsub module with a high priority. All of the init(..) stuff then goes in its init.js
+  Pubsub.init(config.redis, err => {
+    if (err) {
+      return callback(err);
+    }
+
+    // Setup the key signing utility
+    Signature.init(config.signing);
+
+    // Setup the temporary file generator
+    Tempfile.init(config.files.tmpDir);
+
+    // Clean up temp files that might be accidentally left in the temp directory
+    if (config.files.cleaner.enabled) {
+      Cleaner.start(config.files.tmpDir, config.files.cleaner.interval);
+    }
+
+    return callback();
+  });
+};
+
+const bootRabbitMQ = (config, callback) => {
+  // Initialize the RabbitMQ listener
+  MQ.init(config.mq, err => {
+    if (err) {
+      return callback(err);
+    }
+
+    // Initialize the task queue
+    TaskQueue.init(callback);
+  });
 };
 
 module.exports = init;

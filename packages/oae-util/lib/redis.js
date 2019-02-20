@@ -36,6 +36,17 @@ const init = function(redisConfig, callback) {
   });
 };
 
+const _selectIndex = function(client, _config, callback) {
+  // Select the correct DB index.
+  const dbIndex = _config.dbIndex || 0;
+  client.select(dbIndex, err => {
+    if (err) {
+      log().error({ err }, "Couldn't select the redis DB index '%s'", dbIndex);
+      return callback(err);
+    }
+    return callback(null, client);
+  });
+};
 /**
  * Creates a redis connection from a defined set of configuration.
  *
@@ -44,6 +55,9 @@ const init = function(redisConfig, callback) {
  * @return {RedisClient}            A redis client that is configured with the given configuration
  */
 const createClient = function(_config, callback) {
+  console.log('createClient');
+  console.dir(_config);
+
   const connectionOptions = {
     port: _config.port,
     host: _config.host,
@@ -57,30 +71,16 @@ const createClient = function(_config, callback) {
   const client = redis.createClient(connectionOptions);
 
   // Register an error handler.
-  const redisErrorHandler = function() {
+  client.on('error', () => {
     log().error('Error connecting to redis...');
-  };
-  client.on('error', redisErrorHandler);
+  });
 
-  const isReadyHandler = function() {
+  client.on('ready', () => {
     if (isDown) {
       log().error('Reconnected to redis \\o/');
     }
     isDown = false;
-  };
-  client.on('ready', isReadyHandler);
-
-  const selectIndex = function(_config, callback) {
-    // Select the correct DB index.
-    const dbIndex = _config.dbIndex || 0;
-    client.select(dbIndex, err => {
-      if (err) {
-        log().error({ err }, "Couldn't select the redis DB index '%s'", dbIndex);
-        return callback(err);
-      }
-      return callback(null, client);
-    });
-  };
+  });
 
   // Authenticate (if required, redis allows for async auth)
   if (_config.pass && _config.pass !== '') {
@@ -89,11 +89,11 @@ const createClient = function(_config, callback) {
         log().error({ err }, "Couldn't authenticate with redis.");
         return callback(err);
       }
-      selectIndex(_config, callback);
+      _selectIndex(client, _config, callback);
     });
   }
 
-  selectIndex(_config, callback);
+  _selectIndex(client, _config, callback);
 };
 
 /**

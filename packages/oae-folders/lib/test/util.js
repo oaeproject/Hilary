@@ -1394,16 +1394,14 @@ const assertGeneralFolderSearchEquals = function(
   missingFolders,
   callback
 ) {
-  setTimeout(
-    SearchTestUtil.searchAll,
-    200,
+  SearchTestUtil.searchAll(
     restContext,
     'general',
     null,
     { resourceTypes: 'folder', q, scope: '_network' },
     (err, results) => {
       assert.ok(!err);
-      _assertSearchResults(results, expectedFolders, missingFolders);
+      setTimeout(_assertSearchResults, 200, results, expectedFolders, missingFolders);
       return callback();
     }
   );

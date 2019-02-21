@@ -113,7 +113,7 @@ services:
       - 443:443
   oae-cassandra:
     container_name: oae-cassandra
-    image: oaeproject/oae-cassandra-docker
+    image: cassandra:2.1.21
     restart: always
     networks:
       - my_network

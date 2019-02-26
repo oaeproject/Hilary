@@ -91,7 +91,7 @@
     "oae-ui": "file:packages/oae-ui",
     "oae-util": "file:packages/oae-util",
     "oae-version": "file:packages/oae-version",
-    "oauth-sign": "^0.8.2",
+    "oauth-sign": "^0.9.0",
     "oauth2orize": "^1.11.0",
     "optimist": "^0.6.1",
     "passport": "0.2.2",

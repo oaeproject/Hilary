@@ -148,7 +148,7 @@
     "repl-promised": "^0.1.0",
     "shelljs": "^0.8.3",
     "sockjs-client-ws": "^0.1.0",
-    "ws": "1.1.2",
+    "ws": "6.1.4",
     "xo": "^0.20.3"
   },
   "engines": {

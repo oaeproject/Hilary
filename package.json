@@ -58,7 +58,7 @@
     "multiparty": "^4.1.3",
     "node-esapi": "^0.0.1",
     "nodemailer": "2.4.1",
-    "nodemailer-html-to-text": "^2.1.0",
+    "nodemailer-html-to-text": "^3.0.0",
     "nodemailer-sendmail-transport": "^1.0.2",
     "nodemailer-stub-transport": "^1.1.0",
     "oae-activity": "file:packages/oae-activity",

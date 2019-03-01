@@ -101,15 +101,7 @@ const createTestServer = function(callback, _attempts) {
  * @throws {Error}                  An assertion error is thrown if an unexpected error occurs
  */
 const clearAllData = function(callback) {
-  const columnFamiliesToClear = [
-    'Content',
-    'Discussions',
-    'Folders',
-    'Principals',
-    'PrincipalsByEmail',
-    'AuthenticationLoginId',
-    'AuthenticationUserLoginId'
-  ];
+  const columnFamiliesToClear = ['Content', 'Discussions', 'Folders', 'Principals', 'PrincipalsByEmail', 'AuthenticationLoginId', 'AuthenticationUserLoginId'];
 
   /*!
    * Once all column families have been truncated, we re-populate the administrators
@@ -126,19 +118,12 @@ const clearAllData = function(callback) {
       const opts = {
         email: generateTestEmailAddress()
       };
-      AuthenticationAPI.getOrCreateGlobalAdminUser(
-        globalContext,
-        'administrator',
-        'administrator',
-        'Global Administrator',
-        opts,
-        err => {
-          assert.ok(!err);
+      AuthenticationAPI.getOrCreateGlobalAdminUser(globalContext, 'administrator', 'administrator', 'Global Administrator', opts, err => {
+        assert.ok(!err);
 
-          // Re-create the tenant administrators
-          return _setUpTenantAdmins(callback);
-        }
-      );
+        // Re-create the tenant administrators
+        return _setUpTenantAdmins(callback);
+      });
     });
   });
 
@@ -259,12 +244,7 @@ const _setUpTenantAdmins = function(callback) {
  * @api private
  */
 const _setupTenantAdmin = function(tenant, callback) {
-  const adminLoginId = new LoginId(
-    tenant.alias,
-    AuthenticationConstants.providers.LOCAL,
-    'administrator',
-    { password: 'administrator' }
-  );
+  const adminLoginId = new LoginId(tenant.alias, AuthenticationConstants.providers.LOCAL, 'administrator', { password: 'administrator' });
   const displayName = generateRandomText(2);
   const email = generateTestEmailAddress(null, tenant.emailDomains[0]);
 
@@ -323,37 +303,29 @@ const generateTestUsers = function(restCtx, total, callback, _createdUsers) {
       const username = generateTestUserId('random-user');
       const displayName = generateTestGroupId('random-user');
       const email = generateTestEmailAddress(username, tenant.emailDomains[0]);
-      RestAPI.User.createUser(
-        restCtx,
-        username,
-        'password',
-        displayName,
-        email,
-        {},
-        (err, user) => {
-          if (err) {
-            return callback(err);
-          }
-
-          // Manually verify the user their email address
-          PrincipalsDAO.setEmailAddress(user, email.toLowerCase(), (err, user) => {
-            assert.ok(!err);
-
-            _createdUsers.push({
-              user,
-              restContext: new RestContext(restCtx.host, {
-                hostHeader: restCtx.hostHeader,
-                username,
-                userPassword: 'password',
-                strictSSL: restCtx.strictSSL
-              })
-            });
-
-            // Recursively continue creating users
-            return generateTestUsers(restCtx, --total, callback, _createdUsers);
-          });
+      RestAPI.User.createUser(restCtx, username, 'password', displayName, email, {}, (err, user) => {
+        if (err) {
+          return callback(err);
         }
-      );
+
+        // Manually verify the user their email address
+        PrincipalsDAO.setEmailAddress(user, email.toLowerCase(), (err, user) => {
+          assert.ok(!err);
+
+          _createdUsers.push({
+            user,
+            restContext: new RestContext(restCtx.host, {
+              hostHeader: restCtx.hostHeader,
+              username,
+              userPassword: 'password',
+              strictSSL: restCtx.strictSSL
+            })
+          });
+
+          // Recursively continue creating users
+          return generateTestUsers(restCtx, --total, callback, _createdUsers);
+        });
+      });
     });
   });
 };
@@ -413,78 +385,50 @@ const generateTestGroups = function(restContext, total, callback, _groups) {
  */
 const createTenantWithAdmin = function(tenantAlias, tenantHost, callback) {
   const adminCtx = createGlobalAdminRestContext();
-  TenantsTestUtil.createTenantAndWait(
-    adminCtx,
-    tenantAlias,
-    tenantAlias,
-    tenantHost,
-    { emailDomains: tenantHost },
-    (err, tenant) => {
+  TenantsTestUtil.createTenantAndWait(adminCtx, tenantAlias, tenantAlias, tenantHost, { emailDomains: tenantHost }, (err, tenant) => {
+    if (err) {
+      return callback(err);
+    }
+
+    // Disable reCaptcha so we can create a user
+    ConfigTestUtil.updateConfigAndWait(adminCtx, tenantAlias, { 'oae-principals/recaptcha/enabled': false }, err => {
       if (err) {
         return callback(err);
       }
 
-      // Disable reCaptcha so we can create a user
-      ConfigTestUtil.updateConfigAndWait(
-        adminCtx,
-        tenantAlias,
-        { 'oae-principals/recaptcha/enabled': false },
-        err => {
+      // Create the user and make them a tenant administrator
+      const anonymousCtx = createTenantRestContext(tenantHost);
+      const email = generateTestEmailAddress('administrator', 'domain.' + tenantHost).toLowerCase();
+      RestAPI.User.createUser(anonymousCtx, 'administrator', 'administrator', 'Tenant Administrator', email, null, (err, tenantAdmin) => {
+        if (err) {
+          return callback(err);
+        }
+
+        // Verify their email address
+        PrincipalsDAO.setEmailAddress(tenantAdmin, email, (err, tenantAdmin) => {
           if (err) {
             return callback(err);
           }
 
-          // Create the user and make them a tenant administrator
-          const anonymousCtx = createTenantRestContext(tenantHost);
-          const email = generateTestEmailAddress(
-            'administrator',
-            'domain.' + tenantHost
-          ).toLowerCase();
-          RestAPI.User.createUser(
-            anonymousCtx,
-            'administrator',
-            'administrator',
-            'Tenant Administrator',
-            email,
-            null,
-            (err, tenantAdmin) => {
+          RestAPI.User.setTenantAdmin(adminCtx, tenantAdmin.id, true, err => {
+            if (err) {
+              return callback(err);
+            }
+
+            // Re-enable reCaptcha
+            const tenantAdminRestCtx = createTenantAdminRestContext(tenantHost);
+            ConfigTestUtil.updateConfigAndWait(tenantAdminRestCtx, null, { 'oae-principals/recaptcha/enabled': true }, err => {
               if (err) {
                 return callback(err);
               }
 
-              // Verify their email address
-              PrincipalsDAO.setEmailAddress(tenantAdmin, email, (err, tenantAdmin) => {
-                if (err) {
-                  return callback(err);
-                }
-
-                RestAPI.User.setTenantAdmin(adminCtx, tenantAdmin.id, true, err => {
-                  if (err) {
-                    return callback(err);
-                  }
-
-                  // Re-enable reCaptcha
-                  const tenantAdminRestCtx = createTenantAdminRestContext(tenantHost);
-                  ConfigTestUtil.updateConfigAndWait(
-                    tenantAdminRestCtx,
-                    null,
-                    { 'oae-principals/recaptcha/enabled': true },
-                    err => {
-                      if (err) {
-                        return callback(err);
-                      }
-
-                      return callback(null, tenant, tenantAdminRestCtx, tenantAdmin);
-                    }
-                  );
-                });
-              });
-            }
-          );
-        }
-      );
-    }
-  );
+              return callback(null, tenant, tenantAdminRestCtx, tenantAdmin);
+            });
+          });
+        });
+      });
+    });
+  });
 };
 
 /**
@@ -644,16 +588,10 @@ const createTenantAdminContext = function(tenant) {
 const createGlobalAdminContext = function() {
   const globalTenant = global.oaeTests.tenants.global;
   const globalAdminId = 'u:' + globalTenant.alias + ':admin';
-  const globalUser = new User(
-    globalTenant.alias,
-    globalAdminId,
-    'Global Administrator',
-    'admin@example.com',
-    {
-      visibility: 'private',
-      isGlobalAdmin: true
-    }
-  );
+  const globalUser = new User(globalTenant.alias, globalAdminId, 'Global Administrator', 'admin@example.com', {
+    visibility: 'private',
+    isGlobalAdmin: true
+  });
   return new Context(globalTenant, globalUser);
 };
 
@@ -900,23 +838,14 @@ const _setupTenant = function(tenant, callback) {
     tenant.publicUser = publicUser;
     tenant.loggedinUser = loggedinUser;
     tenant.privateUser = privateUser;
-    _createMultiPrivacyGroups(
-      tenant,
-      (
-        publicGroup,
-        loggedinJoinableGroup,
-        privateJoinableGroup,
-        loggedinNotJoinableGroup,
-        privateNotJoinableGroup
-      ) => {
-        tenant.publicGroup = publicGroup;
-        tenant.loggedinJoinableGroup = loggedinJoinableGroup;
-        tenant.loggedinNotJoinableGroup = loggedinNotJoinableGroup;
-        tenant.privateJoinableGroup = privateJoinableGroup;
-        tenant.privateNotJoinableGroup = privateNotJoinableGroup;
-        return callback();
-      }
-    );
+    _createMultiPrivacyGroups(tenant, (publicGroup, loggedinJoinableGroup, privateJoinableGroup, loggedinNotJoinableGroup, privateNotJoinableGroup) => {
+      tenant.publicGroup = publicGroup;
+      tenant.loggedinJoinableGroup = loggedinJoinableGroup;
+      tenant.loggedinNotJoinableGroup = loggedinNotJoinableGroup;
+      tenant.privateJoinableGroup = privateJoinableGroup;
+      tenant.privateNotJoinableGroup = privateNotJoinableGroup;
+      return callback();
+    });
   });
 };
 
@@ -956,21 +885,21 @@ const _createUserWithVisibility = function(tenant, visibility, callback) {
   const displayName = 'displayName-' + randomId;
   const publicAlias = 'publicAlias-' + randomId;
   const email = generateTestEmailAddress(null, tenant.tenant.emailDomains[0]);
-  RestAPI.User.createUser(
-    tenant.adminRestContext,
-    username,
-    password,
-    displayName,
-    email,
-    { visibility, publicAlias },
-    (err, user) => {
-      assert.ok(!err);
-      return callback({
-        user,
-        restContext: createTenantRestContext(tenant.adminRestContext.hostHeader, username, password)
-      });
-    }
-  );
+  RestAPI.User.createUser(tenant.adminRestContext, username, password, displayName, email, { visibility, publicAlias }, (err, user) => {
+    assert.ok(!err);
+    return callback({
+      user,
+      restContext: createTenantRestContext(tenant.adminRestContext.hostHeader, username, password)
+    });
+  });
+};
+
+const _wrapGroupOptions = function(visibility, memberPrincipalId, joinable) {
+  return {
+    visibility,
+    memberPrincipalId,
+    joinable
+  };
 };
 
 /**
@@ -982,53 +911,17 @@ const _createUserWithVisibility = function(tenant, visibility, callback) {
  * @api private
  */
 const _createMultiPrivacyGroups = function(tenant, callback) {
-  _createGroupWithVisibility(
-    tenant,
-    'public',
-    tenant.publicUser.user.id,
-    JOINABLE_BY_REQUEST,
-    publicGroup => {
-      _createGroupWithVisibility(
-        tenant,
-        'loggedin',
-        tenant.loggedinUser.user.id,
-        JOINABLE_BY_REQUEST,
-        loggedinJoinableGroup => {
-          _createGroupWithVisibility(
-            tenant,
-            'private',
-            tenant.privateUser.user.id,
-            JOINABLE_BY_REQUEST,
-            privateJoinableGroup => {
-              _createGroupWithVisibility(
-                tenant,
-                'loggedin',
-                tenant.loggedinUser.user.id,
-                NOT_JOINABLE,
-                loggedinNotJoinableGroup => {
-                  _createGroupWithVisibility(
-                    tenant,
-                    'private',
-                    tenant.privateUser.user.id,
-                    NOT_JOINABLE,
-                    privateNotJoinableGroup => {
-                      return callback(
-                        publicGroup,
-                        loggedinJoinableGroup,
-                        privateJoinableGroup,
-                        loggedinNotJoinableGroup,
-                        privateNotJoinableGroup
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
-    }
-  );
+  _createGroupWithVisibility(tenant, _wrapGroupOptions('public', tenant.publicUser.user.id, JOINABLE_BY_REQUEST), publicGroup => {
+    _createGroupWithVisibility(tenant, _wrapGroupOptions('loggedin', tenant.loggedinUser.user.id, JOINABLE_BY_REQUEST), loggedinJoinableGroup => {
+      _createGroupWithVisibility(tenant, _wrapGroupOptions('private', tenant.privateUser.user.id, JOINABLE_BY_REQUEST), privateJoinableGroup => {
+        _createGroupWithVisibility(tenant, _wrapGroupOptions('loggedin', tenant.loggedinUser.user.id, NOT_JOINABLE), loggedinNotJoinableGroup => {
+          _createGroupWithVisibility(tenant, _wrapGroupOptions('private', tenant.privateUser.user.id, NOT_JOINABLE), privateNotJoinableGroup => {
+            return callback(publicGroup, loggedinJoinableGroup, privateJoinableGroup, loggedinNotJoinableGroup, privateNotJoinableGroup);
+          });
+        });
+      });
+    });
+  });
 };
 
 /**
@@ -1044,29 +937,15 @@ const _createMultiPrivacyGroups = function(tenant, callback) {
  * @throws {Error}                              An assertion error is thrown if something does not get created properly
  * @api private
  */
-const _createGroupWithVisibility = function(
-  tenant,
-  visibility,
-  memberPrincipalId,
-  joinable,
-  callback
-) {
+const _createGroupWithVisibility = function(tenant, group, callback) {
+  const { visibility, memberPrincipalId, joinable } = group;
   const randomId = util.format('%s-%s', visibility, ShortId.generate());
   const displayName = 'displayName-' + randomId;
   const description = 'description-' + randomId;
-  RestAPI.Group.createGroup(
-    tenant.adminRestContext,
-    displayName,
-    description,
-    visibility,
-    joinable,
-    [],
-    [memberPrincipalId],
-    (err, newGroup) => {
-      assert.ok(!err);
-      return callback(newGroup);
-    }
-  );
+  RestAPI.Group.createGroup(tenant.adminRestContext, displayName, description, visibility, joinable, [], [memberPrincipalId], (err, newGroup) => {
+    assert.ok(!err);
+    return callback(newGroup);
+  });
 };
 
 /**
@@ -1082,15 +961,10 @@ const _createGroupWithVisibility = function(
 const _createPrivateTenant = function(tenantAlias, callback) {
   _createPublicTenant(tenantAlias, 'private', (tenant, tenantAdmin) => {
     // Only global admins can update tenant privacy, so use that
-    ConfigTestUtil.updateConfigAndWait(
-      createGlobalAdminRestContext(),
-      tenant.alias,
-      { 'oae-tenants/tenantprivacy/tenantprivate': true },
-      err => {
-        assert.ok(!err);
-        return callback(tenant, tenantAdmin);
-      }
-    );
+    ConfigTestUtil.updateConfigAndWait(createGlobalAdminRestContext(), tenant.alias, { 'oae-tenants/tenantprivacy/tenantprivate': true }, err => {
+      assert.ok(!err);
+      return callback(tenant, tenantAdmin);
+    });
   });
 };
 

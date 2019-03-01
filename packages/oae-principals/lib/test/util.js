@@ -2339,7 +2339,7 @@ const assertUpdateJoinGroupByRequestSucceeds = function(
   status,
   callback
 ) {
-  RestAPI.Group.updateJoinGroupByRequest(restCtx, groupId, principalId, role, status, err => {
+  RestAPI.Group.updateJoinGroupByRequest(restCtx, { groupId, principalId, role, status }, err => {
     assert.ok(!err);
     return callback();
   });
@@ -2365,7 +2365,7 @@ const assertUpdateJoinGroupByRequestFails = function(
   httpCode,
   callback
 ) {
-  RestAPI.Group.updateJoinGroupByRequest(restCtx, groupId, principalId, role, status, err => {
+  RestAPI.Group.updateJoinGroupByRequest(restCtx, { groupId, principalId, role, status }, err => {
     assert.ok(err);
     assert.strictEqual(err.code, httpCode);
     return callback();

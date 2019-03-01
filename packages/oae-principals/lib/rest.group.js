@@ -456,9 +456,11 @@ OAE.tenantRouter.on('get', '/api/group/:groupId/join-request/all', (req, res) =>
 
   PrincipalsAPI.getJoinGroupRequests(
     req.ctx,
-    req.params.groupId,
-    req.query.start,
-    limit,
+    {
+      groupId: req.params.groupId,
+      start: req.query.start,
+      limit
+    },
     (err, requests, nextToken) => {
       if (err) {
         return res.status(err.code).send(err.msg);
@@ -487,10 +489,12 @@ OAE.tenantRouter.on('get', '/api/group/:groupId/join-request/all', (req, res) =>
 OAE.tenantRouter.on('put', '/api/group/:groupId/join-request', (req, res) => {
   PrincipalsAPI.updateJoinGroupByRequest(
     req.ctx,
-    req.params.groupId,
-    req.body.principalId,
-    req.body.role,
-    req.body.status,
+    {
+      groupId: req.params.groupId,
+      principalId: req.body.principalId,
+      role: req.body.role,
+      status: req.body.status
+    },
     err => {
       if (err) {
         return res.status(err.code).send(err.msg);

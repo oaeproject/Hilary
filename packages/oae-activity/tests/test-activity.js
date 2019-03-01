@@ -378,18 +378,18 @@ describe('Activity', () => {
           };
           _createDiscussion(
             publicTenant0.adminRestContext,
-            publicTenant0.loggedinGroup.id,
+            publicTenant0.loggedinJoinableGroup.id,
             (publicDiscussion, loggedinDiscussion, privateDiscussion) => {
-              publicTenant0.loggedinGroup.discussions = {
+              publicTenant0.loggedinJoinableGroup.discussions = {
                 public: publicDiscussion,
                 loggedin: loggedinDiscussion,
                 private: privateDiscussion
               };
               _createDiscussion(
                 publicTenant0.adminRestContext,
-                publicTenant0.privateGroup.id,
+                publicTenant0.privateJoinableGroup.id,
                 (publicDiscussion, loggedinDiscussion, privateDiscussion) => {
-                  publicTenant0.privateGroup.discussions = {
+                  publicTenant0.privateJoinableGroup.discussions = {
                     public: publicDiscussion,
                     loggedin: loggedinDiscussion,
                     private: privateDiscussion
@@ -2216,37 +2216,37 @@ describe('Activity', () => {
         // cannot access the activity stream of a loggedin group
         ActivityTestUtil.assertGetActivityStreamFails(
           publicTenant0.anonymousRestContext,
-          publicTenant0.loggedinGroup.id,
+          publicTenant0.loggedinJoinableGroup.id,
           null,
           401,
           () => {
             ActivityTestUtil.assertGetActivityStreamFails(
               publicTenant1.anonymousRestContext,
-              publicTenant0.loggedinGroup.id,
+              publicTenant0.loggedinJoinableGroup.id,
               null,
               401,
               () => {
                 ActivityTestUtil.assertGetActivityStreamFails(
                   publicTenant1.publicUser.restContext,
-                  publicTenant0.loggedinGroupNotJoinable.id,
+                  publicTenant0.loggedinNotJoinableGroup.id,
                   null,
                   401,
                   () => {
                     ActivityTestUtil.assertGetActivityStreamFails(
                       publicTenant1.loggedinUser.restContext,
-                      publicTenant0.loggedinGroupNotJoinable.id,
+                      publicTenant0.loggedinNotJoinableGroup.id,
                       null,
                       401,
                       () => {
                         ActivityTestUtil.assertGetActivityStreamFails(
                           publicTenant1.privateUser.restContext,
-                          publicTenant0.loggedinGroupNotJoinable.id,
+                          publicTenant0.loggedinNotJoinableGroup.id,
                           null,
                           401,
                           () => {
                             ActivityTestUtil.assertGetActivityStreamFails(
                               publicTenant1.adminRestContext,
-                              publicTenant0.loggedinGroupNotJoinable.id,
+                              publicTenant0.loggedinNotJoinableGroup.id,
                               null,
                               401,
                               () => {
@@ -2254,48 +2254,48 @@ describe('Activity', () => {
                                 // the loggedin activity stream for a loggedin group
                                 _assertStream(
                                   publicTenant0.publicUser.restContext,
-                                  publicTenant0.loggedinGroup.id,
+                                  publicTenant0.loggedinJoinableGroup.id,
                                   1,
                                   [
-                                    publicTenant0.loggedinGroup.discussions.public.id,
-                                    publicTenant0.loggedinGroup.discussions.loggedin.id
+                                    publicTenant0.loggedinJoinableGroup.discussions.public.id,
+                                    publicTenant0.loggedinJoinableGroup.discussions.loggedin.id
                                   ],
-                                  [publicTenant0.loggedinGroup.id],
+                                  [publicTenant0.loggedinJoinableGroup.id],
                                   () => {
                                     _assertStream(
                                       publicTenant0.privateUser.restContext,
-                                      publicTenant0.loggedinGroup.id,
+                                      publicTenant0.loggedinJoinableGroup.id,
                                       1,
                                       [
-                                        publicTenant0.loggedinGroup.discussions.public.id,
-                                        publicTenant0.loggedinGroup.discussions.loggedin.id
+                                        publicTenant0.loggedinJoinableGroup.discussions.public.id,
+                                        publicTenant0.loggedinJoinableGroup.discussions.loggedin.id
                                       ],
-                                      [publicTenant0.loggedinGroup.id],
+                                      [publicTenant0.loggedinJoinableGroup.id],
                                       () => {
                                         _assertStream(
                                           publicTenant1.publicUser.restContext,
-                                          publicTenant0.loggedinGroup.id,
+                                          publicTenant0.loggedinJoinableGroup.id,
                                           0,
                                           [],
                                           [],
                                           () => {
                                             _assertStream(
                                               publicTenant1.loggedinUser.restContext,
-                                              publicTenant0.loggedinGroup.id,
+                                              publicTenant0.loggedinJoinableGroup.id,
                                               0,
                                               [],
                                               [],
                                               () => {
                                                 _assertStream(
                                                   publicTenant1.privateUser.restContext,
-                                                  publicTenant0.loggedinGroup.id,
+                                                  publicTenant0.loggedinJoinableGroup.id,
                                                   0,
                                                   [],
                                                   [],
                                                   () => {
                                                     _assertStream(
                                                       publicTenant1.adminRestContext,
-                                                      publicTenant0.loggedinGroup.id,
+                                                      publicTenant0.loggedinJoinableGroup.id,
                                                       0,
                                                       [],
                                                       [],
@@ -2304,31 +2304,31 @@ describe('Activity', () => {
                                                         // the private activity stream for a loggedin group
                                                         _assertStream(
                                                           publicTenant0.loggedinUser.restContext,
-                                                          publicTenant0.loggedinGroup.id,
+                                                          publicTenant0.loggedinJoinableGroup.id,
                                                           1,
                                                           [
-                                                            publicTenant0.loggedinGroup.discussions
+                                                            publicTenant0.loggedinJoinableGroup.discussions
                                                               .public.id,
-                                                            publicTenant0.loggedinGroup.discussions
+                                                            publicTenant0.loggedinJoinableGroup.discussions
                                                               .loggedin.id,
-                                                            publicTenant0.loggedinGroup.discussions
+                                                            publicTenant0.loggedinJoinableGroup.discussions
                                                               .private.id
                                                           ],
-                                                          [publicTenant0.loggedinGroup.id],
+                                                          [publicTenant0.loggedinJoinableGroup.id],
                                                           () => {
                                                             _assertStream(
                                                               publicTenant0.adminRestContext,
-                                                              publicTenant0.loggedinGroup.id,
+                                                              publicTenant0.loggedinJoinableGroup.id,
                                                               1,
                                                               [
-                                                                publicTenant0.loggedinGroup
+                                                                publicTenant0.loggedinJoinableGroup
                                                                   .discussions.public.id,
-                                                                publicTenant0.loggedinGroup
+                                                                publicTenant0.loggedinJoinableGroup
                                                                   .discussions.loggedin.id,
-                                                                publicTenant0.loggedinGroup
+                                                                publicTenant0.loggedinJoinableGroup
                                                                   .discussions.private.id
                                                               ],
-                                                              [publicTenant0.loggedinGroup.id],
+                                                              [publicTenant0.loggedinJoinableGroup.id],
                                                               () => {
                                                                 return callback();
                                                               }
@@ -2370,83 +2370,83 @@ describe('Activity', () => {
         // A private group's activity feed is only accessible by members or by a tenant administrator
         ActivityTestUtil.assertGetActivityStreamFails(
           publicTenant0.anonymousRestContext,
-          publicTenant0.privateGroup.id,
+          publicTenant0.privateJoinableGroup.id,
           null,
           401,
           () => {
             ActivityTestUtil.assertGetActivityStreamFails(
               publicTenant1.anonymousRestContext,
-              publicTenant0.privateGroup.id,
+              publicTenant0.privateJoinableGroup.id,
               null,
               401,
               () => {
                 ActivityTestUtil.assertGetActivityStreamFails(
                   publicTenant1.publicUser.restContext,
-                  publicTenant0.privateGroupNotJoinable.id,
+                  publicTenant0.privateNotJoinableGroup.id,
                   null,
                   401,
                   () => {
                     ActivityTestUtil.assertGetActivityStreamFails(
                       publicTenant1.loggedinUser.restContext,
-                      publicTenant0.privateGroupNotJoinable.id,
+                      publicTenant0.privateNotJoinableGroup.id,
                       null,
                       401,
                       () => {
                         ActivityTestUtil.assertGetActivityStreamFails(
                           publicTenant1.privateUser.restContext,
-                          publicTenant0.privateGroupNotJoinable.id,
+                          publicTenant0.privateNotJoinableGroup.id,
                           null,
                           401,
                           () => {
                             ActivityTestUtil.assertGetActivityStreamFails(
                               publicTenant1.adminRestContext,
-                              publicTenant0.privateGroupNotJoinable.id,
+                              publicTenant0.privateNotJoinableGroup.id,
                               null,
                               401,
                               () => {
                                 ActivityTestUtil.assertGetActivityStreamFails(
                                   publicTenant0.publicUser.restContext,
-                                  publicTenant0.privateGroupNotJoinable.id,
+                                  publicTenant0.privateNotJoinableGroup.id,
                                   null,
                                   401,
                                   () => {
                                     ActivityTestUtil.assertGetActivityStreamFails(
                                       publicTenant0.loggedinUser.restContext,
-                                      publicTenant0.privateGroupNotJoinable.id,
+                                      publicTenant0.privateNotJoinableGroup.id,
                                       null,
                                       401,
                                       () => {
                                         _assertStream(
                                           publicTenant1.publicUser.restContext,
-                                          publicTenant0.privateGroup.id,
+                                          publicTenant0.privateJoinableGroup.id,
                                           0,
                                           [],
                                           [],
                                           () => {
                                             _assertStream(
                                               publicTenant1.loggedinUser.restContext,
-                                              publicTenant0.privateGroup.id,
+                                              publicTenant0.privateJoinableGroup.id,
                                               0,
                                               [],
                                               [],
                                               () => {
                                                 _assertStream(
                                                   publicTenant1.privateUser.restContext,
-                                                  publicTenant0.privateGroup.id,
+                                                  publicTenant0.privateJoinableGroup.id,
                                                   0,
                                                   [],
                                                   [],
                                                   () => {
                                                     _assertStream(
                                                       publicTenant1.adminRestContext,
-                                                      publicTenant0.privateGroup.id,
+                                                      publicTenant0.privateJoinableGroup.id,
                                                       0,
                                                       [],
                                                       [],
                                                       () => {
                                                         _assertStream(
                                                           publicTenant0.publicUser.restContext,
-                                                          publicTenant0.privateGroup.id,
+                                                          publicTenant0.privateJoinableGroup.id,
                                                           0,
                                                           [],
                                                           [],
@@ -2454,7 +2454,7 @@ describe('Activity', () => {
                                                             _assertStream(
                                                               publicTenant0.loggedinUser
                                                                 .restContext,
-                                                              publicTenant0.privateGroup.id,
+                                                              publicTenant0.privateJoinableGroup.id,
                                                               0,
                                                               [],
                                                               [],
@@ -2464,32 +2464,32 @@ describe('Activity', () => {
                                                                 _assertStream(
                                                                   publicTenant0.privateUser
                                                                     .restContext,
-                                                                  publicTenant0.privateGroup.id,
+                                                                  publicTenant0.privateJoinableGroup.id,
                                                                   1,
                                                                   [
-                                                                    publicTenant0.privateGroup
+                                                                    publicTenant0.privateJoinableGroup
                                                                       .discussions.public.id,
-                                                                    publicTenant0.privateGroup
+                                                                    publicTenant0.privateJoinableGroup
                                                                       .discussions.loggedin.id,
-                                                                    publicTenant0.privateGroup
+                                                                    publicTenant0.privateJoinableGroup
                                                                       .discussions.private.id
                                                                   ],
-                                                                  [publicTenant0.privateGroup.id],
+                                                                  [publicTenant0.privateJoinableGroup.id],
                                                                   () => {
                                                                     _assertStream(
                                                                       publicTenant0.adminRestContext,
-                                                                      publicTenant0.privateGroup.id,
+                                                                      publicTenant0.privateJoinableGroup.id,
                                                                       1,
                                                                       [
-                                                                        publicTenant0.privateGroup
+                                                                        publicTenant0.privateJoinableGroup
                                                                           .discussions.public.id,
-                                                                        publicTenant0.privateGroup
+                                                                        publicTenant0.privateJoinableGroup
                                                                           .discussions.loggedin.id,
-                                                                        publicTenant0.privateGroup
+                                                                        publicTenant0.privateJoinableGroup
                                                                           .discussions.private.id
                                                                       ],
                                                                       [
-                                                                        publicTenant0.privateGroup
+                                                                        publicTenant0.privateJoinableGroup
                                                                           .id
                                                                       ],
                                                                       () => {

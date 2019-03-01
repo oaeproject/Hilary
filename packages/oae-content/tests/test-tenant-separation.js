@@ -597,7 +597,7 @@ describe('Content', () => {
                       verifyShare(
                         publicTenantB.adminRestContext,
                         publicTenantB.publicContent,
-                        privateTenantA.loggedinGroup.id,
+                        privateTenantA.loggedinJoinableGroup.id,
                         privateTenantA.loggedinUser.restContext,
                         false,
                         401,
@@ -605,7 +605,7 @@ describe('Content', () => {
                           verifyShare(
                             publicTenantB.adminRestContext,
                             publicTenantB.publicContent,
-                            privateTenantA.loggedinGroupNotJoinable.id,
+                            privateTenantA.loggedinNotJoinableGroup.id,
                             privateTenantA.loggedinUser.restContext,
                             false,
                             401,
@@ -613,7 +613,7 @@ describe('Content', () => {
                               verifyShare(
                                 publicTenantB.adminRestContext,
                                 publicTenantB.loggedinContent,
-                                privateTenantA.loggedinGroup.id,
+                                privateTenantA.loggedinJoinableGroup.id,
                                 privateTenantA.loggedinUser.restContext,
                                 false,
                                 401,
@@ -621,7 +621,7 @@ describe('Content', () => {
                                   verifyShare(
                                     publicTenantB.adminRestContext,
                                     publicTenantB.loggedinContent,
-                                    privateTenantA.loggedinGroupNotJoinable.id,
+                                    privateTenantA.loggedinNotJoinableGroup.id,
                                     privateTenantA.loggedinUser.restContext,
                                     false,
                                     401,
@@ -629,7 +629,7 @@ describe('Content', () => {
                                       verifyShare(
                                         publicTenantB.adminRestContext,
                                         publicTenantB.privateContent,
-                                        privateTenantA.loggedinGroup.id,
+                                        privateTenantA.loggedinJoinableGroup.id,
                                         privateTenantA.loggedinUser.restContext,
                                         false,
                                         401,
@@ -637,7 +637,7 @@ describe('Content', () => {
                                           verifyShare(
                                             publicTenantB.adminRestContext,
                                             publicTenantB.privateContent,
-                                            privateTenantA.loggedinGroupNotJoinable.id,
+                                            privateTenantA.loggedinNotJoinableGroup.id,
                                             privateTenantA.loggedinUser.restContext,
                                             false,
                                             401,
@@ -645,7 +645,7 @@ describe('Content', () => {
                                               verifyShare(
                                                 publicTenantB.adminRestContext,
                                                 publicTenantB.publicContent,
-                                                privateTenantA.privateGroup.id,
+                                                privateTenantA.privateJoinableGroup.id,
                                                 privateTenantA.privateUser.restContext,
                                                 false,
                                                 401,
@@ -653,7 +653,7 @@ describe('Content', () => {
                                                   verifyShare(
                                                     publicTenantB.adminRestContext,
                                                     publicTenantB.publicContent,
-                                                    privateTenantA.privateGroupNotJoinable.id,
+                                                    privateTenantA.privateNotJoinableGroup.id,
                                                     privateTenantA.privateUser.restContext,
                                                     false,
                                                     401,
@@ -661,7 +661,7 @@ describe('Content', () => {
                                                       verifyShare(
                                                         publicTenantB.adminRestContext,
                                                         publicTenantB.loggedinContent,
-                                                        privateTenantA.privateGroup.id,
+                                                        privateTenantA.privateJoinableGroup.id,
                                                         privateTenantA.privateUser.restContext,
                                                         false,
                                                         401,
@@ -669,7 +669,7 @@ describe('Content', () => {
                                                           verifyShare(
                                                             publicTenantB.adminRestContext,
                                                             publicTenantB.loggedinContent,
-                                                            privateTenantA.privateGroupNotJoinable
+                                                            privateTenantA.privateNotJoinableGroup
                                                               .id,
                                                             privateTenantA.privateUser.restContext,
                                                             false,
@@ -678,7 +678,7 @@ describe('Content', () => {
                                                               verifyShare(
                                                                 publicTenantB.adminRestContext,
                                                                 publicTenantB.privateContent,
-                                                                privateTenantA.privateGroup.id,
+                                                                privateTenantA.privateJoinableGroup.id,
                                                                 privateTenantA.privateUser
                                                                   .restContext,
                                                                 false,
@@ -688,7 +688,7 @@ describe('Content', () => {
                                                                     publicTenantB.adminRestContext,
                                                                     publicTenantB.privateContent,
                                                                     privateTenantA
-                                                                      .privateGroupNotJoinable.id,
+                                                                      .privateNotJoinableGroup.id,
                                                                     privateTenantA.privateUser
                                                                       .restContext,
                                                                     false,
@@ -698,7 +698,7 @@ describe('Content', () => {
                                                                         publicTenantB.adminRestContext,
                                                                         publicTenantB.publicContent,
                                                                         publicTenantA
-                                                                          .loggedinGroupNotJoinable
+                                                                          .loggedinNotJoinableGroup
                                                                           .id,
                                                                         publicTenantA.loggedinUser
                                                                           .restContext,
@@ -709,7 +709,7 @@ describe('Content', () => {
                                                                             publicTenantB.adminRestContext,
                                                                             publicTenantB.publicContent,
                                                                             publicTenantA
-                                                                              .loggedinGroup.id,
+                                                                              .loggedinJoinableGroup.id,
                                                                             publicTenantA
                                                                               .loggedinUser
                                                                               .restContext,
@@ -720,7 +720,7 @@ describe('Content', () => {
                                                                                 publicTenantB.adminRestContext,
                                                                                 publicTenantB.loggedinContent,
                                                                                 publicTenantA
-                                                                                  .loggedinGroupNotJoinable
+                                                                                  .loggedinNotJoinableGroup
                                                                                   .id,
                                                                                 publicTenantA
                                                                                   .loggedinUser
@@ -732,7 +732,7 @@ describe('Content', () => {
                                                                                     publicTenantB.adminRestContext,
                                                                                     publicTenantB.loggedinContent,
                                                                                     publicTenantA
-                                                                                      .loggedinGroup
+                                                                                      .loggedinJoinableGroup
                                                                                       .id,
                                                                                     publicTenantA
                                                                                       .loggedinUser
@@ -744,7 +744,7 @@ describe('Content', () => {
                                                                                         publicTenantB.adminRestContext,
                                                                                         publicTenantB.privateContent,
                                                                                         publicTenantA
-                                                                                          .loggedinGroupNotJoinable
+                                                                                          .loggedinNotJoinableGroup
                                                                                           .id,
                                                                                         publicTenantA
                                                                                           .loggedinUser
@@ -756,7 +756,7 @@ describe('Content', () => {
                                                                                             publicTenantB.adminRestContext,
                                                                                             publicTenantB.privateContent,
                                                                                             publicTenantA
-                                                                                              .loggedinGroup
+                                                                                              .loggedinJoinableGroup
                                                                                               .id,
                                                                                             publicTenantA
                                                                                               .loggedinUser
@@ -768,7 +768,7 @@ describe('Content', () => {
                                                                                                 publicTenantB.adminRestContext,
                                                                                                 publicTenantB.publicContent,
                                                                                                 publicTenantA
-                                                                                                  .privateGroupNotJoinable
+                                                                                                  .privateNotJoinableGroup
                                                                                                   .id,
                                                                                                 publicTenantA
                                                                                                   .privateUser
@@ -780,7 +780,7 @@ describe('Content', () => {
                                                                                                     publicTenantB.adminRestContext,
                                                                                                     publicTenantB.publicContent,
                                                                                                     publicTenantA
-                                                                                                      .privateGroup
+                                                                                                      .privateJoinableGroup
                                                                                                       .id,
                                                                                                     publicTenantA
                                                                                                       .privateUser
@@ -792,7 +792,7 @@ describe('Content', () => {
                                                                                                         publicTenantB.adminRestContext,
                                                                                                         publicTenantB.loggedinContent,
                                                                                                         publicTenantA
-                                                                                                          .privateGroupNotJoinable
+                                                                                                          .privateNotJoinableGroup
                                                                                                           .id,
                                                                                                         publicTenantA
                                                                                                           .privateUser
@@ -804,7 +804,7 @@ describe('Content', () => {
                                                                                                             publicTenantB.adminRestContext,
                                                                                                             publicTenantB.loggedinContent,
                                                                                                             publicTenantA
-                                                                                                              .privateGroup
+                                                                                                              .privateJoinableGroup
                                                                                                               .id,
                                                                                                             publicTenantA
                                                                                                               .privateUser
@@ -816,7 +816,7 @@ describe('Content', () => {
                                                                                                                 publicTenantB.adminRestContext,
                                                                                                                 publicTenantB.privateContent,
                                                                                                                 publicTenantA
-                                                                                                                  .privateGroupNotJoinable
+                                                                                                                  .privateNotJoinableGroup
                                                                                                                   .id,
                                                                                                                 publicTenantA
                                                                                                                   .privateUser
@@ -828,7 +828,7 @@ describe('Content', () => {
                                                                                                                     publicTenantB.adminRestContext,
                                                                                                                     publicTenantB.privateContent,
                                                                                                                     publicTenantA
-                                                                                                                      .privateGroup
+                                                                                                                      .privateJoinableGroup
                                                                                                                       .id,
                                                                                                                     publicTenantA
                                                                                                                       .privateUser
@@ -1554,7 +1554,7 @@ describe('Content', () => {
                         verifyShare(
                           publicTenantA.publicUser.restContext,
                           publicTenantA.publicContent,
-                          publicTenantB.loggedinGroupNotJoinable.id,
+                          publicTenantB.loggedinNotJoinableGroup.id,
                           publicTenantB.loggedinUser.restContext,
                           false,
                           401,
@@ -1562,7 +1562,7 @@ describe('Content', () => {
                             verifyShare(
                               publicTenantA.publicUser.restContext,
                               publicTenantA.publicContent,
-                              publicTenantB.loggedinGroup.id,
+                              publicTenantB.loggedinJoinableGroup.id,
                               publicTenantB.loggedinUser.restContext,
                               false,
                               200,
@@ -1570,7 +1570,7 @@ describe('Content', () => {
                                 verifyShare(
                                   publicTenantA.loggedinUser.restContext,
                                   publicTenantA.publicContent,
-                                  publicTenantB.loggedinGroupNotJoinable.id,
+                                  publicTenantB.loggedinNotJoinableGroup.id,
                                   publicTenantB.loggedinUser.restContext,
                                   false,
                                   401,
@@ -1578,7 +1578,7 @@ describe('Content', () => {
                                     verifyShare(
                                       publicTenantA.loggedinUser.restContext,
                                       publicTenantA.publicContent,
-                                      publicTenantB.loggedinGroup.id,
+                                      publicTenantB.loggedinJoinableGroup.id,
                                       publicTenantB.loggedinUser.restContext,
                                       false,
                                       200,
@@ -1586,7 +1586,7 @@ describe('Content', () => {
                                         verifyShare(
                                           publicTenantA.privateUser.restContext,
                                           publicTenantA.publicContent,
-                                          publicTenantB.loggedinGroupNotJoinable.id,
+                                          publicTenantB.loggedinNotJoinableGroup.id,
                                           publicTenantB.loggedinUser.restContext,
                                           false,
                                           401,
@@ -1594,7 +1594,7 @@ describe('Content', () => {
                                             verifyShare(
                                               publicTenantA.privateUser.restContext,
                                               publicTenantA.publicContent,
-                                              publicTenantB.loggedinGroup.id,
+                                              publicTenantB.loggedinJoinableGroup.id,
                                               publicTenantB.loggedinUser.restContext,
                                               false,
                                               200,
@@ -1602,7 +1602,7 @@ describe('Content', () => {
                                                 verifyShare(
                                                   publicTenantA.publicUser.restContext,
                                                   publicTenantA.publicContent,
-                                                  publicTenantB.privateGroupNotJoinable.id,
+                                                  publicTenantB.privateNotJoinableGroup.id,
                                                   publicTenantB.privateUser.restContext,
                                                   false,
                                                   401,
@@ -1610,7 +1610,7 @@ describe('Content', () => {
                                                     verifyShare(
                                                       publicTenantA.publicUser.restContext,
                                                       publicTenantA.publicContent,
-                                                      publicTenantB.privateGroup.id,
+                                                      publicTenantB.privateJoinableGroup.id,
                                                       publicTenantB.privateUser.restContext,
                                                       false,
                                                       200,
@@ -1618,7 +1618,7 @@ describe('Content', () => {
                                                         verifyShare(
                                                           publicTenantA.loggedinUser.restContext,
                                                           publicTenantA.publicContent,
-                                                          publicTenantB.privateGroupNotJoinable.id,
+                                                          publicTenantB.privateNotJoinableGroup.id,
                                                           publicTenantB.privateUser.restContext,
                                                           false,
                                                           401,
@@ -1627,7 +1627,7 @@ describe('Content', () => {
                                                               publicTenantA.loggedinUser
                                                                 .restContext,
                                                               publicTenantA.publicContent,
-                                                              publicTenantB.privateGroup.id,
+                                                              publicTenantB.privateJoinableGroup.id,
                                                               publicTenantB.privateUser.restContext,
                                                               false,
                                                               200,
@@ -1637,7 +1637,7 @@ describe('Content', () => {
                                                                     .restContext,
                                                                   publicTenantA.publicContent,
                                                                   publicTenantB
-                                                                    .privateGroupNotJoinable.id,
+                                                                    .privateNotJoinableGroup.id,
                                                                   publicTenantB.privateUser
                                                                     .restContext,
                                                                   false,
@@ -1647,7 +1647,7 @@ describe('Content', () => {
                                                                       publicTenantA.privateUser
                                                                         .restContext,
                                                                       publicTenantA.publicContent,
-                                                                      publicTenantB.privateGroup.id,
+                                                                      publicTenantB.privateJoinableGroup.id,
                                                                       publicTenantB.privateUser
                                                                         .restContext,
                                                                       false,
@@ -1696,7 +1696,7 @@ describe('Content', () => {
                                                                                         .restContext,
                                                                                       publicTenantA.publicContent,
                                                                                       privateTenantA
-                                                                                        .loggedinGroup
+                                                                                        .loggedinJoinableGroup
                                                                                         .id,
                                                                                       privateTenantA
                                                                                         .loggedinUser
@@ -1710,7 +1710,7 @@ describe('Content', () => {
                                                                                             .restContext,
                                                                                           publicTenantA.publicContent,
                                                                                           privateTenantA
-                                                                                            .loggedinGroup
+                                                                                            .loggedinJoinableGroup
                                                                                             .id,
                                                                                           privateTenantA
                                                                                             .loggedinUser
@@ -1724,7 +1724,7 @@ describe('Content', () => {
                                                                                                 .restContext,
                                                                                               publicTenantA.publicContent,
                                                                                               privateTenantA
-                                                                                                .loggedinGroup
+                                                                                                .loggedinJoinableGroup
                                                                                                 .id,
                                                                                               privateTenantA
                                                                                                 .loggedinUser
@@ -1738,7 +1738,7 @@ describe('Content', () => {
                                                                                                     .restContext,
                                                                                                   publicTenantA.publicContent,
                                                                                                   privateTenantA
-                                                                                                    .privateGroup
+                                                                                                    .privateJoinableGroup
                                                                                                     .id,
                                                                                                   privateTenantA
                                                                                                     .privateUser
@@ -1752,7 +1752,7 @@ describe('Content', () => {
                                                                                                         .restContext,
                                                                                                       publicTenantA.publicContent,
                                                                                                       privateTenantA
-                                                                                                        .privateGroup
+                                                                                                        .privateJoinableGroup
                                                                                                         .id,
                                                                                                       privateTenantA
                                                                                                         .privateUser
@@ -1766,7 +1766,7 @@ describe('Content', () => {
                                                                                                             .restContext,
                                                                                                           publicTenantA.publicContent,
                                                                                                           privateTenantA
-                                                                                                            .privateGroup
+                                                                                                            .privateJoinableGroup
                                                                                                             .id,
                                                                                                           privateTenantA
                                                                                                             .privateUser

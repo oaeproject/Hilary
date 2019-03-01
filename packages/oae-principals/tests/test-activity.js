@@ -802,7 +802,7 @@ describe('Principals Activity', () => {
               'no',
               [],
               [],
-              (err, privateGroup) => {
+              (err, privateJoinableGroup) => {
                 assert.ok(!err);
 
                 // Ensure only the 2 following activities are in Nico's feed as he does not have access to the private group

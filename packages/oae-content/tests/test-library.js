@@ -1053,7 +1053,7 @@ describe('Content Libraries', () => {
         groupCreator.restContext,
         'private',
         (
-          privateGroup,
+          privateJoinableGroup,
           privateGroupPrivateContent,
           privateGroupLoggedinContent,
           privateGroupPublicContent
@@ -1062,7 +1062,7 @@ describe('Content Libraries', () => {
             groupCreator.restContext,
             'loggedin',
             (
-              loggedinGroup,
+              loggedinJoinableGroup,
               loggedinGroupPrivateContent,
               loggedinGroupLoggedinContent,
               loggedinGroupPublicContent
@@ -1083,16 +1083,16 @@ describe('Content Libraries', () => {
                     true,
                     [publicGroupPublicContent],
                     () => {
-                      checkLibrary(camAnonymousRestCtx, loggedinGroup.id, false, [], () => {
-                        checkLibrary(camAnonymousRestCtx, privateGroup.id, false, [], () => {
+                      checkLibrary(camAnonymousRestCtx, loggedinJoinableGroup.id, false, [], () => {
+                        checkLibrary(camAnonymousRestCtx, privateJoinableGroup.id, false, [], () => {
                           checkLibrary(
                             gtAnonymousRestCtx,
                             publicGroup.id,
                             true,
                             [publicGroupPublicContent],
                             () => {
-                              checkLibrary(gtAnonymousRestCtx, loggedinGroup.id, false, [], () => {
-                                checkLibrary(gtAnonymousRestCtx, privateGroup.id, false, [], () => {
+                              checkLibrary(gtAnonymousRestCtx, loggedinJoinableGroup.id, false, [], () => {
+                                checkLibrary(gtAnonymousRestCtx, privateJoinableGroup.id, false, [], () => {
                                   // A loggedin user on the same tenant can see the loggedin stream for the public and loggedin group.
                                   checkLibrary(
                                     anotherUser.restContext,
@@ -1102,13 +1102,13 @@ describe('Content Libraries', () => {
                                     () => {
                                       checkLibrary(
                                         anotherUser.restContext,
-                                        loggedinGroup.id,
+                                        loggedinJoinableGroup.id,
                                         true,
                                         [loggedinGroupPublicContent, loggedinGroupLoggedinContent],
                                         () => {
                                           checkLibrary(
                                             anotherUser.restContext,
-                                            privateGroup.id,
+                                            privateJoinableGroup.id,
                                             false,
                                             [],
                                             () => {
@@ -1126,13 +1126,13 @@ describe('Content Libraries', () => {
                                                     () => {
                                                       checkLibrary(
                                                         otherTenantUser.restContext,
-                                                        loggedinGroup.id,
+                                                        loggedinJoinableGroup.id,
                                                         false,
                                                         [],
                                                         () => {
                                                           checkLibrary(
                                                             otherTenantUser.restContext,
-                                                            privateGroup.id,
+                                                            privateJoinableGroup.id,
                                                             false,
                                                             [],
                                                             () => {
@@ -1149,7 +1149,7 @@ describe('Content Libraries', () => {
                                                                 () => {
                                                                   checkLibrary(
                                                                     camAdminRestCtx,
-                                                                    loggedinGroup.id,
+                                                                    loggedinJoinableGroup.id,
                                                                     true,
                                                                     [
                                                                       loggedinGroupPublicContent,
@@ -1159,7 +1159,7 @@ describe('Content Libraries', () => {
                                                                     () => {
                                                                       checkLibrary(
                                                                         camAdminRestCtx,
-                                                                        privateGroup.id,
+                                                                        privateJoinableGroup.id,
                                                                         true,
                                                                         [
                                                                           privateGroupPrivateContent,
@@ -1178,13 +1178,13 @@ describe('Content Libraries', () => {
                                                                             () => {
                                                                               checkLibrary(
                                                                                 gtAdminRestCtx,
-                                                                                loggedinGroup.id,
+                                                                                loggedinJoinableGroup.id,
                                                                                 false,
                                                                                 [],
                                                                                 () => {
                                                                                   checkLibrary(
                                                                                     gtAdminRestCtx,
-                                                                                    privateGroup.id,
+                                                                                    privateJoinableGroup.id,
                                                                                     false,
                                                                                     [],
                                                                                     () => {
@@ -1195,7 +1195,7 @@ describe('Content Libraries', () => {
                                                                                       ] = 'member';
                                                                                       RestAPI.Group.setGroupMembers(
                                                                                         groupCreator.restContext,
-                                                                                        privateGroup.id,
+                                                                                        privateJoinableGroup.id,
                                                                                         changes,
                                                                                         err => {
                                                                                           assert.ok(
@@ -1203,7 +1203,7 @@ describe('Content Libraries', () => {
                                                                                           );
                                                                                           checkLibrary(
                                                                                             anotherUser.restContext,
-                                                                                            privateGroup.id,
+                                                                                            privateJoinableGroup.id,
                                                                                             true,
                                                                                             [
                                                                                               privateGroupPrivateContent,
@@ -1219,7 +1219,7 @@ describe('Content Libraries', () => {
                                                                                                 'member';
                                                                                               RestAPI.Group.setGroupMembers(
                                                                                                 groupCreator.restContext,
-                                                                                                privateGroup.id,
+                                                                                                privateJoinableGroup.id,
                                                                                                 changes,
                                                                                                 err => {
                                                                                                   assert.ok(
@@ -1227,7 +1227,7 @@ describe('Content Libraries', () => {
                                                                                                   );
                                                                                                   checkLibrary(
                                                                                                     otherTenantUser.restContext,
-                                                                                                    privateGroup.id,
+                                                                                                    privateJoinableGroup.id,
                                                                                                     true,
                                                                                                     [
                                                                                                       privateGroupPrivateContent,

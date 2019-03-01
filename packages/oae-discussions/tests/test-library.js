@@ -481,7 +481,7 @@ describe('Discussion libraries', () => {
         groupCreator.restContext,
         'private',
         (
-          privateGroup,
+          privateJoinableGroup,
           privateGroupPrivateDiscussion,
           privateGroupLoggedinDiscussion,
           privateGroupPublicDiscussion
@@ -490,7 +490,7 @@ describe('Discussion libraries', () => {
             groupCreator.restContext,
             'loggedin',
             (
-              loggedinGroup,
+              loggedinJoinableGroup,
               loggedinGroupPrivateDiscussion,
               loggedinGroupLoggedinDiscussion,
               loggedinGroupPublicDiscussion
@@ -511,16 +511,16 @@ describe('Discussion libraries', () => {
                     true,
                     [publicGroupPublicDiscussion],
                     () => {
-                      checkLibrary(camAnonymousRestCtx, loggedinGroup.id, false, [], () => {
-                        checkLibrary(camAnonymousRestCtx, privateGroup.id, false, [], () => {
+                      checkLibrary(camAnonymousRestCtx, loggedinJoinableGroup.id, false, [], () => {
+                        checkLibrary(camAnonymousRestCtx, privateJoinableGroup.id, false, [], () => {
                           checkLibrary(
                             gtAnonymousRestCtx,
                             publicGroup.id,
                             true,
                             [publicGroupPublicDiscussion],
                             () => {
-                              checkLibrary(gtAnonymousRestCtx, loggedinGroup.id, false, [], () => {
-                                checkLibrary(gtAnonymousRestCtx, privateGroup.id, false, [], () => {
+                              checkLibrary(gtAnonymousRestCtx, loggedinJoinableGroup.id, false, [], () => {
+                                checkLibrary(gtAnonymousRestCtx, privateJoinableGroup.id, false, [], () => {
                                   // A loggedin user on the same tenant can see the loggedin stream for the public and loggedin group.
                                   checkLibrary(
                                     anotherUser.restContext,
@@ -530,7 +530,7 @@ describe('Discussion libraries', () => {
                                     () => {
                                       checkLibrary(
                                         anotherUser.restContext,
-                                        loggedinGroup.id,
+                                        loggedinJoinableGroup.id,
                                         true,
                                         [
                                           loggedinGroupPublicDiscussion,
@@ -539,7 +539,7 @@ describe('Discussion libraries', () => {
                                         () => {
                                           checkLibrary(
                                             anotherUser.restContext,
-                                            privateGroup.id,
+                                            privateJoinableGroup.id,
                                             false,
                                             [],
                                             () => {
@@ -557,13 +557,13 @@ describe('Discussion libraries', () => {
                                                     () => {
                                                       checkLibrary(
                                                         otherTenantUser.restContext,
-                                                        loggedinGroup.id,
+                                                        loggedinJoinableGroup.id,
                                                         false,
                                                         [],
                                                         () => {
                                                           checkLibrary(
                                                             otherTenantUser.restContext,
-                                                            privateGroup.id,
+                                                            privateJoinableGroup.id,
                                                             false,
                                                             [],
                                                             () => {
@@ -580,7 +580,7 @@ describe('Discussion libraries', () => {
                                                                 () => {
                                                                   checkLibrary(
                                                                     camAdminRestCtx,
-                                                                    loggedinGroup.id,
+                                                                    loggedinJoinableGroup.id,
                                                                     true,
                                                                     [
                                                                       loggedinGroupPublicDiscussion,
@@ -590,7 +590,7 @@ describe('Discussion libraries', () => {
                                                                     () => {
                                                                       checkLibrary(
                                                                         camAdminRestCtx,
-                                                                        privateGroup.id,
+                                                                        privateJoinableGroup.id,
                                                                         true,
                                                                         [
                                                                           privateGroupPrivateDiscussion,
@@ -609,13 +609,13 @@ describe('Discussion libraries', () => {
                                                                             () => {
                                                                               checkLibrary(
                                                                                 gtAdminRestCtx,
-                                                                                loggedinGroup.id,
+                                                                                loggedinJoinableGroup.id,
                                                                                 false,
                                                                                 [],
                                                                                 () => {
                                                                                   checkLibrary(
                                                                                     gtAdminRestCtx,
-                                                                                    privateGroup.id,
+                                                                                    privateJoinableGroup.id,
                                                                                     false,
                                                                                     [],
                                                                                     () => {
@@ -626,7 +626,7 @@ describe('Discussion libraries', () => {
                                                                                       ] = 'member';
                                                                                       RestAPI.Group.setGroupMembers(
                                                                                         groupCreator.restContext,
-                                                                                        privateGroup.id,
+                                                                                        privateJoinableGroup.id,
                                                                                         changes,
                                                                                         err => {
                                                                                           assert.ok(
@@ -634,7 +634,7 @@ describe('Discussion libraries', () => {
                                                                                           );
                                                                                           checkLibrary(
                                                                                             anotherUser.restContext,
-                                                                                            privateGroup.id,
+                                                                                            privateJoinableGroup.id,
                                                                                             true,
                                                                                             [
                                                                                               privateGroupPrivateDiscussion,
@@ -650,7 +650,7 @@ describe('Discussion libraries', () => {
                                                                                                 'member';
                                                                                               RestAPI.Group.setGroupMembers(
                                                                                                 groupCreator.restContext,
-                                                                                                privateGroup.id,
+                                                                                                privateJoinableGroup.id,
                                                                                                 changes,
                                                                                                 err => {
                                                                                                   assert.ok(
@@ -658,7 +658,7 @@ describe('Discussion libraries', () => {
                                                                                                   );
                                                                                                   checkLibrary(
                                                                                                     otherTenantUser.restContext,
-                                                                                                    privateGroup.id,
+                                                                                                    privateJoinableGroup.id,
                                                                                                     true,
                                                                                                     [
                                                                                                       privateGroupPrivateDiscussion,

@@ -105,13 +105,13 @@ const addUserToAllGroups = function(
           assert.ok(!err);
           RestAPI.Group.setGroupMembers(
             publicTenant1.adminRestContext,
-            publicTenant1.loggedinGroup.id,
+            publicTenant1.loggedinJoinableGroup.id,
             permissions,
             err => {
               assert.ok(!err);
               RestAPI.Group.setGroupMembers(
                 publicTenant1.adminRestContext,
-                publicTenant1.privateGroup.id,
+                publicTenant1.privateJoinableGroup.id,
                 permissions,
                 err => {
                   assert.ok(!err);
@@ -125,13 +125,13 @@ const addUserToAllGroups = function(
                       assert.ok(!err);
                       RestAPI.Group.setGroupMembers(
                         publicTenant2.adminRestContext,
-                        publicTenant2.loggedinGroup.id,
+                        publicTenant2.loggedinJoinableGroup.id,
                         permissions,
                         err => {
                           assert.ok(!err);
                           RestAPI.Group.setGroupMembers(
                             publicTenant2.adminRestContext,
-                            publicTenant2.privateGroup.id,
+                            publicTenant2.privateJoinableGroup.id,
                             permissions,
                             err => {
                               assert.ok(!err);
@@ -145,13 +145,13 @@ const addUserToAllGroups = function(
                                   assert.ok(!err);
                                   RestAPI.Group.setGroupMembers(
                                     privateTenant.adminRestContext,
-                                    privateTenant.loggedinGroup.id,
+                                    privateTenant.loggedinJoinableGroup.id,
                                     permissions,
                                     err => {
                                       assert.ok(!err);
                                       RestAPI.Group.setGroupMembers(
                                         privateTenant.adminRestContext,
-                                        privateTenant.privateGroup.id,
+                                        privateTenant.privateJoinableGroup.id,
                                         permissions,
                                         err => {
                                           assert.ok(!err);
@@ -214,13 +214,13 @@ const updateAllGroups = function(
       assert.ok(!err);
       RestAPI.Group.updateGroup(
         publicTenant1.adminRestContext,
-        publicTenant1.loggedinGroup.id,
+        publicTenant1.loggedinJoinableGroup.id,
         modifications,
         err => {
           assert.ok(!err);
           RestAPI.Group.updateGroup(
             publicTenant1.adminRestContext,
-            publicTenant1.privateGroup.id,
+            publicTenant1.privateJoinableGroup.id,
             modifications,
             err => {
               assert.ok(!err);
@@ -234,13 +234,13 @@ const updateAllGroups = function(
                   assert.ok(!err);
                   RestAPI.Group.updateGroup(
                     publicTenant2.adminRestContext,
-                    publicTenant2.loggedinGroup.id,
+                    publicTenant2.loggedinJoinableGroup.id,
                     modifications,
                     err => {
                       assert.ok(!err);
                       RestAPI.Group.updateGroup(
                         publicTenant2.adminRestContext,
-                        publicTenant2.privateGroup.id,
+                        publicTenant2.privateJoinableGroup.id,
                         modifications,
                         err => {
                           assert.ok(!err);
@@ -254,13 +254,13 @@ const updateAllGroups = function(
                               assert.ok(!err);
                               RestAPI.Group.updateGroup(
                                 privateTenant.adminRestContext,
-                                privateTenant.loggedinGroup.id,
+                                privateTenant.loggedinJoinableGroup.id,
                                 modifications,
                                 err => {
                                   assert.ok(!err);
                                   RestAPI.Group.updateGroup(
                                     privateTenant.adminRestContext,
-                                    privateTenant.privateGroup.id,
+                                    privateTenant.privateJoinableGroup.id,
                                     modifications,
                                     err => {
                                       assert.ok(!err);

@@ -705,7 +705,7 @@ describe('Groups', () => {
                                     // Ensure anonymous cannot see it
                                     RestAPI.Group.getGroup(
                                       publicTenant1.anonymousRestContext,
-                                      publicTenant1.loggedinGroup.id,
+                                      publicTenant1.loggedinJoinableGroup.id,
                                       (err, group) => {
                                         assert.ok(err);
                                         assert.strictEqual(err.code, 401);
@@ -713,7 +713,7 @@ describe('Groups', () => {
                                         // Ensure user from another public tenant cannot see it
                                         RestAPI.Group.getGroup(
                                           publicTenant2.publicUser.restContext,
-                                          publicTenant1.loggedinGroupNotJoinable.id,
+                                          publicTenant1.loggedinNotJoinableGroup.id,
                                           (err, group) => {
                                             assert.ok(err);
                                             assert.strictEqual(err.code, 401);
@@ -721,14 +721,14 @@ describe('Groups', () => {
                                             // Unless it is joinable, then it can
                                             RestAPI.Group.getGroup(
                                               publicTenant2.publicUser.restContext,
-                                              publicTenant1.loggedinGroup.id,
+                                              publicTenant1.loggedinJoinableGroup.id,
                                               (err, group) => {
                                                 assert.ok(!err);
 
                                                 // Ensure user from another private tenant cannot see it
                                                 RestAPI.Group.getGroup(
                                                   privateTenant1.publicUser.restContext,
-                                                  publicTenant1.loggedinGroup.id,
+                                                  publicTenant1.loggedinJoinableGroup.id,
                                                   (err, group) => {
                                                     assert.ok(err);
                                                     assert.strictEqual(err.code, 401);
@@ -736,28 +736,28 @@ describe('Groups', () => {
                                                     // Ensure user from same tenant can see it
                                                     RestAPI.Group.getGroup(
                                                       publicTenant1.privateUser.restContext,
-                                                      publicTenant1.loggedinGroup.id,
+                                                      publicTenant1.loggedinJoinableGroup.id,
                                                       (err, group) => {
                                                         assert.ok(!err);
 
                                                         // Ensure member user from another tenant can see it
                                                         RestAPI.Group.getGroup(
                                                           publicTenant1.publicUser.restContext,
-                                                          publicTenant2.loggedinGroup.id,
+                                                          publicTenant2.loggedinJoinableGroup.id,
                                                           (err, group) => {
                                                             assert.ok(!err);
 
                                                             // Ensure tenant admin can see it
                                                             RestAPI.Group.getGroup(
                                                               publicTenant1.adminRestContext,
-                                                              publicTenant1.loggedinGroup.id,
+                                                              publicTenant1.loggedinJoinableGroup.id,
                                                               (err, group) => {
                                                                 assert.ok(!err);
 
                                                                 // Ensure global admin can see it
                                                                 RestAPI.Group.getGroup(
                                                                   globalAdminOnTenantRestContext,
-                                                                  publicTenant1.loggedinGroup.id,
+                                                                  publicTenant1.loggedinJoinableGroup.id,
                                                                   (err, group) => {
                                                                     assert.ok(!err);
 
@@ -767,7 +767,7 @@ describe('Groups', () => {
                                                                     RestAPI.Group.getGroup(
                                                                       publicTenant1.anonymousRestContext,
                                                                       publicTenant1
-                                                                        .loggedinGroupNotJoinable
+                                                                        .loggedinNotJoinableGroup
                                                                         .id,
                                                                       (err, group) => {
                                                                         assert.ok(err);
@@ -780,7 +780,7 @@ describe('Groups', () => {
                                                                         RestAPI.Group.getGroup(
                                                                           publicTenant1.anonymousRestContext,
                                                                           publicTenant1
-                                                                            .loggedinGroup.id,
+                                                                            .loggedinJoinableGroup.id,
                                                                           (err, group) => {
                                                                             assert.ok(err);
                                                                             assert.strictEqual(
@@ -794,7 +794,7 @@ describe('Groups', () => {
                                                                                 .publicUser
                                                                                 .restContext,
                                                                               publicTenant1
-                                                                                .loggedinGroupNotJoinable
+                                                                                .loggedinNotJoinableGroup
                                                                                 .id,
                                                                               (err, group) => {
                                                                                 assert.ok(err);
@@ -809,7 +809,7 @@ describe('Groups', () => {
                                                                                     .publicUser
                                                                                     .restContext,
                                                                                   publicTenant1
-                                                                                    .loggedinGroup
+                                                                                    .loggedinJoinableGroup
                                                                                     .id,
                                                                                   (err, group) => {
                                                                                     assert.ok(!err);
@@ -820,7 +820,7 @@ describe('Groups', () => {
                                                                                         .publicUser
                                                                                         .restContext,
                                                                                       publicTenant1
-                                                                                        .loggedinGroup
+                                                                                        .loggedinJoinableGroup
                                                                                         .id,
                                                                                       (
                                                                                         err,
@@ -840,7 +840,7 @@ describe('Groups', () => {
                                                                                             .publicUser
                                                                                             .restContext,
                                                                                           publicTenant1
-                                                                                            .loggedinGroupNotJoinable
+                                                                                            .loggedinNotJoinableGroup
                                                                                             .id,
                                                                                           (
                                                                                             err,
@@ -860,7 +860,7 @@ describe('Groups', () => {
                                                                                                 .privateUser
                                                                                                 .restContext,
                                                                                               publicTenant1
-                                                                                                .loggedinGroup
+                                                                                                .loggedinJoinableGroup
                                                                                                 .id,
                                                                                               (
                                                                                                 err,
@@ -876,7 +876,7 @@ describe('Groups', () => {
                                                                                                     .privateUser
                                                                                                     .restContext,
                                                                                                   publicTenant1
-                                                                                                    .loggedinGroupNotJoinable
+                                                                                                    .loggedinNotJoinableGroup
                                                                                                     .id,
                                                                                                   (
                                                                                                     err,
@@ -892,7 +892,7 @@ describe('Groups', () => {
                                                                                                         .publicUser
                                                                                                         .restContext,
                                                                                                       publicTenant2
-                                                                                                        .privateGroup
+                                                                                                        .privateJoinableGroup
                                                                                                         .id,
                                                                                                       (
                                                                                                         err,
@@ -908,7 +908,7 @@ describe('Groups', () => {
                                                                                                             .publicUser
                                                                                                             .restContext,
                                                                                                           publicTenant2
-                                                                                                            .privateGroupNotJoinable
+                                                                                                            .privateNotJoinableGroup
                                                                                                             .id,
                                                                                                           (
                                                                                                             err,
@@ -926,7 +926,7 @@ describe('Groups', () => {
                                                                                                             RestAPI.Group.getGroup(
                                                                                                               publicTenant1.adminRestContext,
                                                                                                               publicTenant1
-                                                                                                                .loggedinGroup
+                                                                                                                .loggedinJoinableGroup
                                                                                                                 .id,
                                                                                                               (
                                                                                                                 err,
@@ -940,7 +940,7 @@ describe('Groups', () => {
                                                                                                                 RestAPI.Group.getGroup(
                                                                                                                   publicTenant1.adminRestContext,
                                                                                                                   publicTenant1
-                                                                                                                    .loggedinGroupNotJoinable
+                                                                                                                    .loggedinNotJoinableGroup
                                                                                                                     .id,
                                                                                                                   (
                                                                                                                     err,
@@ -954,7 +954,7 @@ describe('Groups', () => {
                                                                                                                     RestAPI.Group.getGroup(
                                                                                                                       globalAdminOnTenantRestContext,
                                                                                                                       publicTenant1
-                                                                                                                        .loggedinGroup
+                                                                                                                        .loggedinJoinableGroup
                                                                                                                         .id,
                                                                                                                       (
                                                                                                                         err,
@@ -968,7 +968,7 @@ describe('Groups', () => {
                                                                                                                         RestAPI.Group.getGroup(
                                                                                                                           globalAdminOnTenantRestContext,
                                                                                                                           publicTenant1
-                                                                                                                            .loggedinGroupNotJoinable
+                                                                                                                            .loggedinNotJoinableGroup
                                                                                                                             .id,
                                                                                                                           (
                                                                                                                             err,
@@ -1107,7 +1107,7 @@ describe('Groups', () => {
                                         // Ensure anonymous cannot see it
                                         RestAPI.Group.getGroup(
                                           publicTenant1.anonymousRestContext,
-                                          publicTenant1.loggedinGroup.id,
+                                          publicTenant1.loggedinJoinableGroup.id,
                                           (err, group) => {
                                             assert.ok(err);
                                             assert.strictEqual(err.code, 401);
@@ -1115,7 +1115,7 @@ describe('Groups', () => {
                                             // Ensure user from another public tenant cannot see it (since they would not be able to join it as it is not joinable)
                                             RestAPI.Group.getGroup(
                                               publicTenant2.publicUser.restContext,
-                                              publicTenant1.loggedinGroup.id,
+                                              publicTenant1.loggedinJoinableGroup.id,
                                               (err, group) => {
                                                 assert.ok(err);
                                                 assert.strictEqual(err.code, 401);
@@ -1123,7 +1123,7 @@ describe('Groups', () => {
                                                 // Ensure user from another private tenant cannot see it (since they would not be able to join it)
                                                 RestAPI.Group.getGroup(
                                                   privateTenant1.publicUser.restContext,
-                                                  publicTenant1.loggedinGroup.id,
+                                                  publicTenant1.loggedinJoinableGroup.id,
                                                   (err, group) => {
                                                     assert.ok(err);
                                                     assert.strictEqual(err.code, 401);
@@ -1131,28 +1131,28 @@ describe('Groups', () => {
                                                     // Ensure user from same tenant can see it
                                                     RestAPI.Group.getGroup(
                                                       publicTenant1.privateUser.restContext,
-                                                      publicTenant1.loggedinGroup.id,
+                                                      publicTenant1.loggedinJoinableGroup.id,
                                                       (err, group) => {
                                                         assert.ok(!err);
 
                                                         // Ensure member user from another tenant can see it
                                                         RestAPI.Group.getGroup(
                                                           publicTenant1.publicUser.restContext,
-                                                          publicTenant2.loggedinGroup.id,
+                                                          publicTenant2.loggedinJoinableGroup.id,
                                                           (err, group) => {
                                                             assert.ok(!err);
 
                                                             // Ensure tenant admin can see it
                                                             RestAPI.Group.getGroup(
                                                               publicTenant1.adminRestContext,
-                                                              publicTenant1.loggedinGroup.id,
+                                                              publicTenant1.loggedinJoinableGroup.id,
                                                               (err, group) => {
                                                                 assert.ok(!err);
 
                                                                 // Ensure global admin can see it
                                                                 RestAPI.Group.getGroup(
                                                                   globalAdminOnTenantRestContext,
-                                                                  publicTenant1.loggedinGroup.id,
+                                                                  publicTenant1.loggedinJoinableGroup.id,
                                                                   (err, group) => {
                                                                     assert.ok(!err);
 
@@ -1161,7 +1161,7 @@ describe('Groups', () => {
                                                                     // Ensure anonymous cannot see it
                                                                     RestAPI.Group.getGroup(
                                                                       publicTenant1.anonymousRestContext,
-                                                                      publicTenant1.loggedinGroup
+                                                                      publicTenant1.loggedinJoinableGroup
                                                                         .id,
                                                                       (err, group) => {
                                                                         assert.ok(err);
@@ -1175,7 +1175,7 @@ describe('Groups', () => {
                                                                           publicTenant2.publicUser
                                                                             .restContext,
                                                                           publicTenant1
-                                                                            .loggedinGroup.id,
+                                                                            .loggedinJoinableGroup.id,
                                                                           (err, group) => {
                                                                             assert.ok(err);
                                                                             assert.strictEqual(
@@ -1189,7 +1189,7 @@ describe('Groups', () => {
                                                                                 .publicUser
                                                                                 .restContext,
                                                                               publicTenant1
-                                                                                .loggedinGroup.id,
+                                                                                .loggedinJoinableGroup.id,
                                                                               (err, group) => {
                                                                                 assert.ok(err);
                                                                                 assert.strictEqual(
@@ -1203,7 +1203,7 @@ describe('Groups', () => {
                                                                                     .privateUser
                                                                                     .restContext,
                                                                                   publicTenant1
-                                                                                    .loggedinGroup
+                                                                                    .loggedinJoinableGroup
                                                                                     .id,
                                                                                   (err, group) => {
                                                                                     assert.ok(!err);
@@ -1214,7 +1214,7 @@ describe('Groups', () => {
                                                                                         .publicUser
                                                                                         .restContext,
                                                                                       publicTenant2
-                                                                                        .privateGroup
+                                                                                        .privateJoinableGroup
                                                                                         .id,
                                                                                       (
                                                                                         err,
@@ -1228,7 +1228,7 @@ describe('Groups', () => {
                                                                                         RestAPI.Group.getGroup(
                                                                                           publicTenant1.adminRestContext,
                                                                                           publicTenant1
-                                                                                            .loggedinGroup
+                                                                                            .loggedinJoinableGroup
                                                                                             .id,
                                                                                           (
                                                                                             err,
@@ -1242,7 +1242,7 @@ describe('Groups', () => {
                                                                                             RestAPI.Group.getGroup(
                                                                                               globalAdminOnTenantRestContext,
                                                                                               publicTenant1
-                                                                                                .loggedinGroup
+                                                                                                .loggedinJoinableGroup
                                                                                                 .id,
                                                                                               (
                                                                                                 err,

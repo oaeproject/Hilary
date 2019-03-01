@@ -1772,41 +1772,41 @@ describe('General Search', () => {
                               searchForResource(
                                 publicTenant0.adminRestContext,
                                 '_interact',
-                                publicTenant0.privateGroup,
+                                publicTenant0.privateJoinableGroup,
                                 true,
                                 () => {
                                   // Private NON joinable groups from the current tenant should be searched when searched with the tenant admin
                                   searchForResource(
                                     publicTenant0.adminRestContext,
                                     '_interact',
-                                    publicTenant0.privateGroupNotJoinable,
+                                    publicTenant0.privateNotJoinableGroup,
                                     true,
                                     () => {
                                       // Private joinable groups from the current tenant should not be searched when searched as a regular user
                                       searchForResource(
                                         publicTenant0.publicUser.restContext,
                                         '_interact',
-                                        publicTenant0.privateGroup,
+                                        publicTenant0.privateJoinableGroup,
                                         false,
                                         () => {
                                           // Private NON joinable groups from the current tenant should not be searched when searched as a regular user
                                           searchForResource(
                                             publicTenant0.publicUser.restContext,
                                             '_interact',
-                                            publicTenant0.privateGroupNotJoinable,
+                                            publicTenant0.privateNotJoinableGroup,
                                             false,
                                             () => {
                                               // Sanity check that under _network search, the private joinable group does get searched when searching as a regular user
                                               searchForResource(
                                                 publicTenant0.publicUser.restContext,
                                                 '_network',
-                                                publicTenant0.privateGroupNotJoinable,
+                                                publicTenant0.privateNotJoinableGroup,
                                                 false,
                                                 () => {
                                                   searchForResource(
                                                     publicTenant0.publicUser.restContext,
                                                     '_network',
-                                                    publicTenant0.privateGroup,
+                                                    publicTenant0.privateJoinableGroup,
                                                     true,
                                                     () => {
                                                       // Only public items from another public tenant should be searched
@@ -2020,7 +2020,7 @@ describe('General Search', () => {
               PrincipalsTestUtil.assertSetGroupMembersSucceeds(
                 publicTenant0.adminRestContext,
                 publicTenant0.adminRestContext,
-                publicTenant0.privateGroup.id,
+                publicTenant0.privateJoinableGroup.id,
                 memberUpdate,
                 () => {
                   // Items from the current tenant that are not explicitly associated to the current user should not be returned
@@ -2045,7 +2045,7 @@ describe('General Search', () => {
                               searchForResource(
                                 publicTenant0.publicUser.restContext,
                                 '_my',
-                                publicTenant0.loggedinGroup,
+                                publicTenant0.loggedinJoinableGroup,
                                 false,
                                 () => {
                                   searchForResource(
@@ -2095,7 +2095,7 @@ describe('General Search', () => {
                                                                 publicTenant0.publicUser
                                                                   .restContext,
                                                                 '_my',
-                                                                publicTenant0.privateGroup,
+                                                                publicTenant0.privateJoinableGroup,
                                                                 true,
                                                                 () => {
                                                                   searchForResource(

@@ -805,8 +805,8 @@ const createFileReadableStream = function(filename, size) {
  *          "loggedinUser": { ... },
  *          "privateUser": { ... },
  *          "publicGroup": <Group>,
- *          "loggedinGroup": <Group>,
- *          "privateGroup": <Group>
+ *          "loggedinJoinableGroup": <Group>,
+ *          "privateJoinableGroup": <Group>
  *      },
  *      "publicTenant1": { ... },
  *      "privateTenant": { ... },
@@ -904,16 +904,16 @@ const _setupTenant = function(tenant, callback) {
       tenant,
       (
         publicGroup,
-        loggedinGroup,
-        privateGroup,
-        loggedinGroupNotJoinable,
-        privateGroupNotJoinable
+        loggedinJoinableGroup,
+        privateJoinableGroup,
+        loggedinNotJoinableGroup,
+        privateNotJoinableGroup
       ) => {
         tenant.publicGroup = publicGroup;
-        tenant.loggedinGroup = loggedinGroup;
-        tenant.loggedinGroupNotJoinable = loggedinGroupNotJoinable;
-        tenant.privateGroup = privateGroup;
-        tenant.privateGroupNotJoinable = privateGroupNotJoinable;
+        tenant.loggedinJoinableGroup = loggedinJoinableGroup;
+        tenant.loggedinNotJoinableGroup = loggedinNotJoinableGroup;
+        tenant.privateJoinableGroup = privateJoinableGroup;
+        tenant.privateNotJoinableGroup = privateNotJoinableGroup;
         return callback();
       }
     );
@@ -993,31 +993,31 @@ const _createMultiPrivacyGroups = function(tenant, callback) {
         'loggedin',
         tenant.loggedinUser.user.id,
         JOINABLE_BY_REQUEST,
-        loggedinGroup => {
+        loggedinJoinableGroup => {
           _createGroupWithVisibility(
             tenant,
             'private',
             tenant.privateUser.user.id,
             JOINABLE_BY_REQUEST,
-            privateGroup => {
+            privateJoinableGroup => {
               _createGroupWithVisibility(
                 tenant,
                 'loggedin',
                 tenant.loggedinUser.user.id,
                 NOT_JOINABLE,
-                loggedinGroupNotJoinable => {
+                loggedinNotJoinableGroup => {
                   _createGroupWithVisibility(
                     tenant,
                     'private',
                     tenant.privateUser.user.id,
                     NOT_JOINABLE,
-                    privateGroupNotJoinable => {
+                    privateNotJoinableGroup => {
                       return callback(
                         publicGroup,
-                        loggedinGroup,
-                        privateGroup,
-                        loggedinGroupNotJoinable,
-                        privateGroupNotJoinable
+                        loggedinJoinableGroup,
+                        privateJoinableGroup,
+                        loggedinNotJoinableGroup,
+                        privateNotJoinableGroup
                       );
                     }
                   );

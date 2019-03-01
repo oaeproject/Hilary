@@ -325,13 +325,13 @@ describe('Principals Delete and Restore', () => {
                                 assert.ok(!err);
                                 RestAPI.Group.setGroupMembers(
                                   publicTenant1.adminRestContext,
-                                  publicTenant1.loggedinGroup.id,
+                                  publicTenant1.loggedinJoinableGroup.id,
                                   permissionChanges,
                                   err => {
                                     assert.ok(!err);
                                     RestAPI.Group.setGroupMembers(
                                       publicTenant1.adminRestContext,
-                                      publicTenant1.privateGroup.id,
+                                      publicTenant1.privateJoinableGroup.id,
                                       permissionChanges,
                                       err => {
                                         assert.ok(!err);
@@ -345,12 +345,12 @@ describe('Principals Delete and Restore', () => {
                                             PrincipalsTestUtil.assertDeleteGroupSucceeds(
                                               publicTenant1.adminRestContext,
                                               publicTenant1.adminRestContext,
-                                              publicTenant1.loggedinGroup.id,
+                                              publicTenant1.loggedinJoinableGroup.id,
                                               () => {
                                                 return PrincipalsTestUtil.assertDeleteGroupSucceeds(
                                                   publicTenant1.adminRestContext,
                                                   globalAdminOnTenantRestContext,
-                                                  publicTenant1.privateGroup.id,
+                                                  publicTenant1.privateJoinableGroup.id,
                                                   callback
                                                 );
                                               }
@@ -2320,13 +2320,13 @@ describe('Principals Delete and Restore', () => {
         TestsUtil.setupMultiTenantPrivacyEntities((publicTenant1, publicTenant2) => {
           const tenant1Groups = [
             publicTenant1.publicGroup,
-            publicTenant1.loggedinGroup,
-            publicTenant1.privateGroup
+            publicTenant1.loggedinJoinableGroup,
+            publicTenant1.privateJoinableGroup
           ];
           const tenant2Groups = [
             publicTenant2.publicGroup,
-            publicTenant2.loggedinGroup,
-            publicTenant2.privateGroup
+            publicTenant2.loggedinJoinableGroup,
+            publicTenant2.privateJoinableGroup
           ];
           const tenant1Users = [
             publicTenant1.publicUser,
@@ -2573,13 +2573,13 @@ describe('Principals Delete and Restore', () => {
         TestsUtil.setupMultiTenantPrivacyEntities((publicTenant1, publicTenant2) => {
           const tenant1Groups = [
             publicTenant1.publicGroup,
-            publicTenant1.loggedinGroup,
-            publicTenant1.privateGroup
+            publicTenant1.loggedinJoinableGroup,
+            publicTenant1.privateJoinableGroup
           ];
           const tenant2Groups = [
             publicTenant2.publicGroup,
-            publicTenant2.loggedinGroup,
-            publicTenant2.privateGroup
+            publicTenant2.loggedinJoinableGroup,
+            publicTenant2.privateJoinableGroup
           ];
           const tenant1Users = [
             publicTenant1.publicUser,

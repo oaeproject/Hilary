@@ -165,64 +165,64 @@ describe('Members Library', () => {
             // Ensure all users can see a public group's members library
             PrincipalsTestUtil.assertGetMembersLibraryFails(
               publicTenant1.anonymousRestContext,
-              publicTenant1.loggedinGroup.id,
+              publicTenant1.loggedinJoinableGroup.id,
               null,
               null,
               401,
               () => {
                 PrincipalsTestUtil.assertGetMembersLibraryFails(
                   publicTenant1.anonymousRestContext,
-                  publicTenant1.loggedinGroupNotJoinable.id,
+                  publicTenant1.loggedinNotJoinableGroup.id,
                   null,
                   null,
                   401,
                   () => {
                     PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
                       publicTenant1.adminRestContext,
-                      publicTenant1.loggedinGroup.id,
+                      publicTenant1.loggedinJoinableGroup.id,
                       null,
                       null,
                       () => {
                         PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
                           publicTenant1.adminRestContext,
-                          publicTenant1.loggedinGroupNotJoinable.id,
+                          publicTenant1.loggedinNotJoinableGroup.id,
                           null,
                           null,
                           () => {
                             PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
                               publicTenant1.publicUser.restContext,
-                              publicTenant1.loggedinGroup.id,
+                              publicTenant1.loggedinJoinableGroup.id,
                               null,
                               null,
                               () => {
                                 PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
                                   publicTenant1.publicUser.restContext,
-                                  publicTenant1.loggedinGroupNotJoinable.id,
+                                  publicTenant1.loggedinNotJoinableGroup.id,
                                   null,
                                   null,
                                   () => {
                                     PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
                                       publicTenant2.publicUser.restContext,
-                                      publicTenant1.loggedinGroup.id,
+                                      publicTenant1.loggedinJoinableGroup.id,
                                       null,
                                       null,
                                       () => {
                                         PrincipalsTestUtil.assertGetMembersLibraryFails(
                                           publicTenant2.publicUser.restContext,
-                                          publicTenant1.loggedinGroupNotJoinable.id,
+                                          publicTenant1.loggedinNotJoinableGroup.id,
                                           null,
                                           null,
                                           401,
                                           () => {
                                             PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
                                               publicTenant2.adminRestContext,
-                                              publicTenant1.loggedinGroup.id,
+                                              publicTenant1.loggedinJoinableGroup.id,
                                               null,
                                               null,
                                               () => {
                                                 PrincipalsTestUtil.assertGetMembersLibraryFails(
                                                   publicTenant2.adminRestContext,
-                                                  publicTenant1.loggedinGroupNotJoinable.id,
+                                                  publicTenant1.loggedinNotJoinableGroup.id,
                                                   null,
                                                   null,
                                                   401,
@@ -261,33 +261,33 @@ describe('Members Library', () => {
             // Ensure all users can see a public group's members library
             PrincipalsTestUtil.assertGetMembersLibraryFails(
               publicTenant1.anonymousRestContext,
-              publicTenant1.privateGroup.id,
+              publicTenant1.privateJoinableGroup.id,
               null,
               null,
               401,
               () => {
                 PrincipalsTestUtil.assertGetMembersLibraryFails(
                   publicTenant1.anonymousRestContext,
-                  publicTenant1.privateGroupNotJoinable.id,
+                  publicTenant1.privateNotJoinableGroup.id,
                   null,
                   null,
                   401,
                   () => {
                     PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
                       publicTenant1.adminRestContext,
-                      publicTenant1.privateGroup.id,
+                      publicTenant1.privateJoinableGroup.id,
                       null,
                       null,
                       () => {
                         PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
                           publicTenant1.adminRestContext,
-                          publicTenant1.privateGroupNotJoinable.id,
+                          publicTenant1.privateNotJoinableGroup.id,
                           null,
                           null,
                           () => {
                             PrincipalsTestUtil.assertGetMembersLibraryFails(
                               publicTenant1.publicUser.restContext,
-                              publicTenant1.privateGroupNotJoinable.id,
+                              publicTenant1.privateNotJoinableGroup.id,
                               null,
                               null,
                               401,
@@ -295,33 +295,33 @@ describe('Members Library', () => {
                                 // If it is joinable then it doesn't get 401
                                 PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
                                   publicTenant1.publicUser.restContext,
-                                  publicTenant1.privateGroup.id,
+                                  publicTenant1.privateJoinableGroup.id,
                                   null,
                                   null,
                                   () => {
                                     PrincipalsTestUtil.assertGetMembersLibraryFails(
                                       publicTenant2.publicUser.restContext,
-                                      publicTenant1.privateGroupNotJoinable.id,
+                                      publicTenant1.privateNotJoinableGroup.id,
                                       null,
                                       null,
                                       401,
                                       () => {
                                         PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
                                           publicTenant2.publicUser.restContext,
-                                          publicTenant1.privateGroup.id,
+                                          publicTenant1.privateJoinableGroup.id,
                                           null,
                                           null,
                                           () => {
                                             PrincipalsTestUtil.assertGetMembersLibraryFails(
                                               publicTenant2.adminRestContext,
-                                              publicTenant1.privateGroupNotJoinable.id,
+                                              publicTenant1.privateNotJoinableGroup.id,
                                               null,
                                               null,
                                               401,
                                               () => {
                                                 PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
                                                   publicTenant2.adminRestContext,
-                                                  publicTenant1.privateGroup.id,
+                                                  publicTenant1.privateJoinableGroup.id,
                                                   null,
                                                   null,
                                                   () => {
@@ -332,18 +332,18 @@ describe('Members Library', () => {
                                                     PrincipalsTestUtil.assertSetGroupMembersSucceeds(
                                                       publicTenant1.adminRestContext,
                                                       publicTenant1.adminRestContext,
-                                                      publicTenant1.privateGroup.id,
+                                                      publicTenant1.privateJoinableGroup.id,
                                                       change,
                                                       () => {
                                                         PrincipalsTestUtil.assertSetGroupMembersSucceeds(
                                                           publicTenant1.adminRestContext,
                                                           publicTenant1.adminRestContext,
-                                                          publicTenant1.privateGroupNotJoinable.id,
+                                                          publicTenant1.privateNotJoinableGroup.id,
                                                           change,
                                                           () => {
                                                             PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
                                                               publicTenant1.publicUser.restContext,
-                                                              publicTenant1.privateGroup.id,
+                                                              publicTenant1.privateJoinableGroup.id,
                                                               null,
                                                               null,
                                                               () => {
@@ -351,7 +351,7 @@ describe('Members Library', () => {
                                                                   publicTenant1.publicUser
                                                                     .restContext,
                                                                   publicTenant1
-                                                                    .privateGroupNotJoinable.id,
+                                                                    .privateNotJoinableGroup.id,
                                                                   null,
                                                                   null,
                                                                   () => {

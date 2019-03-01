@@ -280,20 +280,20 @@ describe('Memberships Library', () => {
                     const expectedPrivateFeed = [
                       indirectGroup.group.id,
                       publicTenant1.publicGroup.id,
-                      publicTenant1.loggedinGroup.id,
-                      publicTenant1.privateGroup.id,
+                      publicTenant1.loggedinJoinableGroup.id,
+                      publicTenant1.privateJoinableGroup.id,
                       publicTenant2.publicGroup.id,
-                      publicTenant2.loggedinGroup.id,
-                      publicTenant2.privateGroup.id,
+                      publicTenant2.loggedinJoinableGroup.id,
+                      publicTenant2.privateJoinableGroup.id,
                       privateTenant1.publicGroup.id,
-                      privateTenant1.loggedinGroup.id,
-                      privateTenant1.privateGroup.id
+                      privateTenant1.loggedinJoinableGroup.id,
+                      privateTenant1.privateJoinableGroup.id
                     ];
 
                     const expectedLoggedinFeed = [
                       indirectGroup.group.id,
                       publicTenant1.publicGroup.id,
-                      publicTenant1.loggedinGroup.id,
+                      publicTenant1.loggedinJoinableGroup.id,
                       publicTenant2.publicGroup.id,
                       privateTenant1.publicGroup.id
                     ];
@@ -918,19 +918,19 @@ describe('Memberships Library', () => {
             () => {
               const expectedPrivateSearch = [
                 publicTenant1.publicGroup.id,
-                publicTenant1.loggedinGroup.id,
-                publicTenant1.privateGroup.id,
+                publicTenant1.loggedinJoinableGroup.id,
+                publicTenant1.privateJoinableGroup.id,
                 publicTenant2.publicGroup.id,
-                publicTenant2.loggedinGroup.id,
-                publicTenant2.privateGroup.id,
+                publicTenant2.loggedinJoinableGroup.id,
+                publicTenant2.privateJoinableGroup.id,
                 privateTenant1.publicGroup.id,
-                privateTenant1.loggedinGroup.id,
-                privateTenant1.privateGroup.id
+                privateTenant1.loggedinJoinableGroup.id,
+                privateTenant1.privateJoinableGroup.id
               ];
 
               const expectedLoggedinSearch = [
                 publicTenant1.publicGroup.id,
-                publicTenant1.loggedinGroup.id,
+                publicTenant1.loggedinJoinableGroup.id,
                 publicTenant2.publicGroup.id,
                 privateTenant1.publicGroup.id
               ];

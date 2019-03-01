@@ -2307,18 +2307,19 @@ describe('Activity', () => {
                                                           publicTenant0.loggedinJoinableGroup.id,
                                                           1,
                                                           [
-                                                            publicTenant0.loggedinJoinableGroup.discussions
-                                                              .public.id,
-                                                            publicTenant0.loggedinJoinableGroup.discussions
-                                                              .loggedin.id,
-                                                            publicTenant0.loggedinJoinableGroup.discussions
-                                                              .private.id
+                                                            publicTenant0.loggedinJoinableGroup
+                                                              .discussions.public.id,
+                                                            publicTenant0.loggedinJoinableGroup
+                                                              .discussions.loggedin.id,
+                                                            publicTenant0.loggedinJoinableGroup
+                                                              .discussions.private.id
                                                           ],
                                                           [publicTenant0.loggedinJoinableGroup.id],
                                                           () => {
                                                             _assertStream(
                                                               publicTenant0.adminRestContext,
-                                                              publicTenant0.loggedinJoinableGroup.id,
+                                                              publicTenant0.loggedinJoinableGroup
+                                                                .id,
                                                               1,
                                                               [
                                                                 publicTenant0.loggedinJoinableGroup
@@ -2328,7 +2329,10 @@ describe('Activity', () => {
                                                                 publicTenant0.loggedinJoinableGroup
                                                                   .discussions.private.id
                                                               ],
-                                                              [publicTenant0.loggedinJoinableGroup.id],
+                                                              [
+                                                                publicTenant0.loggedinJoinableGroup
+                                                                  .id
+                                                              ],
                                                               () => {
                                                                 return callback();
                                                               }
@@ -2464,33 +2468,44 @@ describe('Activity', () => {
                                                                 _assertStream(
                                                                   publicTenant0.privateUser
                                                                     .restContext,
-                                                                  publicTenant0.privateJoinableGroup.id,
+                                                                  publicTenant0.privateJoinableGroup
+                                                                    .id,
                                                                   1,
                                                                   [
-                                                                    publicTenant0.privateJoinableGroup
+                                                                    publicTenant0
+                                                                      .privateJoinableGroup
                                                                       .discussions.public.id,
-                                                                    publicTenant0.privateJoinableGroup
+                                                                    publicTenant0
+                                                                      .privateJoinableGroup
                                                                       .discussions.loggedin.id,
-                                                                    publicTenant0.privateJoinableGroup
+                                                                    publicTenant0
+                                                                      .privateJoinableGroup
                                                                       .discussions.private.id
                                                                   ],
-                                                                  [publicTenant0.privateJoinableGroup.id],
+                                                                  [
+                                                                    publicTenant0
+                                                                      .privateJoinableGroup.id
+                                                                  ],
                                                                   () => {
                                                                     _assertStream(
                                                                       publicTenant0.adminRestContext,
-                                                                      publicTenant0.privateJoinableGroup.id,
+                                                                      publicTenant0
+                                                                        .privateJoinableGroup.id,
                                                                       1,
                                                                       [
-                                                                        publicTenant0.privateJoinableGroup
+                                                                        publicTenant0
+                                                                          .privateJoinableGroup
                                                                           .discussions.public.id,
-                                                                        publicTenant0.privateJoinableGroup
+                                                                        publicTenant0
+                                                                          .privateJoinableGroup
                                                                           .discussions.loggedin.id,
-                                                                        publicTenant0.privateJoinableGroup
+                                                                        publicTenant0
+                                                                          .privateJoinableGroup
                                                                           .discussions.private.id
                                                                       ],
                                                                       [
-                                                                        publicTenant0.privateJoinableGroup
-                                                                          .id
+                                                                        publicTenant0
+                                                                          .privateJoinableGroup.id
                                                                       ],
                                                                       () => {
                                                                         return callback();

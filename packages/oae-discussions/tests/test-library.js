@@ -512,198 +512,220 @@ describe('Discussion libraries', () => {
                     [publicGroupPublicDiscussion],
                     () => {
                       checkLibrary(camAnonymousRestCtx, loggedinJoinableGroup.id, false, [], () => {
-                        checkLibrary(camAnonymousRestCtx, privateJoinableGroup.id, false, [], () => {
-                          checkLibrary(
-                            gtAnonymousRestCtx,
-                            publicGroup.id,
-                            true,
-                            [publicGroupPublicDiscussion],
-                            () => {
-                              checkLibrary(gtAnonymousRestCtx, loggedinJoinableGroup.id, false, [], () => {
-                                checkLibrary(gtAnonymousRestCtx, privateJoinableGroup.id, false, [], () => {
-                                  // A loggedin user on the same tenant can see the loggedin stream for the public and loggedin group.
-                                  checkLibrary(
-                                    anotherUser.restContext,
-                                    publicGroup.id,
-                                    true,
-                                    [publicGroupPublicDiscussion, publicGroupLoggedinDiscussion],
-                                    () => {
-                                      checkLibrary(
-                                        anotherUser.restContext,
-                                        loggedinJoinableGroup.id,
-                                        true,
-                                        [
-                                          loggedinGroupPublicDiscussion,
-                                          loggedinGroupLoggedinDiscussion
-                                        ],
-                                        () => {
-                                          checkLibrary(
-                                            anotherUser.restContext,
-                                            privateJoinableGroup.id,
-                                            false,
-                                            [],
-                                            () => {
-                                              // A loggedin user on *another* tenant can only see the public stream for the public user.
-                                              TestsUtil.generateTestUsers(
-                                                gtAdminRestCtx,
-                                                1,
-                                                (err, users) => {
-                                                  const otherTenantUser = _.values(users)[0];
-                                                  checkLibrary(
-                                                    otherTenantUser.restContext,
-                                                    publicGroup.id,
-                                                    true,
-                                                    [publicGroupPublicDiscussion],
-                                                    () => {
-                                                      checkLibrary(
-                                                        otherTenantUser.restContext,
-                                                        loggedinJoinableGroup.id,
-                                                        false,
-                                                        [],
-                                                        () => {
-                                                          checkLibrary(
-                                                            otherTenantUser.restContext,
-                                                            privateJoinableGroup.id,
-                                                            false,
-                                                            [],
-                                                            () => {
-                                                              // The cambridge tenant admin can see all the things.
-                                                              checkLibrary(
-                                                                camAdminRestCtx,
-                                                                publicGroup.id,
-                                                                true,
-                                                                [
-                                                                  publicGroupPublicDiscussion,
-                                                                  publicGroupLoggedinDiscussion,
-                                                                  publicGroupPrivateDiscussion
-                                                                ],
-                                                                () => {
-                                                                  checkLibrary(
-                                                                    camAdminRestCtx,
-                                                                    loggedinJoinableGroup.id,
-                                                                    true,
-                                                                    [
-                                                                      loggedinGroupPublicDiscussion,
-                                                                      loggedinGroupLoggedinDiscussion,
-                                                                      loggedinGroupPrivateDiscussion
-                                                                    ],
-                                                                    () => {
-                                                                      checkLibrary(
-                                                                        camAdminRestCtx,
-                                                                        privateJoinableGroup.id,
-                                                                        true,
-                                                                        [
-                                                                          privateGroupPrivateDiscussion,
-                                                                          privateGroupLoggedinDiscussion,
-                                                                          privateGroupPrivateDiscussion
-                                                                        ],
-                                                                        () => {
-                                                                          // The GT tenant admin can only see the public stream for the public user.
-                                                                          checkLibrary(
-                                                                            gtAdminRestCtx,
-                                                                            publicGroup.id,
-                                                                            true,
-                                                                            [
-                                                                              publicGroupPublicDiscussion
-                                                                            ],
-                                                                            () => {
-                                                                              checkLibrary(
-                                                                                gtAdminRestCtx,
-                                                                                loggedinJoinableGroup.id,
-                                                                                false,
-                                                                                [],
-                                                                                () => {
-                                                                                  checkLibrary(
-                                                                                    gtAdminRestCtx,
-                                                                                    privateJoinableGroup.id,
-                                                                                    false,
-                                                                                    [],
-                                                                                    () => {
-                                                                                      // If we make the cambridge user a member of the private group he should see everything.
-                                                                                      let changes = {};
-                                                                                      changes[
-                                                                                        anotherUser.user.id
-                                                                                      ] = 'member';
-                                                                                      RestAPI.Group.setGroupMembers(
-                                                                                        groupCreator.restContext,
-                                                                                        privateJoinableGroup.id,
-                                                                                        changes,
-                                                                                        err => {
-                                                                                          assert.ok(
-                                                                                            !err
-                                                                                          );
-                                                                                          checkLibrary(
-                                                                                            anotherUser.restContext,
-                                                                                            privateJoinableGroup.id,
-                                                                                            true,
-                                                                                            [
-                                                                                              privateGroupPrivateDiscussion,
-                                                                                              privateGroupLoggedinDiscussion,
-                                                                                              privateGroupPrivateDiscussion
-                                                                                            ],
-                                                                                            () => {
-                                                                                              // If we make the GT user a member of the private group, he should see everything.
-                                                                                              changes = {};
-                                                                                              changes[
-                                                                                                otherTenantUser.user.id
-                                                                                              ] =
-                                                                                                'member';
-                                                                                              RestAPI.Group.setGroupMembers(
-                                                                                                groupCreator.restContext,
-                                                                                                privateJoinableGroup.id,
-                                                                                                changes,
-                                                                                                err => {
-                                                                                                  assert.ok(
-                                                                                                    !err
-                                                                                                  );
-                                                                                                  checkLibrary(
-                                                                                                    otherTenantUser.restContext,
-                                                                                                    privateJoinableGroup.id,
-                                                                                                    true,
-                                                                                                    [
-                                                                                                      privateGroupPrivateDiscussion,
-                                                                                                      privateGroupLoggedinDiscussion,
-                                                                                                      privateGroupPrivateDiscussion
-                                                                                                    ],
-                                                                                                    callback
-                                                                                                  );
-                                                                                                }
-                                                                                              );
-                                                                                            }
-                                                                                          );
-                                                                                        }
-                                                                                      );
-                                                                                    }
-                                                                                  );
-                                                                                }
-                                                                              );
-                                                                            }
-                                                                          );
-                                                                        }
-                                                                      );
-                                                                    }
-                                                                  );
-                                                                }
-                                                              );
-                                                            }
-                                                          );
-                                                        }
-                                                      );
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                });
-                              });
-                            }
-                          );
-                        });
+                        checkLibrary(
+                          camAnonymousRestCtx,
+                          privateJoinableGroup.id,
+                          false,
+                          [],
+                          () => {
+                            checkLibrary(
+                              gtAnonymousRestCtx,
+                              publicGroup.id,
+                              true,
+                              [publicGroupPublicDiscussion],
+                              () => {
+                                checkLibrary(
+                                  gtAnonymousRestCtx,
+                                  loggedinJoinableGroup.id,
+                                  false,
+                                  [],
+                                  () => {
+                                    checkLibrary(
+                                      gtAnonymousRestCtx,
+                                      privateJoinableGroup.id,
+                                      false,
+                                      [],
+                                      () => {
+                                        // A loggedin user on the same tenant can see the loggedin stream for the public and loggedin group.
+                                        checkLibrary(
+                                          anotherUser.restContext,
+                                          publicGroup.id,
+                                          true,
+                                          [
+                                            publicGroupPublicDiscussion,
+                                            publicGroupLoggedinDiscussion
+                                          ],
+                                          () => {
+                                            checkLibrary(
+                                              anotherUser.restContext,
+                                              loggedinJoinableGroup.id,
+                                              true,
+                                              [
+                                                loggedinGroupPublicDiscussion,
+                                                loggedinGroupLoggedinDiscussion
+                                              ],
+                                              () => {
+                                                checkLibrary(
+                                                  anotherUser.restContext,
+                                                  privateJoinableGroup.id,
+                                                  false,
+                                                  [],
+                                                  () => {
+                                                    // A loggedin user on *another* tenant can only see the public stream for the public user.
+                                                    TestsUtil.generateTestUsers(
+                                                      gtAdminRestCtx,
+                                                      1,
+                                                      (err, users) => {
+                                                        const otherTenantUser = _.values(users)[0];
+                                                        checkLibrary(
+                                                          otherTenantUser.restContext,
+                                                          publicGroup.id,
+                                                          true,
+                                                          [publicGroupPublicDiscussion],
+                                                          () => {
+                                                            checkLibrary(
+                                                              otherTenantUser.restContext,
+                                                              loggedinJoinableGroup.id,
+                                                              false,
+                                                              [],
+                                                              () => {
+                                                                checkLibrary(
+                                                                  otherTenantUser.restContext,
+                                                                  privateJoinableGroup.id,
+                                                                  false,
+                                                                  [],
+                                                                  () => {
+                                                                    // The cambridge tenant admin can see all the things.
+                                                                    checkLibrary(
+                                                                      camAdminRestCtx,
+                                                                      publicGroup.id,
+                                                                      true,
+                                                                      [
+                                                                        publicGroupPublicDiscussion,
+                                                                        publicGroupLoggedinDiscussion,
+                                                                        publicGroupPrivateDiscussion
+                                                                      ],
+                                                                      () => {
+                                                                        checkLibrary(
+                                                                          camAdminRestCtx,
+                                                                          loggedinJoinableGroup.id,
+                                                                          true,
+                                                                          [
+                                                                            loggedinGroupPublicDiscussion,
+                                                                            loggedinGroupLoggedinDiscussion,
+                                                                            loggedinGroupPrivateDiscussion
+                                                                          ],
+                                                                          () => {
+                                                                            checkLibrary(
+                                                                              camAdminRestCtx,
+                                                                              privateJoinableGroup.id,
+                                                                              true,
+                                                                              [
+                                                                                privateGroupPrivateDiscussion,
+                                                                                privateGroupLoggedinDiscussion,
+                                                                                privateGroupPrivateDiscussion
+                                                                              ],
+                                                                              () => {
+                                                                                // The GT tenant admin can only see the public stream for the public user.
+                                                                                checkLibrary(
+                                                                                  gtAdminRestCtx,
+                                                                                  publicGroup.id,
+                                                                                  true,
+                                                                                  [
+                                                                                    publicGroupPublicDiscussion
+                                                                                  ],
+                                                                                  () => {
+                                                                                    checkLibrary(
+                                                                                      gtAdminRestCtx,
+                                                                                      loggedinJoinableGroup.id,
+                                                                                      false,
+                                                                                      [],
+                                                                                      () => {
+                                                                                        checkLibrary(
+                                                                                          gtAdminRestCtx,
+                                                                                          privateJoinableGroup.id,
+                                                                                          false,
+                                                                                          [],
+                                                                                          () => {
+                                                                                            // If we make the cambridge user a member of the private group he should see everything.
+                                                                                            let changes = {};
+                                                                                            changes[
+                                                                                              anotherUser.user.id
+                                                                                            ] =
+                                                                                              'member';
+                                                                                            RestAPI.Group.setGroupMembers(
+                                                                                              groupCreator.restContext,
+                                                                                              privateJoinableGroup.id,
+                                                                                              changes,
+                                                                                              err => {
+                                                                                                assert.ok(
+                                                                                                  !err
+                                                                                                );
+                                                                                                checkLibrary(
+                                                                                                  anotherUser.restContext,
+                                                                                                  privateJoinableGroup.id,
+                                                                                                  true,
+                                                                                                  [
+                                                                                                    privateGroupPrivateDiscussion,
+                                                                                                    privateGroupLoggedinDiscussion,
+                                                                                                    privateGroupPrivateDiscussion
+                                                                                                  ],
+                                                                                                  () => {
+                                                                                                    // If we make the GT user a member of the private group, he should see everything.
+                                                                                                    changes = {};
+                                                                                                    changes[
+                                                                                                      otherTenantUser.user.id
+                                                                                                    ] =
+                                                                                                      'member';
+                                                                                                    RestAPI.Group.setGroupMembers(
+                                                                                                      groupCreator.restContext,
+                                                                                                      privateJoinableGroup.id,
+                                                                                                      changes,
+                                                                                                      err => {
+                                                                                                        assert.ok(
+                                                                                                          !err
+                                                                                                        );
+                                                                                                        checkLibrary(
+                                                                                                          otherTenantUser.restContext,
+                                                                                                          privateJoinableGroup.id,
+                                                                                                          true,
+                                                                                                          [
+                                                                                                            privateGroupPrivateDiscussion,
+                                                                                                            privateGroupLoggedinDiscussion,
+                                                                                                            privateGroupPrivateDiscussion
+                                                                                                          ],
+                                                                                                          callback
+                                                                                                        );
+                                                                                                      }
+                                                                                                    );
+                                                                                                  }
+                                                                                                );
+                                                                                              }
+                                                                                            );
+                                                                                          }
+                                                                                        );
+                                                                                      }
+                                                                                    );
+                                                                                  }
+                                                                                );
+                                                                              }
+                                                                            );
+                                                                          }
+                                                                        );
+                                                                      }
+                                                                    );
+                                                                  }
+                                                                );
+                                                              }
+                                                            );
+                                                          }
+                                                        );
+                                                      }
+                                                    );
+                                                  }
+                                                );
+                                              }
+                                            );
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
                       });
                     }
                   );

@@ -678,7 +678,8 @@ describe('Content', () => {
                                                               verifyShare(
                                                                 publicTenantB.adminRestContext,
                                                                 publicTenantB.privateContent,
-                                                                privateTenantA.privateJoinableGroup.id,
+                                                                privateTenantA.privateJoinableGroup
+                                                                  .id,
                                                                 privateTenantA.privateUser
                                                                   .restContext,
                                                                 false,
@@ -709,7 +710,8 @@ describe('Content', () => {
                                                                             publicTenantB.adminRestContext,
                                                                             publicTenantB.publicContent,
                                                                             publicTenantA
-                                                                              .loggedinJoinableGroup.id,
+                                                                              .loggedinJoinableGroup
+                                                                              .id,
                                                                             publicTenantA
                                                                               .loggedinUser
                                                                               .restContext,
@@ -1647,7 +1649,8 @@ describe('Content', () => {
                                                                       publicTenantA.privateUser
                                                                         .restContext,
                                                                       publicTenantA.publicContent,
-                                                                      publicTenantB.privateJoinableGroup.id,
+                                                                      publicTenantB
+                                                                        .privateJoinableGroup.id,
                                                                       publicTenantB.privateUser
                                                                         .restContext,
                                                                       false,

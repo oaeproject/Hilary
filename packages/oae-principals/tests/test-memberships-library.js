@@ -75,7 +75,7 @@ describe('Memberships Library', () => {
         const simon = _.values(users)[1];
 
         // We need 110 groups because the paging size while rebuilding is 100
-        TestsUtil.generateTestGroups(branden.restContext, 110, function(...args) {
+        TestsUtil.generateTestGroups(branden.restContext, 110, (...args) => {
           const groupIds = _.chain(args)
             .pluck('group')
             .pluck('id')
@@ -140,7 +140,7 @@ describe('Memberships Library', () => {
         const simon = _.values(users)[1];
 
         // Generate 2 groups to be in branden's library
-        TestsUtil.generateTestGroups(branden.restContext, 2, function(...args) {
+        TestsUtil.generateTestGroups(branden.restContext, 2, (...args) => {
           const groupIds = _.chain(args)
             .pluck('group')
             .pluck('id')
@@ -629,12 +629,12 @@ describe('Memberships Library', () => {
 
   describe('Search', () => {
     /*!
-         * Get the document with the specified id from the search results.
-         *
-         * @param  {SearchResult}  results     The search results object
-         * @param  {String}        docId       The id of the document to search
-         * @return {Object}                    The search document. `null` if it didn't exist
-         */
+     * Get the document with the specified id from the search results.
+     *
+     * @param  {SearchResult}  results     The search results object
+     * @param  {String}        docId       The id of the document to search
+     * @return {Object}                    The search document. `null` if it didn't exist
+     */
     const _getDocById = function(results, docId) {
       for (let i = 0; i < results.results.length; i++) {
         const doc = results.results[i];

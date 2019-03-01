@@ -610,8 +610,8 @@ describe('Principals Delete and Restore', () => {
      */
     it('verify deleting and restoring multiple times re-invokes handler logic', callback => {
       /*!
-             * Create a group delete handler that maintains the count of times it has been invoked
-             */
+       * Create a group delete handler that maintains the count of times it has been invoked
+       */
       let deleteHandlerCount = 0;
       PrincipalsDelete.registerGroupDeleteHandler(
         'test-group-reinvoke',
@@ -622,8 +622,8 @@ describe('Principals Delete and Restore', () => {
       );
 
       /*!
-             * Create a group restore handler that maintains the count of times it has been invoked
-             */
+       * Create a group restore handler that maintains the count of times it has been invoked
+       */
       let restoreHandlerCount = 0;
       PrincipalsDelete.registerGroupRestoreHandler(
         'test-group-reinvoke',
@@ -1794,8 +1794,8 @@ describe('Principals Delete and Restore', () => {
       it('verify deleting and restoring a group removes and adds indirect groups in memberships search', callback => {
         // Create a group memberships hierarchy to test with
         TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, manager, member) => {
-          TestsUtil.generateTestGroups(manager.restContext, 4, function(...groups) {
-            let [group1, group2, group3, group4] = groups;
+          TestsUtil.generateTestGroups(manager.restContext, 4, (...groups) => {
+            const [group1, group2, group3, group4] = groups;
             const groupIds = _.chain(groups)
               .pluck('group')
               .pluck('id')
@@ -1950,8 +1950,8 @@ describe('Principals Delete and Restore', () => {
       it('verify deleting and restoring a group results in it still showing up in members search with a deletion indication', callback => {
         // Create a group memberships hierarchy to test with
         TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, manager, member) => {
-          TestsUtil.generateTestGroups(manager.restContext, 4, function(...groups) {
-            let [parentGroup, childGroup1, childGroup2, childGroup3] = groups;
+          TestsUtil.generateTestGroups(manager.restContext, 4, (...groups) => {
+            const [parentGroup, childGroup1, childGroup2, childGroup3] = groups;
             const memberIds = _.chain(groups)
               .pluck('group')
               .pluck('id')

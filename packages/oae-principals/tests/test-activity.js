@@ -59,14 +59,14 @@ describe('Principals Activity', () => {
   });
 
   /*!
-     * Get the activity from the stream with the given criteria.
-     *
-     * @param  {ActivityStream}    activityStream      The stream to search
-     * @param  {String}            activityType        The type of activity to find
-     * @param  {String}            entityType          The type of entity to apply the criteria (one of actor, object or target)
-     * @param  {String}            entityOaeId         The oae:id of the entity to search
-     * @return {Activity}                              An activity from the stream that matches the provided criteria
-     */
+   * Get the activity from the stream with the given criteria.
+   *
+   * @param  {ActivityStream}    activityStream      The stream to search
+   * @param  {String}            activityType        The type of activity to find
+   * @param  {String}            entityType          The type of entity to apply the criteria (one of actor, object or target)
+   * @param  {String}            entityOaeId         The oae:id of the entity to search
+   * @return {Activity}                              An activity from the stream that matches the provided criteria
+   */
   const _getActivity = function(activityStream, activityType, entityType, entityOaeId) {
     if (!activityStream || !activityStream.items) {
       return null;
@@ -86,12 +86,12 @@ describe('Principals Activity', () => {
   };
 
   /*!
-     * Make a single membership or role change object to apply to a group membership or resource role.
-     *
-     * @param  {String} principalId   The principalId whose role to change
-     * @param  {String} role          The role to change to
-     * @return {Object}               The change JSON Object to apply
-     */
+   * Make a single membership or role change object to apply to a group membership or resource role.
+   *
+   * @param  {String} principalId   The principalId whose role to change
+   * @param  {String} role          The role to change to
+   * @return {Object}               The change JSON Object to apply
+   */
   const _makeChange = function(principalId, role) {
     const change = {};
     change[principalId] = role;

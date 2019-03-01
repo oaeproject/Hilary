@@ -604,15 +604,15 @@ describe('Content', () => {
                         () => {
                           verifyShare(
                             publicTenantB.adminRestContext,
-                            publicTenantB.loggedinContent,
-                            privateTenantA.loggedinGroup.id,
+                            publicTenantB.publicContent,
+                            privateTenantA.loggedinGroupNotJoinable.id,
                             privateTenantA.loggedinUser.restContext,
                             false,
                             401,
                             () => {
                               verifyShare(
                                 publicTenantB.adminRestContext,
-                                publicTenantB.privateContent,
+                                publicTenantB.loggedinContent,
                                 privateTenantA.loggedinGroup.id,
                                 privateTenantA.loggedinUser.restContext,
                                 false,
@@ -620,65 +620,66 @@ describe('Content', () => {
                                 () => {
                                   verifyShare(
                                     publicTenantB.adminRestContext,
-                                    publicTenantB.publicContent,
-                                    privateTenantA.privateGroup.id,
-                                    privateTenantA.privateUser.restContext,
+                                    publicTenantB.loggedinContent,
+                                    privateTenantA.loggedinGroupNotJoinable.id,
+                                    privateTenantA.loggedinUser.restContext,
                                     false,
                                     401,
                                     () => {
                                       verifyShare(
                                         publicTenantB.adminRestContext,
-                                        publicTenantB.loggedinContent,
-                                        privateTenantA.privateGroup.id,
-                                        privateTenantA.privateUser.restContext,
+                                        publicTenantB.privateContent,
+                                        privateTenantA.loggedinGroup.id,
+                                        privateTenantA.loggedinUser.restContext,
                                         false,
                                         401,
                                         () => {
                                           verifyShare(
                                             publicTenantB.adminRestContext,
                                             publicTenantB.privateContent,
-                                            privateTenantA.privateGroup.id,
-                                            privateTenantA.privateUser.restContext,
+                                            privateTenantA.loggedinGroupNotJoinable.id,
+                                            privateTenantA.loggedinUser.restContext,
                                             false,
                                             401,
                                             () => {
                                               verifyShare(
                                                 publicTenantB.adminRestContext,
                                                 publicTenantB.publicContent,
-                                                publicTenantA.loggedinGroup.id,
-                                                publicTenantA.loggedinUser.restContext,
+                                                privateTenantA.privateGroup.id,
+                                                privateTenantA.privateUser.restContext,
                                                 false,
                                                 401,
                                                 () => {
                                                   verifyShare(
                                                     publicTenantB.adminRestContext,
-                                                    publicTenantB.loggedinContent,
-                                                    publicTenantA.loggedinGroup.id,
-                                                    publicTenantA.loggedinUser.restContext,
+                                                    publicTenantB.publicContent,
+                                                    privateTenantA.privateGroupNotJoinable.id,
+                                                    privateTenantA.privateUser.restContext,
                                                     false,
                                                     401,
                                                     () => {
                                                       verifyShare(
                                                         publicTenantB.adminRestContext,
-                                                        publicTenantB.privateContent,
-                                                        publicTenantA.loggedinGroup.id,
-                                                        publicTenantA.loggedinUser.restContext,
+                                                        publicTenantB.loggedinContent,
+                                                        privateTenantA.privateGroup.id,
+                                                        privateTenantA.privateUser.restContext,
                                                         false,
                                                         401,
                                                         () => {
                                                           verifyShare(
                                                             publicTenantB.adminRestContext,
-                                                            publicTenantB.publicContent,
-                                                            publicTenantA.privateGroup.id,
-                                                            publicTenantA.privateUser.restContext,
+                                                            publicTenantB.loggedinContent,
+                                                            privateTenantA.privateGroupNotJoinable
+                                                              .id,
+                                                            privateTenantA.privateUser.restContext,
                                                             false,
                                                             401,
                                                             () => {
                                                               verifyShare(
                                                                 publicTenantB.adminRestContext,
-                                                                publicTenantB.loggedinContent,
-                                                                publicTenantA.privateGroup.id,
-                                                                publicTenantA.privateUser
+                                                                publicTenantB.privateContent,
+                                                                privateTenantA.privateGroup.id,
+                                                                privateTenantA.privateUser
                                                                   .restContext,
                                                                 false,
                                                                 401,
@@ -686,45 +687,216 @@ describe('Content', () => {
                                                                   verifyShare(
                                                                     publicTenantB.adminRestContext,
                                                                     publicTenantB.privateContent,
-                                                                    publicTenantA.privateGroup.id,
-                                                                    publicTenantA.privateUser
+                                                                    privateTenantA
+                                                                      .privateGroupNotJoinable.id,
+                                                                    privateTenantA.privateUser
                                                                       .restContext,
                                                                     false,
                                                                     401,
                                                                     () => {
-                                                                      // Sharing a content item with public group from private tenants should fail
                                                                       verifyShare(
                                                                         publicTenantB.adminRestContext,
                                                                         publicTenantB.publicContent,
-                                                                        privateTenantA.publicGroup
+                                                                        publicTenantA
+                                                                          .loggedinGroupNotJoinable
                                                                           .id,
-                                                                        privateTenantA.publicUser
+                                                                        publicTenantA.loggedinUser
                                                                           .restContext,
                                                                         false,
                                                                         401,
                                                                         () => {
                                                                           verifyShare(
                                                                             publicTenantB.adminRestContext,
-                                                                            publicTenantB.loggedinContent,
-                                                                            privateTenantA
-                                                                              .publicGroup.id,
-                                                                            privateTenantA
-                                                                              .publicUser
+                                                                            publicTenantB.publicContent,
+                                                                            publicTenantA
+                                                                              .loggedinGroup.id,
+                                                                            publicTenantA
+                                                                              .loggedinUser
                                                                               .restContext,
                                                                             false,
-                                                                            401,
+                                                                            200,
                                                                             () => {
                                                                               verifyShare(
                                                                                 publicTenantB.adminRestContext,
-                                                                                publicTenantB.privateContent,
-                                                                                privateTenantA
-                                                                                  .publicGroup.id,
-                                                                                privateTenantA
-                                                                                  .publicUser
+                                                                                publicTenantB.loggedinContent,
+                                                                                publicTenantA
+                                                                                  .loggedinGroupNotJoinable
+                                                                                  .id,
+                                                                                publicTenantA
+                                                                                  .loggedinUser
                                                                                   .restContext,
                                                                                 false,
                                                                                 401,
-                                                                                callback
+                                                                                () => {
+                                                                                  verifyShare(
+                                                                                    publicTenantB.adminRestContext,
+                                                                                    publicTenantB.loggedinContent,
+                                                                                    publicTenantA
+                                                                                      .loggedinGroup
+                                                                                      .id,
+                                                                                    publicTenantA
+                                                                                      .loggedinUser
+                                                                                      .restContext,
+                                                                                    false,
+                                                                                    200,
+                                                                                    () => {
+                                                                                      verifyShare(
+                                                                                        publicTenantB.adminRestContext,
+                                                                                        publicTenantB.privateContent,
+                                                                                        publicTenantA
+                                                                                          .loggedinGroupNotJoinable
+                                                                                          .id,
+                                                                                        publicTenantA
+                                                                                          .loggedinUser
+                                                                                          .restContext,
+                                                                                        false,
+                                                                                        401,
+                                                                                        () => {
+                                                                                          verifyShare(
+                                                                                            publicTenantB.adminRestContext,
+                                                                                            publicTenantB.privateContent,
+                                                                                            publicTenantA
+                                                                                              .loggedinGroup
+                                                                                              .id,
+                                                                                            publicTenantA
+                                                                                              .loggedinUser
+                                                                                              .restContext,
+                                                                                            false,
+                                                                                            200,
+                                                                                            () => {
+                                                                                              verifyShare(
+                                                                                                publicTenantB.adminRestContext,
+                                                                                                publicTenantB.publicContent,
+                                                                                                publicTenantA
+                                                                                                  .privateGroupNotJoinable
+                                                                                                  .id,
+                                                                                                publicTenantA
+                                                                                                  .privateUser
+                                                                                                  .restContext,
+                                                                                                false,
+                                                                                                401,
+                                                                                                () => {
+                                                                                                  verifyShare(
+                                                                                                    publicTenantB.adminRestContext,
+                                                                                                    publicTenantB.publicContent,
+                                                                                                    publicTenantA
+                                                                                                      .privateGroup
+                                                                                                      .id,
+                                                                                                    publicTenantA
+                                                                                                      .privateUser
+                                                                                                      .restContext,
+                                                                                                    false,
+                                                                                                    200,
+                                                                                                    () => {
+                                                                                                      verifyShare(
+                                                                                                        publicTenantB.adminRestContext,
+                                                                                                        publicTenantB.loggedinContent,
+                                                                                                        publicTenantA
+                                                                                                          .privateGroupNotJoinable
+                                                                                                          .id,
+                                                                                                        publicTenantA
+                                                                                                          .privateUser
+                                                                                                          .restContext,
+                                                                                                        false,
+                                                                                                        401,
+                                                                                                        () => {
+                                                                                                          verifyShare(
+                                                                                                            publicTenantB.adminRestContext,
+                                                                                                            publicTenantB.loggedinContent,
+                                                                                                            publicTenantA
+                                                                                                              .privateGroup
+                                                                                                              .id,
+                                                                                                            publicTenantA
+                                                                                                              .privateUser
+                                                                                                              .restContext,
+                                                                                                            false,
+                                                                                                            200,
+                                                                                                            () => {
+                                                                                                              verifyShare(
+                                                                                                                publicTenantB.adminRestContext,
+                                                                                                                publicTenantB.privateContent,
+                                                                                                                publicTenantA
+                                                                                                                  .privateGroupNotJoinable
+                                                                                                                  .id,
+                                                                                                                publicTenantA
+                                                                                                                  .privateUser
+                                                                                                                  .restContext,
+                                                                                                                false,
+                                                                                                                401,
+                                                                                                                () => {
+                                                                                                                  verifyShare(
+                                                                                                                    publicTenantB.adminRestContext,
+                                                                                                                    publicTenantB.privateContent,
+                                                                                                                    publicTenantA
+                                                                                                                      .privateGroup
+                                                                                                                      .id,
+                                                                                                                    publicTenantA
+                                                                                                                      .privateUser
+                                                                                                                      .restContext,
+                                                                                                                    false,
+                                                                                                                    200,
+                                                                                                                    () => {
+                                                                                                                      // Sharing a content item with public group from private tenants should fail
+                                                                                                                      verifyShare(
+                                                                                                                        publicTenantB.adminRestContext,
+                                                                                                                        publicTenantB.publicContent,
+                                                                                                                        privateTenantA
+                                                                                                                          .publicGroup
+                                                                                                                          .id,
+                                                                                                                        privateTenantA
+                                                                                                                          .publicUser
+                                                                                                                          .restContext,
+                                                                                                                        false,
+                                                                                                                        401,
+                                                                                                                        () => {
+                                                                                                                          verifyShare(
+                                                                                                                            publicTenantB.adminRestContext,
+                                                                                                                            publicTenantB.loggedinContent,
+                                                                                                                            privateTenantA
+                                                                                                                              .publicGroup
+                                                                                                                              .id,
+                                                                                                                            privateTenantA
+                                                                                                                              .publicUser
+                                                                                                                              .restContext,
+                                                                                                                            false,
+                                                                                                                            401,
+                                                                                                                            () => {
+                                                                                                                              verifyShare(
+                                                                                                                                publicTenantB.adminRestContext,
+                                                                                                                                publicTenantB.privateContent,
+                                                                                                                                privateTenantA
+                                                                                                                                  .publicGroup
+                                                                                                                                  .id,
+                                                                                                                                privateTenantA
+                                                                                                                                  .publicUser
+                                                                                                                                  .restContext,
+                                                                                                                                false,
+                                                                                                                                401,
+                                                                                                                                callback
+                                                                                                                              );
+                                                                                                                            }
+                                                                                                                          );
+                                                                                                                        }
+                                                                                                                      );
+                                                                                                                    }
+                                                                                                                  );
+                                                                                                                }
+                                                                                                              );
+                                                                                                            }
+                                                                                                          );
+                                                                                                        }
+                                                                                                      );
+                                                                                                    }
+                                                                                                  );
+                                                                                                }
+                                                                                              );
+                                                                                            }
+                                                                                          );
+                                                                                        }
+                                                                                      );
+                                                                                    }
+                                                                                  );
+                                                                                }
                                                                               );
                                                                             }
                                                                           );
@@ -1348,7 +1520,7 @@ describe('Content', () => {
       ContentTestUtil.setupMultiTenantPrivacyEntities(
         (publicTenantA, publicTenantB, privateTenantA, privateTenantB) => {
           // Create some more users as we can only share it with a target user once.
-          TestsUtil.generateTestGroups(publicTenantB.adminRestContext, 3, function(...args) {
+          TestsUtil.generateTestGroups(publicTenantB.adminRestContext, 3, (...args) => {
             const groups = _.pluck(args, 'group');
 
             // In all these cases, the target user should see the content item in his library
@@ -1382,90 +1554,91 @@ describe('Content', () => {
                         verifyShare(
                           publicTenantA.publicUser.restContext,
                           publicTenantA.publicContent,
-                          publicTenantB.loggedinGroup.id,
+                          publicTenantB.loggedinGroupNotJoinable.id,
                           publicTenantB.loggedinUser.restContext,
                           false,
                           401,
                           () => {
                             verifyShare(
-                              publicTenantA.loggedinUser.restContext,
+                              publicTenantA.publicUser.restContext,
                               publicTenantA.publicContent,
                               publicTenantB.loggedinGroup.id,
                               publicTenantB.loggedinUser.restContext,
                               false,
-                              401,
+                              200,
                               () => {
                                 verifyShare(
-                                  publicTenantA.privateUser.restContext,
+                                  publicTenantA.loggedinUser.restContext,
                                   publicTenantA.publicContent,
-                                  publicTenantB.loggedinGroup.id,
+                                  publicTenantB.loggedinGroupNotJoinable.id,
                                   publicTenantB.loggedinUser.restContext,
                                   false,
                                   401,
                                   () => {
                                     verifyShare(
-                                      publicTenantA.publicUser.restContext,
+                                      publicTenantA.loggedinUser.restContext,
                                       publicTenantA.publicContent,
-                                      publicTenantB.privateGroup.id,
-                                      publicTenantB.privateUser.restContext,
+                                      publicTenantB.loggedinGroup.id,
+                                      publicTenantB.loggedinUser.restContext,
                                       false,
-                                      401,
+                                      200,
                                       () => {
                                         verifyShare(
-                                          publicTenantA.loggedinUser.restContext,
+                                          publicTenantA.privateUser.restContext,
                                           publicTenantA.publicContent,
-                                          publicTenantB.privateGroup.id,
-                                          publicTenantB.privateUser.restContext,
+                                          publicTenantB.loggedinGroupNotJoinable.id,
+                                          publicTenantB.loggedinUser.restContext,
                                           false,
                                           401,
                                           () => {
                                             verifyShare(
                                               publicTenantA.privateUser.restContext,
                                               publicTenantA.publicContent,
-                                              publicTenantB.privateGroup.id,
-                                              publicTenantB.privateUser.restContext,
+                                              publicTenantB.loggedinGroup.id,
+                                              publicTenantB.loggedinUser.restContext,
                                               false,
-                                              401,
+                                              200,
                                               () => {
                                                 verifyShare(
                                                   publicTenantA.publicUser.restContext,
                                                   publicTenantA.publicContent,
-                                                  privateTenantA.publicGroup.id,
-                                                  privateTenantA.publicUser.restContext,
+                                                  publicTenantB.privateGroupNotJoinable.id,
+                                                  publicTenantB.privateUser.restContext,
                                                   false,
                                                   401,
                                                   () => {
                                                     verifyShare(
-                                                      publicTenantA.loggedinUser.restContext,
+                                                      publicTenantA.publicUser.restContext,
                                                       publicTenantA.publicContent,
-                                                      privateTenantA.publicGroup.id,
-                                                      privateTenantA.publicUser.restContext,
+                                                      publicTenantB.privateGroup.id,
+                                                      publicTenantB.privateUser.restContext,
                                                       false,
-                                                      401,
+                                                      200,
                                                       () => {
                                                         verifyShare(
-                                                          publicTenantA.privateUser.restContext,
+                                                          publicTenantA.loggedinUser.restContext,
                                                           publicTenantA.publicContent,
-                                                          privateTenantA.publicGroup.id,
-                                                          privateTenantA.publicUser.restContext,
+                                                          publicTenantB.privateGroupNotJoinable.id,
+                                                          publicTenantB.privateUser.restContext,
                                                           false,
                                                           401,
                                                           () => {
                                                             verifyShare(
-                                                              publicTenantA.publicUser.restContext,
-                                                              publicTenantA.publicContent,
-                                                              privateTenantA.loggedinGroup.id,
-                                                              privateTenantA.loggedinUser
+                                                              publicTenantA.loggedinUser
                                                                 .restContext,
+                                                              publicTenantA.publicContent,
+                                                              publicTenantB.privateGroup.id,
+                                                              publicTenantB.privateUser.restContext,
                                                               false,
-                                                              401,
+                                                              200,
                                                               () => {
                                                                 verifyShare(
-                                                                  publicTenantA.loggedinUser
+                                                                  publicTenantA.privateUser
                                                                     .restContext,
                                                                   publicTenantA.publicContent,
-                                                                  privateTenantA.loggedinGroup.id,
-                                                                  privateTenantA.loggedinUser
+                                                                  publicTenantB
+                                                                    .privateGroupNotJoinable.id,
+                                                                  publicTenantB.privateUser
                                                                     .restContext,
                                                                   false,
                                                                   401,
@@ -1474,20 +1647,19 @@ describe('Content', () => {
                                                                       publicTenantA.privateUser
                                                                         .restContext,
                                                                       publicTenantA.publicContent,
-                                                                      privateTenantA.loggedinGroup
-                                                                        .id,
-                                                                      privateTenantA.loggedinUser
+                                                                      publicTenantB.privateGroup.id,
+                                                                      publicTenantB.privateUser
                                                                         .restContext,
                                                                       false,
-                                                                      401,
+                                                                      200,
                                                                       () => {
                                                                         verifyShare(
                                                                           publicTenantA.publicUser
                                                                             .restContext,
                                                                           publicTenantA.publicContent,
-                                                                          privateTenantA
-                                                                            .privateGroup.id,
-                                                                          privateTenantA.privateUser
+                                                                          privateTenantA.publicGroup
+                                                                            .id,
+                                                                          privateTenantA.publicUser
                                                                             .restContext,
                                                                           false,
                                                                           401,
@@ -1498,9 +1670,9 @@ describe('Content', () => {
                                                                                 .restContext,
                                                                               publicTenantA.publicContent,
                                                                               privateTenantA
-                                                                                .privateGroup.id,
+                                                                                .publicGroup.id,
                                                                               privateTenantA
-                                                                                .privateUser
+                                                                                .publicUser
                                                                                 .restContext,
                                                                               false,
                                                                               401,
@@ -1511,14 +1683,109 @@ describe('Content', () => {
                                                                                     .restContext,
                                                                                   publicTenantA.publicContent,
                                                                                   privateTenantA
-                                                                                    .privateGroup
-                                                                                    .id,
+                                                                                    .publicGroup.id,
                                                                                   privateTenantA
-                                                                                    .privateUser
+                                                                                    .publicUser
                                                                                     .restContext,
                                                                                   false,
                                                                                   401,
-                                                                                  callback
+                                                                                  () => {
+                                                                                    verifyShare(
+                                                                                      publicTenantA
+                                                                                        .publicUser
+                                                                                        .restContext,
+                                                                                      publicTenantA.publicContent,
+                                                                                      privateTenantA
+                                                                                        .loggedinGroup
+                                                                                        .id,
+                                                                                      privateTenantA
+                                                                                        .loggedinUser
+                                                                                        .restContext,
+                                                                                      false,
+                                                                                      401,
+                                                                                      () => {
+                                                                                        verifyShare(
+                                                                                          publicTenantA
+                                                                                            .loggedinUser
+                                                                                            .restContext,
+                                                                                          publicTenantA.publicContent,
+                                                                                          privateTenantA
+                                                                                            .loggedinGroup
+                                                                                            .id,
+                                                                                          privateTenantA
+                                                                                            .loggedinUser
+                                                                                            .restContext,
+                                                                                          false,
+                                                                                          401,
+                                                                                          () => {
+                                                                                            verifyShare(
+                                                                                              publicTenantA
+                                                                                                .privateUser
+                                                                                                .restContext,
+                                                                                              publicTenantA.publicContent,
+                                                                                              privateTenantA
+                                                                                                .loggedinGroup
+                                                                                                .id,
+                                                                                              privateTenantA
+                                                                                                .loggedinUser
+                                                                                                .restContext,
+                                                                                              false,
+                                                                                              401,
+                                                                                              () => {
+                                                                                                verifyShare(
+                                                                                                  publicTenantA
+                                                                                                    .publicUser
+                                                                                                    .restContext,
+                                                                                                  publicTenantA.publicContent,
+                                                                                                  privateTenantA
+                                                                                                    .privateGroup
+                                                                                                    .id,
+                                                                                                  privateTenantA
+                                                                                                    .privateUser
+                                                                                                    .restContext,
+                                                                                                  false,
+                                                                                                  401,
+                                                                                                  () => {
+                                                                                                    verifyShare(
+                                                                                                      publicTenantA
+                                                                                                        .loggedinUser
+                                                                                                        .restContext,
+                                                                                                      publicTenantA.publicContent,
+                                                                                                      privateTenantA
+                                                                                                        .privateGroup
+                                                                                                        .id,
+                                                                                                      privateTenantA
+                                                                                                        .privateUser
+                                                                                                        .restContext,
+                                                                                                      false,
+                                                                                                      401,
+                                                                                                      () => {
+                                                                                                        verifyShare(
+                                                                                                          publicTenantA
+                                                                                                            .privateUser
+                                                                                                            .restContext,
+                                                                                                          publicTenantA.publicContent,
+                                                                                                          privateTenantA
+                                                                                                            .privateGroup
+                                                                                                            .id,
+                                                                                                          privateTenantA
+                                                                                                            .privateUser
+                                                                                                            .restContext,
+                                                                                                          false,
+                                                                                                          401,
+                                                                                                          callback
+                                                                                                        );
+                                                                                                      }
+                                                                                                    );
+                                                                                                  }
+                                                                                                );
+                                                                                              }
+                                                                                            );
+                                                                                          }
+                                                                                        );
+                                                                                      }
+                                                                                    );
+                                                                                  }
                                                                                 );
                                                                               }
                                                                             );

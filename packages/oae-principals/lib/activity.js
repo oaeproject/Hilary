@@ -201,6 +201,44 @@ ActivityAPI.registerActivityType(PrincipalsConstants.activity.ACTIVITY_GROUP_UPD
   }
 });
 
+ActivityAPI.registerActivityType(PrincipalsConstants.activity.ACTIVITY_REQUEST_TO_JOIN_GROUP, {
+  groupBy: [{ object: true }],
+  streams: {
+    activity: {
+      router: {
+        actor: ['self'],
+        object: ['self', 'managers']
+      }
+    },
+    notification: {
+      router: {
+        object: ['managers']
+      }
+    }
+  }
+});
+
+
+ActivityAPI.registerActivityType(
+  PrincipalsConstants.activity.ACTIVITY_REQUEST_TO_JOIN_GROUP_REJECTED,
+  {
+    groupBy: [{ object: true, target: true }],
+    streams: {
+      activity: {
+        router: {
+          actor: ['self'],
+          object: ['self']
+        }
+      },
+      notification: {
+        router: {
+          object: ['self']
+        }
+      }
+    }
+  }
+);
+
 /*!
  * Fire the group-add-member or group-update-member-role activity when someone adds members to a group or updates user roles
  */
@@ -274,6 +312,37 @@ PrincipalsAPI.emitter.on(
         ActivityConstants.verbs.JOIN,
         actorResource,
         objectResource
+      )
+    );
+  }
+);
+
+/*!
+ * Fire the request-group-join activity when someone has been rejected to join a group
+ */
+PrincipalsAPI.emitter.on(
+  PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP_REJECTED,
+  // eslint-disable-next-line no-unused-vars
+  (ctx, group, requester) => {
+
+    const now = Date.now();
+    const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
+      user: ctx.user()
+    });
+    const objectResource = new ActivityModel.ActivitySeedResource('user', requester.id, {
+      requester
+    });
+    const targetResource = new ActivityModel.ActivitySeedResource('group', group.id, { group });
+
+    ActivityAPI.postActivity(
+      ctx,
+      new ActivityModel.ActivitySeed(
+        PrincipalsConstants.activity.ACTIVITY_REQUEST_TO_JOIN_GROUP_REJECTED,
+        now,
+        ActivityConstants.verbs.REJECT,
+        actorResource,
+        objectResource,
+        targetResource
       )
     );
   }

@@ -1250,7 +1250,7 @@ const assertMembershipsLibrariesEquals = function(
 
   const userId = _userIds.shift();
   // eslint-disable-next-line no-undef
-  assertMembershipsLibraryEquals(restCtx, userId, expectectedMemberships[userId], () => {
+  assertMembershipsLibraryEquals(restCtx, userId, expectedMemberships[userId], () => {
     return assertMembershipsLibrariesEquals(restCtx, expectedMemberships, callback, _userIds);
   });
 };
@@ -1630,6 +1630,7 @@ const assertDeleteUserSucceeds = function(adminRestCtx, deleterRestCtx, userId, 
           SearchTestUtil.whenIndexingComplete(() => {
             LibraryAPI.Index.whenUpdatesComplete(() => {
               // Ensure the user profile now throws 404s
+              // eslint-disable-next-line handle-callback-err
               assertGetUserFails(adminRestCtx, userId, 404, (err, user) => {
                 // If the user deleted themself, ensure they are now anonymous
                 assertGetMeSucceeds(deleterRestCtx, (deleterMeAfterDelete, response) => {
@@ -2204,7 +2205,7 @@ const onceVerificationEmailSent = function(email, assertions, callback) {
     assert.ok(message.text.match(tokenRegex));
 
     // Verify a token is passed in the email
-    let token = message.text.match(tokenRegex)[1];
+    let { 1: token } = message.text.match(tokenRegex);
     assert.ok(token);
     token = decodeURIComponent(token);
 
@@ -2224,6 +2225,151 @@ const _getPictureStream = function(filePath) {
   return function() {
     return fs.createReadStream(filePath);
   };
+};
+
+/**
+ * Assert that a request can be created
+ *
+ * @param  {RestContext}    restCtx         The REST context of a user who will perform the request
+ * @param  {String}         groupId         The group id that the user requested to join
+ * @param  {Function}       callback        Invoked when the mapping has been verified
+ * @throws {AssertionError}                 Thrown if the operation is unsuccessful or the mapping is incorrect
+ */
+const assertCreateRequestJoinGroupSucceeds = function(restCtx, groupId, callback) {
+  RestAPI.Group.createRequestJoinGroup(restCtx, groupId, err => {
+    assert.ok(!err);
+    return callback();
+  });
+};
+
+/**
+ * Ensure that a create request fails with the expected http code
+ *
+ * @param  {RestContext}    restCtx         The REST context of a user who will perform the request
+ * @param  {String}         groupId         The group id that the user requested to join
+ * @param  {Number}         httpCode        The expected HTTP code of the failed has pending email token operation
+ * @param  {Function}       callback        Invoked when the delete operation has been performed
+ * @throws {AssertionError}                 Thrown if the operation is successful
+ */
+const assertCreateRequestJoinGroupFails = function(restCtx, groupId, httpCode, callback) {
+  RestAPI.Group.createRequestJoinGroup(restCtx, groupId, err => {
+    assert.ok(err);
+    assert.strictEqual(err.code, httpCode);
+    return callback();
+  });
+};
+
+/**
+ * Ensure that a request to the request list succeeds
+ *
+ * @param  {RestContext}    restCtx         The REST context of a user who will perform the request
+ * @param  {String}         groupId         The group id that the user requested to join
+ * @param  {Function}       callback        Invoked when the mapping has been verified
+ * @throws {AssertionError}                 Thrown if the operation is unsuccessful or the mapping is incorrect
+ */
+const assertGetJoinGroupRequestSucceeds = function(restCtx, groupId, callback) {
+  RestAPI.Group.getJoinGroupRequest(restCtx, groupId, (err, request) => {
+    assert.ok(!err);
+    return callback(request);
+  });
+};
+
+/**
+ * Ensure that a get request fails with the expected http code
+ *
+ * @param  {RestContext}    restCtx         The REST context of a user who will perform the request
+ * @param  {String}         groupId         The group id that the user requested to join
+ * @param  {Number}         httpCode        The expected HTTP code of the failed has pending email token operation
+ * @param  {Function}       callback        Invoked when the delete operation has been performed
+ * @throws {AssertionError}                 Thrown if the operation is successful
+ */
+const assertGetJoinGroupRequestFails = function(restCtx, groupId, httpCode, callback) {
+  RestAPI.Group.getJoinGroupRequest(restCtx, groupId, err => {
+    assert.ok(err);
+    assert.strictEqual(err.code, httpCode);
+    return callback();
+  });
+};
+
+/**
+ * Ensure that a request to the request list succeeds
+ *
+ * @param  {RestContext}    restCtx         The REST context of a user who will perform the request
+ * @param  {String}         groupId         The group id that users requested to join
+ * @param  {Function}       callback        Invoked when the mapping has been verified
+ * @throws {AssertionError}                 Thrown if the operation is unsuccessful or the mapping is incorrect
+ */
+const assertGetJoinGroupRequestsSucceeds = function(restCtx, groupId, callback) {
+  RestAPI.Group.getJoinGroupRequests(restCtx, groupId, (err, requests) => {
+    assert.ok(!err);
+    return callback(requests);
+  });
+};
+
+/**
+ * Ensure that a get request fails with the expected http code
+ *
+ * @param  {RestContext}    restCtx         The REST context of a user who will perform the request
+ * @param  {String}         groupId         The group id that the user requested to join
+ * @param  {Number}         httpCode        The expected HTTP code of the failed has pending email token operation
+ * @param  {Function}       callback        Invoked when the delete operation has been performed
+ * @throws {AssertionError}                 Thrown if the operation is successful
+ */
+const assertGetJoinGroupRequestsFails = function(restCtx, groupId, httpCode, callback) {
+  RestAPI.Group.getJoinGroupRequests(restCtx, groupId, err => {
+    assert.ok(err);
+    assert.strictEqual(err.code, httpCode);
+    return callback();
+  });
+};
+
+/**
+ * Ensure that a request can be updated
+ *
+ * @param  {RestContext}    restCtx         The REST context of a user who will perform the request
+ * @param  {String}         groupId         The group id that users requested to join
+ * @param  {Function}       callback        Invoked when the mapping has been verified
+ * @throws {AssertionError}                 Thrown if the operation is unsuccessful or the mapping is incorrect
+ */
+const assertUpdateJoinGroupByRequestSucceeds = function(
+  restCtx,
+  groupId,
+  principalId,
+  role,
+  status,
+  callback
+) {
+  RestAPI.Group.updateJoinGroupByRequest(restCtx, groupId, principalId, role, status, err => {
+    assert.ok(!err);
+    return callback();
+  });
+};
+
+/**
+ * Ensure that a update a request fails with the expected http code
+ *
+ * @param  {RestContext}    restCtx         The REST context of a user who will perform the request
+ * @param  {String}         groupId         The group id that the user requested to join
+ * @param  {String}         role            The role ask by the user who wants to join the group
+ * @param  {String}         status          The status of the request
+ * @param  {Number}         httpCode        The expected HTTP code of the failed has pending email token operation
+ * @param  {Function}       callback        Invoked when the delete operation has been performed
+ * @throws {AssertionError}                 Thrown if the operation is successful
+ */
+const assertUpdateJoinGroupByRequestFails = function(
+  restCtx,
+  groupId,
+  principalId,
+  role,
+  status,
+  httpCode,
+  callback
+) {
+  RestAPI.Group.updateJoinGroupByRequest(restCtx, groupId, principalId, role, status, err => {
+    assert.ok(err);
+    assert.strictEqual(err.code, httpCode);
+    return callback();
+  });
 };
 
 module.exports = {
@@ -2289,5 +2435,13 @@ module.exports = {
   assertDeleteEmailTokenSucceeds,
   assertDeleteEmailTokenFails,
   assertUserEmailMappingEquals,
-  onceVerificationEmailSent
+  onceVerificationEmailSent,
+  assertCreateRequestJoinGroupSucceeds,
+  assertCreateRequestJoinGroupFails,
+  assertGetJoinGroupRequestSucceeds,
+  assertGetJoinGroupRequestFails,
+  assertGetJoinGroupRequestsSucceeds,
+  assertGetJoinGroupRequestsFails,
+  assertUpdateJoinGroupByRequestSucceeds,
+  assertUpdateJoinGroupByRequestFails
 };

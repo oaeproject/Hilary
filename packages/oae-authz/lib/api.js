@@ -1536,7 +1536,7 @@ const resolveImplicitRole = function(principal, resource, rolesPriority, callbac
   // The resource is not public
   if (
     AuthzUtil.isUserId(principalId) &&
-    resource.joinable === AuthzConstants.joinable.YES &&
+    (resource.joinable === AuthzConstants.joinable.YES || resource.joinable === AuthzConstants.joinable.REQUEST) &&
     tenantsCanInteract
   ) {
     // An authenticated user can see and interact with a resource they have the

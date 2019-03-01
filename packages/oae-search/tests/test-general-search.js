@@ -953,14 +953,14 @@ describe('General Search', () => {
      */
     it('verify a variety of valid and invalid values for the resourceTypes parameter', callback => {
       /*!
-             * Helper function that verifies that a search result feed has (or doesn't have) results of certain resourceTypes
-             *
-             * @param  {SearchResult}   results             The search results object
-             * @param  {Boolean}        shouldHaveUser      Whether or not the results should contain a user object
-             * @param  {Boolean}        shouldHaveGroup     Whether or not the results should contain a group object
-             * @param  {Boolean}        shouldHaveContent   Whether or not the results should contain a content object
-             * @return {Object}                             The search document. `null` if it didn't exist
-             */
+       * Helper function that verifies that a search result feed has (or doesn't have) results of certain resourceTypes
+       *
+       * @param  {SearchResult}   results             The search results object
+       * @param  {Boolean}        shouldHaveUser      Whether or not the results should contain a user object
+       * @param  {Boolean}        shouldHaveGroup     Whether or not the results should contain a group object
+       * @param  {Boolean}        shouldHaveContent   Whether or not the results should contain a content object
+       * @return {Object}                             The search document. `null` if it didn't exist
+       */
       const _verifyHasResourceTypes = function(
         results,
         shouldHaveUser,
@@ -1775,121 +1775,121 @@ describe('General Search', () => {
                                 publicTenant0.privateGroup,
                                 true,
                                 () => {
-                                  // Private joinable groups from the current tenant should not be searched when searched as a regular user
+                                  // Private NON joinable groups from the current tenant should be searched when searched with the tenant admin
                                   searchForResource(
-                                    publicTenant0.publicUser.restContext,
+                                    publicTenant0.adminRestContext,
                                     '_interact',
-                                    publicTenant0.privateGroup,
-                                    false,
+                                    publicTenant0.privateGroupNotJoinable,
+                                    true,
                                     () => {
-                                      // Sanity check that under _network search, the private joinable group does get searched when searching as a regular user
+                                      // Private joinable groups from the current tenant should not be searched when searched as a regular user
                                       searchForResource(
                                         publicTenant0.publicUser.restContext,
-                                        '_network',
+                                        '_interact',
                                         publicTenant0.privateGroup,
-                                        true,
+                                        false,
                                         () => {
-                                          // Only public items from another public tenant should be searched
+                                          // Private NON joinable groups from the current tenant should not be searched when searched as a regular user
                                           searchForResource(
                                             publicTenant0.publicUser.restContext,
                                             '_interact',
-                                            publicTenant1.publicUser.user,
-                                            true,
+                                            publicTenant0.privateGroupNotJoinable,
+                                            false,
                                             () => {
+                                              // Sanity check that under _network search, the private joinable group does get searched when searching as a regular user
                                               searchForResource(
                                                 publicTenant0.publicUser.restContext,
-                                                '_interact',
-                                                publicTenant1.loggedinUser.user,
+                                                '_network',
+                                                publicTenant0.privateGroupNotJoinable,
                                                 false,
                                                 () => {
                                                   searchForResource(
                                                     publicTenant0.publicUser.restContext,
-                                                    '_interact',
-                                                    publicTenant1.privateUser.user,
-                                                    false,
+                                                    '_network',
+                                                    publicTenant0.privateGroup,
+                                                    true,
                                                     () => {
-                                                      // Nothing from an external private tenant should be searched
+                                                      // Only public items from another public tenant should be searched
                                                       searchForResource(
                                                         publicTenant0.publicUser.restContext,
                                                         '_interact',
-                                                        privateTenant0.publicUser.user,
-                                                        false,
+                                                        publicTenant1.publicUser.user,
+                                                        true,
                                                         () => {
                                                           searchForResource(
                                                             publicTenant0.publicUser.restContext,
                                                             '_interact',
-                                                            privateTenant0.loggedinUser.user,
+                                                            publicTenant1.loggedinUser.user,
                                                             false,
                                                             () => {
                                                               searchForResource(
                                                                 publicTenant0.publicUser
                                                                   .restContext,
                                                                 '_interact',
-                                                                privateTenant0.privateUser.user,
+                                                                publicTenant1.privateUser.user,
                                                                 false,
                                                                 () => {
-                                                                  // Public and logged items from the current private tenant should be searched
+                                                                  // Nothing from an external private tenant should be searched
                                                                   searchForResource(
-                                                                    privateTenant0.publicUser
+                                                                    publicTenant0.publicUser
                                                                       .restContext,
                                                                     '_interact',
                                                                     privateTenant0.publicUser.user,
-                                                                    true,
+                                                                    false,
                                                                     () => {
                                                                       searchForResource(
-                                                                        privateTenant0.publicUser
+                                                                        publicTenant0.publicUser
                                                                           .restContext,
                                                                         '_interact',
                                                                         privateTenant0.loggedinUser
                                                                           .user,
-                                                                        true,
+                                                                        false,
                                                                         () => {
                                                                           searchForResource(
-                                                                            privateTenant0
-                                                                              .publicUser
+                                                                            publicTenant0.publicUser
                                                                               .restContext,
                                                                             '_interact',
                                                                             privateTenant0
                                                                               .privateUser.user,
                                                                             false,
                                                                             () => {
-                                                                              // Nothing from an external public tenant should be searched when searching from a private tenant
+                                                                              // Public and logged items from the current private tenant should be searched
                                                                               searchForResource(
                                                                                 privateTenant0
                                                                                   .publicUser
                                                                                   .restContext,
                                                                                 '_interact',
-                                                                                publicTenant0
+                                                                                privateTenant0
                                                                                   .publicUser.user,
-                                                                                false,
+                                                                                true,
                                                                                 () => {
                                                                                   searchForResource(
                                                                                     privateTenant0
                                                                                       .publicUser
                                                                                       .restContext,
                                                                                     '_interact',
-                                                                                    publicTenant0
+                                                                                    privateTenant0
                                                                                       .loggedinUser
                                                                                       .user,
-                                                                                    false,
+                                                                                    true,
                                                                                     () => {
                                                                                       searchForResource(
                                                                                         privateTenant0
                                                                                           .publicUser
                                                                                           .restContext,
                                                                                         '_interact',
-                                                                                        publicTenant0
+                                                                                        privateTenant0
                                                                                           .privateUser
                                                                                           .user,
                                                                                         false,
                                                                                         () => {
-                                                                                          // Nothing from an external private tenant should be searched when searching from a private tenant
+                                                                                          // Nothing from an external public tenant should be searched when searching from a private tenant
                                                                                           searchForResource(
                                                                                             privateTenant0
                                                                                               .publicUser
                                                                                               .restContext,
                                                                                             '_interact',
-                                                                                            privateTenant1
+                                                                                            publicTenant0
                                                                                               .publicUser
                                                                                               .user,
                                                                                             false,
@@ -1899,7 +1899,7 @@ describe('General Search', () => {
                                                                                                   .publicUser
                                                                                                   .restContext,
                                                                                                 '_interact',
-                                                                                                privateTenant1
+                                                                                                publicTenant0
                                                                                                   .loggedinUser
                                                                                                   .user,
                                                                                                 false,
@@ -1909,12 +1909,49 @@ describe('General Search', () => {
                                                                                                       .publicUser
                                                                                                       .restContext,
                                                                                                     '_interact',
-                                                                                                    privateTenant1
+                                                                                                    publicTenant0
                                                                                                       .privateUser
                                                                                                       .user,
                                                                                                     false,
                                                                                                     () => {
-                                                                                                      return callback();
+                                                                                                      // Nothing from an external private tenant should be searched when searching from a private tenant
+                                                                                                      searchForResource(
+                                                                                                        privateTenant0
+                                                                                                          .publicUser
+                                                                                                          .restContext,
+                                                                                                        '_interact',
+                                                                                                        privateTenant1
+                                                                                                          .publicUser
+                                                                                                          .user,
+                                                                                                        false,
+                                                                                                        () => {
+                                                                                                          searchForResource(
+                                                                                                            privateTenant0
+                                                                                                              .publicUser
+                                                                                                              .restContext,
+                                                                                                            '_interact',
+                                                                                                            privateTenant1
+                                                                                                              .loggedinUser
+                                                                                                              .user,
+                                                                                                            false,
+                                                                                                            () => {
+                                                                                                              searchForResource(
+                                                                                                                privateTenant0
+                                                                                                                  .publicUser
+                                                                                                                  .restContext,
+                                                                                                                '_interact',
+                                                                                                                privateTenant1
+                                                                                                                  .privateUser
+                                                                                                                  .user,
+                                                                                                                false,
+                                                                                                                () => {
+                                                                                                                  return callback();
+                                                                                                                }
+                                                                                                              );
+                                                                                                            }
+                                                                                                          );
+                                                                                                        }
+                                                                                                      );
                                                                                                     }
                                                                                                   );
                                                                                                 }
@@ -2299,7 +2336,7 @@ describe('General Search', () => {
         TestsUtil.generateTestUsers(gtAdminRestContext, 1, (err, users, darthVader) => {
           assert.ok(!err);
 
-          TestsUtil.generateTestGroups(doer.restContext, 5, function(...args) {
+          TestsUtil.generateTestGroups(doer.restContext, 5, (...args) => {
             const groupIds = _.chain(args)
               .pluck('group')
               .pluck('id')
@@ -2534,7 +2571,7 @@ describe('General Search', () => {
         TestsUtil.generateTestUsers(gtAdminRestContext, 1, (err, users, darthVader) => {
           assert.ok(!err);
 
-          TestsUtil.generateTestGroups(doer.restContext, 5, function(...args) {
+          TestsUtil.generateTestGroups(doer.restContext, 5, (...args) => {
             const groupIds = _.chain(args)
               .pluck('group')
               .pluck('id')
@@ -2748,7 +2785,7 @@ describe('General Search', () => {
         TestsUtil.generateTestUsers(gtAdminRestContext, 1, (err, users, darthVader) => {
           assert.ok(!err);
 
-          TestsUtil.generateTestGroups(doer.restContext, 5, function(...args) {
+          TestsUtil.generateTestGroups(doer.restContext, 5, (...args) => {
             const groupIds = _.chain(args)
               .pluck('group')
               .pluck('id')

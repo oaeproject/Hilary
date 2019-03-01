@@ -79,7 +79,6 @@ const getFullGroupProfile = function(ctx, groupId, callback) {
       return callback({ code: 404, msg: util.format("Couldn't find principal: %s", groupId) });
     }
 
-    // eslint-disable-next-line no-unused-vars
     AuthzPermissions.resolveEffectivePermissions(ctx, group, (err, permissions, effectiveRole) => {
       if (err) {
         return callback(err);
@@ -103,6 +102,7 @@ const getFullGroupProfile = function(ctx, groupId, callback) {
           group.isMember = permissions.canManage || hasAnyRole;
           group.isManager = permissions.canManage;
           group.canJoin = !hasAnyRole && permissions.canJoin;
+          group.canRequest = !hasAnyRole && permissions.canRequest;
 
           if (group.isMember) {
             // Generate a signature that can be used for push notifications
@@ -1161,6 +1161,226 @@ const _canManageAnyGroups = function(ctx, groupIds, callback) {
   });
 };
 
+/**
+ * Create a request
+ *
+ * @param  {Context}    ctx                         Standard context object containing the current user and the current tenant
+ * @param  {String}     groupId                     The group id
+ * @param  {Function}   callback                    Standard callback function
+ * @param  {Object}     callback.err                An error that occured, if any
+ */
+const createRequestJoinGroup = function(ctx, groupId, callback) {
+  const validator = new Validator();
+  validator.check(groupId, { code: 400, msg: 'A valid group id must be provided' }).isGroupId();
+  validator
+    .check(null, { code: 401, msg: 'You have to be logged in to be able to ask to join a group' })
+    .isLoggedInUser(ctx);
+  if (validator.hasErrors()) {
+    return callback(validator.getFirstError());
+  }
+
+  // If the request exists, return
+  PrincipalsDAO.createRequestJoinGroup(ctx.user().id, groupId, (err, request) => {
+    if (err) {
+      return callback(err);
+    }
+
+    PrincipalsDAO.getPrincipal(groupId, (err, group) => {
+      if (err) {
+        return callback(err);
+      }
+
+      AuthzAPI.getAuthzMembers(groupId, null, null, (err, memberInfos, nextToken) => {
+        if (err) {
+          return callback(err);
+        }
+
+        // Notify managers that someone asked to be part of this group
+        return PrincipalsEmitter.emit(
+          PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP,
+          ctx,
+          group,
+          group,
+          memberInfos,
+          callback
+        );
+      });
+    });
+  });
+};
+
+/**
+ * Get all requests related to a group
+ *
+ * @param  {Context}    ctx                         Standard context object containing the current user and the current tenant
+ * @param  {String}     groupId                     The group id
+ * @param  {String}     start                       The group paging token from which to start fetching group members
+ * @param  {Number}     limit                       The maximum number of results to return. Default: 10
+ * @param  {Function}   callback                    Standard callback function
+ * @param  {Object}     callback.err                An error that occured, if any
+ */
+const getJoinGroupRequests = function(ctx, groupId, start, limit, callback) {
+  limit = OaeUtil.getNumberParam(limit, 10, 1);
+
+  const validator = new Validator();
+  validator.check(groupId, { code: 400, msg: 'A valid group id must be provided' }).isGroupId();
+  validator
+    .check(null, { code: 401, msg: 'You have to be logged in to be able to ask to join a group' })
+    .isLoggedInUser(ctx);
+  if (validator.hasErrors()) {
+    return callback(validator.getFirstError());
+  }
+
+  PrincipalsDAO.getJoinGroupRequests(groupId, (err, requests) => {
+    if (err) {
+      return callback(err);
+    }
+    if (_.isEmpty(requests)) {
+      return callback();
+    }
+
+    // Get only pending request
+    const users = _.filter(requests, hash => {
+      return hash.status === PrincipalsConstants.requestStatus.PENDING;
+    });
+
+    // Return principal(s)
+    if (users.length === 1) {
+      PrincipalsDAO.getPrincipal(users[0].principalId, (err, principal) => {
+        if (err) {
+          return callback(err);
+        }
+
+        return callback(null, [principal]);
+      });
+    } else {
+      const userIds = _.map(users, hash => {
+        return hash.principalId;
+      });
+
+      PrincipalsDAO.getPrincipals(userIds, null, (err, principals) => {
+        if (err) {
+          return callback(err);
+        }
+
+        return callback(null, principals);
+      });
+    }
+  });
+};
+
+/**
+ * Get a request
+ *
+ * @param  {Context}    ctx                         Standard context object containing the current user and the current tenant
+ * @param  {String}     groupId                     The group id
+ * @param  {Function}   callback                    Standard callback function
+ * @param  {Object}     callback.err                An error that occured, if any
+ */
+const getJoinGroupRequest = function(ctx, groupId, callback) {
+  const validator = new Validator();
+  validator.check(groupId, { code: 400, msg: 'A valid group id must be provided' }).isGroupId();
+  validator
+    .check(null, { code: 401, msg: 'You have to be logged in to be able to ask to join a group' })
+    .isLoggedInUser(ctx);
+  if (validator.hasErrors()) {
+    return callback(validator.getFirstError());
+  }
+
+  // If the request exists, return
+  PrincipalsDAO.getJoinGroupRequest(groupId, ctx.user().id, (err, request) => {
+    if (err) {
+      return callback(err);
+    }
+
+    if (_.isEmpty(request) || request.status !== PrincipalsConstants.requestStatus.PENDING) {
+      return callback();
+    }
+
+    return callback(null, request);
+  });
+};
+
+/**
+ * Update a request
+ *
+ * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {String}     groupId         The id of the group to join
+ * @param  {String}     principalId     The id of the principal who wants to join this group
+ * @param  {String}     role            The role validated by the admin
+ * @param  {String}     status          The status of the request
+ * @param  {Function}   callback        Standard callback function
+ * @param  {Object}     callback.err    An error that occurred, if any
+ */
+const updateJoinGroupByRequest = function(ctx, groupId, principalId, role, status, callback) {
+  principalId = principalId || ctx.user().id;
+  const validator = new Validator();
+  if (role) {
+    validator
+      .check(role, { code: 400, msg: role + ' is not a recognized role group' })
+      .isIn(PrincipalsConstants.role.ALL_PRIORITY);
+  }
+  validator
+    .check(principalId, { code: 400, msg: 'Must specify a valid principalId' })
+    .isPrincipalId();
+  validator
+    .check(status, { code: 400, msg: status + ' is not a recognized request status' })
+    .isIn(_.values(PrincipalsConstants.requestStatus));
+  validator.check(groupId, { code: 400, msg: 'A valid group id must be provided' }).isGroupId();
+  validator
+    .check(null, { code: 401, msg: 'You have to be logged in to be able to ask to join a group' })
+    .isLoggedInUser(ctx);
+  if (validator.hasErrors()) {
+    return callback(validator.getFirstError());
+  }
+
+  if (!principalId) {
+    principalId = ctx.user().id;
+  }
+
+  if (!ctx.user()) {
+    return callback(null, false);
+  }
+
+  PrincipalsDAO.updateJoinGroupByRequest(principalId, groupId, status, err => {
+    if (err) {
+      return callback(err);
+    }
+
+    if (status === PrincipalsConstants.requestStatus.ACCEPT) {
+      const changes = {};
+      changes[principalId] = role;
+
+      setGroupMembers(ctx, groupId, changes, err => {
+        if (err) {
+          return callback(err);
+        }
+      });
+    }
+    return notifyOfJoinRequestDecision(ctx, groupId, principalId, status, callback);
+  });
+};
+
+const notifyOfJoinRequestDecision = function(ctx, groupId, principalId, status, callback) {
+  const eventToEmit =
+    status === PrincipalsConstants.requestStatus.ACCEPT
+      ? PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP_ACCEPTED
+      : PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP_REJECTED;
+  PrincipalsDAO.getPrincipal(groupId, (err, group) => {
+    if (err) {
+      return callback(err);
+    }
+    PrincipalsDAO.getPrincipal(principalId, (err, requester) => {
+      if (err) {
+        return callback(err);
+      }
+
+      // Notify the requester of the decision of the request
+      return PrincipalsEmitter.emit(eventToEmit, ctx, group, requester, callback);
+    });
+  });
+};
+
 module.exports = {
   getGroup,
   getFullGroupProfile,
@@ -1177,5 +1397,9 @@ module.exports = {
   deleteGroup,
   restoreGroup,
   canRestoreGroup,
-  canManageAny
+  canManageAny,
+  createRequestJoinGroup,
+  getJoinGroupRequests,
+  getJoinGroupRequest,
+  updateJoinGroupByRequest
 };

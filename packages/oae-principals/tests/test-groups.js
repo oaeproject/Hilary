@@ -13,27 +13,28 @@
  * permissions and limitations under the License.
  */
 
+/* eslint-disable no-unused-vars */
+
 const assert = require('assert');
 const fs = require('fs');
 const util = require('util');
 const _ = require('underscore');
 
 const AuthzAPI = require('oae-authz');
+const { AuthzConstants } = require('oae-authz/lib/constants');
 const AuthzUtil = require('oae-authz/lib/util');
 const Cassandra = require('oae-util/lib/cassandra');
-const { Context } = require('oae-context/lib/api');
 const ConfigTestUtil = require('oae-config/lib/test/util');
 const FoldersTestUtil = require('oae-folders/lib/test/util');
 const LibraryTestUtil = require('oae-library/lib/test/util');
 const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
 const TenantsTestUtil = require('oae-tenants/lib/test/util');
 const TestsUtil = require('oae-tests');
 
 const PrincipalsAPI = require('oae-principals');
 const { PrincipalsConstants } = require('oae-principals/lib/constants');
+const PrincipalsDAO = require('oae-principals/lib/internal/dao');
 const PrincipalsTestUtil = require('oae-principals/lib/test/util');
-const { User } = require('oae-principals/lib/model.user');
 
 describe('Groups', () => {
   // Rest context that can be used to perform requests as different types of users
@@ -712,65 +713,61 @@ describe('Groups', () => {
                                         // Ensure user from another public tenant cannot see it
                                         RestAPI.Group.getGroup(
                                           publicTenant2.publicUser.restContext,
-                                          publicTenant1.loggedinGroup.id,
+                                          publicTenant1.loggedinGroupNotJoinable.id,
                                           (err, group) => {
                                             assert.ok(err);
                                             assert.strictEqual(err.code, 401);
 
-                                            // Ensure user from another private tenant cannot see it
+                                            // Unless it is joinable, then it can
                                             RestAPI.Group.getGroup(
-                                              privateTenant1.publicUser.restContext,
+                                              publicTenant2.publicUser.restContext,
                                               publicTenant1.loggedinGroup.id,
                                               (err, group) => {
-                                                assert.ok(err);
-                                                assert.strictEqual(err.code, 401);
+                                                assert.ok(!err);
 
-                                                // Ensure user from same tenant can see it
+                                                // Ensure user from another private tenant cannot see it
                                                 RestAPI.Group.getGroup(
-                                                  publicTenant1.privateUser.restContext,
+                                                  privateTenant1.publicUser.restContext,
                                                   publicTenant1.loggedinGroup.id,
                                                   (err, group) => {
-                                                    assert.ok(!err);
+                                                    assert.ok(err);
+                                                    assert.strictEqual(err.code, 401);
 
-                                                    // Ensure member user from another tenant can see it
+                                                    // Ensure user from same tenant can see it
                                                     RestAPI.Group.getGroup(
-                                                      publicTenant1.publicUser.restContext,
-                                                      publicTenant2.loggedinGroup.id,
+                                                      publicTenant1.privateUser.restContext,
+                                                      publicTenant1.loggedinGroup.id,
                                                       (err, group) => {
                                                         assert.ok(!err);
 
-                                                        // Ensure tenant admin can see it
+                                                        // Ensure member user from another tenant can see it
                                                         RestAPI.Group.getGroup(
-                                                          publicTenant1.adminRestContext,
-                                                          publicTenant1.loggedinGroup.id,
+                                                          publicTenant1.publicUser.restContext,
+                                                          publicTenant2.loggedinGroup.id,
                                                           (err, group) => {
                                                             assert.ok(!err);
 
-                                                            // Ensure global admin can see it
+                                                            // Ensure tenant admin can see it
                                                             RestAPI.Group.getGroup(
-                                                              globalAdminOnTenantRestContext,
+                                                              publicTenant1.adminRestContext,
                                                               publicTenant1.loggedinGroup.id,
                                                               (err, group) => {
                                                                 assert.ok(!err);
 
-                                                                // 3. Private group
-
-                                                                // Ensure anonymous cannot see it
+                                                                // Ensure global admin can see it
                                                                 RestAPI.Group.getGroup(
-                                                                  publicTenant1.anonymousRestContext,
+                                                                  globalAdminOnTenantRestContext,
                                                                   publicTenant1.loggedinGroup.id,
                                                                   (err, group) => {
-                                                                    assert.ok(err);
-                                                                    assert.strictEqual(
-                                                                      err.code,
-                                                                      401
-                                                                    );
+                                                                    assert.ok(!err);
 
-                                                                    // Ensure user from another public tenant cannot see it
+                                                                    // 3. Private group
+
+                                                                    // Ensure anonymous cannot see it
                                                                     RestAPI.Group.getGroup(
-                                                                      publicTenant2.publicUser
-                                                                        .restContext,
-                                                                      publicTenant1.loggedinGroup
+                                                                      publicTenant1.anonymousRestContext,
+                                                                      publicTenant1
+                                                                        .loggedinGroupNotJoinable
                                                                         .id,
                                                                       (err, group) => {
                                                                         assert.ok(err);
@@ -779,10 +776,9 @@ describe('Groups', () => {
                                                                           401
                                                                         );
 
-                                                                        // Ensure user from another private tenant cannot see it
+                                                                        // Even if it is joinable
                                                                         RestAPI.Group.getGroup(
-                                                                          privateTenant1.publicUser
-                                                                            .restContext,
+                                                                          publicTenant1.anonymousRestContext,
                                                                           publicTenant1
                                                                             .loggedinGroup.id,
                                                                           (err, group) => {
@@ -792,30 +788,37 @@ describe('Groups', () => {
                                                                               401
                                                                             );
 
-                                                                            // Ensure user from same tenant can see it (since they would be able to join it)
+                                                                            // Ensure user from another public tenant cannot see it
                                                                             RestAPI.Group.getGroup(
-                                                                              publicTenant1
-                                                                                .privateUser
+                                                                              publicTenant2
+                                                                                .publicUser
                                                                                 .restContext,
                                                                               publicTenant1
-                                                                                .loggedinGroup.id,
+                                                                                .loggedinGroupNotJoinable
+                                                                                .id,
                                                                               (err, group) => {
-                                                                                assert.ok(!err);
+                                                                                assert.ok(err);
+                                                                                assert.strictEqual(
+                                                                                  err.code,
+                                                                                  401
+                                                                                );
 
-                                                                                // Ensure member user from another tenant can see it
+                                                                                // Unless it is joinable
                                                                                 RestAPI.Group.getGroup(
-                                                                                  publicTenant1
+                                                                                  publicTenant2
                                                                                     .publicUser
                                                                                     .restContext,
-                                                                                  publicTenant2
-                                                                                    .privateGroup
+                                                                                  publicTenant1
+                                                                                    .loggedinGroup
                                                                                     .id,
                                                                                   (err, group) => {
                                                                                     assert.ok(!err);
 
-                                                                                    // Ensure tenant admin can see it
+                                                                                    // Ensure user from another private tenant cannot see it
                                                                                     RestAPI.Group.getGroup(
-                                                                                      publicTenant1.adminRestContext,
+                                                                                      privateTenant1
+                                                                                        .publicUser
+                                                                                        .restContext,
                                                                                       publicTenant1
                                                                                         .loggedinGroup
                                                                                         .id,
@@ -824,23 +827,173 @@ describe('Groups', () => {
                                                                                         group
                                                                                       ) => {
                                                                                         assert.ok(
-                                                                                          !err
+                                                                                          err
+                                                                                        );
+                                                                                        assert.strictEqual(
+                                                                                          err.code,
+                                                                                          401
                                                                                         );
 
-                                                                                        // Ensure global admin can see it
+                                                                                        // Not even if it is not joinable
                                                                                         RestAPI.Group.getGroup(
-                                                                                          globalAdminOnTenantRestContext,
+                                                                                          privateTenant1
+                                                                                            .publicUser
+                                                                                            .restContext,
                                                                                           publicTenant1
-                                                                                            .loggedinGroup
+                                                                                            .loggedinGroupNotJoinable
                                                                                             .id,
                                                                                           (
                                                                                             err,
                                                                                             group
                                                                                           ) => {
                                                                                             assert.ok(
-                                                                                              !err
+                                                                                              err
                                                                                             );
-                                                                                            return callback();
+                                                                                            assert.strictEqual(
+                                                                                              err.code,
+                                                                                              401
+                                                                                            );
+
+                                                                                            // Ensure user from same tenant can see it (since they would be able to join it)
+                                                                                            RestAPI.Group.getGroup(
+                                                                                              publicTenant1
+                                                                                                .privateUser
+                                                                                                .restContext,
+                                                                                              publicTenant1
+                                                                                                .loggedinGroup
+                                                                                                .id,
+                                                                                              (
+                                                                                                err,
+                                                                                                group
+                                                                                              ) => {
+                                                                                                assert.ok(
+                                                                                                  !err
+                                                                                                );
+
+                                                                                                // Even if it is non joinable
+                                                                                                RestAPI.Group.getGroup(
+                                                                                                  publicTenant1
+                                                                                                    .privateUser
+                                                                                                    .restContext,
+                                                                                                  publicTenant1
+                                                                                                    .loggedinGroupNotJoinable
+                                                                                                    .id,
+                                                                                                  (
+                                                                                                    err,
+                                                                                                    group
+                                                                                                  ) => {
+                                                                                                    assert.ok(
+                                                                                                      !err
+                                                                                                    );
+
+                                                                                                    // Ensure member user from another tenant can see it
+                                                                                                    RestAPI.Group.getGroup(
+                                                                                                      publicTenant1
+                                                                                                        .publicUser
+                                                                                                        .restContext,
+                                                                                                      publicTenant2
+                                                                                                        .privateGroup
+                                                                                                        .id,
+                                                                                                      (
+                                                                                                        err,
+                                                                                                        group
+                                                                                                      ) => {
+                                                                                                        assert.ok(
+                                                                                                          !err
+                                                                                                        );
+
+                                                                                                        // Unless not joinable
+                                                                                                        RestAPI.Group.getGroup(
+                                                                                                          publicTenant1
+                                                                                                            .publicUser
+                                                                                                            .restContext,
+                                                                                                          publicTenant2
+                                                                                                            .privateGroupNotJoinable
+                                                                                                            .id,
+                                                                                                          (
+                                                                                                            err,
+                                                                                                            group
+                                                                                                          ) => {
+                                                                                                            assert.ok(
+                                                                                                              err
+                                                                                                            );
+                                                                                                            assert.strictEqual(
+                                                                                                              err.code,
+                                                                                                              401
+                                                                                                            );
+
+                                                                                                            // Ensure tenant admin can see it
+                                                                                                            RestAPI.Group.getGroup(
+                                                                                                              publicTenant1.adminRestContext,
+                                                                                                              publicTenant1
+                                                                                                                .loggedinGroup
+                                                                                                                .id,
+                                                                                                              (
+                                                                                                                err,
+                                                                                                                group
+                                                                                                              ) => {
+                                                                                                                assert.ok(
+                                                                                                                  !err
+                                                                                                                );
+
+                                                                                                                // Even if not joinable
+                                                                                                                RestAPI.Group.getGroup(
+                                                                                                                  publicTenant1.adminRestContext,
+                                                                                                                  publicTenant1
+                                                                                                                    .loggedinGroupNotJoinable
+                                                                                                                    .id,
+                                                                                                                  (
+                                                                                                                    err,
+                                                                                                                    group
+                                                                                                                  ) => {
+                                                                                                                    assert.ok(
+                                                                                                                      !err
+                                                                                                                    );
+
+                                                                                                                    // Ensure global admin can see it
+                                                                                                                    RestAPI.Group.getGroup(
+                                                                                                                      globalAdminOnTenantRestContext,
+                                                                                                                      publicTenant1
+                                                                                                                        .loggedinGroup
+                                                                                                                        .id,
+                                                                                                                      (
+                                                                                                                        err,
+                                                                                                                        group
+                                                                                                                      ) => {
+                                                                                                                        assert.ok(
+                                                                                                                          !err
+                                                                                                                        );
+
+                                                                                                                        // Even if not joinable
+                                                                                                                        RestAPI.Group.getGroup(
+                                                                                                                          globalAdminOnTenantRestContext,
+                                                                                                                          publicTenant1
+                                                                                                                            .loggedinGroupNotJoinable
+                                                                                                                            .id,
+                                                                                                                          (
+                                                                                                                            err,
+                                                                                                                            group
+                                                                                                                          ) => {
+                                                                                                                            assert.ok(
+                                                                                                                              !err
+                                                                                                                            );
+                                                                                                                            return callback();
+                                                                                                                          }
+                                                                                                                        );
+                                                                                                                      }
+                                                                                                                    );
+                                                                                                                  }
+                                                                                                                );
+                                                                                                              }
+                                                                                                            );
+                                                                                                          }
+                                                                                                        );
+                                                                                                      }
+                                                                                                    );
+                                                                                                  }
+                                                                                                );
+                                                                                              }
+                                                                                            );
                                                                                           }
                                                                                         );
                                                                                       }
@@ -2126,10 +2279,7 @@ describe('Groups', () => {
       TestsUtil.generateTestUsers(camAdminRestContext, 4, (err, users) => {
         assert.ok(!err);
         const contexts = _.values(users);
-        const simon = contexts[0];
-        const branden = contexts[1];
-        const nico = contexts[2];
-        const bert = contexts[3];
+        const { 0: simon, 1: branden, 2: nico, 3: bert } = contexts;
 
         // Make Simon & Branden a manager and Bert & Nico members.
         RestAPI.Group.createGroup(
@@ -2425,6 +2575,7 @@ describe('Groups', () => {
                 group.id,
                 () => {
                   // Get the group state immediately after join so we can ensure the stability of its lastModified time
+                  // eslint-disable-next-line handle-callback-err
                   RestAPI.Group.getGroup(jack.restContext, group.id, (err, groupAfterJoin) => {
                     // Verify not a valid id
                     PrincipalsTestUtil.assertLeaveGroupFails(
@@ -2671,7 +2822,7 @@ describe('Groups', () => {
     it('verify paging', callback => {
       TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
         assert.ok(!err);
-        const nicolaas = _.values(users)[0];
+        const { 0: nicolaas } = _.values(users);
 
         // Add Nicolaas to 5 groups
         TestsUtil.generateTestGroups(nicolaas.restContext, 5, (...args) => {
@@ -2801,15 +2952,15 @@ describe('Groups', () => {
         assert.ok(!err);
 
         /*
-                 * Create a group tree which looks like:
-                 *                  top
-                 *                 /    \
-                 *   simonParentParent   nicoParentParent
-                 *               /        \
-                 *       simonParent      nicoParent
-                 *             /            \
-                 *          simon           nico
-                 */
+         * Create a group tree which looks like:
+         *                  top
+         *                 /    \
+         *   simonParentParent   nicoParentParent
+         *               /        \
+         *       simonParent      nicoParent
+         *             /            \
+         *          simon           nico
+         */
         TestsUtil.generateTestGroups(
           camAdminRestContext,
           5,
@@ -2942,7 +3093,6 @@ describe('Groups', () => {
       const createdPrincipals = {};
 
       const createPrincipal = function(type, identifier, metadata) {
-        const principalId = TestsUtil.generateTestUserId(identifier);
         if (type === 'group') {
           RestAPI.Group.createGroup(
             johnRestContext,
@@ -3548,6 +3698,458 @@ describe('Groups', () => {
             }
           );
         });
+      });
+    });
+  });
+  describe('Join group by requests', () => {
+    /**
+     * Test that verifies that a request is correctly created
+     */
+    it('create request to join a group', callback => {
+      // Create a user on another tenant
+      TestsUtil.generateTestUsers(gtAdminRestContext, 2, (err, users, orodan, brecke) => {
+        assert.ok(!err);
+
+        // Create a group and add orodan as a manager
+        RestAPI.Group.createGroup(
+          orodan.restContext,
+          'Test Group',
+          'Group',
+          'public',
+          'request',
+          [],
+          [],
+          (err, groupObj) => {
+            assert.ok(!err);
+
+            // Make sure the query isn't created if group id is invalid
+            PrincipalsTestUtil.assertCreateRequestJoinGroupFails(
+              brecke.restContext,
+              'invalidGroupId',
+              400,
+              err => {
+                assert.ok(!err);
+
+                // Create request to join a group
+                PrincipalsTestUtil.assertCreateRequestJoinGroupSucceeds(
+                  brecke.restContext,
+                  groupObj.id,
+                  err => {
+                    assert.ok(!err);
+
+                    // Make sure the query isn't created if group id is invalid
+                    PrincipalsTestUtil.assertGetJoinGroupRequestFails(
+                      brecke.restContext,
+                      'invalidGroupId',
+                      400,
+                      err => {
+                        assert.ok(!err);
+
+                        // Get request to ensure that a request is created
+                        PrincipalsTestUtil.assertGetJoinGroupRequestSucceeds(
+                          brecke.restContext,
+                          groupObj.id,
+                          request => {
+                            assert.ok(request);
+
+                            assert.equal(request.groupId, groupObj.id);
+                            assert.equal(request.principalId, brecke.user.id);
+                            assert.ok(request.created_at);
+                            assert.equal(request.status, PrincipalsConstants.requestStatus.PENDING);
+                            assert.equal(request.created_at, request.updated_at);
+
+                            return callback();
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
+      });
+    });
+
+    /**
+     * Test that verifies that the getJoinGroupRequests function returns all of the request corresponding to a group
+     */
+    it('get all requests to join a specific group', callback => {
+      // Create a user on another tenant
+      TestsUtil.generateTestUsers(gtAdminRestContext, 3, (err, users, orodan, brecke, nicolaas) => {
+        assert.ok(!err);
+
+        // Create a group and add orodan as a manager
+        RestAPI.Group.createGroup(
+          orodan.restContext,
+          'Test Group',
+          'Group',
+          'public',
+          'request',
+          [],
+          [],
+          (err, groupObj) => {
+            assert.ok(!err);
+
+            // Create request to join a group
+            PrincipalsTestUtil.assertCreateRequestJoinGroupSucceeds(
+              brecke.restContext,
+              groupObj.id,
+              err => {
+                assert.ok(!err);
+
+                // Make sure the query isn't created if group id is invalid
+                PrincipalsTestUtil.assertCreateRequestJoinGroupSucceeds(
+                  nicolaas.restContext,
+                  groupObj.id,
+                  err => {
+                    assert.ok(!err);
+
+                    // Make sure the query isn't created if group id is invalid
+                    PrincipalsTestUtil.assertGetJoinGroupRequestsFails(
+                      orodan.restContext,
+                      'invalidGroupId',
+                      400,
+                      err => {
+                        assert.ok(!err);
+
+                        // Get request to ensure that a request is created
+                        PrincipalsTestUtil.assertGetJoinGroupRequestsSucceeds(
+                          orodan.restContext,
+                          groupObj.id,
+                          requests => {
+                            assert.ok(requests);
+                            assert.ok(requests.results[brecke.user.id]);
+                            assert.ok(requests.results[nicolaas.user.id]);
+
+                            return callback();
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
+      });
+    });
+
+    /**
+     * Test that verifies that a request is correctly accepted
+     */
+    it('accept request to join a group', callback => {
+      // Create a user on another tenant
+      TestsUtil.generateTestUsers(gtAdminRestContext, 3, (err, users, orodan, brecke, nicolaas) => {
+        assert.ok(!err);
+
+        // Create a group and add orodan as a manager
+        RestAPI.Group.createGroup(
+          orodan.restContext,
+          'Test Group',
+          'Group',
+          'public',
+          'request',
+          [],
+          [],
+          (err, groupObj) => {
+            assert.ok(!err);
+
+            // Create requests to join a group
+            PrincipalsTestUtil.assertCreateRequestJoinGroupSucceeds(
+              brecke.restContext,
+              groupObj.id,
+              err => {
+                assert.ok(!err);
+                PrincipalsTestUtil.assertCreateRequestJoinGroupSucceeds(
+                  nicolaas.restContext,
+                  groupObj.id,
+                  err => {
+                    assert.ok(!err);
+
+                    // Make sure that orodan can't update if there is an invalid parameters
+                    PrincipalsTestUtil.assertUpdateJoinGroupByRequestFails(
+                      orodan.restContext,
+                      groupObj.id,
+                      brecke.user.id,
+                      AuthzConstants.role.MANAGER,
+                      'invalidStatus',
+                      400,
+                      err => {
+                        assert.ok(!err);
+                        PrincipalsTestUtil.assertUpdateJoinGroupByRequestFails(
+                          orodan.restContext,
+                          groupObj.id,
+                          brecke.user.id,
+                          'invalidRole',
+                          PrincipalsConstants.requestStatus.ACCEPT,
+                          400,
+                          err => {
+                            assert.ok(!err);
+                            PrincipalsTestUtil.assertUpdateJoinGroupByRequestFails(
+                              orodan.restContext,
+                              'invalidGroupId',
+                              brecke.user.id,
+                              AuthzConstants.role.MANAGER,
+                              PrincipalsConstants.requestStatus.ACCEPT,
+                              400,
+                              err => {
+                                assert.ok(!err);
+                                PrincipalsTestUtil.assertUpdateJoinGroupByRequestFails(
+                                  orodan.restContext,
+                                  groupObj.id,
+                                  'invalidUserId',
+                                  AuthzConstants.role.MANAGER,
+                                  PrincipalsConstants.requestStatus.ACCEPT,
+                                  400,
+                                  err => {
+                                    assert.ok(!err);
+
+                                    // Accept requests
+                                    PrincipalsTestUtil.assertUpdateJoinGroupByRequestSucceeds(
+                                      orodan.restContext,
+                                      groupObj.id,
+                                      brecke.user.id,
+                                      AuthzConstants.role.MANAGER,
+                                      PrincipalsConstants.requestStatus.ACCEPT,
+                                      err => {
+                                        assert.ok(!err);
+                                        PrincipalsTestUtil.assertUpdateJoinGroupByRequestSucceeds(
+                                          orodan.restContext,
+                                          groupObj.id,
+                                          nicolaas.user.id,
+                                          AuthzConstants.role.MEMBER,
+                                          PrincipalsConstants.requestStatus.ACCEPT,
+                                          err => {
+                                            assert.ok(!err);
+
+                                            // Make sure the request is marked as accepted
+                                            PrincipalsDAO.getJoinGroupRequest(
+                                              groupObj.id,
+                                              brecke.user.id,
+                                              // eslint-disable-next-line handle-callback-err
+                                              (err, request) => {
+                                                assert.equal(
+                                                  request.status,
+                                                  PrincipalsConstants.requestStatus.ACCEPT
+                                                );
+
+                                                // Get request to ensure that a request is created
+                                                PrincipalsTestUtil.assertGetJoinGroupRequestsSucceeds(
+                                                  orodan.restContext,
+                                                  groupObj.id,
+                                                  requests => {
+                                                    assert.ok(!requests.requests);
+
+                                                    // Get the members of this group
+                                                    RestAPI.Group.getGroupMembers(
+                                                      orodan.restContext,
+                                                      groupObj.id,
+                                                      undefined,
+                                                      undefined,
+                                                      (err, members) => {
+                                                        assert.ok(!err);
+                                                        assert.equal(members.results.length, 3);
+
+                                                        // Morph results to hash for easy access
+                                                        const hash = _.groupBy(
+                                                          members.results,
+                                                          member => {
+                                                            return member.profile.id;
+                                                          }
+                                                        );
+                                                        assert.equal(
+                                                          hash[brecke.user.id][0].role,
+                                                          AuthzConstants.role.MANAGER
+                                                        );
+                                                        assert.equal(
+                                                          hash[nicolaas.user.id][0].role,
+                                                          AuthzConstants.role.MEMBER
+                                                        );
+
+                                                        return callback();
+                                                      }
+                                                    );
+                                                  }
+                                                );
+                                              }
+                                            );
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
+      });
+    });
+
+    /**
+     * Test that verifies that a request is correctly rejected
+     */
+    it('reject request to join a group', callback => {
+      // Create a user on another tenant
+      TestsUtil.generateTestUsers(gtAdminRestContext, 2, (err, users, orodan, brecke) => {
+        assert.ok(!err);
+
+        // Create a group and add orodan as a manager
+        RestAPI.Group.createGroup(
+          orodan.restContext,
+          'Test Group',
+          'Group',
+          'public',
+          'request',
+          [],
+          [],
+          (err, groupObj) => {
+            assert.ok(!err);
+
+            // Create requests to join a group
+            PrincipalsTestUtil.assertCreateRequestJoinGroupSucceeds(
+              brecke.restContext,
+              groupObj.id,
+              err => {
+                assert.ok(!err);
+
+                // Manager accept requests
+                PrincipalsTestUtil.assertUpdateJoinGroupByRequestSucceeds(
+                  orodan.restContext,
+                  groupObj.id,
+                  brecke.user.id,
+                  null,
+                  PrincipalsConstants.requestStatus.REJECT,
+                  err => {
+                    assert.ok(!err);
+
+                    // Make sure the request is marked as rejected
+                    PrincipalsDAO.getJoinGroupRequest(
+                      groupObj.id,
+                      brecke.user.id,
+                      // eslint-disable-next-line handle-callback-err
+                      (err, request) => {
+                        assert.equal(request.status, PrincipalsConstants.requestStatus.REJECT);
+
+                        // Get request to ensure that a request is created
+                        PrincipalsTestUtil.assertGetJoinGroupRequestsSucceeds(
+                          orodan.restContext,
+                          groupObj.id,
+                          requests => {
+                            assert.ok(!requests.requests);
+
+                            // Get the members of this group
+                            RestAPI.Group.getGroupMembers(
+                              orodan.restContext,
+                              groupObj.id,
+                              undefined,
+                              undefined,
+                              (err, members) => {
+                                assert.ok(!err);
+                                assert.equal(members.results.length, 1);
+
+                                return callback();
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
+      });
+    });
+
+    /**
+     * Test that verifies that a request is correctly canceled
+     */
+    it('cancel request to join a group', callback => {
+      // Create a user on another tenant
+      TestsUtil.generateTestUsers(gtAdminRestContext, 2, (err, users, orodan, brecke) => {
+        assert.ok(!err);
+
+        // Create a group and add orodan as a manager
+        RestAPI.Group.createGroup(
+          orodan.restContext,
+          'Test Group',
+          'Group',
+          'public',
+          'request',
+          [],
+          [],
+          (err, groupObj) => {
+            assert.ok(!err);
+
+            // Create requests to join a group
+            PrincipalsTestUtil.assertCreateRequestJoinGroupSucceeds(
+              brecke.restContext,
+              groupObj.id,
+              err => {
+                assert.ok(!err);
+
+                // Manager accepts all the requests
+                PrincipalsTestUtil.assertUpdateJoinGroupByRequestSucceeds(
+                  brecke.restContext,
+                  groupObj.id,
+                  brecke.user.id,
+                  null,
+                  PrincipalsConstants.requestStatus.CANCEL,
+                  err => {
+                    assert.ok(!err);
+
+                    // Get request to ensure that a request is created
+                    PrincipalsTestUtil.assertGetJoinGroupRequestsSucceeds(
+                      orodan.restContext,
+                      groupObj.id,
+                      requests => {
+                        assert.ok(!requests.requests);
+
+                        // Make sure the request is marked as canceled
+                        PrincipalsDAO.getJoinGroupRequest(
+                          groupObj.id,
+                          brecke.user.id,
+                          // eslint-disable-next-line handle-callback-err
+                          (err, request) => {
+                            assert.equal(request.status, PrincipalsConstants.requestStatus.CANCEL);
+
+                            // Get the members of this group
+                            RestAPI.Group.getGroupMembers(
+                              orodan.restContext,
+                              groupObj.id,
+                              undefined,
+                              undefined,
+                              (err, members) => {
+                                assert.ok(!err);
+                                assert.equal(members.results.length, 1);
+
+                                return callback();
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
       });
     });
   });

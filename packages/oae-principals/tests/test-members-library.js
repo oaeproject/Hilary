@@ -170,33 +170,74 @@ describe('Members Library', () => {
               null,
               401,
               () => {
-                PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                  publicTenant1.adminRestContext,
-                  publicTenant1.loggedinGroup.id,
+                PrincipalsTestUtil.assertGetMembersLibraryFails(
+                  publicTenant1.anonymousRestContext,
+                  publicTenant1.loggedinGroupNotJoinable.id,
                   null,
                   null,
+                  401,
                   () => {
                     PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                      publicTenant1.publicUser.restContext,
+                      publicTenant1.adminRestContext,
                       publicTenant1.loggedinGroup.id,
                       null,
                       null,
                       () => {
-                        PrincipalsTestUtil.assertGetMembersLibraryFails(
-                          publicTenant2.publicUser.restContext,
-                          publicTenant1.loggedinGroup.id,
+                        PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                          publicTenant1.adminRestContext,
+                          publicTenant1.loggedinGroupNotJoinable.id,
                           null,
                           null,
-                          401,
                           () => {
-                            PrincipalsTestUtil.assertGetMembersLibraryFails(
-                              publicTenant2.adminRestContext,
+                            PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                              publicTenant1.publicUser.restContext,
                               publicTenant1.loggedinGroup.id,
                               null,
                               null,
-                              401,
                               () => {
-                                return callback();
+                                PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                                  publicTenant1.publicUser.restContext,
+                                  publicTenant1.loggedinGroupNotJoinable.id,
+                                  null,
+                                  null,
+                                  () => {
+                                    PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                                      publicTenant2.publicUser.restContext,
+                                      publicTenant1.loggedinGroup.id,
+                                      null,
+                                      null,
+                                      () => {
+                                        PrincipalsTestUtil.assertGetMembersLibraryFails(
+                                          publicTenant2.publicUser.restContext,
+                                          publicTenant1.loggedinGroupNotJoinable.id,
+                                          null,
+                                          null,
+                                          401,
+                                          () => {
+                                            PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                                              publicTenant2.adminRestContext,
+                                              publicTenant1.loggedinGroup.id,
+                                              null,
+                                              null,
+                                              () => {
+                                                PrincipalsTestUtil.assertGetMembersLibraryFails(
+                                                  publicTenant2.adminRestContext,
+                                                  publicTenant1.loggedinGroupNotJoinable.id,
+                                                  null,
+                                                  null,
+                                                  401,
+                                                  () => {
+                                                    return callback();
+                                                  }
+                                                );
+                                              }
+                                            );
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
                               }
                             );
                           }
@@ -225,49 +266,110 @@ describe('Members Library', () => {
               null,
               401,
               () => {
-                PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                  publicTenant1.adminRestContext,
-                  publicTenant1.privateGroup.id,
+                PrincipalsTestUtil.assertGetMembersLibraryFails(
+                  publicTenant1.anonymousRestContext,
+                  publicTenant1.privateGroupNotJoinable.id,
                   null,
                   null,
+                  401,
                   () => {
-                    PrincipalsTestUtil.assertGetMembersLibraryFails(
-                      publicTenant1.publicUser.restContext,
+                    PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                      publicTenant1.adminRestContext,
                       publicTenant1.privateGroup.id,
                       null,
                       null,
-                      401,
                       () => {
-                        PrincipalsTestUtil.assertGetMembersLibraryFails(
-                          publicTenant2.publicUser.restContext,
-                          publicTenant1.privateGroup.id,
+                        PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                          publicTenant1.adminRestContext,
+                          publicTenant1.privateGroupNotJoinable.id,
                           null,
                           null,
-                          401,
                           () => {
                             PrincipalsTestUtil.assertGetMembersLibraryFails(
-                              publicTenant2.adminRestContext,
-                              publicTenant1.privateGroup.id,
+                              publicTenant1.publicUser.restContext,
+                              publicTenant1.privateGroupNotJoinable.id,
                               null,
                               null,
                               401,
                               () => {
-                                // Give the group a member and verify it succeeds
-                                const change = {};
-                                change[publicTenant1.publicUser.user.id] = 'member';
-                                PrincipalsTestUtil.assertSetGroupMembersSucceeds(
-                                  publicTenant1.adminRestContext,
-                                  publicTenant1.adminRestContext,
+                                // If it is joinable then it doesn't get 401
+                                PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                                  publicTenant1.publicUser.restContext,
                                   publicTenant1.privateGroup.id,
-                                  change,
+                                  null,
+                                  null,
                                   () => {
-                                    PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                                      publicTenant1.publicUser.restContext,
-                                      publicTenant1.privateGroup.id,
+                                    PrincipalsTestUtil.assertGetMembersLibraryFails(
+                                      publicTenant2.publicUser.restContext,
+                                      publicTenant1.privateGroupNotJoinable.id,
                                       null,
                                       null,
+                                      401,
                                       () => {
-                                        return callback();
+                                        PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                                          publicTenant2.publicUser.restContext,
+                                          publicTenant1.privateGroup.id,
+                                          null,
+                                          null,
+                                          () => {
+                                            PrincipalsTestUtil.assertGetMembersLibraryFails(
+                                              publicTenant2.adminRestContext,
+                                              publicTenant1.privateGroupNotJoinable.id,
+                                              null,
+                                              null,
+                                              401,
+                                              () => {
+                                                PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                                                  publicTenant2.adminRestContext,
+                                                  publicTenant1.privateGroup.id,
+                                                  null,
+                                                  null,
+                                                  () => {
+                                                    // Give the group a member and verify it succeeds
+                                                    const change = {};
+                                                    change[publicTenant1.publicUser.user.id] =
+                                                      'member';
+                                                    PrincipalsTestUtil.assertSetGroupMembersSucceeds(
+                                                      publicTenant1.adminRestContext,
+                                                      publicTenant1.adminRestContext,
+                                                      publicTenant1.privateGroup.id,
+                                                      change,
+                                                      () => {
+                                                        PrincipalsTestUtil.assertSetGroupMembersSucceeds(
+                                                          publicTenant1.adminRestContext,
+                                                          publicTenant1.adminRestContext,
+                                                          publicTenant1.privateGroupNotJoinable.id,
+                                                          change,
+                                                          () => {
+                                                            PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                                                              publicTenant1.publicUser.restContext,
+                                                              publicTenant1.privateGroup.id,
+                                                              null,
+                                                              null,
+                                                              () => {
+                                                                PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                                                                  publicTenant1.publicUser
+                                                                    .restContext,
+                                                                  publicTenant1
+                                                                    .privateGroupNotJoinable.id,
+                                                                  null,
+                                                                  null,
+                                                                  () => {
+                                                                    return callback();
+                                                                  }
+                                                                );
+                                                              }
+                                                            );
+                                                          }
+                                                        );
+                                                      }
+                                                    );
+                                                  }
+                                                );
+                                              }
+                                            );
+                                          }
+                                        );
                                       }
                                     );
                                   }

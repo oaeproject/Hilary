@@ -13,9 +13,10 @@
  * permissions and limitations under the License.
  */
 
+const AuthzAPI = require('oae-authz');
+
 const _ = require('underscore');
 
-const AuthzAPI = require('oae-authz');
 const { AuthzConstants } = require('oae-authz/lib/constants');
 const AuthzInvitationsUtil = require('oae-authz/lib/invitations/util');
 const AuthzModel = require('oae-authz/lib/model');
@@ -51,10 +52,15 @@ const resolveEffectivePermissions = function(ctx, resource, callback) {
         return callback(err);
       }
 
-      const canView = _.isString(effectiveRole);
+      canInteract = canInteract || resource.joinable === AuthzConstants.joinable.REQUEST;
+      const canView =
+        _.isString(effectiveRole) || resource.joinable === AuthzConstants.joinable.REQUEST;
       const canManage = effectiveRole === AuthzConstants.role.MANAGER;
       const canEdit = canManage || effectiveRole === AuthzConstants.role.EDITOR;
-      const canJoin = canInteract && resource.joinable === AuthzConstants.joinable.YES;
+      const canJoin =
+        (canInteract && resource.joinable === AuthzConstants.joinable.YES) ||
+        resource.joinable === AuthzConstants.joinable.REQUEST;
+      const canRequest = resource.joinable === AuthzConstants.joinable.REQUEST;
 
       // Anyone who can interact can share, unless the resource is private. In that case, only managers can share
       let canShare = canInteract;
@@ -69,7 +75,8 @@ const resolveEffectivePermissions = function(ctx, resource, callback) {
         canShare,
         canEdit,
         canManage,
-        canSetRoles: canManage
+        canSetRoles: canManage,
+        canRequest
       };
 
       return callback(null, permissions, effectiveRole);

@@ -63,6 +63,8 @@ ActivityConstants.verbs = {
   JOIN: 'join',
   POST: 'post',
   SHARE: 'share',
+  REQUEST: 'ask',
+  REJECT: 'reject',
   UPDATE: 'update'
 };
 

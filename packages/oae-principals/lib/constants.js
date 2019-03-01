@@ -33,6 +33,9 @@ PrincipalsConstants.events = {
   DELETED_EMAIL_TOKEN: 'deletedEmailToken',
   DELETED_GROUP: 'deletedGroup',
   DELETED_USER: 'deletedUser',
+  REQUEST_TO_JOIN_GROUP: 'requestToJoinGroup',
+  REQUEST_TO_JOIN_GROUP_ACCEPTED: 'acceptedRequestToJoinGroup',
+  REQUEST_TO_JOIN_GROUP_REJECTED: 'rejectedRequestToJoinGroup',
   RESTORED_GROUP: 'restoredGroup',
   RESTORED_USER: 'restoredUser',
   VERIFIED_EMAIL: 'verifiedEmail'
@@ -51,6 +54,9 @@ PrincipalsConstants.activity = {
   ACTIVITY_GROUP_ADD_MEMBER: 'group-add-member',
   ACTIVITY_GROUP_UPDATE_MEMBER_ROLE: 'group-update-member-role',
   ACTIVITY_GROUP_JOIN: 'group-join',
+  ACTIVITY_REQUEST_TO_JOIN_GROUP: 'request-to-join-group',
+  ACTIVITY_REQUEST_TO_JOIN_GROUP_ACCEPTED: 'request-to-join-group-accepted',
+  ACTIVITY_REQUEST_TO_JOIN_GROUP_REJECTED: 'request-to-join-group-rejected',
   ACTIVITY_USER_UPDATE: 'user-update'
 };
 
@@ -74,6 +80,13 @@ PrincipalsConstants.exportType = {
   CONTENT_DATA: 'content',
   PERSONAL_DATA: 'personal-data',
   SHARED_DATA: 'shared'
+};
+
+PrincipalsConstants.requestStatus = {
+  CANCEL: 'cancel',
+  REJECT: 'reject',
+  ACCEPT: 'accept',
+  PENDING: 'pending'
 };
 
 module.exports = { PrincipalsConstants };

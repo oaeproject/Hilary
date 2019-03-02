@@ -89,70 +89,58 @@ const getFullGroupProfile = function(ctx, groupId, callback) {
 
       const currentUser = ctx.user();
       const currentUserId = currentUser && currentUser.id;
-      OaeUtil.invokeIfNecessary(
-        currentUserId,
-        AuthzAPI.hasAnyRole,
-        currentUserId,
-        group.id,
-        (err, hasAnyRole) => {
+      OaeUtil.invokeIfNecessary(currentUserId, AuthzAPI.hasAnyRole, currentUserId, group.id, (err, hasAnyRole) => {
+        if (err) {
+          return callback(err);
+        }
+
+        group.isMember = permissions.canManage || hasAnyRole;
+        group.isManager = permissions.canManage;
+        group.canJoin = !hasAnyRole && permissions.canJoin;
+        group.canRequest = !hasAnyRole && permissions.canRequest;
+
+        if (group.isMember) {
+          // Generate a signature that can be used for push notifications
+          group.signature = Signature.createExpiringResourceSignature(ctx, groupId);
+        }
+
+        // Only fetch the group creator if there is one
+        OaeUtil.invokeIfNecessary(group.createdBy, PrincipalsUtil.getPrincipal, ctx, group.createdBy, (err, createdBy) => {
           if (err) {
             return callback(err);
           }
-
-          group.isMember = permissions.canManage || hasAnyRole;
-          group.isManager = permissions.canManage;
-          group.canJoin = !hasAnyRole && permissions.canJoin;
-          group.canRequest = !hasAnyRole && permissions.canRequest;
-
-          if (group.isMember) {
-            // Generate a signature that can be used for push notifications
-            group.signature = Signature.createExpiringResourceSignature(ctx, groupId);
+          if (createdBy) {
+            group.createdBy = createdBy;
           }
 
-          // Only fetch the group creator if there is one
-          OaeUtil.invokeIfNecessary(
-            group.createdBy,
-            PrincipalsUtil.getPrincipal,
-            ctx,
-            group.createdBy,
-            (err, createdBy) => {
-              if (err) {
-                return callback(err);
-              }
-              if (createdBy) {
-                group.createdBy = createdBy;
-              }
+          // As part of the group profile, get the top 8 members in the members library
+          _getMembersLibrary(ctx, group, hasAnyRole, null, 8, (err, members) => {
+            if (err) {
+              return callback(err);
+            }
 
-              // As part of the group profile, get the top 8 members in the members library
-              _getMembersLibrary(ctx, group, hasAnyRole, null, 8, (err, members) => {
+            // Add the members list to the full group profile
+            group.members = _.filter(members, member => {
+              // We should not show any members whose profile is not linkable
+              if (member.profile) return member.profile.profilePath;
+            });
+
+            PrincipalsEmitter.emit(PrincipalsConstants.events.GET_GROUP_PROFILE, ctx, group);
+
+            if (currentUser && PrincipalsUtil.isUser(currentUserId)) {
+              // eslint-disable-next-line no-unused-vars
+              PrincipalsDAO.setLatestVisit(currentUser, group, new Date(), (err, results) => {
                 if (err) {
                   return callback(err);
                 }
-
-                // Add the members list to the full group profile
-                group.members = _.filter(members, member => {
-                  // We should not show any members whose profile is not linkable
-                  if (member.profile) return member.profile.profilePath;
-                });
-
-                PrincipalsEmitter.emit(PrincipalsConstants.events.GET_GROUP_PROFILE, ctx, group);
-
-                if (currentUser && PrincipalsUtil.isUser(currentUserId)) {
-                  // eslint-disable-next-line no-unused-vars
-                  PrincipalsDAO.setLatestVisit(currentUser, group, new Date(), (err, results) => {
-                    if (err) {
-                      return callback(err);
-                    }
-                    return callback(null, group);
-                  });
-                } else {
-                  return callback(null, group);
-                }
+                return callback(null, group);
               });
+            } else {
+              return callback(null, group);
             }
-          );
-        }
-      );
+          });
+        });
+      });
     });
   });
 };
@@ -258,65 +246,53 @@ const resendGroupInvitation = function(ctx, groupId, email, callback) {
  */
 const _getMembersLibrary = function(ctx, group, hasRole, start, limit, callback) {
   // Ensure proper permissions if we haven't determined that they have an explicit role
-  OaeUtil.invokeIfNecessary(
-    !hasRole,
-    LibraryAPI.Authz.resolveTargetLibraryAccess,
-    ctx,
-    group.id,
-    group,
-    (err, hasAccess, visibility) => {
+  OaeUtil.invokeIfNecessary(!hasRole, LibraryAPI.Authz.resolveTargetLibraryAccess, ctx, group.id, group, (err, hasAccess, visibility) => {
+    if (err) {
+      return callback(err);
+    }
+    if (hasRole) {
+      // When there is an explicit role, we always have access and can see the private library
+      hasAccess = true;
+      visibility = AuthzConstants.visibility.PRIVATE;
+    } else if (!hasAccess) {
+      // We didn't have an explicit role, and `resolveTargetLibraryAccess` determined we don't
+      // have access, so bail out
+      return callback({
+        code: 401,
+        msg: "Insufficient privilege to view this group's members list"
+      });
+    }
+
+    // Get the members from the members library and their basic profile
+    PrincipalsMembersLibrary.list(group, visibility, { start, limit }, (err, memberEntries, nextToken) => {
       if (err) {
         return callback(err);
       }
-      if (hasRole) {
-        // When there is an explicit role, we always have access and can see the private library
-        hasAccess = true;
-        visibility = AuthzConstants.visibility.PRIVATE;
-      } else if (!hasAccess) {
-        // We didn't have an explicit role, and `resolveTargetLibraryAccess` determined we don't
-        // have access, so bail out
-        return callback({
-          code: 401,
-          msg: "Insufficient privilege to view this group's members list"
-        });
-      }
 
-      // Get the members from the members library and their basic profile
-      PrincipalsMembersLibrary.list(
-        group,
-        visibility,
-        { start, limit },
-        (err, memberEntries, nextToken) => {
-          if (err) {
-            return callback(err);
-          }
-
-          const memberIds = _.pluck(memberEntries, 'id');
-          PrincipalsUtil.getPrincipals(ctx, memberIds, (err, memberProfiles) => {
-            if (err) {
-              return callback(err);
-            }
-
-            const members = _.chain(memberEntries)
-              .map(memberEntry => {
-                let result;
-                if (_.contains(_.keys(memberProfiles), memberEntry.id)) {
-                  result = {
-                    profile: memberProfiles[memberEntry.id],
-                    role: memberEntry.role
-                  };
-                }
-                return result;
-              })
-              .compact()
-              .value();
-
-            return callback(null, members, nextToken);
-          });
+      const memberIds = _.pluck(memberEntries, 'id');
+      PrincipalsUtil.getPrincipals(ctx, memberIds, (err, memberProfiles) => {
+        if (err) {
+          return callback(err);
         }
-      );
-    }
-  );
+
+        const members = _.chain(memberEntries)
+          .map(memberEntry => {
+            let result;
+            if (_.contains(_.keys(memberProfiles), memberEntry.id)) {
+              result = {
+                profile: memberProfiles[memberEntry.id],
+                role: memberEntry.role
+              };
+            }
+            return result;
+          })
+          .compact()
+          .value();
+
+        return callback(null, members, nextToken);
+      });
+    });
+  });
 };
 
 /**
@@ -335,9 +311,7 @@ const getMembershipsLibrary = function(ctx, principalId, start, limit, callback)
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   const validator = new Validator();
-  validator
-    .check(principalId, { code: 400, msg: 'Must specify a valid principalId' })
-    .isPrincipalId();
+  validator.check(principalId, { code: 400, msg: 'Must specify a valid principalId' }).isPrincipalId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -350,21 +324,16 @@ const getMembershipsLibrary = function(ctx, principalId, start, limit, callback)
       return callback({ code: 404, msg: util.format("Couldn't find principal: %s", principalId) });
     }
 
-    LibraryAPI.Authz.resolveTargetLibraryAccess(
-      ctx,
-      principal.id,
-      principal,
-      (err, hasAccess, visibility) => {
-        if (err) {
-          return callback(err);
-        }
-        if (!hasAccess) {
-          return callback({ code: 401, msg: 'You do not have access to this memberships library' });
-        }
-
-        return _getMembershipsLibrary(ctx, principalId, visibility, start, limit, callback);
+    LibraryAPI.Authz.resolveTargetLibraryAccess(ctx, principal.id, principal, (err, hasAccess, visibility) => {
+      if (err) {
+        return callback(err);
       }
-    );
+      if (!hasAccess) {
+        return callback({ code: 401, msg: 'You do not have access to this memberships library' });
+      }
+
+      return _getMembershipsLibrary(ctx, principalId, visibility, start, limit, callback);
+    });
   });
 };
 
@@ -383,83 +352,53 @@ const getMembershipsLibrary = function(ctx, principalId, start, limit, callback)
  * @param  {String}      callback.nextToken      The value to provide in the `start` parameter to get the next set of results
  * @api private
  */
-const _getMembershipsLibrary = function(
-  ctx,
-  principalId,
-  visibility,
-  start,
-  limit,
-  callback,
-  _items
-) {
+const _getMembershipsLibrary = function(ctx, principalId, visibility, start, limit, callback, _items) {
   _items = _items || [];
 
-  LibraryAPI.Index.list(
-    PrincipalsConstants.library.MEMBERSHIPS_INDEX_NAME,
-    principalId,
-    visibility,
-    { start, limit },
-    (err, entries, nextToken) => {
+  LibraryAPI.Index.list(PrincipalsConstants.library.MEMBERSHIPS_INDEX_NAME, principalId, visibility, { start, limit }, (err, entries, nextToken) => {
+    if (err) {
+      return callback(err);
+    }
+
+    const groupIds = _.pluck(entries, 'resourceId');
+    PrincipalsUtil.getPrincipals(ctx, groupIds, (err, groupsHash) => {
       if (err) {
         return callback(err);
       }
 
-      const groupIds = _.pluck(entries, 'resourceId');
-      PrincipalsUtil.getPrincipals(ctx, groupIds, (err, groupsHash) => {
-        if (err) {
-          return callback(err);
-        }
+      // Place the groups in the same order as `groupIds`
+      const results = _.chain(groupIds)
+        .map(groupId => {
+          return groupsHash[groupId];
+        })
+        .compact()
+        .value();
 
-        // Place the groups in the same order as `groupIds`
-        const results = _.chain(groupIds)
-          .map(groupId => {
-            return groupsHash[groupId];
-          })
-          .compact()
-          .value();
+      // Append the groups to the retrieved list
+      _items = _items.concat(results);
 
-        // Append the groups to the retrieved list
-        _items = _items.concat(results);
+      // If we don't have the required number of items yet and there is a next token,
+      // we retrieve the next page
+      if (_items.length < limit && nextToken) {
+        return _getMembershipsLibrary(ctx, principalId, visibility, nextToken, limit, callback, _items);
 
-        // If we don't have the required number of items yet and there is a next token,
-        // we retrieve the next page
-        if (_items.length < limit && nextToken) {
-          return _getMembershipsLibrary(
-            ctx,
-            principalId,
-            visibility,
-            nextToken,
-            limit,
-            callback,
-            _items
-          );
+        // Otherwise we can return back to the caller
+      }
+      // Get the exact amount of items
+      const pagedItems = _items.slice(0, limit);
 
-          // Otherwise we can return back to the caller
-        }
-        // Get the exact amount of items
-        const pagedItems = _items.slice(0, limit);
+      // It's possible that we pulled more items from the database than we're returning
+      // to the caller. In that case the `nextToken` is incorrect and needs to be adjusted
+      if (pagedItems.length < _items.length) {
+        nextToken = _items[limit].lastModified + '#' + _items[limit].id;
+      }
 
-        // It's possible that we pulled more items from the database than we're returning
-        // to the caller. In that case the `nextToken` is incorrect and needs to be adjusted
-        if (pagedItems.length < _items.length) {
-          nextToken = _items[limit].lastModified + '#' + _items[limit].id;
-        }
+      // Emit an event indicating that the memberships library has been retrieved
+      PrincipalsEmitter.emit(PrincipalsConstants.events.GET_MEMBERSHIPS_LIBRARY, ctx, principalId, visibility, start, limit, pagedItems);
 
-        // Emit an event indicating that the memberships library has been retrieved
-        PrincipalsEmitter.emit(
-          PrincipalsConstants.events.GET_MEMBERSHIPS_LIBRARY,
-          ctx,
-          principalId,
-          visibility,
-          start,
-          limit,
-          pagedItems
-        );
-
-        return callback(null, pagedItems, nextToken);
-      });
-    }
-  );
+      return callback(null, pagedItems, nextToken);
+    });
+  });
 };
 
 /**
@@ -476,9 +415,7 @@ const getRecentGroupsForUserId = function(ctx, principalId, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 5, 1);
 
   const validator = new Validator();
-  validator
-    .check(principalId, { code: 400, msg: 'Must specify a valid principalId' })
-    .isPrincipalId();
+  validator.check(principalId, { code: 400, msg: 'Must specify a valid principalId' }).isPrincipalId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -594,21 +531,13 @@ const setGroupMembers = function(ctx, groupId, changes, callback) {
           return callback(err);
         }
 
-        PrincipalsEmitter.emit(
-          PrincipalsConstants.events.UPDATED_GROUP_MEMBERS,
-          ctx,
-          updatedGroup,
-          group,
-          memberChangeInfo,
-          {},
-          errs => {
-            if (errs) {
-              return callback(_.first(errs));
-            }
-
-            return callback();
+        PrincipalsEmitter.emit(PrincipalsConstants.events.UPDATED_GROUP_MEMBERS, ctx, updatedGroup, group, memberChangeInfo, {}, errs => {
+          if (errs) {
+            return callback(_.first(errs));
           }
-        );
+
+          return callback();
+        });
       });
     });
   });
@@ -625,9 +554,7 @@ const setGroupMembers = function(ctx, groupId, changes, callback) {
 const leaveGroup = function(ctx, groupId, callback) {
   const validator = new Validator();
   validator.check(groupId, { code: 400, msg: 'Invalid groupId specified' }).isGroupId();
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to join a group' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'You have to be logged in to be able to join a group' }).isLoggedInUser(ctx);
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -651,19 +578,13 @@ const leaveGroup = function(ctx, groupId, callback) {
           return callback(err);
         }
 
-        PrincipalsEmitter.emit(
-          PrincipalsConstants.events.LEFT_GROUP,
-          ctx,
-          group,
-          memberChangeInfo,
-          errs => {
-            if (errs) {
-              return callback(_.first(errs));
-            }
-
-            return callback();
+        PrincipalsEmitter.emit(PrincipalsConstants.events.LEFT_GROUP, ctx, group, memberChangeInfo, errs => {
+          if (errs) {
+            return callback(_.first(errs));
           }
-        );
+
+          return callback();
+        });
       });
     });
   });
@@ -681,9 +602,7 @@ const leaveGroup = function(ctx, groupId, callback) {
 const joinGroup = function(ctx, groupId, callback) {
   const validator = new Validator();
   validator.check(groupId, { code: 400, msg: 'Invalid groupId specified' }).isGroupId();
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to join a group' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'You have to be logged in to be able to join a group' }).isLoggedInUser(ctx);
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -714,20 +633,13 @@ const joinGroup = function(ctx, groupId, callback) {
           }
 
           // Emit an event indicating that this group was joined by the current user in context
-          PrincipalsEmitter.emit(
-            PrincipalsConstants.events.JOINED_GROUP,
-            ctx,
-            updatedGroup,
-            group,
-            memberChangeInfo,
-            errs => {
-              if (errs) {
-                return callback(_.first(errs));
-              }
-
-              return callback();
+          PrincipalsEmitter.emit(PrincipalsConstants.events.JOINED_GROUP, ctx, updatedGroup, group, memberChangeInfo, errs => {
+            if (errs) {
+              return callback(_.first(errs));
             }
-          );
+
+            return callback();
+          });
         });
       });
     });
@@ -765,15 +677,9 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
 
   // Parameter validation
   const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'Cannot create a group anonymously' })
-    .isLoggedInUser(ctx);
-  validator
-    .check(displayName, { code: 400, msg: 'You need to provide a display name for this group' })
-    .notEmpty();
-  validator
-    .check(displayName, { code: 400, msg: 'A display name can be at most 1000 characters long' })
-    .isShortString();
+  validator.check(null, { code: 401, msg: 'Cannot create a group anonymously' }).isLoggedInUser(ctx);
+  validator.check(displayName, { code: 400, msg: 'You need to provide a display name for this group' }).notEmpty();
+  validator.check(displayName, { code: 400, msg: 'A display name can be at most 1000 characters long' }).isShortString();
   validator
     .check(visibility, {
       code: 400,
@@ -787,9 +693,7 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
     })
     .isIn(_.values(AuthzConstants.joinable));
   if (description) {
-    validator
-      .check(description, { code: 400, msg: 'A description can only be 10000 characters long' })
-      .isMediumString();
+    validator.check(description, { code: 400, msg: 'A description can only be 10000 characters long' }).isMediumString();
   }
 
   // Ensure all roles are in the set of valid roles. ResourceActions will take care of other
@@ -812,42 +716,23 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
   }
 
   // Generate the group id
-  const groupId = AuthzUtil.toId(
-    AuthzConstants.principalTypes.GROUP,
-    tenantAlias,
-    ShortId.generate()
-  );
+  const groupId = AuthzUtil.toId(AuthzConstants.principalTypes.GROUP, tenantAlias, ShortId.generate());
 
   // Immediately add the current user as a manager
   roles[ctx.user().id] = AuthzConstants.role.MANAGER;
-  const createFn = _.partial(
-    PrincipalsDAO.createGroup,
-    groupId,
-    tenantAlias,
-    displayName,
-    description,
-    visibility,
-    joinable,
-    ctx.user().id
-  );
+  const createFn = _.partial(PrincipalsDAO.createGroup, groupId, tenantAlias, displayName, description, visibility, joinable, ctx.user().id);
   ResourceActions.create(ctx, roles, createFn, (err, group, memberChangeInfo) => {
     if (err) {
       return callback(err);
     }
 
-    PrincipalsEmitter.emit(
-      PrincipalsConstants.events.CREATED_GROUP,
-      ctx,
-      group,
-      memberChangeInfo,
-      errs => {
-        if (errs) {
-          return callback(_.first(errs));
-        }
-
-        return callback(null, group);
+    PrincipalsEmitter.emit(PrincipalsConstants.events.CREATED_GROUP, ctx, group, memberChangeInfo, errs => {
+      if (errs) {
+        return callback(_.first(errs));
       }
-    );
+
+      return callback(null, group);
+    });
   });
 };
 
@@ -870,9 +755,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
   const fieldNames = profileFields ? _.keys(profileFields) : [];
   const validator = new Validator();
   validator.check(groupId, { code: 400, msg: 'A valid group id must be provided' }).isGroupId();
-  validator
-    .check(fieldNames.length, { code: 400, msg: 'You should specify at least one field' })
-    .min(1);
+  validator.check(fieldNames.length, { code: 400, msg: 'You should specify at least one field' }).min(1);
   fieldNames.forEach(fieldName => {
     validator
       .check(fieldName, { code: 400, msg: fieldName + ' is not a recognized group profile field' })
@@ -892,9 +775,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
         })
         .isIn(_.values(AuthzConstants.joinable));
     } else if (fieldName === 'displayName') {
-      validator
-        .check(profileFields.displayName, { code: 400, msg: 'A display name cannot be empty' })
-        .notEmpty();
+      validator.check(profileFields.displayName, { code: 400, msg: 'A display name cannot be empty' }).notEmpty();
       validator
         .check(profileFields.displayName, {
           code: 400,
@@ -910,9 +791,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
         .isMediumString();
     }
   });
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to update a group' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'You have to be logged in to be able to update a group' }).isLoggedInUser(ctx);
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -934,9 +813,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
 
       profileFields = _.extend({}, profileFields, {
         lastModified: Date.now().toString(),
-        description: profileFields.description
-          ? MessageBoxAPI.replaceLinks(profileFields.description)
-          : ''
+        description: profileFields.description ? MessageBoxAPI.replaceLinks(profileFields.description) : ''
       });
       PrincipalsDAO.updatePrincipal(groupId, profileFields, err => {
         if (err) {
@@ -954,19 +831,13 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
           }
 
           // Emit the fact that we have updated this group
-          PrincipalsEmitter.emit(
-            PrincipalsConstants.events.UPDATED_GROUP,
-            ctx,
-            updatedStorageGroup,
-            oldStorageGroup,
-            errs => {
-              if (errs) {
-                return callback(_.first(errs));
-              }
-
-              return getFullGroupProfile(ctx, groupId, callback);
+          PrincipalsEmitter.emit(PrincipalsConstants.events.UPDATED_GROUP, ctx, updatedStorageGroup, oldStorageGroup, errs => {
+            if (errs) {
+              return callback(_.first(errs));
             }
-          );
+
+            return getFullGroupProfile(ctx, groupId, callback);
+          });
         });
       });
     });
@@ -1006,12 +877,7 @@ const deleteGroup = function(ctx, groupId, callback) {
         }
 
         // Notify consumers that a group has been deleted
-        return PrincipalsEmitter.emit(
-          PrincipalsConstants.events.DELETED_GROUP,
-          ctx,
-          group,
-          callback
-        );
+        return PrincipalsEmitter.emit(PrincipalsConstants.events.DELETED_GROUP, ctx, group, callback);
       });
     });
   });
@@ -1047,12 +913,7 @@ const restoreGroup = function(ctx, groupId, callback) {
       }
 
       // Notify consumers that a group has been restored
-      return PrincipalsEmitter.emit(
-        PrincipalsConstants.events.RESTORED_GROUP,
-        ctx,
-        group,
-        callback
-      );
+      return PrincipalsEmitter.emit(PrincipalsConstants.events.RESTORED_GROUP, ctx, group, callback);
     });
   });
 };
@@ -1164,9 +1025,7 @@ const _canManageAnyGroups = function(ctx, groupIds, callback) {
 const _validateJoinGroupRequest = function(ctx, groupId, callback) {
   const validator = new Validator();
   validator.check(groupId, { code: 400, msg: 'A valid group id must be provided' }).isGroupId();
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to ask to join a group' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'You have to be logged in to be able to ask to join a group' }).isLoggedInUser(ctx);
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -1183,27 +1042,28 @@ const _validateJoinGroupRequest = function(ctx, groupId, callback) {
  */
 const createRequestJoinGroup = function(ctx, groupId, callback) {
   _validateJoinGroupRequest(ctx, groupId, err => {
-    if (err) return callback(err);
+    if (err) {
+      return callback(err);
+    }
 
     // If the request exists, return
     PrincipalsDAO.createRequestJoinGroup(ctx.user().id, groupId, (err, request) => {
-      if (err) return callback(err);
+      if (err) {
+        return callback(err);
+      }
 
       PrincipalsDAO.getPrincipal(groupId, (err, group) => {
-        if (err) return callback(err);
+        if (err) {
+          return callback(err);
+        }
 
         AuthzAPI.getAuthzMembers(groupId, null, null, (err, memberInfos, nextToken) => {
-          if (err) return callback(err);
+          if (err) {
+            return callback(err);
+          }
 
           // Notify managers that someone asked to be part of this group
-          return PrincipalsEmitter.emit(
-            PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP,
-            ctx,
-            group,
-            group,
-            memberInfos,
-            callback
-          );
+          return PrincipalsEmitter.emit(PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP, ctx, group, group, memberInfos, callback);
         });
       });
     });
@@ -1260,9 +1120,7 @@ const getJoinGroupRequests = function(ctx, filter, callback) {
 const getJoinGroupRequest = function(ctx, groupId, callback) {
   const validator = new Validator();
   validator.check(groupId, { code: 400, msg: 'A valid group id must be provided' }).isGroupId();
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to ask to join a group' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'You have to be logged in to be able to ask to join a group' }).isLoggedInUser(ctx);
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -1285,20 +1143,12 @@ const _validateUpdateJoinGroupByRequest = function(ctx, joinRequest, callback) {
   const { groupId, principalId, role, status } = joinRequest;
   const validator = new Validator();
   if (role) {
-    validator
-      .check(role, { code: 400, msg: role + ' is not a recognized role group' })
-      .isIn(PrincipalsConstants.role.ALL_PRIORITY);
+    validator.check(role, { code: 400, msg: role + ' is not a recognized role group' }).isIn(PrincipalsConstants.role.ALL_PRIORITY);
   }
-  validator
-    .check(principalId, { code: 400, msg: 'Must specify a valid principalId' })
-    .isPrincipalId();
-  validator
-    .check(status, { code: 400, msg: status + ' is not a recognized request status' })
-    .isIn(_.values(PrincipalsConstants.requestStatus));
+  validator.check(principalId, { code: 400, msg: 'Must specify a valid principalId' }).isPrincipalId();
+  validator.check(status, { code: 400, msg: status + ' is not a recognized request status' }).isIn(_.values(PrincipalsConstants.requestStatus));
   validator.check(groupId, { code: 400, msg: 'A valid group id must be provided' }).isGroupId();
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to ask to join a group' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'You have to be logged in to be able to ask to join a group' }).isLoggedInUser(ctx);
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }

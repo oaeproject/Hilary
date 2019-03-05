@@ -85,20 +85,17 @@ PrincipalsAPI.emitter.on(PrincipalsConstants.events.VERIFIED_EMAIL, (ctx, user) 
 /*!
  * When a group is created, we must index the group resource document and its members child document
  */
-PrincipalsAPI.emitter.on(
-  PrincipalsConstants.events.CREATED_GROUP,
-  (ctx, group, memberChangeInfo) => {
-    SearchAPI.postIndexTask('group', [{ id: group.id }], {
-      resource: true,
-      children: {
-        resource_members: true
-      }
-    });
+PrincipalsAPI.emitter.on(PrincipalsConstants.events.CREATED_GROUP, (ctx, group, memberChangeInfo) => {
+  SearchAPI.postIndexTask('group', [{ id: group.id }], {
+    resource: true,
+    children: {
+      resource_members: true
+    }
+  });
 
-    // Fire additional tasks to update the memberships of the members
-    AuthzSearch.fireMembershipUpdateTasks(_.keys(memberChangeInfo.changes));
-  }
-);
+  // Fire additional tasks to update the memberships of the members
+  AuthzSearch.fireMembershipUpdateTasks(_.keys(memberChangeInfo.changes));
+});
 
 /*!
  * When a group is updated, we must reindex the user resource document
@@ -125,12 +122,9 @@ PrincipalsAPI.emitter.on(
  * When someone joins a group, we must both the group's members child document and the user's child
  * memberships documents
  */
-PrincipalsAPI.emitter.on(
-  PrincipalsConstants.events.JOINED_GROUP,
-  (ctx, group, oldGroup, memberChangeInfo) => {
-    _handleUpdateGroupMembers(ctx, group, _.keys(memberChangeInfo.changes));
-  }
-);
+PrincipalsAPI.emitter.on(PrincipalsConstants.events.JOINED_GROUP, (ctx, group, oldGroup, memberChangeInfo) => {
+  _handleUpdateGroupMembers(ctx, group, _.keys(memberChangeInfo.changes));
+});
 
 /*!
  * When someone leaves a group, we must both the group's members child document and the user's child
@@ -402,11 +396,7 @@ const _transformGroupDocuments = function(ctx, docs, callback) {
     // Add the profile path, only if the group is not deleted
     if (!result.deleted) {
       _.extend(result, {
-        profilePath: util.format(
-          '/group/%s/%s',
-          result.tenantAlias,
-          AuthzUtil.getResourceFromId(result.id).resourceId
-        )
+        profilePath: util.format('/group/%s/%s', result.tenantAlias, AuthzUtil.getResourceFromId(result.id).resourceId)
       });
     }
 
@@ -428,11 +418,11 @@ SearchAPI.registerSearchDocumentTransformer('group', _transformGroupDocuments);
  */
 SearchAPI.registerReindexAllHandler('principal', callback => {
   /*!
-     * Handles each iteration of the PrincipalsDAO iterate all method, firing tasks for all principals to
-     * be reindexed.
-     *
-     * @see PrincipalsDAO#iterateAll
-     */
+   * Handles each iteration of the PrincipalsDAO iterate all method, firing tasks for all principals to
+   * be reindexed.
+   *
+   * @see PrincipalsDAO#iterateAll
+   */
   const _onEach = function(principalRows, done) {
     // Aggregate group and user reindexing task resources
     const groupResources = [];
@@ -448,11 +438,7 @@ SearchAPI.registerReindexAllHandler('principal', callback => {
       }
     });
 
-    log().info(
-      'Firing re-indexing task for %s users and %s groups',
-      userResources.length,
-      groupResources.length
-    );
+    log().info('Firing re-indexing task for %s users and %s groups', userResources.length, groupResources.length);
 
     if (!_.isEmpty(userResources)) {
       SearchAPI.postIndexTask('user', userResources, { resource: true, children: true });

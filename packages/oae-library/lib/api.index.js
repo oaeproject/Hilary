@@ -38,11 +38,7 @@ const DEFAULT_VALUE = 1;
  * belong in that bucket.
  */
 const visibilityMasks = {
-  private: [
-    AuthzConstants.visibility.PUBLIC,
-    AuthzConstants.visibility.LOGGEDIN,
-    AuthzConstants.visibility.PRIVATE
-  ],
+  private: [AuthzConstants.visibility.PUBLIC, AuthzConstants.visibility.LOGGEDIN, AuthzConstants.visibility.PRIVATE],
   loggedin: [AuthzConstants.visibility.PUBLIC, AuthzConstants.visibility.LOGGEDIN],
   public: [AuthzConstants.visibility.PUBLIC]
 };
@@ -222,13 +218,8 @@ const update = function(indexName, entries, callback) {
       // Insert this resource into buckets that are relevant to its relative visibility
       if (_.contains(mask, entry.resource.visibility)) {
         queries.push({
-          query:
-            'UPDATE "LibraryIndex" SET "value" = ? WHERE "bucketKey" = ? AND "rankedResourceId" = ?',
-          parameters: [
-            value,
-            _createBucketKey(indexName, entry.id, bucketName),
-            newRankedResourceId
-          ]
+          query: 'UPDATE "LibraryIndex" SET "value" = ? WHERE "bucketKey" = ? AND "rankedResourceId" = ?',
+          parameters: [value, _createBucketKey(indexName, entry.id, bucketName), newRankedResourceId]
         });
       }
     });
@@ -429,21 +420,16 @@ const purge = function(indexName, libraryId, callback) {
  */
 const isStale = function(indexName, libraryId, visibility, callback) {
   // Select both the high and low slug column from the library
-  const cql =
-    'SELECT "value" FROM "LibraryIndex" WHERE "bucketKey" = ? AND "rankedResourceId" IN ?';
-  Cassandra.runQuery(
-    cql,
-    [_createBucketKey(indexName, libraryId, visibility), [SLUG_HIGH, SLUG_LOW]],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
-      }
-
-      // If we got exactly 2 rows, it means that both the high and low slug were there, so the
-      // library index is recent
-      return callback(null, rows.length !== 2);
+  const cql = 'SELECT "value" FROM "LibraryIndex" WHERE "bucketKey" = ? AND "rankedResourceId" IN ?';
+  Cassandra.runQuery(cql, [_createBucketKey(indexName, libraryId, visibility), [SLUG_HIGH, SLUG_LOW]], (err, rows) => {
+    if (err) {
+      return callback(err);
     }
-  );
+
+    // If we got exactly 2 rows, it means that both the high and low slug were there, so the
+    // library index is recent
+    return callback(null, rows.length !== 2);
+  });
 };
 
 /**
@@ -503,14 +489,7 @@ const _query = function(indexName, libraryId, visibility, opts, callback) {
 
       let result = null;
       try {
-        result = _adjustColumnsForSlugs(
-          indexName,
-          libraryId,
-          opts.start,
-          opts.limit,
-          rows,
-          nextToken
-        );
+        result = _adjustColumnsForSlugs(indexName, libraryId, opts.start, opts.limit, rows, nextToken);
       } catch (error) {
         // There was an issue parsing the data, result with an error
         return callback({ err: 500, msg: 'An unexpected error occurred parsing library data' });
@@ -584,13 +563,11 @@ const _rebuild = function(indexName, libraryId, callback) {
       const bucketKey = _createBucketKey(indexName, libraryId, visibility);
       seedLibraryQueries.push(
         {
-          query:
-            'INSERT INTO "LibraryIndex" ("bucketKey", "rankedResourceId", "value") VALUES (?, ?, ?)',
+          query: 'INSERT INTO "LibraryIndex" ("bucketKey", "rankedResourceId", "value") VALUES (?, ?, ?)',
           parameters: [bucketKey, SLUG_HIGH, JSON.stringify(DEFAULT_VALUE)]
         },
         {
-          query:
-            'INSERT INTO "LibraryIndex" ("bucketKey", "rankedResourceId", "value") VALUES (?, ?, ?)',
+          query: 'INSERT INTO "LibraryIndex" ("bucketKey", "rankedResourceId", "value") VALUES (?, ?, ?)',
           parameters: [bucketKey, SLUG_LOW, JSON.stringify(DEFAULT_VALUE)]
         }
       );
@@ -683,10 +660,7 @@ const _insert = function(indexName, indexEntries, callback) {
   _.each(indexEntries, indexEntry => {
     // Get the index entry key (rankedResourceId) and the index entry value (JSON stringified value)
     const rankedResourceId = _createRankedResourceId(indexEntry.resourceId, indexEntry.rank);
-    let value =
-      _.isNull(indexEntry.value) || _.isUndefined(indexEntry.value)
-        ? DEFAULT_VALUE
-        : indexEntry.value;
+    let value = _.isNull(indexEntry.value) || _.isUndefined(indexEntry.value) ? DEFAULT_VALUE : indexEntry.value;
 
     // Stringify every value so that it can be safely parsed on the way back out
     value = JSON.stringify(value);
@@ -701,13 +675,8 @@ const _insert = function(indexName, indexEntries, callback) {
     // Add each visibility bucket insert into the aggregated list of queries
     _.each(visibilitiesToInsert, visibility => {
       queries.push({
-        query:
-          'INSERT INTO "LibraryIndex" ("bucketKey", "rankedResourceId", "value") VALUES (?, ?, ?)',
-        parameters: [
-          _createBucketKey(indexName, indexEntry.libraryId, visibility),
-          rankedResourceId,
-          value
-        ]
+        query: 'INSERT INTO "LibraryIndex" ("bucketKey", "rankedResourceId", "value") VALUES (?, ?, ?)',
+        parameters: [_createBucketKey(indexName, indexEntry.libraryId, visibility), rankedResourceId, value]
       });
     });
   });

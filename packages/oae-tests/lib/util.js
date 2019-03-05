@@ -56,6 +56,9 @@ const log = require('oae-logger').logger('before-tests');
  * The name of the session cookie
  */
 const CONFIG_COOKIE_NAME = 'a-non-default-cookie-name';
+const NOT_JOINABLE = 'no';
+const JOINABLE = 'yes';
+const JOINABLE_BY_REQUEST = 'request';
 
 /**
  * Create a new express test server on some port between 2500 and 3500
@@ -259,9 +262,14 @@ const _setUpTenantAdmins = function(callback) {
  * @api private
  */
 const _setupTenantAdmin = function(tenant, callback) {
-  const adminLoginId = new LoginId(tenant.alias, AuthenticationConstants.providers.LOCAL, 'administrator', {
-    password: 'administrator'
-  });
+  const adminLoginId = new LoginId(
+    tenant.alias,
+    AuthenticationConstants.providers.LOCAL,
+    'administrator',
+    {
+      password: 'administrator'
+    }
+  );
   const displayName = generateRandomText(2);
   const email = generateTestEmailAddress(null, tenant.emailDomains[0]);
 
@@ -320,29 +328,37 @@ const generateTestUsers = function(restCtx, total, callback, _createdUsers) {
       const username = generateTestUserId('random-user');
       const displayName = generateTestGroupId('random-user');
       const email = generateTestEmailAddress(username, tenant.emailDomains[0]);
-      RestAPI.User.createUser(restCtx, username, 'password', displayName, email, {}, (err, user) => {
-        if (err) {
-          return callback(err);
-        }
+      RestAPI.User.createUser(
+        restCtx,
+        username,
+        'password',
+        displayName,
+        email,
+        {},
+        (err, user) => {
+          if (err) {
+            return callback(err);
+          }
 
-        // Manually verify the user their email address
-        PrincipalsDAO.setEmailAddress(user, email.toLowerCase(), (err, user) => {
-          assert.ok(!err);
+          // Manually verify the user their email address
+          PrincipalsDAO.setEmailAddress(user, email.toLowerCase(), (err, user) => {
+            assert.ok(!err);
 
-          _createdUsers.push({
-            user,
-            restContext: new RestContext(restCtx.host, {
-              hostHeader: restCtx.hostHeader,
-              username,
-              userPassword: 'password',
-              strictSSL: restCtx.strictSSL
-            })
+            _createdUsers.push({
+              user,
+              restContext: new RestContext(restCtx.host, {
+                hostHeader: restCtx.hostHeader,
+                username,
+                userPassword: 'password',
+                strictSSL: restCtx.strictSSL
+              })
+            });
+
+            // Recursively continue creating users
+            return generateTestUsers(restCtx, --total, callback, _createdUsers);
           });
-
-          // Recursively continue creating users
-          return generateTestUsers(restCtx, --total, callback, _createdUsers);
-        });
-      });
+        }
+      );
     });
   });
 };
@@ -414,56 +430,64 @@ const createTenantWithAdmin = function(tenantAlias, tenantHost, callback) {
       }
 
       // Disable reCaptcha so we can create a user
-      ConfigTestUtil.updateConfigAndWait(adminCtx, tenantAlias, { 'oae-principals/recaptcha/enabled': false }, err => {
-        if (err) {
-          return callback(err);
-        }
+      ConfigTestUtil.updateConfigAndWait(
+        adminCtx,
+        tenantAlias,
+        { 'oae-principals/recaptcha/enabled': false },
+        err => {
+          if (err) {
+            return callback(err);
+          }
 
-        // Create the user and make them a tenant administrator
-        const anonymousCtx = createTenantRestContext(tenantHost);
-        const email = generateTestEmailAddress('administrator', 'domain.' + tenantHost).toLowerCase();
-        RestAPI.User.createUser(
-          anonymousCtx,
-          'administrator',
-          'administrator',
-          'Tenant Administrator',
-          email,
-          null,
-          (err, tenantAdmin) => {
-            if (err) {
-              return callback(err);
-            }
-
-            // Verify their email address
-            PrincipalsDAO.setEmailAddress(tenantAdmin, email, (err, tenantAdmin) => {
+          // Create the user and make them a tenant administrator
+          const anonymousCtx = createTenantRestContext(tenantHost);
+          const email = generateTestEmailAddress(
+            'administrator',
+            'domain.' + tenantHost
+          ).toLowerCase();
+          RestAPI.User.createUser(
+            anonymousCtx,
+            'administrator',
+            'administrator',
+            'Tenant Administrator',
+            email,
+            null,
+            (err, tenantAdmin) => {
               if (err) {
                 return callback(err);
               }
 
-              RestAPI.User.setTenantAdmin(adminCtx, tenantAdmin.id, true, err => {
+              // Verify their email address
+              PrincipalsDAO.setEmailAddress(tenantAdmin, email, (err, tenantAdmin) => {
                 if (err) {
                   return callback(err);
                 }
 
-                // Re-enable reCaptcha
-                const tenantAdminRestCtx = createTenantAdminRestContext(tenantHost);
-                ConfigTestUtil.updateConfigAndWait(
-                  tenantAdminRestCtx,
-                  null,
-                  { 'oae-principals/recaptcha/enabled': true },
-                  err => {
-                    if (err) {
-                      return callback(err);
-                    }
-
-                    return callback(null, tenant, tenantAdminRestCtx, tenantAdmin);
+                RestAPI.User.setTenantAdmin(adminCtx, tenantAdmin.id, true, err => {
+                  if (err) {
+                    return callback(err);
                   }
-                );
+
+                  // Re-enable reCaptcha
+                  const tenantAdminRestCtx = createTenantAdminRestContext(tenantHost);
+                  ConfigTestUtil.updateConfigAndWait(
+                    tenantAdminRestCtx,
+                    null,
+                    { 'oae-principals/recaptcha/enabled': true },
+                    err => {
+                      if (err) {
+                        return callback(err);
+                      }
+
+                      return callback(null, tenant, tenantAdminRestCtx, tenantAdmin);
+                    }
+                  );
+                });
               });
-            });
-          }
-        );
-      });
+            }
+          );
+        }
+      );
     }
   );
 };
@@ -625,10 +649,16 @@ const createTenantAdminContext = function(tenant) {
 const createGlobalAdminContext = function() {
   const globalTenant = global.oaeTests.tenants.global;
   const globalAdminId = 'u:' + globalTenant.alias + ':admin';
-  const globalUser = new User(globalTenant.alias, globalAdminId, 'Global Administrator', 'admin@example.com', {
-    visibility: 'private',
-    isGlobalAdmin: true
-  });
+  const globalUser = new User(
+    globalTenant.alias,
+    globalAdminId,
+    'Global Administrator',
+    'admin@example.com',
+    {
+      visibility: 'private',
+      isGlobalAdmin: true
+    }
+  );
   return new Context(globalTenant, globalUser);
 };
 
@@ -875,10 +905,23 @@ const _setupTenant = function(tenant, callback) {
     tenant.publicUser = publicUser;
     tenant.loggedinUser = loggedinUser;
     tenant.privateUser = privateUser;
-    _createMultiPrivacyGroups(tenant, (publicGroup, loggedinGroup, privateGroup) => {
+    _createMultiPrivacyGroups(tenant, allGroups => {
+      const {
+        publicGroup,
+        loggedinJoinableGroupByRequest,
+        privateJoinableGroupByRequest,
+        loggedinNotJoinableGroup,
+        privateNotJoinableGroup,
+        loggedinJoinableGroup,
+        privateJoinableGroup
+      } = allGroups;
       tenant.publicGroup = publicGroup;
-      tenant.loggedinGroup = loggedinGroup;
-      tenant.privateGroup = privateGroup;
+      tenant.loggedinJoinableGroupByRequest = loggedinJoinableGroupByRequest;
+      tenant.loggedinNotJoinableGroup = loggedinNotJoinableGroup;
+      tenant.privateJoinableGroupByRequest = privateJoinableGroupByRequest;
+      tenant.privateNotJoinableGroup = privateNotJoinableGroup;
+      tenant.loggedinJoinableGroup = loggedinJoinableGroup;
+      tenant.privateJoinableGroup = privateJoinableGroup;
       return callback();
     });
   });
@@ -937,6 +980,14 @@ const _createUserWithVisibility = function(tenant, visibility, callback) {
   );
 };
 
+const _wrapGroupOptions = function(visibility, memberPrincipalId, joinable) {
+  return {
+    visibility,
+    memberPrincipalId,
+    joinable
+  };
+};
+
 /**
  * Set up groups of all privacies using the given rest context.
  *
@@ -946,13 +997,57 @@ const _createUserWithVisibility = function(tenant, visibility, callback) {
  * @api private
  */
 const _createMultiPrivacyGroups = function(tenant, callback) {
-  _createGroupWithVisibility(tenant, 'public', tenant.publicUser.user.id, publicGroup => {
-    _createGroupWithVisibility(tenant, 'loggedin', tenant.loggedinUser.user.id, loggedinGroup => {
-      _createGroupWithVisibility(tenant, 'private', tenant.privateUser.user.id, privateGroup => {
-        return callback(publicGroup, loggedinGroup, privateGroup);
-      });
-    });
-  });
+  _createGroupWithVisibility(
+    tenant,
+    _wrapGroupOptions('public', tenant.publicUser.user.id, JOINABLE_BY_REQUEST),
+    publicGroup => {
+      _createGroupWithVisibility(
+        tenant,
+        _wrapGroupOptions('loggedin', tenant.loggedinUser.user.id, JOINABLE_BY_REQUEST),
+        loggedinJoinableGroupByRequest => {
+          _createGroupWithVisibility(
+            tenant,
+            _wrapGroupOptions('private', tenant.privateUser.user.id, JOINABLE_BY_REQUEST),
+            privateJoinableGroupByRequest => {
+              _createGroupWithVisibility(
+                tenant,
+                _wrapGroupOptions('loggedin', tenant.loggedinUser.user.id, NOT_JOINABLE),
+                loggedinNotJoinableGroup => {
+                  _createGroupWithVisibility(
+                    tenant,
+                    _wrapGroupOptions('private', tenant.privateUser.user.id, NOT_JOINABLE),
+                    privateNotJoinableGroup => {
+                      _createGroupWithVisibility(
+                        tenant,
+                        _wrapGroupOptions('loggedin', tenant.loggedinUser.user.id, JOINABLE),
+                        loggedinJoinableGroup => {
+                          _createGroupWithVisibility(
+                            tenant,
+                            _wrapGroupOptions('private', tenant.privateUser.user.id, JOINABLE),
+                            privateJoinableGroup => {
+                              return callback({
+                                publicGroup,
+                                loggedinJoinableGroupByRequest,
+                                privateJoinableGroupByRequest,
+                                loggedinNotJoinableGroup,
+                                privateNotJoinableGroup,
+                                loggedinJoinableGroup,
+                                privateJoinableGroup
+                              });
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
+    }
+  );
 };
 
 /**
@@ -968,7 +1063,8 @@ const _createMultiPrivacyGroups = function(tenant, callback) {
  * @throws {Error}                              An assertion error is thrown if something does not get created properly
  * @api private
  */
-const _createGroupWithVisibility = function(tenant, visibility, memberPrincipalId, callback) {
+const _createGroupWithVisibility = function(tenant, group, callback) {
+  const { visibility, memberPrincipalId, joinable } = group;
   const randomId = util.format('%s-%s', visibility, ShortId.generate());
   const displayName = 'displayName-' + randomId;
   const description = 'description-' + randomId;
@@ -977,7 +1073,7 @@ const _createGroupWithVisibility = function(tenant, visibility, memberPrincipalI
     displayName,
     description,
     visibility,
-    'request',
+    joinable,
     [],
     [memberPrincipalId],
     (err, newGroup) => {
@@ -1195,7 +1291,10 @@ const setUpBeforeTests = function(config, dropKeyspaceBeforeTest, callback) {
       migrationRunner.runMigrations(config.cassandra, () => {
         Cassandra.close(() => {
           Redis.init(config.redis, () => {
-            log().info('Flushing redis DB index "%d" to clean up before tests', config.redis.dbIndex);
+            log().info(
+              'Flushing redis DB index "%d" to clean up before tests',
+              config.redis.dbIndex
+            );
             Redis.flush(err => {
               if (err) {
                 return callback(new Error(err.msg));

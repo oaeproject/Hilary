@@ -198,18 +198,12 @@ OAE.tenantRouter.on('post', '/api/group/:groupId', (req, res) => {
  */
 OAE.tenantRouter.on('get', '/api/group/:groupId/members', (req, res) => {
   const limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
-  PrincipalsAPI.getMembersLibrary(
-    req.ctx,
-    req.params.groupId,
-    req.query.start,
-    limit,
-    (err, members, nextToken) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-      res.status(200).send({ results: members, nextToken });
+  PrincipalsAPI.getMembersLibrary(req.ctx, req.params.groupId, req.query.start, limit, (err, members, nextToken) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+    res.status(200).send({ results: members, nextToken });
+  });
 });
 
 /**
@@ -389,4 +383,117 @@ OAE.tenantRouter.on('post', '/api/group/:groupId/picture', (req, res) => {
     res.set('Content-Type', 'text/plain');
     res.status(200).send(principal);
   });
+});
+
+/**
+ * @REST postGroupGroupIdRequestJoinCreate
+ *
+ * Create a request
+ *
+ * @Server      tenant
+ * @Method      POST
+ * @Path        /group/{groupId}/join-request
+ * @PathParam   {string}        groupId                 The group id that the user requested to join
+ * @Return      {void}
+ * @HttpResponse                200                     Request created
+ * @HttpResponse                400                     Invalid groupId specified
+ * @HttpResponse                401                     You have to be logged in to be able to create a request to join a group
+ */
+OAE.tenantRouter.on('post', '/api/group/:groupId/join-request', (req, res) => {
+  PrincipalsAPI.createRequestJoinGroup(req.ctx, req.params.groupId, err => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
+    }
+    return res.status(200).end();
+  });
+});
+
+/**
+ * @REST getGroupGroupIdRequestJoin
+ *
+ * Get a request
+ *
+ * @Server      tenant
+ * @Method      POST
+ * @Path        /group/{groupId}/join-request/mine
+ * @PathParam   {string}        groupId                 The group id that the user requested to join
+ * @Return      {Object}        request                 A request
+ * @HttpResponse                200                     Request returned
+ * @HttpResponse                400                     Invalid groupId specified
+ * @HttpResponse                401                     You have to be logged in to be able to create a request to join a group
+ */
+OAE.tenantRouter.on('get', '/api/group/:groupId/join-request/mine', (req, res) => {
+  PrincipalsAPI.getJoinGroupRequest(req.ctx, req.params.groupId, (err, request) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
+    }
+    return res.status(200).send(request);
+  });
+});
+
+/**
+ * @REST getGroupGroupIdRequestJoinAll
+ *
+ * Get requests
+ *
+ * @Server      tenant
+ * @Method      GET
+ * @Path        /group/{groupId}/join-request/all
+ * @PathParam   {string}        groupId                 The group id that the user requested to join
+ * @Return      {Object[]}      requests                List of requests for a group
+ * @HttpResponse                200                     List returned
+ * @HttpResponse                400                     Invalid groupId specified
+ * @HttpResponse                401                     You have to be logged in to be able to create a request to join a group
+ */
+OAE.tenantRouter.on('get', '/api/group/:groupId/join-request/all', (req, res) => {
+  const limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
+
+  PrincipalsAPI.getJoinGroupRequests(
+    req.ctx,
+    {
+      groupId: req.params.groupId,
+      start: req.query.start,
+      limit
+    },
+    (err, requests, nextToken) => {
+      if (err) {
+        return res.status(err.code).send(err.msg);
+      }
+      return res.status(200).send({ results: requests, nextToken });
+    }
+  );
+});
+
+/**
+ * @REST putGroupGroupIdRequestJoin
+ *
+ * Update a request
+ *
+ * @Server      tenant
+ * @Method      PUT
+ * @Path        /group/{groupId}/join-request
+ * @PathParam   {string}        groupId                 The group id that the user requested to join
+ * @Return      {void}
+ * @HttpResponse                200                     Request accepted
+ * @HttpResponse                400                     Invalid groupId specified
+ * @HttpResponse                400                     Invalid role specified
+ * @HttpResponse                400                     Invalid status specified
+ * @HttpResponse                401                     You have to be logged in to be able to leave a group
+ */
+OAE.tenantRouter.on('put', '/api/group/:groupId/join-request', (req, res) => {
+  PrincipalsAPI.updateJoinGroupByRequest(
+    req.ctx,
+    {
+      groupId: req.params.groupId,
+      principalId: req.body.principalId,
+      role: req.body.role,
+      status: req.body.status
+    },
+    err => {
+      if (err) {
+        return res.status(err.code).send(err.msg);
+      }
+      return res.status(200).end();
+    }
+  );
 });

@@ -27,6 +27,7 @@ const _ = require('underscore');
 const { Group } = require('oae-principals/lib/model');
 const PrincipalsConfig = require('oae-config').config('oae-principals');
 const { User } = require('oae-principals/lib/model');
+const PrincipalsConstants = require('../constants').PrincipalsConstants;
 
 const RESTRICTED_FIELDS = ['acceptedTC', 'admin:tenant', 'admin:global', 'deleted'];
 
@@ -578,10 +579,10 @@ const iterateAll = function(properties, batchSize, onEach, callback) {
   }
 
   /*!
-     * Handles each batch from the cassandra iterateAll method.
-     *
-     * @see Cassandra#iterateAll
-     */
+   * Handles each batch from the cassandra iterateAll method.
+   *
+   * @see Cassandra#iterateAll
+   */
   const _iterateAllOnEach = function(rows, done) {
     // Convert the rows to a hash and delegate action to the caller onEach method
     return onEach(_.map(rows, Cassandra.rowToHash), done);
@@ -1080,6 +1081,113 @@ const getAllUsersForTenant = function(tenantAlias, callback) {
   });
 };
 
+/**
+ * Create a request
+ *
+ * @param  {String}         principalId                 The princiapl who wants to join the group
+ * @param  {String}         groupId                     The group id
+ * @param  {Function}       callback                    Standard callback function
+ * @param  {Object}         callback.err                An error that occurred, if any
+ */
+const createRequestJoinGroup = function(principalId, groupId, callback) {
+  const lastModified = Date.now().toString();
+
+  Cassandra.runQuery(
+    'INSERT INTO "GroupJoinRequestsByGroup" ("groupId", "principalId", "created_at", "updated_at", "status") VALUES (?, ?, ?, ?, ?)',
+    [groupId, principalId, lastModified, lastModified, PrincipalsConstants.requestStatus.PENDING],
+    err => {
+      if (err) {
+        return callback(err);
+      }
+
+      return callback();
+    }
+  );
+};
+
+/**
+ * Update a request
+ *
+ * @param  {String}         principalId                 The princiapl who wants to join the group
+ * @param  {String}         groupId                     The group id
+ * @param  {Function}       callback                    Standard callback function
+ * @param  {Object}         callback.err                An error that occurred, if any
+ */
+const updateJoinGroupByRequest = function(principalId, groupId, status, callback) {
+  const queries = [];
+  const lastModified = Date.now().toString();
+
+  // Create queries
+  queries.push({
+    query:
+      'UPDATE "GroupJoinRequestsByGroup" SET "status" = ?, "updated_at" = ? WHERE "groupId" = ? AND "principalId" = ?',
+    parameters: [status, lastModified, groupId, principalId]
+  });
+
+  // Execute the queries
+  Cassandra.runBatchQuery(queries, err => {
+    if (err) {
+      return callback(err);
+    }
+
+    return callback();
+  });
+};
+
+/**
+ * Get all requests related to a group
+ *
+ * @param  {String}         groupId                     The group id
+ * @param  {String}         principalId                 The princiapl who wants to join the group
+ * @param  {Function}       callback                    Standard callback function
+ * @param  {Object}         callback.err                An error that occurred, if any
+ */
+const getJoinGroupRequest = function(groupId, principalId, callback) {
+  Cassandra.runQuery(
+    'SELECT * FROM "GroupJoinRequestsByGroup" WHERE "groupId" = ? AND "principalId" = ?',
+    [groupId, principalId],
+    (err, row) => {
+      if (err) {
+        return callback(err);
+      }
+      if (_.isEmpty(row)) {
+        return callback();
+      }
+
+      const hash = Cassandra.rowToHash(row[0]);
+      return callback(null, hash);
+    }
+  );
+};
+
+/**
+ * Get all requests related to a group
+ *
+ * @param  {String}         groupId                     The group id
+ * @param  {Function}       callback                    Standard callback function
+ * @param  {Object}         callback.err                An error that occurred, if any
+ */
+const getJoinGroupRequests = function(groupId, callback) {
+  Cassandra.runQuery(
+    'SELECT * FROM "GroupJoinRequestsByGroup" WHERE "groupId" = ?',
+    [groupId],
+    (err, rows) => {
+      if (err) {
+        return callback(err);
+      }
+      if (_.isEmpty(rows)) {
+        return callback();
+      }
+
+      let users = _.map(rows, (row) => {
+        return Cassandra.rowToHash(row);
+      });
+
+      return callback(null, users);
+    }
+  );
+};
+
 module.exports = {
   createUser,
   createGroup,
@@ -1103,5 +1211,9 @@ module.exports = {
   invalidateCachedUsers,
   setLatestVisit,
   getVisitedGroups,
-  getAllUsersForTenant
+  getAllUsersForTenant,
+  createRequestJoinGroup,
+  updateJoinGroupByRequest,
+  getJoinGroupRequest,
+  getJoinGroupRequests
 };

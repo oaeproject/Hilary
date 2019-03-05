@@ -38,9 +38,9 @@ const searches = {};
 const searchDocumentProducers = {};
 const searchDocumentTransformers = {
   /*!
-     * A default document transformer that simply returns the stored fields of the document, plus the id.
-     * @see registerSearchDocumentTransformer
-     */
+   * A default document transformer that simply returns the stored fields of the document, plus the id.
+   * @see registerSearchDocumentTransformer
+   */
   '*'(ctx, docs, callback) {
     const result = _.map(docs, doc => {
       return _.extend({}, doc.fields, { id: doc._id });
@@ -242,10 +242,7 @@ const registerChildSearchDocument = function(name, options, callback) {
     callback ||
     function(err) {
       if (err) {
-        log().error(
-          { err },
-          'An unexpected error occurred while creating a child search document mapping'
-        );
+        log().error({ err }, 'An unexpected error occurred while creating a child search document mapping');
       }
     };
 
@@ -267,19 +264,9 @@ const refreshSearchConfiguration = function(searchConfig, callback) {
   if (processIndexJobs && !boundIndexWorkers) {
     boundIndexWorkers = true;
     TaskQueue.bind(SearchConstants.mq.TASK_INDEX_DOCUMENT, _handleIndexDocumentTask, null, () => {
-      TaskQueue.bind(
-        SearchConstants.mq.TASK_DELETE_DOCUMENT,
-        _handleDeleteDocumentTask,
-        null,
-        () => {
-          return TaskQueue.bind(
-            SearchConstants.mq.TASK_REINDEX_ALL,
-            _handleReindexAllTask,
-            null,
-            callback
-          );
-        }
-      );
+      TaskQueue.bind(SearchConstants.mq.TASK_DELETE_DOCUMENT, _handleDeleteDocumentTask, null, () => {
+        return TaskQueue.bind(SearchConstants.mq.TASK_REINDEX_ALL, _handleReindexAllTask, null, callback);
+      });
     });
   } else if (!processIndexJobs && boundIndexWorkers) {
     boundIndexWorkers = false;
@@ -358,10 +345,7 @@ const search = function(ctx, searchType, opts, callback) {
         try {
           hit.fields._extra[0] = JSON.parse(hit.fields._extra[0]);
         } catch (error) {
-          log().warn(
-            { err: error, hit },
-            'Failed to parse _extra field of search document into JSON. Ignoring'
-          );
+          log().warn({ err: error, hit }, 'Failed to parse _extra field of search document into JSON. Ignoring');
         }
       });
 
@@ -436,9 +420,7 @@ const postIndexTask = function(resourceType, resources, index, callback) {
 
   const validator = new Validator();
   validator.check(resourceType, { code: 400, msg: 'Must specify a resource type' }).notEmpty();
-  validator
-    .check(null, { code: 400, msg: '"resources" parameter must be an array' })
-    .isArray(resources);
+  validator.check(null, { code: 400, msg: '"resources" parameter must be an array' }).isArray(resources);
   validator.check(null, { code: 400, msg: '"index" parameter must be an object' }).isObject(index);
   validator
     .check(resources.length, {
@@ -447,20 +429,14 @@ const postIndexTask = function(resourceType, resources, index, callback) {
     })
     .min(1);
   _.each(resources, resource => {
-    validator
-      .check(resource.id, { code: 400, msg: 'Each index resource must have an id' })
-      .notEmpty();
+    validator.check(resource.id, { code: 400, msg: 'Each index resource must have an id' }).notEmpty();
   });
 
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
 
-  return TaskQueue.submit(
-    SearchConstants.mq.TASK_INDEX_DOCUMENT,
-    { resourceType, resources, index },
-    callback
-  );
+  return TaskQueue.submit(SearchConstants.mq.TASK_INDEX_DOCUMENT, { resourceType, resources, index }, callback);
 };
 
 /**
@@ -525,18 +501,13 @@ const _ensureIndex = function(indexName, indexSettings, destroy, callback) {
  */
 const _ensureSearchSchema = function(callback, _names) {
   if (!_names) {
-    return client.putMapping(
-      SearchConstants.search.MAPPING_RESOURCE,
-      require('./schema/resourceSchema'),
-      null,
-      err => {
-        if (err) {
-          return callback(err);
-        }
-
-        return _ensureSearchSchema(callback, _.keys(childSearchDocuments));
+    return client.putMapping(SearchConstants.search.MAPPING_RESOURCE, require('./schema/resourceSchema'), null, err => {
+      if (err) {
+        return callback(err);
       }
-    );
+
+      return _ensureSearchSchema(callback, _.keys(childSearchDocuments));
+    });
   }
   if (_.isEmpty(_names)) {
     return callback();
@@ -564,13 +535,13 @@ const _ensureSearchSchema = function(callback, _names) {
  */
 const _createChildSearchDocumentMapping = function(name, schema, callback) {
   /*!
-     * The below elastic search options mean:
-     *
-     *  * `_parent: ...` establishes a parent-child relationship from the resource document to its child documents
-     *
-     * For more information, please see the elasticsearch mapping documentation:
-     * http://www.elasticsearch.org/guide/reference/mapping/
-     */
+   * The below elastic search options mean:
+   *
+   *  * `_parent: ...` establishes a parent-child relationship from the resource document to its child documents
+   *
+   * For more information, please see the elasticsearch mapping documentation:
+   * http://www.elasticsearch.org/guide/reference/mapping/
+   */
   const opts = { _parent: SearchConstants.search.MAPPING_RESOURCE };
 
   client.putMapping(name, schema, opts, callback);
@@ -614,10 +585,7 @@ const _handleReindexAllTask = function(data, callback) {
 
       numToProcess--;
       if (numToProcess === 0) {
-        log().info(
-          { handlers: _.keys(reindexAllHandlers) },
-          'Finished submitting all items for re-indexing'
-        );
+        log().info({ handlers: _.keys(reindexAllHandlers) }, 'Finished submitting all items for re-indexing');
         complete = true;
         return callback();
       }
@@ -705,11 +673,11 @@ const _deleteAll = function(deletes, callback) {
   const del = deletes.shift();
 
   /*!
-     * Invoke the _deleteAll method recursively when the requested delete operation has been
-     * performed
-     *
-     * @param  {Object}     err     An error that occurred, if any
-     */
+   * Invoke the _deleteAll method recursively when the requested delete operation has been
+   * performed
+   *
+   * @param  {Object}     err     An error that occurred, if any
+   */
   const _handleDocumentsDeleted = function(err) {
     if (err) {
       log().error({ err, operation: del }, 'Error deleting a document from the search index');
@@ -846,12 +814,7 @@ const _handleIndexDocumentTask = function(data, callback) {
  * @param  {Object[]}   callback.documents      The resource search documents that were produced
  * @api private
  */
-const _produceAllResourceDocuments = function(
-  resourcesToIndex,
-  callback,
-  _resourceTypes,
-  _documents
-) {
+const _produceAllResourceDocuments = function(resourcesToIndex, callback, _resourceTypes, _documents) {
   _resourceTypes = _resourceTypes || _.keys(resourcesToIndex);
   _documents = _documents || [];
   if (_.isEmpty(_resourceTypes)) {
@@ -905,12 +868,7 @@ const _produceAllResourceDocuments = function(
  * @param  {Object[]}   callback.documents          The resource child search documents that were produced
  * @api private
  */
-const _produceAllChildDocuments = function(
-  resourceChildrenToIndex,
-  callback,
-  _documentTypes,
-  _documents
-) {
+const _produceAllChildDocuments = function(resourceChildrenToIndex, callback, _documentTypes, _documents) {
   _documentTypes = _documentTypes || _.keys(resourceChildrenToIndex);
   _documents = _documents || [];
   if (_.isEmpty(_documentTypes)) {
@@ -929,12 +887,7 @@ const _produceAllChildDocuments = function(
       });
 
       _documents = _.union(_documents, documents);
-      return _produceAllChildDocuments(
-        resourceChildrenToIndex,
-        callback,
-        _documentTypes,
-        _documents
-      );
+      return _produceAllChildDocuments(resourceChildrenToIndex, callback, _documentTypes, _documents);
     });
   } else {
     log().warn(
@@ -942,12 +895,7 @@ const _produceAllChildDocuments = function(
       resourceChildrenToIndex[documentType].length,
       documentType
     );
-    return _produceAllResourceDocuments(
-      resourceChildrenToIndex,
-      callback,
-      _documentTypes,
-      _documents
-    );
+    return _produceAllResourceDocuments(resourceChildrenToIndex, callback, _documentTypes, _documents);
   }
 };
 

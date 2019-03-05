@@ -44,7 +44,7 @@ describe('Content Libraries', () => {
   it('verify library is sorted on last modified', callback => {
     TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
       assert.ok(!err);
-      const nicolaas = _.values(users)[0];
+      const { 0: nicolaas } = _.values(users);
 
       const items = [];
       RestAPI.Content.createLink(
@@ -142,7 +142,7 @@ describe('Content Libraries', () => {
   it('verify getLibrary parameter validation', callback => {
     TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
       assert.ok(!err);
-      const simon = _.values(users)[0];
+      const { 0: simon } = _.values(users);
 
       RestAPI.Content.getLibrary(simon.restContext, ' ', null, null, (err, data) => {
         assert.strictEqual(err.code, 400);
@@ -181,7 +181,7 @@ describe('Content Libraries', () => {
   it('verify removeContentFromLibrary parameter validation', callback => {
     TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
       assert.ok(!err);
-      const simon = _.values(users)[0];
+      const { 0: simon } = _.values(users);
 
       RestAPI.Content.createLink(
         simon.restContext,
@@ -242,7 +242,7 @@ describe('Content Libraries', () => {
   it('verify deleting an item removes it from the library', callback => {
     TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
       assert.ok(!err);
-      const nicolaas = _.values(users)[0];
+      const { 0: nicolaas } = _.values(users);
 
       RestAPI.Content.createLink(
         nicolaas.restContext,
@@ -283,8 +283,8 @@ describe('Content Libraries', () => {
   it('verify a content viewer can remove the content item from his library', callback => {
     TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, users) => {
       assert.ok(!err);
-      const nicolaas = _.values(users)[0];
-      const simon = _.values(users)[1];
+      const { 0: nicolaas } = _.values(users);
+      const { 1: simon } = _.values(users);
 
       RestAPI.Content.createLink(
         nicolaas.restContext,
@@ -353,7 +353,7 @@ describe('Content Libraries', () => {
   it('verify a piece of content cannot be left managerless by removing it from the library', callback => {
     TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
       assert.ok(!err);
-      const nicolaas = _.values(users)[0];
+      const { 0: nicolaas } = _.values(users);
 
       RestAPI.Content.createLink(
         nicolaas.restContext,
@@ -405,10 +405,10 @@ describe('Content Libraries', () => {
 
         TestsUtil.generateTestUsers(adminRestCtxA, 1, (err, users) => {
           assert.ok(!err);
-          const userA = _.values(users)[0];
+          const { 0: userA } = _.values(users);
           TestsUtil.generateTestUsers(adminRestCtxB, 1, (err, users) => {
             assert.ok(!err);
-            const userB = _.values(users)[0];
+            const { 0: userB } = _.values(users);
 
             RestAPI.Content.createLink(
               userA.restContext,
@@ -480,8 +480,8 @@ describe('Content Libraries', () => {
   it('verify a user can only remove content from libraries he owns', callback => {
     TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, users) => {
       assert.ok(!err);
-      const nicolaas = _.values(users)[0];
-      const simon = _.values(users)[1];
+      const { 0: nicolaas } = _.values(users);
+      const { 1: simon } = _.values(users);
 
       RestAPI.Content.createLink(
         nicolaas.restContext,
@@ -530,9 +530,9 @@ describe('Content Libraries', () => {
   it('verify a user can remove content from a group library by virtue of his group ancestry', callback => {
     TestsUtil.generateTestUsers(camAdminRestCtx, 3, (err, users) => {
       assert.ok(!err);
-      const nicolaas = _.values(users)[0];
-      const simon = _.values(users)[1];
-      const bert = _.values(users)[2];
+      const { 0: nicolaas } = _.values(users);
+      const { 1: simon } = _.values(users);
+      const { 2: bert } = _.values(users);
 
       // Create three nested, groups.
       TestsUtil.generateTestGroups(nicolaas.restContext, 3, (group, parent, grandParent) => {
@@ -648,7 +648,7 @@ describe('Content Libraries', () => {
   const createUserAndLibrary = function(restCtx, userVisibility, callback) {
     // Create a user with the proper visibility
     TestsUtil.generateTestUsers(restCtx, 1, (err, users) => {
-      const user = _.values(users)[0];
+      const { 0: user } = _.values(users);
       RestAPI.User.updateUser(
         user.restContext,
         user.user.id,
@@ -872,7 +872,7 @@ describe('Content Libraries', () => {
                                                       camAdminRestCtx,
                                                       1,
                                                       (err, users) => {
-                                                        const anotherUser = _.values(users)[0];
+                                                        const { 0: anotherUser } = _.values(users);
                                                         checkLibrary(
                                                           anotherUser.restContext,
                                                           publicUser.user.id,
@@ -902,9 +902,9 @@ describe('Content Libraries', () => {
                                                                       gtAdminRestCtx,
                                                                       1,
                                                                       (err, users) => {
-                                                                        const otherTenantUser = _.values(
-                                                                          users
-                                                                        )[0];
+                                                                        const {
+                                                                          0: otherTenantUser
+                                                                        } = _.values(users);
                                                                         checkLibrary(
                                                                           otherTenantUser.restContext,
                                                                           publicUser.user.id,
@@ -1047,8 +1047,8 @@ describe('Content Libraries', () => {
     // Create three groups: private, loggedin, public
     TestsUtil.generateTestUsers(camAdminRestCtx, 3, (err, users) => {
       assert.ok(!err);
-      const groupCreator = _.values(users)[0];
-      const anotherUser = _.values(users)[1];
+      const { 0: groupCreator } = _.values(users);
+      const { 1: anotherUser } = _.values(users);
       createGroupAndLibrary(
         groupCreator.restContext,
         'private',

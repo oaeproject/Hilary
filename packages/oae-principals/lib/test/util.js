@@ -42,28 +42,14 @@ const PrincipalsDelete = require('oae-principals/lib/delete');
  *
  * @see RestAPI.Admin#importUsers for the meaning of the method parameters
  */
-const importUsers = function(
-  restCtx,
-  tenantAlias,
-  csvGenerator,
-  authenticationStrategy,
-  forceProfileUpdate,
-  callback
-) {
-  RestAPI.Admin.importUsers(
-    restCtx,
-    tenantAlias,
-    csvGenerator,
-    authenticationStrategy,
-    forceProfileUpdate,
-    err => {
-      if (err) {
-        return callback(err);
-      }
-
-      PrincipalsAPI.emitter.once('postCSVUserImport', callback);
+const importUsers = function(restCtx, tenantAlias, csvGenerator, authenticationStrategy, forceProfileUpdate, callback) {
+  RestAPI.Admin.importUsers(restCtx, tenantAlias, csvGenerator, authenticationStrategy, forceProfileUpdate, err => {
+    if (err) {
+      return callback(err);
     }
-  );
+
+    PrincipalsAPI.emitter.once('postCSVUserImport', callback);
+  });
 };
 
 /**
@@ -78,13 +64,7 @@ const importUsers = function(
  * @param  {Function}       callback                Standard callback function
  * @throws {Error}                                  An assertion error is thrown if there are any errors adding the users to the groups
  */
-const addUserToAllGroups = function(
-  memberUser,
-  publicTenant1,
-  publicTenant2,
-  privateTenant,
-  callback
-) {
+const addUserToAllGroups = function(memberUser, publicTenant1, publicTenant2, privateTenant, callback) {
   // Temporarily make the private tenant public
   ConfigTestsUtil.updateConfigAndWait(
     TestsUtil.createGlobalAdminRestContext(),
@@ -97,93 +77,88 @@ const addUserToAllGroups = function(
       permissions[memberUser.user.id] = 'member';
 
       // Add the user to all the first public tenant groups
-      RestAPI.Group.setGroupMembers(
-        publicTenant1.adminRestContext,
-        publicTenant1.publicGroup.id,
-        permissions,
-        err => {
-          assert.ok(!err);
-          RestAPI.Group.setGroupMembers(
-            publicTenant1.adminRestContext,
-            publicTenant1.loggedinGroup.id,
-            permissions,
-            err => {
-              assert.ok(!err);
-              RestAPI.Group.setGroupMembers(
-                publicTenant1.adminRestContext,
-                publicTenant1.privateGroup.id,
-                permissions,
-                err => {
-                  assert.ok(!err);
+      RestAPI.Group.setGroupMembers(publicTenant1.adminRestContext, publicTenant1.publicGroup.id, permissions, err => {
+        assert.ok(!err);
+        RestAPI.Group.setGroupMembers(
+          publicTenant1.adminRestContext,
+          publicTenant1.loggedinGroup.id,
+          permissions,
+          err => {
+            assert.ok(!err);
+            RestAPI.Group.setGroupMembers(
+              publicTenant1.adminRestContext,
+              publicTenant1.privateGroup.id,
+              permissions,
+              err => {
+                assert.ok(!err);
 
-                  // Add the user to all the second public tenant groups
-                  RestAPI.Group.setGroupMembers(
-                    publicTenant2.adminRestContext,
-                    publicTenant2.publicGroup.id,
-                    permissions,
-                    err => {
-                      assert.ok(!err);
-                      RestAPI.Group.setGroupMembers(
-                        publicTenant2.adminRestContext,
-                        publicTenant2.loggedinGroup.id,
-                        permissions,
-                        err => {
-                          assert.ok(!err);
-                          RestAPI.Group.setGroupMembers(
-                            publicTenant2.adminRestContext,
-                            publicTenant2.privateGroup.id,
-                            permissions,
-                            err => {
-                              assert.ok(!err);
+                // Add the user to all the second public tenant groups
+                RestAPI.Group.setGroupMembers(
+                  publicTenant2.adminRestContext,
+                  publicTenant2.publicGroup.id,
+                  permissions,
+                  err => {
+                    assert.ok(!err);
+                    RestAPI.Group.setGroupMembers(
+                      publicTenant2.adminRestContext,
+                      publicTenant2.loggedinGroup.id,
+                      permissions,
+                      err => {
+                        assert.ok(!err);
+                        RestAPI.Group.setGroupMembers(
+                          publicTenant2.adminRestContext,
+                          publicTenant2.privateGroup.id,
+                          permissions,
+                          err => {
+                            assert.ok(!err);
 
-                              // Add the user to all the private tenant groups
-                              RestAPI.Group.setGroupMembers(
-                                privateTenant.adminRestContext,
-                                privateTenant.publicGroup.id,
-                                permissions,
-                                err => {
-                                  assert.ok(!err);
-                                  RestAPI.Group.setGroupMembers(
-                                    privateTenant.adminRestContext,
-                                    privateTenant.loggedinGroup.id,
-                                    permissions,
-                                    err => {
-                                      assert.ok(!err);
-                                      RestAPI.Group.setGroupMembers(
-                                        privateTenant.adminRestContext,
-                                        privateTenant.privateGroup.id,
-                                        permissions,
-                                        err => {
-                                          assert.ok(!err);
+                            // Add the user to all the private tenant groups
+                            RestAPI.Group.setGroupMembers(
+                              privateTenant.adminRestContext,
+                              privateTenant.publicGroup.id,
+                              permissions,
+                              err => {
+                                assert.ok(!err);
+                                RestAPI.Group.setGroupMembers(
+                                  privateTenant.adminRestContext,
+                                  privateTenant.loggedinGroup.id,
+                                  permissions,
+                                  err => {
+                                    assert.ok(!err);
+                                    RestAPI.Group.setGroupMembers(
+                                      privateTenant.adminRestContext,
+                                      privateTenant.privateGroup.id,
+                                      permissions,
+                                      err => {
+                                        assert.ok(!err);
 
-                                          // Make the private tenant private again
-                                          ConfigTestsUtil.updateConfigAndWait(
-                                            TestsUtil.createGlobalAdminRestContext(),
-                                            privateTenant.tenant.alias,
-                                            { 'oae-tenants/tenantprivacy/tenantprivate': true },
-                                            err => {
-                                              assert.ok(!err);
-                                              return callback();
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
+                                        // Make the private tenant private again
+                                        ConfigTestsUtil.updateConfigAndWait(
+                                          TestsUtil.createGlobalAdminRestContext(),
+                                          privateTenant.tenant.alias,
+                                          { 'oae-tenants/tenantprivacy/tenantprivate': true },
+                                          err => {
+                                            assert.ok(!err);
+                                            return callback();
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
+      });
     }
   );
 };
@@ -198,77 +173,51 @@ const addUserToAllGroups = function(
  * @param  {Function}   callback        Standard callback function
  * @throws {Error}                      An assertion error is thrown if there are any errors adding the users to the groups
  */
-const updateAllGroups = function(
-  publicTenant1,
-  publicTenant2,
-  privateTenant,
-  modifications,
-  callback
-) {
+const updateAllGroups = function(publicTenant1, publicTenant2, privateTenant, modifications, callback) {
   // Update the groups from publicTenant1
-  RestAPI.Group.updateGroup(
-    publicTenant1.adminRestContext,
-    publicTenant1.publicGroup.id,
-    modifications,
-    err => {
+  RestAPI.Group.updateGroup(publicTenant1.adminRestContext, publicTenant1.publicGroup.id, modifications, err => {
+    assert.ok(!err);
+    RestAPI.Group.updateGroup(publicTenant1.adminRestContext, publicTenant1.loggedinGroup.id, modifications, err => {
       assert.ok(!err);
-      RestAPI.Group.updateGroup(
-        publicTenant1.adminRestContext,
-        publicTenant1.loggedinGroup.id,
-        modifications,
-        err => {
+      RestAPI.Group.updateGroup(publicTenant1.adminRestContext, publicTenant1.privateGroup.id, modifications, err => {
+        assert.ok(!err);
+
+        // Update the groups from publicTenant2
+        RestAPI.Group.updateGroup(publicTenant2.adminRestContext, publicTenant2.publicGroup.id, modifications, err => {
           assert.ok(!err);
           RestAPI.Group.updateGroup(
-            publicTenant1.adminRestContext,
-            publicTenant1.privateGroup.id,
+            publicTenant2.adminRestContext,
+            publicTenant2.loggedinGroup.id,
             modifications,
             err => {
               assert.ok(!err);
-
-              // Update the groups from publicTenant2
               RestAPI.Group.updateGroup(
                 publicTenant2.adminRestContext,
-                publicTenant2.publicGroup.id,
+                publicTenant2.privateGroup.id,
                 modifications,
                 err => {
                   assert.ok(!err);
+
+                  // Update the groups from privateTenant
                   RestAPI.Group.updateGroup(
-                    publicTenant2.adminRestContext,
-                    publicTenant2.loggedinGroup.id,
+                    privateTenant.adminRestContext,
+                    privateTenant.publicGroup.id,
                     modifications,
                     err => {
                       assert.ok(!err);
                       RestAPI.Group.updateGroup(
-                        publicTenant2.adminRestContext,
-                        publicTenant2.privateGroup.id,
+                        privateTenant.adminRestContext,
+                        privateTenant.loggedinGroup.id,
                         modifications,
                         err => {
                           assert.ok(!err);
-
-                          // Update the groups from privateTenant
                           RestAPI.Group.updateGroup(
                             privateTenant.adminRestContext,
-                            privateTenant.publicGroup.id,
+                            privateTenant.privateGroup.id,
                             modifications,
                             err => {
                               assert.ok(!err);
-                              RestAPI.Group.updateGroup(
-                                privateTenant.adminRestContext,
-                                privateTenant.loggedinGroup.id,
-                                modifications,
-                                err => {
-                                  assert.ok(!err);
-                                  RestAPI.Group.updateGroup(
-                                    privateTenant.adminRestContext,
-                                    privateTenant.privateGroup.id,
-                                    modifications,
-                                    err => {
-                                      assert.ok(!err);
-                                      return callback();
-                                    }
-                                  );
-                                }
-                              );
+                              return callback();
                             }
                           );
                         }
@@ -279,10 +228,10 @@ const updateAllGroups = function(
               );
             }
           );
-        }
-      );
-    }
-  );
+        });
+      });
+    });
+  });
 };
 
 /**
@@ -300,26 +249,14 @@ const updateAllGroups = function(
  * @param  {User|Group}     callback.cropPicturePrincipal       The principal object returned from the crop picture request
  * @throws {AssertionError}                                     Thrown if an error occurs while uploading and cropping the picture
  */
-const uploadAndCropPicture = function(
-  restCtx,
-  principalId,
-  getPictureStream,
-  selectedArea,
-  callback
-) {
-  RestAPI.User.uploadPicture(
-    restCtx,
-    principalId,
-    getPictureStream,
-    null,
-    (err, uploadPicturePrincipal) => {
+const uploadAndCropPicture = function(restCtx, principalId, getPictureStream, selectedArea, callback) {
+  RestAPI.User.uploadPicture(restCtx, principalId, getPictureStream, null, (err, uploadPicturePrincipal) => {
+    assert.ok(!err);
+    RestAPI.Crop.cropPicture(restCtx, principalId, selectedArea, (err, cropPicturePrincipal) => {
       assert.ok(!err);
-      RestAPI.Crop.cropPicture(restCtx, principalId, selectedArea, (err, cropPicturePrincipal) => {
-        assert.ok(!err);
-        return callback(uploadPicturePrincipal, cropPicturePrincipal);
-      });
-    }
-  );
+      return callback(uploadPicturePrincipal, cropPicturePrincipal);
+    });
+  });
 };
 
 /**
@@ -471,11 +408,7 @@ const assertCreateGroupSucceeds = function(
         const AuthzTestUtil = require('oae-authz/lib/test/util');
         // Ensure the members and managers are as we would expect for members and invitations
         assertGetAllMembersLibrarySucceeds(restContext, group.id, null, results => {
-          AuthzTestUtil.assertMemberRolesEquals(
-            {},
-            roleChanges,
-            AuthzTestUtil.getMemberRolesFromResults(results)
-          );
+          AuthzTestUtil.assertMemberRolesEquals({}, roleChanges, AuthzTestUtil.getMemberRolesFromResults(results));
 
           AuthzTestUtil.assertGetInvitationsSucceeds(restContext, 'group', group.id, result => {
             AuthzTestUtil.assertEmailRolesEquals(
@@ -561,14 +494,7 @@ const assertUpdateGroupsSucceeds = function(
   const groupId = _groupIdsToUpdate.shift();
   assertUpdateGroupSucceeds(restCtx, groupId, profileFields, group => {
     _updatedGroups[groupId] = group;
-    return assertUpdateGroupsSucceeds(
-      restCtx,
-      groupIds,
-      profileFields,
-      callback,
-      _groupIdsToUpdate,
-      _updatedGroups
-    );
+    return assertUpdateGroupsSucceeds(restCtx, groupIds, profileFields, callback, _groupIdsToUpdate, _updatedGroups);
   });
 };
 
@@ -852,13 +778,7 @@ const assertUpdateUserFails = function(restCtx, userId, update, httpCode, callba
  * @param  {Function}       callback        Invoked when all assertions have succeeded
  * @throws {AssertionError}                 Thrown if any of the assertions fail
  */
-const assertUploadUserPicturesSucceeds = function(
-  restCtx,
-  userIds,
-  opts,
-  callback,
-  _userIdsToUpdate
-) {
+const assertUploadUserPicturesSucceeds = function(restCtx, userIds, opts, callback, _userIdsToUpdate) {
   _userIdsToUpdate = _userIdsToUpdate || userIds.slice();
   if (_.isEmpty(_userIdsToUpdate)) {
     return callback();
@@ -891,28 +811,22 @@ const assertUploadUserPictureSucceeds = function(restCtx, userId, opts, callback
   opts.width = opts.width || 10;
 
   // Upload the picture
-  RestAPI.User.uploadPicture(
-    restCtx,
-    userId,
-    _getPictureStream(opts.path),
-    _.pick(opts, 'x', 'y', 'width'),
-    err => {
+  RestAPI.User.uploadPicture(restCtx, userId, _getPictureStream(opts.path), _.pick(opts, 'x', 'y', 'width'), err => {
+    assert.ok(!err);
+
+    // Ensure there is a picture on the user profile
+    RestAPI.User.getUser(restCtx, userId, (err, userAfterUpdate) => {
       assert.ok(!err);
+      assert.ok(!_.isEmpty(userAfterUpdate.picture));
 
-      // Ensure there is a picture on the user profile
-      RestAPI.User.getUser(restCtx, userId, (err, userAfterUpdate) => {
-        assert.ok(!err);
-        assert.ok(!_.isEmpty(userAfterUpdate.picture));
-
-        // Ensure search and libraries update before continuing
-        SearchTestUtil.whenIndexingComplete(() => {
-          LibraryAPI.Index.whenUpdatesComplete(() => {
-            return callback(userAfterUpdate);
-          });
+      // Ensure search and libraries update before continuing
+      SearchTestUtil.whenIndexingComplete(() => {
+        LibraryAPI.Index.whenUpdatesComplete(() => {
+          return callback(userAfterUpdate);
         });
       });
-    }
-  );
+    });
+  });
 };
 
 /**
@@ -936,27 +850,21 @@ const assertUploadGroupPictureSucceeds = function(restCtx, groupId, opts, callba
   opts.width = opts.width || 10;
 
   // Upload the picture
-  RestAPI.User.uploadPicture(
-    restCtx,
-    groupId,
-    _getPictureStream(opts.path),
-    _.pick(opts, 'x', 'y', 'width'),
-    err => {
-      assert.ok(!err);
+  RestAPI.User.uploadPicture(restCtx, groupId, _getPictureStream(opts.path), _.pick(opts, 'x', 'y', 'width'), err => {
+    assert.ok(!err);
 
-      // Ensure there is a picture on the user profile
-      assertGetGroupSucceeds(restCtx, groupId, null, groupAfterUpdate => {
-        assert.ok(!_.isEmpty(groupAfterUpdate.picture));
+    // Ensure there is a picture on the user profile
+    assertGetGroupSucceeds(restCtx, groupId, null, groupAfterUpdate => {
+      assert.ok(!_.isEmpty(groupAfterUpdate.picture));
 
-        // Ensure search and libraries update before continuing
-        SearchTestUtil.whenIndexingComplete(() => {
-          LibraryAPI.Index.whenUpdatesComplete(() => {
-            return callback(groupAfterUpdate);
-          });
+      // Ensure search and libraries update before continuing
+      SearchTestUtil.whenIndexingComplete(() => {
+        LibraryAPI.Index.whenUpdatesComplete(() => {
+          return callback(groupAfterUpdate);
         });
       });
-    }
-  );
+    });
+  });
 };
 
 /**
@@ -969,13 +877,7 @@ const assertUploadGroupPictureSucceeds = function(restCtx, groupId, opts, callba
  * @param  {Object[]}       callback.members    The full group members list after the role changes
  * @throws {AssertionError}                     Thrown if any of the assertions fail
  */
-const assertSetGroupMembersSucceeds = function(
-  managerRestContext,
-  actorRestContext,
-  groupId,
-  members,
-  callback
-) {
+const assertSetGroupMembersSucceeds = function(managerRestContext, actorRestContext, groupId, members, callback) {
   const AuthzTestUtil = require('oae-authz/lib/test/util');
 
   assertGetAllMembersLibrarySucceeds(managerRestContext, groupId, null, results => {
@@ -995,20 +897,15 @@ const assertSetGroupMembersSucceeds = function(
                 members,
                 AuthzTestUtil.getMemberRolesFromResults(results)
               );
-              AuthzTestUtil.assertGetInvitationsSucceeds(
-                managerRestContext,
-                'group',
-                groupId,
-                result => {
-                  AuthzTestUtil.assertEmailRolesEquals(
-                    emailRolesBefore,
-                    members,
-                    AuthzTestUtil.getEmailRolesFromResults(result.results)
-                  );
+              AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'group', groupId, result => {
+                AuthzTestUtil.assertEmailRolesEquals(
+                  emailRolesBefore,
+                  members,
+                  AuthzTestUtil.getEmailRolesFromResults(result.results)
+                );
 
-                  return callback(results);
-                }
-              );
+                return callback(results);
+              });
             });
           });
         });
@@ -1188,31 +1085,21 @@ const assertLeaveGroupSucceeds = function(managerRestCtx, userRestCtx, groupId, 
             SearchTestUtil.whenIndexingComplete(() => {
               LibraryAPI.Index.whenUpdatesComplete(() => {
                 // Ensure the members are what we expect
-                assertGetAllMembersLibraryEquals(
-                  managerRestCtx,
-                  groupId,
-                  expectedMemberIdsAfter,
-                  () => {
-                    // Ensure the memberships are what we expect
-                    assertMembershipsLibraryEquals(
-                      userRestCtx,
-                      me.id,
-                      expectedMembershipIdsAfter,
-                      () => {
-                        // Get the group after it has been left, ensuring that its
-                        // lastModified date hasn't been updated
-                        assertGetGroupSucceeds(
-                          managerRestCtx,
-                          groupId,
-                          { lastModified: groupBefore.lastModified },
-                          groupAfter => {
-                            return callback();
-                          }
-                        );
+                assertGetAllMembersLibraryEquals(managerRestCtx, groupId, expectedMemberIdsAfter, () => {
+                  // Ensure the memberships are what we expect
+                  assertMembershipsLibraryEquals(userRestCtx, me.id, expectedMembershipIdsAfter, () => {
+                    // Get the group after it has been left, ensuring that its
+                    // lastModified date hasn't been updated
+                    assertGetGroupSucceeds(
+                      managerRestCtx,
+                      groupId,
+                      { lastModified: groupBefore.lastModified },
+                      groupAfter => {
+                        return callback();
                       }
                     );
-                  }
-                );
+                  });
+                });
               });
             });
           });
@@ -1230,19 +1117,9 @@ const assertLeaveGroupSucceeds = function(managerRestCtx, userRestCtx, groupId, 
  * @param  {Function}       callback                Invoked when all memberships have been successfully validated
  * @throws {AssertionError}                         Thrown if there is an issue getting a memberships library or if they are not as expected for any provided user
  */
-const assertMembershipsLibrariesEquals = function(
-  restCtx,
-  expectedMemberships,
-  callback,
-  _userIds
-) {
+const assertMembershipsLibrariesEquals = function(restCtx, expectedMemberships, callback, _userIds) {
   if (!_userIds) {
-    return assertMembershipsLibrariesEquals(
-      restCtx,
-      expectedMemberships,
-      callback,
-      _.keys(expectedMemberships)
-    );
+    return assertMembershipsLibrariesEquals(restCtx, expectedMemberships, callback, _.keys(expectedMemberships));
   }
   if (_.isEmpty(_userIds)) {
     return callback();
@@ -1250,7 +1127,7 @@ const assertMembershipsLibrariesEquals = function(
 
   const userId = _userIds.shift();
   // eslint-disable-next-line no-undef
-  assertMembershipsLibraryEquals(restCtx, userId, expectectedMemberships[userId], () => {
+  assertMembershipsLibraryEquals(restCtx, userId, expectedMemberships[userId], () => {
     return assertMembershipsLibrariesEquals(restCtx, expectedMemberships, callback, _userIds);
   });
 };
@@ -1389,28 +1266,13 @@ const assertRestoreGroupSucceeds = function(adminRestCtx, restorerRestCtx, group
               LibraryAPI.Index.whenUpdatesComplete(() => {
                 // Ensure the full group profile now succeeds, with no value for
                 // the deleted field
-                assertGetGroupSucceeds(
-                  adminRestCtx,
-                  groupId,
-                  { deleted: undefined },
-                  groupAfterDelete => {
-                    // Ensure this also the case for the restorer
-                    assertGetGroupSucceeds(
-                      restorerRestCtx,
-                      groupId,
-                      { deleted: undefined },
-                      groupAfterDelete => {
-                        // Ensure the memberships libraries of the users now contains the group
-                        return assertMembershipsLibrariesContains(
-                          adminRestCtx,
-                          memberUserIds,
-                          [groupId],
-                          callback
-                        );
-                      }
-                    );
-                  }
-                );
+                assertGetGroupSucceeds(adminRestCtx, groupId, { deleted: undefined }, groupAfterDelete => {
+                  // Ensure this also the case for the restorer
+                  assertGetGroupSucceeds(restorerRestCtx, groupId, { deleted: undefined }, groupAfterDelete => {
+                    // Ensure the memberships libraries of the users now contains the group
+                    return assertMembershipsLibrariesContains(adminRestCtx, memberUserIds, [groupId], callback);
+                  });
+                });
               });
             });
           });
@@ -1490,13 +1352,7 @@ const assertRestoreUserFails = function(restCtx, userId, httpCode, callback) {
  * @param  {Function}       callback            Invoked when all groups have been deleted and all assertions have succeeded
  * @throws {AssertionError}                     Thrown if there is an issue deleting the groups or any of the assertions fail
  */
-const assertDeleteGroupsSucceeds = function(
-  adminRestCtx,
-  deleterRestCtx,
-  groupIds,
-  callback,
-  _groupIdsToDelete
-) {
+const assertDeleteGroupsSucceeds = function(adminRestCtx, deleterRestCtx, groupIds, callback, _groupIdsToDelete) {
   _groupIdsToDelete = _groupIdsToDelete || groupIds.slice();
   if (_.isEmpty(_groupIdsToDelete)) {
     return callback();
@@ -1504,13 +1360,7 @@ const assertDeleteGroupsSucceeds = function(
 
   const groupId = _groupIdsToDelete.shift();
   assertDeleteGroupSucceeds(adminRestCtx, deleterRestCtx, groupId, () => {
-    return assertDeleteGroupsSucceeds(
-      adminRestCtx,
-      deleterRestCtx,
-      groupIds,
-      callback,
-      _groupIdsToDelete
-    );
+    return assertDeleteGroupsSucceeds(adminRestCtx, deleterRestCtx, groupIds, callback, _groupIdsToDelete);
   });
 };
 
@@ -1550,12 +1400,7 @@ const assertDeleteGroupSucceeds = function(adminRestCtx, deleterRestCtx, groupId
                   // Ensure the full group profile gives 404 for the admin as well
                   assertGetGroupFails(adminRestCtx, groupId, 404, () => {
                     // Ensure each user member no longer has this group in their memberships
-                    return assertMembershipsLibrariesNotContains(
-                      adminRestCtx,
-                      memberUserIds,
-                      [groupId],
-                      callback
-                    );
+                    return assertMembershipsLibrariesNotContains(adminRestCtx, memberUserIds, [groupId], callback);
                   });
                 });
               });
@@ -1576,13 +1421,7 @@ const assertDeleteGroupSucceeds = function(adminRestCtx, deleterRestCtx, groupId
  * @param  {Function}       callback            Invoked when all users have been deleted and all assertions have succeeded
  * @throws {AssertionError}                     Thrown if there is an issue deleting the users or any of the assertions fail
  */
-const assertDeleteUsersSucceeds = function(
-  adminRestCtx,
-  deleterRestCtx,
-  userIds,
-  callback,
-  _userIdsToDelete
-) {
+const assertDeleteUsersSucceeds = function(adminRestCtx, deleterRestCtx, userIds, callback, _userIdsToDelete) {
   _userIdsToDelete = _userIdsToDelete || userIds.slice();
   if (_.isEmpty(_userIdsToDelete)) {
     return callback();
@@ -1590,13 +1429,7 @@ const assertDeleteUsersSucceeds = function(
 
   const userId = _userIdsToDelete.shift();
   assertDeleteUserSucceeds(adminRestCtx, deleterRestCtx, userId, () => {
-    return assertDeleteUsersSucceeds(
-      adminRestCtx,
-      deleterRestCtx,
-      userIds,
-      callback,
-      _userIdsToDelete
-    );
+    return assertDeleteUsersSucceeds(adminRestCtx, deleterRestCtx, userIds, callback, _userIdsToDelete);
   });
 };
 
@@ -1630,6 +1463,7 @@ const assertDeleteUserSucceeds = function(adminRestCtx, deleterRestCtx, userId, 
           SearchTestUtil.whenIndexingComplete(() => {
             LibraryAPI.Index.whenUpdatesComplete(() => {
               // Ensure the user profile now throws 404s
+              // eslint-disable-next-line handle-callback-err
               assertGetUserFails(adminRestCtx, userId, 404, (err, user) => {
                 // If the user deleted themself, ensure they are now anonymous
                 assertGetMeSucceeds(deleterRestCtx, (deleterMeAfterDelete, response) => {
@@ -1707,14 +1541,7 @@ const assertDeleteUserFails = function(restCtx, userId, httpCode, callback) {
  * @param  {Function}       callback        Invoked when the request fails in the expected manner
  * @throws {AssertionError}                 Thrown if the request succeeds or fails in an unexpected way
  */
-const assertGetMembershipsLibraryFails = function(
-  restCtx,
-  principalId,
-  start,
-  limit,
-  httpCode,
-  callback
-) {
+const assertGetMembershipsLibraryFails = function(restCtx, principalId, start, limit, httpCode, callback) {
   RestAPI.Group.getMembershipsLibrary(restCtx, principalId, start, limit, (err, response) => {
     assert.ok(err);
     assert.strictEqual(err.code, httpCode);
@@ -1812,13 +1639,7 @@ const assertGetAllMembersLibraryEquals = function(restCtx, groupId, expectedMemb
  * @param  {Function}       callback                Standard callback function
  * @param  {Object}         callback.memberships    An object keyed by userId, whose values are an array of memberships library entries for the user (as per `assertGetAllMembershipsLibrarySucceeds`)
  */
-const getAllMembershipsLibraries = function(
-  restCtx,
-  userIds,
-  opts,
-  callback,
-  _membershipsLibraries
-) {
+const getAllMembershipsLibraries = function(restCtx, userIds, opts, callback, _membershipsLibraries) {
   userIds = userIds.slice();
   _membershipsLibraries = _membershipsLibraries || {};
   if (_.isEmpty(userIds)) {
@@ -1913,15 +1734,7 @@ const assertGetAllMembersLibrarySucceeds = function(
     _responses.push(response);
     _members = _.union(_members, response.results);
     _nextToken = response.nextToken;
-    return assertGetAllMembersLibrarySucceeds(
-      restCtx,
-      groupId,
-      opts,
-      callback,
-      _nextToken,
-      _members,
-      _responses
-    );
+    return assertGetAllMembersLibrarySucceeds(restCtx, groupId, opts, callback, _nextToken, _members, _responses);
   });
 };
 
@@ -2204,7 +2017,7 @@ const onceVerificationEmailSent = function(email, assertions, callback) {
     assert.ok(message.text.match(tokenRegex));
 
     // Verify a token is passed in the email
-    let token = message.text.match(tokenRegex)[1];
+    let { 1: token } = message.text.match(tokenRegex);
     assert.ok(token);
     token = decodeURIComponent(token);
 
@@ -2224,6 +2037,136 @@ const _getPictureStream = function(filePath) {
   return function() {
     return fs.createReadStream(filePath);
   };
+};
+
+/**
+ * Assert that a request can be created
+ *
+ * @param  {RestContext}    restCtx         The REST context of a user who will perform the request
+ * @param  {String}         groupId         The group id that the user requested to join
+ * @param  {Function}       callback        Invoked when the mapping has been verified
+ * @throws {AssertionError}                 Thrown if the operation is unsuccessful or the mapping is incorrect
+ */
+const assertCreateRequestJoinGroupSucceeds = function(restCtx, groupId, callback) {
+  RestAPI.Group.createRequestJoinGroup(restCtx, groupId, err => {
+    assert.ok(!err);
+    return callback();
+  });
+};
+
+/**
+ * Ensure that a create request fails with the expected http code
+ *
+ * @param  {RestContext}    restCtx         The REST context of a user who will perform the request
+ * @param  {String}         groupId         The group id that the user requested to join
+ * @param  {Number}         httpCode        The expected HTTP code of the failed has pending email token operation
+ * @param  {Function}       callback        Invoked when the delete operation has been performed
+ * @throws {AssertionError}                 Thrown if the operation is successful
+ */
+const assertCreateRequestJoinGroupFails = function(restCtx, groupId, httpCode, callback) {
+  RestAPI.Group.createRequestJoinGroup(restCtx, groupId, err => {
+    assert.ok(err);
+    assert.strictEqual(err.code, httpCode);
+    return callback();
+  });
+};
+
+/**
+ * Ensure that a request to the request list succeeds
+ *
+ * @param  {RestContext}    restCtx         The REST context of a user who will perform the request
+ * @param  {String}         groupId         The group id that the user requested to join
+ * @param  {Function}       callback        Invoked when the mapping has been verified
+ * @throws {AssertionError}                 Thrown if the operation is unsuccessful or the mapping is incorrect
+ */
+const assertGetJoinGroupRequestSucceeds = function(restCtx, groupId, callback) {
+  RestAPI.Group.getJoinGroupRequest(restCtx, groupId, (err, request) => {
+    assert.ok(!err);
+    return callback(request);
+  });
+};
+
+/**
+ * Ensure that a get request fails with the expected http code
+ *
+ * @param  {RestContext}    restCtx         The REST context of a user who will perform the request
+ * @param  {String}         groupId         The group id that the user requested to join
+ * @param  {Number}         httpCode        The expected HTTP code of the failed has pending email token operation
+ * @param  {Function}       callback        Invoked when the delete operation has been performed
+ * @throws {AssertionError}                 Thrown if the operation is successful
+ */
+const assertGetJoinGroupRequestFails = function(restCtx, groupId, httpCode, callback) {
+  RestAPI.Group.getJoinGroupRequest(restCtx, groupId, err => {
+    assert.ok(err);
+    assert.strictEqual(err.code, httpCode);
+    return callback();
+  });
+};
+
+/**
+ * Ensure that a request to the request list succeeds
+ *
+ * @param  {RestContext}    restCtx         The REST context of a user who will perform the request
+ * @param  {String}         groupId         The group id that users requested to join
+ * @param  {Function}       callback        Invoked when the mapping has been verified
+ * @throws {AssertionError}                 Thrown if the operation is unsuccessful or the mapping is incorrect
+ */
+const assertGetJoinGroupRequestsSucceeds = function(restCtx, groupId, callback) {
+  RestAPI.Group.getJoinGroupRequests(restCtx, groupId, (err, requests) => {
+    assert.ok(!err);
+    return callback(requests);
+  });
+};
+
+/**
+ * Ensure that a get request fails with the expected http code
+ *
+ * @param  {RestContext}    restCtx         The REST context of a user who will perform the request
+ * @param  {String}         groupId         The group id that the user requested to join
+ * @param  {Number}         httpCode        The expected HTTP code of the failed has pending email token operation
+ * @param  {Function}       callback        Invoked when the delete operation has been performed
+ * @throws {AssertionError}                 Thrown if the operation is successful
+ */
+const assertGetJoinGroupRequestsFails = function(restCtx, groupId, httpCode, callback) {
+  RestAPI.Group.getJoinGroupRequests(restCtx, groupId, err => {
+    assert.ok(err);
+    assert.strictEqual(err.code, httpCode);
+    return callback();
+  });
+};
+
+/**
+ * Ensure that a request can be updated
+ *
+ * @param  {RestContext}    restCtx         The REST context of a user who will perform the request
+ * @param  {String}         groupId         The group id that users requested to join
+ * @param  {Function}       callback        Invoked when the mapping has been verified
+ * @throws {AssertionError}                 Thrown if the operation is unsuccessful or the mapping is incorrect
+ */
+const assertUpdateJoinGroupByRequestSucceeds = function(restCtx, groupId, principalId, role, status, callback) {
+  RestAPI.Group.updateJoinGroupByRequest(restCtx, { groupId, principalId, role, status }, err => {
+    assert.ok(!err);
+    return callback();
+  });
+};
+
+/**
+ * Ensure that a update a request fails with the expected http code
+ *
+ * @param  {RestContext}    restCtx         The REST context of a user who will perform the request
+ * @param  {String}         groupId         The group id that the user requested to join
+ * @param  {String}         role            The role ask by the user who wants to join the group
+ * @param  {String}         status          The status of the request
+ * @param  {Number}         httpCode        The expected HTTP code of the failed has pending email token operation
+ * @param  {Function}       callback        Invoked when the delete operation has been performed
+ * @throws {AssertionError}                 Thrown if the operation is successful
+ */
+const assertUpdateJoinGroupByRequestFails = function(restCtx, groupId, principalId, role, status, httpCode, callback) {
+  RestAPI.Group.updateJoinGroupByRequest(restCtx, { groupId, principalId, role, status }, err => {
+    assert.ok(err);
+    assert.strictEqual(err.code, httpCode);
+    return callback();
+  });
 };
 
 module.exports = {
@@ -2289,5 +2232,13 @@ module.exports = {
   assertDeleteEmailTokenSucceeds,
   assertDeleteEmailTokenFails,
   assertUserEmailMappingEquals,
-  onceVerificationEmailSent
+  onceVerificationEmailSent,
+  assertCreateRequestJoinGroupSucceeds,
+  assertCreateRequestJoinGroupFails,
+  assertGetJoinGroupRequestSucceeds,
+  assertGetJoinGroupRequestFails,
+  assertGetJoinGroupRequestsSucceeds,
+  assertGetJoinGroupRequestsFails,
+  assertUpdateJoinGroupByRequestSucceeds,
+  assertUpdateJoinGroupByRequestFails
 };

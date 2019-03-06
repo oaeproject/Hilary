@@ -16,13 +16,12 @@
 
 const path = require('path');
 const optimist = require('optimist');
-const { promisify } = require('util');
 
 const log = require('oae-logger').logger();
+
 const config = require(path.join(__dirname, 'config.js'));
 const dbConfig = config.config.cassandra;
 const migrationRunner = require(path.join(__dirname, 'etc/migration/migration_runner.js'));
-const runMigrations = promisify(migrationRunner.runMigrations);
 
 const { argv } = optimist
   .usage('$0 [--keyspace <keyspace>]')
@@ -35,18 +34,14 @@ if (argv.help) {
   process.exit(0);
 }
 
-if (argv.keyspace === true) {
-  keyspace = dbConfig.keyspace;
-} else {
-  keyspace = argv.keyspace;
-}
-dbConfig.keyspace = keyspace;
+dbConfig.keyspace = argv.keyspace === true ? dbConfig.keyspace : argv.keyspace;
 
-const execute = async function() {
-  log().info('Running migrations for keyspace ' + keyspace + '...');
-  await runMigrations(dbConfig);
-  log().info('All done.');
-  process.exit(0);
+const execute = function() {
+  log().info('Running migrations for keyspace ' + dbConfig.keyspace + '...');
+  migrationRunner.runMigrations(dbConfig, () => {
+    log().info('All done.');
+    process.exit(0);
+  });
 };
 
 execute();

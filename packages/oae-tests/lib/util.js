@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+const path = require('path');
 const assert = require('assert');
 const stream = require('stream');
 const util = require('util');
@@ -46,6 +47,8 @@ const SearchTestUtil = require('oae-search/lib/test/util');
 const { Tenant } = require('oae-tenants/lib/model');
 const TenantsTestUtil = require('oae-tenants/lib/test/util');
 const { User } = require('oae-principals/lib/model');
+
+const migrationRunner = require(path.join(process.cwd(), 'etc/migration/migration_runner.js'));
 
 const log = require('oae-logger').logger('before-tests');
 
@@ -85,8 +88,7 @@ const createTestServer = function(callback, _attempts) {
   });
 
   // If there is an error connecting, try another port
-  // eslint-disable-next-line no-unused-vars
-  server.once('error', err => {
+  server.once('error', () => {
     server.removeAllListeners('listening');
     return createTestServer(callback, _attempts + 1);
   });
@@ -257,12 +259,9 @@ const _setUpTenantAdmins = function(callback) {
  * @api private
  */
 const _setupTenantAdmin = function(tenant, callback) {
-  const adminLoginId = new LoginId(
-    tenant.alias,
-    AuthenticationConstants.providers.LOCAL,
-    'administrator',
-    { password: 'administrator' }
-  );
+  const adminLoginId = new LoginId(tenant.alias, AuthenticationConstants.providers.LOCAL, 'administrator', {
+    password: 'administrator'
+  });
   const displayName = generateRandomText(2);
   const email = generateTestEmailAddress(null, tenant.emailDomains[0]);
 
@@ -321,37 +320,29 @@ const generateTestUsers = function(restCtx, total, callback, _createdUsers) {
       const username = generateTestUserId('random-user');
       const displayName = generateTestGroupId('random-user');
       const email = generateTestEmailAddress(username, tenant.emailDomains[0]);
-      RestAPI.User.createUser(
-        restCtx,
-        username,
-        'password',
-        displayName,
-        email,
-        {},
-        (err, user) => {
-          if (err) {
-            return callback(err);
-          }
-
-          // Manually verify the user their email address
-          PrincipalsDAO.setEmailAddress(user, email.toLowerCase(), (err, user) => {
-            assert.ok(!err);
-
-            _createdUsers.push({
-              user,
-              restContext: new RestContext(restCtx.host, {
-                hostHeader: restCtx.hostHeader,
-                username,
-                userPassword: 'password',
-                strictSSL: restCtx.strictSSL
-              })
-            });
-
-            // Recursively continue creating users
-            return generateTestUsers(restCtx, --total, callback, _createdUsers);
-          });
+      RestAPI.User.createUser(restCtx, username, 'password', displayName, email, {}, (err, user) => {
+        if (err) {
+          return callback(err);
         }
-      );
+
+        // Manually verify the user their email address
+        PrincipalsDAO.setEmailAddress(user, email.toLowerCase(), (err, user) => {
+          assert.ok(!err);
+
+          _createdUsers.push({
+            user,
+            restContext: new RestContext(restCtx.host, {
+              hostHeader: restCtx.hostHeader,
+              username,
+              userPassword: 'password',
+              strictSSL: restCtx.strictSSL
+            })
+          });
+
+          // Recursively continue creating users
+          return generateTestUsers(restCtx, --total, callback, _createdUsers);
+        });
+      });
     });
   });
 };
@@ -423,64 +414,56 @@ const createTenantWithAdmin = function(tenantAlias, tenantHost, callback) {
       }
 
       // Disable reCaptcha so we can create a user
-      ConfigTestUtil.updateConfigAndWait(
-        adminCtx,
-        tenantAlias,
-        { 'oae-principals/recaptcha/enabled': false },
-        err => {
-          if (err) {
-            return callback(err);
-          }
+      ConfigTestUtil.updateConfigAndWait(adminCtx, tenantAlias, { 'oae-principals/recaptcha/enabled': false }, err => {
+        if (err) {
+          return callback(err);
+        }
 
-          // Create the user and make them a tenant administrator
-          const anonymousCtx = createTenantRestContext(tenantHost);
-          const email = generateTestEmailAddress(
-            'administrator',
-            'domain.' + tenantHost
-          ).toLowerCase();
-          RestAPI.User.createUser(
-            anonymousCtx,
-            'administrator',
-            'administrator',
-            'Tenant Administrator',
-            email,
-            null,
-            (err, tenantAdmin) => {
+        // Create the user and make them a tenant administrator
+        const anonymousCtx = createTenantRestContext(tenantHost);
+        const email = generateTestEmailAddress('administrator', 'domain.' + tenantHost).toLowerCase();
+        RestAPI.User.createUser(
+          anonymousCtx,
+          'administrator',
+          'administrator',
+          'Tenant Administrator',
+          email,
+          null,
+          (err, tenantAdmin) => {
+            if (err) {
+              return callback(err);
+            }
+
+            // Verify their email address
+            PrincipalsDAO.setEmailAddress(tenantAdmin, email, (err, tenantAdmin) => {
               if (err) {
                 return callback(err);
               }
 
-              // Verify their email address
-              PrincipalsDAO.setEmailAddress(tenantAdmin, email, (err, tenantAdmin) => {
+              RestAPI.User.setTenantAdmin(adminCtx, tenantAdmin.id, true, err => {
                 if (err) {
                   return callback(err);
                 }
 
-                RestAPI.User.setTenantAdmin(adminCtx, tenantAdmin.id, true, err => {
-                  if (err) {
-                    return callback(err);
-                  }
-
-                  // Re-enable reCaptcha
-                  const tenantAdminRestCtx = createTenantAdminRestContext(tenantHost);
-                  ConfigTestUtil.updateConfigAndWait(
-                    tenantAdminRestCtx,
-                    null,
-                    { 'oae-principals/recaptcha/enabled': true },
-                    err => {
-                      if (err) {
-                        return callback(err);
-                      }
-
-                      return callback(null, tenant, tenantAdminRestCtx, tenantAdmin);
+                // Re-enable reCaptcha
+                const tenantAdminRestCtx = createTenantAdminRestContext(tenantHost);
+                ConfigTestUtil.updateConfigAndWait(
+                  tenantAdminRestCtx,
+                  null,
+                  { 'oae-principals/recaptcha/enabled': true },
+                  err => {
+                    if (err) {
+                      return callback(err);
                     }
-                  );
-                });
+
+                    return callback(null, tenant, tenantAdminRestCtx, tenantAdmin);
+                  }
+                );
               });
-            }
-          );
-        }
-      );
+            });
+          }
+        );
+      });
     }
   );
 };
@@ -642,16 +625,10 @@ const createTenantAdminContext = function(tenant) {
 const createGlobalAdminContext = function() {
   const globalTenant = global.oaeTests.tenants.global;
   const globalAdminId = 'u:' + globalTenant.alias + ':admin';
-  const globalUser = new User(
-    globalTenant.alias,
-    globalAdminId,
-    'Global Administrator',
-    'admin@example.com',
-    {
-      visibility: 'private',
-      isGlobalAdmin: true
-    }
-  );
+  const globalUser = new User(globalTenant.alias, globalAdminId, 'Global Administrator', 'admin@example.com', {
+    visibility: 'private',
+    isGlobalAdmin: true
+  });
   return new Context(globalTenant, globalUser);
 };
 
@@ -1210,53 +1187,50 @@ const setUpBeforeTests = function(config, dropKeyspaceBeforeTest, callback) {
       return callback(new Error(err.msg || err.message));
     }
 
-    // Drop the keyspace before starting if specified to do so
-    if (dropKeyspaceBeforeTest) {
-      log().info('Dropping keyspace "%s" to clean up before tests', config.cassandra.keyspace);
-    }
-
-    const innerCallback = function(err) {
+    const done = function(err) {
       if (err) {
         return callback(new Error(err.msg));
       }
-
-      Cassandra.close(() => {
-        Redis.init(config.redis, () => {
-          log().info('Flushing redis DB index "%d" to clean up before tests', config.redis.dbIndex);
-          Redis.flush(err => {
-            if (err) {
-              return callback(new Error(err.msg));
-            }
-
-            // Initialize the application modules
-            OAE.init(config, err => {
+      // Run migrations otherwise keyspace is empty
+      migrationRunner.runMigrations(config.cassandra, () => {
+        Cassandra.close(() => {
+          Redis.init(config.redis, () => {
+            log().info('Flushing redis DB index "%d" to clean up before tests', config.redis.dbIndex);
+            Redis.flush(err => {
               if (err) {
                 return callback(new Error(err.msg));
               }
 
-              _bindRequestLogger();
-            });
-
-            // Defer the test setup until after the task handlers are successfully bound and all the queues are drained.
-            // This will always be fired after OAE.init has successfully finished.
-            MQ.emitter.on('ready', err => {
-              if (err) {
-                return callback(new Error(err.msg));
-              }
-
-              // Set up a couple of test tenants
-              setUpTenants(err => {
+              // Initialize the application modules
+              OAE.init(config, err => {
                 if (err) {
                   return callback(new Error(err.msg));
                 }
 
-                log().info('Disabling the preview processor during tests');
-                PreviewAPI.disable(err => {
+                _bindRequestLogger();
+              });
+
+              // Defer the test setup until after the task handlers are successfully bound and all the queues are drained.
+              // This will always be fired after OAE.init has successfully finished.
+              MQ.emitter.on('ready', err => {
+                if (err) {
+                  return callback(new Error(err.msg));
+                }
+
+                // Set up a couple of test tenants
+                setUpTenants(err => {
                   if (err) {
                     return callback(new Error(err.msg));
                   }
 
-                  return callback();
+                  log().info('Disabling the preview processor during tests');
+                  PreviewAPI.disable(err => {
+                    if (err) {
+                      return callback(new Error(err.msg));
+                    }
+
+                    return callback();
+                  });
                 });
               });
             });
@@ -1266,9 +1240,10 @@ const setUpBeforeTests = function(config, dropKeyspaceBeforeTest, callback) {
     };
 
     if (dropKeyspaceBeforeTest) {
-      Cassandra.dropKeyspace(config.cassandra.keyspace, innerCallback);
+      log().info('Dropping keyspace "%s" to clean up before tests', config.cassandra.keyspace);
+      Cassandra.dropKeyspace(config.cassandra.keyspace, done);
     } else {
-      innerCallback();
+      done();
     }
   });
 };

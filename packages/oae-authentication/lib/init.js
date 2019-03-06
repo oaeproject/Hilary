@@ -16,7 +16,6 @@
 const crypto = require('crypto');
 const passport = require('passport');
 
-const Cassandra = require('oae-util/lib/cassandra');
 const { Context } = require('oae-context');
 const OAE = require('oae-util/lib/oae');
 const PrincipalsDAO = require('oae-principals/lib/internal/dao');
@@ -69,10 +68,9 @@ const contextMiddleware = function(req, res, next) {
 
   // If we have an authenticated request, store the user and imposter (if any) in the context
   if (req.oaeAuthInfo && req.oaeAuthInfo.user) {
-    user = req.oaeAuthInfo.user;
-    imposter = req.oaeAuthInfo.imposter;
+    ({ user, imposter } = req.oaeAuthInfo);
 
-    // TODO: This is for backward compatibility in https://github.com/oaeproject/Hilary/pull/959 to ensure
+    // This is for backward compatibility in https://github.com/oaeproject/Hilary/pull/959 to ensure
     // we don't get an error for cookies that did not previously contain the `strategyId`. This can be
     // removed on or after the minor or major release after this fix has been released
     if (req.oaeAuthInfo.strategyId) {

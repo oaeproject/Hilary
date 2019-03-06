@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+/* eslint-disable no-unused-vars */
+
 const assert = require('assert');
 const _ = require('underscore');
 
@@ -182,24 +184,16 @@ describe('Utilities', () => {
                   err => {
                     assert.ok(err);
                     // Try to run a simple select
-                    Cassandra.runQuery(
-                      `SELECT * FROM "testQuery" WHERE "keyId" = ?`,
-                      ['key1'],
-                      (err, rows) => {
-                        assert.ok(!err);
-                        assert.strictEqual(rows.length, 1);
-                        assert.strictEqual(rows[0].get('keyId'), 'key1');
-                        // Try to run an invalid select
-                        Cassandra.runQuery(
-                          `SELECT * FROM "testQuery" WHERE "keyId" = ?`,
-                          [null],
-                          (err, rows) => {
-                            assert.ok(err);
-                            callback();
-                          }
-                        );
-                      }
-                    );
+                    Cassandra.runQuery(`SELECT * FROM "testQuery" WHERE "keyId" = ?`, ['key1'], (err, rows) => {
+                      assert.ok(!err);
+                      assert.strictEqual(rows.length, 1);
+                      assert.strictEqual(rows[0].get('keyId'), 'key1');
+                      // Try to run an invalid select
+                      Cassandra.runQuery(`SELECT * FROM "testQuery" WHERE "keyId" = ?`, [null], (err, rows) => {
+                        assert.ok(err);
+                        callback();
+                      });
+                    });
                   }
                 );
               }
@@ -357,17 +351,10 @@ describe('Utilities', () => {
               };
 
               // Iterate all again with just one column specified and verify only the one column returns
-              Cassandra.iterateAll(
-                ['colOne'],
-                'testIterateAllAllColumns',
-                'keyId',
-                null,
-                _onEach,
-                err => {
-                  assert.ok(!err, JSON.stringify(err, null, 2));
-                  return callback();
-                }
-              );
+              Cassandra.iterateAll(['colOne'], 'testIterateAllAllColumns', 'keyId', null, _onEach, err => {
+                assert.ok(!err, JSON.stringify(err, null, 2));
+                return callback();
+              });
             });
           });
         }
@@ -410,143 +397,107 @@ describe('Utilities', () => {
               numInvoked++;
               // Store the row so we can verify them all later
               assert.strictEqual(rows.length, 1, 'Expected to only get 1 row at a time');
+              // eslint-disable-next-line prefer-destructuring
               allRows[rows[0].get('keyId')] = rows[0];
 
               done();
             };
 
             // Verify paging all 10 items by batches of size 1
-            Cassandra.iterateAll(
-              null,
-              'testIterateAllPaging',
-              'keyId',
-              { batchSize: 1 },
-              _onEach,
-              err => {
-                assert.ok(!err, JSON.stringify(err, null, 4));
-                assert.strictEqual(numInvoked, 10, 'Expected to have exactly 10 batches of data');
+            Cassandra.iterateAll(null, 'testIterateAllPaging', 'keyId', { batchSize: 1 }, _onEach, err => {
+              assert.ok(!err, JSON.stringify(err, null, 4));
+              assert.strictEqual(numInvoked, 10, 'Expected to have exactly 10 batches of data');
 
-                // Verify the contents of all the rows
-                assert.strictEqual(_.keys(allRows).length, 10, 'Expected exactly 10 distinct rows');
-                for (let i = 0; i < 10; i++) {
-                  const key = 'key' + i;
-                  assert.ok(allRows[key], 'Expected to get a row with key ' + key);
-                  assert.strictEqual(
-                    allRows[key].get('colOne'),
-                    'colOne' + i,
-                    'Invalid colOne value'
-                  );
-                  assert.strictEqual(
-                    allRows[key].get('colTwo'),
-                    'colTwo' + i,
-                    'Invalid colTwo value'
-                  );
+              // Verify the contents of all the rows
+              assert.strictEqual(_.keys(allRows).length, 10, 'Expected exactly 10 distinct rows');
+              for (let i = 0; i < 10; i++) {
+                const key = 'key' + i;
+                assert.ok(allRows[key], 'Expected to get a row with key ' + key);
+                assert.strictEqual(allRows[key].get('colOne'), 'colOne' + i, 'Invalid colOne value');
+                assert.strictEqual(allRows[key].get('colTwo'), 'colTwo' + i, 'Invalid colTwo value');
+              }
+
+              // Verify paging of all 10 items by batches of size 5
+              numInvoked = 0;
+              allRows = {};
+
+              /*!
+                         * Verifies that the onEach is invoked with 5 rows at a time, and aggregates them so we can
+                         * inspect their data when finished.
+                         */
+              const _onEach = function(rows, done) {
+                numInvoked++;
+                // Record the rows so we can verify their contents at the end
+                assert.strictEqual(rows.length, 5);
+                for (let i = 0; i < 5; i++) {
+                  allRows[rows[i].get('keyId')] = rows[i];
                 }
 
-                // Verify paging of all 10 items by batches of size 5
+                done();
+              };
+
+              Cassandra.iterateAll(null, 'testIterateAllPaging', 'keyId', { batchSize: 5 }, _onEach, err => {
+                assert.ok(!err, JSON.stringify(err, null, 4));
+                assert.strictEqual(numInvoked, 2, 'Expected the onEach to be invoked exactly 2 times');
+
+                // Verify the contents of all the rows
+                assert.strictEqual(_.keys(allRows).length, 10);
+                for (let i = 0; i < 10; i++) {
+                  const key = 'key' + i;
+                  assert.ok(allRows[key]);
+                  assert.strictEqual(allRows[key].get('colOne'), 'colOne' + i);
+                  assert.strictEqual(allRows[key].get('colTwo'), 'colTwo' + i);
+                }
+
+                // Verify paging of all 10 items by batches of size 7
                 numInvoked = 0;
                 allRows = {};
 
                 /*!
-                         * Verifies that the onEach is invoked with 5 rows at a time, and aggregates them so we can
-                         * inspect their data when finished.
-                         */
+                             * Verifies that the onEach is called once with 7 rows, and then once with 3 rows, and aggregates
+                             * them so we can inspect their data when finished.
+                             */
                 const _onEach = function(rows, done) {
                   numInvoked++;
-                  // Record the rows so we can verify their contents at the end
-                  assert.strictEqual(rows.length, 5);
-                  for (let i = 0; i < 5; i++) {
-                    allRows[rows[i].get('keyId')] = rows[i];
+                  if (numInvoked === 1) {
+                    assert.ok(rows);
+
+                    // The first batch should contain exactly 7 rows. Record them to verify the data when done iterating.
+                    assert.strictEqual(rows.length, 7);
+                    for (let i = 0; i < 7; i++) {
+                      allRows[rows[i].get('keyId')] = rows[i];
+                    }
+                  } else if (numInvoked === 2) {
+                    assert.ok(rows);
+
+                    // The second batch should contain exactly 3 rows. Record them to verify the data when done iterating.
+                    assert.strictEqual(rows.length, 3);
+                    for (let ii = 0; ii < 3; ii++) {
+                      allRows[rows[ii].get('keyId')] = rows[ii];
+                    }
                   }
 
                   done();
                 };
 
-                Cassandra.iterateAll(
-                  null,
-                  'testIterateAllPaging',
-                  'keyId',
-                  { batchSize: 5 },
-                  _onEach,
-                  err => {
-                    assert.ok(!err, JSON.stringify(err, null, 4));
-                    assert.strictEqual(
-                      numInvoked,
-                      2,
-                      'Expected the onEach to be invoked exactly 2 times'
-                    );
+                Cassandra.iterateAll(null, 'testIterateAllPaging', 'keyId', { batchSize: 7 }, _onEach, err => {
+                  assert.ok(!err, JSON.stringify(err, null, 4));
+                  assert.strictEqual(numInvoked, 2, 'Expected the onEach callback to be invoked exactly twice');
 
-                    // Verify the contents of all the rows
-                    assert.strictEqual(_.keys(allRows).length, 10);
-                    for (let i = 0; i < 10; i++) {
-                      const key = 'key' + i;
-                      assert.ok(allRows[key]);
-                      assert.strictEqual(allRows[key].get('colOne'), 'colOne' + i);
-                      assert.strictEqual(allRows[key].get('colTwo'), 'colTwo' + i);
-                    }
-
-                    // Verify paging of all 10 items by batches of size 7
-                    numInvoked = 0;
-                    allRows = {};
-
-                    /*!
-                             * Verifies that the onEach is called once with 7 rows, and then once with 3 rows, and aggregates
-                             * them so we can inspect their data when finished.
-                             */
-                    const _onEach = function(rows, done) {
-                      numInvoked++;
-                      if (numInvoked === 1) {
-                        assert.ok(rows);
-
-                        // The first batch should contain exactly 7 rows. Record them to verify the data when done iterating.
-                        assert.strictEqual(rows.length, 7);
-                        for (let i = 0; i < 7; i++) {
-                          allRows[rows[i].get('keyId')] = rows[i];
-                        }
-                      } else if (numInvoked === 2) {
-                        assert.ok(rows);
-
-                        // The second batch should contain exactly 3 rows. Record them to verify the data when done iterating.
-                        assert.strictEqual(rows.length, 3);
-                        for (let ii = 0; ii < 3; ii++) {
-                          allRows[rows[ii].get('keyId')] = rows[ii];
-                        }
-                      }
-
-                      done();
-                    };
-
-                    Cassandra.iterateAll(
-                      null,
-                      'testIterateAllPaging',
-                      'keyId',
-                      { batchSize: 7 },
-                      _onEach,
-                      err => {
-                        assert.ok(!err, JSON.stringify(err, null, 4));
-                        assert.strictEqual(
-                          numInvoked,
-                          2,
-                          'Expected the onEach callback to be invoked exactly twice'
-                        );
-
-                        // Verify the contents of all the rows
-                        assert.strictEqual(_.keys(allRows).length, 10);
-                        for (let i = 0; i < 10; i++) {
-                          const key = 'key' + i;
-                          assert.ok(allRows[key]);
-                          assert.strictEqual(allRows[key].get('colOne'), 'colOne' + i);
-                          assert.strictEqual(allRows[key].get('colTwo'), 'colTwo' + i);
-                        }
-
-                        // Finally complete
-                        return callback();
-                      }
-                    );
+                  // Verify the contents of all the rows
+                  assert.strictEqual(_.keys(allRows).length, 10);
+                  for (let i = 0; i < 10; i++) {
+                    const key = 'key' + i;
+                    assert.ok(allRows[key]);
+                    assert.strictEqual(allRows[key].get('colOne'), 'colOne' + i);
+                    assert.strictEqual(allRows[key].get('colTwo'), 'colTwo' + i);
                   }
-                );
-              }
-            );
+
+                  // Finally complete
+                  return callback();
+                });
+              });
+            });
           });
         }
       );
@@ -633,18 +584,9 @@ describe('Utilities', () => {
                 ['testkey'],
                 (err, rows) => {
                   assert.ok(!err);
-                  assert.strictEqual(
-                    typeof OaeUtil.castToBoolean(_.first(rows).get('testbool')),
-                    'boolean'
-                  );
-                  assert.strictEqual(
-                    typeof OaeUtil.castToBoolean(_.first(rows).get('testnumbool')),
-                    'boolean'
-                  );
-                  assert.strictEqual(
-                    typeof OaeUtil.castToBoolean(_.first(rows).get('teststring')),
-                    'string'
-                  );
+                  assert.strictEqual(typeof OaeUtil.castToBoolean(_.first(rows).get('testbool')), 'boolean');
+                  assert.strictEqual(typeof OaeUtil.castToBoolean(_.first(rows).get('testnumbool')), 'boolean');
+                  assert.strictEqual(typeof OaeUtil.castToBoolean(_.first(rows).get('teststring')), 'string');
                   callback();
                 }
               );
@@ -768,17 +710,14 @@ describe('Utilities', () => {
           assert.ok(!err);
 
           // Need to at least have values beyond 'k' to avoid we overlook 'keyId'
-          const batch = _.map(
-            ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm'],
-            columnName => {
-              return Cassandra.constructUpsertCQL(
-                'VerifyPagedColumnQueryStartAndEnd',
-                ['keyId', 'columnName'],
-                ['key', columnName],
-                { value: '1' }
-              );
-            }
-          );
+          const batch = _.map(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm'], columnName => {
+            return Cassandra.constructUpsertCQL(
+              'VerifyPagedColumnQueryStartAndEnd',
+              ['keyId', 'columnName'],
+              ['key', columnName],
+              { value: '1' }
+            );
+          });
 
           Cassandra.runBatchQuery(batch, err => {
             assert.ok(!err);
@@ -893,12 +832,9 @@ describe('Utilities', () => {
 
           // Need to at least have values beyond 'k' to avoid we overlook 'keyId'
           const batch = _.map(['a', 'b', 'c', 'd', 'e'], columnName => {
-            return Cassandra.constructUpsertCQL(
-              'VerifyCassandra6330',
-              ['keyId', 'column'],
-              ['key', columnName],
-              { value: '1' }
-            );
+            return Cassandra.constructUpsertCQL('VerifyCassandra6330', ['keyId', 'column'], ['key', columnName], {
+              value: '1'
+            });
           });
 
           Cassandra.runBatchQuery(batch, err => {
@@ -935,12 +871,9 @@ describe('Utilities', () => {
           assert.ok(!err);
 
           const batch = _.map(['a', 'b', 'c', 'd', 'e'], columnName => {
-            return Cassandra.constructUpsertCQL(
-              'VerifyCassandra7052',
-              ['keyId', 'column'],
-              ['key', columnName],
-              { value: '1' }
-            );
+            return Cassandra.constructUpsertCQL('VerifyCassandra7052', ['keyId', 'column'], ['key', columnName], {
+              value: '1'
+            });
           });
 
           Cassandra.runBatchQuery(batch, err => {

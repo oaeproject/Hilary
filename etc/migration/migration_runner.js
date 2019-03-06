@@ -19,6 +19,7 @@ const { promisify } = require('util');
 const async = require('async');
 
 const log = require('oae-logger').logger();
+
 const readFolderContents = promisify(fs.readdir);
 const checkIfExists = promisify(fs.stat);
 
@@ -39,36 +40,48 @@ const lookForMigrations = async function(allModules) {
         if (migrateFileExists.isFile()) {
           migrationsToRun.push({ name: eachModule, file: migrationFilePath });
         }
-      } catch (e) {}
+      } catch (e) {
+        log().warn('Skipping ' + eachModule);
+      }
     }
   }
   return migrationsToRun;
 };
 
 const runMigrations = async function(dbConfig, callback) {
-  try {
-    const allModules = await readFolderContents(PACKAGES_FOLDER);
-    const allMigrationFiles = await lookForMigrations(allModules);
+  const data = {};
 
-    require(path.join(PACKAGES_FOLDER, 'oae-util', LIB_FOLDER, 'cassandra.js')).init(dbConfig, () => {
-      // Run them all
-      async.eachSeries(
-        allMigrationFiles,
-        (eachModule, callback) => {
-          log().info(`Running schema for ${eachModule.name}`);
-          return require(eachModule.file).ensureSchema(callback);
-        },
-        err => {
-          if (err) {
-            log().error({ err }, 'Error running migration.');
-          }
-          return callback();
-        }
-      );
-    });
+  try {
+    Promise.resolve(readFolderContents(PACKAGES_FOLDER))
+      .then(allModules => {
+        data.allModules = allModules;
+        return lookForMigrations(allModules);
+      })
+      .then(allMigrationsToRun => {
+        data.allMigrationsToRun = allMigrationsToRun;
+      })
+      .then(() => {
+        require(path.join(PACKAGES_FOLDER, 'oae-util', LIB_FOLDER, 'cassandra.js')).init(dbConfig, () => {
+          async.eachSeries(
+            data.allMigrationsToRun,
+            (eachMigration, done) => {
+              log().info(`Updating schema for ${eachMigration.name}`);
+              require(eachMigration.file).ensureSchema(done);
+            },
+            err => {
+              if (err) {
+                log().error({ err }, 'Error running migration.');
+                callback(err);
+              }
+              log().info('Migrations complete');
+              callback();
+            }
+          );
+        });
+      });
   } catch (e) {
     log().error({ err: e }, 'Error running migration.');
-    throw e;
+    callback(e);
   }
 };
 

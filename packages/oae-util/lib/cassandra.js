@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-const path = require('path');
 const util = require('util');
 const cassandra = require('cassandra-driver');
 const { Row, dataTypes } = require('cassandra-driver').types;
@@ -24,7 +23,6 @@ const OAE = require('oae-util/lib/oae');
 const log = require('oae-logger').logger('oae-cassandra');
 const OaeUtil = require('oae-util/lib/util');
 const Telemetry = require('oae-telemetry').telemetry('cassandra');
-const migrationRunner = require(path.join(process.cwd(), 'etc/migration/migration_runner.js'));
 
 const DEFAULT_ITERATEALL_BATCH_SIZE = 100;
 let CONFIG = null;
@@ -45,8 +43,6 @@ const init = function(config, callback) {
   CONFIG.keyspace = 'system';
   client = _createNewClient(CONFIG.hosts, CONFIG.keyspace);
 
-  // First connect to the system keyspace to ensure the specified keyspace exists
-
   client.connect(err => {
     // Immediately switch the CONFIG keyspace back to the desired keyspace
     CONFIG.keyspace = keyspace;
@@ -56,28 +52,14 @@ const init = function(config, callback) {
       return callback({ code: 500, msg: 'Error connecting to cassandra' });
     }
 
-    keyspaceExists(keyspace, (err, exists) => {
+    createKeyspace(keyspace, err => {
       if (err) {
-        // Ensure the pool is closed
-        return close(() => {
+        close(() => {
           callback(err);
         });
       }
-
-      if (exists) {
-        client = _createNewClient(CONFIG.hosts, keyspace);
-        return callback();
-      }
-      createKeyspace(keyspace, err => {
-        if (err) {
-          return close(() => {
-            callback(err);
-          });
-        }
-
-        client = _createNewClient(CONFIG.hosts, keyspace);
-        return callback();
-      });
+      client = _createNewClient(CONFIG.hosts, keyspace);
+      callback();
     });
   });
 };
@@ -125,40 +107,26 @@ const close = function(callback) {
  * @param  {Object}    callback.err        An error that occurred, if any
  * @param  {Boolean}   callback.created    Specifies whether or not a keyspace was actually created.
  */
-const createKeyspace = function(name, callback) {
+const createKeyspace = function(keyspace, callback) {
   callback = callback || function() {};
+  const config = CONFIG;
 
   const options = {
-    name,
-    strategyClass: CONFIG.strategyClass || 'SimpleStrategy',
-    strategyOptions: CONFIG.strategyOptions,
-    replication: CONFIG.replication || 1,
-    durable: CONFIG.durable
+    name: keyspace,
+    strategyClass: config.strategyClass || 'SimpleStrategy',
+    strategyOptions: config.strategyOptions,
+    replication: config.replication || 1,
+    durable: config.durable
   };
 
-  // Only create it if it exists.
-  keyspaceExists(name, (err, exists) => {
-    if (err) {
-      return callback(err);
-    }
-    if (exists) {
-      return callback(null, false);
-    }
-    const query = `CREATE KEYSPACE "${name}" WITH REPLICATION = { 'class': '${
-      options.strategyClass
-    }', 'replication_factor': ${options.replication} }`;
+  const query = `CREATE KEYSPACE IF NOT EXISTS "${keyspace}" WITH REPLICATION = { 'class': '${
+    options.strategyClass
+  }', 'replication_factor': ${options.replication} }`;
 
-    client.execute(query, err => {
-      if (err) {
-        return callback(err);
-      }
-
-      // Run migrations before running tests
-      migrationRunner.runMigrations(CONFIG, () => {
-        // Pause for a second to ensure the keyspace gets agreed upon across the cluster.
-        setTimeout(callback, 1000, null, true);
-      });
-    });
+  client.execute(query, err => {
+    if (err) return callback(err);
+    // Pause for a second to ensure the keyspace gets agreed upon across the cluster.
+    setTimeout(callback, 1000, null, true);
   });
 };
 

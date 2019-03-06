@@ -14,43 +14,18 @@
  */
 
 /* eslint-disable no-unused-vars */
-const Cassandra = require('oae-util/lib/cassandra');
-
 const DiscussionsSearch = require('./search');
 
 module.exports = function(config, callback) {
-  _ensureSchema(err => {
-    if (err) {
-      return callback(err);
-    }
+  // Register the library functionality
+  const library = require('./library');
 
-    // Register the library functionality
-    const library = require('./library');
+  // Register the activity functionality
 
-    // Register the activity functionality
+  const activity = require('./activity');
 
-    const activity = require('./activity');
+  // Register the invitations functionality
+  const invitations = require('./invitations');
 
-    // Register the invitations functionality
-    const invitations = require('./invitations');
-
-    return DiscussionsSearch.init(callback);
-  });
-};
-
-/**
- * Ensure that the all of the discussion schemas are created. If they already exist, this method will not do anything
- *
- * @param  {Function}         callback       Standard callback function
- * @param  {Object}           callback.err   An error that occurred, if any
- * @api private
- */
-const _ensureSchema = function(callback) {
-  Cassandra.createColumnFamilies(
-    {
-      Discussions:
-        'CREATE TABLE "Discussions" ("id" text PRIMARY KEY, "tenantAlias" text, "displayName" text, "visibility" text, "description" text, "createdBy" text, "created" text, "lastModified" text)'
-    },
-    callback
-  );
+  return DiscussionsSearch.init(callback);
 };

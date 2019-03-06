@@ -33,31 +33,25 @@ module.exports = function(config, callback) {
   // Setup the passport serializers
   setupPassportSerializers(config.cookie.secret);
 
-  ensureSchema(err => {
-    if (err) {
-      return callback(err);
-    }
+  AuthenticationAPI.init(config.servers.globalAdminAlias);
 
-    AuthenticationAPI.init(config.servers.globalAdminAlias);
+  require('./strategies/cas/init')(config);
+  require('./strategies/facebook/init')(config);
+  require('./strategies/google/init')(config);
+  require('./strategies/ldap/init')(config);
+  require('./strategies/local/init')(config);
+  require('./strategies/oauth/init')(config);
+  require('./strategies/shibboleth/init')(config);
+  require('./strategies/signed/init')(config);
+  require('./strategies/twitter/init')(config);
 
-    require('./strategies/cas/init')(config);
-    require('./strategies/facebook/init')(config);
-    require('./strategies/google/init')(config);
-    require('./strategies/ldap/init')(config);
-    require('./strategies/local/init')(config);
-    require('./strategies/oauth/init')(config);
-    require('./strategies/shibboleth/init')(config);
-    require('./strategies/signed/init')(config);
-    require('./strategies/twitter/init')(config);
+  // Add the OAE middleware to the ExpressJS server
+  // We do this *AFTER* all the authentication strategies have been initialized
+  // so they have a chance to add any middleware that could set the logged in user
+  OAE.tenantServer.use(contextMiddleware);
+  OAE.globalAdminServer.use(contextMiddleware);
 
-    // Add the OAE middleware to the ExpressJS server
-    // We do this *AFTER* all the authentication strategies have been initialized
-    // so they have a chance to add any middleware that could set the logged in user
-    OAE.tenantServer.use(contextMiddleware);
-    OAE.globalAdminServer.use(contextMiddleware);
-
-    return callback();
-  });
+  return callback();
 };
 
 /**
@@ -82,8 +76,7 @@ const contextMiddleware = function(req, res, next) {
     // we don't get an error for cookies that did not previously contain the `strategyId`. This can be
     // removed on or after the minor or major release after this fix has been released
     if (req.oaeAuthInfo.strategyId) {
-      authenticationStrategy = AuthenticationUtil.parseStrategyId(req.oaeAuthInfo.strategyId)
-        .strategyName;
+      authenticationStrategy = AuthenticationUtil.parseStrategyId(req.oaeAuthInfo.strategyId).strategyName;
     }
   }
 
@@ -120,11 +113,7 @@ const setupPassportSerializers = function(cookieSecret) {
         );
       } else {
         const { strategyName } = AuthenticationUtil.parseStrategyId(oaeAuthInfo.strategyId);
-        AuthenticationAPI.emitter.emit(
-          AuthenticationConstants.events.USER_LOGGED_IN,
-          oaeAuthInfo.user,
-          strategyName
-        );
+        AuthenticationAPI.emitter.emit(AuthenticationConstants.events.USER_LOGGED_IN, oaeAuthInfo.user, strategyName);
       }
     }
 
@@ -228,33 +217,4 @@ const _decryptCookieData = function(encryptedData, cookieSecret) {
   // eslint-disable-next-line node/no-deprecated-api
   const decipher = crypto.createDecipher('aes-256-cbc', cookieSecret);
   return decipher.update(encryptedData, 'base64', 'utf8') + decipher.final('utf8');
-};
-
-/**
- * Ensure that the all of the authentication-related schemas are created. If they already exist, this method will not do anything.
- *
- * @param  {Function}    callback       Standard callback function
- * @param  {Object}      callback.err   An error that occurred, if any
- * @api private
- */
-const ensureSchema = function(callback) {
-  Cassandra.createColumnFamilies(
-    {
-      AuthenticationLoginId:
-        'CREATE TABLE "AuthenticationLoginId" ("loginId" text PRIMARY KEY, "userId" text, "password" text, "secret" text)',
-      AuthenticationUserLoginId:
-        'CREATE TABLE "AuthenticationUserLoginId" ("userId" text, "loginId" text, "value" text, PRIMARY KEY ("userId", "loginId")) WITH COMPACT STORAGE',
-      OAuthAccessToken:
-        'CREATE TABLE "OAuthAccessToken" ("token" text PRIMARY KEY, "userId" text, "clientId" text)',
-      OAuthAccessTokenByUser:
-        'CREATE TABLE "OAuthAccessTokenByUser" ("userId" text, "clientId" text, "token" text, PRIMARY KEY ("userId", "clientId")) WITH COMPACT STORAGE',
-      OAuthClient:
-        'CREATE TABLE "OAuthClient" ("id" text PRIMARY KEY, "displayName" text, "secret" text, "userId" text)',
-      OAuthClientsByUser:
-        'CREATE TABLE "OAuthClientsByUser" ("userId" text, "clientId" text, "value" text, PRIMARY KEY ("userId", "clientId")) WITH COMPACT STORAGE',
-      ShibbolethMetadata:
-        'CREATE TABLE "ShibbolethMetadata" ("loginId" text PRIMARY KEY, "persistentId" text, "identityProvider" text, "affiliation" text, "unscopedAffiliation" text)'
-    },
-    callback
-  );
 };

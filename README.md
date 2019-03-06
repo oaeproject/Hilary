@@ -145,9 +145,38 @@ server 192.168.1.2:2001; # assuming 192.168.1.2 is the external network IP addre
 ...
 ```
 
+#### Run migrations
+
+Before running the app we need to ensure the schema exists on the database. To achieve that we need to run
+
+```
+npm run migrate
+```
+
+If the database settings are correct (`config.js`) then the output should resemble the following:
+
+```
+ INFO: Running schema for oae-activity
+ INFO: Running schema for oae-authentication
+ INFO: Running schema for oae-authz
+ INFO: Running schema for oae-config
+ INFO: Running schema for oae-content
+ INFO: Running schema for oae-discussions
+ INFO: Running schema for oae-folders
+ INFO: Running schema for oae-following
+ INFO: Running schema for oae-jitsi
+ INFO: Running schema for oae-library
+ INFO: Running schema for oae-lti
+ INFO: Running schema for oae-mediacore
+ INFO: Running schema for oae-messagebox
+ INFO: Running schema for oae-principals
+ INFO: Running schema for oae-tenants
+ INFO: Migration complete.
+```
+
 #### Run the server and the containers
 
-Now run `docker-compose up -d oae-cassandra oae-redis oae-rabbitmq oae-elasticsearch oae-etherpad` and then `docker-compose logs -f` to check the logs. You may then run `nodemon app.js | bunyan` (or `npm start` for short) locally on the terminal to start the server.
+Now run `docker-compose up -d oae-cassandra oae-redis oae-rabbitmq oae-elasticsearch oae-etherpad` and then `docker-compose logs -f` to check the logs. You may then run `nodemon app.js | npx bunyan` (or `npm start` for short) locally on the terminal to start the server.
 
 ### Extra docker utilities
 

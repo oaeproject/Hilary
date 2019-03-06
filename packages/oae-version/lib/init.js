@@ -13,9 +13,8 @@
  * permissions and limitations under the License.
  */
 
-var fs = require('fs');
-
-var VersionAPI = require('./api');
+const fs = require('fs');
+const VersionAPI = require('./api');
 
 /**
  * Initialize the version module
@@ -23,6 +22,6 @@ var VersionAPI = require('./api');
  * @see {oae-util/lib/oae}
  */
 module.exports = function(config, callback) {
-    VersionAPI.init(fs.realpathSync(config.ui.path));
-    return callback();
+  VersionAPI.init(fs.realpathSync(config.ui.path));
+  return callback();
 };

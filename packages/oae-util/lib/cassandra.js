@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+const path = require('path');
 const util = require('util');
 const cassandra = require('cassandra-driver');
 const { Row, dataTypes } = require('cassandra-driver').types;
@@ -23,6 +24,7 @@ const OAE = require('oae-util/lib/oae');
 const log = require('oae-logger').logger('oae-cassandra');
 const OaeUtil = require('oae-util/lib/util');
 const Telemetry = require('oae-telemetry').telemetry('cassandra');
+const migrationRunner = require(path.join(process.cwd(), 'etc/migration/migration_runner.js'));
 
 const DEFAULT_ITERATEALL_BATCH_SIZE = 100;
 let CONFIG = null;
@@ -82,9 +84,7 @@ const init = function(config, callback) {
 
 const _createNewClient = function(hosts, keyspace) {
   const loadBalancingPolicy = new cassandra.policies.loadBalancing.RoundRobinPolicy();
-  const reconnectionPolicy = new cassandra.policies.reconnection.ConstantReconnectionPolicy(
-    CONFIG.timeout
-  );
+  const reconnectionPolicy = new cassandra.policies.reconnection.ConstantReconnectionPolicy(CONFIG.timeout);
   return new cassandra.Client({
     contactPoints: hosts,
     policies: {
@@ -152,8 +152,12 @@ const createKeyspace = function(name, callback) {
       if (err) {
         return callback(err);
       }
-      // Pause for a second to ensure the keyspace gets agreed upon across the cluster.
-      setTimeout(callback, 1000, null, true);
+
+      // Run migrations before running tests
+      migrationRunner.runMigrations(CONFIG, () => {
+        // Pause for a second to ensure the keyspace gets agreed upon across the cluster.
+        setTimeout(callback, 1000, null, true);
+      });
     });
   });
 };
@@ -172,7 +176,8 @@ const dropKeyspace = function(name, callback) {
     if (err) {
       return callback(err);
     }
-    callback(null, true);
+
+    return callback(null, true);
   });
 };
 
@@ -646,15 +651,7 @@ const iterateAll = function(columnNames, columnFamily, keyColumnName, opts, onEa
     columnNames = _.union(columnNames, extraColumnNames);
   }
 
-  return _iterateAll(
-    columnNames,
-    columnFamily,
-    keyColumnName,
-    returnKeyColumn,
-    opts.batchSize,
-    onEach,
-    callback
-  );
+  return _iterateAll(columnNames, columnFamily, keyColumnName, returnKeyColumn, opts.batchSize, onEach, callback);
 };
 
 /**
@@ -736,16 +733,7 @@ const _iterateAll = function(
         }
 
         // Start the next iteration
-        _iterateAll(
-          columnNames,
-          columnFamily,
-          keyColumnName,
-          returnKeyColumn,
-          batchSize,
-          onEach,
-          callback,
-          fromKey
-        );
+        _iterateAll(columnNames, columnFamily, keyColumnName, returnKeyColumn, batchSize, onEach, callback, fromKey);
       });
     } catch (error) {
       log().error({ err: error }, 'Error invoking consumer onEach during iterateAll');
@@ -765,13 +753,7 @@ const _iterateAll = function(
  * @return {Object}                     An object with key `query` that contains the String CQL query, and key `parameters` that holds an array of parameters that fill the query placeholders in the Cassandra query.
  * @api private
  */
-const _buildIterateAllQuery = function(
-  columnNames,
-  columnFamily,
-  keyColumnName,
-  batchSize,
-  fromKey
-) {
+const _buildIterateAllQuery = function(columnNames, columnFamily, keyColumnName, batchSize, fromKey) {
   let cql = 'SELECT ';
   const params = [];
 
@@ -922,10 +904,7 @@ const executeQuery = function(query, parameters, callback) {
 
   client.execute(query, parameters, { prepare: true }, (err, resultSet) => {
     if (err) {
-      log().error(
-        _truncateLogParameters(err, query, logParams),
-        'An error occurred executing a cassandra query'
-      );
+      log().error(_truncateLogParameters(err, query, logParams), 'An error occurred executing a cassandra query');
       return callback({ code: 500, msg: 'An error occurred executing a query' });
     }
 
@@ -1009,10 +988,7 @@ const _truncateLogParameters = function(err, query, params) {
   const paramsStr = JSON.stringify(params);
   if (paramsStr && paramsStr.length > paramsStrMaxLength) {
     // Truncate each log parameter if necessary
-    params = _.map(
-      params.slice(0, paramsArrayMaxLength),
-      _.partial(_truncateString, _, paramStrMaxLength)
-    );
+    params = _.map(params.slice(0, paramsArrayMaxLength), _.partial(_truncateString, _, paramStrMaxLength));
   }
 
   return {

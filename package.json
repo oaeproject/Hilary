@@ -157,9 +157,9 @@
   "scripts": {
     "test": "mocha 'node_modules/oae-tests/runner/beforeTests.js' 'node_modules/oae-*/tests/**/*.js'",
     "test-module": "func() { mocha 'node_modules/oae-tests/runner/beforeTests.js' 'node_modules/'$1'/tests/**/*.js'; }; func",
-    "test-all": "mocha 'node_modules/oae-tests/runner/beforeTests.js' 'node_modules/oae-activity/tests/**/*.js' 'node_modules/oae-authentication/tests/**/*.js' 'node_modules/oae-authz/tests/**/*.js' 'node_modules/oae-config/tests/**/*.js' 'node_modules/oae-content/tests/**/*.js' 'node_modules/oae-context/tests/**/*.js' 'node_modules/oae-discussions/tests/**/*.js' 'node_modules/oae-doc/tests/**/*.js' 'node_modules/oae-email/tests/**/*.js' 'node_modules/oae-emitter/tests/**/*.js' 'node_modules/oae-folders/tests/**/*.js' 'node_modules/oae-following/tests/**/*.js' 'node_modules/oae-google-analytics/tests/**/*.js' 'node_modules/oae-jitsi/tests/**/*.js' 'node_modules/oae-library/tests/**/*.js' 'node_modules/oae-logger/tests/**/*.js' 'node_modules/oae-lti/tests/**/*.js' 'node_modules/oae-messagebox/tests/**/*.js' 'node_modules/oae-preview-processor/tests/**/*.js' 'node_modules/oae-principals/tests/**/*.js' 'node_modules/oae-search/tests/**/*.js' 'node_modules/oae-telemetry/tests/**/*.js' 'node_modules/oae-tenants/tests/**/*.js' 'node_modules/oae-tincanapi/tests/**/*.js' 'node_modules/oae-ui/tests/**/*.js'  'node_modules/oae-util/tests/**/*.js' 'node_modules/oae-version/tests/**/*.js'",
-    "start": "node app.js | bunyan",
-    "dev-server": "nodemon app.js | bunyan",
+    "migrate": "func() { node 'migrate.js' '--keyspace' $1 | npx bunyan; }; func",
+    "start": "node app.js | npx bunyan",
+    "dev-server": "nodemon app.js | npx bunyan",
     "snyk-protect": "snyk protect",
     "lint": "xo --prettier --quiet '**/*.js'",
     "test-with-coverage": "npx nyc --reporter=lcov npm test && cat ./coverage/lcov.info | codacy-coverage"

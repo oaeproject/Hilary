@@ -20,7 +20,6 @@ const ShortId = require('shortid');
 const ConfigTestUtil = require('oae-config/lib/test/util');
 const Counter = require('oae-util/lib/counter');
 const RestAPI = require('oae-rest');
-const TestsUtil = require('oae-tests');
 
 const TenantsAPI = require('oae-tenants');
 
@@ -63,18 +62,11 @@ const generateTestTenants = function(globalAdminRestCtx, numToCreate, callback, 
   const TestsUtil = require('oae-tests');
   const description = TestsUtil.generateRandomText();
   const host = generateTestTenantHost(null, TestsUtil.generateRandomText());
-  createTenantAndWait(
-    globalAdminRestCtx,
-    alias,
-    description,
-    host,
-    { emailDomains: host },
-    (err, tenant) => {
-      assert.ok(!err);
-      _created.push(tenant);
-      return generateTestTenants(globalAdminRestCtx, numToCreate, callback, _created);
-    }
-  );
+  createTenantAndWait(globalAdminRestCtx, alias, description, host, { emailDomains: host }, (err, tenant) => {
+    assert.ok(!err);
+    _created.push(tenant);
+    return generateTestTenants(globalAdminRestCtx, numToCreate, callback, _created);
+  });
 };
 
 /**
@@ -83,23 +75,16 @@ const generateTestTenants = function(globalAdminRestCtx, numToCreate, callback, 
  * For method parameter descriptions, @see RestAPI.Tenant#createTenant
  */
 const createTenantAndWait = function(globalAdminRestCtx, alias, displayName, host, opts, callback) {
-  RestAPI.Tenants.createTenant(
-    globalAdminRestCtx,
-    alias,
-    displayName,
-    host,
-    opts,
-    (err, tenant) => {
-      if (err) {
-        return callback(err);
-      }
-
-      // Wait until all current config events have fired until calling back
-      whenTenantChangePropagated(() => {
-        return callback(null, tenant);
-      });
+  RestAPI.Tenants.createTenant(globalAdminRestCtx, alias, displayName, host, opts, (err, tenant) => {
+    if (err) {
+      return callback(err);
     }
-  );
+
+    // Wait until all current config events have fired until calling back
+    whenTenantChangePropagated(() => {
+      return callback(null, tenant);
+    });
+  });
 };
 
 /**
@@ -162,15 +147,11 @@ const generateTestTenantNetworks = function(globalAdminRestCtx, numToCreate, cal
   }
 
   // Create a tenant network with a random displayName
-  RestAPI.Tenants.createTenantNetwork(
-    globalAdminRestCtx,
-    ShortId.generate(),
-    (err, tenantNetwork) => {
-      assert.ok(!err);
-      _created.push(tenantNetwork);
-      return generateTestTenantNetworks(globalAdminRestCtx, numToCreate, callback, _created);
-    }
-  );
+  RestAPI.Tenants.createTenantNetwork(globalAdminRestCtx, ShortId.generate(), (err, tenantNetwork) => {
+    assert.ok(!err);
+    _created.push(tenantNetwork);
+    return generateTestTenantNetworks(globalAdminRestCtx, numToCreate, callback, _created);
+  });
 };
 
 /**
@@ -207,7 +188,7 @@ const generateTestTenantAlias = function(seed) {
  */
 const generateTestTenantHost = function(seed, randomText) {
   seed = seed || 'host';
-  // this is so wrong
+  // This is so wrong
   randomText = randomText || require('oae-tests').generateRandomText();
   return util.format('%s-%s.local', seed, randomText);
 };

@@ -13,44 +13,18 @@
  * permissions and limitations under the License.
  */
 
-const Cassandra = require('oae-util/lib/cassandra');
-
 const FoldersSearch = require('./search');
 
 module.exports = function(config, callback) {
-  _ensureSchema(err => {
-    if (err) {
-      return callback(err);
-    }
+  // Register activity, library, previews and search functionality
+  // eslint-disable-next-line no-unused-vars
+  const activity = require('./activity');
+  // eslint-disable-next-line no-unused-vars
+  const library = require('./library');
+  // eslint-disable-next-line no-unused-vars
+  const previews = require('./previews');
+  // eslint-disable-next-line no-unused-vars
+  const invitations = require('./invitations');
 
-    // Register activity, library, previews and search functionality
-    // eslint-disable-next-line no-unused-vars
-    const activity = require('./activity');
-    // eslint-disable-next-line no-unused-vars
-    const library = require('./library');
-    // eslint-disable-next-line no-unused-vars
-    const previews = require('./previews');
-    // eslint-disable-next-line no-unused-vars
-    const invitations = require('./invitations');
-
-    return FoldersSearch.init(callback);
-  });
-};
-
-/**
- * Ensure that the all of the folders schemas are created. If they already exist, this method will not do anything
- *
- * @param  {Function}   callback        Standard callback function
- * @param  {Object}     callback.err    An error that occurred, if any
- * @api private
- */
-const _ensureSchema = function(callback) {
-  Cassandra.createColumnFamilies(
-    {
-      Folders:
-        'CREATE TABLE "Folders" ("id" text PRIMARY KEY, "tenantAlias" text, "groupId" text, "displayName" text, "visibility" text, "description" text, "createdBy" text, "created" bigint, "lastModified" bigint, "previews" text)',
-      FoldersGroupId: 'CREATE TABLE "FoldersGroupId" ("groupId" text PRIMARY KEY, "folderId" text)'
-    },
-    callback
-  );
+  return FoldersSearch.init(callback);
 };

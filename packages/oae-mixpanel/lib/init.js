@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-var MixPanelAPI = require('./api');
+const MixPanelAPI = require('./api');
 
 module.exports = function(config, callback) {
-    MixPanelAPI.init(config);
-    return callback();
+  MixPanelAPI.init(config);
+  return callback();
 };

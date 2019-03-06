@@ -13,29 +13,11 @@
  * permissions and limitations under the License.
  */
 
-const Cassandra = require('oae-util/lib/cassandra');
 const PreviewProcessorAPI = require('oae-preview-processor');
 const MediaCoreProcessor = require('./processor');
 
 module.exports = function(config, callback) {
   // Register the mediacore video processor
   PreviewProcessorAPI.registerProcessor('oae-file-mediacore', MediaCoreProcessor);
-  _ensureSchema(callback);
-};
-
-/**
- * Create the schema for the MediaCore preview processor
- *
- * @param  {Function}   callback        Standard callback function
- * @param  {Object}     callback.err    An error that occurred, if any
- * @api private
- */
-const _ensureSchema = function(callback) {
-  Cassandra.createColumnFamilies(
-    {
-      MediaCoreContentRevisionIdMap:
-        'CREATE TABLE "MediaCoreContentRevisionIdMap" ("mediaCoreId" text PRIMARY KEY, "contentId" text, "revisionId" text)'
-    },
-    callback
-  );
+  return callback();
 };

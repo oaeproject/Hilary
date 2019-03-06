@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-var TinCanAPI = require('./api.js');
+const TinCanAPI = require('./api.js');
 
 module.exports = function(config, callback) {
-    TinCanAPI.initializeTinCanAPI(config.tincanapi, callback);
+  TinCanAPI.initializeTinCanAPI(config.tincanapi, callback);
 };

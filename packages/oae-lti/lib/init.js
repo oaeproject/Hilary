@@ -13,29 +13,10 @@
  * permissions and limitations under the License.
  */
 
-const Cassandra = require('oae-util/lib/cassandra');
-
 const log = require('oae-logger').logger('oae-lti-init');
 
 module.exports = function(config, callback) {
   log().info('Initializing the oae-lti module');
 
-  _ensureSchema(callback);
-};
-
-/**
- * Create the schema for Learning Tools Interoperability tools
- *
- * @param  {Function}   callback        Standard callback function
- * @param  {Object}     callback.err    An error that occurred, if any
- * @api private
- */
-const _ensureSchema = function(callback) {
-  Cassandra.createColumnFamilies(
-    {
-      LtiTools:
-        'CREATE TABLE "LtiTools" ("id" text, "groupId" text, "launchUrl" text, "secret" text, "oauthConsumerKey" text, "displayName" text, "description" text, PRIMARY KEY ("groupId", "id"))'
-    },
-    callback
-  );
+  return callback();
 };

@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-const Cassandra = require('oae-util/lib/cassandra');
 const FollowingSearch = require('oae-following/lib/search');
 
 // Bind some plugins
@@ -23,30 +22,5 @@ const activity = require('oae-following/lib/activity');
 const principals = require('oae-following/lib/principals');
 
 module.exports = function(config, callback) {
-  _ensureSchema(err => {
-    if (err) {
-      return callback(err);
-    }
-
-    return FollowingSearch.init(callback);
-  });
-};
-
-/**
- * Create the following database schema
- *
- * @param  {Function}   callback        Standard callback function
- * @param  {Object}     callback.err    An error that occurred, if any
- * @api private
- */
-const _ensureSchema = function(callback) {
-  Cassandra.createColumnFamilies(
-    {
-      FollowingUsersFollowers:
-        'CREATE TABLE "FollowingUsersFollowers" ("userId" text, "followerId" text, "value" text, PRIMARY KEY ("userId", "followerId")) WITH COMPACT STORAGE',
-      FollowingUsersFollowing:
-        'CREATE TABLE "FollowingUsersFollowing" ("userId" text, "followingId" text, "value" text, PRIMARY KEY ("userId", "followingId")) WITH COMPACT STORAGE'
-    },
-    callback
-  );
+  return FollowingSearch.init(callback);
 };

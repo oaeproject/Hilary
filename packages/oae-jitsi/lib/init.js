@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-const Cassandra = require('oae-util/lib/cassandra');
 const log = require('oae-logger').logger('oae-jitsi-init');
 
 const MeetingSearch = require('./search');
@@ -21,36 +20,13 @@ const MeetingSearch = require('./search');
 module.exports = function(config, callback) {
   log().info('Initializing the oae-jitsi module');
 
-  _ensureSchema(err => {
-    if (err) {
-      return callback(err);
-    }
+  // Register the activity functionality
+  // eslint-disable-next-line no-unused-vars
+  const activity = require('./activity');
 
-    // Register the activity functionality
-    // eslint-disable-next-line no-unused-vars
-    const activity = require('./activity');
+  // Register the library functionality
+  // eslint-disable-next-line no-unused-vars
+  const library = require('./library');
 
-    // Register the library functionality
-    // eslint-disable-next-line no-unused-vars
-    const library = require('./library');
-
-    return MeetingSearch.init(callback);
-  });
-};
-
-/**
- * Ensure that all of the meeting-related schemas are created. If they already exist, this method will not do anything.
- *
- * @param  {Function}         callback       Standard callback function
- * @param  {Object}           callback.err   An error that occurred, if any
- * @api private
- */
-const _ensureSchema = function(callback) {
-  Cassandra.createColumnFamilies(
-    {
-      MeetingsJitsi:
-        'CREATE TABLE "MeetingsJitsi" ("id" text PRIMARY KEY, "tenantAlias" text, "displayName" text, "visibility" text, "description" text, "createdBy" text, "created" text, "lastModified" text, "chat" boolean, "contactList" boolean)'
-    },
-    callback
-  );
+  return MeetingSearch.init(callback);
 };

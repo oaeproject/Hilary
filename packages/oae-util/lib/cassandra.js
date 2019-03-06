@@ -43,8 +43,6 @@ const init = function(config, callback) {
   CONFIG.keyspace = 'system';
   client = _createNewClient(CONFIG.hosts, CONFIG.keyspace);
 
-  // First connect to the system keyspace to ensure the specified keyspace exists
-
   client.connect(err => {
     // Immediately switch the CONFIG keyspace back to the desired keyspace
     CONFIG.keyspace = keyspace;
@@ -54,37 +52,21 @@ const init = function(config, callback) {
       return callback({ code: 500, msg: 'Error connecting to cassandra' });
     }
 
-    keyspaceExists(keyspace, (err, exists) => {
+    createKeyspace(keyspace, err => {
       if (err) {
-        // Ensure the pool is closed
-        return close(() => {
+        close(() => {
           callback(err);
         });
       }
-
-      if (exists) {
-        client = _createNewClient(CONFIG.hosts, keyspace);
-        return callback();
-      }
-      createKeyspace(keyspace, err => {
-        if (err) {
-          return close(() => {
-            callback(err);
-          });
-        }
-
-        client = _createNewClient(CONFIG.hosts, keyspace);
-        return callback();
-      });
+      client = _createNewClient(CONFIG.hosts, keyspace);
+      callback();
     });
   });
 };
 
 const _createNewClient = function(hosts, keyspace) {
   const loadBalancingPolicy = new cassandra.policies.loadBalancing.RoundRobinPolicy();
-  const reconnectionPolicy = new cassandra.policies.reconnection.ConstantReconnectionPolicy(
-    CONFIG.timeout
-  );
+  const reconnectionPolicy = new cassandra.policies.reconnection.ConstantReconnectionPolicy(CONFIG.timeout);
   return new cassandra.Client({
     contactPoints: hosts,
     policies: {
@@ -125,36 +107,26 @@ const close = function(callback) {
  * @param  {Object}    callback.err        An error that occurred, if any
  * @param  {Boolean}   callback.created    Specifies whether or not a keyspace was actually created.
  */
-const createKeyspace = function(name, callback) {
+const createKeyspace = function(keyspace, callback) {
   callback = callback || function() {};
+  const config = CONFIG;
 
   const options = {
-    name,
-    strategyClass: CONFIG.strategyClass || 'SimpleStrategy',
-    strategyOptions: CONFIG.strategyOptions,
-    replication: CONFIG.replication || 1,
-    durable: CONFIG.durable
+    name: keyspace,
+    strategyClass: config.strategyClass || 'SimpleStrategy',
+    strategyOptions: config.strategyOptions,
+    replication: config.replication || 1,
+    durable: config.durable
   };
 
-  // Only create it if it exists.
-  keyspaceExists(name, (err, exists) => {
-    if (err) {
-      return callback(err);
-    }
-    if (exists) {
-      return callback(null, false);
-    }
-    const query = `CREATE KEYSPACE "${name}" WITH REPLICATION = { 'class': '${
-      options.strategyClass
-    }', 'replication_factor': ${options.replication} }`;
+  const query = `CREATE KEYSPACE IF NOT EXISTS "${keyspace}" WITH REPLICATION = { 'class': '${
+    options.strategyClass
+  }', 'replication_factor': ${options.replication} }`;
 
-    client.execute(query, err => {
-      if (err) {
-        return callback(err);
-      }
-      // Pause for a second to ensure the keyspace gets agreed upon across the cluster.
-      setTimeout(callback, 1000, null, true);
-    });
+  client.execute(query, err => {
+    if (err) return callback(err);
+    // Pause for a second to ensure the keyspace gets agreed upon across the cluster.
+    setTimeout(callback, 1000, null, true);
   });
 };
 
@@ -172,7 +144,8 @@ const dropKeyspace = function(name, callback) {
     if (err) {
       return callback(err);
     }
-    callback(null, true);
+
+    return callback(null, true);
   });
 };
 
@@ -646,15 +619,7 @@ const iterateAll = function(columnNames, columnFamily, keyColumnName, opts, onEa
     columnNames = _.union(columnNames, extraColumnNames);
   }
 
-  return _iterateAll(
-    columnNames,
-    columnFamily,
-    keyColumnName,
-    returnKeyColumn,
-    opts.batchSize,
-    onEach,
-    callback
-  );
+  return _iterateAll(columnNames, columnFamily, keyColumnName, returnKeyColumn, opts.batchSize, onEach, callback);
 };
 
 /**
@@ -736,16 +701,7 @@ const _iterateAll = function(
         }
 
         // Start the next iteration
-        _iterateAll(
-          columnNames,
-          columnFamily,
-          keyColumnName,
-          returnKeyColumn,
-          batchSize,
-          onEach,
-          callback,
-          fromKey
-        );
+        _iterateAll(columnNames, columnFamily, keyColumnName, returnKeyColumn, batchSize, onEach, callback, fromKey);
       });
     } catch (error) {
       log().error({ err: error }, 'Error invoking consumer onEach during iterateAll');
@@ -765,13 +721,7 @@ const _iterateAll = function(
  * @return {Object}                     An object with key `query` that contains the String CQL query, and key `parameters` that holds an array of parameters that fill the query placeholders in the Cassandra query.
  * @api private
  */
-const _buildIterateAllQuery = function(
-  columnNames,
-  columnFamily,
-  keyColumnName,
-  batchSize,
-  fromKey
-) {
+const _buildIterateAllQuery = function(columnNames, columnFamily, keyColumnName, batchSize, fromKey) {
   let cql = 'SELECT ';
   const params = [];
 
@@ -922,10 +872,7 @@ const executeQuery = function(query, parameters, callback) {
 
   client.execute(query, parameters, { prepare: true }, (err, resultSet) => {
     if (err) {
-      log().error(
-        _truncateLogParameters(err, query, logParams),
-        'An error occurred executing a cassandra query'
-      );
+      log().error(_truncateLogParameters(err, query, logParams), 'An error occurred executing a cassandra query');
       return callback({ code: 500, msg: 'An error occurred executing a query' });
     }
 
@@ -1009,10 +956,7 @@ const _truncateLogParameters = function(err, query, params) {
   const paramsStr = JSON.stringify(params);
   if (paramsStr && paramsStr.length > paramsStrMaxLength) {
     // Truncate each log parameter if necessary
-    params = _.map(
-      params.slice(0, paramsArrayMaxLength),
-      _.partial(_truncateString, _, paramStrMaxLength)
-    );
+    params = _.map(params.slice(0, paramsArrayMaxLength), _.partial(_truncateString, _, paramStrMaxLength));
   }
 
   return {

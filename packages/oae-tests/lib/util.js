@@ -966,7 +966,23 @@ const _createUserWithVisibility = function(tenant, visibility, callback) {
  * @api private
  */
 const _createMultiPrivacyGroups = function(tenant, callback) {
-  const groupsToBeCreated = {
+  const groupsToBeCreated = _getGroupsToBeCreated(tenant);
+  async.eachOfSeries(
+    groupsToBeCreated,
+    (eachGroup, key, done) => {
+      _createGroupWithVisibility(tenant, eachGroup, createdGroup => {
+        groupsToBeCreated[key] = createdGroup;
+        done();
+      });
+    },
+    () => {
+      callback(groupsToBeCreated);
+    }
+  );
+};
+
+const _getGroupsToBeCreated = function(tenant) {
+  return {
     publicGroup: { visibility: PUBLIC, memberPrincipalId: tenant.publicUser.user.id, joinable: JOINABLE_BY_REQUEST },
     loggedinJoinableGroupByRequest: {
       visibility: LOGGED_IN,
@@ -995,18 +1011,6 @@ const _createMultiPrivacyGroups = function(tenant, callback) {
     },
     privateJoinableGroup: { visibility: PRIVATE, memberPrincipalId: tenant.privateUser.user.id, joinable: JOINABLE }
   };
-  async.eachOfSeries(
-    groupsToBeCreated,
-    (eachGroup, key, done) => {
-      _createGroupWithVisibility(tenant, eachGroup, createdGroup => {
-        groupsToBeCreated[key] = createdGroup;
-        done();
-      });
-    },
-    () => {
-      callback(groupsToBeCreated);
-    }
-  );
 };
 
 /**

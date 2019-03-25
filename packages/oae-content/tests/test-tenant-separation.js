@@ -1364,7 +1364,7 @@ describe('Content', () => {
     /**
      * Test that verifies the actor -> target sharing permutations
      */
-    it.only('verify content sharing permutations from actor to target (non joinable groups)', callback => {
+    it('verify content sharing permutations from actor to target (non joinable groups)', callback => {
       ContentTestUtil.setupMultiTenantPrivacyEntities(
         (publicTenantA, publicTenantB, privateTenantA, privateTenantB) => {
           // Create some more users as we can only share it with a target user once.
@@ -1562,7 +1562,7 @@ describe('Content', () => {
     });
 
     // TODO: issue-1492 I think this is mostly buggy behaviour, all of these asserts to 20
-    it.only('verify content sharing permutations from actor to target (joinable groups)', callback => {
+    it('verify content sharing permutations from actor to target (joinable groups)', callback => {
       ContentTestUtil.setupMultiTenantPrivacyEntities(
         (publicTenantA, publicTenantB, privateTenantA, privateTenantB) => {
           // Create some more users as we can only share it with a target user once.

@@ -311,7 +311,12 @@ PrincipalsAPI.emitter.on(
  * Fire the request-group-join activity when someone wants to join a group
  */
 // eslint-disable-next-line no-unused-vars
-PrincipalsAPI.emitter.on(PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP, function(ctx, group, oldGroup, memberChangeInfo) {
+PrincipalsAPI.emitter.on(PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP, function(
+  ctx,
+  group,
+  oldGroup,
+  memberChangeInfo
+) {
   const millis = Date.now();
   const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, { user: ctx.user() });
   const objectResource = new ActivityModel.ActivitySeedResource('group', group.id, { group });

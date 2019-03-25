@@ -62,20 +62,18 @@ const { ContentConstants } = require('oae-content/lib/constants');
  */
 const setupMultiTenantPrivacyEntities = function(callback) {
   // Create the tenants and users
-  TestsUtil.setupMultiTenantPrivacyEntities(
-    (publicTenant, publicTenant1, privateTenant, privateTenant1) => {
-      // Create the content
-      _setupTenant(publicTenant, () => {
-        _setupTenant(publicTenant1, () => {
-          _setupTenant(privateTenant, () => {
-            _setupTenant(privateTenant1, () => {
-              return callback(publicTenant, publicTenant1, privateTenant, privateTenant1);
-            });
+  TestsUtil.setupMultiTenantPrivacyEntities((publicTenant, publicTenant1, privateTenant, privateTenant1) => {
+    // Create the content
+    _setupTenant(publicTenant, () => {
+      _setupTenant(publicTenant1, () => {
+        _setupTenant(privateTenant, () => {
+          _setupTenant(privateTenant1, () => {
+            return callback(publicTenant, publicTenant1, privateTenant, privateTenant1);
           });
         });
       });
-    }
-  );
+    });
+  });
 };
 
 /**
@@ -134,11 +132,7 @@ const assertCreateLinkSucceeds = function(
 
         // Ensure the members have the expected roles
         getAllContentMembers(restContext, content.id, null, result => {
-          AuthzTestUtil.assertMemberRolesEquals(
-            {},
-            roleChanges,
-            AuthzTestUtil.getMemberRolesFromResults(result)
-          );
+          AuthzTestUtil.assertMemberRolesEquals({}, roleChanges, AuthzTestUtil.getMemberRolesFromResults(result));
 
           AuthzTestUtil.assertGetInvitationsSucceeds(restContext, 'content', content.id, result => {
             AuthzTestUtil.assertEmailRolesEquals(
@@ -264,14 +258,7 @@ const assertEtherpadContentEquals = function(actualContent, expectedContent) {
  * @param  {Function}       callback        Standard callback function
  * @throws {AssertionError}                 Thrown if the the request did not fail in the expected manner
  */
-const assertGetContentMembersFails = function(
-  restContext,
-  contentId,
-  start,
-  limit,
-  httpCode,
-  callback
-) {
+const assertGetContentMembersFails = function(restContext, contentId, start, limit, httpCode, callback) {
   // eslint-disable-next-line no-unused-vars
   RestAPI.Content.getMembers(restContext, contentId, start, limit, (err, result) => {
     assert.ok(err);
@@ -353,39 +340,34 @@ const assertUpdateContentMembersFails = function(
         assert.strictEqual(err.code, httpCode);
 
         // Ensure the members and invitations did not change
-        AuthzTestUtil.assertGetInvitationsSucceeds(
-          managerRestContext,
-          'content',
-          contentId,
-          result => {
-            AuthzTestUtil.assertEmailRolesEquals(
-              emailRolesBefore,
+        AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'content', contentId, result => {
+          AuthzTestUtil.assertEmailRolesEquals(
+            emailRolesBefore,
+            null,
+            AuthzTestUtil.getEmailRolesFromResults(result.results)
+          );
+
+          getAllContentMembers(managerRestContext, contentId, null, result => {
+            AuthzTestUtil.assertMemberRolesEquals(
+              memberRolesBefore,
               null,
-              AuthzTestUtil.getEmailRolesFromResults(result.results)
+              AuthzTestUtil.getMemberRolesFromResults(result)
             );
 
-            getAllContentMembers(managerRestContext, contentId, null, result => {
-              AuthzTestUtil.assertMemberRolesEquals(
-                memberRolesBefore,
-                null,
-                AuthzTestUtil.getMemberRolesFromResults(result)
-              );
-
-              // Test once more that the library did not change by purging and rebuilding it
-              _purgeMembersLibrary(contentId, () => {
-                // Ensure the library members still did not change
-                getAllContentMembers(managerRestContext, contentId, null, result => {
-                  AuthzTestUtil.assertMemberRolesEquals(
-                    memberRolesBefore,
-                    null,
-                    AuthzTestUtil.getMemberRolesFromResults(result)
-                  );
-                  return callback();
-                });
+            // Test once more that the library did not change by purging and rebuilding it
+            _purgeMembersLibrary(contentId, () => {
+              // Ensure the library members still did not change
+              getAllContentMembers(managerRestContext, contentId, null, result => {
+                AuthzTestUtil.assertMemberRolesEquals(
+                  memberRolesBefore,
+                  null,
+                  AuthzTestUtil.getMemberRolesFromResults(result)
+                );
+                return callback();
               });
             });
-          }
-        );
+          });
+        });
       });
     });
   });
@@ -420,40 +402,35 @@ const assertUpdateContentMembersSucceeds = function(
         assert.ok(!err);
 
         // Ensure the invitations and members have the updated status
-        AuthzTestUtil.assertGetInvitationsSucceeds(
-          managerRestContext,
-          'content',
-          contentId,
-          result => {
-            AuthzTestUtil.assertEmailRolesEquals(
-              emailRolesBefore,
+        AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'content', contentId, result => {
+          AuthzTestUtil.assertEmailRolesEquals(
+            emailRolesBefore,
+            roleChanges,
+            AuthzTestUtil.getEmailRolesFromResults(result.results)
+          );
+
+          getAllContentMembers(managerRestContext, contentId, null, result => {
+            AuthzTestUtil.assertMemberRolesEquals(
+              memberRolesBefore,
               roleChanges,
-              AuthzTestUtil.getEmailRolesFromResults(result.results)
+              AuthzTestUtil.getMemberRolesFromResults(result)
             );
 
-            getAllContentMembers(managerRestContext, contentId, null, result => {
-              AuthzTestUtil.assertMemberRolesEquals(
-                memberRolesBefore,
-                roleChanges,
-                AuthzTestUtil.getMemberRolesFromResults(result)
-              );
+            // Test the library once more by purging and building the library from scratch
+            _purgeMembersLibrary(contentId, () => {
+              // Now that we're running with a fresh library, ensure that the members we receive are still what we expect
+              getAllContentMembers(managerRestContext, contentId, null, result => {
+                AuthzTestUtil.assertMemberRolesEquals(
+                  memberRolesBefore,
+                  roleChanges,
+                  AuthzTestUtil.getMemberRolesFromResults(result)
+                );
 
-              // Test the library once more by purging and building the library from scratch
-              _purgeMembersLibrary(contentId, () => {
-                // Now that we're running with a fresh library, ensure that the members we receive are still what we expect
-                getAllContentMembers(managerRestContext, contentId, null, result => {
-                  AuthzTestUtil.assertMemberRolesEquals(
-                    memberRolesBefore,
-                    roleChanges,
-                    AuthzTestUtil.getMemberRolesFromResults(result)
-                  );
-
-                  return callback();
-                });
+                return callback();
               });
             });
-          }
-        );
+          });
+        });
       });
     });
   });
@@ -491,39 +468,34 @@ const assertShareContentFails = function(
         assert.strictEqual(err.code, httpCode);
 
         // Ensure the invitations and members did not change
-        AuthzTestUtil.assertGetInvitationsSucceeds(
-          managerRestContext,
-          'content',
-          contentId,
-          result => {
-            AuthzTestUtil.assertEmailRolesEquals(
-              emailRolesBefore,
+        AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'content', contentId, result => {
+          AuthzTestUtil.assertEmailRolesEquals(
+            emailRolesBefore,
+            null,
+            AuthzTestUtil.getEmailRolesFromResults(result.results)
+          );
+
+          getAllContentMembers(managerRestContext, contentId, null, result => {
+            AuthzTestUtil.assertMemberRolesEquals(
+              memberRolesBefore,
               null,
-              AuthzTestUtil.getEmailRolesFromResults(result.results)
+              AuthzTestUtil.getMemberRolesFromResults(result)
             );
 
-            getAllContentMembers(managerRestContext, contentId, null, result => {
-              AuthzTestUtil.assertMemberRolesEquals(
-                memberRolesBefore,
-                null,
-                AuthzTestUtil.getMemberRolesFromResults(result)
-              );
-
-              // Test once more that the library did not change by purging and rebuilding it
-              _purgeMembersLibrary(contentId, () => {
-                // Ensure the library members still did not change
-                getAllContentMembers(managerRestContext, contentId, null, result => {
-                  AuthzTestUtil.assertMemberRolesEquals(
-                    memberRolesBefore,
-                    null,
-                    AuthzTestUtil.getMemberRolesFromResults(result)
-                  );
-                  return callback();
-                });
+            // Test once more that the library did not change by purging and rebuilding it
+            _purgeMembersLibrary(contentId, () => {
+              // Ensure the library members still did not change
+              getAllContentMembers(managerRestContext, contentId, null, result => {
+                AuthzTestUtil.assertMemberRolesEquals(
+                  memberRolesBefore,
+                  null,
+                  AuthzTestUtil.getMemberRolesFromResults(result)
+                );
+                return callback();
               });
             });
-          }
-        );
+          });
+        });
       });
     });
   });
@@ -540,13 +512,7 @@ const assertShareContentFails = function(
  * @param  {Function}       callback            Standard callback function
  * @throws {AssertionError}                     Thrown if there is an error verifying that the content item is successfully shared
  */
-const assertShareContentSucceeds = function(
-  managerRestContext,
-  actorRestContext,
-  contentId,
-  memberIds,
-  callback
-) {
+const assertShareContentSucceeds = function(managerRestContext, actorRestContext, contentId, memberIds, callback) {
   // Ensure the members library is currently built
   getAllContentMembers(managerRestContext, contentId, null, result => {
     const memberRolesBefore = AuthzTestUtil.getMemberRolesFromResults(result);
@@ -568,40 +534,35 @@ const assertShareContentSucceeds = function(
         assert.ok(!err);
 
         // Ensure the members and invitations had the expected updates
-        AuthzTestUtil.assertGetInvitationsSucceeds(
-          managerRestContext,
-          'content',
-          contentId,
-          result => {
-            AuthzTestUtil.assertEmailRolesEquals(
-              emailRolesBefore,
+        AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'content', contentId, result => {
+          AuthzTestUtil.assertEmailRolesEquals(
+            emailRolesBefore,
+            roleChange,
+            AuthzTestUtil.getEmailRolesFromResults(result.results)
+          );
+
+          getAllContentMembers(managerRestContext, contentId, null, membersAfterUpdate => {
+            AuthzTestUtil.assertMemberRolesEquals(
+              memberRolesBefore,
               roleChange,
-              AuthzTestUtil.getEmailRolesFromResults(result.results)
+              AuthzTestUtil.getMemberRolesFromResults(membersAfterUpdate)
             );
 
-            getAllContentMembers(managerRestContext, contentId, null, membersAfterUpdate => {
-              AuthzTestUtil.assertMemberRolesEquals(
-                memberRolesBefore,
-                roleChange,
-                AuthzTestUtil.getMemberRolesFromResults(membersAfterUpdate)
-              );
+            // Test the library once more by purging and building the library from scratch
+            _purgeMembersLibrary(contentId, () => {
+              // Now that we're running with a fresh library, ensure that the members we receive are what we expect
+              getAllContentMembers(managerRestContext, contentId, null, membersAfterUpdate => {
+                AuthzTestUtil.assertMemberRolesEquals(
+                  memberRolesBefore,
+                  roleChange,
+                  AuthzTestUtil.getMemberRolesFromResults(membersAfterUpdate)
+                );
 
-              // Test the library once more by purging and building the library from scratch
-              _purgeMembersLibrary(contentId, () => {
-                // Now that we're running with a fresh library, ensure that the members we receive are what we expect
-                getAllContentMembers(managerRestContext, contentId, null, membersAfterUpdate => {
-                  AuthzTestUtil.assertMemberRolesEquals(
-                    memberRolesBefore,
-                    roleChange,
-                    AuthzTestUtil.getMemberRolesFromResults(membersAfterUpdate)
-                  );
-
-                  return callback();
-                });
+                return callback();
               });
             });
-          }
-        );
+          });
+        });
       });
     });
   });
@@ -619,15 +580,7 @@ const assertShareContentSucceeds = function(
  * @param  {Object[][]}     callback.responses  The raw response objects for each page request that was made to get the content members library
  * @throws {AssertionError}                     Thrown if an error occurrs while paging through the content members library
  */
-const getAllContentMembers = function(
-  restContext,
-  contentId,
-  opts,
-  callback,
-  _members,
-  _responses,
-  _nextToken
-) {
+const getAllContentMembers = function(restContext, contentId, opts, callback, _members, _responses, _nextToken) {
   _members = _members || [];
   _responses = _responses || [];
   if (_nextToken === null) {
@@ -678,23 +631,18 @@ const assertGetAllContentLibrarySucceeds = function(
 
   opts = opts || {};
   opts.batchSize = opts.batchSize || 25;
-  assertGetContentLibrarySucceeds(
-    restContext,
-    principalId,
-    { start: _nextToken, limit: opts.batchSize },
-    result => {
-      _responses.push(result);
-      return assertGetAllContentLibrarySucceeds(
-        restContext,
-        principalId,
-        opts,
-        callback,
-        _.union(_contentItems, result.results),
-        _responses,
-        result.nextToken
-      );
-    }
-  );
+  assertGetContentLibrarySucceeds(restContext, principalId, { start: _nextToken, limit: opts.batchSize }, result => {
+    _responses.push(result);
+    return assertGetAllContentLibrarySucceeds(
+      restContext,
+      principalId,
+      opts,
+      callback,
+      _.union(_contentItems, result.results),
+      _responses,
+      result.nextToken
+    );
+  });
 };
 
 /**
@@ -769,15 +717,12 @@ const generateTestLinks = function(restContext, total, callback) {
  * @api private
  */
 const _setupTenant = function(tenant, callback) {
-  _createMultiPrivacyContent(
-    tenant.adminRestContext,
-    (publicContent, loggedinContent, privateContent) => {
-      tenant.publicContent = publicContent;
-      tenant.loggedinContent = loggedinContent;
-      tenant.privateContent = privateContent;
-      return callback();
-    }
-  );
+  _createMultiPrivacyContent(tenant.adminRestContext, (publicContent, loggedinContent, privateContent) => {
+    tenant.publicContent = publicContent;
+    tenant.loggedinContent = loggedinContent;
+    tenant.privateContent = privateContent;
+    return callback();
+  });
 };
 
 /**
@@ -919,11 +864,7 @@ const publishCollabDoc = function(contentId, userId, callback) {
  * @api private
  */
 const _purgeMembersLibrary = function(contentId, callback) {
-  LibraryTestUtil.assertPurgeFreshLibraries(
-    ContentConstants.library.MEMBERS_LIBRARY_INDEX_NAME,
-    [contentId],
-    callback
-  );
+  LibraryTestUtil.assertPurgeFreshLibraries(ContentConstants.library.MEMBERS_LIBRARY_INDEX_NAME, [contentId], callback);
 };
 
 module.exports = {

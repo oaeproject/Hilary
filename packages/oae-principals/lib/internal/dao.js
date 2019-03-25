@@ -27,7 +27,7 @@ const _ = require('underscore');
 const { Group } = require('oae-principals/lib/model');
 const PrincipalsConfig = require('oae-config').config('oae-principals');
 const { User } = require('oae-principals/lib/model');
-const PrincipalsConstants = require('../constants').PrincipalsConstants;
+const { PrincipalsConstants } = require('../constants');
 
 const RESTRICTED_FIELDS = ['acceptedTC', 'admin:tenant', 'admin:global', 'deleted'];
 
@@ -264,9 +264,7 @@ const updatePrincipal = function(principalId, profileFields, callback) {
   // Ensure the caller is not trying to set an invalid field
   const validator = new Validator();
   const invalidKeys = _.intersection(RESTRICTED_FIELDS, _.keys(profileFields));
-  validator
-    .check(invalidKeys.length, { code: 400, msg: 'Attempted to update an invalid property' })
-    .max(0);
+  validator.check(invalidKeys.length, { code: 400, msg: 'Attempted to update an invalid property' }).max(0);
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -421,22 +419,18 @@ const setAdmin = function(adminType, isAdmin, userId, callback) {
  * @param  {String}     callback.token      The token that can be used to verify the email with
  */
 const getEmailToken = function(userId, callback) {
-  Cassandra.runQuery(
-    'SELECT * FROM "PrincipalsEmailToken" WHERE "principalId" = ?',
-    [userId],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
-      }
-      if (_.isEmpty(rows)) {
-        return callback({ code: 404, msg: 'No email token found for the given user id' });
-      }
-
-      const token = _.first(rows).get('token');
-      const email = _.first(rows).get('email');
-      return callback(null, email, token);
+  Cassandra.runQuery('SELECT * FROM "PrincipalsEmailToken" WHERE "principalId" = ?', [userId], (err, rows) => {
+    if (err) {
+      return callback(err);
     }
-  );
+    if (_.isEmpty(rows)) {
+      return callback({ code: 404, msg: 'No email token found for the given user id' });
+    }
+
+    const token = _.first(rows).get('token');
+    const email = _.first(rows).get('email');
+    return callback(null, email, token);
+  });
 };
 
 /**
@@ -447,11 +441,7 @@ const getEmailToken = function(userId, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  */
 const deleteEmailToken = function(userId, callback) {
-  Cassandra.runQuery(
-    'DELETE FROM "PrincipalsEmailToken" WHERE "principalId" = ?',
-    [userId],
-    callback
-  );
+  Cassandra.runQuery('DELETE FROM "PrincipalsEmailToken" WHERE "principalId" = ?', [userId], callback);
 };
 
 /**
@@ -463,24 +453,20 @@ const deleteEmailToken = function(userId, callback) {
  * @param  {Object}     callback.userIdsByEmail     An object keyed by email, whose value are the user ids associated to that email
  */
 const getUserIdsByEmails = function(emails, callback) {
-  Cassandra.runQuery(
-    'SELECT * FROM "PrincipalsByEmail" WHERE "email" IN ?',
-    [emails],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
-      }
-
-      const userIdsByEmail = _.chain(rows)
-        .map(Cassandra.rowToHash)
-        .groupBy('email')
-        .mapObject(principalIdEmailHashes => {
-          return _.pluck(principalIdEmailHashes, 'principalId');
-        })
-        .value();
-      return callback(null, userIdsByEmail);
+  Cassandra.runQuery('SELECT * FROM "PrincipalsByEmail" WHERE "email" IN ?', [emails], (err, rows) => {
+    if (err) {
+      return callback(err);
     }
-  );
+
+    const userIdsByEmail = _.chain(rows)
+      .map(Cassandra.rowToHash)
+      .groupBy('email')
+      .mapObject(principalIdEmailHashes => {
+        return _.pluck(principalIdEmailHashes, 'principalId');
+      })
+      .value();
+    return callback(null, userIdsByEmail);
+  });
 };
 
 /**
@@ -514,9 +500,7 @@ const setEmailAddress = function(user, email, callback) {
 
   // The token is correct, change the email address
   const principalsUpdate = { email };
-  queries.push(
-    Cassandra.constructUpsertCQL('Principals', 'principalId', user.id, principalsUpdate)
-  );
+  queries.push(Cassandra.constructUpsertCQL('Principals', 'principalId', user.id, principalsUpdate));
 
   // Remove the token
   queries.push({
@@ -588,14 +572,7 @@ const iterateAll = function(properties, batchSize, onEach, callback) {
     return onEach(_.map(rows, Cassandra.rowToHash), done);
   };
 
-  return Cassandra.iterateAll(
-    properties,
-    'Principals',
-    'principalId',
-    { batchSize },
-    _iterateAllOnEach,
-    callback
-  );
+  return Cassandra.iterateAll(properties, 'Principals', 'principalId', { batchSize }, _iterateAllOnEach, callback);
 };
 
 /**
@@ -657,9 +634,7 @@ const _updatePrincipal = function(principalId, profileFields, callback) {
     const queries = [];
 
     // Update the principal record
-    queries.push(
-      Cassandra.constructUpsertCQL('Principals', 'principalId', principalId, profileFields)
-    );
+    queries.push(Cassandra.constructUpsertCQL('Principals', 'principalId', principalId, profileFields));
 
     // If the user's email address needs to be updated, we remove the old one from the mapping
     if (isEmailAddressUpdate) {
@@ -680,13 +655,7 @@ const _updatePrincipal = function(principalId, profileFields, callback) {
       }
 
       // Update the cache, if necessary
-      return OaeUtil.invokeIfNecessary(
-        isUser(principalId),
-        _updateCachedUser,
-        principalId,
-        profileFields,
-        callback
-      );
+      return OaeUtil.invokeIfNecessary(isUser(principalId), _updateCachedUser, principalId, profileFields, callback);
     });
   });
 };
@@ -701,10 +670,7 @@ const _updatePrincipal = function(principalId, profileFields, callback) {
  */
 const _deletePrincipalFields = function(principalId, profileFields, callback) {
   // Remove the specified fields
-  const query = util.format(
-    'DELETE "%s" FROM "Principals" where "principalId" = ?',
-    profileFields.join('", "')
-  );
+  const query = util.format('DELETE "%s" FROM "Principals" where "principalId" = ?', profileFields.join('", "'));
   Cassandra.runQuery(query, [principalId], err => {
     if (err) {
       return callback(err);
@@ -775,28 +741,24 @@ const _isEmailAddressUpdate = function(principalId, profileFields, callback) {
  * @api private
  */
 const _getPrincipalFromCassandra = function(principalId, callback) {
-  Cassandra.runQuery(
-    'SELECT * FROM "Principals" WHERE "principalId" = ?',
-    [principalId],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
-      }
-      if (_.isEmpty(rows)) {
-        return callback({ code: 404, msg: "Couldn't find principal: " + principalId });
-      }
-
-      if (isUser(principalId)) {
-        // Update the cache with the raw cassandra row asynchronously to the response. It is not
-        // necessary for this to complete or be successful before we return to the caller. Note
-        // that it is storing a full cache entry, not updating an existing one which is why this
-        // is safe
-        _updateCachedUser(principalId, Cassandra.rowToHash(rows[0]));
-      }
-
-      return callback(null, _getPrincipalFromRow(rows[0]));
+  Cassandra.runQuery('SELECT * FROM "Principals" WHERE "principalId" = ?', [principalId], (err, rows) => {
+    if (err) {
+      return callback(err);
     }
-  );
+    if (_.isEmpty(rows)) {
+      return callback({ code: 404, msg: "Couldn't find principal: " + principalId });
+    }
+
+    if (isUser(principalId)) {
+      // Update the cache with the raw cassandra row asynchronously to the response. It is not
+      // necessary for this to complete or be successful before we return to the caller. Note
+      // that it is storing a full cache entry, not updating an existing one which is why this
+      // is safe
+      _updateCachedUser(principalId, Cassandra.rowToHash(rows[0]));
+    }
+
+    return callback(null, _getPrincipalFromRow(rows[0]));
+  });
 };
 
 /**
@@ -942,9 +904,7 @@ const _hashToUser = function(hash) {
     largePictureUri: hash.largePictureUri,
     notificationsUnread: OaeUtil.getNumberParam(hash.notificationsUnread),
     notificationsLastRead: OaeUtil.getNumberParam(hash.notificationsLastRead),
-    emailPreference:
-      hash.emailPreference ||
-      PrincipalsConfig.getValue(hash.tenantAlias, 'user', 'emailPreference'),
+    emailPreference: hash.emailPreference || PrincipalsConfig.getValue(hash.tenantAlias, 'user', 'emailPreference'),
     acceptedTC: OaeUtil.getNumberParam(hash.acceptedTC, 0),
     lastModified: OaeUtil.getNumberParam(hash.lastModified)
   });
@@ -995,12 +955,9 @@ const invalidateCachedUsers = function(userIds, callback) {
  * @param  {Object}     callback.err    An error object, if any
  */
 const setLatestVisit = function(user, group, visit, callback) {
-  const q = Cassandra.constructUpsertCQL(
-    'UsersGroupVisits',
-    ['userId', 'groupId'],
-    [user.id, group.id],
-    { latestVisit: visit.getTime().toString() }
-  );
+  const q = Cassandra.constructUpsertCQL('UsersGroupVisits', ['userId', 'groupId'], [user.id, group.id], {
+    latestVisit: visit.getTime().toString()
+  });
 
   return Cassandra.runQuery(q.query, q.parameters, callback);
 };
@@ -1030,26 +987,22 @@ const getVisitedGroups = function(userId, callback) {
  * @api private
  */
 const _getVisitedGroupsFromCassandra = function(userId, callback) {
-  Cassandra.runQuery(
-    'SELECT * FROM "UsersGroupVisits" WHERE "userId" = ?',
-    [userId],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
-      }
-      if (_.isEmpty(rows)) {
-        return callback(null, []);
-      }
-
-      const groups = _.map(rows, row => {
-        const hash = Cassandra.rowToHash(row);
-        hash.latestVisit = OaeUtil.getNumberParam(hash.latestVisit);
-        return hash;
-      });
-
-      return callback(null, groups);
+  Cassandra.runQuery('SELECT * FROM "UsersGroupVisits" WHERE "userId" = ?', [userId], (err, rows) => {
+    if (err) {
+      return callback(err);
     }
-  );
+    if (_.isEmpty(rows)) {
+      return callback(null, []);
+    }
+
+    const groups = _.map(rows, row => {
+      const hash = Cassandra.rowToHash(row);
+      hash.latestVisit = OaeUtil.getNumberParam(hash.latestVisit);
+      return hash;
+    });
+
+    return callback(null, groups);
+  });
 };
 
 /**
@@ -1117,7 +1070,6 @@ const updateJoinGroupByRequest = function(principalId, groupId, status, callback
   const queries = [];
   const lastModified = Date.now().toString();
 
-  // Create queries
   queries.push({
     query:
       'UPDATE "GroupJoinRequestsByGroup" SET "status" = ?, "updated_at" = ? WHERE "groupId" = ? AND "principalId" = ?',
@@ -1168,24 +1120,20 @@ const getJoinGroupRequest = function(groupId, principalId, callback) {
  * @param  {Object}         callback.err                An error that occurred, if any
  */
 const getJoinGroupRequests = function(groupId, callback) {
-  Cassandra.runQuery(
-    'SELECT * FROM "GroupJoinRequestsByGroup" WHERE "groupId" = ?',
-    [groupId],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
-      }
-      if (_.isEmpty(rows)) {
-        return callback();
-      }
-
-      let users = _.map(rows, (row) => {
-        return Cassandra.rowToHash(row);
-      });
-
-      return callback(null, users);
+  Cassandra.runQuery('SELECT * FROM "GroupJoinRequestsByGroup" WHERE "groupId" = ?', [groupId], (err, rows) => {
+    if (err) {
+      return callback(err);
     }
-  );
+    if (_.isEmpty(rows)) {
+      return callback();
+    }
+
+    const users = _.map(rows, row => {
+      return Cassandra.rowToHash(row);
+    });
+
+    return callback(null, users);
+  });
 };
 
 module.exports = {

@@ -25,7 +25,11 @@ const ensureSchema = function(callback) {
 
       // Track user visits to groups they are members of
       UsersGroupVisits:
-        'CREATE TABLE "UsersGroupVisits" ("userId" text, "groupId" text, "latestVisit" text, PRIMARY KEY ("userId", "groupId"))'
+        'CREATE TABLE "UsersGroupVisits" ("userId" text, "groupId" text, "latestVisit" text, PRIMARY KEY ("userId", "groupId"))',
+
+      // Track requests to join groups
+      GroupJoinRequestsByGroup:
+        'CREATE TABLE "GroupJoinRequestsByGroup" ("groupId" text, "principalId" text, "created_at" text, "updated_at" text, "status" text, PRIMARY KEY ("groupId", "principalId"))'
     },
     () => {
       Cassandra.runQuery('CREATE INDEX IF NOT EXISTS ON "Principals" ("tenantAlias")', [], () => {

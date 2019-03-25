@@ -81,65 +81,107 @@ const addUserToAllGroups = function(memberUser, publicTenant1, publicTenant2, pr
         assert.ok(!err);
         RestAPI.Group.setGroupMembers(
           publicTenant1.adminRestContext,
-          publicTenant1.loggedinGroup.id,
+          publicTenant1.loggedinJoinableGroup.id,
           permissions,
           err => {
-            assert.ok(!err);
             RestAPI.Group.setGroupMembers(
               publicTenant1.adminRestContext,
-              publicTenant1.privateGroup.id,
+              publicTenant1.loggedinNotJoinableGroup.id,
               permissions,
               err => {
                 assert.ok(!err);
-
-                // Add the user to all the second public tenant groups
                 RestAPI.Group.setGroupMembers(
-                  publicTenant2.adminRestContext,
-                  publicTenant2.publicGroup.id,
+                  publicTenant1.adminRestContext,
+                  publicTenant1.privateJoinableGroup.id,
                   permissions,
                   err => {
-                    assert.ok(!err);
                     RestAPI.Group.setGroupMembers(
-                      publicTenant2.adminRestContext,
-                      publicTenant2.loggedinGroup.id,
+                      publicTenant1.adminRestContext,
+                      publicTenant1.privateNotJoinableGroup.id,
                       permissions,
                       err => {
                         assert.ok(!err);
+
+                        // Add the user to all the second public tenant groups
                         RestAPI.Group.setGroupMembers(
                           publicTenant2.adminRestContext,
-                          publicTenant2.privateGroup.id,
+                          publicTenant2.publicGroup.id,
                           permissions,
                           err => {
                             assert.ok(!err);
-
-                            // Add the user to all the private tenant groups
                             RestAPI.Group.setGroupMembers(
-                              privateTenant.adminRestContext,
-                              privateTenant.publicGroup.id,
+                              publicTenant2.adminRestContext,
+                              publicTenant2.loggedinJoinableGroup.id,
                               permissions,
                               err => {
-                                assert.ok(!err);
                                 RestAPI.Group.setGroupMembers(
-                                  privateTenant.adminRestContext,
-                                  privateTenant.loggedinGroup.id,
+                                  publicTenant2.adminRestContext,
+                                  publicTenant2.loggedinNotJoinableGroup.id,
                                   permissions,
                                   err => {
                                     assert.ok(!err);
                                     RestAPI.Group.setGroupMembers(
-                                      privateTenant.adminRestContext,
-                                      privateTenant.privateGroup.id,
+                                      publicTenant2.adminRestContext,
+                                      publicTenant2.privateJoinableGroup.id,
                                       permissions,
                                       err => {
-                                        assert.ok(!err);
-
-                                        // Make the private tenant private again
-                                        ConfigTestsUtil.updateConfigAndWait(
-                                          TestsUtil.createGlobalAdminRestContext(),
-                                          privateTenant.tenant.alias,
-                                          { 'oae-tenants/tenantprivacy/tenantprivate': true },
+                                        RestAPI.Group.setGroupMembers(
+                                          publicTenant2.adminRestContext,
+                                          publicTenant2.privateNotJoinableGroup.id,
+                                          permissions,
                                           err => {
                                             assert.ok(!err);
-                                            return callback();
+
+                                            // Add the user to all the private tenant groups
+                                            RestAPI.Group.setGroupMembers(
+                                              privateTenant.adminRestContext,
+                                              privateTenant.publicGroup.id,
+                                              permissions,
+                                              err => {
+                                                assert.ok(!err);
+                                                RestAPI.Group.setGroupMembers(
+                                                  privateTenant.adminRestContext,
+                                                  privateTenant.loggedinJoinableGroup.id,
+                                                  permissions,
+                                                  err => {
+                                                    RestAPI.Group.setGroupMembers(
+                                                      privateTenant.adminRestContext,
+                                                      privateTenant.loggedinNotJoinableGroup.id,
+                                                      permissions,
+                                                      err => {
+                                                        assert.ok(!err);
+                                                        RestAPI.Group.setGroupMembers(
+                                                          privateTenant.adminRestContext,
+                                                          privateTenant.privateJoinableGroup.id,
+                                                          permissions,
+                                                          err => {
+                                                            RestAPI.Group.setGroupMembers(
+                                                              privateTenant.adminRestContext,
+                                                              privateTenant.privateNotJoinableGroup.id,
+                                                              permissions,
+                                                              err => {
+                                                                assert.ok(!err);
+
+                                                                // Make the private tenant private again
+                                                                ConfigTestsUtil.updateConfigAndWait(
+                                                                  TestsUtil.createGlobalAdminRestContext(),
+                                                                  privateTenant.tenant.alias,
+                                                                  { 'oae-tenants/tenantprivacy/tenantprivate': true },
+                                                                  err => {
+                                                                    assert.ok(!err);
+                                                                    return callback();
+                                                                  }
+                                                                );
+                                                              }
+                                                            );
+                                                          }
+                                                        );
+                                                      }
+                                                    );
+                                                  }
+                                                );
+                                              }
+                                            );
                                           }
                                         );
                                       }
@@ -177,60 +219,117 @@ const updateAllGroups = function(publicTenant1, publicTenant2, privateTenant, mo
   // Update the groups from publicTenant1
   RestAPI.Group.updateGroup(publicTenant1.adminRestContext, publicTenant1.publicGroup.id, modifications, err => {
     assert.ok(!err);
-    RestAPI.Group.updateGroup(publicTenant1.adminRestContext, publicTenant1.loggedinGroup.id, modifications, err => {
-      assert.ok(!err);
-      RestAPI.Group.updateGroup(publicTenant1.adminRestContext, publicTenant1.privateGroup.id, modifications, err => {
-        assert.ok(!err);
+    RestAPI.Group.updateGroup(
+      publicTenant1.adminRestContext,
+      publicTenant1.loggedinNotJoinableGroup.id,
+      modifications,
+      err => {
+        RestAPI.Group.updateGroup(
+          publicTenant1.adminRestContext,
+          publicTenant1.loggedinJoinableGroup.id,
+          modifications,
+          err => {
+            assert.ok(!err);
+            RestAPI.Group.updateGroup(
+              publicTenant1.adminRestContext,
+              publicTenant1.privateJoinableGroup.id,
+              modifications,
+              err => {
+                RestAPI.Group.updateGroup(
+                  publicTenant1.adminRestContext,
+                  publicTenant1.privateNotJoinableGroup.id,
+                  modifications,
+                  err => {
+                    assert.ok(!err);
 
-        // Update the groups from publicTenant2
-        RestAPI.Group.updateGroup(publicTenant2.adminRestContext, publicTenant2.publicGroup.id, modifications, err => {
-          assert.ok(!err);
-          RestAPI.Group.updateGroup(
-            publicTenant2.adminRestContext,
-            publicTenant2.loggedinGroup.id,
-            modifications,
-            err => {
-              assert.ok(!err);
-              RestAPI.Group.updateGroup(
-                publicTenant2.adminRestContext,
-                publicTenant2.privateGroup.id,
-                modifications,
-                err => {
-                  assert.ok(!err);
+                    // Update the groups from publicTenant2
+                    RestAPI.Group.updateGroup(
+                      publicTenant2.adminRestContext,
+                      publicTenant2.publicGroup.id,
+                      modifications,
+                      err => {
+                        assert.ok(!err);
+                        RestAPI.Group.updateGroup(
+                          publicTenant2.adminRestContext,
+                          publicTenant2.loggedinJoinableGroup.id,
+                          modifications,
+                          err => {
+                            RestAPI.Group.updateGroup(
+                              publicTenant2.adminRestContext,
+                              publicTenant2.loggedinNotJoinableGroup.id,
+                              modifications,
+                              err => {
+                                assert.ok(!err);
+                                RestAPI.Group.updateGroup(
+                                  publicTenant2.adminRestContext,
+                                  publicTenant2.privateJoinableGroup.id,
+                                  modifications,
+                                  err => {
+                                    RestAPI.Group.updateGroup(
+                                      publicTenant2.adminRestContext,
+                                      publicTenant2.privateNotJoinableGroup.id,
+                                      modifications,
+                                      err => {
+                                        assert.ok(!err);
 
-                  // Update the groups from privateTenant
-                  RestAPI.Group.updateGroup(
-                    privateTenant.adminRestContext,
-                    privateTenant.publicGroup.id,
-                    modifications,
-                    err => {
-                      assert.ok(!err);
-                      RestAPI.Group.updateGroup(
-                        privateTenant.adminRestContext,
-                        privateTenant.loggedinGroup.id,
-                        modifications,
-                        err => {
-                          assert.ok(!err);
-                          RestAPI.Group.updateGroup(
-                            privateTenant.adminRestContext,
-                            privateTenant.privateGroup.id,
-                            modifications,
-                            err => {
-                              assert.ok(!err);
-                              return callback();
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        });
-      });
-    });
+                                        // Update the groups from privateTenant
+                                        RestAPI.Group.updateGroup(
+                                          privateTenant.adminRestContext,
+                                          privateTenant.publicGroup.id,
+                                          modifications,
+                                          err => {
+                                            assert.ok(!err);
+                                            RestAPI.Group.updateGroup(
+                                              privateTenant.adminRestContext,
+                                              privateTenant.loggedinJoinableGroup.id,
+                                              modifications,
+                                              err => {
+                                                RestAPI.Group.updateGroup(
+                                                  privateTenant.adminRestContext,
+                                                  privateTenant.loggedinNotJoinableGroup.id,
+                                                  modifications,
+                                                  err => {
+                                                    assert.ok(!err);
+                                                    RestAPI.Group.updateGroup(
+                                                      privateTenant.adminRestContext,
+                                                      privateTenant.privateNotJoinableGroup.id,
+                                                      modifications,
+                                                      err => {
+                                                        RestAPI.Group.updateGroup(
+                                                          privateTenant.adminRestContext,
+                                                          privateTenant.privateJoinableGroup.id,
+                                                          modifications,
+                                                          err => {
+                                                            assert.ok(!err);
+                                                            return callback();
+                                                          }
+                                                        );
+                                                      }
+                                                    );
+                                                  }
+                                                );
+                                              }
+                                            );
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
+      }
+    );
   });
 };
 

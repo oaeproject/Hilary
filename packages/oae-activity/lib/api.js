@@ -92,10 +92,7 @@ const refreshConfiguration = function(config, callback) {
   if (config.processActivityJobs && config.collectionPollingFrequency > 0) {
     const collectionPollingFrequencyInMs = config.collectionPollingFrequency * 1000;
     // Delegate to the aggregator to collect/aggregate all buckets
-    collectionPollingTimer = setInterval(
-      ActivityAggregator.collectAllBuckets,
-      collectionPollingFrequencyInMs
-    );
+    collectionPollingTimer = setInterval(ActivityAggregator.collectAllBuckets, collectionPollingFrequencyInMs);
   }
 
   // Reset the mail polling interval
@@ -509,16 +506,8 @@ const registerActivityEntityType = function(activityEntityType, options) {
  * @param  {Object}                 associationFunction.callback.err            An error that occurred, if any
  * @param  {Array|Object}           associationFunction.callback.association    The result of the association. To be useful as a route, this should be an array of strings, however other data structures can be provided as well for ad-hoc operations using the associations context directly
  */
-const registerActivityEntityAssociation = function(
-  activityEntityType,
-  associationName,
-  associationFunction
-) {
-  ActivityRegistry.registerActivityEntityAssociation(
-    activityEntityType,
-    associationName,
-    associationFunction
-  );
+const registerActivityEntityAssociation = function(activityEntityType, associationName, associationFunction) {
+  ActivityRegistry.registerActivityEntityAssociation(activityEntityType, associationName, associationFunction);
 };
 
 /**
@@ -557,34 +546,22 @@ const getActivityStream = function(ctx, principalId, start, limit, transformerTy
     // Determining which activity stream should be returned is exactly the same
     // as resolving which library should be returned to a user. We can simply
     // re-use the library-authz logic
-    LibraryAuthz.resolveTargetLibraryAccess(
-      ctx,
-      principalId,
-      principal,
-      (err, hasAccess, visibility) => {
-        if (err) {
-          return callback(err);
-        }
-        if (!hasAccess) {
-          return callback({ code: 401, msg: 'You cannot access this activity stream' });
-        }
-
-        let activityStreamType = 'activity';
-        if (visibility === 'public' || visibility === 'loggedin') {
-          activityStreamType += '#' + visibility;
-        }
-
-        // Return the activities
-        return _getActivityStream(
-          ctx,
-          principalId + '#' + activityStreamType,
-          start,
-          limit,
-          transformerType,
-          callback
-        );
+    LibraryAuthz.resolveTargetLibraryAccess(ctx, principalId, principal, (err, hasAccess, visibility) => {
+      if (err) {
+        return callback(err);
       }
-    );
+      if (!hasAccess) {
+        return callback({ code: 401, msg: 'You cannot access this activity stream' });
+      }
+
+      let activityStreamType = 'activity';
+      if (visibility === 'public' || visibility === 'loggedin') {
+        activityStreamType += '#' + visibility;
+      }
+
+      // Return the activities
+      return _getActivityStream(ctx, principalId + '#' + activityStreamType, start, limit, transformerType, callback);
+    });
   });
 };
 
@@ -604,12 +581,8 @@ const getNotificationStream = function(ctx, userId, start, limit, transformerTyp
   transformerType = transformerType || ActivityConstants.transformerTypes.ACTIVITYSTREAMS;
 
   const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'You must be logged in to get a notification stream' })
-    .isLoggedInUser(ctx);
-  validator
-    .check(userId, { code: 400, msg: 'You can only view the notification streams for a user' })
-    .isUserId();
+  validator.check(null, { code: 401, msg: 'You must be logged in to get a notification stream' }).isLoggedInUser(ctx);
+  validator.check(userId, { code: 400, msg: 'You can only view the notification streams for a user' }).isUserId();
   validator
     .check(transformerType, { code: 400, msg: 'Unknown activity transformer type' })
     .isIn(_.values(ActivityConstants.transformerTypes));
@@ -638,9 +611,7 @@ const getNotificationStream = function(ctx, userId, start, limit, transformerTyp
  */
 const markNotificationsRead = function(ctx, callback) {
   const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'You must be logged in to mark notifications read' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'You must be logged in to mark notifications read' }).isLoggedInUser(ctx);
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -681,9 +652,7 @@ const postActivity = function(ctx, activitySeed, callback) {
         msg: 'Activity seed did not have an activity type.'
       })
       .notEmpty();
-    validator
-      .check(activitySeed.verb, { code: 400, msg: 'Activity seed did not have a verb.' })
-      .notEmpty();
+    validator.check(activitySeed.verb, { code: 400, msg: 'Activity seed did not have a verb.' }).notEmpty();
     validator
       .check(activitySeed.published, {
         code: 400,
@@ -763,14 +732,7 @@ const postActivity = function(ctx, activitySeed, callback) {
  * @param  {ActivityStream}    callback.activityStream  The activity stream
  * @api private
  */
-const _getActivityStream = function(
-  ctx,
-  activityStreamId,
-  start,
-  limit,
-  transformerType,
-  callback
-) {
+const _getActivityStream = function(ctx, activityStreamId, start, limit, transformerType, callback) {
   ActivityDAO.getActivities(activityStreamId, start, limit, (err, activities, nextToken) => {
     if (err) {
       return callback(err);

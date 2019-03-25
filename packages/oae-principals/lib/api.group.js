@@ -79,6 +79,7 @@ const getFullGroupProfile = function(ctx, groupId, callback) {
       return callback({ code: 404, msg: util.format("Couldn't find principal: %s", groupId) });
     }
 
+    // eslint-disable-next-line no-unused-vars
     AuthzPermissions.resolveEffectivePermissions(ctx, group, (err, permissions, effectiveRole) => {
       if (err) {
         return callback(err);
@@ -476,6 +477,9 @@ const getRecentGroupsForUserId = function(ctx, principalId, limit, callback) {
  */
 const _getRecentGroupsForUserId = function(ctx, principalId, limit, callback) {
   PrincipalsDAO.getVisitedGroups(principalId, (err, items) => {
+    if (err) {
+      return callback(err);
+    }
     const sorted = _.sortBy(items, 'latestVisit')
       .reverse()
       .slice(0, 5);
@@ -1110,13 +1114,13 @@ const createRequestJoinGroup = function(ctx, groupId, callback) {
     if (err) return callback(err);
 
     // If the request exists, return
-    PrincipalsDAO.createRequestJoinGroup(ctx.user().id, groupId, (err, request) => {
+    PrincipalsDAO.createRequestJoinGroup(ctx.user().id, groupId, err => {
       if (err) return callback(err);
 
       PrincipalsDAO.getPrincipal(groupId, (err, group) => {
         if (err) return callback(err);
 
-        AuthzAPI.getAuthzMembers(groupId, null, null, (err, memberInfos, nextToken) => {
+        AuthzAPI.getAuthzMembers(groupId, null, null, (err, memberInfos) => {
           if (err) return callback(err);
 
           // Notify managers that someone asked to be part of this group
@@ -1145,6 +1149,7 @@ const createRequestJoinGroup = function(ctx, groupId, callback) {
  * @param  {Object}     callback.err                An error that occured, if any
  */
 const getJoinGroupRequests = function(ctx, filter, callback) {
+  // eslint-disable-next-line no-unused-vars
   let { groupId, start, limit } = filter;
   limit = OaeUtil.getNumberParam(limit, 10, 1);
   _validateJoinGroupRequest(ctx, groupId, err => {
@@ -1191,12 +1196,17 @@ const getJoinGroupRequest = function(ctx, groupId, callback) {
     return callback(validator.getFirstError());
   }
 
-  // If the request exists, return
   PrincipalsDAO.getJoinGroupRequest(groupId, ctx.user().id, (err, request) => {
     if (err) {
       return callback(err);
     }
 
+    /**
+     * Only return the group join request if it's in pending status because:
+     * if in CANCEL status, act as if no request exists
+     * if in REJECT status, act as if no request exists
+     * if in ACCEPT status, then this is useless
+     */
     if (_.isEmpty(request) || request.status !== PrincipalsConstants.requestStatus.PENDING) {
       return callback();
     }

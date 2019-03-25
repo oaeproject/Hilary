@@ -160,14 +160,10 @@ describe('Activity push', () => {
         let receivedResponse = false;
 
         // Sending an invalid authentication frame should fail
-        client.sendMessage(
-          'authentication',
-          { userId: 'not-a-user-id', signature: {} },
-          (err, data) => {
-            assert.strictEqual(err.code, 400);
-            receivedResponse = true;
-          }
-        );
+        client.sendMessage('authentication', { userId: 'not-a-user-id', signature: {} }, (err, data) => {
+          assert.strictEqual(err.code, 400);
+          receivedResponse = true;
+        });
 
         client.on('close', () => {
           assert.ok(receivedResponse, 'Expected to receive a message before closing the socket');
@@ -239,17 +235,11 @@ describe('Activity push', () => {
               assert.strictEqual(err.code, 400);
 
               // Specifying an unknown format should result in a validation error
-              client.subscribe(
-                mrvisser.user.id,
-                'activity',
-                { some: 'token' },
-                'unknown format',
-                (err, msg) => {
-                  assert.strictEqual(err.code, 400);
+              client.subscribe(mrvisser.user.id, 'activity', { some: 'token' }, 'unknown format', (err, msg) => {
+                assert.strictEqual(err.code, 400);
 
-                  client.close(callback);
-                }
-              );
+                client.close(callback);
+              });
             });
           });
         });
@@ -273,48 +263,36 @@ describe('Activity push', () => {
           };
           ActivityTestUtil.getFullySetupPushClient(data, client => {
             // Mrvisser cannot subscribe on Simon's feed
-            client.subscribe(
-              simon.user.id,
-              'activity',
-              mrvisserMeData.signature,
-              null,
-              (err, msg) => {
-                assert.strictEqual(err.code, 401);
+            client.subscribe(simon.user.id, 'activity', mrvisserMeData.signature, null, (err, msg) => {
+              assert.strictEqual(err.code, 401);
 
-                // He can register for his own feed without a token since he's authenticated on the socket
-                client.subscribe(mrvisser.user.id, 'activity', null, null, (err, msg) => {
-                  assert.ok(!err);
+              // He can register for his own feed without a token since he's authenticated on the socket
+              client.subscribe(mrvisser.user.id, 'activity', null, null, (err, msg) => {
+                assert.ok(!err);
 
-                  // He can register on a group feed
-                  RestAPI.Group.createGroup(
-                    mrvisser.restContext,
-                    'Group title',
-                    'Group description',
-                    'public',
-                    'yes',
-                    [],
-                    [],
-                    (err, group) => {
+                // He can register on a group feed
+                RestAPI.Group.createGroup(
+                  mrvisser.restContext,
+                  'Group title',
+                  'Group description',
+                  'public',
+                  'yes',
+                  [],
+                  [],
+                  (err, group) => {
+                    assert.ok(!err);
+                    RestAPI.Group.getGroup(mrvisser.restContext, group.id, (err, group) => {
                       assert.ok(!err);
-                      RestAPI.Group.getGroup(mrvisser.restContext, group.id, (err, group) => {
+                      client.subscribe(group.id, 'activity', group.signature, null, (err, msg) => {
                         assert.ok(!err);
-                        client.subscribe(
-                          group.id,
-                          'activity',
-                          group.signature,
-                          null,
-                          (err, msg) => {
-                            assert.ok(!err);
 
-                            client.close(callback);
-                          }
-                        );
+                        client.close(callback);
                       });
-                    }
-                  );
-                });
-              }
-            );
+                    });
+                  }
+                );
+              });
+            });
           });
         });
       });
@@ -339,54 +317,36 @@ describe('Activity push', () => {
           };
           ActivityTestUtil.getFullySetupPushClient(data, client => {
             // Mrvisser cannot subscribe on Simon's feed
-            client.subscribe(
-              simon.user.id,
-              'notification',
-              mrvisserMeData.signature,
-              null,
-              (err, msg) => {
-                assert.strictEqual(err.code, 401);
+            client.subscribe(simon.user.id, 'notification', mrvisserMeData.signature, null, (err, msg) => {
+              assert.strictEqual(err.code, 401);
 
-                // Groups don't have notification feeds
-                RestAPI.Group.createGroup(
-                  mrvisser.restContext,
-                  'Group title',
-                  'Group description',
-                  'public',
-                  'yes',
-                  [],
-                  [],
-                  (err, group) => {
+              // Groups don't have notification feeds
+              RestAPI.Group.createGroup(
+                mrvisser.restContext,
+                'Group title',
+                'Group description',
+                'public',
+                'yes',
+                [],
+                [],
+                (err, group) => {
+                  assert.ok(!err);
+                  RestAPI.Group.getGroup(mrvisser.restContext, group.id, (err, group) => {
                     assert.ok(!err);
-                    RestAPI.Group.getGroup(mrvisser.restContext, group.id, (err, group) => {
-                      assert.ok(!err);
-                      client.subscribe(
-                        group.id,
-                        'notification',
-                        group.signature,
-                        null,
-                        (err, msg) => {
-                          assert.strictEqual(err.code, 400);
+                    client.subscribe(group.id, 'notification', group.signature, null, (err, msg) => {
+                      assert.strictEqual(err.code, 400);
 
-                          // He can register for his own feed without a token since he's authenticated on the socket
-                          client.subscribe(
-                            mrvisser.user.id,
-                            'notification',
-                            null,
-                            null,
-                            (err, msg) => {
-                              assert.ok(!err);
+                      // He can register for his own feed without a token since he's authenticated on the socket
+                      client.subscribe(mrvisser.user.id, 'notification', null, null, (err, msg) => {
+                        assert.ok(!err);
 
-                              client.close(callback);
-                            }
-                          );
-                        }
-                      );
+                        client.close(callback);
+                      });
                     });
-                  }
-                );
-              }
-            );
+                  });
+                }
+              );
+            });
           });
         });
       });
@@ -424,73 +384,59 @@ describe('Activity push', () => {
                   [],
                   (err, googleLink) => {
                     assert.ok(!err);
-                    RestAPI.Content.getContent(
-                      mrvisser.restContext,
-                      googleLink.id,
-                      (err, googleLink) => {
+                    RestAPI.Content.getContent(mrvisser.restContext, googleLink.id, (err, googleLink) => {
+                      assert.ok(!err);
+
+                      // Route and deliver activities
+                      ActivityTestUtil.collectAndGetActivityStream(mrvisser.restContext, null, null, err => {
                         assert.ok(!err);
 
-                        // Route and deliver activities
-                        ActivityTestUtil.collectAndGetActivityStream(
-                          mrvisser.restContext,
-                          null,
-                          null,
-                          err => {
-                            assert.ok(!err);
-
-                            // Subscribe on the Yahoo link
-                            const data = {
-                              authentication: {
-                                userId: mrvisserMeData.id,
-                                tenantAlias: mrvisserMeData.tenant.alias,
-                                signature: mrvisserMeData.signature
-                              },
-                              streams: [
-                                {
-                                  resourceId: yahooLink.id,
-                                  streamType: 'activity',
-                                  token: yahooLink.signature
-                                }
-                              ]
-                            };
-                            ActivityTestUtil.getFullySetupPushClient(data, client => {
-                              // Wait for a bit so the content create notification is sent
-                              setTimeout(() => {
-                                client.on('message', message => {
-                                  if (message) {
-                                    assert.fail(
-                                      'No activities should be pushed to this stream as nothing happened on the "yahoo" link'
-                                    );
-                                  }
-                                });
-
-                                // Trigger an update on the google item, we should not get an activity on the websocket for that content item
-                                RestAPI.Content.updateContent(
-                                  mrvisser.restContext,
-                                  googleLink.id,
-                                  { displayName: 'Google woo' },
-                                  err => {
-                                    assert.ok(!err);
-
-                                    // Route and deliver activities
-                                    ActivityTestUtil.collectAndGetActivityStream(
-                                      mrvisser.restContext,
-                                      null,
-                                      null,
-                                      err => {
-                                        assert.ok(!err);
-
-                                        client.close(callback);
-                                      }
-                                    );
-                                  }
+                        // Subscribe on the Yahoo link
+                        const data = {
+                          authentication: {
+                            userId: mrvisserMeData.id,
+                            tenantAlias: mrvisserMeData.tenant.alias,
+                            signature: mrvisserMeData.signature
+                          },
+                          streams: [
+                            {
+                              resourceId: yahooLink.id,
+                              streamType: 'activity',
+                              token: yahooLink.signature
+                            }
+                          ]
+                        };
+                        ActivityTestUtil.getFullySetupPushClient(data, client => {
+                          // Wait for a bit so the content create notification is sent
+                          setTimeout(() => {
+                            client.on('message', message => {
+                              if (message) {
+                                assert.fail(
+                                  'No activities should be pushed to this stream as nothing happened on the "yahoo" link'
                                 );
-                              }, 1000);
+                              }
                             });
-                          }
-                        );
-                      }
-                    );
+
+                            // Trigger an update on the google item, we should not get an activity on the websocket for that content item
+                            RestAPI.Content.updateContent(
+                              mrvisser.restContext,
+                              googleLink.id,
+                              { displayName: 'Google woo' },
+                              err => {
+                                assert.ok(!err);
+
+                                // Route and deliver activities
+                                ActivityTestUtil.collectAndGetActivityStream(mrvisser.restContext, null, null, err => {
+                                  assert.ok(!err);
+
+                                  client.close(callback);
+                                });
+                              }
+                            );
+                          }, 1000);
+                        });
+                      });
+                    });
                   }
                 );
               });
@@ -663,14 +609,9 @@ describe('Activity push', () => {
                     discussion = _discussion;
 
                     // Force a collection cycle as notifications only get delivered upon aggregation
-                    ActivityTestUtil.collectAndGetActivityStream(
-                      mrvisser.restContext,
-                      null,
-                      null,
-                      err => {
-                        assert.ok(!err);
-                      }
-                    );
+                    ActivityTestUtil.collectAndGetActivityStream(mrvisser.restContext, null, null, err => {
+                      assert.ok(!err);
+                    });
                   }
                 );
 
@@ -787,8 +728,7 @@ describe('Activity push', () => {
                     _.each(activity.actor, (value, key) => {
                       assert.ok(
                         _.contains(allowedActorProperties, key),
-                        key +
-                          ' is not allowed on an ActivityStrea.ms compliant formatted activity entity'
+                        key + ' is not allowed on an ActivityStrea.ms compliant formatted activity entity'
                       );
                     });
 
@@ -797,10 +737,7 @@ describe('Activity push', () => {
                     assert.strictEqual(activity.object['oae:id'], discussion.id);
                     assert.strictEqual(activity.object['oae:visibility'], discussion.visibility);
                     assert.strictEqual(activity.object['oae:profilePath'], discussion.profilePath);
-                    assert.strictEqual(
-                      activity.object['oae:resourceSubType'],
-                      discussion.resourceSubType
-                    );
+                    assert.strictEqual(activity.object['oae:resourceSubType'], discussion.resourceSubType);
                     assert.strictEqual(activity.object.displayName, discussion.displayName);
                     assert.strictEqual(
                       activity.object.url,
@@ -812,10 +749,7 @@ describe('Activity push', () => {
                     assert.strictEqual(activity.object.objectType, 'discussion');
                     assert.strictEqual(
                       activity.object.id,
-                      'http://' +
-                        global.oaeTests.tenants.cam.host +
-                        '/api/discussion/' +
-                        discussion.id
+                      'http://' + global.oaeTests.tenants.cam.host + '/api/discussion/' + discussion.id
                     );
                     assert.ok(_.isObject(activity.object['oae:tenant']));
 
@@ -832,8 +766,7 @@ describe('Activity push', () => {
                     _.each(activity.object, (value, key) => {
                       assert.ok(
                         _.contains(allowedObjectProperties, key),
-                        key +
-                          ' is not allowed on an ActivityStrea.ms compliant formatted activity entity'
+                        key + ' is not allowed on an ActivityStrea.ms compliant formatted activity entity'
                       );
                     });
                   }
@@ -905,13 +838,9 @@ describe('Activity push', () => {
                 assert.ok(!err);
 
                 // Force a collection cycle as notifications are sent out on aggregation
-                ActivityTestUtil.collectAndGetNotificationStream(
-                  mrvisser.restContext,
-                  null,
-                  (err, activityStream) => {
-                    assert.ok(!err);
-                  }
-                );
+                ActivityTestUtil.collectAndGetNotificationStream(mrvisser.restContext, null, (err, activityStream) => {
+                  assert.ok(!err);
+                });
 
                 let activitiesReceived = 0;
                 const formatReceived = {
@@ -979,13 +908,9 @@ describe('Activity push', () => {
               (err, discussion) => {
                 assert.ok(!err);
                 // We need to force a collection cycle as the notifiation stream gets pushed out after the aggregation phase
-                ActivityTestUtil.collectAndGetNotificationStream(
-                  mrvisser.restContext,
-                  null,
-                  (err, activityStream) => {
-                    assert.ok(!err);
-                  }
-                );
+                ActivityTestUtil.collectAndGetNotificationStream(mrvisser.restContext, null, (err, activityStream) => {
+                  assert.ok(!err);
+                });
 
                 // As this is the first discussion_created activity in mrvisser's notification stream it
                 // can't aggregate with any other activities. That should be indicated on the push message
@@ -1055,51 +980,48 @@ describe('Activity push', () => {
 
                                     // If 2 disjoint activities get delivered to the notification stream, the
                                     // number of new activities should be 2
-                                    RestAPI.Activity.markNotificationsRead(
-                                      mrvisser.restContext,
-                                      err => {
-                                        assert.ok(!err);
-                                        RestAPI.Discussions.createDiscussion(
-                                          simong.restContext,
-                                          'Test discussion',
-                                          'Test discussion description',
-                                          'public',
-                                          [],
-                                          [mrvisser.user.id],
-                                          (err, discussion) => {
-                                            assert.ok(!err);
-                                            RestAPI.Content.createLink(
-                                              simong.restContext,
-                                              'Test link',
-                                              'Test link',
-                                              'public',
-                                              'https://google.com',
-                                              [],
-                                              [mrvisser.user.id],
-                                              [],
-                                              (err, discussion) => {
-                                                assert.ok(!err);
-                                                ActivityTestUtil.collectAndGetNotificationStream(
-                                                  mrvisser.restContext,
-                                                  null,
-                                                  (err, activityStream) => {
-                                                    assert.ok(!err);
-                                                  }
-                                                );
+                                    RestAPI.Activity.markNotificationsRead(mrvisser.restContext, err => {
+                                      assert.ok(!err);
+                                      RestAPI.Discussions.createDiscussion(
+                                        simong.restContext,
+                                        'Test discussion',
+                                        'Test discussion description',
+                                        'public',
+                                        [],
+                                        [mrvisser.user.id],
+                                        (err, discussion) => {
+                                          assert.ok(!err);
+                                          RestAPI.Content.createLink(
+                                            simong.restContext,
+                                            'Test link',
+                                            'Test link',
+                                            'public',
+                                            'https://google.com',
+                                            [],
+                                            [mrvisser.user.id],
+                                            [],
+                                            (err, discussion) => {
+                                              assert.ok(!err);
+                                              ActivityTestUtil.collectAndGetNotificationStream(
+                                                mrvisser.restContext,
+                                                null,
+                                                (err, activityStream) => {
+                                                  assert.ok(!err);
+                                                }
+                                              );
 
-                                                client.once('message', message => {
-                                                  assert.ok(message);
-                                                  assert.strictEqual(message.numNewActivities, 2);
-                                                  assert.strictEqual(message.activities.length, 2);
+                                              client.once('message', message => {
+                                                assert.ok(message);
+                                                assert.strictEqual(message.numNewActivities, 2);
+                                                assert.strictEqual(message.activities.length, 2);
 
-                                                  return callback();
-                                                });
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
+                                                return callback();
+                                              });
+                                            }
+                                          );
+                                        }
+                                      );
+                                    });
                                   });
                                 }
                               );

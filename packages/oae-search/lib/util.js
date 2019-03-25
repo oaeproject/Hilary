@@ -639,7 +639,10 @@ const filterImplicitAccess = function(ctx) {
       filterTerm('tenantAlias', user.tenant.alias),
       filterOr(
         filterTerm('visibility', AuthzConstants.visibility.LOGGEDIN),
-        filterAnd(filterTerm('resourceType', 'group'), filterTerms('joinable', [AuthzConstants.joinable.YES]))
+        filterAnd(
+          filterTerm('resourceType', 'group'),
+          filterTerms('joinable', [AuthzConstants.joinable.YES, AuthzConstants.joinable.REQUEST])
+        )
       )
     );
 

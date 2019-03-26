@@ -118,7 +118,7 @@ describe('General Search', () => {
         assert.ok(!err);
 
         // Verify we can search for the user
-        const mrvisser = _.values(users)[0];
+        const { 0: mrvisser } = _.values(users);
         SearchTestsUtil.searchRefreshed(
           anonymousRestContext,
           'general',
@@ -140,7 +140,7 @@ describe('General Search', () => {
       TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
         assert.ok(!err);
 
-        const mrvisser = _.values(users)[0];
+        const { 0: mrvisser } = _.values(users);
         // First check that the user does not match on the term 'Visser'
         SearchTestsUtil.searchRefreshed(
           anonymousRestContext,
@@ -154,34 +154,29 @@ describe('General Search', () => {
             // Set the display name of the user
             const updateProperties = { displayName: 'Branden Visser' + mrvisser.user.id };
 
-            RestAPI.User.updateUser(
-              mrvisser.restContext,
-              mrvisser.user.id,
-              updateProperties,
-              err => {
-                assert.ok(!err);
+            RestAPI.User.updateUser(mrvisser.restContext, mrvisser.user.id, updateProperties, err => {
+              assert.ok(!err);
 
-                // Ensure that the new term matches the user
-                SearchTestsUtil.searchRefreshed(
-                  anonymousRestContext,
-                  'general',
-                  null,
-                  { resourceTypes: 'user', q: updateProperties.displayName },
-                  (err, results) => {
-                    assert.ok(!err);
+              // Ensure that the new term matches the user
+              SearchTestsUtil.searchRefreshed(
+                anonymousRestContext,
+                'general',
+                null,
+                { resourceTypes: 'user', q: updateProperties.displayName },
+                (err, results) => {
+                  assert.ok(!err);
 
-                    const doc = _getDocById(results, mrvisser.user.id);
-                    assert.ok(doc);
-                    assert.ok(!doc._extra);
+                  const doc = _getDocById(results, mrvisser.user.id);
+                  assert.ok(doc);
+                  assert.ok(!doc._extra);
 
-                    // There should not be a doc.extra because there are no extension properties on the user
-                    assert.ok(!doc.extra);
+                  // There should not be a doc.extra because there are no extension properties on the user
+                  assert.ok(!doc.extra);
 
-                    callback();
-                  }
-                );
-              }
-            );
+                  callback();
+                }
+              );
+            });
           }
         );
       });
@@ -236,38 +231,30 @@ describe('General Search', () => {
 
               // Update name match the term
               const displayName = 'Team testverifyindexupdatedgroup' + xyzTeam.group.id;
-              RestAPI.Group.updateGroup(
-                doer.restContext,
-                xyzTeam.group.id,
-                { displayName },
-                err => {
-                  assert.ok(!err);
+              RestAPI.Group.updateGroup(doer.restContext, xyzTeam.group.id, { displayName }, err => {
+                assert.ok(!err);
 
-                  // Verify that the group now appears with the search term 'testverifyindexupdatedgroup'
-                  SearchTestsUtil.searchRefreshed(
-                    doer.restContext,
-                    'general',
-                    null,
-                    { resourceTypes: 'group', q: displayName },
-                    (err, results) => {
-                      assert.ok(!err);
+                // Verify that the group now appears with the search term 'testverifyindexupdatedgroup'
+                SearchTestsUtil.searchRefreshed(
+                  doer.restContext,
+                  'general',
+                  null,
+                  { resourceTypes: 'group', q: displayName },
+                  (err, results) => {
+                    assert.ok(!err);
 
-                      const doc = _getDocById(results, xyzTeam.group.id);
-                      assert.ok(doc);
-                      assert.strictEqual(doc.displayName, displayName);
-                      assert.strictEqual(doc.resourceType, 'group');
-                      assert.strictEqual(
-                        doc.profilePath,
-                        '/group/' +
-                          doc.tenant.alias +
-                          '/' +
-                          AuthzUtil.getResourceFromId(doc.id).resourceId
-                      );
-                      return callback();
-                    }
-                  );
-                }
-              );
+                    const doc = _getDocById(results, xyzTeam.group.id);
+                    assert.ok(doc);
+                    assert.strictEqual(doc.displayName, displayName);
+                    assert.strictEqual(doc.resourceType, 'group');
+                    assert.strictEqual(
+                      doc.profilePath,
+                      '/group/' + doc.tenant.alias + '/' + AuthzUtil.getResourceFromId(doc.id).resourceId
+                    );
+                    return callback();
+                  }
+                );
+              });
             }
           );
         });
@@ -342,27 +329,22 @@ describe('General Search', () => {
                 assert.ok(!_getDocById(results, content.id));
 
                 // Update the content
-                RestAPI.Content.updateContent(
-                  doer.restContext,
-                  content.id,
-                  { displayName: 'OAE Project' },
-                  err => {
-                    assert.ok(!err);
+                RestAPI.Content.updateContent(doer.restContext, content.id, { displayName: 'OAE Project' }, err => {
+                  assert.ok(!err);
 
-                    // Verify OAE now matches the updated content item
-                    SearchTestsUtil.searchRefreshed(
-                      doer.restContext,
-                      'general',
-                      null,
-                      { resourceTypes: 'content', q: 'OAE' },
-                      (err, results) => {
-                        assert.ok(!err);
-                        assert.ok(_getDocById(results, content.id));
-                        callback();
-                      }
-                    );
-                  }
-                );
+                  // Verify OAE now matches the updated content item
+                  SearchTestsUtil.searchRefreshed(
+                    doer.restContext,
+                    'general',
+                    null,
+                    { resourceTypes: 'content', q: 'OAE' },
+                    (err, results) => {
+                      assert.ok(!err);
+                      assert.ok(_getDocById(results, content.id));
+                      callback();
+                    }
+                  );
+                });
               }
             );
           }
@@ -402,51 +384,40 @@ describe('General Search', () => {
                 assert.ok(!_getDocById(results, content.id));
 
                 // Create a comment on the content item
-                RestAPI.Content.createComment(
-                  user.restContext,
-                  content.id,
-                  searchTerm,
-                  null,
-                  (err, comment) => {
-                    assert.ok(!err);
+                RestAPI.Content.createComment(user.restContext, content.id, searchTerm, null, (err, comment) => {
+                  assert.ok(!err);
 
-                    // Verify the search term matches the content item we just commented on
-                    SearchTestsUtil.searchAll(
-                      user.restContext,
-                      'general',
-                      null,
-                      { resourceTypes: 'content', q: searchTerm },
-                      (err, results) => {
+                  // Verify the search term matches the content item we just commented on
+                  SearchTestsUtil.searchAll(
+                    user.restContext,
+                    'general',
+                    null,
+                    { resourceTypes: 'content', q: searchTerm },
+                    (err, results) => {
+                      assert.ok(!err);
+                      assert.ok(_getDocById(results, content.id));
+
+                      // Now delete the message
+                      RestAPI.Content.deleteComment(user.restContext, content.id, comment.created, err => {
                         assert.ok(!err);
-                        assert.ok(_getDocById(results, content.id));
 
-                        // Now delete the message
-                        RestAPI.Content.deleteComment(
+                        // Verify the search term no longer matches the content item
+                        SearchTestsUtil.searchAll(
                           user.restContext,
-                          content.id,
-                          comment.created,
-                          err => {
+                          'general',
+                          null,
+                          { resourceTypes: 'content', q: searchTerm },
+                          (err, results) => {
                             assert.ok(!err);
+                            assert.ok(!_getDocById(results, content.id));
 
-                            // Verify the search term no longer matches the content item
-                            SearchTestsUtil.searchAll(
-                              user.restContext,
-                              'general',
-                              null,
-                              { resourceTypes: 'content', q: searchTerm },
-                              (err, results) => {
-                                assert.ok(!err);
-                                assert.ok(!_getDocById(results, content.id));
-
-                                return callback();
-                              }
-                            );
+                            return callback();
                           }
                         );
-                      }
-                    );
-                  }
-                );
+                      });
+                    }
+                  );
+                });
               }
             );
           }
@@ -517,18 +488,12 @@ describe('General Search', () => {
                   assert.ok(!err);
                   assert.strictEqual(_containsDoc(results, contentId), canSearchContent);
                   assert.strictEqual(_containsDoc(results, discussionId), canSearchDiscussion);
-                  SearchTestsUtil.searchAll(
-                    restContext,
-                    'general',
-                    null,
-                    { q: searchTerm },
-                    (err, results) => {
-                      assert.ok(!err);
-                      assert.strictEqual(_containsDoc(results, contentId), canSearchContent);
-                      assert.strictEqual(_containsDoc(results, discussionId), canSearchDiscussion);
-                      return callback();
-                    }
-                  );
+                  SearchTestsUtil.searchAll(restContext, 'general', null, { q: searchTerm }, (err, results) => {
+                    assert.ok(!err);
+                    assert.strictEqual(_containsDoc(results, contentId), canSearchContent);
+                    assert.strictEqual(_containsDoc(results, discussionId), canSearchDiscussion);
+                    return callback();
+                  });
                 }
               );
             }
@@ -571,101 +536,74 @@ describe('General Search', () => {
                 assert.ok(!err);
 
                 // Verify that we do not get the content item or discussion in any of the search resourceTypes permutations
-                _verifySearchResults(
-                  user.restContext,
-                  content.id,
-                  discussion.id,
-                  false,
-                  false,
-                  searchTerm,
-                  () => {
-                    // Create a comment on the content item
-                    RestAPI.Content.createComment(
-                      user.restContext,
-                      content.id,
-                      searchTerm,
-                      null,
-                      (err, comment) => {
-                        assert.ok(!err);
+                _verifySearchResults(user.restContext, content.id, discussion.id, false, false, searchTerm, () => {
+                  // Create a comment on the content item
+                  RestAPI.Content.createComment(user.restContext, content.id, searchTerm, null, (err, comment) => {
+                    assert.ok(!err);
 
-                        // Verify that we get the content item but not the discussion item in the applicable search resourceTypes permutations
-                        _verifySearchResults(
-                          user.restContext,
-                          content.id,
-                          discussion.id,
-                          true,
-                          false,
-                          searchTerm,
-                          () => {
-                            // Post a message on the discussion
-                            RestAPI.Discussions.createMessage(
-                              user.restContext,
-                              discussion.id,
-                              searchTerm,
-                              null,
-                              (err, message) => {
+                    // Verify that we get the content item but not the discussion item in the applicable search resourceTypes permutations
+                    _verifySearchResults(user.restContext, content.id, discussion.id, true, false, searchTerm, () => {
+                      // Post a message on the discussion
+                      RestAPI.Discussions.createMessage(
+                        user.restContext,
+                        discussion.id,
+                        searchTerm,
+                        null,
+                        (err, message) => {
+                          assert.ok(!err);
+
+                          // Verify that we get both the content item and discussion item in the applicable search resourceTypes permutations
+                          _verifySearchResults(
+                            user.restContext,
+                            content.id,
+                            discussion.id,
+                            true,
+                            true,
+                            searchTerm,
+                            () => {
+                              // Delete the content comment
+                              RestAPI.Content.deleteComment(user.restContext, content.id, comment.created, err => {
                                 assert.ok(!err);
 
-                                // Verify that we get both the content item and discussion item in the applicable search resourceTypes permutations
+                                // Verify that we get do not get the content item in the applicable search resourceTypes permutations
                                 _verifySearchResults(
                                   user.restContext,
                                   content.id,
                                   discussion.id,
-                                  true,
+                                  false,
                                   true,
                                   searchTerm,
                                   () => {
-                                    // Delete the content comment
-                                    RestAPI.Content.deleteComment(
+                                    // Delete the discussion message
+                                    RestAPI.Discussions.deleteMessage(
                                       user.restContext,
-                                      content.id,
-                                      comment.created,
+                                      discussion.id,
+                                      message.created,
                                       err => {
                                         assert.ok(!err);
 
-                                        // Verify that we get do not get the content item in the applicable search resourceTypes permutations
-                                        _verifySearchResults(
+                                        // Verify that we don't get the content item nor the discussion in any search resourceTypes permutation
+                                        return _verifySearchResults(
                                           user.restContext,
                                           content.id,
                                           discussion.id,
                                           false,
-                                          true,
+                                          false,
                                           searchTerm,
-                                          () => {
-                                            // Delete the discussion message
-                                            RestAPI.Discussions.deleteMessage(
-                                              user.restContext,
-                                              discussion.id,
-                                              message.created,
-                                              err => {
-                                                assert.ok(!err);
-
-                                                // Verify that we don't get the content item nor the discussion in any search resourceTypes permutation
-                                                return _verifySearchResults(
-                                                  user.restContext,
-                                                  content.id,
-                                                  discussion.id,
-                                                  false,
-                                                  false,
-                                                  searchTerm,
-                                                  callback
-                                                );
-                                              }
-                                            );
-                                          }
+                                          callback
                                         );
                                       }
                                     );
                                   }
                                 );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
+                              });
+                            }
+                          );
+                        }
+                      );
+                    });
+                  });
+                });
               }
             );
           }
@@ -709,77 +647,60 @@ describe('General Search', () => {
                   assert.ok(!err);
 
                   // Verify that we do not get the content item or discussion in any of the search resourceTypes permutations
-                  _verifySearchResults(
-                    user.restContext,
-                    content.id,
-                    discussion.id,
-                    false,
-                    false,
-                    searchTerm,
-                    () => {
-                      // Create a comment and message on the content item and discussion
-                      RestAPI.Content.createComment(
+                  _verifySearchResults(user.restContext, content.id, discussion.id, false, false, searchTerm, () => {
+                    // Create a comment and message on the content item and discussion
+                    RestAPI.Content.createComment(user.restContext, content.id, searchTerm, null, (err, comment) => {
+                      assert.ok(!err);
+                      RestAPI.Discussions.createMessage(
                         user.restContext,
-                        content.id,
+                        discussion.id,
                         searchTerm,
                         null,
-                        (err, comment) => {
+                        (err, message) => {
                           assert.ok(!err);
-                          RestAPI.Discussions.createMessage(
-                            user.restContext,
-                            discussion.id,
-                            searchTerm,
-                            null,
-                            (err, message) => {
-                              assert.ok(!err);
 
-                              // Ensure both the content item and message are searchable by their messages
-                              _verifySearchResults(
-                                user.restContext,
-                                content.id,
-                                discussion.id,
-                                true,
-                                true,
-                                searchTerm,
-                                () => {
-                                  // Delete the search index
-                                  SearchTestsUtil.deleteAll(() => {
-                                    // Ensure we can no longer search for either content or discussion item
-                                    _verifySearchResults(
-                                      user.restContext,
-                                      content.id,
-                                      discussion.id,
-                                      false,
-                                      false,
-                                      searchTerm,
-                                      () => {
-                                        // Reindex all resources
-                                        SearchTestsUtil.reindexAll(
-                                          TestsUtil.createGlobalAdminRestContext(),
-                                          () => {
-                                            // Ensure we can now search both content and discussion item again by their message bodies
-                                            return _verifySearchResults(
-                                              user.restContext,
-                                              content.id,
-                                              discussion.id,
-                                              true,
-                                              true,
-                                              searchTerm,
-                                              callback
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
-                                  });
-                                }
-                              );
+                          // Ensure both the content item and message are searchable by their messages
+                          _verifySearchResults(
+                            user.restContext,
+                            content.id,
+                            discussion.id,
+                            true,
+                            true,
+                            searchTerm,
+                            () => {
+                              // Delete the search index
+                              SearchTestsUtil.deleteAll(() => {
+                                // Ensure we can no longer search for either content or discussion item
+                                _verifySearchResults(
+                                  user.restContext,
+                                  content.id,
+                                  discussion.id,
+                                  false,
+                                  false,
+                                  searchTerm,
+                                  () => {
+                                    // Reindex all resources
+                                    SearchTestsUtil.reindexAll(TestsUtil.createGlobalAdminRestContext(), () => {
+                                      // Ensure we can now search both content and discussion item again by their message bodies
+                                      return _verifySearchResults(
+                                        user.restContext,
+                                        content.id,
+                                        discussion.id,
+                                        true,
+                                        true,
+                                        searchTerm,
+                                        callback
+                                      );
+                                    });
+                                  }
+                                );
+                              });
                             }
                           );
                         }
                       );
-                    }
-                  );
+                    });
+                  });
                 }
               );
             }
@@ -888,41 +809,37 @@ describe('General Search', () => {
                                               searchTerm,
                                               () => {
                                                 // Delete just the 2nd content item and the 2nd discussion
-                                                RestAPI.Content.deleteContent(
-                                                  user.restContext,
-                                                  content2.id,
-                                                  err => {
-                                                    assert.ok(!err);
-                                                    RestAPI.Discussions.deleteDiscussion(
-                                                      user.restContext,
-                                                      discussion2.id,
-                                                      err => {
-                                                        assert.ok(!err);
+                                                RestAPI.Content.deleteContent(user.restContext, content2.id, err => {
+                                                  assert.ok(!err);
+                                                  RestAPI.Discussions.deleteDiscussion(
+                                                    user.restContext,
+                                                    discussion2.id,
+                                                    err => {
+                                                      assert.ok(!err);
 
-                                                        // Ensure that the non-deleted content and discussion are searchable, while the 2nd ones are not
-                                                        _verifySearchResults(
-                                                          user.restContext,
-                                                          content.id,
-                                                          discussion.id,
-                                                          true,
-                                                          true,
-                                                          searchTerm,
-                                                          () => {
-                                                            return _verifySearchResults(
-                                                              user.restContext,
-                                                              content2.id,
-                                                              discussion2.id,
-                                                              false,
-                                                              false,
-                                                              searchTerm,
-                                                              callback
-                                                            );
-                                                          }
-                                                        );
-                                                      }
-                                                    );
-                                                  }
-                                                );
+                                                      // Ensure that the non-deleted content and discussion are searchable, while the 2nd ones are not
+                                                      _verifySearchResults(
+                                                        user.restContext,
+                                                        content.id,
+                                                        discussion.id,
+                                                        true,
+                                                        true,
+                                                        searchTerm,
+                                                        () => {
+                                                          return _verifySearchResults(
+                                                            user.restContext,
+                                                            content2.id,
+                                                            discussion2.id,
+                                                            false,
+                                                            false,
+                                                            searchTerm,
+                                                            callback
+                                                          );
+                                                        }
+                                                      );
+                                                    }
+                                                  );
+                                                });
                                               }
                                             );
                                           }
@@ -961,12 +878,7 @@ describe('General Search', () => {
              * @param  {Boolean}        shouldHaveContent   Whether or not the results should contain a content object
              * @return {Object}                             The search document. `null` if it didn't exist
              */
-      const _verifyHasResourceTypes = function(
-        results,
-        shouldHaveUser,
-        shouldHaveGroup,
-        shouldHaveContent
-      ) {
+      const _verifyHasResourceTypes = function(results, shouldHaveUser, shouldHaveGroup, shouldHaveContent) {
         let hasUser = false;
         let hasGroup = false;
         let hasContent = false;
@@ -1094,12 +1006,7 @@ describe('General Search', () => {
                                               },
                                               (err, results) => {
                                                 assert.ok(!err);
-                                                _verifyHasResourceTypes(
-                                                  results,
-                                                  false,
-                                                  false,
-                                                  true
-                                                );
+                                                _verifyHasResourceTypes(results, false, false, true);
 
                                                 // Verify searching two with garbage commas returns just the two
                                                 RestAPI.Search.search(
@@ -1107,24 +1014,12 @@ describe('General Search', () => {
                                                   'general',
                                                   null,
                                                   {
-                                                    resourceTypes: [
-                                                      '',
-                                                      '',
-                                                      'user',
-                                                      'content',
-                                                      '',
-                                                      ''
-                                                    ],
+                                                    resourceTypes: ['', '', 'user', 'content', '', ''],
                                                     q: jack.user.displayName
                                                   },
                                                   (err, results) => {
                                                     assert.ok(!err);
-                                                    _verifyHasResourceTypes(
-                                                      results,
-                                                      true,
-                                                      false,
-                                                      true
-                                                    );
+                                                    _verifyHasResourceTypes(results, true, false, true);
 
                                                     // Verify searching with garbage commas and non-matching values still returns by the valid resources types
                                                     RestAPI.Search.search(
@@ -1132,24 +1027,12 @@ describe('General Search', () => {
                                                       'general',
                                                       null,
                                                       {
-                                                        resourceTypes: [
-                                                          '',
-                                                          '',
-                                                          'non-matching',
-                                                          '',
-                                                          'group',
-                                                          'user'
-                                                        ],
+                                                        resourceTypes: ['', '', 'non-matching', '', 'group', 'user'],
                                                         q: jack.user.displayName
                                                       },
                                                       (err, results) => {
                                                         assert.ok(!err);
-                                                        _verifyHasResourceTypes(
-                                                          results,
-                                                          true,
-                                                          true,
-                                                          false
-                                                        );
+                                                        _verifyHasResourceTypes(results, true, true, false);
                                                         return callback();
                                                       }
                                                     );
@@ -1213,56 +1096,38 @@ describe('General Search', () => {
                 assert.ok(!err);
 
                 // Search once and grab the first document id
-                SearchTestsUtil.searchRefreshed(
-                  doer.restContext,
-                  'general',
-                  null,
-                  { limit: 1 },
-                  (err, results) => {
+                SearchTestsUtil.searchRefreshed(doer.restContext, 'general', null, { limit: 1 }, (err, results) => {
+                  assert.ok(!err);
+                  assert.ok(results);
+                  assert.ok(results.results);
+                  assert.strictEqual(results.results.length, 1);
+
+                  const firstDocId = results.results[0].id;
+                  assert.ok(firstDocId);
+
+                  // Perform the same search, but with start=0, and make sure the first document is still the same. Verifies default paging
+                  RestAPI.Search.search(doer.restContext, 'general', null, { limit: 1, start: 0 }, (err, results) => {
                     assert.ok(!err);
                     assert.ok(results);
                     assert.ok(results.results);
                     assert.strictEqual(results.results.length, 1);
+                    assert.strictEqual(results.results[0].id, firstDocId);
 
-                    const firstDocId = results.results[0].id;
-                    assert.ok(firstDocId);
+                    // Search again with start=1 and verify the first document id of the previous search is not the same as the first document id of this search
+                    RestAPI.Search.search(doer.restContext, 'general', null, { limit: 1, start: 1 }, (err, results) => {
+                      assert.ok(!err);
+                      assert.ok(results);
+                      assert.ok(results.results);
+                      assert.strictEqual(results.results.length, 1);
 
-                    // Perform the same search, but with start=0, and make sure the first document is still the same. Verifies default paging
-                    RestAPI.Search.search(
-                      doer.restContext,
-                      'general',
-                      null,
-                      { limit: 1, start: 0 },
-                      (err, results) => {
-                        assert.ok(!err);
-                        assert.ok(results);
-                        assert.ok(results.results);
-                        assert.strictEqual(results.results.length, 1);
-                        assert.strictEqual(results.results[0].id, firstDocId);
+                      const secondDocId = results.results[0].id;
+                      assert.ok(secondDocId);
 
-                        // Search again with start=1 and verify the first document id of the previous search is not the same as the first document id of this search
-                        RestAPI.Search.search(
-                          doer.restContext,
-                          'general',
-                          null,
-                          { limit: 1, start: 1 },
-                          (err, results) => {
-                            assert.ok(!err);
-                            assert.ok(results);
-                            assert.ok(results.results);
-                            assert.strictEqual(results.results.length, 1);
-
-                            const secondDocId = results.results[0].id;
-                            assert.ok(secondDocId);
-
-                            assert.notStrictEqual(firstDocId, secondDocId);
-                            return callback();
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
+                      assert.notStrictEqual(firstDocId, secondDocId);
+                      return callback();
+                    });
+                  });
+                });
               }
             );
           }
@@ -1303,47 +1168,540 @@ describe('General Search', () => {
                 assert.ok(!err);
 
                 // Do a search so we know how many items there are in the index for this search term
-                SearchTestsUtil.searchRefreshed(
-                  user.restContext,
-                  'general',
-                  null,
-                  { q: 'Apereo' },
-                  (err, results) => {
-                    assert.ok(!err);
+                SearchTestsUtil.searchRefreshed(user.restContext, 'general', null, { q: 'Apereo' }, (err, results) => {
+                  assert.ok(!err);
 
-                    // When we only select a subset of the results, the count should reflect the total matching items in the index
-                    RestAPI.Search.search(
-                      user.restContext,
-                      'general',
-                      null,
-                      { q: 'Apereo', start: 0, limit: 1 },
-                      (err, startResults) => {
-                        assert.ok(!err);
-                        assert.strictEqual(results.total, startResults.total);
-                        assert.strictEqual(startResults.results.length, 1);
+                  // When we only select a subset of the results, the count should reflect the total matching items in the index
+                  RestAPI.Search.search(
+                    user.restContext,
+                    'general',
+                    null,
+                    { q: 'Apereo', start: 0, limit: 1 },
+                    (err, startResults) => {
+                      assert.ok(!err);
+                      assert.strictEqual(results.total, startResults.total);
+                      assert.strictEqual(startResults.results.length, 1);
 
-                        // When we search for all the results, the count should reflect the total matching items in the index
-                        SearchTestsUtil.searchAll(
-                          user.restContext,
-                          'general',
-                          null,
-                          { q: 'Apereo', start: 0, limit: results.total },
-                          (err, allResults) => {
-                            assert.ok(!err);
-                            assert.strictEqual(results.total, allResults.total);
-                            assert.strictEqual(allResults.results.length, results.total);
+                      // When we search for all the results, the count should reflect the total matching items in the index
+                      SearchTestsUtil.searchAll(
+                        user.restContext,
+                        'general',
+                        null,
+                        { q: 'Apereo', start: 0, limit: results.total },
+                        (err, allResults) => {
+                          assert.ok(!err);
+                          assert.strictEqual(results.total, allResults.total);
+                          assert.strictEqual(allResults.results.length, results.total);
 
-                            // When we do a search with a higher start number than the total number, the count should reflect the total matching items in the index
-                            RestAPI.Search.search(
-                              user.restContext,
-                              'general',
-                              null,
-                              { q: 'Apereo', start: results.total },
-                              (err, emptyResults) => {
-                                assert.ok(!err);
-                                assert.strictEqual(results.total, emptyResults.total);
-                                assert.strictEqual(emptyResults.results.length, 0);
-                                return callback();
+                          // When we do a search with a higher start number than the total number, the count should reflect the total matching items in the index
+                          RestAPI.Search.search(
+                            user.restContext,
+                            'general',
+                            null,
+                            { q: 'Apereo', start: results.total },
+                            (err, emptyResults) => {
+                              assert.ok(!err);
+                              assert.strictEqual(results.total, emptyResults.total);
+                              assert.strictEqual(emptyResults.results.length, 0);
+                              return callback();
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                });
+              }
+            );
+          }
+        );
+      });
+    });
+  });
+
+  describe('Search Scopes', () => {
+    /**
+     * Test that verifies that the _all scope searches everything from all tenants
+     */
+    it('verify "all" search scope searches resources from inside and outside the tenant network (but not private tenants)', callback => {
+      TestsUtil.setupMultiTenantPrivacyEntities((publicTenant0, publicTenant1, privateTenant0, privateTenant1) => {
+        // It should search everything in the system when searching as the global administrator
+        searchForResource(globalAdminRestContext, '_all', publicTenant0.publicUser.user, true, () => {
+          searchForResource(globalAdminRestContext, '_all', publicTenant0.loggedinUser.user, true, () => {
+            searchForResource(globalAdminRestContext, '_all', publicTenant0.privateUser.user, true, () => {
+              searchForResource(globalAdminRestContext, '_all', privateTenant0.publicUser.user, true, () => {
+                searchForResource(globalAdminRestContext, '_all', privateTenant0.loggedinUser.user, true, () => {
+                  searchForResource(globalAdminRestContext, '_all', privateTenant0.privateUser.user, true, () => {
+                    // It should search public resources from public tenants but not private tenants when searching
+                    // as a regular user
+                    TestsUtil.setupMultiTenantPrivacyEntities(
+                      (publicTenant0, publicTenant1, privateTenant0, privateTenant1) => {
+                        searchForResource(
+                          publicTenant0.publicUser.restContext,
+                          '_all',
+                          publicTenant0.publicUser.user,
+                          true,
+                          () => {
+                            searchForResource(
+                              publicTenant0.publicUser.restContext,
+                              '_all',
+                              publicTenant0.loggedinUser.user,
+                              true,
+                              () => {
+                                searchForResource(
+                                  publicTenant0.publicUser.restContext,
+                                  '_all',
+                                  publicTenant0.privateUser.user,
+                                  false,
+                                  () => {
+                                    searchForResource(
+                                      publicTenant0.publicUser.restContext,
+                                      '_all',
+                                      privateTenant0.publicUser.user,
+                                      false,
+                                      () => {
+                                        searchForResource(
+                                          publicTenant0.publicUser.restContext,
+                                          '_all',
+                                          privateTenant0.loggedinUser.user,
+                                          false,
+                                          () => {
+                                            searchForResource(
+                                              publicTenant0.publicUser.restContext,
+                                              '_all',
+                                              privateTenant0.privateUser.user,
+                                              false,
+                                              () => {
+                                                // It should search public resources from private tenants when searching as a private tenant user
+                                                TestsUtil.setupMultiTenantPrivacyEntities(
+                                                  (publicTenant0, publicTenant1, privateTenant0, privateTenant1) => {
+                                                    searchForResource(
+                                                      privateTenant0.publicUser.restContext,
+                                                      '_all',
+                                                      publicTenant0.publicUser.user,
+                                                      false,
+                                                      () => {
+                                                        searchForResource(
+                                                          privateTenant0.publicUser.restContext,
+                                                          '_all',
+                                                          publicTenant0.loggedinUser.user,
+                                                          false,
+                                                          () => {
+                                                            searchForResource(
+                                                              privateTenant0.publicUser.restContext,
+                                                              '_all',
+                                                              publicTenant0.privateUser.user,
+                                                              false,
+                                                              () => {
+                                                                searchForResource(
+                                                                  privateTenant0.publicUser.restContext,
+                                                                  '_all',
+                                                                  privateTenant0.publicUser.user,
+                                                                  true,
+                                                                  () => {
+                                                                    searchForResource(
+                                                                      privateTenant0.publicUser.restContext,
+                                                                      '_all',
+                                                                      privateTenant0.loggedinUser.user,
+                                                                      true,
+                                                                      () => {
+                                                                        searchForResource(
+                                                                          privateTenant0.publicUser.restContext,
+                                                                          '_all',
+                                                                          privateTenant0.privateUser.user,
+                                                                          false,
+                                                                          () => {
+                                                                            return callback();
+                                                                          }
+                                                                        );
+                                                                      }
+                                                                    );
+                                                                  }
+                                                                );
+                                                              }
+                                                            );
+                                                          }
+                                                        );
+                                                      }
+                                                    );
+                                                  }
+                                                );
+                                              }
+                                            );
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+
+    /**
+     * Test that verifies that the _network scope searches resources from inside the current tenant network only
+     */
+    it('verify the "network" search scope searches resources from inside the current tenant network only', callback => {
+      TestsUtil.setupMultiTenantPrivacyEntities((publicTenant0, publicTenant1, privateTenant0, privateTenant1) => {
+        // Public and loggedin items from the current public tenant should be searched
+        searchForResource(publicTenant0.publicUser.restContext, '_network', publicTenant0.publicUser.user, true, () => {
+          searchForResource(
+            publicTenant0.publicUser.restContext,
+            '_network',
+            publicTenant0.loggedinUser.user,
+            true,
+            () => {
+              searchForResource(
+                publicTenant0.publicUser.restContext,
+                '_network',
+                publicTenant0.privateUser.user,
+                false,
+                () => {
+                  // Only public items from another public tenant should be searched
+                  searchForResource(
+                    publicTenant0.publicUser.restContext,
+                    '_network',
+                    publicTenant1.publicUser.user,
+                    true,
+                    () => {
+                      searchForResource(
+                        publicTenant0.publicUser.restContext,
+                        '_network',
+                        publicTenant1.loggedinUser.user,
+                        false,
+                        () => {
+                          searchForResource(
+                            publicTenant0.publicUser.restContext,
+                            '_network',
+                            publicTenant1.privateUser.user,
+                            false,
+                            () => {
+                              // Nothing from an external private tenant should be searched
+                              searchForResource(
+                                publicTenant0.publicUser.restContext,
+                                '_network',
+                                privateTenant0.publicUser.user,
+                                false,
+                                () => {
+                                  searchForResource(
+                                    publicTenant0.publicUser.restContext,
+                                    '_network',
+                                    privateTenant0.loggedinUser.user,
+                                    false,
+                                    () => {
+                                      searchForResource(
+                                        publicTenant0.publicUser.restContext,
+                                        '_network',
+                                        privateTenant0.privateUser.user,
+                                        false,
+                                        () => {
+                                          // Public and logged items from the current private tenant should be searched
+                                          searchForResource(
+                                            privateTenant0.publicUser.restContext,
+                                            '_network',
+                                            privateTenant0.publicUser.user,
+                                            true,
+                                            () => {
+                                              searchForResource(
+                                                privateTenant0.publicUser.restContext,
+                                                '_network',
+                                                privateTenant0.loggedinUser.user,
+                                                true,
+                                                () => {
+                                                  searchForResource(
+                                                    privateTenant0.publicUser.restContext,
+                                                    '_network',
+                                                    privateTenant0.privateUser.user,
+                                                    false,
+                                                    () => {
+                                                      // Nothing from an external public tenant should be searched when searching from a private tenant
+                                                      searchForResource(
+                                                        privateTenant0.publicUser.restContext,
+                                                        '_network',
+                                                        publicTenant0.publicUser.user,
+                                                        false,
+                                                        () => {
+                                                          searchForResource(
+                                                            privateTenant0.publicUser.restContext,
+                                                            '_network',
+                                                            publicTenant0.loggedinUser.user,
+                                                            false,
+                                                            () => {
+                                                              searchForResource(
+                                                                privateTenant0.publicUser.restContext,
+                                                                '_network',
+                                                                publicTenant0.privateUser.user,
+                                                                false,
+                                                                () => {
+                                                                  // Nothing from an external private tenant should be searched when searching from a private tenant
+                                                                  searchForResource(
+                                                                    privateTenant0.publicUser.restContext,
+                                                                    '_network',
+                                                                    privateTenant1.publicUser.user,
+                                                                    false,
+                                                                    () => {
+                                                                      searchForResource(
+                                                                        privateTenant0.publicUser.restContext,
+                                                                        '_network',
+                                                                        privateTenant1.loggedinUser.user,
+                                                                        false,
+                                                                        () => {
+                                                                          searchForResource(
+                                                                            privateTenant0.publicUser.restContext,
+                                                                            '_network',
+                                                                            privateTenant1.privateUser.user,
+                                                                            false,
+                                                                            () => {
+                                                                              return callback();
+                                                                            }
+                                                                          );
+                                                                        }
+                                                                      );
+                                                                    }
+                                                                  );
+                                                                }
+                                                              );
+                                                            }
+                                                          );
+                                                        }
+                                                      );
+                                                    }
+                                                  );
+                                                }
+                                              );
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        });
+      });
+    });
+
+    /**
+     * Test that verifies that the _interact scope searches resources that the user can interact with only
+     */
+    it('verify the "interact" search scope searches only resources with which the user can interact', callback => {
+      TestsUtil.setupMultiTenantPrivacyEntities((publicTenant0, publicTenant1, privateTenant0, privateTenant1) => {
+        // Anonymous users cannot use the _interact scope without a 401 error
+        SearchTestsUtil.searchRefreshed(
+          publicTenant0.anonymousRestContext,
+          'general',
+          null,
+          { scope: '_interact' },
+          (err, results) => {
+            assert.ok(err);
+            assert.strictEqual(err.code, 401);
+
+            // Public and loggedin items from the current public tenant should be searched
+            searchForResource(
+              publicTenant0.publicUser.restContext,
+              '_interact',
+              publicTenant0.publicUser.user,
+              true,
+              () => {
+                searchForResource(
+                  publicTenant0.publicUser.restContext,
+                  '_interact',
+                  publicTenant0.loggedinUser.user,
+                  true,
+                  () => {
+                    searchForResource(
+                      publicTenant0.publicUser.restContext,
+                      '_interact',
+                      publicTenant0.privateUser.user,
+                      false,
+                      () => {
+                        // A private user cannot search themself for interaction
+                        searchForResource(
+                          publicTenant0.privateUser.restContext,
+                          '_interact',
+                          publicTenant0.privateUser.user,
+                          false,
+                          () => {
+                            // Private joinable groups from the current tenant should be searched when searched with the tenant admin
+                            searchForResource(
+                              publicTenant0.adminRestContext,
+                              '_interact',
+                              publicTenant0.privateJoinableGroup,
+                              true,
+                              () => {
+                                // Private joinable groups from the current tenant should not be searched when searched as a regular user
+                                searchForResource(
+                                  publicTenant0.publicUser.restContext,
+                                  '_interact',
+                                  publicTenant0.privateJoinableGroup,
+                                  false,
+                                  () => {
+                                    // Sanity check that under _network search, the private joinable group does get searched when searching as a regular user
+                                    searchForResource(
+                                      publicTenant0.publicUser.restContext,
+                                      '_network',
+                                      publicTenant0.privateJoinableGroup,
+                                      true,
+                                      () => {
+                                        // Only public items from another public tenant should be searched
+                                        searchForResource(
+                                          publicTenant0.publicUser.restContext,
+                                          '_interact',
+                                          publicTenant1.publicUser.user,
+                                          true,
+                                          () => {
+                                            searchForResource(
+                                              publicTenant0.publicUser.restContext,
+                                              '_interact',
+                                              publicTenant1.loggedinUser.user,
+                                              false,
+                                              () => {
+                                                searchForResource(
+                                                  publicTenant0.publicUser.restContext,
+                                                  '_interact',
+                                                  publicTenant1.privateUser.user,
+                                                  false,
+                                                  () => {
+                                                    // Nothing from an external private tenant should be searched
+                                                    searchForResource(
+                                                      publicTenant0.publicUser.restContext,
+                                                      '_interact',
+                                                      privateTenant0.publicUser.user,
+                                                      false,
+                                                      () => {
+                                                        searchForResource(
+                                                          publicTenant0.publicUser.restContext,
+                                                          '_interact',
+                                                          privateTenant0.loggedinUser.user,
+                                                          false,
+                                                          () => {
+                                                            searchForResource(
+                                                              publicTenant0.publicUser.restContext,
+                                                              '_interact',
+                                                              privateTenant0.privateUser.user,
+                                                              false,
+                                                              () => {
+                                                                // Public and logged items from the current private tenant should be searched
+                                                                searchForResource(
+                                                                  privateTenant0.publicUser.restContext,
+                                                                  '_interact',
+                                                                  privateTenant0.publicUser.user,
+                                                                  true,
+                                                                  () => {
+                                                                    searchForResource(
+                                                                      privateTenant0.publicUser.restContext,
+                                                                      '_interact',
+                                                                      privateTenant0.loggedinUser.user,
+                                                                      true,
+                                                                      () => {
+                                                                        searchForResource(
+                                                                          privateTenant0.publicUser.restContext,
+                                                                          '_interact',
+                                                                          privateTenant0.privateUser.user,
+                                                                          false,
+                                                                          () => {
+                                                                            // Nothing from an external public tenant should be searched when searching from a private tenant
+                                                                            searchForResource(
+                                                                              privateTenant0.publicUser.restContext,
+                                                                              '_interact',
+                                                                              publicTenant0.publicUser.user,
+                                                                              false,
+                                                                              () => {
+                                                                                searchForResource(
+                                                                                  privateTenant0.publicUser.restContext,
+                                                                                  '_interact',
+                                                                                  publicTenant0.loggedinUser.user,
+                                                                                  false,
+                                                                                  () => {
+                                                                                    searchForResource(
+                                                                                      privateTenant0.publicUser
+                                                                                        .restContext,
+                                                                                      '_interact',
+                                                                                      publicTenant0.privateUser.user,
+                                                                                      false,
+                                                                                      () => {
+                                                                                        // Nothing from an external private tenant should be searched when searching from a private tenant
+                                                                                        searchForResource(
+                                                                                          privateTenant0.publicUser
+                                                                                            .restContext,
+                                                                                          '_interact',
+                                                                                          privateTenant1.publicUser
+                                                                                            .user,
+                                                                                          false,
+                                                                                          () => {
+                                                                                            searchForResource(
+                                                                                              privateTenant0.publicUser
+                                                                                                .restContext,
+                                                                                              '_interact',
+                                                                                              privateTenant1
+                                                                                                .loggedinUser.user,
+                                                                                              false,
+                                                                                              () => {
+                                                                                                searchForResource(
+                                                                                                  privateTenant0
+                                                                                                    .publicUser
+                                                                                                    .restContext,
+                                                                                                  '_interact',
+                                                                                                  privateTenant1
+                                                                                                    .privateUser.user,
+                                                                                                  false,
+                                                                                                  () => {
+                                                                                                    return callback();
+                                                                                                  }
+                                                                                                );
+                                                                                              }
+                                                                                            );
+                                                                                          }
+                                                                                        );
+                                                                                      }
+                                                                                    );
+                                                                                  }
+                                                                                );
+                                                                              }
+                                                                            );
+                                                                          }
+                                                                        );
+                                                                      }
+                                                                    );
+                                                                  }
+                                                                );
+                                                              }
+                                                            );
+                                                          }
+                                                        );
+                                                      }
+                                                    );
+                                                  }
+                                                );
+                                              }
+                                            );
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
                               }
                             );
                           }
@@ -1358,881 +1716,268 @@ describe('General Search', () => {
         );
       });
     });
-  });
-
-  describe('Search Scopes', () => {
-    /**
-     * Test that verifies that the _all scope searches everything from all tenants
-     */
-    it('verify "all" search scope searches resources from inside and outside the tenant network (but not private tenants)', callback => {
-      TestsUtil.setupMultiTenantPrivacyEntities(
-        (publicTenant0, publicTenant1, privateTenant0, privateTenant1) => {
-          // It should search everything in the system when searching as the global administrator
-          searchForResource(
-            globalAdminRestContext,
-            '_all',
-            publicTenant0.publicUser.user,
-            true,
-            () => {
-              searchForResource(
-                globalAdminRestContext,
-                '_all',
-                publicTenant0.loggedinUser.user,
-                true,
-                () => {
-                  searchForResource(
-                    globalAdminRestContext,
-                    '_all',
-                    publicTenant0.privateUser.user,
-                    true,
-                    () => {
-                      searchForResource(
-                        globalAdminRestContext,
-                        '_all',
-                        privateTenant0.publicUser.user,
-                        true,
-                        () => {
-                          searchForResource(
-                            globalAdminRestContext,
-                            '_all',
-                            privateTenant0.loggedinUser.user,
-                            true,
-                            () => {
-                              searchForResource(
-                                globalAdminRestContext,
-                                '_all',
-                                privateTenant0.privateUser.user,
-                                true,
-                                () => {
-                                  // It should search public resources from public tenants but not private tenants when searching
-                                  // as a regular user
-                                  TestsUtil.setupMultiTenantPrivacyEntities(
-                                    (
-                                      publicTenant0,
-                                      publicTenant1,
-                                      privateTenant0,
-                                      privateTenant1
-                                    ) => {
-                                      searchForResource(
-                                        publicTenant0.publicUser.restContext,
-                                        '_all',
-                                        publicTenant0.publicUser.user,
-                                        true,
-                                        () => {
-                                          searchForResource(
-                                            publicTenant0.publicUser.restContext,
-                                            '_all',
-                                            publicTenant0.loggedinUser.user,
-                                            true,
-                                            () => {
-                                              searchForResource(
-                                                publicTenant0.publicUser.restContext,
-                                                '_all',
-                                                publicTenant0.privateUser.user,
-                                                false,
-                                                () => {
-                                                  searchForResource(
-                                                    publicTenant0.publicUser.restContext,
-                                                    '_all',
-                                                    privateTenant0.publicUser.user,
-                                                    false,
-                                                    () => {
-                                                      searchForResource(
-                                                        publicTenant0.publicUser.restContext,
-                                                        '_all',
-                                                        privateTenant0.loggedinUser.user,
-                                                        false,
-                                                        () => {
-                                                          searchForResource(
-                                                            publicTenant0.publicUser.restContext,
-                                                            '_all',
-                                                            privateTenant0.privateUser.user,
-                                                            false,
-                                                            () => {
-                                                              // It should search public resources from private tenants when searching as a private tenant user
-                                                              TestsUtil.setupMultiTenantPrivacyEntities(
-                                                                (
-                                                                  publicTenant0,
-                                                                  publicTenant1,
-                                                                  privateTenant0,
-                                                                  privateTenant1
-                                                                ) => {
-                                                                  searchForResource(
-                                                                    privateTenant0.publicUser
-                                                                      .restContext,
-                                                                    '_all',
-                                                                    publicTenant0.publicUser.user,
-                                                                    false,
-                                                                    () => {
-                                                                      searchForResource(
-                                                                        privateTenant0.publicUser
-                                                                          .restContext,
-                                                                        '_all',
-                                                                        publicTenant0.loggedinUser
-                                                                          .user,
-                                                                        false,
-                                                                        () => {
-                                                                          searchForResource(
-                                                                            privateTenant0
-                                                                              .publicUser
-                                                                              .restContext,
-                                                                            '_all',
-                                                                            publicTenant0
-                                                                              .privateUser.user,
-                                                                            false,
-                                                                            () => {
-                                                                              searchForResource(
-                                                                                privateTenant0
-                                                                                  .publicUser
-                                                                                  .restContext,
-                                                                                '_all',
-                                                                                privateTenant0
-                                                                                  .publicUser.user,
-                                                                                true,
-                                                                                () => {
-                                                                                  searchForResource(
-                                                                                    privateTenant0
-                                                                                      .publicUser
-                                                                                      .restContext,
-                                                                                    '_all',
-                                                                                    privateTenant0
-                                                                                      .loggedinUser
-                                                                                      .user,
-                                                                                    true,
-                                                                                    () => {
-                                                                                      searchForResource(
-                                                                                        privateTenant0
-                                                                                          .publicUser
-                                                                                          .restContext,
-                                                                                        '_all',
-                                                                                        privateTenant0
-                                                                                          .privateUser
-                                                                                          .user,
-                                                                                        false,
-                                                                                        () => {
-                                                                                          return callback();
-                                                                                        }
-                                                                                      );
-                                                                                    }
-                                                                                  );
-                                                                                }
-                                                                              );
-                                                                            }
-                                                                          );
-                                                                        }
-                                                                      );
-                                                                    }
-                                                                  );
-                                                                }
-                                                              );
-                                                            }
-                                                          );
-                                                        }
-                                                      );
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
-    });
-
-    /**
-     * Test that verifies that the _network scope searches resources from inside the current tenant network only
-     */
-    it('verify the "network" search scope searches resources from inside the current tenant network only', callback => {
-      TestsUtil.setupMultiTenantPrivacyEntities(
-        (publicTenant0, publicTenant1, privateTenant0, privateTenant1) => {
-          // Public and loggedin items from the current public tenant should be searched
-          searchForResource(
-            publicTenant0.publicUser.restContext,
-            '_network',
-            publicTenant0.publicUser.user,
-            true,
-            () => {
-              searchForResource(
-                publicTenant0.publicUser.restContext,
-                '_network',
-                publicTenant0.loggedinUser.user,
-                true,
-                () => {
-                  searchForResource(
-                    publicTenant0.publicUser.restContext,
-                    '_network',
-                    publicTenant0.privateUser.user,
-                    false,
-                    () => {
-                      // Only public items from another public tenant should be searched
-                      searchForResource(
-                        publicTenant0.publicUser.restContext,
-                        '_network',
-                        publicTenant1.publicUser.user,
-                        true,
-                        () => {
-                          searchForResource(
-                            publicTenant0.publicUser.restContext,
-                            '_network',
-                            publicTenant1.loggedinUser.user,
-                            false,
-                            () => {
-                              searchForResource(
-                                publicTenant0.publicUser.restContext,
-                                '_network',
-                                publicTenant1.privateUser.user,
-                                false,
-                                () => {
-                                  // Nothing from an external private tenant should be searched
-                                  searchForResource(
-                                    publicTenant0.publicUser.restContext,
-                                    '_network',
-                                    privateTenant0.publicUser.user,
-                                    false,
-                                    () => {
-                                      searchForResource(
-                                        publicTenant0.publicUser.restContext,
-                                        '_network',
-                                        privateTenant0.loggedinUser.user,
-                                        false,
-                                        () => {
-                                          searchForResource(
-                                            publicTenant0.publicUser.restContext,
-                                            '_network',
-                                            privateTenant0.privateUser.user,
-                                            false,
-                                            () => {
-                                              // Public and logged items from the current private tenant should be searched
-                                              searchForResource(
-                                                privateTenant0.publicUser.restContext,
-                                                '_network',
-                                                privateTenant0.publicUser.user,
-                                                true,
-                                                () => {
-                                                  searchForResource(
-                                                    privateTenant0.publicUser.restContext,
-                                                    '_network',
-                                                    privateTenant0.loggedinUser.user,
-                                                    true,
-                                                    () => {
-                                                      searchForResource(
-                                                        privateTenant0.publicUser.restContext,
-                                                        '_network',
-                                                        privateTenant0.privateUser.user,
-                                                        false,
-                                                        () => {
-                                                          // Nothing from an external public tenant should be searched when searching from a private tenant
-                                                          searchForResource(
-                                                            privateTenant0.publicUser.restContext,
-                                                            '_network',
-                                                            publicTenant0.publicUser.user,
-                                                            false,
-                                                            () => {
-                                                              searchForResource(
-                                                                privateTenant0.publicUser
-                                                                  .restContext,
-                                                                '_network',
-                                                                publicTenant0.loggedinUser.user,
-                                                                false,
-                                                                () => {
-                                                                  searchForResource(
-                                                                    privateTenant0.publicUser
-                                                                      .restContext,
-                                                                    '_network',
-                                                                    publicTenant0.privateUser.user,
-                                                                    false,
-                                                                    () => {
-                                                                      // Nothing from an external private tenant should be searched when searching from a private tenant
-                                                                      searchForResource(
-                                                                        privateTenant0.publicUser
-                                                                          .restContext,
-                                                                        '_network',
-                                                                        privateTenant1.publicUser
-                                                                          .user,
-                                                                        false,
-                                                                        () => {
-                                                                          searchForResource(
-                                                                            privateTenant0
-                                                                              .publicUser
-                                                                              .restContext,
-                                                                            '_network',
-                                                                            privateTenant1
-                                                                              .loggedinUser.user,
-                                                                            false,
-                                                                            () => {
-                                                                              searchForResource(
-                                                                                privateTenant0
-                                                                                  .publicUser
-                                                                                  .restContext,
-                                                                                '_network',
-                                                                                privateTenant1
-                                                                                  .privateUser.user,
-                                                                                false,
-                                                                                () => {
-                                                                                  return callback();
-                                                                                }
-                                                                              );
-                                                                            }
-                                                                          );
-                                                                        }
-                                                                      );
-                                                                    }
-                                                                  );
-                                                                }
-                                                              );
-                                                            }
-                                                          );
-                                                        }
-                                                      );
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
-    });
-
-    /**
-     * Test that verifies that the _interact scope searches resources that the user can interact with only
-     */
-    it('verify the "interact" search scope searches only resources with which the user can interact', callback => {
-      TestsUtil.setupMultiTenantPrivacyEntities(
-        (publicTenant0, publicTenant1, privateTenant0, privateTenant1) => {
-          // Anonymous users cannot use the _interact scope without a 401 error
-          SearchTestsUtil.searchRefreshed(
-            publicTenant0.anonymousRestContext,
-            'general',
-            null,
-            { scope: '_interact' },
-            (err, results) => {
-              assert.ok(err);
-              assert.strictEqual(err.code, 401);
-
-              // Public and loggedin items from the current public tenant should be searched
-              searchForResource(
-                publicTenant0.publicUser.restContext,
-                '_interact',
-                publicTenant0.publicUser.user,
-                true,
-                () => {
-                  searchForResource(
-                    publicTenant0.publicUser.restContext,
-                    '_interact',
-                    publicTenant0.loggedinUser.user,
-                    true,
-                    () => {
-                      searchForResource(
-                        publicTenant0.publicUser.restContext,
-                        '_interact',
-                        publicTenant0.privateUser.user,
-                        false,
-                        () => {
-                          // A private user cannot search themself for interaction
-                          searchForResource(
-                            publicTenant0.privateUser.restContext,
-                            '_interact',
-                            publicTenant0.privateUser.user,
-                            false,
-                            () => {
-                              // Private joinable groups from the current tenant should be searched when searched with the tenant admin
-                              searchForResource(
-                                publicTenant0.adminRestContext,
-                                '_interact',
-                                publicTenant0.privateGroup,
-                                true,
-                                () => {
-                                  // Private joinable groups from the current tenant should not be searched when searched as a regular user
-                                  searchForResource(
-                                    publicTenant0.publicUser.restContext,
-                                    '_interact',
-                                    publicTenant0.privateGroup,
-                                    false,
-                                    () => {
-                                      // Sanity check that under _network search, the private joinable group does get searched when searching as a regular user
-                                      searchForResource(
-                                        publicTenant0.publicUser.restContext,
-                                        '_network',
-                                        publicTenant0.privateGroup,
-                                        true,
-                                        () => {
-                                          // Only public items from another public tenant should be searched
-                                          searchForResource(
-                                            publicTenant0.publicUser.restContext,
-                                            '_interact',
-                                            publicTenant1.publicUser.user,
-                                            true,
-                                            () => {
-                                              searchForResource(
-                                                publicTenant0.publicUser.restContext,
-                                                '_interact',
-                                                publicTenant1.loggedinUser.user,
-                                                false,
-                                                () => {
-                                                  searchForResource(
-                                                    publicTenant0.publicUser.restContext,
-                                                    '_interact',
-                                                    publicTenant1.privateUser.user,
-                                                    false,
-                                                    () => {
-                                                      // Nothing from an external private tenant should be searched
-                                                      searchForResource(
-                                                        publicTenant0.publicUser.restContext,
-                                                        '_interact',
-                                                        privateTenant0.publicUser.user,
-                                                        false,
-                                                        () => {
-                                                          searchForResource(
-                                                            publicTenant0.publicUser.restContext,
-                                                            '_interact',
-                                                            privateTenant0.loggedinUser.user,
-                                                            false,
-                                                            () => {
-                                                              searchForResource(
-                                                                publicTenant0.publicUser
-                                                                  .restContext,
-                                                                '_interact',
-                                                                privateTenant0.privateUser.user,
-                                                                false,
-                                                                () => {
-                                                                  // Public and logged items from the current private tenant should be searched
-                                                                  searchForResource(
-                                                                    privateTenant0.publicUser
-                                                                      .restContext,
-                                                                    '_interact',
-                                                                    privateTenant0.publicUser.user,
-                                                                    true,
-                                                                    () => {
-                                                                      searchForResource(
-                                                                        privateTenant0.publicUser
-                                                                          .restContext,
-                                                                        '_interact',
-                                                                        privateTenant0.loggedinUser
-                                                                          .user,
-                                                                        true,
-                                                                        () => {
-                                                                          searchForResource(
-                                                                            privateTenant0
-                                                                              .publicUser
-                                                                              .restContext,
-                                                                            '_interact',
-                                                                            privateTenant0
-                                                                              .privateUser.user,
-                                                                            false,
-                                                                            () => {
-                                                                              // Nothing from an external public tenant should be searched when searching from a private tenant
-                                                                              searchForResource(
-                                                                                privateTenant0
-                                                                                  .publicUser
-                                                                                  .restContext,
-                                                                                '_interact',
-                                                                                publicTenant0
-                                                                                  .publicUser.user,
-                                                                                false,
-                                                                                () => {
-                                                                                  searchForResource(
-                                                                                    privateTenant0
-                                                                                      .publicUser
-                                                                                      .restContext,
-                                                                                    '_interact',
-                                                                                    publicTenant0
-                                                                                      .loggedinUser
-                                                                                      .user,
-                                                                                    false,
-                                                                                    () => {
-                                                                                      searchForResource(
-                                                                                        privateTenant0
-                                                                                          .publicUser
-                                                                                          .restContext,
-                                                                                        '_interact',
-                                                                                        publicTenant0
-                                                                                          .privateUser
-                                                                                          .user,
-                                                                                        false,
-                                                                                        () => {
-                                                                                          // Nothing from an external private tenant should be searched when searching from a private tenant
-                                                                                          searchForResource(
-                                                                                            privateTenant0
-                                                                                              .publicUser
-                                                                                              .restContext,
-                                                                                            '_interact',
-                                                                                            privateTenant1
-                                                                                              .publicUser
-                                                                                              .user,
-                                                                                            false,
-                                                                                            () => {
-                                                                                              searchForResource(
-                                                                                                privateTenant0
-                                                                                                  .publicUser
-                                                                                                  .restContext,
-                                                                                                '_interact',
-                                                                                                privateTenant1
-                                                                                                  .loggedinUser
-                                                                                                  .user,
-                                                                                                false,
-                                                                                                () => {
-                                                                                                  searchForResource(
-                                                                                                    privateTenant0
-                                                                                                      .publicUser
-                                                                                                      .restContext,
-                                                                                                    '_interact',
-                                                                                                    privateTenant1
-                                                                                                      .privateUser
-                                                                                                      .user,
-                                                                                                    false,
-                                                                                                    () => {
-                                                                                                      return callback();
-                                                                                                    }
-                                                                                                  );
-                                                                                                }
-                                                                                              );
-                                                                                            }
-                                                                                          );
-                                                                                        }
-                                                                                      );
-                                                                                    }
-                                                                                  );
-                                                                                }
-                                                                              );
-                                                                            }
-                                                                          );
-                                                                        }
-                                                                      );
-                                                                    }
-                                                                  );
-                                                                }
-                                                              );
-                                                            }
-                                                          );
-                                                        }
-                                                      );
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
-    });
 
     /**
      * Test that verifies that the _my scope searches resources from inside the current tenant only
      */
     it('verify the _my search scope searches only items to which the current user is explicitly associated', callback => {
-      TestsUtil.setupMultiTenantPrivacyEntities(
-        (publicTenant0, publicTenant1, privateTenant0, privateTenant1) => {
-          // Make the public user from publicTenant0 a member of a couple of the groups so we
-          // can test explicit access
-          const memberUpdate = _.oaeObj(publicTenant0.publicUser.user.id, 'member');
-          PrincipalsTestUtil.assertSetGroupMembersSucceeds(
-            publicTenant1.adminRestContext,
-            publicTenant1.adminRestContext,
-            publicTenant1.publicGroup.id,
-            memberUpdate,
-            () => {
-              PrincipalsTestUtil.assertSetGroupMembersSucceeds(
-                publicTenant0.adminRestContext,
-                publicTenant0.adminRestContext,
-                publicTenant0.privateGroup.id,
-                memberUpdate,
-                () => {
-                  // Items from the current tenant that are not explicitly associated to the current user should not be returned
-                  searchForResource(
-                    publicTenant0.publicUser.restContext,
-                    '_my',
-                    publicTenant0.publicUser.user,
-                    false,
-                    () => {
-                      searchForResource(
-                        publicTenant0.publicUser.restContext,
-                        '_my',
-                        publicTenant0.loggedinUser.user,
-                        false,
-                        () => {
-                          searchForResource(
-                            publicTenant0.publicUser.restContext,
-                            '_my',
-                            publicTenant0.privateUser.user,
-                            false,
-                            () => {
-                              searchForResource(
-                                publicTenant0.publicUser.restContext,
-                                '_my',
-                                publicTenant0.loggedinGroup,
-                                false,
-                                () => {
-                                  searchForResource(
-                                    publicTenant0.publicUser.restContext,
-                                    '_my',
-                                    publicTenant1.publicUser.user,
-                                    false,
-                                    () => {
-                                      searchForResource(
-                                        publicTenant0.publicUser.restContext,
-                                        '_my',
-                                        publicTenant1.loggedinUser.user,
-                                        false,
-                                        () => {
-                                          searchForResource(
-                                            publicTenant0.publicUser.restContext,
-                                            '_my',
-                                            publicTenant1.privateUser.user,
-                                            false,
-                                            () => {
-                                              searchForResource(
-                                                publicTenant0.publicUser.restContext,
-                                                '_my',
-                                                privateTenant0.publicUser.user,
-                                                false,
-                                                () => {
-                                                  searchForResource(
-                                                    publicTenant0.publicUser.restContext,
-                                                    '_my',
-                                                    privateTenant0.loggedinUser.user,
-                                                    false,
-                                                    () => {
-                                                      searchForResource(
-                                                        publicTenant0.publicUser.restContext,
-                                                        '_my',
-                                                        privateTenant0.privateUser.user,
-                                                        false,
-                                                        () => {
-                                                          // The external public group and local public, private groups to which the user is associated should be returned
-                                                          searchForResource(
-                                                            publicTenant0.publicUser.restContext,
-                                                            '_my',
-                                                            publicTenant0.publicGroup,
-                                                            true,
-                                                            () => {
-                                                              searchForResource(
-                                                                publicTenant0.publicUser
-                                                                  .restContext,
-                                                                '_my',
-                                                                publicTenant0.privateGroup,
-                                                                true,
-                                                                () => {
-                                                                  searchForResource(
-                                                                    publicTenant0.publicUser
-                                                                      .restContext,
-                                                                    '_my',
-                                                                    publicTenant1.publicGroup,
-                                                                    true,
-                                                                    () => {
-                                                                      return callback();
-                                                                    }
-                                                                  );
-                                                                }
-                                                              );
-                                                            }
-                                                          );
-                                                        }
-                                                      );
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
+      TestsUtil.setupMultiTenantPrivacyEntities((publicTenant0, publicTenant1, privateTenant0, privateTenant1) => {
+        // Make the public user from publicTenant0 a member of a couple of the groups so we
+        // can test explicit access
+        const memberUpdate = _.oaeObj(publicTenant0.publicUser.user.id, 'member');
+        PrincipalsTestUtil.assertSetGroupMembersSucceeds(
+          publicTenant1.adminRestContext,
+          publicTenant1.adminRestContext,
+          publicTenant1.publicGroup.id,
+          memberUpdate,
+          () => {
+            PrincipalsTestUtil.assertSetGroupMembersSucceeds(
+              publicTenant0.adminRestContext,
+              publicTenant0.adminRestContext,
+              publicTenant0.privateNotJoinableGroup.id,
+              memberUpdate,
+              () => {
+                // Items from the current tenant that are not explicitly associated to the current user should not be returned
+                searchForResource(
+                  publicTenant0.publicUser.restContext,
+                  '_my',
+                  publicTenant0.publicUser.user,
+                  false,
+                  () => {
+                    searchForResource(
+                      publicTenant0.publicUser.restContext,
+                      '_my',
+                      publicTenant0.loggedinUser.user,
+                      false,
+                      () => {
+                        searchForResource(
+                          publicTenant0.publicUser.restContext,
+                          '_my',
+                          publicTenant0.privateUser.user,
+                          false,
+                          () => {
+                            searchForResource(
+                              publicTenant0.publicUser.restContext,
+                              '_my',
+                              publicTenant0.loggedinNotJoinableGroup,
+                              false,
+                              () => {
+                                searchForResource(
+                                  publicTenant0.publicUser.restContext,
+                                  '_my',
+                                  publicTenant1.publicUser.user,
+                                  false,
+                                  () => {
+                                    searchForResource(
+                                      publicTenant0.publicUser.restContext,
+                                      '_my',
+                                      publicTenant1.loggedinUser.user,
+                                      false,
+                                      () => {
+                                        searchForResource(
+                                          publicTenant0.publicUser.restContext,
+                                          '_my',
+                                          publicTenant1.privateUser.user,
+                                          false,
+                                          () => {
+                                            searchForResource(
+                                              publicTenant0.publicUser.restContext,
+                                              '_my',
+                                              privateTenant0.publicUser.user,
+                                              false,
+                                              () => {
+                                                searchForResource(
+                                                  publicTenant0.publicUser.restContext,
+                                                  '_my',
+                                                  privateTenant0.loggedinUser.user,
+                                                  false,
+                                                  () => {
+                                                    searchForResource(
+                                                      publicTenant0.publicUser.restContext,
+                                                      '_my',
+                                                      privateTenant0.privateUser.user,
+                                                      false,
+                                                      () => {
+                                                        // The external public group and local public, private groups to which the user is associated should be returned
+                                                        searchForResource(
+                                                          publicTenant0.publicUser.restContext,
+                                                          '_my',
+                                                          publicTenant0.publicGroup,
+                                                          true,
+                                                          () => {
+                                                            searchForResource(
+                                                              publicTenant0.publicUser.restContext,
+                                                              '_my',
+                                                              publicTenant0.privateNotJoinableGroup,
+                                                              true,
+                                                              () => {
+                                                                searchForResource(
+                                                                  publicTenant0.publicUser.restContext,
+                                                                  '_my',
+                                                                  publicTenant1.publicGroup,
+                                                                  true,
+                                                                  () => {
+                                                                    return callback();
+                                                                  }
+                                                                );
+                                                              }
+                                                            );
+                                                          }
+                                                        );
+                                                      }
+                                                    );
+                                                  }
+                                                );
+                                              }
+                                            );
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
+      });
     });
 
     /**
      * Test that verifies that scoping by a specific tenant results in only resources from that tenant being searched
      */
     it('verify that scoping general search to a tenant alias only searches resources in that tenant', callback => {
-      TestsUtil.setupMultiTenantPrivacyEntities(
-        (publicTenant0, publicTenant1, privateTenant0, privateTenant1) => {
-          // Make the public user from publicTenant0 a member of the public group from publicTenant1 so we can test explicit access
-          const memberUpdate = {};
-          memberUpdate[publicTenant0.publicUser.user.id] = 'member';
-          RestAPI.Group.setGroupMembers(
-            publicTenant1.adminRestContext,
-            publicTenant1.publicGroup.id,
-            memberUpdate,
-            err => {
-              assert.ok(!err);
+      TestsUtil.setupMultiTenantPrivacyEntities((publicTenant0, publicTenant1, privateTenant0, privateTenant1) => {
+        // Make the public user from publicTenant0 a member of the public group from publicTenant1 so we can test explicit access
+        const memberUpdate = {};
+        memberUpdate[publicTenant0.publicUser.user.id] = 'member';
+        RestAPI.Group.setGroupMembers(
+          publicTenant1.adminRestContext,
+          publicTenant1.publicGroup.id,
+          memberUpdate,
+          err => {
+            assert.ok(!err);
 
-              // Public and loggedin items from the specified tenant should be returned
-              searchForResource(
-                publicTenant0.publicUser.restContext,
-                publicTenant0.tenant.alias,
-                publicTenant0.publicUser.user,
-                true,
-                () => {
-                  searchForResource(
-                    publicTenant0.publicUser.restContext,
-                    publicTenant0.tenant.alias,
-                    publicTenant0.loggedinUser.user,
-                    true,
-                    () => {
-                      searchForResource(
-                        publicTenant0.publicUser.restContext,
-                        publicTenant0.tenant.alias,
-                        publicTenant0.privateUser.user,
-                        false,
-                        () => {
-                          // The public group nor other resources from the other public tenant should be returned even when we have explicit access
-                          searchForResource(
-                            publicTenant0.publicUser.restContext,
-                            publicTenant0.tenant.alias,
-                            publicTenant1.publicGroup,
-                            false,
-                            () => {
-                              searchForResource(
-                                publicTenant0.publicUser.restContext,
-                                publicTenant0.tenant.alias,
-                                publicTenant1.publicUser.user,
-                                false,
-                                () => {
-                                  searchForResource(
-                                    publicTenant0.publicUser.restContext,
-                                    publicTenant0.tenant.alias,
-                                    publicTenant1.loggedinUser.user,
-                                    false,
-                                    () => {
-                                      searchForResource(
-                                        publicTenant0.publicUser.restContext,
-                                        publicTenant0.tenant.alias,
-                                        publicTenant1.privateUser.user,
-                                        false,
-                                        () => {
-                                          // Resources from the current tenant should not be searched when specifying another tenant
-                                          searchForResource(
-                                            publicTenant0.publicUser.restContext,
-                                            publicTenant1.tenant.alias,
-                                            publicTenant0.publicUser.user,
-                                            false,
-                                            () => {
-                                              searchForResource(
-                                                publicTenant0.publicUser.restContext,
-                                                publicTenant1.tenant.alias,
-                                                publicTenant0.loggedinUser.user,
-                                                false,
-                                                () => {
-                                                  searchForResource(
-                                                    publicTenant0.publicUser.restContext,
-                                                    publicTenant1.tenant.alias,
-                                                    publicTenant0.privateUser.user,
-                                                    false,
-                                                    () => {
-                                                      // Resources from a different specified tenant should be searched when it is specified
-                                                      searchForResource(
-                                                        publicTenant0.publicUser.restContext,
-                                                        publicTenant1.tenant.alias,
-                                                        publicTenant1.publicUser.user,
-                                                        true,
-                                                        () => {
-                                                          searchForResource(
-                                                            publicTenant0.publicUser.restContext,
-                                                            publicTenant1.tenant.alias,
-                                                            publicTenant1.loggedinUser.user,
-                                                            false,
-                                                            () => {
-                                                              searchForResource(
-                                                                publicTenant0.publicUser
-                                                                  .restContext,
-                                                                publicTenant1.tenant.alias,
-                                                                publicTenant1.privateUser.user,
-                                                                false,
-                                                                () => {
-                                                                  return callback();
-                                                                }
-                                                              );
-                                                            }
-                                                          );
-                                                        }
-                                                      );
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
+            // Public and loggedin items from the specified tenant should be returned
+            searchForResource(
+              publicTenant0.publicUser.restContext,
+              publicTenant0.tenant.alias,
+              publicTenant0.publicUser.user,
+              true,
+              () => {
+                searchForResource(
+                  publicTenant0.publicUser.restContext,
+                  publicTenant0.tenant.alias,
+                  publicTenant0.loggedinUser.user,
+                  true,
+                  () => {
+                    searchForResource(
+                      publicTenant0.publicUser.restContext,
+                      publicTenant0.tenant.alias,
+                      publicTenant0.privateUser.user,
+                      false,
+                      () => {
+                        // The public group nor other resources from the other public tenant should be returned even when we have explicit access
+                        searchForResource(
+                          publicTenant0.publicUser.restContext,
+                          publicTenant0.tenant.alias,
+                          publicTenant1.publicGroup,
+                          false,
+                          () => {
+                            searchForResource(
+                              publicTenant0.publicUser.restContext,
+                              publicTenant0.tenant.alias,
+                              publicTenant1.publicUser.user,
+                              false,
+                              () => {
+                                searchForResource(
+                                  publicTenant0.publicUser.restContext,
+                                  publicTenant0.tenant.alias,
+                                  publicTenant1.loggedinUser.user,
+                                  false,
+                                  () => {
+                                    searchForResource(
+                                      publicTenant0.publicUser.restContext,
+                                      publicTenant0.tenant.alias,
+                                      publicTenant1.privateUser.user,
+                                      false,
+                                      () => {
+                                        // Resources from the current tenant should not be searched when specifying another tenant
+                                        searchForResource(
+                                          publicTenant0.publicUser.restContext,
+                                          publicTenant1.tenant.alias,
+                                          publicTenant0.publicUser.user,
+                                          false,
+                                          () => {
+                                            searchForResource(
+                                              publicTenant0.publicUser.restContext,
+                                              publicTenant1.tenant.alias,
+                                              publicTenant0.loggedinUser.user,
+                                              false,
+                                              () => {
+                                                searchForResource(
+                                                  publicTenant0.publicUser.restContext,
+                                                  publicTenant1.tenant.alias,
+                                                  publicTenant0.privateUser.user,
+                                                  false,
+                                                  () => {
+                                                    // Resources from a different specified tenant should be searched when it is specified
+                                                    searchForResource(
+                                                      publicTenant0.publicUser.restContext,
+                                                      publicTenant1.tenant.alias,
+                                                      publicTenant1.publicUser.user,
+                                                      true,
+                                                      () => {
+                                                        searchForResource(
+                                                          publicTenant0.publicUser.restContext,
+                                                          publicTenant1.tenant.alias,
+                                                          publicTenant1.loggedinUser.user,
+                                                          false,
+                                                          () => {
+                                                            searchForResource(
+                                                              publicTenant0.publicUser.restContext,
+                                                              publicTenant1.tenant.alias,
+                                                              publicTenant1.privateUser.user,
+                                                              false,
+                                                              () => {
+                                                                return callback();
+                                                              }
+                                                            );
+                                                          }
+                                                        );
+                                                      }
+                                                    );
+                                                  }
+                                                );
+                                              }
+                                            );
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
+      });
     });
   });
 
@@ -2309,215 +2054,186 @@ describe('General Search', () => {
             TestsUtil.generateGroupHierarchy(doer.restContext, groupIds, 'member', err => {
               assert.ok(!err);
 
-              TestsUtil.generateGroupHierarchy(
-                doer.restContext,
-                [groupIds[4], jack.user.id],
-                'member',
-                err => {
-                  assert.ok(!err);
+              TestsUtil.generateGroupHierarchy(doer.restContext, [groupIds[4], jack.user.id], 'member', err => {
+                assert.ok(!err);
 
-                  const uniqueString = TestsUtil.generateTestUserId('public-searchable-content');
-                  RestAPI.Content.createLink(
-                    doer.restContext,
-                    uniqueString,
-                    'Test content description 1',
-                    'public',
-                    'http://www.oaeproject.org/',
-                    [],
-                    [groupIds[0]],
-                    [],
-                    (err, contentObj) => {
-                      assert.ok(!err);
+                const uniqueString = TestsUtil.generateTestUserId('public-searchable-content');
+                RestAPI.Content.createLink(
+                  doer.restContext,
+                  uniqueString,
+                  'Test content description 1',
+                  'public',
+                  'http://www.oaeproject.org/',
+                  [],
+                  [groupIds[0]],
+                  [],
+                  (err, contentObj) => {
+                    assert.ok(!err);
 
-                      // Verify anonymous can see it
-                      SearchTestsUtil.searchRefreshed(
-                        anonymousRestContext,
-                        'general',
-                        null,
-                        { q: uniqueString },
-                        (err, results) => {
-                          assert.ok(!err);
+                    // Verify anonymous can see it
+                    SearchTestsUtil.searchRefreshed(
+                      anonymousRestContext,
+                      'general',
+                      null,
+                      { q: uniqueString },
+                      (err, results) => {
+                        assert.ok(!err);
 
-                          const contentDoc = _getDocById(results, contentObj.id);
-                          assert.ok(contentDoc);
-                          assert.strictEqual(contentDoc.resourceSubType, 'link');
-                          assert.strictEqual(contentDoc.displayName, contentObj.displayName);
-                          assert.strictEqual(contentDoc.tenantAlias, 'camtest');
-                          assert.strictEqual(contentDoc.visibility, contentObj.visibility);
-                          assert.strictEqual(contentDoc.resourceType, 'content');
-                          assert.strictEqual(
-                            contentDoc.profilePath,
-                            '/content/' +
-                              contentObj.tenant.alias +
-                              '/' +
-                              AuthzUtil.getResourceFromId(contentObj.id).resourceId
-                          );
-                          assert.strictEqual(contentDoc.id, contentObj.id);
-                          assert.strictEqual(contentDoc._extra, undefined);
-                          assert.strictEqual(contentDoc._type, undefined);
-                          assert.strictEqual(contentDoc.q_high, undefined);
-                          assert.strictEqual(contentDoc.q_low, undefined);
-                          assert.strictEqual(contentDoc.sort, undefined);
+                        const contentDoc = _getDocById(results, contentObj.id);
+                        assert.ok(contentDoc);
+                        assert.strictEqual(contentDoc.resourceSubType, 'link');
+                        assert.strictEqual(contentDoc.displayName, contentObj.displayName);
+                        assert.strictEqual(contentDoc.tenantAlias, 'camtest');
+                        assert.strictEqual(contentDoc.visibility, contentObj.visibility);
+                        assert.strictEqual(contentDoc.resourceType, 'content');
+                        assert.strictEqual(
+                          contentDoc.profilePath,
+                          '/content/' +
+                            contentObj.tenant.alias +
+                            '/' +
+                            AuthzUtil.getResourceFromId(contentObj.id).resourceId
+                        );
+                        assert.strictEqual(contentDoc.id, contentObj.id);
+                        assert.strictEqual(contentDoc._extra, undefined);
+                        assert.strictEqual(contentDoc._type, undefined);
+                        assert.strictEqual(contentDoc.q_high, undefined);
+                        assert.strictEqual(contentDoc.q_low, undefined);
+                        assert.strictEqual(contentDoc.sort, undefined);
 
-                          // Verify tenant admin can see it
-                          SearchTestsUtil.searchRefreshed(
-                            camAdminRestContext,
-                            'general',
-                            null,
-                            { q: uniqueString },
-                            (err, results) => {
-                              assert.ok(!err);
+                        // Verify tenant admin can see it
+                        SearchTestsUtil.searchRefreshed(
+                          camAdminRestContext,
+                          'general',
+                          null,
+                          { q: uniqueString },
+                          (err, results) => {
+                            assert.ok(!err);
 
-                              const contentDoc = _getDocById(results, contentObj.id);
-                              assert.ok(contentDoc);
-                              assert.strictEqual(contentDoc.resourceSubType, 'link');
-                              assert.strictEqual(contentDoc.displayName, contentObj.displayName);
-                              assert.strictEqual(contentDoc.tenantAlias, contentObj.tenant.alias);
-                              assert.strictEqual(contentDoc.visibility, contentObj.visibility);
-                              assert.strictEqual(contentDoc.resourceType, 'content');
-                              assert.strictEqual(
-                                contentDoc.profilePath,
-                                '/content/' +
-                                  contentObj.tenant.alias +
-                                  '/' +
-                                  AuthzUtil.getResourceFromId(contentObj.id).resourceId
-                              );
-                              assert.strictEqual(contentDoc.id, contentObj.id);
-                              assert.strictEqual(contentDoc._extra, undefined);
-                              assert.strictEqual(contentDoc._type, undefined);
-                              assert.strictEqual(contentDoc.q_high, undefined);
-                              assert.strictEqual(contentDoc.q_low, undefined);
-                              assert.strictEqual(contentDoc.sort, undefined);
+                            const contentDoc = _getDocById(results, contentObj.id);
+                            assert.ok(contentDoc);
+                            assert.strictEqual(contentDoc.resourceSubType, 'link');
+                            assert.strictEqual(contentDoc.displayName, contentObj.displayName);
+                            assert.strictEqual(contentDoc.tenantAlias, contentObj.tenant.alias);
+                            assert.strictEqual(contentDoc.visibility, contentObj.visibility);
+                            assert.strictEqual(contentDoc.resourceType, 'content');
+                            assert.strictEqual(
+                              contentDoc.profilePath,
+                              '/content/' +
+                                contentObj.tenant.alias +
+                                '/' +
+                                AuthzUtil.getResourceFromId(contentObj.id).resourceId
+                            );
+                            assert.strictEqual(contentDoc.id, contentObj.id);
+                            assert.strictEqual(contentDoc._extra, undefined);
+                            assert.strictEqual(contentDoc._type, undefined);
+                            assert.strictEqual(contentDoc.q_high, undefined);
+                            assert.strictEqual(contentDoc.q_low, undefined);
+                            assert.strictEqual(contentDoc.sort, undefined);
 
-                              // Verify same-tenant loggedin user can see it
-                              SearchTestsUtil.searchRefreshed(
-                                jane.restContext,
-                                'general',
-                                null,
-                                { q: uniqueString },
-                                (err, results) => {
-                                  assert.ok(!err);
+                            // Verify same-tenant loggedin user can see it
+                            SearchTestsUtil.searchRefreshed(
+                              jane.restContext,
+                              'general',
+                              null,
+                              { q: uniqueString },
+                              (err, results) => {
+                                assert.ok(!err);
 
-                                  const contentDoc = _getDocById(results, contentObj.id);
-                                  assert.ok(contentDoc);
-                                  assert.strictEqual(contentDoc.resourceSubType, 'link');
-                                  assert.strictEqual(
-                                    contentDoc.displayName,
-                                    contentObj.displayName
-                                  );
-                                  assert.strictEqual(
-                                    contentDoc.tenantAlias,
-                                    contentObj.tenant.alias
-                                  );
-                                  assert.strictEqual(contentDoc.visibility, contentObj.visibility);
-                                  assert.strictEqual(contentDoc.resourceType, 'content');
-                                  assert.strictEqual(
-                                    contentDoc.profilePath,
-                                    '/content/' +
-                                      contentObj.tenant.alias +
-                                      '/' +
-                                      AuthzUtil.getResourceFromId(contentObj.id).resourceId
-                                  );
-                                  assert.strictEqual(contentDoc.id, contentObj.id);
-                                  assert.strictEqual(contentDoc._extra, undefined);
-                                  assert.strictEqual(contentDoc._type, undefined);
-                                  assert.strictEqual(contentDoc.q_high, undefined);
-                                  assert.strictEqual(contentDoc.q_low, undefined);
-                                  assert.strictEqual(contentDoc.sort, undefined);
+                                const contentDoc = _getDocById(results, contentObj.id);
+                                assert.ok(contentDoc);
+                                assert.strictEqual(contentDoc.resourceSubType, 'link');
+                                assert.strictEqual(contentDoc.displayName, contentObj.displayName);
+                                assert.strictEqual(contentDoc.tenantAlias, contentObj.tenant.alias);
+                                assert.strictEqual(contentDoc.visibility, contentObj.visibility);
+                                assert.strictEqual(contentDoc.resourceType, 'content');
+                                assert.strictEqual(
+                                  contentDoc.profilePath,
+                                  '/content/' +
+                                    contentObj.tenant.alias +
+                                    '/' +
+                                    AuthzUtil.getResourceFromId(contentObj.id).resourceId
+                                );
+                                assert.strictEqual(contentDoc.id, contentObj.id);
+                                assert.strictEqual(contentDoc._extra, undefined);
+                                assert.strictEqual(contentDoc._type, undefined);
+                                assert.strictEqual(contentDoc.q_high, undefined);
+                                assert.strictEqual(contentDoc.q_low, undefined);
+                                assert.strictEqual(contentDoc.sort, undefined);
 
-                                  // Verify same-tenant loggedin user can see it
-                                  SearchTestsUtil.searchRefreshed(
-                                    jane.restContext,
-                                    'general',
-                                    null,
-                                    { q: uniqueString },
-                                    (err, results) => {
-                                      assert.ok(!err);
+                                // Verify same-tenant loggedin user can see it
+                                SearchTestsUtil.searchRefreshed(
+                                  jane.restContext,
+                                  'general',
+                                  null,
+                                  { q: uniqueString },
+                                  (err, results) => {
+                                    assert.ok(!err);
 
-                                      const contentDoc = _getDocById(results, contentObj.id);
-                                      assert.ok(contentDoc);
-                                      assert.strictEqual(contentDoc.resourceSubType, 'link');
-                                      assert.strictEqual(
-                                        contentDoc.displayName,
-                                        contentObj.displayName
-                                      );
-                                      assert.strictEqual(
-                                        contentDoc.tenantAlias,
-                                        contentObj.tenant.alias
-                                      );
-                                      assert.strictEqual(
-                                        contentDoc.visibility,
-                                        contentObj.visibility
-                                      );
-                                      assert.strictEqual(contentDoc.resourceType, 'content');
-                                      assert.strictEqual(
-                                        contentDoc.profilePath,
-                                        '/content/' +
-                                          contentObj.tenant.alias +
-                                          '/' +
-                                          AuthzUtil.getResourceFromId(contentObj.id).resourceId
-                                      );
-                                      assert.strictEqual(contentDoc.id, contentObj.id);
-                                      assert.strictEqual(contentDoc._extra, undefined);
-                                      assert.strictEqual(contentDoc._type, undefined);
-                                      assert.strictEqual(contentDoc.q_high, undefined);
-                                      assert.strictEqual(contentDoc.q_low, undefined);
-                                      assert.strictEqual(contentDoc.sort, undefined);
+                                    const contentDoc = _getDocById(results, contentObj.id);
+                                    assert.ok(contentDoc);
+                                    assert.strictEqual(contentDoc.resourceSubType, 'link');
+                                    assert.strictEqual(contentDoc.displayName, contentObj.displayName);
+                                    assert.strictEqual(contentDoc.tenantAlias, contentObj.tenant.alias);
+                                    assert.strictEqual(contentDoc.visibility, contentObj.visibility);
+                                    assert.strictEqual(contentDoc.resourceType, 'content');
+                                    assert.strictEqual(
+                                      contentDoc.profilePath,
+                                      '/content/' +
+                                        contentObj.tenant.alias +
+                                        '/' +
+                                        AuthzUtil.getResourceFromId(contentObj.id).resourceId
+                                    );
+                                    assert.strictEqual(contentDoc.id, contentObj.id);
+                                    assert.strictEqual(contentDoc._extra, undefined);
+                                    assert.strictEqual(contentDoc._type, undefined);
+                                    assert.strictEqual(contentDoc.q_high, undefined);
+                                    assert.strictEqual(contentDoc.q_low, undefined);
+                                    assert.strictEqual(contentDoc.sort, undefined);
 
-                                      // Verify permitted user can see it
-                                      SearchTestsUtil.searchRefreshed(
-                                        jack.restContext,
-                                        'general',
-                                        null,
-                                        { q: uniqueString },
-                                        (err, results) => {
-                                          assert.ok(!err);
+                                    // Verify permitted user can see it
+                                    SearchTestsUtil.searchRefreshed(
+                                      jack.restContext,
+                                      'general',
+                                      null,
+                                      { q: uniqueString },
+                                      (err, results) => {
+                                        assert.ok(!err);
 
-                                          const contentDoc = _getDocById(results, contentObj.id);
-                                          assert.ok(contentDoc);
-                                          assert.strictEqual(contentDoc.resourceSubType, 'link');
-                                          assert.strictEqual(
-                                            contentDoc.displayName,
-                                            contentObj.displayName
-                                          );
-                                          assert.strictEqual(
-                                            contentDoc.tenantAlias,
-                                            contentObj.tenant.alias
-                                          );
-                                          assert.strictEqual(
-                                            contentDoc.visibility,
-                                            contentObj.visibility
-                                          );
-                                          assert.strictEqual(contentDoc.resourceType, 'content');
-                                          assert.strictEqual(
-                                            contentDoc.profilePath,
-                                            '/content/' +
-                                              contentObj.tenant.alias +
-                                              '/' +
-                                              AuthzUtil.getResourceFromId(contentObj.id).resourceId
-                                          );
-                                          assert.strictEqual(contentDoc.id, contentObj.id);
-                                          assert.strictEqual(contentDoc._extra, undefined);
-                                          assert.strictEqual(contentDoc._type, undefined);
-                                          assert.strictEqual(contentDoc.q_high, undefined);
-                                          assert.strictEqual(contentDoc.q_low, undefined);
-                                          assert.strictEqual(contentDoc.sort, undefined);
+                                        const contentDoc = _getDocById(results, contentObj.id);
+                                        assert.ok(contentDoc);
+                                        assert.strictEqual(contentDoc.resourceSubType, 'link');
+                                        assert.strictEqual(contentDoc.displayName, contentObj.displayName);
+                                        assert.strictEqual(contentDoc.tenantAlias, contentObj.tenant.alias);
+                                        assert.strictEqual(contentDoc.visibility, contentObj.visibility);
+                                        assert.strictEqual(contentDoc.resourceType, 'content');
+                                        assert.strictEqual(
+                                          contentDoc.profilePath,
+                                          '/content/' +
+                                            contentObj.tenant.alias +
+                                            '/' +
+                                            AuthzUtil.getResourceFromId(contentObj.id).resourceId
+                                        );
+                                        assert.strictEqual(contentDoc.id, contentObj.id);
+                                        assert.strictEqual(contentDoc._extra, undefined);
+                                        assert.strictEqual(contentDoc._type, undefined);
+                                        assert.strictEqual(contentDoc.q_high, undefined);
+                                        assert.strictEqual(contentDoc.q_low, undefined);
+                                        assert.strictEqual(contentDoc.sort, undefined);
 
-                                          return callback();
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
+                                        return callback();
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              });
             });
           });
         });
@@ -2544,194 +2260,163 @@ describe('General Search', () => {
             TestsUtil.generateGroupHierarchy(doer.restContext, groupIds, 'member', err => {
               assert.ok(!err);
 
-              TestsUtil.generateGroupHierarchy(
-                doer.restContext,
-                [groupIds[4], jack.user.id],
-                'member',
-                err => {
-                  assert.ok(!err);
+              TestsUtil.generateGroupHierarchy(doer.restContext, [groupIds[4], jack.user.id], 'member', err => {
+                assert.ok(!err);
 
-                  const beforeCreated = Date.now();
-                  const uniqueString = TestsUtil.generateTestUserId('loggedin-searchable-content');
-                  RestAPI.Content.createLink(
-                    doer.restContext,
-                    uniqueString,
-                    'Test content description 1',
-                    'loggedin',
-                    'http://www.oaeproject.org/',
-                    [],
-                    [groupIds[0]],
-                    [],
-                    (err, contentObj) => {
-                      assert.ok(!err);
+                const beforeCreated = Date.now();
+                const uniqueString = TestsUtil.generateTestUserId('loggedin-searchable-content');
+                RestAPI.Content.createLink(
+                  doer.restContext,
+                  uniqueString,
+                  'Test content description 1',
+                  'loggedin',
+                  'http://www.oaeproject.org/',
+                  [],
+                  [groupIds[0]],
+                  [],
+                  (err, contentObj) => {
+                    assert.ok(!err);
 
-                      // Verify anonymous cannot see it
-                      SearchTestsUtil.searchRefreshed(
-                        anonymousRestContext,
-                        'general',
-                        null,
-                        { q: uniqueString },
-                        (err, results) => {
-                          assert.ok(!err);
-                          assert.ok(!_getDocById(results, contentObj.id));
+                    // Verify anonymous cannot see it
+                    SearchTestsUtil.searchRefreshed(
+                      anonymousRestContext,
+                      'general',
+                      null,
+                      { q: uniqueString },
+                      (err, results) => {
+                        assert.ok(!err);
+                        assert.ok(!_getDocById(results, contentObj.id));
 
-                          // Verify cross-tenant user cannot see it
-                          SearchTestsUtil.searchRefreshed(
-                            darthVader.restContext,
-                            'general',
-                            null,
-                            { q: uniqueString, scope: '_network' },
-                            (err, results) => {
-                              assert.ok(!err);
-                              assert.ok(!_getDocById(results, contentObj.id));
+                        // Verify cross-tenant user cannot see it
+                        SearchTestsUtil.searchRefreshed(
+                          darthVader.restContext,
+                          'general',
+                          null,
+                          { q: uniqueString, scope: '_network' },
+                          (err, results) => {
+                            assert.ok(!err);
+                            assert.ok(!_getDocById(results, contentObj.id));
 
-                              // Verify tenant admin can see it
-                              SearchTestsUtil.searchRefreshed(
-                                camAdminRestContext,
-                                'general',
-                                null,
-                                { q: uniqueString },
-                                (err, results) => {
-                                  assert.ok(!err);
+                            // Verify tenant admin can see it
+                            SearchTestsUtil.searchRefreshed(
+                              camAdminRestContext,
+                              'general',
+                              null,
+                              { q: uniqueString },
+                              (err, results) => {
+                                assert.ok(!err);
 
-                                  const contentDoc = _getDocById(results, contentObj.id);
-                                  assert.ok(contentDoc);
-                                  assert.strictEqual(contentDoc.resourceSubType, 'link');
-                                  assert.strictEqual(
-                                    contentDoc.displayName,
-                                    contentObj.displayName
-                                  );
-                                  assert.strictEqual(
-                                    contentDoc.tenantAlias,
-                                    contentObj.tenant.alias
-                                  );
-                                  assert.strictEqual(contentDoc.visibility, contentObj.visibility);
-                                  assert.strictEqual(contentDoc.resourceType, 'content');
-                                  assert.strictEqual(
-                                    contentDoc.profilePath,
-                                    '/content/' +
-                                      contentObj.tenant.alias +
-                                      '/' +
-                                      AuthzUtil.getResourceFromId(contentObj.id).resourceId
-                                  );
-                                  assert.strictEqual(contentDoc.id, contentObj.id);
-                                  assert.strictEqual(contentDoc._extra, undefined);
-                                  assert.strictEqual(contentDoc._type, undefined);
-                                  assert.strictEqual(contentDoc.q_high, undefined);
-                                  assert.strictEqual(contentDoc.q_low, undefined);
-                                  assert.strictEqual(contentDoc.sort, undefined);
+                                const contentDoc = _getDocById(results, contentObj.id);
+                                assert.ok(contentDoc);
+                                assert.strictEqual(contentDoc.resourceSubType, 'link');
+                                assert.strictEqual(contentDoc.displayName, contentObj.displayName);
+                                assert.strictEqual(contentDoc.tenantAlias, contentObj.tenant.alias);
+                                assert.strictEqual(contentDoc.visibility, contentObj.visibility);
+                                assert.strictEqual(contentDoc.resourceType, 'content');
+                                assert.strictEqual(
+                                  contentDoc.profilePath,
+                                  '/content/' +
+                                    contentObj.tenant.alias +
+                                    '/' +
+                                    AuthzUtil.getResourceFromId(contentObj.id).resourceId
+                                );
+                                assert.strictEqual(contentDoc.id, contentObj.id);
+                                assert.strictEqual(contentDoc._extra, undefined);
+                                assert.strictEqual(contentDoc._type, undefined);
+                                assert.strictEqual(contentDoc.q_high, undefined);
+                                assert.strictEqual(contentDoc.q_low, undefined);
+                                assert.strictEqual(contentDoc.sort, undefined);
 
-                                  // Since lastModified time gets updated for more than just profile
-                                  // updates (e.g., share, library updates, etc...), we should just
-                                  // sanity check the lastModified in th search doc
-                                  assert.ok(parseInt(contentDoc.lastModified) >= beforeCreated);
+                                // Since lastModified time gets updated for more than just profile
+                                // updates (e.g., share, library updates, etc...), we should just
+                                // sanity check the lastModified in th search doc
+                                assert.ok(parseInt(contentDoc.lastModified) >= beforeCreated);
 
-                                  // Verify same-tenant loggedin user can see it
-                                  SearchTestsUtil.searchRefreshed(
-                                    jane.restContext,
-                                    'general',
-                                    null,
-                                    { q: uniqueString },
-                                    (err, results) => {
-                                      assert.ok(!err);
+                                // Verify same-tenant loggedin user can see it
+                                SearchTestsUtil.searchRefreshed(
+                                  jane.restContext,
+                                  'general',
+                                  null,
+                                  { q: uniqueString },
+                                  (err, results) => {
+                                    assert.ok(!err);
 
-                                      const contentDoc = _getDocById(results, contentObj.id);
-                                      assert.ok(contentDoc);
-                                      assert.strictEqual(contentDoc.resourceSubType, 'link');
-                                      assert.strictEqual(
-                                        contentDoc.displayName,
-                                        contentObj.displayName
-                                      );
-                                      assert.strictEqual(
-                                        contentDoc.tenantAlias,
-                                        contentObj.tenant.alias
-                                      );
-                                      assert.strictEqual(
-                                        contentDoc.visibility,
-                                        contentObj.visibility
-                                      );
-                                      assert.strictEqual(contentDoc.resourceType, 'content');
-                                      assert.strictEqual(
-                                        contentDoc.profilePath,
-                                        '/content/' +
-                                          contentObj.tenant.alias +
-                                          '/' +
-                                          AuthzUtil.getResourceFromId(contentObj.id).resourceId
-                                      );
-                                      assert.strictEqual(contentDoc.id, contentObj.id);
-                                      assert.strictEqual(contentDoc._extra, undefined);
-                                      assert.strictEqual(contentDoc._type, undefined);
-                                      assert.strictEqual(contentDoc.q_high, undefined);
-                                      assert.strictEqual(contentDoc.q_low, undefined);
-                                      assert.strictEqual(contentDoc.sort, undefined);
+                                    const contentDoc = _getDocById(results, contentObj.id);
+                                    assert.ok(contentDoc);
+                                    assert.strictEqual(contentDoc.resourceSubType, 'link');
+                                    assert.strictEqual(contentDoc.displayName, contentObj.displayName);
+                                    assert.strictEqual(contentDoc.tenantAlias, contentObj.tenant.alias);
+                                    assert.strictEqual(contentDoc.visibility, contentObj.visibility);
+                                    assert.strictEqual(contentDoc.resourceType, 'content');
+                                    assert.strictEqual(
+                                      contentDoc.profilePath,
+                                      '/content/' +
+                                        contentObj.tenant.alias +
+                                        '/' +
+                                        AuthzUtil.getResourceFromId(contentObj.id).resourceId
+                                    );
+                                    assert.strictEqual(contentDoc.id, contentObj.id);
+                                    assert.strictEqual(contentDoc._extra, undefined);
+                                    assert.strictEqual(contentDoc._type, undefined);
+                                    assert.strictEqual(contentDoc.q_high, undefined);
+                                    assert.strictEqual(contentDoc.q_low, undefined);
+                                    assert.strictEqual(contentDoc.sort, undefined);
 
-                                      // Since lastModified time gets updated for more than just profile
-                                      // updates (e.g., share, library updates, etc...), we should just
-                                      // sanity check the lastModified in th search doc
-                                      assert.ok(parseInt(contentDoc.lastModified) >= beforeCreated);
+                                    // Since lastModified time gets updated for more than just profile
+                                    // updates (e.g., share, library updates, etc...), we should just
+                                    // sanity check the lastModified in th search doc
+                                    assert.ok(parseInt(contentDoc.lastModified) >= beforeCreated);
 
-                                      // Verify permitted user can see it
-                                      SearchTestsUtil.searchRefreshed(
-                                        jack.restContext,
-                                        'general',
-                                        null,
-                                        { q: uniqueString },
-                                        (err, results) => {
-                                          assert.ok(!err);
-                                          assert.ok(_getDocById(results, contentObj.id));
+                                    // Verify permitted user can see it
+                                    SearchTestsUtil.searchRefreshed(
+                                      jack.restContext,
+                                      'general',
+                                      null,
+                                      { q: uniqueString },
+                                      (err, results) => {
+                                        assert.ok(!err);
+                                        assert.ok(_getDocById(results, contentObj.id));
 
-                                          const contentDoc = _getDocById(results, contentObj.id);
-                                          assert.ok(contentDoc);
-                                          assert.strictEqual(contentDoc.resourceSubType, 'link');
-                                          assert.strictEqual(
-                                            contentDoc.displayName,
-                                            contentObj.displayName
-                                          );
-                                          assert.strictEqual(
-                                            contentDoc.tenantAlias,
-                                            contentObj.tenant.alias
-                                          );
-                                          assert.strictEqual(
-                                            contentDoc.visibility,
-                                            contentObj.visibility
-                                          );
-                                          assert.strictEqual(contentDoc.resourceType, 'content');
-                                          assert.strictEqual(
-                                            contentDoc.profilePath,
-                                            '/content/' +
-                                              contentObj.tenant.alias +
-                                              '/' +
-                                              AuthzUtil.getResourceFromId(contentObj.id).resourceId
-                                          );
-                                          assert.strictEqual(contentDoc.id, contentObj.id);
-                                          assert.strictEqual(contentDoc._extra, undefined);
-                                          assert.strictEqual(contentDoc._type, undefined);
-                                          assert.strictEqual(contentDoc.q_high, undefined);
-                                          assert.strictEqual(contentDoc.q_low, undefined);
-                                          assert.strictEqual(contentDoc.sort, undefined);
+                                        const contentDoc = _getDocById(results, contentObj.id);
+                                        assert.ok(contentDoc);
+                                        assert.strictEqual(contentDoc.resourceSubType, 'link');
+                                        assert.strictEqual(contentDoc.displayName, contentObj.displayName);
+                                        assert.strictEqual(contentDoc.tenantAlias, contentObj.tenant.alias);
+                                        assert.strictEqual(contentDoc.visibility, contentObj.visibility);
+                                        assert.strictEqual(contentDoc.resourceType, 'content');
+                                        assert.strictEqual(
+                                          contentDoc.profilePath,
+                                          '/content/' +
+                                            contentObj.tenant.alias +
+                                            '/' +
+                                            AuthzUtil.getResourceFromId(contentObj.id).resourceId
+                                        );
+                                        assert.strictEqual(contentDoc.id, contentObj.id);
+                                        assert.strictEqual(contentDoc._extra, undefined);
+                                        assert.strictEqual(contentDoc._type, undefined);
+                                        assert.strictEqual(contentDoc.q_high, undefined);
+                                        assert.strictEqual(contentDoc.q_low, undefined);
+                                        assert.strictEqual(contentDoc.sort, undefined);
 
-                                          // Since lastModified time gets updated for more than just profile
-                                          // updates (e.g., share, library updates, etc...), we should just
-                                          // sanity check the lastModified in th search doc
-                                          assert.ok(
-                                            parseInt(contentDoc.lastModified) >= beforeCreated
-                                          );
+                                        // Since lastModified time gets updated for more than just profile
+                                        // updates (e.g., share, library updates, etc...), we should just
+                                        // sanity check the lastModified in th search doc
+                                        assert.ok(parseInt(contentDoc.lastModified) >= beforeCreated);
 
-                                          return callback();
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
+                                        return callback();
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              });
             });
           });
         });
@@ -2758,266 +2443,216 @@ describe('General Search', () => {
             TestsUtil.generateGroupHierarchy(doer.restContext, groupIds, 'member', err => {
               assert.ok(!err);
 
-              TestsUtil.generateGroupHierarchy(
-                doer.restContext,
-                [groupIds[4], jack.user.id],
-                'member',
-                err => {
-                  assert.ok(!err);
+              TestsUtil.generateGroupHierarchy(doer.restContext, [groupIds[4], jack.user.id], 'member', err => {
+                assert.ok(!err);
 
-                  const beforeCreated = Date.now();
-                  const uniqueString = TestsUtil.generateTestUserId('private-searchable-content');
-                  RestAPI.Content.createLink(
-                    doer.restContext,
-                    uniqueString,
-                    'Test content description 1',
-                    'private',
-                    'http://www.oaeproject.org/',
-                    [],
-                    [groupIds[0]],
-                    [],
-                    (err, contentObj) => {
-                      assert.ok(!err);
+                const beforeCreated = Date.now();
+                const uniqueString = TestsUtil.generateTestUserId('private-searchable-content');
+                RestAPI.Content.createLink(
+                  doer.restContext,
+                  uniqueString,
+                  'Test content description 1',
+                  'private',
+                  'http://www.oaeproject.org/',
+                  [],
+                  [groupIds[0]],
+                  [],
+                  (err, contentObj) => {
+                    assert.ok(!err);
 
-                      // Verify anonymous cannot see it
-                      SearchTestsUtil.searchRefreshed(
-                        anonymousRestContext,
-                        'general',
-                        null,
-                        { q: uniqueString },
-                        (err, results) => {
-                          assert.ok(!err);
-                          assert.ok(!_getDocById(results, contentObj.id));
+                    // Verify anonymous cannot see it
+                    SearchTestsUtil.searchRefreshed(
+                      anonymousRestContext,
+                      'general',
+                      null,
+                      { q: uniqueString },
+                      (err, results) => {
+                        assert.ok(!err);
+                        assert.ok(!_getDocById(results, contentObj.id));
 
-                          // Verify cross-tenant user cannot see it
-                          SearchTestsUtil.searchRefreshed(
-                            darthVader.restContext,
-                            'general',
-                            null,
-                            { q: uniqueString, scope: '_network' },
-                            (err, results) => {
-                              assert.ok(!err);
-                              assert.ok(!_getDocById(results, contentObj.id));
+                        // Verify cross-tenant user cannot see it
+                        SearchTestsUtil.searchRefreshed(
+                          darthVader.restContext,
+                          'general',
+                          null,
+                          { q: uniqueString, scope: '_network' },
+                          (err, results) => {
+                            assert.ok(!err);
+                            assert.ok(!_getDocById(results, contentObj.id));
 
-                              // Verify tenant admin can see it
-                              SearchTestsUtil.searchRefreshed(
-                                camAdminRestContext,
-                                'general',
-                                null,
-                                { q: uniqueString },
-                                (err, results) => {
-                                  assert.ok(!err);
+                            // Verify tenant admin can see it
+                            SearchTestsUtil.searchRefreshed(
+                              camAdminRestContext,
+                              'general',
+                              null,
+                              { q: uniqueString },
+                              (err, results) => {
+                                assert.ok(!err);
 
-                                  const contentDoc = _getDocById(results, contentObj.id);
-                                  assert.ok(contentDoc);
-                                  assert.strictEqual(contentDoc.resourceSubType, 'link');
-                                  assert.strictEqual(
-                                    contentDoc.displayName,
-                                    contentObj.displayName
-                                  );
-                                  assert.strictEqual(
-                                    contentDoc.tenantAlias,
-                                    contentObj.tenant.alias
-                                  );
-                                  assert.strictEqual(contentDoc.visibility, contentObj.visibility);
-                                  assert.strictEqual(contentDoc.resourceType, 'content');
-                                  assert.strictEqual(
-                                    contentDoc.profilePath,
-                                    '/content/' +
-                                      contentObj.tenant.alias +
-                                      '/' +
-                                      AuthzUtil.getResourceFromId(contentObj.id).resourceId
-                                  );
-                                  assert.strictEqual(contentDoc.id, contentObj.id);
-                                  assert.strictEqual(contentDoc._extra, undefined);
-                                  assert.strictEqual(contentDoc._type, undefined);
-                                  assert.strictEqual(contentDoc.q_high, undefined);
-                                  assert.strictEqual(contentDoc.q_low, undefined);
-                                  assert.strictEqual(contentDoc.sort, undefined);
+                                const contentDoc = _getDocById(results, contentObj.id);
+                                assert.ok(contentDoc);
+                                assert.strictEqual(contentDoc.resourceSubType, 'link');
+                                assert.strictEqual(contentDoc.displayName, contentObj.displayName);
+                                assert.strictEqual(contentDoc.tenantAlias, contentObj.tenant.alias);
+                                assert.strictEqual(contentDoc.visibility, contentObj.visibility);
+                                assert.strictEqual(contentDoc.resourceType, 'content');
+                                assert.strictEqual(
+                                  contentDoc.profilePath,
+                                  '/content/' +
+                                    contentObj.tenant.alias +
+                                    '/' +
+                                    AuthzUtil.getResourceFromId(contentObj.id).resourceId
+                                );
+                                assert.strictEqual(contentDoc.id, contentObj.id);
+                                assert.strictEqual(contentDoc._extra, undefined);
+                                assert.strictEqual(contentDoc._type, undefined);
+                                assert.strictEqual(contentDoc.q_high, undefined);
+                                assert.strictEqual(contentDoc.q_low, undefined);
+                                assert.strictEqual(contentDoc.sort, undefined);
 
-                                  // Since lastModified time gets updated for more than just profile
-                                  // updates (e.g., share, library updates, etc...), we should just
-                                  // sanity check the lastModified in th search doc
-                                  assert.ok(parseInt(contentDoc.lastModified) >= beforeCreated);
+                                // Since lastModified time gets updated for more than just profile
+                                // updates (e.g., share, library updates, etc...), we should just
+                                // sanity check the lastModified in th search doc
+                                assert.ok(parseInt(contentDoc.lastModified) >= beforeCreated);
 
-                                  // Verify same-tenant loggedin user cannot see it
-                                  SearchTestsUtil.searchRefreshed(
-                                    jane.restContext,
-                                    'general',
-                                    null,
-                                    { q: uniqueString },
-                                    (err, results) => {
-                                      assert.ok(!err);
-                                      assert.ok(!_getDocById(results, contentObj.id));
+                                // Verify same-tenant loggedin user cannot see it
+                                SearchTestsUtil.searchRefreshed(
+                                  jane.restContext,
+                                  'general',
+                                  null,
+                                  { q: uniqueString },
+                                  (err, results) => {
+                                    assert.ok(!err);
+                                    assert.ok(!_getDocById(results, contentObj.id));
 
-                                      // Verify permitted user can see it
-                                      SearchTestsUtil.searchRefreshed(
-                                        jack.restContext,
-                                        'general',
-                                        null,
-                                        { q: uniqueString },
-                                        (err, results) => {
-                                          assert.ok(!err);
+                                    // Verify permitted user can see it
+                                    SearchTestsUtil.searchRefreshed(
+                                      jack.restContext,
+                                      'general',
+                                      null,
+                                      { q: uniqueString },
+                                      (err, results) => {
+                                        assert.ok(!err);
 
-                                          const contentDoc = _getDocById(results, contentObj.id);
-                                          assert.ok(contentDoc);
-                                          assert.strictEqual(contentDoc.resourceSubType, 'link');
-                                          assert.strictEqual(
-                                            contentDoc.displayName,
-                                            contentObj.displayName
-                                          );
-                                          assert.strictEqual(
-                                            contentDoc.tenantAlias,
-                                            contentObj.tenant.alias
-                                          );
-                                          assert.strictEqual(
-                                            contentDoc.visibility,
-                                            contentObj.visibility
-                                          );
-                                          assert.strictEqual(contentDoc.resourceType, 'content');
-                                          assert.strictEqual(
-                                            contentDoc.profilePath,
-                                            '/content/' +
-                                              contentObj.tenant.alias +
-                                              '/' +
-                                              AuthzUtil.getResourceFromId(contentObj.id).resourceId
-                                          );
-                                          assert.strictEqual(contentDoc.id, contentObj.id);
-                                          assert.strictEqual(contentDoc._extra, undefined);
-                                          assert.strictEqual(contentDoc._type, undefined);
-                                          assert.strictEqual(contentDoc.q_high, undefined);
-                                          assert.strictEqual(contentDoc.q_low, undefined);
-                                          assert.strictEqual(contentDoc.sort, undefined);
+                                        const contentDoc = _getDocById(results, contentObj.id);
+                                        assert.ok(contentDoc);
+                                        assert.strictEqual(contentDoc.resourceSubType, 'link');
+                                        assert.strictEqual(contentDoc.displayName, contentObj.displayName);
+                                        assert.strictEqual(contentDoc.tenantAlias, contentObj.tenant.alias);
+                                        assert.strictEqual(contentDoc.visibility, contentObj.visibility);
+                                        assert.strictEqual(contentDoc.resourceType, 'content');
+                                        assert.strictEqual(
+                                          contentDoc.profilePath,
+                                          '/content/' +
+                                            contentObj.tenant.alias +
+                                            '/' +
+                                            AuthzUtil.getResourceFromId(contentObj.id).resourceId
+                                        );
+                                        assert.strictEqual(contentDoc.id, contentObj.id);
+                                        assert.strictEqual(contentDoc._extra, undefined);
+                                        assert.strictEqual(contentDoc._type, undefined);
+                                        assert.strictEqual(contentDoc.q_high, undefined);
+                                        assert.strictEqual(contentDoc.q_low, undefined);
+                                        assert.strictEqual(contentDoc.sort, undefined);
 
-                                          // Since lastModified time gets updated for more than just profile
-                                          // updates (e.g., share, library updates, etc...), we should just
-                                          // sanity check the lastModified in th search doc
-                                          assert.ok(
-                                            parseInt(contentDoc.lastModified) >= beforeCreated
-                                          );
+                                        // Since lastModified time gets updated for more than just profile
+                                        // updates (e.g., share, library updates, etc...), we should just
+                                        // sanity check the lastModified in th search doc
+                                        assert.ok(parseInt(contentDoc.lastModified) >= beforeCreated);
 
-                                          // Verify global admin on a different tenant can see it
-                                          SearchTestsUtil.searchRefreshed(
-                                            globalAdminOnTenantRestContext,
-                                            'general',
-                                            null,
-                                            { q: uniqueString, scope: '_network' },
-                                            (err, results) => {
-                                              assert.ok(!err);
+                                        // Verify global admin on a different tenant can see it
+                                        SearchTestsUtil.searchRefreshed(
+                                          globalAdminOnTenantRestContext,
+                                          'general',
+                                          null,
+                                          { q: uniqueString, scope: '_network' },
+                                          (err, results) => {
+                                            assert.ok(!err);
 
-                                              const contentDoc = _getDocById(
-                                                results,
-                                                contentObj.id
-                                              );
-                                              assert.ok(contentDoc);
-                                              assert.strictEqual(
-                                                contentDoc.resourceSubType,
-                                                'link'
-                                              );
-                                              assert.strictEqual(
-                                                contentDoc.displayName,
-                                                contentObj.displayName
-                                              );
-                                              assert.strictEqual(
-                                                contentDoc.tenantAlias,
-                                                contentObj.tenant.alias
-                                              );
-                                              assert.strictEqual(
-                                                contentDoc.visibility,
-                                                contentObj.visibility
-                                              );
-                                              assert.strictEqual(
-                                                contentDoc.resourceType,
-                                                'content'
-                                              );
-                                              assert.strictEqual(
-                                                contentDoc.profilePath,
-                                                '/content/' +
-                                                  contentObj.tenant.alias +
-                                                  '/' +
-                                                  AuthzUtil.getResourceFromId(contentObj.id)
-                                                    .resourceId
-                                              );
-                                              assert.strictEqual(contentDoc.id, contentObj.id);
-                                              assert.strictEqual(contentDoc._extra, undefined);
-                                              assert.strictEqual(contentDoc._type, undefined);
-                                              assert.strictEqual(contentDoc.q_high, undefined);
-                                              assert.strictEqual(contentDoc.q_low, undefined);
-                                              assert.strictEqual(contentDoc.sort, undefined);
+                                            const contentDoc = _getDocById(results, contentObj.id);
+                                            assert.ok(contentDoc);
+                                            assert.strictEqual(contentDoc.resourceSubType, 'link');
+                                            assert.strictEqual(contentDoc.displayName, contentObj.displayName);
+                                            assert.strictEqual(contentDoc.tenantAlias, contentObj.tenant.alias);
+                                            assert.strictEqual(contentDoc.visibility, contentObj.visibility);
+                                            assert.strictEqual(contentDoc.resourceType, 'content');
+                                            assert.strictEqual(
+                                              contentDoc.profilePath,
+                                              '/content/' +
+                                                contentObj.tenant.alias +
+                                                '/' +
+                                                AuthzUtil.getResourceFromId(contentObj.id).resourceId
+                                            );
+                                            assert.strictEqual(contentDoc.id, contentObj.id);
+                                            assert.strictEqual(contentDoc._extra, undefined);
+                                            assert.strictEqual(contentDoc._type, undefined);
+                                            assert.strictEqual(contentDoc.q_high, undefined);
+                                            assert.strictEqual(contentDoc.q_low, undefined);
+                                            assert.strictEqual(contentDoc.sort, undefined);
 
-                                              // Since lastModified time gets updated for more than just profile
-                                              // updates (e.g., share, library updates, etc...), we should just
-                                              // sanity check the lastModified in th search doc
-                                              assert.ok(
-                                                parseInt(contentDoc.lastModified) >= beforeCreated
-                                              );
+                                            // Since lastModified time gets updated for more than just profile
+                                            // updates (e.g., share, library updates, etc...), we should just
+                                            // sanity check the lastModified in th search doc
+                                            assert.ok(parseInt(contentDoc.lastModified) >= beforeCreated);
 
-                                              // Generate a new group, make Jack a member of it, create a piece of content and
-                                              // share it with the group. All of this is done so we can check the direct membership
-                                              // filter is NOT cached
-                                              TestsUtil.generateTestGroups(
+                                            // Generate a new group, make Jack a member of it, create a piece of content and
+                                            // share it with the group. All of this is done so we can check the direct membership
+                                            // filter is NOT cached
+                                            TestsUtil.generateTestGroups(doer.restContext, 1, anotherGroup => {
+                                              const permissions = {};
+                                              permissions[jack.user.id] = 'member';
+                                              RestAPI.Group.setGroupMembers(
                                                 doer.restContext,
-                                                1,
-                                                anotherGroup => {
-                                                  const permissions = {};
-                                                  permissions[jack.user.id] = 'member';
-                                                  RestAPI.Group.setGroupMembers(
+                                                anotherGroup.group.id,
+                                                permissions,
+                                                err => {
+                                                  assert.ok(!err);
+
+                                                  RestAPI.Content.createLink(
                                                     doer.restContext,
-                                                    anotherGroup.group.id,
-                                                    permissions,
-                                                    err => {
+                                                    uniqueString,
+                                                    'Test content description 2',
+                                                    'private',
+                                                    'http://www.oaeproject.org/',
+                                                    [],
+                                                    [anotherGroup.group.id],
+                                                    [],
+                                                    (err, link2) => {
                                                       assert.ok(!err);
 
-                                                      RestAPI.Content.createLink(
-                                                        doer.restContext,
-                                                        uniqueString,
-                                                        'Test content description 2',
-                                                        'private',
-                                                        'http://www.oaeproject.org/',
-                                                        [],
-                                                        [anotherGroup.group.id],
-                                                        [],
-                                                        (err, link2) => {
+                                                      SearchTestsUtil.searchRefreshed(
+                                                        jack.restContext,
+                                                        'general',
+                                                        null,
+                                                        { q: uniqueString },
+                                                        (err, results) => {
                                                           assert.ok(!err);
 
-                                                          SearchTestsUtil.searchRefreshed(
-                                                            jack.restContext,
-                                                            'general',
-                                                            null,
-                                                            { q: uniqueString },
-                                                            (err, results) => {
-                                                              assert.ok(!err);
-
-                                                              const contentDoc = _getDocById(
-                                                                results,
-                                                                link2.id
-                                                              );
-                                                              assert.ok(contentDoc);
-                                                              return callback();
-                                                            }
-                                                          );
+                                                          const contentDoc = _getDocById(results, link2.id);
+                                                          assert.ok(contentDoc);
+                                                          return callback();
                                                         }
                                                       );
                                                     }
                                                   );
                                                 }
                                               );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
+                                            });
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              });
             });
           });
         });
@@ -3128,10 +2763,7 @@ describe('General Search', () => {
                     assert.strictEqual(jackDoc.resourceType, 'user');
                     assert.strictEqual(
                       jackDoc.profilePath,
-                      '/user/' +
-                        jackDoc.tenant.alias +
-                        '/' +
-                        AuthzUtil.getResourceFromId(jackDoc.id).resourceId
+                      '/user/' + jackDoc.tenant.alias + '/' + AuthzUtil.getResourceFromId(jackDoc.id).resourceId
                     );
                     assert.strictEqual(jackDoc.tenantAlias, jack.user.tenant.alias);
                     assert.strictEqual(jackDoc.displayName, jack.user.displayName);
@@ -3157,10 +2789,7 @@ describe('General Search', () => {
                         assert.strictEqual(jackDoc.resourceType, 'user');
                         assert.strictEqual(
                           jackDoc.profilePath,
-                          '/user/' +
-                            jackDoc.tenant.alias +
-                            '/' +
-                            AuthzUtil.getResourceFromId(jackDoc.id).resourceId
+                          '/user/' + jackDoc.tenant.alias + '/' + AuthzUtil.getResourceFromId(jackDoc.id).resourceId
                         );
                         assert.strictEqual(jackDoc.tenantAlias, jack.user.tenant.alias);
                         assert.strictEqual(jackDoc.displayName, jack.user.displayName);
@@ -3186,10 +2815,7 @@ describe('General Search', () => {
                             assert.strictEqual(jackDoc.resourceType, 'user');
                             assert.strictEqual(
                               jackDoc.profilePath,
-                              '/user/' +
-                                jackDoc.tenant.alias +
-                                '/' +
-                                AuthzUtil.getResourceFromId(jackDoc.id).resourceId
+                              '/user/' + jackDoc.tenant.alias + '/' + AuthzUtil.getResourceFromId(jackDoc.id).resourceId
                             );
                             assert.strictEqual(jackDoc.tenantAlias, jack.user.tenant.alias);
                             assert.strictEqual(jackDoc.displayName, jack.user.displayName);
@@ -3311,10 +2937,7 @@ describe('General Search', () => {
                             assert.strictEqual(jackDoc.resourceType, 'user');
                             assert.strictEqual(
                               jackDoc.profilePath,
-                              '/user/' +
-                                jackDoc.tenant.alias +
-                                '/' +
-                                AuthzUtil.getResourceFromId(jackDoc.id).resourceId
+                              '/user/' + jackDoc.tenant.alias + '/' + AuthzUtil.getResourceFromId(jackDoc.id).resourceId
                             );
                             assert.strictEqual(jackDoc.tenantAlias, jack.user.tenant.alias);
                             assert.strictEqual(jackDoc.displayName, jack.user.displayName);
@@ -3554,10 +3177,7 @@ describe('General Search', () => {
                   assert.strictEqual(groupDoc.resourceType, 'group');
                   assert.strictEqual(
                     groupDoc.profilePath,
-                    '/group/' +
-                      groupDoc.tenant.alias +
-                      '/' +
-                      AuthzUtil.getResourceFromId(groupDoc.id).resourceId
+                    '/group/' + groupDoc.tenant.alias + '/' + AuthzUtil.getResourceFromId(groupDoc.id).resourceId
                   );
                   assert.strictEqual(groupDoc.id, group.id);
                   assert.strictEqual(groupDoc.displayName, group.displayName);
@@ -3582,10 +3202,7 @@ describe('General Search', () => {
                       assert.strictEqual(groupDoc.resourceType, 'group');
                       assert.strictEqual(
                         groupDoc.profilePath,
-                        '/group/' +
-                          groupDoc.tenant.alias +
-                          '/' +
-                          AuthzUtil.getResourceFromId(groupDoc.id).resourceId
+                        '/group/' + groupDoc.tenant.alias + '/' + AuthzUtil.getResourceFromId(groupDoc.id).resourceId
                       );
                       assert.strictEqual(groupDoc.id, group.id);
                       assert.strictEqual(groupDoc.displayName, group.displayName);
@@ -3726,444 +3343,303 @@ describe('General Search', () => {
             err => {
               assert.ok(!err);
 
-              TestsUtil.generateTestUsers(
-                privateTenantAdminRestContext,
-                1,
-                (err, users, lukeSkywalker) => {
-                  assert.ok(!err);
+              TestsUtil.generateTestUsers(privateTenantAdminRestContext, 1, (err, users, lukeSkywalker) => {
+                assert.ok(!err);
 
-                  RestAPI.Group.createGroup(
-                    lukeSkywalker.restContext,
-                    uniqueStringC,
-                    uniqueStringC,
-                    'loggedin',
-                    'yes',
-                    [],
-                    [],
-                    (err, privateTenantGroup) => {
+                RestAPI.Group.createGroup(
+                  lukeSkywalker.restContext,
+                  uniqueStringC,
+                  uniqueStringC,
+                  'loggedin',
+                  'yes',
+                  [],
+                  [],
+                  (err, privateTenantGroup) => {
+                    assert.ok(!err);
+
+                    // Create 2 users from another public tenant tenant (gt), one of which has access to the group, and 2 users from the same tenant
+                    TestsUtil.generateTestUsers(gtAdminRestContext, 2, (err, users, darthVader, sith) => {
                       assert.ok(!err);
 
-                      // Create 2 users from another public tenant tenant (gt), one of which has access to the group, and 2 users from the same tenant
-                      TestsUtil.generateTestUsers(
-                        gtAdminRestContext,
-                        2,
-                        (err, users, darthVader, sith) => {
-                          assert.ok(!err);
+                      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, jack, jane) => {
+                        // Create the group, including sith as a user
+                        RestAPI.Group.createGroup(
+                          jack.restContext,
+                          uniqueStringA,
+                          uniqueStringA,
+                          'loggedin',
+                          'no',
+                          [],
+                          [sith.user.id],
+                          (err, group) => {
+                            assert.ok(!err);
 
-                          TestsUtil.generateTestUsers(
-                            camAdminRestContext,
-                            2,
-                            (err, users, jack, jane) => {
-                              // Create the group, including sith as a user
-                              RestAPI.Group.createGroup(
-                                jack.restContext,
-                                uniqueStringA,
-                                uniqueStringA,
-                                'loggedin',
-                                'no',
-                                [],
-                                [sith.user.id],
-                                (err, group) => {
-                                  assert.ok(!err);
+                            // Create the joinable group, including sith as a user
+                            RestAPI.Group.createGroup(
+                              jack.restContext,
+                              uniqueStringB,
+                              uniqueStringB,
+                              'loggedin',
+                              'request',
+                              [],
+                              [sith.user.id],
+                              (err, groupJoinable) => {
+                                assert.ok(!err);
 
-                                  // Create the joinable group, including sith as a user
-                                  RestAPI.Group.createGroup(
-                                    jack.restContext,
-                                    uniqueStringB,
-                                    uniqueStringB,
-                                    'loggedin',
-                                    'request',
-                                    [],
-                                    [sith.user.id],
-                                    (err, groupJoinable) => {
-                                      assert.ok(!err);
+                                // Verify anonymous user search cannot access either
+                                SearchTestsUtil.searchRefreshed(
+                                  anonymousRestContext,
+                                  'general',
+                                  null,
+                                  { resourceTypes: 'group', q: uniqueStringA },
+                                  (err, results) => {
+                                    assert.ok(!err);
+                                    const groupDoc = _getDocById(results, group.id);
+                                    assert.ok(!groupDoc);
 
-                                      // Verify anonymous user search cannot access either
-                                      SearchTestsUtil.searchRefreshed(
-                                        anonymousRestContext,
-                                        'general',
-                                        null,
-                                        { resourceTypes: 'group', q: uniqueStringA },
-                                        (err, results) => {
-                                          assert.ok(!err);
-                                          const groupDoc = _getDocById(results, group.id);
-                                          assert.ok(!groupDoc);
+                                    SearchTestsUtil.searchRefreshed(
+                                      anonymousRestContext,
+                                      'general',
+                                      null,
+                                      { resourceTypes: 'group', q: uniqueStringB },
+                                      (err, results) => {
+                                        assert.ok(!err);
+                                        const groupDoc = _getDocById(results, groupJoinable.id);
+                                        assert.ok(!groupDoc);
 
-                                          SearchTestsUtil.searchRefreshed(
-                                            anonymousRestContext,
-                                            'general',
-                                            null,
-                                            { resourceTypes: 'group', q: uniqueStringB },
-                                            (err, results) => {
-                                              assert.ok(!err);
-                                              const groupDoc = _getDocById(
-                                                results,
-                                                groupJoinable.id
-                                              );
-                                              assert.ok(!groupDoc);
+                                        // Verify cross-tenant user cannot query the unjoinable group
+                                        SearchTestsUtil.searchRefreshed(
+                                          darthVader.restContext,
+                                          'general',
+                                          null,
+                                          {
+                                            resourceTypes: 'group',
+                                            q: uniqueStringA,
+                                            scope: '_network'
+                                          },
+                                          (err, results) => {
+                                            assert.ok(!err);
+                                            const groupDoc = _getDocById(results, group.id);
+                                            assert.ok(!groupDoc);
 
-                                              // Verify cross-tenant user cannot query the unjoinable group
-                                              SearchTestsUtil.searchRefreshed(
-                                                darthVader.restContext,
-                                                'general',
-                                                null,
-                                                {
-                                                  resourceTypes: 'group',
-                                                  q: uniqueStringA,
-                                                  scope: '_network'
-                                                },
-                                                (err, results) => {
-                                                  assert.ok(!err);
-                                                  const groupDoc = _getDocById(results, group.id);
-                                                  assert.ok(!groupDoc);
+                                            // Verify cross-tenant user cannot query the joinable group
+                                            SearchTestsUtil.searchRefreshed(
+                                              darthVader.restContext,
+                                              'general',
+                                              null,
+                                              {
+                                                resourceTypes: 'group',
+                                                q: uniqueStringB,
+                                                scope: '_network'
+                                              },
+                                              (err, results) => {
+                                                assert.ok(!err);
+                                                assert.ok(!_getDocById(results, groupJoinable.id));
 
-                                                  // Verify cross-tenant user cannot query the joinable group
-                                                  SearchTestsUtil.searchRefreshed(
-                                                    darthVader.restContext,
-                                                    'general',
-                                                    null,
-                                                    {
-                                                      resourceTypes: 'group',
-                                                      q: uniqueStringB,
-                                                      scope: '_network'
-                                                    },
-                                                    (err, results) => {
-                                                      assert.ok(!err);
-                                                      assert.ok(
-                                                        !_getDocById(results, groupJoinable.id)
-                                                      );
+                                                // Verify cross-tenant member can query the unjoinable group
+                                                SearchTestsUtil.searchRefreshed(
+                                                  sith.restContext,
+                                                  'general',
+                                                  null,
+                                                  {
+                                                    resourceTypes: 'group',
+                                                    q: uniqueStringA
+                                                  },
+                                                  (err, results) => {
+                                                    assert.ok(!err);
+                                                    const groupDoc = _getDocById(results, group.id);
+                                                    assert.ok(groupDoc);
+                                                    assert.strictEqual(groupDoc.tenantAlias, group.tenant.alias);
+                                                    assert.strictEqual(groupDoc.resourceType, 'group');
+                                                    assert.strictEqual(
+                                                      groupDoc.profilePath,
+                                                      '/group/' +
+                                                        groupDoc.tenant.alias +
+                                                        '/' +
+                                                        AuthzUtil.getResourceFromId(groupDoc.id).resourceId
+                                                    );
+                                                    assert.strictEqual(groupDoc.id, group.id);
+                                                    assert.strictEqual(groupDoc.displayName, group.displayName);
+                                                    assert.strictEqual(groupDoc.visibility, group.visibility);
+                                                    assert.strictEqual(groupDoc._extra, undefined);
+                                                    assert.strictEqual(groupDoc._type, undefined);
+                                                    assert.strictEqual(groupDoc.q_high, undefined);
+                                                    assert.strictEqual(groupDoc.q_low, undefined);
+                                                    assert.strictEqual(groupDoc.sort, undefined);
 
-                                                      // Verify cross-tenant member can query the unjoinable group
-                                                      SearchTestsUtil.searchRefreshed(
-                                                        sith.restContext,
-                                                        'general',
-                                                        null,
-                                                        {
-                                                          resourceTypes: 'group',
-                                                          q: uniqueStringA
-                                                        },
-                                                        (err, results) => {
-                                                          assert.ok(!err);
-                                                          const groupDoc = _getDocById(
-                                                            results,
-                                                            group.id
-                                                          );
-                                                          assert.ok(groupDoc);
-                                                          assert.strictEqual(
-                                                            groupDoc.tenantAlias,
-                                                            group.tenant.alias
-                                                          );
-                                                          assert.strictEqual(
-                                                            groupDoc.resourceType,
-                                                            'group'
-                                                          );
-                                                          assert.strictEqual(
-                                                            groupDoc.profilePath,
-                                                            '/group/' +
-                                                              groupDoc.tenant.alias +
-                                                              '/' +
-                                                              AuthzUtil.getResourceFromId(
-                                                                groupDoc.id
-                                                              ).resourceId
-                                                          );
-                                                          assert.strictEqual(groupDoc.id, group.id);
-                                                          assert.strictEqual(
-                                                            groupDoc.displayName,
-                                                            group.displayName
-                                                          );
-                                                          assert.strictEqual(
-                                                            groupDoc.visibility,
-                                                            group.visibility
-                                                          );
-                                                          assert.strictEqual(
-                                                            groupDoc._extra,
-                                                            undefined
-                                                          );
-                                                          assert.strictEqual(
-                                                            groupDoc._type,
-                                                            undefined
-                                                          );
-                                                          assert.strictEqual(
-                                                            groupDoc.q_high,
-                                                            undefined
-                                                          );
-                                                          assert.strictEqual(
-                                                            groupDoc.q_low,
-                                                            undefined
-                                                          );
-                                                          assert.strictEqual(
-                                                            groupDoc.sort,
-                                                            undefined
-                                                          );
+                                                    // Verify another same-tenant loggedin user can query it
+                                                    SearchTestsUtil.searchRefreshed(
+                                                      jane.restContext,
+                                                      'general',
+                                                      null,
+                                                      {
+                                                        resourceTypes: 'group',
+                                                        q: uniqueStringA
+                                                      },
+                                                      (err, results) => {
+                                                        assert.ok(!err);
+                                                        const groupDoc = _getDocById(results, group.id);
+                                                        assert.ok(groupDoc);
+                                                        assert.strictEqual(groupDoc.tenantAlias, group.tenant.alias);
+                                                        assert.strictEqual(groupDoc.resourceType, 'group');
+                                                        assert.strictEqual(
+                                                          groupDoc.profilePath,
+                                                          '/group/' +
+                                                            groupDoc.tenant.alias +
+                                                            '/' +
+                                                            AuthzUtil.getResourceFromId(groupDoc.id).resourceId
+                                                        );
+                                                        assert.strictEqual(groupDoc.id, group.id);
+                                                        assert.strictEqual(groupDoc.displayName, group.displayName);
+                                                        assert.strictEqual(groupDoc.visibility, group.visibility);
+                                                        assert.strictEqual(groupDoc._extra, undefined);
+                                                        assert.strictEqual(groupDoc._type, undefined);
+                                                        assert.strictEqual(groupDoc.q_high, undefined);
+                                                        assert.strictEqual(groupDoc.q_low, undefined);
+                                                        assert.strictEqual(groupDoc.sort, undefined);
 
-                                                          // Verify another same-tenant loggedin user can query it
-                                                          SearchTestsUtil.searchRefreshed(
-                                                            jane.restContext,
-                                                            'general',
-                                                            null,
-                                                            {
-                                                              resourceTypes: 'group',
-                                                              q: uniqueStringA
-                                                            },
-                                                            (err, results) => {
-                                                              assert.ok(!err);
-                                                              const groupDoc = _getDocById(
-                                                                results,
-                                                                group.id
-                                                              );
-                                                              assert.ok(groupDoc);
-                                                              assert.strictEqual(
-                                                                groupDoc.tenantAlias,
-                                                                group.tenant.alias
-                                                              );
-                                                              assert.strictEqual(
-                                                                groupDoc.resourceType,
-                                                                'group'
-                                                              );
-                                                              assert.strictEqual(
-                                                                groupDoc.profilePath,
-                                                                '/group/' +
-                                                                  groupDoc.tenant.alias +
-                                                                  '/' +
-                                                                  AuthzUtil.getResourceFromId(
-                                                                    groupDoc.id
-                                                                  ).resourceId
-                                                              );
-                                                              assert.strictEqual(
-                                                                groupDoc.id,
-                                                                group.id
-                                                              );
-                                                              assert.strictEqual(
-                                                                groupDoc.displayName,
-                                                                group.displayName
-                                                              );
-                                                              assert.strictEqual(
-                                                                groupDoc.visibility,
-                                                                group.visibility
-                                                              );
-                                                              assert.strictEqual(
-                                                                groupDoc._extra,
-                                                                undefined
-                                                              );
-                                                              assert.strictEqual(
-                                                                groupDoc._type,
-                                                                undefined
-                                                              );
-                                                              assert.strictEqual(
-                                                                groupDoc.q_high,
-                                                                undefined
-                                                              );
-                                                              assert.strictEqual(
-                                                                groupDoc.q_low,
-                                                                undefined
-                                                              );
-                                                              assert.strictEqual(
-                                                                groupDoc.sort,
-                                                                undefined
-                                                              );
+                                                        // Verify member user can query it
+                                                        SearchTestsUtil.searchRefreshed(
+                                                          jack.restContext,
+                                                          'general',
+                                                          null,
+                                                          {
+                                                            resourceTypes: 'group',
+                                                            q: uniqueStringA
+                                                          },
+                                                          (err, results) => {
+                                                            assert.ok(!err);
+                                                            const groupDoc = _getDocById(results, group.id);
+                                                            assert.ok(groupDoc);
+                                                            assert.strictEqual(
+                                                              groupDoc.tenantAlias,
+                                                              group.tenant.alias
+                                                            );
+                                                            assert.strictEqual(groupDoc.resourceType, 'group');
+                                                            assert.strictEqual(
+                                                              groupDoc.profilePath,
+                                                              '/group/' +
+                                                                groupDoc.tenant.alias +
+                                                                '/' +
+                                                                AuthzUtil.getResourceFromId(groupDoc.id).resourceId
+                                                            );
+                                                            assert.strictEqual(groupDoc.id, group.id);
+                                                            assert.strictEqual(groupDoc.displayName, group.displayName);
+                                                            assert.strictEqual(groupDoc.visibility, group.visibility);
+                                                            assert.strictEqual(groupDoc._extra, undefined);
+                                                            assert.strictEqual(groupDoc._type, undefined);
+                                                            assert.strictEqual(groupDoc.q_high, undefined);
+                                                            assert.strictEqual(groupDoc.q_low, undefined);
+                                                            assert.strictEqual(groupDoc.sort, undefined);
 
-                                                              // Verify member user can query it
-                                                              SearchTestsUtil.searchRefreshed(
-                                                                jack.restContext,
-                                                                'general',
-                                                                null,
-                                                                {
-                                                                  resourceTypes: 'group',
-                                                                  q: uniqueStringA
-                                                                },
-                                                                (err, results) => {
-                                                                  assert.ok(!err);
-                                                                  const groupDoc = _getDocById(
-                                                                    results,
-                                                                    group.id
-                                                                  );
-                                                                  assert.ok(groupDoc);
-                                                                  assert.strictEqual(
-                                                                    groupDoc.tenantAlias,
-                                                                    group.tenant.alias
-                                                                  );
-                                                                  assert.strictEqual(
-                                                                    groupDoc.resourceType,
-                                                                    'group'
-                                                                  );
-                                                                  assert.strictEqual(
-                                                                    groupDoc.profilePath,
-                                                                    '/group/' +
-                                                                      groupDoc.tenant.alias +
-                                                                      '/' +
-                                                                      AuthzUtil.getResourceFromId(
-                                                                        groupDoc.id
-                                                                      ).resourceId
-                                                                  );
-                                                                  assert.strictEqual(
-                                                                    groupDoc.id,
-                                                                    group.id
-                                                                  );
-                                                                  assert.strictEqual(
-                                                                    groupDoc.displayName,
-                                                                    group.displayName
-                                                                  );
-                                                                  assert.strictEqual(
-                                                                    groupDoc.visibility,
-                                                                    group.visibility
-                                                                  );
-                                                                  assert.strictEqual(
-                                                                    groupDoc._extra,
-                                                                    undefined
-                                                                  );
-                                                                  assert.strictEqual(
-                                                                    groupDoc._type,
-                                                                    undefined
-                                                                  );
-                                                                  assert.strictEqual(
-                                                                    groupDoc.q_high,
-                                                                    undefined
-                                                                  );
-                                                                  assert.strictEqual(
-                                                                    groupDoc.q_low,
-                                                                    undefined
-                                                                  );
-                                                                  assert.strictEqual(
-                                                                    groupDoc.sort,
-                                                                    undefined
-                                                                  );
+                                                            // Sanity check luke skywalker's query to own loggedin group
+                                                            SearchTestsUtil.searchRefreshed(
+                                                              lukeSkywalker.restContext,
+                                                              'general',
+                                                              null,
+                                                              {
+                                                                resourceTypes: 'group',
+                                                                q: uniqueStringC
+                                                              },
+                                                              (err, results) => {
+                                                                assert.ok(!err);
+                                                                const groupDoc = _getDocById(
+                                                                  results,
+                                                                  privateTenantGroup.id
+                                                                );
+                                                                assert.ok(groupDoc);
+                                                                assert.strictEqual(
+                                                                  groupDoc.tenantAlias,
+                                                                  privateTenantGroup.tenant.alias
+                                                                );
+                                                                assert.strictEqual(groupDoc.resourceType, 'group');
+                                                                assert.strictEqual(
+                                                                  groupDoc.profilePath,
+                                                                  '/group/' +
+                                                                    groupDoc.tenant.alias +
+                                                                    '/' +
+                                                                    AuthzUtil.getResourceFromId(groupDoc.id).resourceId
+                                                                );
+                                                                assert.strictEqual(groupDoc.id, privateTenantGroup.id);
+                                                                assert.strictEqual(
+                                                                  groupDoc.displayName,
+                                                                  privateTenantGroup.displayName
+                                                                );
+                                                                assert.strictEqual(
+                                                                  groupDoc.visibility,
+                                                                  privateTenantGroup.visibility
+                                                                );
+                                                                assert.strictEqual(groupDoc._extra, undefined);
+                                                                assert.strictEqual(groupDoc._type, undefined);
+                                                                assert.strictEqual(groupDoc.q_high, undefined);
+                                                                assert.strictEqual(groupDoc.q_low, undefined);
+                                                                assert.strictEqual(groupDoc.sort, undefined);
 
-                                                                  // Sanity check luke skywalker's query to own loggedin group
-                                                                  SearchTestsUtil.searchRefreshed(
-                                                                    lukeSkywalker.restContext,
-                                                                    'general',
-                                                                    null,
-                                                                    {
-                                                                      resourceTypes: 'group',
-                                                                      q: uniqueStringC
-                                                                    },
-                                                                    (err, results) => {
-                                                                      assert.ok(!err);
-                                                                      const groupDoc = _getDocById(
-                                                                        results,
-                                                                        privateTenantGroup.id
-                                                                      );
-                                                                      assert.ok(groupDoc);
-                                                                      assert.strictEqual(
-                                                                        groupDoc.tenantAlias,
-                                                                        privateTenantGroup.tenant
-                                                                          .alias
-                                                                      );
-                                                                      assert.strictEqual(
-                                                                        groupDoc.resourceType,
-                                                                        'group'
-                                                                      );
-                                                                      assert.strictEqual(
-                                                                        groupDoc.profilePath,
-                                                                        '/group/' +
-                                                                          groupDoc.tenant.alias +
-                                                                          '/' +
-                                                                          AuthzUtil.getResourceFromId(
-                                                                            groupDoc.id
-                                                                          ).resourceId
-                                                                      );
-                                                                      assert.strictEqual(
-                                                                        groupDoc.id,
-                                                                        privateTenantGroup.id
-                                                                      );
-                                                                      assert.strictEqual(
-                                                                        groupDoc.displayName,
-                                                                        privateTenantGroup.displayName
-                                                                      );
-                                                                      assert.strictEqual(
-                                                                        groupDoc.visibility,
-                                                                        privateTenantGroup.visibility
-                                                                      );
-                                                                      assert.strictEqual(
-                                                                        groupDoc._extra,
-                                                                        undefined
-                                                                      );
-                                                                      assert.strictEqual(
-                                                                        groupDoc._type,
-                                                                        undefined
-                                                                      );
-                                                                      assert.strictEqual(
-                                                                        groupDoc.q_high,
-                                                                        undefined
-                                                                      );
-                                                                      assert.strictEqual(
-                                                                        groupDoc.q_low,
-                                                                        undefined
-                                                                      );
-                                                                      assert.strictEqual(
-                                                                        groupDoc.sort,
-                                                                        undefined
-                                                                      );
+                                                                // Verify a user from a private tenant cannot query an external loggedin joinable group
+                                                                SearchTestsUtil.searchRefreshed(
+                                                                  lukeSkywalker.restContext,
+                                                                  'general',
+                                                                  null,
+                                                                  {
+                                                                    resourceTypes: 'group',
+                                                                    q: uniqueStringB,
+                                                                    scope: '_network'
+                                                                  },
+                                                                  (err, results) => {
+                                                                    assert.ok(!err);
+                                                                    const groupDoc = _getDocById(
+                                                                      results,
+                                                                      groupJoinable.id
+                                                                    );
+                                                                    assert.ok(!groupDoc);
 
-                                                                      // Verify a user from a private tenant cannot query an external loggedin joinable group
-                                                                      SearchTestsUtil.searchRefreshed(
-                                                                        lukeSkywalker.restContext,
-                                                                        'general',
-                                                                        null,
-                                                                        {
-                                                                          resourceTypes: 'group',
-                                                                          q: uniqueStringB,
-                                                                          scope: '_network'
-                                                                        },
-                                                                        (err, results) => {
-                                                                          assert.ok(!err);
-                                                                          const groupDoc = _getDocById(
-                                                                            results,
-                                                                            groupJoinable.id
-                                                                          );
-                                                                          assert.ok(!groupDoc);
-
-                                                                          // Verify that user from a public tenant cannot query a loggedin joinable group that belongs to a private tenant (luke skywalker's tenant and group)
-                                                                          SearchTestsUtil.searchRefreshed(
-                                                                            jack.restContext,
-                                                                            'general',
-                                                                            null,
-                                                                            {
-                                                                              resourceTypes:
-                                                                                'group',
-                                                                              q: uniqueStringC,
-                                                                              scope: '_network'
-                                                                            },
-                                                                            (err, results) => {
-                                                                              assert.ok(!err);
-                                                                              const groupDoc = _getDocById(
-                                                                                results,
-                                                                                privateTenantGroup.id
-                                                                              );
-                                                                              assert.ok(!groupDoc);
-                                                                              return callback();
-                                                                            }
-                                                                          );
-                                                                        }
-                                                                      );
-                                                                    }
-                                                                  );
-                                                                }
-                                                              );
-                                                            }
-                                                          );
-                                                        }
-                                                      );
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
+                                                                    // Verify that user from a public tenant cannot query a loggedin joinable group that belongs to a private tenant (luke skywalker's tenant and group)
+                                                                    SearchTestsUtil.searchRefreshed(
+                                                                      jack.restContext,
+                                                                      'general',
+                                                                      null,
+                                                                      {
+                                                                        resourceTypes: 'group',
+                                                                        q: uniqueStringC,
+                                                                        scope: '_network'
+                                                                      },
+                                                                      (err, results) => {
+                                                                        assert.ok(!err);
+                                                                        const groupDoc = _getDocById(
+                                                                          results,
+                                                                          privateTenantGroup.id
+                                                                        );
+                                                                        assert.ok(!groupDoc);
+                                                                        return callback();
+                                                                      }
+                                                                    );
+                                                                  }
+                                                                );
+                                                              }
+                                                            );
+                                                          }
+                                                        );
+                                                      }
+                                                    );
+                                                  }
+                                                );
+                                              }
+                                            );
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      });
+                    });
+                  }
+                );
+              });
             }
           );
         }
@@ -4196,536 +3672,405 @@ describe('General Search', () => {
             err => {
               assert.ok(!err);
 
-              TestsUtil.generateTestUsers(
-                privateTenantAdminRestContext,
-                1,
-                (err, users, lukeSkywalker) => {
-                  assert.ok(!err);
+              TestsUtil.generateTestUsers(privateTenantAdminRestContext, 1, (err, users, lukeSkywalker) => {
+                assert.ok(!err);
 
-                  RestAPI.Group.createGroup(
-                    lukeSkywalker.restContext,
-                    TestsUtil.generateTestUserId('privateTenantGroup'),
-                    'A luke skywalker tenant group',
-                    'private',
-                    'yes',
-                    [],
-                    [],
-                    (err, privateTenantGroup) => {
+                RestAPI.Group.createGroup(
+                  lukeSkywalker.restContext,
+                  TestsUtil.generateTestUserId('privateTenantGroup'),
+                  'A luke skywalker tenant group',
+                  'private',
+                  'yes',
+                  [],
+                  [],
+                  (err, privateTenantGroup) => {
+                    assert.ok(!err);
+
+                    // Create 2 users from another public tenant tenant (gt), one of which has access to the group, and 2 users from the same tenant
+                    TestsUtil.generateTestUsers(gtAdminRestContext, 2, (err, users, darthVader, sith) => {
                       assert.ok(!err);
 
-                      // Create 2 users from another public tenant tenant (gt), one of which has access to the group, and 2 users from the same tenant
-                      TestsUtil.generateTestUsers(
-                        gtAdminRestContext,
-                        2,
-                        (err, users, darthVader, sith) => {
-                          assert.ok(!err);
+                      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, jack, jane) => {
+                        // Create the group, including sith as a user
+                        RestAPI.Group.createGroup(
+                          jack.restContext,
+                          uniqueStringA,
+                          uniqueStringA,
+                          'loggedin',
+                          'no',
+                          [],
+                          [sith.user.id],
+                          (err, group) => {
+                            assert.ok(!err);
 
-                          TestsUtil.generateTestUsers(
-                            camAdminRestContext,
-                            2,
-                            (err, users, jack, jane) => {
-                              // Create the group, including sith as a user
-                              RestAPI.Group.createGroup(
-                                jack.restContext,
-                                uniqueStringA,
-                                uniqueStringA,
-                                'loggedin',
-                                'no',
-                                [],
-                                [sith.user.id],
-                                (err, group) => {
-                                  assert.ok(!err);
+                            // Create the joinable group, including sith as a user
+                            RestAPI.Group.createGroup(
+                              jack.restContext,
+                              uniqueStringB,
+                              uniqueStringB,
+                              'loggedin',
+                              'request',
+                              [],
+                              [sith.user.id],
+                              (err, groupJoinable) => {
+                                assert.ok(!err);
 
-                                  // Create the joinable group, including sith as a user
-                                  RestAPI.Group.createGroup(
-                                    jack.restContext,
-                                    uniqueStringB,
-                                    uniqueStringB,
-                                    'loggedin',
-                                    'request',
-                                    [],
-                                    [sith.user.id],
-                                    (err, groupJoinable) => {
-                                      assert.ok(!err);
+                                // Create the unjoinable group, including sith as a user
+                                RestAPI.Group.createGroup(
+                                  jack.restContext,
+                                  TestsUtil.generateTestUserId('group'),
+                                  'A really awesome group',
+                                  'private',
+                                  'no',
+                                  [],
+                                  [sith.user.id],
+                                  (err, group) => {
+                                    assert.ok(!err);
 
-                                      // Create the unjoinable group, including sith as a user
-                                      RestAPI.Group.createGroup(
-                                        jack.restContext,
-                                        TestsUtil.generateTestUserId('group'),
-                                        'A really awesome group',
-                                        'private',
-                                        'no',
-                                        [],
-                                        [sith.user.id],
-                                        (err, group) => {
-                                          assert.ok(!err);
+                                    // Create the joinable group, including sith as a user
+                                    RestAPI.Group.createGroup(
+                                      jack.restContext,
+                                      TestsUtil.generateTestUserId('groupJoinable'),
+                                      'A really super joinable group',
+                                      'private',
+                                      'request',
+                                      [],
+                                      [sith.user.id],
+                                      (err, groupJoinable) => {
+                                        assert.ok(!err);
 
-                                          // Create the joinable group, including sith as a user
-                                          RestAPI.Group.createGroup(
-                                            jack.restContext,
-                                            TestsUtil.generateTestUserId('groupJoinable'),
-                                            'A really super joinable group',
-                                            'private',
-                                            'request',
-                                            [],
-                                            [sith.user.id],
-                                            (err, groupJoinable) => {
-                                              assert.ok(!err);
+                                        // Verify anonymous user search cannot access either
+                                        SearchTestsUtil.searchRefreshed(
+                                          anonymousRestContext,
+                                          'general',
+                                          null,
+                                          { resourceTypes: 'group', q: 'awesome' },
+                                          (err, results) => {
+                                            assert.ok(!err);
+                                            const groupDoc = _getDocById(results, group.id);
+                                            assert.ok(!groupDoc);
 
-                                              // Verify anonymous user search cannot access either
-                                              SearchTestsUtil.searchRefreshed(
-                                                anonymousRestContext,
-                                                'general',
-                                                null,
-                                                { resourceTypes: 'group', q: 'awesome' },
-                                                (err, results) => {
-                                                  assert.ok(!err);
-                                                  const groupDoc = _getDocById(results, group.id);
-                                                  assert.ok(!groupDoc);
+                                            SearchTestsUtil.searchRefreshed(
+                                              anonymousRestContext,
+                                              'general',
+                                              null,
+                                              { resourceTypes: 'group', q: 'joinable' },
+                                              (err, results) => {
+                                                assert.ok(!err);
+                                                const groupDoc = _getDocById(results, groupJoinable.id);
+                                                assert.ok(!groupDoc);
 
-                                                  SearchTestsUtil.searchRefreshed(
-                                                    anonymousRestContext,
-                                                    'general',
-                                                    null,
-                                                    { resourceTypes: 'group', q: 'joinable' },
-                                                    (err, results) => {
-                                                      assert.ok(!err);
-                                                      const groupDoc = _getDocById(
-                                                        results,
-                                                        groupJoinable.id
-                                                      );
-                                                      assert.ok(!groupDoc);
+                                                // Verify cross-tenant user cannot query the unjoinable group
+                                                SearchTestsUtil.searchRefreshed(
+                                                  darthVader.restContext,
+                                                  'general',
+                                                  null,
+                                                  {
+                                                    resourceTypes: 'group',
+                                                    q: 'awesome',
+                                                    scope: '_network'
+                                                  },
+                                                  (err, results) => {
+                                                    assert.ok(!err);
+                                                    const groupDoc = _getDocById(results, group.id);
+                                                    assert.ok(!groupDoc);
 
-                                                      // Verify cross-tenant user cannot query the unjoinable group
-                                                      SearchTestsUtil.searchRefreshed(
-                                                        darthVader.restContext,
-                                                        'general',
-                                                        null,
-                                                        {
-                                                          resourceTypes: 'group',
-                                                          q: 'awesome',
-                                                          scope: '_network'
-                                                        },
-                                                        (err, results) => {
-                                                          assert.ok(!err);
-                                                          const groupDoc = _getDocById(
-                                                            results,
-                                                            group.id
-                                                          );
-                                                          assert.ok(!groupDoc);
+                                                    // Verify cross-tenant user cannot query the joinable group
+                                                    SearchTestsUtil.searchRefreshed(
+                                                      darthVader.restContext,
+                                                      'general',
+                                                      null,
+                                                      {
+                                                        resourceTypes: 'group',
+                                                        q: 'joinable',
+                                                        scope: '_network'
+                                                      },
+                                                      (err, results) => {
+                                                        assert.ok(!err);
+                                                        assert.ok(!_getDocById(results, groupJoinable.id));
 
-                                                          // Verify cross-tenant user cannot query the joinable group
-                                                          SearchTestsUtil.searchRefreshed(
-                                                            darthVader.restContext,
-                                                            'general',
-                                                            null,
-                                                            {
-                                                              resourceTypes: 'group',
-                                                              q: 'joinable',
-                                                              scope: '_network'
-                                                            },
-                                                            (err, results) => {
-                                                              assert.ok(!err);
-                                                              assert.ok(
-                                                                !_getDocById(
-                                                                  results,
-                                                                  groupJoinable.id
-                                                                )
-                                                              );
+                                                        // Verify cross-tenant member can query the unjoinable group
+                                                        SearchTestsUtil.searchRefreshed(
+                                                          sith.restContext,
+                                                          'general',
+                                                          null,
+                                                          {
+                                                            resourceTypes: 'group',
+                                                            q: 'awesome'
+                                                          },
+                                                          (err, results) => {
+                                                            assert.ok(!err);
 
-                                                              // Verify cross-tenant member can query the unjoinable group
-                                                              SearchTestsUtil.searchRefreshed(
-                                                                sith.restContext,
-                                                                'general',
-                                                                null,
-                                                                {
-                                                                  resourceTypes: 'group',
-                                                                  q: 'awesome'
-                                                                },
-                                                                (err, results) => {
-                                                                  assert.ok(!err);
+                                                            const groupDoc = _getDocById(results, group.id);
+                                                            assert.ok(groupDoc);
+                                                            assert.strictEqual(
+                                                              groupDoc.tenantAlias,
+                                                              group.tenant.alias
+                                                            );
+                                                            assert.strictEqual(groupDoc.resourceType, 'group');
+                                                            assert.strictEqual(
+                                                              groupDoc.profilePath,
+                                                              '/group/' +
+                                                                groupDoc.tenant.alias +
+                                                                '/' +
+                                                                AuthzUtil.getResourceFromId(groupDoc.id).resourceId
+                                                            );
+                                                            assert.strictEqual(groupDoc.id, group.id);
+                                                            assert.strictEqual(groupDoc.displayName, group.displayName);
+                                                            assert.strictEqual(groupDoc.visibility, group.visibility);
+                                                            assert.strictEqual(groupDoc._extra, undefined);
+                                                            assert.strictEqual(groupDoc._type, undefined);
+                                                            assert.strictEqual(groupDoc.q_high, undefined);
+                                                            assert.strictEqual(groupDoc.q_low, undefined);
+                                                            assert.strictEqual(groupDoc.sort, undefined);
 
-                                                                  const groupDoc = _getDocById(
-                                                                    results,
-                                                                    group.id
-                                                                  );
-                                                                  assert.ok(groupDoc);
-                                                                  assert.strictEqual(
-                                                                    groupDoc.tenantAlias,
-                                                                    group.tenant.alias
-                                                                  );
-                                                                  assert.strictEqual(
-                                                                    groupDoc.resourceType,
-                                                                    'group'
-                                                                  );
-                                                                  assert.strictEqual(
-                                                                    groupDoc.profilePath,
-                                                                    '/group/' +
-                                                                      groupDoc.tenant.alias +
-                                                                      '/' +
-                                                                      AuthzUtil.getResourceFromId(
-                                                                        groupDoc.id
-                                                                      ).resourceId
-                                                                  );
-                                                                  assert.strictEqual(
-                                                                    groupDoc.id,
-                                                                    group.id
-                                                                  );
-                                                                  assert.strictEqual(
-                                                                    groupDoc.displayName,
-                                                                    group.displayName
-                                                                  );
-                                                                  assert.strictEqual(
-                                                                    groupDoc.visibility,
-                                                                    group.visibility
-                                                                  );
-                                                                  assert.strictEqual(
-                                                                    groupDoc._extra,
-                                                                    undefined
-                                                                  );
-                                                                  assert.strictEqual(
-                                                                    groupDoc._type,
-                                                                    undefined
-                                                                  );
-                                                                  assert.strictEqual(
-                                                                    groupDoc.q_high,
-                                                                    undefined
-                                                                  );
-                                                                  assert.strictEqual(
-                                                                    groupDoc.q_low,
-                                                                    undefined
-                                                                  );
-                                                                  assert.strictEqual(
-                                                                    groupDoc.sort,
-                                                                    undefined
-                                                                  );
+                                                            // Verify another same-tenant loggedin user cannot query the unjoinable group
+                                                            SearchTestsUtil.searchRefreshed(
+                                                              jane.restContext,
+                                                              'general',
+                                                              null,
+                                                              {
+                                                                resourceTypes: 'group',
+                                                                q: 'awesome'
+                                                              },
+                                                              (err, results) => {
+                                                                assert.ok(!err);
+                                                                const groupDoc = _getDocById(results, group.id);
+                                                                assert.ok(!groupDoc);
 
-                                                                  // Verify another same-tenant loggedin user cannot query the unjoinable group
-                                                                  SearchTestsUtil.searchRefreshed(
-                                                                    jane.restContext,
-                                                                    'general',
-                                                                    null,
-                                                                    {
-                                                                      resourceTypes: 'group',
-                                                                      q: 'awesome'
-                                                                    },
-                                                                    (err, results) => {
-                                                                      assert.ok(!err);
-                                                                      const groupDoc = _getDocById(
-                                                                        results,
-                                                                        group.id
-                                                                      );
-                                                                      assert.ok(!groupDoc);
+                                                                // Verify member user can query the unjoinable group
+                                                                SearchTestsUtil.searchRefreshed(
+                                                                  jack.restContext,
+                                                                  'general',
+                                                                  null,
+                                                                  {
+                                                                    resourceTypes: 'group',
+                                                                    q: 'awesome'
+                                                                  },
+                                                                  (err, results) => {
+                                                                    assert.ok(!err);
 
-                                                                      // Verify member user can query the unjoinable group
-                                                                      SearchTestsUtil.searchRefreshed(
-                                                                        jack.restContext,
-                                                                        'general',
-                                                                        null,
-                                                                        {
-                                                                          resourceTypes: 'group',
-                                                                          q: 'awesome'
-                                                                        },
-                                                                        (err, results) => {
-                                                                          assert.ok(!err);
+                                                                    const groupDoc = _getDocById(results, group.id);
+                                                                    assert.ok(groupDoc);
+                                                                    assert.strictEqual(
+                                                                      groupDoc.tenantAlias,
+                                                                      group.tenant.alias
+                                                                    );
+                                                                    assert.strictEqual(groupDoc.resourceType, 'group');
+                                                                    assert.strictEqual(
+                                                                      groupDoc.profilePath,
+                                                                      '/group/' +
+                                                                        groupDoc.tenant.alias +
+                                                                        '/' +
+                                                                        AuthzUtil.getResourceFromId(groupDoc.id)
+                                                                          .resourceId
+                                                                    );
+                                                                    assert.strictEqual(groupDoc.id, group.id);
+                                                                    assert.strictEqual(
+                                                                      groupDoc.displayName,
+                                                                      group.displayName
+                                                                    );
+                                                                    assert.strictEqual(
+                                                                      groupDoc.visibility,
+                                                                      group.visibility
+                                                                    );
+                                                                    assert.strictEqual(groupDoc._extra, undefined);
+                                                                    assert.strictEqual(groupDoc._type, undefined);
+                                                                    assert.strictEqual(groupDoc.q_high, undefined);
+                                                                    assert.strictEqual(groupDoc.q_low, undefined);
+                                                                    assert.strictEqual(groupDoc.sort, undefined);
 
-                                                                          const groupDoc = _getDocById(
-                                                                            results,
-                                                                            group.id
-                                                                          );
-                                                                          assert.ok(groupDoc);
-                                                                          assert.strictEqual(
-                                                                            groupDoc.tenantAlias,
-                                                                            group.tenant.alias
-                                                                          );
-                                                                          assert.strictEqual(
-                                                                            groupDoc.resourceType,
-                                                                            'group'
-                                                                          );
-                                                                          assert.strictEqual(
-                                                                            groupDoc.profilePath,
-                                                                            '/group/' +
-                                                                              groupDoc.tenant
-                                                                                .alias +
-                                                                              '/' +
-                                                                              AuthzUtil.getResourceFromId(
-                                                                                groupDoc.id
-                                                                              ).resourceId
-                                                                          );
-                                                                          assert.strictEqual(
-                                                                            groupDoc.id,
-                                                                            group.id
-                                                                          );
-                                                                          assert.strictEqual(
-                                                                            groupDoc.displayName,
-                                                                            group.displayName
-                                                                          );
-                                                                          assert.strictEqual(
-                                                                            groupDoc.visibility,
-                                                                            group.visibility
-                                                                          );
-                                                                          assert.strictEqual(
-                                                                            groupDoc._extra,
-                                                                            undefined
-                                                                          );
-                                                                          assert.strictEqual(
-                                                                            groupDoc._type,
-                                                                            undefined
-                                                                          );
-                                                                          assert.strictEqual(
-                                                                            groupDoc.q_high,
-                                                                            undefined
-                                                                          );
-                                                                          assert.strictEqual(
-                                                                            groupDoc.q_low,
-                                                                            undefined
-                                                                          );
-                                                                          assert.strictEqual(
-                                                                            groupDoc.sort,
-                                                                            undefined
-                                                                          );
+                                                                    // Sanity check luke skywalker's query to own group
+                                                                    SearchTestsUtil.searchRefreshed(
+                                                                      lukeSkywalker.restContext,
+                                                                      'general',
+                                                                      null,
+                                                                      {
+                                                                        resourceTypes: 'group',
+                                                                        q: 'skywalker'
+                                                                      },
+                                                                      (err, results) => {
+                                                                        assert.ok(!err);
 
-                                                                          // Sanity check luke skywalker's query to own group
-                                                                          SearchTestsUtil.searchRefreshed(
-                                                                            lukeSkywalker.restContext,
-                                                                            'general',
-                                                                            null,
-                                                                            {
-                                                                              resourceTypes:
-                                                                                'group',
-                                                                              q: 'skywalker'
-                                                                            },
-                                                                            (err, results) => {
-                                                                              assert.ok(!err);
+                                                                        const groupDoc = _getDocById(
+                                                                          results,
+                                                                          privateTenantGroup.id
+                                                                        );
+                                                                        assert.ok(groupDoc);
+                                                                        assert.strictEqual(
+                                                                          groupDoc.tenantAlias,
+                                                                          privateTenantGroup.tenant.alias
+                                                                        );
+                                                                        assert.strictEqual(
+                                                                          groupDoc.resourceType,
+                                                                          'group'
+                                                                        );
+                                                                        assert.strictEqual(
+                                                                          groupDoc.profilePath,
+                                                                          '/group/' +
+                                                                            groupDoc.tenant.alias +
+                                                                            '/' +
+                                                                            AuthzUtil.getResourceFromId(groupDoc.id)
+                                                                              .resourceId
+                                                                        );
+                                                                        assert.strictEqual(
+                                                                          groupDoc.id,
+                                                                          privateTenantGroup.id
+                                                                        );
+                                                                        assert.strictEqual(
+                                                                          groupDoc.displayName,
+                                                                          privateTenantGroup.displayName
+                                                                        );
+                                                                        assert.strictEqual(
+                                                                          groupDoc.visibility,
+                                                                          privateTenantGroup.visibility
+                                                                        );
+                                                                        assert.strictEqual(groupDoc._extra, undefined);
+                                                                        assert.strictEqual(groupDoc._type, undefined);
+                                                                        assert.strictEqual(groupDoc.q_high, undefined);
+                                                                        assert.strictEqual(groupDoc.q_low, undefined);
+                                                                        assert.strictEqual(groupDoc.sort, undefined);
 
-                                                                              const groupDoc = _getDocById(
-                                                                                results,
-                                                                                privateTenantGroup.id
-                                                                              );
-                                                                              assert.ok(groupDoc);
-                                                                              assert.strictEqual(
-                                                                                groupDoc.tenantAlias,
-                                                                                privateTenantGroup
-                                                                                  .tenant.alias
-                                                                              );
-                                                                              assert.strictEqual(
-                                                                                groupDoc.resourceType,
-                                                                                'group'
-                                                                              );
-                                                                              assert.strictEqual(
-                                                                                groupDoc.profilePath,
-                                                                                '/group/' +
-                                                                                  groupDoc.tenant
-                                                                                    .alias +
-                                                                                  '/' +
-                                                                                  AuthzUtil.getResourceFromId(
-                                                                                    groupDoc.id
-                                                                                  ).resourceId
-                                                                              );
-                                                                              assert.strictEqual(
-                                                                                groupDoc.id,
-                                                                                privateTenantGroup.id
-                                                                              );
-                                                                              assert.strictEqual(
-                                                                                groupDoc.displayName,
-                                                                                privateTenantGroup.displayName
-                                                                              );
-                                                                              assert.strictEqual(
-                                                                                groupDoc.visibility,
-                                                                                privateTenantGroup.visibility
-                                                                              );
-                                                                              assert.strictEqual(
-                                                                                groupDoc._extra,
-                                                                                undefined
-                                                                              );
-                                                                              assert.strictEqual(
-                                                                                groupDoc._type,
-                                                                                undefined
-                                                                              );
-                                                                              assert.strictEqual(
-                                                                                groupDoc.q_high,
-                                                                                undefined
-                                                                              );
-                                                                              assert.strictEqual(
-                                                                                groupDoc.q_low,
-                                                                                undefined
-                                                                              );
-                                                                              assert.strictEqual(
-                                                                                groupDoc.sort,
-                                                                                undefined
-                                                                              );
+                                                                        // Verify a user from a private tenant cannot query an external private joinable group
+                                                                        SearchTestsUtil.searchRefreshed(
+                                                                          lukeSkywalker.restContext,
+                                                                          'general',
+                                                                          null,
+                                                                          {
+                                                                            resourceTypes: 'group',
+                                                                            q: 'joinable',
+                                                                            scope: '_network'
+                                                                          },
+                                                                          (err, results) => {
+                                                                            assert.ok(!err);
+                                                                            const groupDoc = _getDocById(
+                                                                              results,
+                                                                              groupJoinable.id
+                                                                            );
+                                                                            assert.ok(!groupDoc);
 
-                                                                              // Verify a user from a private tenant cannot query an external private joinable group
-                                                                              SearchTestsUtil.searchRefreshed(
-                                                                                lukeSkywalker.restContext,
-                                                                                'general',
-                                                                                null,
-                                                                                {
-                                                                                  resourceTypes:
-                                                                                    'group',
-                                                                                  q: 'joinable',
-                                                                                  scope: '_network'
-                                                                                },
-                                                                                (err, results) => {
-                                                                                  assert.ok(!err);
-                                                                                  const groupDoc = _getDocById(
-                                                                                    results,
-                                                                                    groupJoinable.id
-                                                                                  );
-                                                                                  assert.ok(
-                                                                                    !groupDoc
-                                                                                  );
+                                                                            // Verify that user from a public tenant cannot query a private joinable group that belongs to a private tenant (luke skywalker's tenant and group)
+                                                                            SearchTestsUtil.searchRefreshed(
+                                                                              jack.restContext,
+                                                                              'general',
+                                                                              null,
+                                                                              {
+                                                                                resourceTypes: 'group',
+                                                                                q: 'skywalker',
+                                                                                scope: '_network'
+                                                                              },
+                                                                              (err, results) => {
+                                                                                assert.ok(!err);
+                                                                                const groupDoc = _getDocById(
+                                                                                  results,
+                                                                                  privateTenantGroup.id
+                                                                                );
+                                                                                assert.ok(!groupDoc);
 
-                                                                                  // Verify that user from a public tenant cannot query a private joinable group that belongs to a private tenant (luke skywalker's tenant and group)
-                                                                                  SearchTestsUtil.searchRefreshed(
-                                                                                    jack.restContext,
-                                                                                    'general',
-                                                                                    null,
-                                                                                    {
-                                                                                      resourceTypes:
-                                                                                        'group',
-                                                                                      q:
-                                                                                        'skywalker',
-                                                                                      scope:
-                                                                                        '_network'
-                                                                                    },
-                                                                                    (
-                                                                                      err,
-                                                                                      results
-                                                                                    ) => {
-                                                                                      assert.ok(
-                                                                                        !err
-                                                                                      );
-                                                                                      const groupDoc = _getDocById(
-                                                                                        results,
-                                                                                        privateTenantGroup.id
-                                                                                      );
-                                                                                      assert.ok(
-                                                                                        !groupDoc
-                                                                                      );
+                                                                                // Verify global admin user authenticated to a different tenant can query the private unjoinable group
+                                                                                SearchTestsUtil.searchRefreshed(
+                                                                                  globalAdminOnTenantRestContext,
+                                                                                  'general',
+                                                                                  null,
+                                                                                  {
+                                                                                    resourceTypes: 'group',
+                                                                                    q: 'skywalker',
+                                                                                    scope: '_all'
+                                                                                  },
+                                                                                  (err, results) => {
+                                                                                    assert.ok(!err);
 
-                                                                                      // Verify global admin user authenticated to a different tenant can query the private unjoinable group
-                                                                                      SearchTestsUtil.searchRefreshed(
-                                                                                        globalAdminOnTenantRestContext,
-                                                                                        'general',
-                                                                                        null,
-                                                                                        {
-                                                                                          resourceTypes:
-                                                                                            'group',
-                                                                                          q:
-                                                                                            'skywalker',
-                                                                                          scope:
-                                                                                            '_all'
-                                                                                        },
-                                                                                        (
-                                                                                          err,
-                                                                                          results
-                                                                                        ) => {
-                                                                                          assert.ok(
-                                                                                            !err
-                                                                                          );
+                                                                                    const groupDoc = _getDocById(
+                                                                                      results,
+                                                                                      privateTenantGroup.id
+                                                                                    );
+                                                                                    assert.ok(groupDoc);
+                                                                                    assert.strictEqual(
+                                                                                      groupDoc.tenantAlias,
+                                                                                      privateTenantGroup.tenant.alias
+                                                                                    );
+                                                                                    assert.strictEqual(
+                                                                                      groupDoc.resourceType,
+                                                                                      'group'
+                                                                                    );
+                                                                                    assert.strictEqual(
+                                                                                      groupDoc.profilePath,
+                                                                                      '/group/' +
+                                                                                        groupDoc.tenant.alias +
+                                                                                        '/' +
+                                                                                        AuthzUtil.getResourceFromId(
+                                                                                          groupDoc.id
+                                                                                        ).resourceId
+                                                                                    );
+                                                                                    assert.strictEqual(
+                                                                                      groupDoc.id,
+                                                                                      privateTenantGroup.id
+                                                                                    );
+                                                                                    assert.strictEqual(
+                                                                                      groupDoc.displayName,
+                                                                                      privateTenantGroup.displayName
+                                                                                    );
+                                                                                    assert.strictEqual(
+                                                                                      groupDoc.visibility,
+                                                                                      privateTenantGroup.visibility
+                                                                                    );
+                                                                                    assert.strictEqual(
+                                                                                      groupDoc._extra,
+                                                                                      undefined
+                                                                                    );
+                                                                                    assert.strictEqual(
+                                                                                      groupDoc._type,
+                                                                                      undefined
+                                                                                    );
+                                                                                    assert.strictEqual(
+                                                                                      groupDoc.q_high,
+                                                                                      undefined
+                                                                                    );
+                                                                                    assert.strictEqual(
+                                                                                      groupDoc.q_low,
+                                                                                      undefined
+                                                                                    );
+                                                                                    assert.strictEqual(
+                                                                                      groupDoc.sort,
+                                                                                      undefined
+                                                                                    );
 
-                                                                                          const groupDoc = _getDocById(
-                                                                                            results,
-                                                                                            privateTenantGroup.id
-                                                                                          );
-                                                                                          assert.ok(
-                                                                                            groupDoc
-                                                                                          );
-                                                                                          assert.strictEqual(
-                                                                                            groupDoc.tenantAlias,
-                                                                                            privateTenantGroup
-                                                                                              .tenant
-                                                                                              .alias
-                                                                                          );
-                                                                                          assert.strictEqual(
-                                                                                            groupDoc.resourceType,
-                                                                                            'group'
-                                                                                          );
-                                                                                          assert.strictEqual(
-                                                                                            groupDoc.profilePath,
-                                                                                            '/group/' +
-                                                                                              groupDoc
-                                                                                                .tenant
-                                                                                                .alias +
-                                                                                              '/' +
-                                                                                              AuthzUtil.getResourceFromId(
-                                                                                                groupDoc.id
-                                                                                              )
-                                                                                                .resourceId
-                                                                                          );
-                                                                                          assert.strictEqual(
-                                                                                            groupDoc.id,
-                                                                                            privateTenantGroup.id
-                                                                                          );
-                                                                                          assert.strictEqual(
-                                                                                            groupDoc.displayName,
-                                                                                            privateTenantGroup.displayName
-                                                                                          );
-                                                                                          assert.strictEqual(
-                                                                                            groupDoc.visibility,
-                                                                                            privateTenantGroup.visibility
-                                                                                          );
-                                                                                          assert.strictEqual(
-                                                                                            groupDoc._extra,
-                                                                                            undefined
-                                                                                          );
-                                                                                          assert.strictEqual(
-                                                                                            groupDoc._type,
-                                                                                            undefined
-                                                                                          );
-                                                                                          assert.strictEqual(
-                                                                                            groupDoc.q_high,
-                                                                                            undefined
-                                                                                          );
-                                                                                          assert.strictEqual(
-                                                                                            groupDoc.q_low,
-                                                                                            undefined
-                                                                                          );
-                                                                                          assert.strictEqual(
-                                                                                            groupDoc.sort,
-                                                                                            undefined
-                                                                                          );
-
-                                                                                          return callback();
-                                                                                        }
-                                                                                      );
-                                                                                    }
-                                                                                  );
-                                                                                }
-                                                                              );
-                                                                            }
-                                                                          );
-                                                                        }
-                                                                      );
-                                                                    }
-                                                                  );
-                                                                }
-                                                              );
-                                                            }
-                                                          );
-                                                        }
-                                                      );
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
+                                                                                    return callback();
+                                                                                  }
+                                                                                );
+                                                                              }
+                                                                            );
+                                                                          }
+                                                                        );
+                                                                      }
+                                                                    );
+                                                                  }
+                                                                );
+                                                              }
+                                                            );
+                                                          }
+                                                        );
+                                                      }
+                                                    );
+                                                  }
+                                                );
+                                              }
+                                            );
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      });
+                    });
+                  }
+                );
+              });
             }
           );
         }
@@ -4755,17 +4100,11 @@ describe('General Search', () => {
             assert.ok(!err);
 
             // Search for just the first 3 characters to ensure it matches "Xyzforedgengram"
-            SearchTestsUtil.searchRefreshed(
-              doer.restContext,
-              'general',
-              null,
-              { q: 'Xyz' },
-              (err, results) => {
-                assert.ok(!err);
-                assert.ok(_getDocById(results, content.id));
-                callback();
-              }
-            );
+            SearchTestsUtil.searchRefreshed(doer.restContext, 'general', null, { q: 'Xyz' }, (err, results) => {
+              assert.ok(!err);
+              assert.ok(_getDocById(results, content.id));
+              callback();
+            });
           }
         );
       });
@@ -4791,17 +4130,11 @@ describe('General Search', () => {
             assert.ok(!err);
 
             // Search using a lowercase querystring on an item that was indexed with upper case
-            SearchTestsUtil.searchAll(
-              doer.restContext,
-              'general',
-              null,
-              { q: 'apereo' },
-              (err, results) => {
-                assert.ok(!err);
-                assert.ok(_getDocById(results, content.id));
-                callback();
-              }
-            );
+            SearchTestsUtil.searchAll(doer.restContext, 'general', null, { q: 'apereo' }, (err, results) => {
+              assert.ok(!err);
+              assert.ok(_getDocById(results, content.id));
+              callback();
+            });
           }
         );
       });
@@ -4858,33 +4191,27 @@ describe('General Search', () => {
                     assert.ok(!err);
 
                     // Ensure the group match is more relevant than the content item
-                    SearchTestsUtil.searchAll(
-                      restCtx,
-                      'general',
-                      null,
-                      { q: 'Team' },
-                      (err, results) => {
-                        assert.ok(!err);
-                        assert.ok(_getDocById(results, group.id));
-                        assert.ok(!_getDocById(results, contentB.id));
+                    SearchTestsUtil.searchAll(restCtx, 'general', null, { q: 'Team' }, (err, results) => {
+                      assert.ok(!err);
+                      assert.ok(_getDocById(results, group.id));
+                      assert.ok(!_getDocById(results, contentB.id));
 
-                        // Ensure the group match is more relevant
-                        let hadGroup = false;
-                        let hadContentA = false;
-                        _.each(results.results, result => {
-                          if (result.id === group.id) {
-                            hadGroup = true;
-                            // Ensure we haven't received the content item before the group
-                            assert.ok(!hadContentA);
-                          } else if (result.id === contentA.id) {
-                            hadContentA = true;
-                          }
-                        });
+                      // Ensure the group match is more relevant
+                      let hadGroup = false;
+                      let hadContentA = false;
+                      _.each(results.results, result => {
+                        if (result.id === group.id) {
+                          hadGroup = true;
+                          // Ensure we haven't received the content item before the group
+                          assert.ok(!hadContentA);
+                        } else if (result.id === contentA.id) {
+                          hadContentA = true;
+                        }
+                      });
 
-                        assert.ok(hadGroup);
-                        return callback();
-                      }
-                    );
+                      assert.ok(hadGroup);
+                      return callback();
+                    });
                   }
                 );
               }
@@ -4914,10 +4241,7 @@ describe('General Search', () => {
      * Test that verifies that displayName matches are boosted correctly, even across spaces in the displayName
      */
     it('verify displayName matches are boosted across spaces', callback => {
-      let email = TestsUtil.generateTestEmailAddress(
-        null,
-        global.oaeTests.tenants.cam.emailDomains[0]
-      );
+      let email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
       RestAPI.User.createUser(
         camAdminRestContext,
         TestsUtil.generateRandomText(1),
@@ -4927,10 +4251,7 @@ describe('General Search', () => {
         {},
         (err, simonGaeremynck) => {
           assert.ok(!err);
-          email = TestsUtil.generateTestEmailAddress(
-            null,
-            global.oaeTests.tenants.gt.emailDomains[0]
-          );
+          email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.gt.emailDomains[0]);
           RestAPI.User.createUser(
             gtAdminRestContext,
             TestsUtil.generateRandomText(1),
@@ -4971,72 +4292,50 @@ describe('General Search', () => {
       // Generate 2 identical users on 2 tenants
       const username = TestsUtil.generateRandomText(1);
       const displayName = TestsUtil.generateRandomText(2);
-      let email = TestsUtil.generateTestEmailAddress(
-        null,
-        global.oaeTests.tenants.cam.emailDomains[0]
-      );
-      RestAPI.User.createUser(
-        camAdminRestContext,
-        username,
-        'password',
-        displayName,
-        email,
-        {},
-        (err, camUser) => {
+      let email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
+      RestAPI.User.createUser(camAdminRestContext, username, 'password', displayName, email, {}, (err, camUser) => {
+        assert.ok(!err);
+        email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.gt.emailDomains[0]);
+        RestAPI.User.createUser(gtAdminRestContext, username, 'password', displayName, email, {}, (err, gtUser) => {
           assert.ok(!err);
-          email = TestsUtil.generateTestEmailAddress(
-            null,
-            global.oaeTests.tenants.gt.emailDomains[0]
-          );
-          RestAPI.User.createUser(
-            gtAdminRestContext,
-            username,
-            'password',
-            displayName,
-            email,
-            {},
-            (err, gtUser) => {
-              assert.ok(!err);
 
-              // When searching on the cambridge tenant, the user from the cambridge
-              // tenant should appear before the user from the gt tenant
+          // When searching on the cambridge tenant, the user from the cambridge
+          // tenant should appear before the user from the gt tenant
+          SearchTestsUtil.searchRefreshed(
+            anonymousRestContext,
+            'general',
+            null,
+            { q: displayName, scope: '_all' },
+            (err, results) => {
+              assert.ok(!err);
+              let camDocIndex = indexOfDocument(results, camUser.id);
+              let gtDocIndex = indexOfDocument(results, gtUser.id);
+              assert.notStrictEqual(camDocIndex, -1);
+              assert.notStrictEqual(gtDocIndex, -1);
+              assert.ok(camDocIndex < gtDocIndex);
+
+              // When searching on the gt tenant, the user from the gt
+              // tenant should appear before the user from the cambridge tenant
               SearchTestsUtil.searchRefreshed(
-                anonymousRestContext,
+                anonymousGtRestContext,
                 'general',
                 null,
                 { q: displayName, scope: '_all' },
                 (err, results) => {
                   assert.ok(!err);
-                  let camDocIndex = indexOfDocument(results, camUser.id);
-                  let gtDocIndex = indexOfDocument(results, gtUser.id);
+                  camDocIndex = indexOfDocument(results, camUser.id);
+                  gtDocIndex = indexOfDocument(results, gtUser.id);
                   assert.notStrictEqual(camDocIndex, -1);
                   assert.notStrictEqual(gtDocIndex, -1);
-                  assert.ok(camDocIndex < gtDocIndex);
+                  assert.ok(gtDocIndex < camDocIndex);
 
-                  // When searching on the gt tenant, the user from the gt
-                  // tenant should appear before the user from the cambridge tenant
-                  SearchTestsUtil.searchRefreshed(
-                    anonymousGtRestContext,
-                    'general',
-                    null,
-                    { q: displayName, scope: '_all' },
-                    (err, results) => {
-                      assert.ok(!err);
-                      camDocIndex = indexOfDocument(results, camUser.id);
-                      gtDocIndex = indexOfDocument(results, gtUser.id);
-                      assert.notStrictEqual(camDocIndex, -1);
-                      assert.notStrictEqual(gtDocIndex, -1);
-                      assert.ok(gtDocIndex < camDocIndex);
-
-                      return callback();
-                    }
-                  );
+                  return callback();
                 }
               );
             }
           );
-        }
-      );
+        });
+      });
     });
   });
 

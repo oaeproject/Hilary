@@ -129,14 +129,8 @@ const _groupUpdateRouters = {
   }
 };
 
-ActivityAPI.registerActivityType(
-  PrincipalsConstants.activity.ACTIVITY_GROUP_UPDATE,
-  _groupUpdateRouters
-);
-ActivityAPI.registerActivityType(
-  PrincipalsConstants.activity.ACTIVITY_GROUP_UPDATE_VISIBILITY,
-  _groupUpdateRouters
-);
+ActivityAPI.registerActivityType(PrincipalsConstants.activity.ACTIVITY_GROUP_UPDATE, _groupUpdateRouters);
+ActivityAPI.registerActivityType(PrincipalsConstants.activity.ACTIVITY_GROUP_UPDATE_VISIBILITY, _groupUpdateRouters);
 
 /// ///////////////////////////////////////////////////////////
 // GROUP-JOIN / GROUP-ADD-MEMBER / GROUP-UPDATE-MEMBER-ROLE //
@@ -196,6 +190,40 @@ ActivityAPI.registerActivityType(PrincipalsConstants.activity.ACTIVITY_GROUP_UPD
         actor: ['self'],
         object: ['self', 'members'],
         target: ['self', 'managers']
+      }
+    }
+  }
+});
+
+ActivityAPI.registerActivityType(PrincipalsConstants.activity.ACTIVITY_REQUEST_TO_JOIN_GROUP, {
+  groupBy: [{ object: true }],
+  streams: {
+    activity: {
+      router: {
+        actor: ['self'],
+        object: ['self', 'managers']
+      }
+    },
+    notification: {
+      router: {
+        object: ['managers']
+      }
+    }
+  }
+});
+
+ActivityAPI.registerActivityType(PrincipalsConstants.activity.ACTIVITY_REQUEST_TO_JOIN_GROUP_REJECTED, {
+  groupBy: [{ object: true, target: true }],
+  streams: {
+    activity: {
+      router: {
+        actor: ['self'],
+        object: ['self']
+      }
+    },
+    notification: {
+      router: {
+        object: ['self']
       }
     }
   }
@@ -279,6 +307,61 @@ PrincipalsAPI.emitter.on(
   }
 );
 
+/*!
+ * Fire the request-group-join activity when someone wants to join a group
+ */
+// eslint-disable-next-line no-unused-vars
+PrincipalsAPI.emitter.on(PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP, function(
+  ctx,
+  group,
+  oldGroup,
+  memberChangeInfo
+) {
+  const millis = Date.now();
+  const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, { user: ctx.user() });
+  const objectResource = new ActivityModel.ActivitySeedResource('group', group.id, { group });
+  ActivityAPI.postActivity(
+    ctx,
+    new ActivityModel.ActivitySeed(
+      PrincipalsConstants.activity.ACTIVITY_REQUEST_TO_JOIN_GROUP,
+      millis,
+      ActivityConstants.verbs.REQUEST,
+      actorResource,
+      objectResource
+    )
+  );
+});
+
+/*!
+ * Fire the request-group-join activity when someone has been rejected to join a group
+ */
+PrincipalsAPI.emitter.on(
+  PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP_REJECTED,
+  // eslint-disable-next-line no-unused-vars
+  (ctx, group, requester) => {
+    const now = Date.now();
+    const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
+      user: ctx.user()
+    });
+    const objectResource = new ActivityModel.ActivitySeedResource('user', requester.id, {
+      requester
+    });
+    const targetResource = new ActivityModel.ActivitySeedResource('group', group.id, { group });
+
+    ActivityAPI.postActivity(
+      ctx,
+      new ActivityModel.ActivitySeed(
+        PrincipalsConstants.activity.ACTIVITY_REQUEST_TO_JOIN_GROUP_REJECTED,
+        now,
+        ActivityConstants.verbs.REJECT,
+        actorResource,
+        objectResource,
+        targetResource
+      )
+    );
+  }
+);
+
 /// ////////////////////////
 // ACTIVITY ENTITY TYPES //
 /// ////////////////////////
@@ -315,9 +398,11 @@ const _userTransformer = function(ctx, activityEntities, callback) {
     transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
     _.keys(activityEntities[activityId]).forEach(entityId => {
       const entity = activityEntities[activityId][entityId];
-      transformedActivityEntities[activityId][
-        entityId
-      ] = PrincipalsUtil.transformPersistentUserActivityEntity(ctx, entityId, entity.user);
+      transformedActivityEntities[activityId][entityId] = PrincipalsUtil.transformPersistentUserActivityEntity(
+        ctx,
+        entityId,
+        entity.user
+      );
     });
   });
   return callback(null, transformedActivityEntities);
@@ -335,11 +420,7 @@ const _userInternalTransformer = function(ctx, activityEntities, callback) {
       const entity = activityEntities[activityId][entityId];
       transformedActivityEntities[activityId][
         entityId
-      ] = PrincipalsUtil.transformPersistentUserActivityEntityToInternal(
-        ctx,
-        entityId,
-        entity.user
-      );
+      ] = PrincipalsUtil.transformPersistentUserActivityEntityToInternal(ctx, entityId, entity.user);
     });
   });
   return callback(null, transformedActivityEntities);
@@ -377,9 +458,11 @@ const _groupTransformer = function(ctx, activityEntities, callback) {
     transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
     _.keys(activityEntities[activityId]).forEach(entityId => {
       const entity = activityEntities[activityId][entityId];
-      transformedActivityEntities[activityId][
-        entityId
-      ] = PrincipalsUtil.transformPersistentGroupActivityEntity(ctx, entityId, entity.group);
+      transformedActivityEntities[activityId][entityId] = PrincipalsUtil.transformPersistentGroupActivityEntity(
+        ctx,
+        entityId,
+        entity.group
+      );
     });
   });
   return callback(null, transformedActivityEntities);
@@ -397,11 +480,7 @@ const _groupInternalTransformer = function(ctx, activityEntities, callback) {
       const entity = activityEntities[activityId][entityId];
       transformedActivityEntities[activityId][
         entityId
-      ] = PrincipalsUtil.transformPersistentGroupActivityEntityToInternal(
-        ctx,
-        entityId,
-        entity.group
-      );
+      ] = PrincipalsUtil.transformPersistentGroupActivityEntityToInternal(ctx, entityId, entity.group);
     });
   });
   return callback(null, transformedActivityEntities);
@@ -426,31 +505,27 @@ ActivityAPI.registerActivityEntityType('group', {
     internal: _groupInternalTransformer
   },
   propagation(associationsCtx, entity, callback) {
-    ActivityUtil.getStandardResourcePropagation(
-      entity.group.visibility,
-      entity.group.joinable,
-      (err, propagation) => {
-        if (err) {
-          return callback(err);
-        }
-
-        // Groups also will allow managers of object and target entities of an activity know that they were interacted with
-        propagation.push(
-          {
-            type: ActivityConstants.entityPropagation.EXTERNAL_ASSOCIATION,
-            objectType: 'object',
-            association: 'managers'
-          },
-          {
-            type: ActivityConstants.entityPropagation.EXTERNAL_ASSOCIATION,
-            objectType: 'target',
-            association: 'managers'
-          }
-        );
-
-        return callback(null, propagation);
+    ActivityUtil.getStandardResourcePropagation(entity.group.visibility, entity.group.joinable, (err, propagation) => {
+      if (err) {
+        return callback(err);
       }
-    );
+
+      // Groups also will allow managers of object and target entities of an activity know that they were interacted with
+      propagation.push(
+        {
+          type: ActivityConstants.entityPropagation.EXTERNAL_ASSOCIATION,
+          objectType: 'object',
+          association: 'managers'
+        },
+        {
+          type: ActivityConstants.entityPropagation.EXTERNAL_ASSOCIATION,
+          objectType: 'target',
+          association: 'managers'
+        }
+      );
+
+      return callback(null, propagation);
+    });
   }
 });
 
@@ -461,69 +536,46 @@ ActivityAPI.registerActivityEntityType('group', {
 /*!
  * Register a user association that presents the user themself
  */
-ActivityAPI.registerActivityEntityAssociation(
-  'user',
-  'self',
-  (associationsCtx, entity, callback) => {
-    return callback(null, [entity[ActivityConstants.properties.OAE_ID]]);
-  }
-);
+ActivityAPI.registerActivityEntityAssociation('user', 'self', (associationsCtx, entity, callback) => {
+  return callback(null, [entity[ActivityConstants.properties.OAE_ID]]);
+});
 
 /*!
  * Register a group association that presents the group itself
  */
-ActivityAPI.registerActivityEntityAssociation(
-  'group',
-  'self',
-  (associationsCtx, entity, callback) => {
-    return callback(null, [entity[ActivityConstants.properties.OAE_ID]]);
-  }
-);
+ActivityAPI.registerActivityEntityAssociation('group', 'self', (associationsCtx, entity, callback) => {
+  return callback(null, [entity[ActivityConstants.properties.OAE_ID]]);
+});
 
 /*!
  * Register a group association that presents the indirect members of the group categorized by role
  */
-ActivityAPI.registerActivityEntityAssociation(
-  'group',
-  'members-by-role',
-  (associationsCtx, entity, callback) => {
-    return ActivityUtil.getAllAuthzMembersByRole(
-      entity[ActivityConstants.properties.OAE_ID],
-      callback
-    );
-  }
-);
+ActivityAPI.registerActivityEntityAssociation('group', 'members-by-role', (associationsCtx, entity, callback) => {
+  return ActivityUtil.getAllAuthzMembersByRole(entity[ActivityConstants.properties.OAE_ID], callback);
+});
 
 /*!
  * Register a group association that presents all the indirect members of a group
  */
-ActivityAPI.registerActivityEntityAssociation(
-  'group',
-  'members',
-  (associationsCtx, entity, callback) => {
-    associationsCtx.get('members-by-role', (err, membersByRole) => {
-      if (err) {
-        return callback(err);
-      }
+ActivityAPI.registerActivityEntityAssociation('group', 'members', (associationsCtx, entity, callback) => {
+  associationsCtx.get('members-by-role', (err, membersByRole) => {
+    if (err) {
+      return callback(err);
+    }
 
-      return callback(null, _.flatten(_.values(membersByRole)));
-    });
-  }
-);
+    return callback(null, _.flatten(_.values(membersByRole)));
+  });
+});
 
 /*!
  * Register a group association that presents all the managers of a group
  */
-ActivityAPI.registerActivityEntityAssociation(
-  'group',
-  'managers',
-  (associationsCtx, entity, callback) => {
-    associationsCtx.get('members-by-role', (err, membersByRole) => {
-      if (err) {
-        return callback(err);
-      }
+ActivityAPI.registerActivityEntityAssociation('group', 'managers', (associationsCtx, entity, callback) => {
+  associationsCtx.get('members-by-role', (err, membersByRole) => {
+    if (err) {
+      return callback(err);
+    }
 
-      return callback(null, membersByRole.manager);
-    });
-  }
-);
+    return callback(null, membersByRole.manager);
+  });
+});

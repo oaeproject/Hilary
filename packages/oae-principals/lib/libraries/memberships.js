@@ -221,25 +221,22 @@ const _getAllGroupMembershipsFromAuthz = function(principalId, callback) {
  * When a group is created, we need to insert the group into the memberships libraries of all users
  * who are now a member of this group
  */
-PrincipalsEmitter.when(
-  PrincipalsConstants.events.CREATED_GROUP,
-  (ctx, group, memberChangeInfo, callback) => {
-    _touchMembershipLibraries(group, null, memberChangeInfo, err => {
-      if (err) {
-        log().warn(
-          {
-            err,
-            groupId: group.id,
-            memberIds: _.pluck(memberChangeInfo.members.added, 'id')
-          },
-          'An error occurred while updating membership libraries after creating a group'
-        );
-      }
+PrincipalsEmitter.when(PrincipalsConstants.events.CREATED_GROUP, (ctx, group, memberChangeInfo, callback) => {
+  _touchMembershipLibraries(group, null, memberChangeInfo, err => {
+    if (err) {
+      log().warn(
+        {
+          err,
+          groupId: group.id,
+          memberIds: _.pluck(memberChangeInfo.members.added, 'id')
+        },
+        'An error occurred while updating membership libraries after creating a group'
+      );
+    }
 
-      return callback();
-    });
-  }
-);
+    return callback();
+  });
+});
 
 /*!
  * When a group is updated, we need to promote its rank in all memberships libraries to which it
@@ -263,51 +260,45 @@ PrincipalsEmitter.on(PrincipalsConstants.events.UPDATED_GROUP, (ctx, updatedGrou
  * When a user leaves a group, we need to remove it as well as any indirect ancestors from the
  * memberhips library of the user that left
  */
-PrincipalsEmitter.when(
-  PrincipalsConstants.events.LEFT_GROUP,
-  (ctx, group, memberChangeInfo, callback) => {
-    _touchMembershipLibraries(group, null, memberChangeInfo, err => {
-      if (err) {
-        log().warn(
-          {
-            err,
-            groupId: group.id,
-            userIds: _.keys(memberChangeInfo.changes)
-          },
-          'An error occurred while updating membership libraries after a user left a group'
-        );
-      }
+PrincipalsEmitter.when(PrincipalsConstants.events.LEFT_GROUP, (ctx, group, memberChangeInfo, callback) => {
+  _touchMembershipLibraries(group, null, memberChangeInfo, err => {
+    if (err) {
+      log().warn(
+        {
+          err,
+          groupId: group.id,
+          userIds: _.keys(memberChangeInfo.changes)
+        },
+        'An error occurred while updating membership libraries after a user left a group'
+      );
+    }
 
-      return callback();
-    });
-  }
-);
+    return callback();
+  });
+});
 
 /*!
  * When a user joins a group, we need to add the group as well as its ancestors into the memberships
  * library of the user that joined
  */
-PrincipalsEmitter.when(
-  PrincipalsConstants.events.JOINED_GROUP,
-  (ctx, group, oldGroup, memberChangeInfo, callback) => {
-    // Add the group into the memberships library of the user that joined, as well as update
-    // the group rank in all memberships libraries it already belongs to
-    _touchMembershipLibraries(group, oldGroup.lastModified, memberChangeInfo, err => {
-      if (err) {
-        log().warn(
-          {
-            err,
-            group,
-            userIds: _.keys(memberChangeInfo.changes)
-          },
-          'An error occurred while updating the membership libraries after a group join'
-        );
-      }
+PrincipalsEmitter.when(PrincipalsConstants.events.JOINED_GROUP, (ctx, group, oldGroup, memberChangeInfo, callback) => {
+  // Add the group into the memberships library of the user that joined, as well as update
+  // the group rank in all memberships libraries it already belongs to
+  _touchMembershipLibraries(group, oldGroup.lastModified, memberChangeInfo, err => {
+    if (err) {
+      log().warn(
+        {
+          err,
+          group,
+          userIds: _.keys(memberChangeInfo.changes)
+        },
+        'An error occurred while updating the membership libraries after a group join'
+      );
+    }
 
-      return callback();
-    });
-  }
-);
+    return callback();
+  });
+});
 
 /*!
  * When the members of a group are updated, we need to insert/remove the group from the memberships
@@ -577,13 +568,7 @@ const _getGroupAncestorsIncludingDeleted = function(group, callback) {
  * @param  {String[]}   callback.children   The ids of the principals that are a direct or indirect member of any of the given principal ids. The passed in principal ids will be included in this result set
  * @api private
  */
-const _getAllGroupChildren = function(
-  principalIds,
-  excludePrincipals,
-  callback,
-  _groupsToExplode,
-  _allChildren
-) {
+const _getAllGroupChildren = function(principalIds, excludePrincipals, callback, _groupsToExplode, _allChildren) {
   _allChildren = _allChildren || [];
   _groupsToExplode = _groupsToExplode || _.filter(principalIds, AuthzUtil.isGroupId);
 
@@ -665,14 +650,7 @@ const _handleInvalidateMembershipsLibraries = function(
       _errs.push(err);
     }
 
-    return _handleInvalidateMembershipsLibraries(
-      group,
-      membershipsGraph,
-      membersGraph,
-      callback,
-      _errs,
-      _userIds
-    );
+    return _handleInvalidateMembershipsLibraries(group, membershipsGraph, membersGraph, callback, _errs, _userIds);
   });
 };
 
@@ -680,11 +658,5 @@ const _handleInvalidateMembershipsLibraries = function(
  * Register group delete and restore handlers that invalidate memberships libraries so they can
  * be reconstructed with or without the group
  */
-PrincipalsDelete.registerGroupDeleteHandler(
-  'memberships-library',
-  _handleInvalidateMembershipsLibraries
-);
-PrincipalsDelete.registerGroupRestoreHandler(
-  'memberships-library',
-  _handleInvalidateMembershipsLibraries
-);
+PrincipalsDelete.registerGroupDeleteHandler('memberships-library', _handleInvalidateMembershipsLibraries);
+PrincipalsDelete.registerGroupRestoreHandler('memberships-library', _handleInvalidateMembershipsLibraries);

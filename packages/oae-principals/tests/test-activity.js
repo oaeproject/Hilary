@@ -59,14 +59,14 @@ describe('Principals Activity', () => {
   });
 
   /*!
-     * Get the activity from the stream with the given criteria.
-     *
-     * @param  {ActivityStream}    activityStream      The stream to search
-     * @param  {String}            activityType        The type of activity to find
-     * @param  {String}            entityType          The type of entity to apply the criteria (one of actor, object or target)
-     * @param  {String}            entityOaeId         The oae:id of the entity to search
-     * @return {Activity}                              An activity from the stream that matches the provided criteria
-     */
+   * Get the activity from the stream with the given criteria.
+   *
+   * @param  {ActivityStream}    activityStream      The stream to search
+   * @param  {String}            activityType        The type of activity to find
+   * @param  {String}            entityType          The type of entity to apply the criteria (one of actor, object or target)
+   * @param  {String}            entityOaeId         The oae:id of the entity to search
+   * @return {Activity}                              An activity from the stream that matches the provided criteria
+   */
   const _getActivity = function(activityStream, activityType, entityType, entityOaeId) {
     if (!activityStream || !activityStream.items) {
       return null;
@@ -86,12 +86,12 @@ describe('Principals Activity', () => {
   };
 
   /*!
-     * Make a single membership or role change object to apply to a group membership or resource role.
-     *
-     * @param  {String} principalId   The principalId whose role to change
-     * @param  {String} role          The role to change to
-     * @return {Object}               The change JSON Object to apply
-     */
+   * Make a single membership or role change object to apply to a group membership or resource role.
+   *
+   * @param  {String} principalId   The principalId whose role to change
+   * @param  {String} role          The role to change to
+   * @return {Object}               The change JSON Object to apply
+   */
   const _makeChange = function(principalId, role) {
     const change = {};
     change[principalId] = role;
@@ -109,144 +109,106 @@ describe('Principals Activity', () => {
         assert.ok(!err);
 
         // Create the 4 groups that will form a cycle
-        RestAPI.Group.createGroup(
-          doer.restContext,
-          group1Alias,
-          group1Alias,
-          'public',
-          'no',
-          [],
-          [],
-          (err, group1) => {
-            assert.ok(!err);
+        RestAPI.Group.createGroup(doer.restContext, group1Alias, group1Alias, 'public', 'no', [], [], (err, group1) => {
+          assert.ok(!err);
 
-            RestAPI.Group.createGroup(
-              doer.restContext,
-              group2Alias,
-              group2Alias,
-              'public',
-              'no',
-              [group1.id],
-              [],
-              (err, group2) => {
-                assert.ok(!err);
+          RestAPI.Group.createGroup(
+            doer.restContext,
+            group2Alias,
+            group2Alias,
+            'public',
+            'no',
+            [group1.id],
+            [],
+            (err, group2) => {
+              assert.ok(!err);
 
-                // Group 3 will be joinable, so Jack can join it to trigger an activity
-                RestAPI.Group.createGroup(
-                  doer.restContext,
-                  group3Alias,
-                  group3Alias,
-                  'public',
-                  'yes',
-                  [group2.id],
-                  [],
-                  (err, group3) => {
-                    assert.ok(!err);
+              // Group 3 will be joinable, so Jack can join it to trigger an activity
+              RestAPI.Group.createGroup(
+                doer.restContext,
+                group3Alias,
+                group3Alias,
+                'public',
+                'yes',
+                [group2.id],
+                [],
+                (err, group3) => {
+                  assert.ok(!err);
 
-                    RestAPI.Group.createGroup(
-                      doer.restContext,
-                      group4Alias,
-                      group4Alias,
-                      'public',
-                      'no',
-                      [group3.id],
-                      [],
-                      (err, group4) => {
+                  RestAPI.Group.createGroup(
+                    doer.restContext,
+                    group4Alias,
+                    group4Alias,
+                    'public',
+                    'no',
+                    [group3.id],
+                    [],
+                    (err, group4) => {
+                      assert.ok(!err);
+
+                      // Add group4 as manager to group1 to complete the cycle
+                      const cycleChange = {};
+                      cycleChange[group4.id] = 'manager';
+                      RestAPI.Group.setGroupMembers(doer.restContext, group1.id, cycleChange, err => {
                         assert.ok(!err);
 
-                        // Add group4 as manager to group1 to complete the cycle
-                        const cycleChange = {};
-                        cycleChange[group4.id] = 'manager';
-                        RestAPI.Group.setGroupMembers(
-                          doer.restContext,
-                          group1.id,
-                          cycleChange,
-                          err => {
-                            assert.ok(!err);
+                        RestAPI.Group.joinGroup(jack.restContext, group3.id, err => {
+                          assert.ok(!err);
 
-                            RestAPI.Group.joinGroup(jack.restContext, group3.id, err => {
+                          // Verify that each group now has this as its most recent activity
+                          ActivityTestsUtil.collectAndGetActivityStream(
+                            jack.restContext,
+                            group1.id,
+                            null,
+                            (err, activityStream) => {
                               assert.ok(!err);
+                              assert.strictEqual(activityStream.items[0]['oae:activityType'], 'group-join');
+                              assert.strictEqual(activityStream.items[0].object['oae:id'], group3.id);
 
-                              // Verify that each group now has this as its most recent activity
                               ActivityTestsUtil.collectAndGetActivityStream(
                                 jack.restContext,
-                                group1.id,
+                                group2.id,
                                 null,
                                 (err, activityStream) => {
                                   assert.ok(!err);
-                                  assert.strictEqual(
-                                    activityStream.items[0]['oae:activityType'],
-                                    'group-join'
-                                  );
-                                  assert.strictEqual(
-                                    activityStream.items[0].object['oae:id'],
-                                    group3.id
-                                  );
+                                  assert.strictEqual(activityStream.items[0]['oae:activityType'], 'group-join');
+                                  assert.strictEqual(activityStream.items[0].object['oae:id'], group3.id);
 
                                   ActivityTestsUtil.collectAndGetActivityStream(
                                     jack.restContext,
-                                    group2.id,
+                                    group3.id,
                                     null,
                                     (err, activityStream) => {
                                       assert.ok(!err);
-                                      assert.strictEqual(
-                                        activityStream.items[0]['oae:activityType'],
-                                        'group-join'
-                                      );
-                                      assert.strictEqual(
-                                        activityStream.items[0].object['oae:id'],
-                                        group3.id
-                                      );
+                                      assert.strictEqual(activityStream.items[0]['oae:activityType'], 'group-join');
+                                      assert.strictEqual(activityStream.items[0].object['oae:id'], group3.id);
 
                                       ActivityTestsUtil.collectAndGetActivityStream(
                                         jack.restContext,
-                                        group3.id,
+                                        group4.id,
                                         null,
                                         (err, activityStream) => {
                                           assert.ok(!err);
-                                          assert.strictEqual(
-                                            activityStream.items[0]['oae:activityType'],
-                                            'group-join'
-                                          );
-                                          assert.strictEqual(
-                                            activityStream.items[0].object['oae:id'],
-                                            group3.id
-                                          );
-
-                                          ActivityTestsUtil.collectAndGetActivityStream(
-                                            jack.restContext,
-                                            group4.id,
-                                            null,
-                                            (err, activityStream) => {
-                                              assert.ok(!err);
-                                              assert.strictEqual(
-                                                activityStream.items[0]['oae:activityType'],
-                                                'group-join'
-                                              );
-                                              assert.strictEqual(
-                                                activityStream.items[0].object['oae:id'],
-                                                group3.id
-                                              );
-                                              return callback();
-                                            }
-                                          );
+                                          assert.strictEqual(activityStream.items[0]['oae:activityType'], 'group-join');
+                                          assert.strictEqual(activityStream.items[0].object['oae:id'], group3.id);
+                                          return callback();
                                         }
                                       );
                                     }
                                   );
                                 }
                               );
-                            });
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
+                            }
+                          );
+                        });
+                      });
+                    }
+                  );
+                }
+              );
+            }
+          );
+        });
       });
     });
 
@@ -255,160 +217,111 @@ describe('Principals Activity', () => {
      * only be routed to managers, as well as a regular update operation which should get routed to all members.
      */
     it('verify group activities are routed to group member descendants', callback => {
-      TestsUtil.generateTestUsers(
-        camAdminRestContext,
-        3,
-        (err, users, doer, jack, managerGroupMember) => {
-          assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, doer, jack, managerGroupMember) => {
+        assert.ok(!err);
 
-          // Create the member group, which will be member to the group that gets updated and has a user added. This group should not receive the "user added" activity
-          RestAPI.Group.createGroup(
-            doer.restContext,
-            TestsUtil.generateTestUserId('memberGroup'),
-            TestsUtil.generateTestUserId('memberGroup'),
-            'public',
-            'no',
-            [],
-            [],
-            (err, memberGroup) => {
-              assert.ok(!err);
+        // Create the member group, which will be member to the group that gets updated and has a user added. This group should not receive the "user added" activity
+        RestAPI.Group.createGroup(
+          doer.restContext,
+          TestsUtil.generateTestUserId('memberGroup'),
+          TestsUtil.generateTestUserId('memberGroup'),
+          'public',
+          'no',
+          [],
+          [],
+          (err, memberGroup) => {
+            assert.ok(!err);
 
-              // Create the manager group, which should receive both update and "user added" activities
-              RestAPI.Group.createGroup(
-                doer.restContext,
-                TestsUtil.generateTestUserId('managerGroup'),
-                TestsUtil.generateTestUserId('managerGroup'),
-                'public',
-                'no',
-                [],
-                [],
-                (err, managerGroup) => {
+            // Create the manager group, which should receive both update and "user added" activities
+            RestAPI.Group.createGroup(
+              doer.restContext,
+              TestsUtil.generateTestUserId('managerGroup'),
+              TestsUtil.generateTestUserId('managerGroup'),
+              'public',
+              'no',
+              [],
+              [],
+              (err, managerGroup) => {
+                assert.ok(!err);
+
+                // ManagerGroupMember should be a member of the manager group to verify indirect group member routing
+                const membership = {};
+                membership[managerGroupMember.user.id] = 'manager';
+                RestAPI.Group.setGroupMembers(doer.restContext, managerGroup.id, membership, err => {
                   assert.ok(!err);
 
-                  // ManagerGroupMember should be a member of the manager group to verify indirect group member routing
-                  const membership = {};
-                  membership[managerGroupMember.user.id] = 'manager';
-                  RestAPI.Group.setGroupMembers(
+                  // Create the target group, manager group and member group are members
+                  RestAPI.Group.createGroup(
                     doer.restContext,
-                    managerGroup.id,
-                    membership,
-                    err => {
+                    TestsUtil.generateTestUserId('targetGroup'),
+                    TestsUtil.generateTestUserId('targetGroup'),
+                    'public',
+                    'yes',
+                    [managerGroup.id],
+                    [memberGroup.id],
+                    (err, targetGroup) => {
                       assert.ok(!err);
 
-                      // Create the target group, manager group and member group are members
-                      RestAPI.Group.createGroup(
-                        doer.restContext,
-                        TestsUtil.generateTestUserId('targetGroup'),
-                        TestsUtil.generateTestUserId('targetGroup'),
-                        'public',
-                        'yes',
-                        [managerGroup.id],
-                        [memberGroup.id],
-                        (err, targetGroup) => {
-                          assert.ok(!err);
+                      RestAPI.Group.joinGroup(jack.restContext, targetGroup.id, err => {
+                        assert.ok(!err);
 
-                          RestAPI.Group.joinGroup(jack.restContext, targetGroup.id, err => {
+                        // Update the group to propagate an activity
+                        RestAPI.Group.updateGroup(
+                          doer.restContext,
+                          targetGroup.id,
+                          { displayName: 'Ha ha I make change' },
+                          err => {
                             assert.ok(!err);
 
-                            // Update the group to propagate an activity
-                            RestAPI.Group.updateGroup(
+                            // Ensure manager group received both update and join activities
+                            ActivityTestsUtil.collectAndGetActivityStream(
                               doer.restContext,
-                              targetGroup.id,
-                              { displayName: 'Ha ha I make change' },
-                              err => {
+                              managerGroup.id,
+                              null,
+                              (err, activityStream) => {
                                 assert.ok(!err);
+                                assert.ok(_getActivity(activityStream, 'group-update', 'object', targetGroup.id));
+                                assert.ok(_getActivity(activityStream, 'group-join', 'object', targetGroup.id));
 
-                                // Ensure manager group received both update and join activities
+                                // Ensure the member group received update, but not join
                                 ActivityTestsUtil.collectAndGetActivityStream(
                                   doer.restContext,
-                                  managerGroup.id,
+                                  memberGroup.id,
                                   null,
                                   (err, activityStream) => {
                                     assert.ok(!err);
-                                    assert.ok(
-                                      _getActivity(
-                                        activityStream,
-                                        'group-update',
-                                        'object',
-                                        targetGroup.id
-                                      )
-                                    );
-                                    assert.ok(
-                                      _getActivity(
-                                        activityStream,
-                                        'group-join',
-                                        'object',
-                                        targetGroup.id
-                                      )
-                                    );
+                                    assert.ok(_getActivity(activityStream, 'group-update', 'object', targetGroup.id));
+                                    assert.ok(!_getActivity(activityStream, 'group-join', 'object', targetGroup.id));
 
-                                    // Ensure the member group received update, but not join
+                                    // Ensure member of the manager group got both update and join
                                     ActivityTestsUtil.collectAndGetActivityStream(
-                                      doer.restContext,
-                                      memberGroup.id,
+                                      managerGroupMember.restContext,
+                                      managerGroupMember.user.id,
                                       null,
                                       (err, activityStream) => {
                                         assert.ok(!err);
                                         assert.ok(
-                                          _getActivity(
-                                            activityStream,
-                                            'group-update',
-                                            'object',
-                                            targetGroup.id
-                                          )
+                                          _getActivity(activityStream, 'group-update', 'object', targetGroup.id)
                                         );
-                                        assert.ok(
-                                          !_getActivity(
-                                            activityStream,
-                                            'group-join',
-                                            'object',
-                                            targetGroup.id
-                                          )
-                                        );
-
-                                        // Ensure member of the manager group got both update and join
-                                        ActivityTestsUtil.collectAndGetActivityStream(
-                                          managerGroupMember.restContext,
-                                          managerGroupMember.user.id,
-                                          null,
-                                          (err, activityStream) => {
-                                            assert.ok(!err);
-                                            assert.ok(
-                                              _getActivity(
-                                                activityStream,
-                                                'group-update',
-                                                'object',
-                                                targetGroup.id
-                                              )
-                                            );
-                                            assert.ok(
-                                              _getActivity(
-                                                activityStream,
-                                                'group-join',
-                                                'object',
-                                                targetGroup.id
-                                              )
-                                            );
-                                            return callback();
-                                          }
-                                        );
+                                        assert.ok(_getActivity(activityStream, 'group-join', 'object', targetGroup.id));
+                                        return callback();
                                       }
                                     );
                                   }
                                 );
                               }
                             );
-                          });
-                        }
-                      );
+                          }
+                        );
+                      });
                     }
                   );
-                }
-              );
-            }
-          );
-        }
-      );
+                });
+              }
+            );
+          }
+        );
+      });
     });
   });
 
@@ -439,243 +352,186 @@ describe('Principals Activity', () => {
       TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, publicUser, privateUser) => {
         assert.ok(!err);
 
-        RestAPI.User.updateUser(
-          privateUser.restContext,
-          privateUser.user.id,
-          { visibility: 'private' },
-          err => {
+        RestAPI.User.updateUser(privateUser.restContext, privateUser.user.id, { visibility: 'private' }, err => {
+          assert.ok(!err);
+
+          const sizes = {
+            x: 0,
+            y: 0,
+            width: 35,
+            height: 35
+          };
+
+          // Give the users a profile picture so we can verify it is on the entity model
+          RestAPI.User.uploadPicture(publicUser.restContext, publicUser.user.id, _getPictureStream, sizes, err => {
             assert.ok(!err);
 
-            const sizes = {
-              x: 0,
-              y: 0,
-              width: 35,
-              height: 35
-            };
+            // Add a profile picture to the private user so we can verify it gets hidden
+            RestAPI.User.uploadPicture(privateUser.restContext, privateUser.user.id, _getPictureStream, sizes, err => {
+              assert.ok(!err);
 
-            // Give the users a profile picture so we can verify it is on the entity model
-            RestAPI.User.uploadPicture(
-              publicUser.restContext,
-              publicUser.user.id,
-              _getPictureStream,
-              sizes,
-              err => {
-                assert.ok(!err);
+              // Create a group
+              RestAPI.Group.createGroup(
+                camAdminRestContext,
+                TestsUtil.generateTestGroupId('group'),
+                TestsUtil.generateTestGroupId('group'),
+                'public',
+                'no',
+                [],
+                [],
+                (err, group) => {
+                  assert.ok(!err);
 
-                // Add a profile picture to the private user so we can verify it gets hidden
-                RestAPI.User.uploadPicture(
-                  privateUser.restContext,
-                  privateUser.user.id,
-                  _getPictureStream,
-                  sizes,
-                  err => {
+                  // Give the group a profile picture
+                  RestAPI.Group.uploadPicture(camAdminRestContext, group.id, _getPictureStream, sizes, err => {
                     assert.ok(!err);
 
-                    // Create a group
-                    RestAPI.Group.createGroup(
-                      camAdminRestContext,
-                      TestsUtil.generateTestGroupId('group'),
-                      TestsUtil.generateTestGroupId('group'),
-                      'public',
-                      'no',
-                      [],
-                      [],
-                      (err, group) => {
-                        assert.ok(!err);
+                    // Add both the public and private users to the group. They should receive eachother's user entities in the feeds
+                    const permissionChanges = {};
+                    permissionChanges[publicUser.user.id] = 'manager';
+                    permissionChanges[privateUser.user.id] = 'manager';
+                    RestAPI.Group.setGroupMembers(camAdminRestContext, group.id, permissionChanges, err => {
+                      assert.ok(!err);
 
-                        // Give the group a profile picture
-                        RestAPI.Group.uploadPicture(
-                          camAdminRestContext,
-                          group.id,
-                          _getPictureStream,
-                          sizes,
-                          err => {
-                            assert.ok(!err);
+                      // Verify the publicUser and group model in the public user group-add-member activity
+                      ActivityTestsUtil.collectAndGetActivityStream(
+                        publicUser.restContext,
+                        publicUser.user.id,
+                        null,
+                        (err, activityStream) => {
+                          assert.ok(!err);
 
-                            // Add both the public and private users to the group. They should receive eachother's user entities in the feeds
-                            const permissionChanges = {};
-                            permissionChanges[publicUser.user.id] = 'manager';
-                            permissionChanges[privateUser.user.id] = 'manager';
-                            RestAPI.Group.setGroupMembers(
-                              camAdminRestContext,
-                              group.id,
-                              permissionChanges,
-                              err => {
-                                assert.ok(!err);
+                          // Pluck the group-add-member activity from the user's feed
+                          const activity = activityStream.items[0];
+                          assert.ok(activity);
 
-                                // Verify the publicUser and group model in the public user group-add-member activity
-                                ActivityTestsUtil.collectAndGetActivityStream(
-                                  publicUser.restContext,
-                                  publicUser.user.id,
-                                  null,
-                                  (err, activityStream) => {
-                                    assert.ok(!err);
+                          const { actor, object, target } = activity; // Public user, private user, group
+                          assert.ok(actor);
+                          assert.ok(object);
+                          assert.ok(target);
 
-                                    // Pluck the group-add-member activity from the user's feed
-                                    const activity = activityStream.items[0];
-                                    assert.ok(activity);
+                          assert.strictEqual(object.objectType, 'collection');
+                          assert.strictEqual(object['oae:collection'].length, 2);
 
-                                    const { actor, object, target } = activity; // Public user, private user, group
-                                    assert.ok(actor);
-                                    assert.ok(object);
-                                    assert.ok(target);
+                          let publicUserActivityEntity = null;
+                          let privateUserActivityEnity = null;
+                          _.each(object['oae:collection'], user => {
+                            const { resourceId } = AuthzUtil.getResourceFromId(user['oae:id']);
+                            if (user['oae:id'] === publicUser.user.id) {
+                              publicUserActivityEntity = user;
 
-                                    assert.strictEqual(object.objectType, 'collection');
-                                    assert.strictEqual(object['oae:collection'].length, 2);
+                              // Verify the public user model
+                              assert.ok(user.id.indexOf(publicUser.user.id) !== -1);
+                              assert.strictEqual(user.displayName, publicUser.user.displayName);
+                              assert.strictEqual(user.objectType, 'user');
+                              assert.strictEqual(user['oae:id'], publicUser.user.id);
+                              assert.strictEqual(user['oae:profilePath'], publicUser.user.profilePath);
+                              assert.strictEqual(user['oae:visibility'], 'public');
+                              assert.strictEqual(
+                                user.url,
+                                'http://' + global.oaeTests.tenants.cam.host + '/user/camtest/' + resourceId
+                              );
+                              assert.ok(user.image);
+                            } else if (user['oae:id'] === privateUser.user.id) {
+                              privateUserActivityEnity = user;
 
-                                    let publicUserActivityEntity = null;
-                                    let privateUserActivityEnity = null;
-                                    _.each(object['oae:collection'], user => {
-                                      const { resourceId } = AuthzUtil.getResourceFromId(
-                                        user['oae:id']
+                              // Verify the private user model
+                              assert.ok(user.id.indexOf(privateUser.user.id) !== -1);
+                              assert.strictEqual(user.displayName, privateUser.user.publicAlias);
+                              assert.strictEqual(user.objectType, 'user');
+                              assert.strictEqual(user['oae:id'], privateUser.user.id);
+                              assert.strictEqual(user['oae:profilePath'], undefined);
+                              assert.strictEqual(user['oae:visibility'], 'private');
+
+                              // Url and image are not defined for unprivileged users in feeds
+                              assert.ok(!user.url);
+                              assert.ok(!user.image);
+                            }
+                          });
+
+                          assert.ok(publicUserActivityEntity);
+                          assert.ok(privateUserActivityEnity);
+
+                          // Verify the group model
+                          const { resourceId } = AuthzUtil.getResourceFromId(group.id);
+                          assert.ok(target.id.indexOf(group.id) !== -1);
+                          assert.strictEqual(target.displayName, group.displayName);
+                          assert.strictEqual(target.objectType, 'group');
+                          assert.strictEqual(target['oae:id'], group.id);
+                          assert.strictEqual(target['oae:profilePath'], group.profilePath);
+                          assert.strictEqual(target['oae:visibility'], group.visibility);
+                          assert.strictEqual(
+                            target.url,
+                            'http://' + global.oaeTests.tenants.cam.host + '/group/camtest/' + resourceId
+                          );
+                          assert.ok(target.image);
+
+                          // Ensure the standard image for the public user and group can be downloaded right now by even an anonymous user on another tenant
+                          let signedDownloadUrl = url.parse(publicUserActivityEntity.image.url, true);
+                          RestUtil.performRestRequest(
+                            anonymousGtRestContext,
+                            signedDownloadUrl.pathname,
+                            'GET',
+                            signedDownloadUrl.query,
+                            (err, body, response) => {
+                              assert.ok(!err);
+                              assert.strictEqual(response.statusCode, 204);
+
+                              signedDownloadUrl = url.parse(target.image.url, true);
+                              RestUtil.performRestRequest(
+                                anonymousGtRestContext,
+                                signedDownloadUrl.pathname,
+                                'GET',
+                                signedDownloadUrl.query,
+                                (err, body, response) => {
+                                  assert.ok(!err);
+                                  assert.strictEqual(response.statusCode, 204);
+
+                                  // Jump ahead in time by 5 years, test-drive a hovercar and check if the signatures still work
+                                  const now = Date.now();
+                                  Date.now = function() {
+                                    return now + 5 * 365 * 24 * 60 * 60 * 1000;
+                                  };
+
+                                  // Ensure the standard image for the public user and group can still be downloaded by even an anonymous user on another tenant
+                                  signedDownloadUrl = url.parse(publicUserActivityEntity.image.url, true);
+                                  RestUtil.performRestRequest(
+                                    anonymousGtRestContext,
+                                    signedDownloadUrl.pathname,
+                                    'GET',
+                                    signedDownloadUrl.query,
+                                    (err, body, response) => {
+                                      assert.ok(!err);
+                                      assert.strictEqual(response.statusCode, 204);
+
+                                      signedDownloadUrl = url.parse(target.image.url, true);
+                                      RestUtil.performRestRequest(
+                                        anonymousGtRestContext,
+                                        signedDownloadUrl.pathname,
+                                        'GET',
+                                        signedDownloadUrl.query,
+                                        (err, body, response) => {
+                                          assert.ok(!err);
+                                          assert.strictEqual(response.statusCode, 204);
+
+                                          return callback();
+                                        }
                                       );
-                                      if (user['oae:id'] === publicUser.user.id) {
-                                        publicUserActivityEntity = user;
-
-                                        // Verify the public user model
-                                        assert.ok(user.id.indexOf(publicUser.user.id) !== -1);
-                                        assert.strictEqual(
-                                          user.displayName,
-                                          publicUser.user.displayName
-                                        );
-                                        assert.strictEqual(user.objectType, 'user');
-                                        assert.strictEqual(user['oae:id'], publicUser.user.id);
-                                        assert.strictEqual(
-                                          user['oae:profilePath'],
-                                          publicUser.user.profilePath
-                                        );
-                                        assert.strictEqual(user['oae:visibility'], 'public');
-                                        assert.strictEqual(
-                                          user.url,
-                                          'http://' +
-                                            global.oaeTests.tenants.cam.host +
-                                            '/user/camtest/' +
-                                            resourceId
-                                        );
-                                        assert.ok(user.image);
-                                      } else if (user['oae:id'] === privateUser.user.id) {
-                                        privateUserActivityEnity = user;
-
-                                        // Verify the private user model
-                                        assert.ok(user.id.indexOf(privateUser.user.id) !== -1);
-                                        assert.strictEqual(
-                                          user.displayName,
-                                          privateUser.user.publicAlias
-                                        );
-                                        assert.strictEqual(user.objectType, 'user');
-                                        assert.strictEqual(user['oae:id'], privateUser.user.id);
-                                        assert.strictEqual(user['oae:profilePath'], undefined);
-                                        assert.strictEqual(user['oae:visibility'], 'private');
-
-                                        // Url and image are not defined for unprivileged users in feeds
-                                        assert.ok(!user.url);
-                                        assert.ok(!user.image);
-                                      }
-                                    });
-
-                                    assert.ok(publicUserActivityEntity);
-                                    assert.ok(privateUserActivityEnity);
-
-                                    // Verify the group model
-                                    const { resourceId } = AuthzUtil.getResourceFromId(group.id);
-                                    assert.ok(target.id.indexOf(group.id) !== -1);
-                                    assert.strictEqual(target.displayName, group.displayName);
-                                    assert.strictEqual(target.objectType, 'group');
-                                    assert.strictEqual(target['oae:id'], group.id);
-                                    assert.strictEqual(
-                                      target['oae:profilePath'],
-                                      group.profilePath
-                                    );
-                                    assert.strictEqual(target['oae:visibility'], group.visibility);
-                                    assert.strictEqual(
-                                      target.url,
-                                      'http://' +
-                                        global.oaeTests.tenants.cam.host +
-                                        '/group/camtest/' +
-                                        resourceId
-                                    );
-                                    assert.ok(target.image);
-
-                                    // Ensure the standard image for the public user and group can be downloaded right now by even an anonymous user on another tenant
-                                    let signedDownloadUrl = url.parse(
-                                      publicUserActivityEntity.image.url,
-                                      true
-                                    );
-                                    RestUtil.performRestRequest(
-                                      anonymousGtRestContext,
-                                      signedDownloadUrl.pathname,
-                                      'GET',
-                                      signedDownloadUrl.query,
-                                      (err, body, response) => {
-                                        assert.ok(!err);
-                                        assert.strictEqual(response.statusCode, 204);
-
-                                        signedDownloadUrl = url.parse(target.image.url, true);
-                                        RestUtil.performRestRequest(
-                                          anonymousGtRestContext,
-                                          signedDownloadUrl.pathname,
-                                          'GET',
-                                          signedDownloadUrl.query,
-                                          (err, body, response) => {
-                                            assert.ok(!err);
-                                            assert.strictEqual(response.statusCode, 204);
-
-                                            // Jump ahead in time by 5 years, test-drive a hovercar and check if the signatures still work
-                                            const now = Date.now();
-                                            Date.now = function() {
-                                              return now + 5 * 365 * 24 * 60 * 60 * 1000;
-                                            };
-
-                                            // Ensure the standard image for the public user and group can still be downloaded by even an anonymous user on another tenant
-                                            signedDownloadUrl = url.parse(
-                                              publicUserActivityEntity.image.url,
-                                              true
-                                            );
-                                            RestUtil.performRestRequest(
-                                              anonymousGtRestContext,
-                                              signedDownloadUrl.pathname,
-                                              'GET',
-                                              signedDownloadUrl.query,
-                                              (err, body, response) => {
-                                                assert.ok(!err);
-                                                assert.strictEqual(response.statusCode, 204);
-
-                                                signedDownloadUrl = url.parse(
-                                                  target.image.url,
-                                                  true
-                                                );
-                                                RestUtil.performRestRequest(
-                                                  anonymousGtRestContext,
-                                                  signedDownloadUrl.pathname,
-                                                  'GET',
-                                                  signedDownloadUrl.query,
-                                                  (err, body, response) => {
-                                                    assert.ok(!err);
-                                                    assert.strictEqual(response.statusCode, 204);
-
-                                                    return callback();
-                                                  }
-                                                );
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    });
+                  });
+                }
+              );
+            });
+          });
+        });
       });
     });
 
@@ -716,61 +572,39 @@ describe('Principals Activity', () => {
                   // Mrvisser adds bert as a member to the joinable group
                   const membersUpdate = {};
                   membersUpdate[bert.user.id] = 'member';
-                  RestAPI.Group.setGroupMembers(
-                    mrvisser.restContext,
-                    groupJoinable.id,
-                    membersUpdate,
-                    err => {
-                      assert.ok(!err);
+                  RestAPI.Group.setGroupMembers(mrvisser.restContext, groupJoinable.id, membersUpdate, err => {
+                    assert.ok(!err);
 
-                      // Ensure simon gets the activity because he follows bert and the group is joinable so he is allowed to see it
-                      ActivityTestsUtil.collectAndGetActivityStream(
-                        simon.restContext,
-                        null,
-                        null,
-                        (err, activityStream) => {
+                    // Ensure simon gets the activity because he follows bert and the group is joinable so he is allowed to see it
+                    ActivityTestsUtil.collectAndGetActivityStream(
+                      simon.restContext,
+                      null,
+                      null,
+                      (err, activityStream) => {
+                        assert.ok(!err);
+                        assert.ok(_getActivity(activityStream, 'group-add-member', 'target', groupJoinable.id));
+
+                        // Mrvisser now adds bert to the unjoinable group
+                        RestAPI.Group.setGroupMembers(mrvisser.restContext, groupUnjoinable.id, membersUpdate, err => {
                           assert.ok(!err);
-                          assert.ok(
-                            _getActivity(
-                              activityStream,
-                              'group-add-member',
-                              'target',
-                              groupJoinable.id
-                            )
-                          );
 
-                          // Mrvisser now adds bert to the unjoinable group
-                          RestAPI.Group.setGroupMembers(
-                            mrvisser.restContext,
-                            groupUnjoinable.id,
-                            membersUpdate,
-                            err => {
+                          // Ensure simon does not get the second activity. Although he follows bert, the group propagation should forbid it
+                          ActivityTestsUtil.collectAndGetActivityStream(
+                            simon.restContext,
+                            null,
+                            null,
+                            (err, activityStream) => {
                               assert.ok(!err);
-
-                              // Ensure simon does not get the second activity. Although he follows bert, the group propagation should forbid it
-                              ActivityTestsUtil.collectAndGetActivityStream(
-                                simon.restContext,
-                                null,
-                                null,
-                                (err, activityStream) => {
-                                  assert.ok(!err);
-                                  assert.ok(
-                                    !_getActivity(
-                                      activityStream,
-                                      'group-add-member',
-                                      'target',
-                                      groupUnjoinable.id
-                                    )
-                                  );
-                                  return callback();
-                                }
+                              assert.ok(
+                                !_getActivity(activityStream, 'group-add-member', 'target', groupUnjoinable.id)
                               );
+                              return callback();
                             }
                           );
-                        }
-                      );
-                    }
-                  );
+                        });
+                      }
+                    );
+                  });
                 }
               );
             }
@@ -806,49 +640,41 @@ describe('Principals Activity', () => {
                 assert.ok(!err);
 
                 // Ensure only the 2 following activities are in Nico's feed as he does not have access to the private group
-                ActivityTestsUtil.collectAndGetActivityStream(
-                  nico.restContext,
-                  nico.user.id,
-                  null,
-                  (err, response) => {
-                    assert.ok(!err);
-                    assert.strictEqual(response.items.length, 2);
-                    assert.strictEqual(response.items[0]['oae:activityType'], 'following-follow');
-                    assert.strictEqual(response.items[1]['oae:activityType'], 'following-follow');
+                ActivityTestsUtil.collectAndGetActivityStream(nico.restContext, nico.user.id, null, (err, response) => {
+                  assert.ok(!err);
+                  assert.strictEqual(response.items.length, 2);
+                  assert.strictEqual(response.items[0]['oae:activityType'], 'following-follow');
+                  assert.strictEqual(response.items[1]['oae:activityType'], 'following-follow');
 
-                    // The Vissmeister creates a public group
-                    RestAPI.Group.createGroup(
-                      branden.restContext,
-                      'Public Group',
-                      null,
-                      'public',
-                      'no',
-                      [],
-                      [],
-                      (err, publicGroup) => {
-                        assert.ok(!err);
+                  // The Vissmeister creates a public group
+                  RestAPI.Group.createGroup(
+                    branden.restContext,
+                    'Public Group',
+                    null,
+                    'public',
+                    'no',
+                    [],
+                    [],
+                    (err, publicGroup) => {
+                      assert.ok(!err);
 
-                        // Ensure the group creation activity has been delivered
-                        ActivityTestsUtil.collectAndGetActivityStream(
-                          nico.restContext,
-                          nico.user.id,
-                          null,
-                          (err, response) => {
-                            assert.ok(!err);
-                            assert.strictEqual(response.items.length, 3);
-                            assert.strictEqual(
-                              response.items[0]['oae:activityType'],
-                              'group-create'
-                            );
-                            assert.strictEqual(response.items[0].object['oae:id'], publicGroup.id);
+                      // Ensure the group creation activity has been delivered
+                      ActivityTestsUtil.collectAndGetActivityStream(
+                        nico.restContext,
+                        nico.user.id,
+                        null,
+                        (err, response) => {
+                          assert.ok(!err);
+                          assert.strictEqual(response.items.length, 3);
+                          assert.strictEqual(response.items[0]['oae:activityType'], 'group-create');
+                          assert.strictEqual(response.items[0].object['oae:id'], publicGroup.id);
 
-                            return callback();
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
+                          return callback();
+                        }
+                      );
+                    }
+                  );
+                });
               }
             );
           });
@@ -890,64 +716,42 @@ describe('Principals Activity', () => {
                 assert.ok(!err);
 
                 // Mrvisser shares Simon's content item with his private unjoinable group
-                RestAPI.Content.shareContent(
-                  mrvisser.restContext,
-                  link.id,
-                  [groupUnjoinable.id],
-                  err => {
-                    assert.ok(!err);
+                RestAPI.Content.shareContent(mrvisser.restContext, link.id, [groupUnjoinable.id], err => {
+                  assert.ok(!err);
 
-                    // Ensure that Simon gets the activity, even though he doesn't really have access to the group
-                    ActivityTestsUtil.collectAndGetActivityStream(
-                      simon.restContext,
-                      null,
-                      null,
-                      (err, activityStream) => {
+                  // Ensure that Simon gets the activity, even though he doesn't really have access to the group
+                  ActivityTestsUtil.collectAndGetActivityStream(
+                    simon.restContext,
+                    null,
+                    null,
+                    (err, activityStream) => {
+                      assert.ok(!err);
+                      assert.ok(_getActivity(activityStream, 'content-share', 'target', groupUnjoinable.id));
+
+                      // Mrvisser promotes the group to be a manager of the content item
+                      const membersUpdate = {};
+                      membersUpdate[groupUnjoinable.id] = 'manager';
+                      RestAPI.Content.updateMembers(mrvisser.restContext, link.id, membersUpdate, err => {
                         assert.ok(!err);
-                        assert.ok(
-                          _getActivity(
-                            activityStream,
-                            'content-share',
-                            'target',
-                            groupUnjoinable.id
-                          )
-                        );
 
-                        // Mrvisser promotes the group to be a manager of the content item
-                        const membersUpdate = {};
-                        membersUpdate[groupUnjoinable.id] = 'manager';
-                        RestAPI.Content.updateMembers(
-                          mrvisser.restContext,
-                          link.id,
-                          membersUpdate,
-                          err => {
+                        // Ensure that Simon gets this activity as well since he is manager and should know
+                        ActivityTestsUtil.collectAndGetActivityStream(
+                          simon.restContext,
+                          null,
+                          null,
+                          (err, activityStream) => {
                             assert.ok(!err);
-
-                            // Ensure that Simon gets this activity as well since he is manager and should know
-                            ActivityTestsUtil.collectAndGetActivityStream(
-                              simon.restContext,
-                              null,
-                              null,
-                              (err, activityStream) => {
-                                assert.ok(!err);
-                                assert.ok(
-                                  _getActivity(
-                                    activityStream,
-                                    'content-update-member-role',
-                                    'object',
-                                    groupUnjoinable.id
-                                  )
-                                );
-
-                                return callback();
-                              }
+                            assert.ok(
+                              _getActivity(activityStream, 'content-update-member-role', 'object', groupUnjoinable.id)
                             );
+
+                            return callback();
                           }
                         );
-                      }
-                    );
-                  }
-                );
+                      });
+                    }
+                  );
+                });
               }
             );
           }
@@ -975,43 +779,26 @@ describe('Principals Activity', () => {
           (err, group) => {
             assert.ok(!err);
 
-            RestAPI.Group.updateGroup(
-              camAdminRestContext,
-              group.id,
-              { visibility: 'loggedin' },
-              err => {
+            RestAPI.Group.updateGroup(camAdminRestContext, group.id, { visibility: 'loggedin' }, err => {
+              assert.ok(!err);
+
+              RestAPI.Group.updateGroup(camAdminRestContext, group.id, { displayName: 'har har har' }, err => {
                 assert.ok(!err);
 
-                RestAPI.Group.updateGroup(
+                ActivityTestsUtil.collectAndGetActivityStream(
                   camAdminRestContext,
-                  group.id,
-                  { displayName: 'har har har' },
-                  err => {
+                  jack.user.id,
+                  null,
+                  (err, activityStream) => {
                     assert.ok(!err);
-
-                    ActivityTestsUtil.collectAndGetActivityStream(
-                      camAdminRestContext,
-                      jack.user.id,
-                      null,
-                      (err, activityStream) => {
-                        assert.ok(!err);
-                        assert.ok(_getActivity(activityStream, 'group-create', 'object', group.id));
-                        assert.ok(_getActivity(activityStream, 'group-update', 'object', group.id));
-                        assert.ok(
-                          _getActivity(
-                            activityStream,
-                            'group-update-visibility',
-                            'object',
-                            group.id
-                          )
-                        );
-                        return callback();
-                      }
-                    );
+                    assert.ok(_getActivity(activityStream, 'group-create', 'object', group.id));
+                    assert.ok(_getActivity(activityStream, 'group-update', 'object', group.id));
+                    assert.ok(_getActivity(activityStream, 'group-update-visibility', 'object', group.id));
+                    return callback();
                   }
                 );
-              }
-            );
+              });
+            });
           }
         );
       });
@@ -1156,50 +943,36 @@ describe('Principals Activity', () => {
             assert.ok(!err);
 
             // Change Jane's role from member to manager
-            RestAPI.Group.setGroupMembers(
-              john.restContext,
-              group.id,
-              _makeChange(jane.user.id, 'manager'),
-              err => {
+            RestAPI.Group.setGroupMembers(john.restContext, group.id, _makeChange(jane.user.id, 'manager'), err => {
+              assert.ok(!err);
+
+              // Verify that John's activity stream received a 'group-update-member-role' activity
+              ActivityTestsUtil.collectAndGetActivityStream(john.restContext, null, null, (err, activityStream) => {
                 assert.ok(!err);
-
-                // Verify that John's activity stream received a 'group-update-member-role' activity
-                ActivityTestsUtil.collectAndGetActivityStream(
-                  john.restContext,
-                  null,
-                  null,
-                  (err, activityStream) => {
-                    assert.ok(!err);
-                    ActivityTestsUtil.assertActivity(
-                      activityStream.items[0],
-                      'group-update-member-role',
-                      'update',
-                      john.user.id,
-                      jane.user.id,
-                      group.id
-                    );
-
-                    // Verify that Jane's activity stream received a 'group-update-member-role' activity
-                    RestAPI.Activity.getCurrentUserActivityStream(
-                      jane.restContext,
-                      null,
-                      (err, activityStream) => {
-                        assert.ok(!err);
-                        ActivityTestsUtil.assertActivity(
-                          activityStream.items[0],
-                          'group-update-member-role',
-                          'update',
-                          john.user.id,
-                          jane.user.id,
-                          group.id
-                        );
-                        return callback();
-                      }
-                    );
-                  }
+                ActivityTestsUtil.assertActivity(
+                  activityStream.items[0],
+                  'group-update-member-role',
+                  'update',
+                  john.user.id,
+                  jane.user.id,
+                  group.id
                 );
-              }
-            );
+
+                // Verify that Jane's activity stream received a 'group-update-member-role' activity
+                RestAPI.Activity.getCurrentUserActivityStream(jane.restContext, null, (err, activityStream) => {
+                  assert.ok(!err);
+                  ActivityTestsUtil.assertActivity(
+                    activityStream.items[0],
+                    'group-update-member-role',
+                    'update',
+                    john.user.id,
+                    jane.user.id,
+                    group.id
+                  );
+                  return callback();
+                });
+              });
+            });
           }
         );
       });
@@ -1234,23 +1007,18 @@ describe('Principals Activity', () => {
                 assert.ok(!err);
 
                 // Get jack's own feed
-                ActivityTestsUtil.collectAndGetActivityStream(
-                  jack.restContext,
-                  null,
-                  null,
-                  (err, activityStream) => {
-                    assert.ok(!err);
+                ActivityTestsUtil.collectAndGetActivityStream(jack.restContext, null, null, (err, activityStream) => {
+                  assert.ok(!err);
 
-                    // Verify 1 for the group create, plus 1 for the aggregated group-join activities
-                    assert.strictEqual(activityStream.items.length, 2);
+                  // Verify 1 for the group create, plus 1 for the aggregated group-join activities
+                  assert.strictEqual(activityStream.items.length, 2);
 
-                    // Verify the first is the group join, with a collection of 2 actor entities (jane and branden)
-                    const entity = activityStream.items[0].actor;
-                    assert.ok(entity['oae:collection']);
-                    assert.strictEqual(entity['oae:collection'].length, 2);
-                    return callback();
-                  }
-                );
+                  // Verify the first is the group join, with a collection of 2 actor entities (jane and branden)
+                  const entity = activityStream.items[0].actor;
+                  assert.ok(entity['oae:collection']);
+                  assert.strictEqual(entity['oae:collection'].length, 2);
+                  return callback();
+                });
               });
             });
           }
@@ -1288,23 +1056,18 @@ describe('Principals Activity', () => {
               RestAPI.Group.setGroupMembers(jack.restContext, group.id, membership, err => {
                 assert.ok(!err);
 
-                ActivityTestsUtil.collectAndGetActivityStream(
-                  jack.restContext,
-                  null,
-                  null,
-                  (err, activityStream) => {
-                    assert.ok(!err);
+                ActivityTestsUtil.collectAndGetActivityStream(jack.restContext, null, null, (err, activityStream) => {
+                  assert.ok(!err);
 
-                    // Verify 1 for the group create, plus 1 for the aggregated group-add-member activities
-                    assert.strictEqual(activityStream.items.length, 2);
+                  // Verify 1 for the group create, plus 1 for the aggregated group-add-member activities
+                  assert.strictEqual(activityStream.items.length, 2);
 
-                    // Verify the first is the group join, with a collection of 2 actor entities (jane and branden)
-                    const entity = activityStream.items[0].object;
-                    assert.ok(entity['oae:collection']);
-                    assert.strictEqual(entity['oae:collection'].length, 2);
-                    return callback();
-                  }
-                );
+                  // Verify the first is the group join, with a collection of 2 actor entities (jane and branden)
+                  const entity = activityStream.items[0].object;
+                  assert.ok(entity['oae:collection']);
+                  assert.strictEqual(entity['oae:collection'].length, 2);
+                  return callback();
+                });
               });
             });
           }
@@ -1327,53 +1090,48 @@ describe('Principals Activity', () => {
           visibility: 'private',
           publicAlias: 'swappedFromPublicAlias'
         };
-        PrincipalsTestUtil.assertUpdateUserSucceeds(
-          simong.restContext,
-          simong.user.id,
-          simongUpdate,
-          () => {
-            // Create the group with a user. We will ensure that user receives an email
-            RestAPI.Group.createGroup(
-              simong.restContext,
-              'emailGroupCreate',
-              'emailGroupCreate',
-              'public',
-              'yes',
-              [],
-              [mrvisser.user.id],
-              (err, group) => {
-                assert.ok(!err);
+        PrincipalsTestUtil.assertUpdateUserSucceeds(simong.restContext, simong.user.id, simongUpdate, () => {
+          // Create the group with a user. We will ensure that user receives an email
+          RestAPI.Group.createGroup(
+            simong.restContext,
+            'emailGroupCreate',
+            'emailGroupCreate',
+            'public',
+            'yes',
+            [],
+            [mrvisser.user.id],
+            (err, group) => {
+              assert.ok(!err);
 
-                // Mrvisser should get an email, with simong's information scrubbed
-                EmailTestsUtil.collectAndFetchAllEmails(messages => {
-                  // There should be exactly one message, the one sent to mrvisser
-                  assert.strictEqual(messages.length, 1);
+              // Mrvisser should get an email, with simong's information scrubbed
+              EmailTestsUtil.collectAndFetchAllEmails(messages => {
+                // There should be exactly one message, the one sent to mrvisser
+                assert.strictEqual(messages.length, 1);
 
-                  const stringMessage = JSON.stringify(messages[0]);
-                  const message = messages[0];
+                const stringMessage = JSON.stringify(messages[0]);
+                const message = messages[0];
 
-                  // Sanity check that the message is to mrvisser
-                  assert.strictEqual(message.to[0].address, mrvisser.user.email);
+                // Sanity check that the message is to mrvisser
+                assert.strictEqual(message.to[0].address, mrvisser.user.email);
 
-                  // Ensure some data expected to be in the email is there
-                  assert.notStrictEqual(stringMessage.indexOf(simong.restContext.hostHeader), -1);
-                  assert.notStrictEqual(stringMessage.indexOf(group.profilePath), -1);
-                  assert.notStrictEqual(stringMessage.indexOf(group.displayName), -1);
+                // Ensure some data expected to be in the email is there
+                assert.notStrictEqual(stringMessage.indexOf(simong.restContext.hostHeader), -1);
+                assert.notStrictEqual(stringMessage.indexOf(group.profilePath), -1);
+                assert.notStrictEqual(stringMessage.indexOf(group.displayName), -1);
 
-                  // Ensure simong's private info is *nowhere* to be found
-                  assert.strictEqual(stringMessage.indexOf(simong.user.displayName), -1);
-                  assert.strictEqual(stringMessage.indexOf(simong.user.email), -1);
-                  assert.strictEqual(stringMessage.indexOf(simong.user.locale), -1);
+                // Ensure simong's private info is *nowhere* to be found
+                assert.strictEqual(stringMessage.indexOf(simong.user.displayName), -1);
+                assert.strictEqual(stringMessage.indexOf(simong.user.email), -1);
+                assert.strictEqual(stringMessage.indexOf(simong.user.locale), -1);
 
-                  // The message probably contains the public alias, though
-                  assert.notStrictEqual(stringMessage.indexOf('swappedFromPublicAlias'), -1);
+                // The message probably contains the public alias, though
+                assert.notStrictEqual(stringMessage.indexOf('swappedFromPublicAlias'), -1);
 
-                  return callback();
-                });
-              }
-            );
-          }
-        );
+                return callback();
+              });
+            }
+          );
+        });
       });
     });
 
@@ -1382,184 +1140,134 @@ describe('Principals Activity', () => {
      * is appropriately scrubbed from the email.
      */
     it('verify group-join email and privacy', callback => {
-      TestsUtil.generateTestUsers(
-        camAdminRestContext,
-        4,
-        (err, users, mrvisser, simong, bert, stuart) => {
-          assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestContext, 4, (err, users, mrvisser, simong, bert, stuart) => {
+        assert.ok(!err);
 
-          // Simon is private, Bert is loggedin, mrvisser and stuart are both public
-          const simongUpdate = {
-            visibility: 'private',
-            publicAlias: 'swappedFromPublicAlias'
-          };
+        // Simon is private, Bert is loggedin, mrvisser and stuart are both public
+        const simongUpdate = {
+          visibility: 'private',
+          publicAlias: 'swappedFromPublicAlias'
+        };
 
-          const bertUpdate = {
-            visibility: 'loggedin',
-            publicAlias: 'swappedFromPublicAlias'
-          };
+        const bertUpdate = {
+          visibility: 'loggedin',
+          publicAlias: 'swappedFromPublicAlias'
+        };
 
-          // Make Bert loggedin
-          PrincipalsTestUtil.assertUpdateUserSucceeds(
-            bert.restContext,
-            bert.user.id,
-            bertUpdate,
-            () => {
-              // Make Simon private
-              PrincipalsTestUtil.assertUpdateUserSucceeds(
-                simong.restContext,
-                simong.user.id,
-                simongUpdate,
-                () => {
-                  // Create the group and then share it after. We will verify the share triggered an email
-                  RestAPI.Group.createGroup(
-                    mrvisser.restContext,
-                    'emailGroupAddMember',
-                    'emailGroupAddMember',
-                    'public',
-                    'yes',
-                    [],
-                    [],
-                    (err, group) => {
-                      assert.ok(!err);
+        // Make Bert loggedin
+        PrincipalsTestUtil.assertUpdateUserSucceeds(bert.restContext, bert.user.id, bertUpdate, () => {
+          // Make Simon private
+          PrincipalsTestUtil.assertUpdateUserSucceeds(simong.restContext, simong.user.id, simongUpdate, () => {
+            // Create the group and then share it after. We will verify the share triggered an email
+            RestAPI.Group.createGroup(
+              mrvisser.restContext,
+              'emailGroupAddMember',
+              'emailGroupAddMember',
+              'public',
+              'yes',
+              [],
+              [],
+              (err, group) => {
+                assert.ok(!err);
 
-                      // Collect the createGroup activity and emails before adding a member
-                      EmailTestsUtil.collectAndFetchAllEmails(messages => {
-                        // Join the group as simong to trigger an email with a private user
-                        RestAPI.Group.joinGroup(simong.restContext, group.id, err => {
-                          assert.ok(!err);
+                // Collect the createGroup activity and emails before adding a member
+                EmailTestsUtil.collectAndFetchAllEmails(messages => {
+                  // Join the group as simong to trigger an email with a private user
+                  RestAPI.Group.joinGroup(simong.restContext, group.id, err => {
+                    assert.ok(!err);
 
-                          // Mrvisser should get an email, with simong's information scrubbed
-                          EmailTestsUtil.collectAndFetchAllEmails(messages => {
-                            // There should be exactly one message, the one sent to mrvisser
-                            assert.strictEqual(messages.length, 1);
+                    // Mrvisser should get an email, with simong's information scrubbed
+                    EmailTestsUtil.collectAndFetchAllEmails(messages => {
+                      // There should be exactly one message, the one sent to mrvisser
+                      assert.strictEqual(messages.length, 1);
 
-                            const stringMessage = JSON.stringify(messages[0]);
-                            const message = messages[0];
+                      const stringMessage = JSON.stringify(messages[0]);
+                      const message = messages[0];
 
-                            // Sanity check that the message is to mrvisser
-                            assert.strictEqual(message.to[0].address, mrvisser.user.email);
+                      // Sanity check that the message is to mrvisser
+                      assert.strictEqual(message.to[0].address, mrvisser.user.email);
 
-                            // Ensure some data expected to be in the email is there
-                            assert.notStrictEqual(
-                              stringMessage.indexOf(simong.restContext.hostHeader),
-                              -1
-                            );
-                            assert.notStrictEqual(stringMessage.indexOf(group.profilePath), -1);
-                            assert.notStrictEqual(stringMessage.indexOf(group.displayName), -1);
+                      // Ensure some data expected to be in the email is there
+                      assert.notStrictEqual(stringMessage.indexOf(simong.restContext.hostHeader), -1);
+                      assert.notStrictEqual(stringMessage.indexOf(group.profilePath), -1);
+                      assert.notStrictEqual(stringMessage.indexOf(group.displayName), -1);
 
-                            // Ensure simong's private info is *nowhere* to be found
-                            assert.strictEqual(stringMessage.indexOf(simong.user.displayName), -1);
-                            assert.strictEqual(stringMessage.indexOf(simong.user.email), -1);
-                            assert.strictEqual(stringMessage.indexOf(simong.user.locale), -1);
+                      // Ensure simong's private info is *nowhere* to be found
+                      assert.strictEqual(stringMessage.indexOf(simong.user.displayName), -1);
+                      assert.strictEqual(stringMessage.indexOf(simong.user.email), -1);
+                      assert.strictEqual(stringMessage.indexOf(simong.user.locale), -1);
 
-                            // The message probably contains the public alias, though
-                            assert.notStrictEqual(
-                              stringMessage.indexOf('swappedFromPublicAlias'),
-                              -1
-                            );
+                      // The message probably contains the public alias, though
+                      assert.notStrictEqual(stringMessage.indexOf('swappedFromPublicAlias'), -1);
 
-                            // Join the group as bert to trigger another email with a loggedin user
-                            RestAPI.Group.joinGroup(bert.restContext, group.id, err => {
-                              assert.ok(!err);
+                      // Join the group as bert to trigger another email with a loggedin user
+                      RestAPI.Group.joinGroup(bert.restContext, group.id, err => {
+                        assert.ok(!err);
 
-                              // Mrvisser should get an email, with Bert's information present
-                              EmailTestsUtil.collectAndFetchAllEmails(messages => {
-                                // There should be exactly one message, the one sent to mrvisser
-                                assert.strictEqual(messages.length, 1);
+                        // Mrvisser should get an email, with Bert's information present
+                        EmailTestsUtil.collectAndFetchAllEmails(messages => {
+                          // There should be exactly one message, the one sent to mrvisser
+                          assert.strictEqual(messages.length, 1);
 
-                                const stringMessage = JSON.stringify(messages[0]);
-                                const message = messages[0];
+                          const stringMessage = JSON.stringify(messages[0]);
+                          const message = messages[0];
 
-                                // Sanity check that the message is to mrvisser
-                                assert.strictEqual(message.to[0].address, mrvisser.user.email);
+                          // Sanity check that the message is to mrvisser
+                          assert.strictEqual(message.to[0].address, mrvisser.user.email);
 
-                                // Ensure some data expected to be in the email is there
-                                assert.notStrictEqual(
-                                  stringMessage.indexOf(bert.restContext.hostHeader),
-                                  -1
-                                );
-                                assert.notStrictEqual(stringMessage.indexOf(group.profilePath), -1);
-                                assert.notStrictEqual(stringMessage.indexOf(group.displayName), -1);
+                          // Ensure some data expected to be in the email is there
+                          assert.notStrictEqual(stringMessage.indexOf(bert.restContext.hostHeader), -1);
+                          assert.notStrictEqual(stringMessage.indexOf(group.profilePath), -1);
+                          assert.notStrictEqual(stringMessage.indexOf(group.displayName), -1);
 
-                                // Ensure bert's displayName is not scrubbed
-                                assert.notStrictEqual(
-                                  stringMessage.indexOf(bert.user.displayName),
-                                  -1
-                                );
-                                assert.strictEqual(
-                                  stringMessage.indexOf('swappedFromPublicAlias'),
-                                  -1
-                                );
+                          // Ensure bert's displayName is not scrubbed
+                          assert.notStrictEqual(stringMessage.indexOf(bert.user.displayName), -1);
+                          assert.strictEqual(stringMessage.indexOf('swappedFromPublicAlias'), -1);
 
-                                // The rest of bert's sensitive information should be scrubbed
-                                assert.strictEqual(stringMessage.indexOf(bert.user.email), -1);
-                                assert.strictEqual(stringMessage.indexOf(bert.user.locale), -1);
+                          // The rest of bert's sensitive information should be scrubbed
+                          assert.strictEqual(stringMessage.indexOf(bert.user.email), -1);
+                          assert.strictEqual(stringMessage.indexOf(bert.user.locale), -1);
 
-                                // Join the group as stuart to trigger another email with a public user
-                                RestAPI.Group.joinGroup(stuart.restContext, group.id, err => {
-                                  assert.ok(!err);
+                          // Join the group as stuart to trigger another email with a public user
+                          RestAPI.Group.joinGroup(stuart.restContext, group.id, err => {
+                            assert.ok(!err);
 
-                                  // Mrvisser should get an email, with Stuart's information present
-                                  EmailTestsUtil.collectAndFetchAllEmails(messages => {
-                                    // There should be exactly one message, the one sent to mrvisser
-                                    assert.strictEqual(messages.length, 1);
+                            // Mrvisser should get an email, with Stuart's information present
+                            EmailTestsUtil.collectAndFetchAllEmails(messages => {
+                              // There should be exactly one message, the one sent to mrvisser
+                              assert.strictEqual(messages.length, 1);
 
-                                    const stringMessage = JSON.stringify(messages[0]);
-                                    const message = messages[0];
+                              const stringMessage = JSON.stringify(messages[0]);
+                              const message = messages[0];
 
-                                    // Sanity check that the message is to mrvisser
-                                    assert.strictEqual(message.to[0].address, mrvisser.user.email);
+                              // Sanity check that the message is to mrvisser
+                              assert.strictEqual(message.to[0].address, mrvisser.user.email);
 
-                                    // Ensure some data expected to be in the email is there
-                                    assert.notStrictEqual(
-                                      stringMessage.indexOf(stuart.restContext.hostHeader),
-                                      -1
-                                    );
-                                    assert.notStrictEqual(
-                                      stringMessage.indexOf(group.profilePath),
-                                      -1
-                                    );
-                                    assert.notStrictEqual(
-                                      stringMessage.indexOf(group.displayName),
-                                      -1
-                                    );
+                              // Ensure some data expected to be in the email is there
+                              assert.notStrictEqual(stringMessage.indexOf(stuart.restContext.hostHeader), -1);
+                              assert.notStrictEqual(stringMessage.indexOf(group.profilePath), -1);
+                              assert.notStrictEqual(stringMessage.indexOf(group.displayName), -1);
 
-                                    // Ensure stuart's displayName is not scrubbed
-                                    assert.notStrictEqual(
-                                      stringMessage.indexOf(stuart.user.displayName),
-                                      -1
-                                    );
-                                    assert.strictEqual(
-                                      stringMessage.indexOf('swappedFromPublicAlias'),
-                                      -1
-                                    );
+                              // Ensure stuart's displayName is not scrubbed
+                              assert.notStrictEqual(stringMessage.indexOf(stuart.user.displayName), -1);
+                              assert.strictEqual(stringMessage.indexOf('swappedFromPublicAlias'), -1);
 
-                                    // The rest of stuart's sensitive information should be scrubbed
-                                    assert.strictEqual(
-                                      stringMessage.indexOf(stuart.user.email),
-                                      -1
-                                    );
-                                    assert.strictEqual(
-                                      stringMessage.indexOf(stuart.user.locale),
-                                      -1
-                                    );
-                                    return callback();
-                                  });
-                                });
-                              });
+                              // The rest of stuart's sensitive information should be scrubbed
+                              assert.strictEqual(stringMessage.indexOf(stuart.user.email), -1);
+                              assert.strictEqual(stringMessage.indexOf(stuart.user.locale), -1);
+                              return callback();
                             });
                           });
                         });
                       });
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
+                    });
+                  });
+                });
+              }
+            );
+          });
+        });
+      });
     });
 
     /**
@@ -1575,65 +1283,57 @@ describe('Principals Activity', () => {
           visibility: 'private',
           publicAlias: 'swappedFromPublicAlias'
         };
-        PrincipalsTestUtil.assertUpdateUserSucceeds(
-          simong.restContext,
-          simong.user.id,
-          simongUpdate,
-          () => {
-            // Create the group and then share it after. We will verify the share triggered an email
-            RestAPI.Group.createGroup(
-              simong.restContext,
-              'emailGroupAddMember',
-              'emailGroupAddMember',
-              'public',
-              'yes',
-              [],
-              [],
-              (err, group) => {
-                assert.ok(!err);
+        PrincipalsTestUtil.assertUpdateUserSucceeds(simong.restContext, simong.user.id, simongUpdate, () => {
+          // Create the group and then share it after. We will verify the share triggered an email
+          RestAPI.Group.createGroup(
+            simong.restContext,
+            'emailGroupAddMember',
+            'emailGroupAddMember',
+            'public',
+            'yes',
+            [],
+            [],
+            (err, group) => {
+              assert.ok(!err);
 
-                // Collect the createGroup activity and emails before adding a member
-                EmailTestsUtil.collectAndFetchAllEmails(messages => {
-                  const roleChanges = {};
-                  roleChanges[mrvisser.user.id] = 'member';
-                  RestAPI.Group.setGroupMembers(simong.restContext, group.id, roleChanges, err => {
-                    assert.ok(!err);
+              // Collect the createGroup activity and emails before adding a member
+              EmailTestsUtil.collectAndFetchAllEmails(messages => {
+                const roleChanges = {};
+                roleChanges[mrvisser.user.id] = 'member';
+                RestAPI.Group.setGroupMembers(simong.restContext, group.id, roleChanges, err => {
+                  assert.ok(!err);
 
-                    // Mrvisser should get an email, with simong's information scrubbed
-                    EmailTestsUtil.collectAndFetchAllEmails(messages => {
-                      // There should be exactly one message, the one sent to mrvisser
-                      assert.strictEqual(messages.length, 1);
+                  // Mrvisser should get an email, with simong's information scrubbed
+                  EmailTestsUtil.collectAndFetchAllEmails(messages => {
+                    // There should be exactly one message, the one sent to mrvisser
+                    assert.strictEqual(messages.length, 1);
 
-                      const stringMessage = JSON.stringify(messages[0]);
-                      const message = messages[0];
+                    const stringMessage = JSON.stringify(messages[0]);
+                    const message = messages[0];
 
-                      // Sanity check that the message is to mrvisser
-                      assert.strictEqual(message.to[0].address, mrvisser.user.email);
+                    // Sanity check that the message is to mrvisser
+                    assert.strictEqual(message.to[0].address, mrvisser.user.email);
 
-                      // Ensure some data expected to be in the email is there
-                      assert.notStrictEqual(
-                        stringMessage.indexOf(simong.restContext.hostHeader),
-                        -1
-                      );
-                      assert.notStrictEqual(stringMessage.indexOf(group.profilePath), -1);
-                      assert.notStrictEqual(stringMessage.indexOf(group.displayName), -1);
+                    // Ensure some data expected to be in the email is there
+                    assert.notStrictEqual(stringMessage.indexOf(simong.restContext.hostHeader), -1);
+                    assert.notStrictEqual(stringMessage.indexOf(group.profilePath), -1);
+                    assert.notStrictEqual(stringMessage.indexOf(group.displayName), -1);
 
-                      // Ensure simong's private info is *nowhere* to be found
-                      assert.strictEqual(stringMessage.indexOf(simong.user.displayName), -1);
-                      assert.strictEqual(stringMessage.indexOf(simong.user.email), -1);
-                      assert.strictEqual(stringMessage.indexOf(simong.user.locale), -1);
+                    // Ensure simong's private info is *nowhere* to be found
+                    assert.strictEqual(stringMessage.indexOf(simong.user.displayName), -1);
+                    assert.strictEqual(stringMessage.indexOf(simong.user.email), -1);
+                    assert.strictEqual(stringMessage.indexOf(simong.user.locale), -1);
 
-                      // The message probably contains the public alias, though
-                      assert.notStrictEqual(stringMessage.indexOf('swappedFromPublicAlias'), -1);
+                    // The message probably contains the public alias, though
+                    assert.notStrictEqual(stringMessage.indexOf('swappedFromPublicAlias'), -1);
 
-                      return callback();
-                    });
+                    return callback();
                   });
                 });
-              }
-            );
-          }
-        );
+              });
+            }
+          );
+        });
       });
     });
   });

@@ -17,6 +17,7 @@ const path = require('path');
 const assert = require('assert');
 const stream = require('stream');
 const util = require('util');
+const async = require('async');
 const _ = require('underscore');
 const bodyParser = require('body-parser');
 const clone = require('clone');
@@ -56,6 +57,12 @@ const log = require('oae-logger').logger('before-tests');
  * The name of the session cookie
  */
 const CONFIG_COOKIE_NAME = 'a-non-default-cookie-name';
+const NOT_JOINABLE = 'no';
+const JOINABLE = 'yes';
+const JOINABLE_BY_REQUEST = 'request';
+const PUBLIC = 'public';
+const LOGGED_IN = 'loggedin';
+const PRIVATE = 'private';
 
 /**
  * Create a new express test server on some port between 2500 and 3500
@@ -875,10 +882,23 @@ const _setupTenant = function(tenant, callback) {
     tenant.publicUser = publicUser;
     tenant.loggedinUser = loggedinUser;
     tenant.privateUser = privateUser;
-    _createMultiPrivacyGroups(tenant, (publicGroup, loggedinGroup, privateGroup) => {
+    _createMultiPrivacyGroups(tenant, allGroups => {
+      const {
+        publicGroup,
+        loggedinJoinableGroupByRequest,
+        privateJoinableGroupByRequest,
+        loggedinNotJoinableGroup,
+        privateNotJoinableGroup,
+        loggedinJoinableGroup,
+        privateJoinableGroup
+      } = allGroups;
       tenant.publicGroup = publicGroup;
-      tenant.loggedinGroup = loggedinGroup;
-      tenant.privateGroup = privateGroup;
+      tenant.loggedinJoinableGroupByRequest = loggedinJoinableGroupByRequest;
+      tenant.loggedinNotJoinableGroup = loggedinNotJoinableGroup;
+      tenant.privateJoinableGroupByRequest = privateJoinableGroupByRequest;
+      tenant.privateNotJoinableGroup = privateNotJoinableGroup;
+      tenant.loggedinJoinableGroup = loggedinJoinableGroup;
+      tenant.privateJoinableGroup = privateJoinableGroup;
       return callback();
     });
   });
@@ -946,13 +966,51 @@ const _createUserWithVisibility = function(tenant, visibility, callback) {
  * @api private
  */
 const _createMultiPrivacyGroups = function(tenant, callback) {
-  _createGroupWithVisibility(tenant, 'public', tenant.publicUser.user.id, publicGroup => {
-    _createGroupWithVisibility(tenant, 'loggedin', tenant.loggedinUser.user.id, loggedinGroup => {
-      _createGroupWithVisibility(tenant, 'private', tenant.privateUser.user.id, privateGroup => {
-        return callback(publicGroup, loggedinGroup, privateGroup);
+  const groupsToBeCreated = _getGroupsToBeCreated(tenant);
+  async.eachOfSeries(
+    groupsToBeCreated,
+    (eachGroup, key, done) => {
+      _createGroupWithVisibility(tenant, eachGroup, createdGroup => {
+        groupsToBeCreated[key] = createdGroup;
+        done();
       });
-    });
-  });
+    },
+    () => {
+      callback(groupsToBeCreated);
+    }
+  );
+};
+
+const _getGroupsToBeCreated = function(tenant) {
+  return {
+    publicGroup: { visibility: PUBLIC, memberPrincipalId: tenant.publicUser.user.id, joinable: JOINABLE_BY_REQUEST },
+    loggedinJoinableGroupByRequest: {
+      visibility: LOGGED_IN,
+      memberPrincipalId: tenant.loggedinUser.user.id,
+      joinable: JOINABLE_BY_REQUEST
+    },
+    privateJoinableGroupByRequest: {
+      visibility: PRIVATE,
+      memberPrincipalId: tenant.privateUser.user.id,
+      joinable: JOINABLE_BY_REQUEST
+    },
+    loggedinNotJoinableGroup: {
+      visibility: LOGGED_IN,
+      memberPrincipalId: tenant.loggedinUser.user.id,
+      joinable: NOT_JOINABLE
+    },
+    privateNotJoinableGroup: {
+      visibility: PRIVATE,
+      memberPrincipalId: tenant.privateUser.user.id,
+      joinable: NOT_JOINABLE
+    },
+    loggedinJoinableGroup: {
+      visibility: LOGGED_IN,
+      memberPrincipalId: tenant.loggedinUser.user.id,
+      joinable: JOINABLE
+    },
+    privateJoinableGroup: { visibility: PRIVATE, memberPrincipalId: tenant.privateUser.user.id, joinable: JOINABLE }
+  };
 };
 
 /**
@@ -968,7 +1026,8 @@ const _createMultiPrivacyGroups = function(tenant, callback) {
  * @throws {Error}                              An assertion error is thrown if something does not get created properly
  * @api private
  */
-const _createGroupWithVisibility = function(tenant, visibility, memberPrincipalId, callback) {
+const _createGroupWithVisibility = function(tenant, group, callback) {
+  const { visibility, memberPrincipalId, joinable } = group;
   const randomId = util.format('%s-%s', visibility, ShortId.generate());
   const displayName = 'displayName-' + randomId;
   const description = 'description-' + randomId;
@@ -977,7 +1036,7 @@ const _createGroupWithVisibility = function(tenant, visibility, memberPrincipalI
     displayName,
     description,
     visibility,
-    'request',
+    joinable,
     [],
     [memberPrincipalId],
     (err, newGroup) => {

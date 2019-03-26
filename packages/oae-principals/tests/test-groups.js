@@ -21,19 +21,17 @@ const _ = require('underscore');
 const AuthzAPI = require('oae-authz');
 const AuthzUtil = require('oae-authz/lib/util');
 const Cassandra = require('oae-util/lib/cassandra');
-const { Context } = require('oae-context/lib/api');
 const ConfigTestUtil = require('oae-config/lib/test/util');
 const FoldersTestUtil = require('oae-folders/lib/test/util');
 const LibraryTestUtil = require('oae-library/lib/test/util');
 const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
 const TenantsTestUtil = require('oae-tenants/lib/test/util');
 const TestsUtil = require('oae-tests');
 
 const PrincipalsAPI = require('oae-principals');
+const { AuthzConstants } = require('oae-authz/lib/constants');
 const { PrincipalsConstants } = require('oae-principals/lib/constants');
 const PrincipalsTestUtil = require('oae-principals/lib/test/util');
-const { User } = require('oae-principals/lib/model.user');
 
 describe('Groups', () => {
   // Rest context that can be used to perform requests as different types of users
@@ -71,16 +69,11 @@ describe('Groups', () => {
       johnRestContext.user = john.user;
 
       // Create the REST context for a global admin who is authenticated to a user tenant
-      RestAPI.Admin.loginOnTenant(
-        TestsUtil.createGlobalAdminRestContext(),
-        'localhost',
-        null,
-        (err, ctx) => {
-          assert.ok(!err);
-          globalAdminOnTenantRestContext = ctx;
-          return callback();
-        }
-      );
+      RestAPI.Admin.loginOnTenant(TestsUtil.createGlobalAdminRestContext(), 'localhost', null, (err, ctx) => {
+        assert.ok(!err);
+        globalAdminOnTenantRestContext = ctx;
+        return callback();
+      });
     });
   });
 
@@ -109,10 +102,7 @@ describe('Groups', () => {
           assert.strictEqual(groupObj.resourceType, 'group');
           assert.strictEqual(
             groupObj.profilePath,
-            '/group/' +
-              groupObj.tenant.alias +
-              '/' +
-              AuthzUtil.getResourceFromId(groupObj.id).resourceId
+            '/group/' + groupObj.tenant.alias + '/' + AuthzUtil.getResourceFromId(groupObj.id).resourceId
           );
           assert.ok(groupObj.lastModified);
           assert.ok(groupObj.lastModified >= before);
@@ -212,35 +202,17 @@ describe('Groups', () => {
      * Test that verifies that a group created without a description creates a valid group
      */
     it('verify that missing description is accepted', callback => {
-      RestAPI.Group.createGroup(
-        johnRestContext,
-        'Group title',
-        null,
-        'public',
-        undefined,
-        [],
-        [],
-        (err, groupObj) => {
+      RestAPI.Group.createGroup(johnRestContext, 'Group title', null, 'public', undefined, [], [], (err, groupObj) => {
+        assert.ok(!err);
+        assert.strictEqual(groupObj.description, '');
+
+        // Verify that an empty description is acceptable as well
+        RestAPI.Group.createGroup(johnRestContext, 'Group title', '', 'public', undefined, [], [], (err, groupObj) => {
           assert.ok(!err);
           assert.strictEqual(groupObj.description, '');
-
-          // Verify that an empty description is acceptable as well
-          RestAPI.Group.createGroup(
-            johnRestContext,
-            'Group title',
-            '',
-            'public',
-            undefined,
-            [],
-            [],
-            (err, groupObj) => {
-              assert.ok(!err);
-              assert.strictEqual(groupObj.description, '');
-              return callback();
-            }
-          );
-        }
-      );
+          return callback();
+        });
+      });
     });
 
     /**
@@ -409,32 +381,23 @@ describe('Groups', () => {
             assert.strictEqual(groupObj.resourceType, 'group');
             assert.strictEqual(
               groupObj.profilePath,
-              '/group/' +
-                groupObj.tenant.alias +
-                '/' +
-                AuthzUtil.getResourceFromId(groupObj.id).resourceId
+              '/group/' + groupObj.tenant.alias + '/' + AuthzUtil.getResourceFromId(groupObj.id).resourceId
             );
 
             // Get the members of this group
-            RestAPI.Group.getGroupMembers(
-              johnRestContext,
-              groupObj.id,
-              undefined,
-              undefined,
-              (err, members) => {
-                assert.ok(!err);
-                assert.strictEqual(members.results.length, 3);
+            RestAPI.Group.getGroupMembers(johnRestContext, groupObj.id, undefined, undefined, (err, members) => {
+              assert.ok(!err);
+              assert.strictEqual(members.results.length, 3);
 
-                // Morph results to hash for easy access
-                const hash = _.groupBy(members.results, member => {
-                  return member.profile.id;
-                });
-                assert.strictEqual(hash[jack.user.id][0].role, 'member');
-                assert.strictEqual(hash[jane.user.id][0].role, 'manager');
-                assert.strictEqual(hash[johnRestContext.user.id][0].role, 'manager');
-                return callback();
-              }
-            );
+              // Morph results to hash for easy access
+              const hash = _.groupBy(members.results, member => {
+                return member.profile.id;
+              });
+              assert.strictEqual(hash[jack.user.id][0].role, 'member');
+              assert.strictEqual(hash[jane.user.id][0].role, 'manager');
+              assert.strictEqual(hash[johnRestContext.user.id][0].role, 'manager');
+              return callback();
+            });
           }
         );
       });
@@ -473,25 +436,16 @@ describe('Groups', () => {
                 assert.strictEqual(fetchedGroup.visibility, 'private');
                 assert.strictEqual(fetchedGroup.joinable, 'request');
                 assert.strictEqual(fetchedGroup.createdBy.id.substr(0, 10), 'u:camtest:');
-                assert.strictEqual(
-                  fetchedGroup.createdBy.displayName,
-                  johnRestContext.user.displayName
-                );
+                assert.strictEqual(fetchedGroup.createdBy.displayName, johnRestContext.user.displayName);
                 assert.ok(fetchedGroup.created);
                 assert.strictEqual(fetchedGroup.resourceType, 'group');
                 assert.strictEqual(
                   createdGroup.profilePath,
-                  '/group/' +
-                    createdGroup.tenant.alias +
-                    '/' +
-                    AuthzUtil.getResourceFromId(createdGroup.id).resourceId
+                  '/group/' + createdGroup.tenant.alias + '/' + AuthzUtil.getResourceFromId(createdGroup.id).resourceId
                 );
                 assert.ok(_.isObject(createdGroup.tenant));
                 assert.strictEqual(_.keys(fetchedGroup.tenant).length, 3);
-                assert.strictEqual(
-                  fetchedGroup.tenant.displayName,
-                  global.oaeTests.tenants.cam.displayName
-                );
+                assert.strictEqual(fetchedGroup.tenant.displayName, global.oaeTests.tenants.cam.displayName);
                 assert.strictEqual(fetchedGroup.tenant.alias, global.oaeTests.tenants.cam.alias);
                 assert.ok(!fetchedGroup.picture.smallUri);
                 assert.ok(!fetchedGroup.picture.mediumUri);
@@ -508,47 +462,37 @@ describe('Groups', () => {
                     assert.ok(!err);
 
                     // Get the group profile and verify its model
-                    RestAPI.Group.getGroup(
-                      johnRestContext,
-                      createdGroup.id,
-                      (err, fetchedGroup) => {
-                        assert.ok(!err);
-                        assert.ok(fetchedGroup.isMember);
-                        assert.ok(fetchedGroup.isManager);
-                        assert.strictEqual(fetchedGroup.displayName, 'Group title');
-                        assert.strictEqual(fetchedGroup.description, 'Group description');
-                        assert.strictEqual(fetchedGroup.visibility, 'private');
-                        assert.strictEqual(fetchedGroup.joinable, 'request');
-                        assert.ok(!fetchedGroup.createdBy);
-                        assert.ok(fetchedGroup.created);
-                        assert.strictEqual(fetchedGroup.resourceType, 'group');
-                        assert.strictEqual(
-                          createdGroup.profilePath,
-                          '/group/' +
-                            createdGroup.tenant.alias +
-                            '/' +
-                            AuthzUtil.getResourceFromId(createdGroup.id).resourceId
-                        );
-                        assert.ok(_.isObject(createdGroup.tenant));
-                        assert.strictEqual(_.keys(fetchedGroup.tenant).length, 3);
-                        assert.strictEqual(
-                          fetchedGroup.tenant.displayName,
-                          global.oaeTests.tenants.cam.displayName
-                        );
-                        assert.strictEqual(
-                          fetchedGroup.tenant.alias,
-                          global.oaeTests.tenants.cam.alias
-                        );
-                        assert.ok(!fetchedGroup.picture.smallUri);
-                        assert.ok(!fetchedGroup.picture.mediumUri);
-                        assert.ok(!fetchedGroup.picture.largeUri);
-                        assert.ok(fetchedGroup.picture.small);
-                        assert.ok(fetchedGroup.picture.medium);
-                        assert.ok(fetchedGroup.picture.large);
+                    RestAPI.Group.getGroup(johnRestContext, createdGroup.id, (err, fetchedGroup) => {
+                      assert.ok(!err);
+                      assert.ok(fetchedGroup.isMember);
+                      assert.ok(fetchedGroup.isManager);
+                      assert.strictEqual(fetchedGroup.displayName, 'Group title');
+                      assert.strictEqual(fetchedGroup.description, 'Group description');
+                      assert.strictEqual(fetchedGroup.visibility, 'private');
+                      assert.strictEqual(fetchedGroup.joinable, 'request');
+                      assert.ok(!fetchedGroup.createdBy);
+                      assert.ok(fetchedGroup.created);
+                      assert.strictEqual(fetchedGroup.resourceType, 'group');
+                      assert.strictEqual(
+                        createdGroup.profilePath,
+                        '/group/' +
+                          createdGroup.tenant.alias +
+                          '/' +
+                          AuthzUtil.getResourceFromId(createdGroup.id).resourceId
+                      );
+                      assert.ok(_.isObject(createdGroup.tenant));
+                      assert.strictEqual(_.keys(fetchedGroup.tenant).length, 3);
+                      assert.strictEqual(fetchedGroup.tenant.displayName, global.oaeTests.tenants.cam.displayName);
+                      assert.strictEqual(fetchedGroup.tenant.alias, global.oaeTests.tenants.cam.alias);
+                      assert.ok(!fetchedGroup.picture.smallUri);
+                      assert.ok(!fetchedGroup.picture.mediumUri);
+                      assert.ok(!fetchedGroup.picture.largeUri);
+                      assert.ok(fetchedGroup.picture.small);
+                      assert.ok(fetchedGroup.picture.medium);
+                      assert.ok(fetchedGroup.picture.large);
 
-                        return callback();
-                      }
-                    );
+                      return callback();
+                    });
                   }
                 );
               });
@@ -658,229 +602,330 @@ describe('Groups', () => {
             // 1. Public group
 
             // Ensure anonymous can see it
-            RestAPI.Group.getGroup(
-              publicTenant1.anonymousRestContext,
-              publicTenant1.publicGroup.id,
-              (err, group) => {
-                assert.ok(!err);
+            RestAPI.Group.getGroup(publicTenant1.anonymousRestContext, publicTenant1.publicGroup.id, (err, group) => {
+              assert.ok(!err);
 
-                // Ensure user from another tenant can see it
-                RestAPI.Group.getGroup(
-                  publicTenant2.publicUser.restContext,
-                  publicTenant1.publicGroup.id,
-                  (err, group) => {
-                    assert.ok(!err);
+              // Ensure user from another tenant can see it
+              RestAPI.Group.getGroup(
+                publicTenant2.publicUser.restContext,
+                publicTenant1.publicGroup.id,
+                (err, group) => {
+                  assert.ok(!err);
 
-                    // Ensure user from same tenant can see it
-                    RestAPI.Group.getGroup(
-                      publicTenant1.privateUser.restContext,
-                      publicTenant1.publicGroup.id,
-                      (err, group) => {
-                        assert.ok(!err);
+                  // Ensure user from same tenant can see it
+                  RestAPI.Group.getGroup(
+                    publicTenant1.privateUser.restContext,
+                    publicTenant1.publicGroup.id,
+                    (err, group) => {
+                      assert.ok(!err);
 
-                        // Ensure member user can see it
-                        RestAPI.Group.getGroup(
-                          publicTenant1.publicUser.restContext,
-                          publicTenant1.publicGroup.id,
-                          (err, group) => {
-                            assert.ok(!err);
+                      // Ensure member user can see it
+                      RestAPI.Group.getGroup(
+                        publicTenant1.publicUser.restContext,
+                        publicTenant1.publicGroup.id,
+                        (err, group) => {
+                          assert.ok(!err);
 
-                            // Ensure tenant admin can see it
-                            RestAPI.Group.getGroup(
-                              publicTenant1.adminRestContext,
-                              publicTenant1.publicGroup.id,
-                              (err, group) => {
-                                assert.ok(!err);
+                          // Ensure tenant admin can see it
+                          RestAPI.Group.getGroup(
+                            publicTenant1.adminRestContext,
+                            publicTenant1.publicGroup.id,
+                            (err, group) => {
+                              assert.ok(!err);
 
-                                // Ensure global admin can see it
-                                RestAPI.Group.getGroup(
-                                  globalAdminOnTenantRestContext,
-                                  publicTenant1.publicGroup.id,
-                                  (err, group) => {
-                                    assert.ok(!err);
+                              // Ensure global admin can see it
+                              RestAPI.Group.getGroup(
+                                globalAdminOnTenantRestContext,
+                                publicTenant1.publicGroup.id,
+                                (err, group) => {
+                                  assert.ok(!err);
 
-                                    // 2. Loggedin group
+                                  // 2. Loggedin group
 
-                                    // Ensure anonymous cannot see it
-                                    RestAPI.Group.getGroup(
-                                      publicTenant1.anonymousRestContext,
-                                      publicTenant1.loggedinGroup.id,
-                                      (err, group) => {
-                                        assert.ok(err);
-                                        assert.strictEqual(err.code, 401);
+                                  // Ensure anonymous cannot see it
+                                  RestAPI.Group.getGroup(
+                                    publicTenant1.anonymousRestContext,
+                                    publicTenant1.loggedinJoinableGroup.id,
+                                    (err, group) => {
+                                      assert.ok(err);
+                                      assert.strictEqual(err.code, 401);
 
-                                        // Ensure user from another public tenant cannot see it
-                                        RestAPI.Group.getGroup(
-                                          publicTenant2.publicUser.restContext,
-                                          publicTenant1.loggedinGroup.id,
-                                          (err, group) => {
-                                            assert.ok(err);
-                                            assert.strictEqual(err.code, 401);
+                                      // Issue1402: If a group is joinable, whether directly or by request, then the user does not get a 401 otherwise he would not be able to join it
+                                      RestAPI.Group.getGroup(
+                                        publicTenant2.publicUser.restContext,
+                                        publicTenant1.loggedinJoinableGroup.id,
+                                        (err, group) => {
+                                          assert.ok(!err);
 
-                                            // Ensure user from another private tenant cannot see it
-                                            RestAPI.Group.getGroup(
-                                              privateTenant1.publicUser.restContext,
-                                              publicTenant1.loggedinGroup.id,
-                                              (err, group) => {
-                                                assert.ok(err);
-                                                assert.strictEqual(err.code, 401);
+                                          // Ensure user from another private tenant cannot see it
+                                          RestAPI.Group.getGroup(
+                                            privateTenant1.publicUser.restContext,
+                                            publicTenant1.loggedinJoinableGroup.id,
+                                            (err, group) => {
+                                              assert.ok(err);
+                                              assert.strictEqual(err.code, 401);
 
-                                                // Ensure user from same tenant can see it
-                                                RestAPI.Group.getGroup(
-                                                  publicTenant1.privateUser.restContext,
-                                                  publicTenant1.loggedinGroup.id,
-                                                  (err, group) => {
-                                                    assert.ok(!err);
+                                              // Ensure user from same tenant can see it
+                                              RestAPI.Group.getGroup(
+                                                publicTenant1.privateUser.restContext,
+                                                publicTenant1.loggedinJoinableGroup.id,
+                                                (err, group) => {
+                                                  assert.ok(!err);
 
-                                                    // Ensure member user from another tenant can see it
-                                                    RestAPI.Group.getGroup(
-                                                      publicTenant1.publicUser.restContext,
-                                                      publicTenant2.loggedinGroup.id,
-                                                      (err, group) => {
-                                                        assert.ok(!err);
+                                                  // Ensure member user from another tenant can see it
+                                                  RestAPI.Group.getGroup(
+                                                    publicTenant1.publicUser.restContext,
+                                                    publicTenant2.loggedinJoinableGroup.id,
+                                                    (err, group) => {
+                                                      assert.ok(!err);
 
-                                                        // Ensure tenant admin can see it
-                                                        RestAPI.Group.getGroup(
-                                                          publicTenant1.adminRestContext,
-                                                          publicTenant1.loggedinGroup.id,
-                                                          (err, group) => {
-                                                            assert.ok(!err);
+                                                      // Ensure tenant admin can see it
+                                                      RestAPI.Group.getGroup(
+                                                        publicTenant1.adminRestContext,
+                                                        publicTenant1.loggedinJoinableGroup.id,
+                                                        (err, group) => {
+                                                          assert.ok(!err);
 
-                                                            // Ensure global admin can see it
-                                                            RestAPI.Group.getGroup(
-                                                              globalAdminOnTenantRestContext,
-                                                              publicTenant1.loggedinGroup.id,
-                                                              (err, group) => {
-                                                                assert.ok(!err);
+                                                          // Ensure global admin can see it
+                                                          RestAPI.Group.getGroup(
+                                                            globalAdminOnTenantRestContext,
+                                                            publicTenant1.loggedinJoinableGroup.id,
+                                                            (err, group) => {
+                                                              assert.ok(!err);
 
-                                                                // 3. Private group
+                                                              // 3. Private group
 
-                                                                // Ensure anonymous cannot see it
-                                                                RestAPI.Group.getGroup(
-                                                                  publicTenant1.anonymousRestContext,
-                                                                  publicTenant1.loggedinGroup.id,
-                                                                  (err, group) => {
-                                                                    assert.ok(err);
-                                                                    assert.strictEqual(
-                                                                      err.code,
-                                                                      401
-                                                                    );
+                                                              // Ensure anonymous cannot see it
+                                                              RestAPI.Group.getGroup(
+                                                                publicTenant1.anonymousRestContext,
+                                                                publicTenant1.privateJoinableGroup.id,
+                                                                (err, group) => {
+                                                                  assert.ok(err);
+                                                                  assert.strictEqual(err.code, 401);
 
-                                                                    // Ensure user from another public tenant cannot see it
-                                                                    RestAPI.Group.getGroup(
-                                                                      publicTenant2.publicUser
-                                                                        .restContext,
-                                                                      publicTenant1.loggedinGroup
-                                                                        .id,
-                                                                      (err, group) => {
-                                                                        assert.ok(err);
-                                                                        assert.strictEqual(
-                                                                          err.code,
-                                                                          401
-                                                                        );
+                                                                  // Ensure user from another public tenant cannot see it
+                                                                  RestAPI.Group.getGroup(
+                                                                    publicTenant2.publicUser.restContext,
+                                                                    publicTenant1.privateJoinableGroup.id,
+                                                                    (err, group) => {
+                                                                      assert.ok(!err);
 
-                                                                        // Ensure user from another private tenant cannot see it
-                                                                        RestAPI.Group.getGroup(
-                                                                          privateTenant1.publicUser
-                                                                            .restContext,
-                                                                          publicTenant1
-                                                                            .loggedinGroup.id,
-                                                                          (err, group) => {
-                                                                            assert.ok(err);
-                                                                            assert.strictEqual(
-                                                                              err.code,
-                                                                              401
-                                                                            );
+                                                                      // Ensure user from another private tenant cannot see it
+                                                                      RestAPI.Group.getGroup(
+                                                                        privateTenant1.publicUser.restContext,
+                                                                        publicTenant1.privateJoinableGroup.id,
+                                                                        (err, group) => {
+                                                                          assert.ok(err);
+                                                                          assert.strictEqual(err.code, 401);
 
-                                                                            // Ensure user from same tenant can see it (since they would be able to join it)
-                                                                            RestAPI.Group.getGroup(
-                                                                              publicTenant1
-                                                                                .privateUser
-                                                                                .restContext,
-                                                                              publicTenant1
-                                                                                .loggedinGroup.id,
-                                                                              (err, group) => {
-                                                                                assert.ok(!err);
+                                                                          // Ensure user from same tenant can see it (since they would be able to join it)
+                                                                          RestAPI.Group.getGroup(
+                                                                            publicTenant1.privateUser.restContext,
+                                                                            publicTenant1.privateJoinableGroup.id,
+                                                                            (err, group) => {
+                                                                              assert.ok(!err);
+                                                                              // Ensure member user from another tenant can see it
+                                                                              RestAPI.Group.getGroup(
+                                                                                publicTenant1.publicUser.restContext,
+                                                                                publicTenant2.privateJoinableGroup.id,
+                                                                                (err, group) => {
+                                                                                  assert.ok(!err);
 
-                                                                                // Ensure member user from another tenant can see it
-                                                                                RestAPI.Group.getGroup(
-                                                                                  publicTenant1
-                                                                                    .publicUser
-                                                                                    .restContext,
-                                                                                  publicTenant2
-                                                                                    .privateGroup
-                                                                                    .id,
-                                                                                  (err, group) => {
-                                                                                    assert.ok(!err);
+                                                                                  // Ensure tenant admin can see it
+                                                                                  RestAPI.Group.getGroup(
+                                                                                    publicTenant1.adminRestContext,
+                                                                                    publicTenant1.privateJoinableGroup
+                                                                                      .id,
+                                                                                    (err, group) => {
+                                                                                      assert.ok(!err);
 
-                                                                                    // Ensure tenant admin can see it
-                                                                                    RestAPI.Group.getGroup(
-                                                                                      publicTenant1.adminRestContext,
-                                                                                      publicTenant1
-                                                                                        .loggedinGroup
-                                                                                        .id,
-                                                                                      (
-                                                                                        err,
-                                                                                        group
-                                                                                      ) => {
-                                                                                        assert.ok(
-                                                                                          !err
-                                                                                        );
+                                                                                      // Ensure global admin can see it
+                                                                                      RestAPI.Group.getGroup(
+                                                                                        globalAdminOnTenantRestContext,
+                                                                                        publicTenant1
+                                                                                          .privateJoinableGroup.id,
+                                                                                        (err, group) => {
+                                                                                          assert.ok(!err);
+                                                                                          RestAPI.Group.getGroup(
+                                                                                            globalAdminOnTenantRestContext,
+                                                                                            publicTenant1
+                                                                                              .privateJoinableGroupByRequest
+                                                                                              .id,
+                                                                                            (err, group) => {
+                                                                                              assert.ok(!err);
+                                                                                              return callback();
+                                                                                            }
+                                                                                          );
+                                                                                        }
+                                                                                      );
+                                                                                    }
+                                                                                  );
+                                                                                }
+                                                                              );
+                                                                            }
+                                                                          );
+                                                                        }
+                                                                      );
+                                                                    }
+                                                                  );
+                                                                }
+                                                              );
+                                                            }
+                                                          );
+                                                        }
+                                                      );
+                                                    }
+                                                  );
+                                                }
+                                              );
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            });
+          }
+        );
+      });
+    });
 
-                                                                                        // Ensure global admin can see it
-                                                                                        RestAPI.Group.getGroup(
-                                                                                          globalAdminOnTenantRestContext,
-                                                                                          publicTenant1
-                                                                                            .loggedinGroup
-                                                                                            .id,
-                                                                                          (
-                                                                                            err,
-                                                                                            group
-                                                                                          ) => {
-                                                                                            assert.ok(
-                                                                                              !err
-                                                                                            );
-                                                                                            return callback();
-                                                                                          }
-                                                                                        );
-                                                                                      }
-                                                                                    );
-                                                                                  }
-                                                                                );
-                                                                              }
-                                                                            );
-                                                                          }
-                                                                        );
-                                                                      }
-                                                                    );
-                                                                  }
-                                                                );
-                                                              }
-                                                            );
-                                                          }
-                                                        );
-                                                      }
-                                                    );
-                                                  }
-                                                );
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
+    it('verify different visibility combinations of getting a joinable group by request', callback => {
+      TestsUtil.setupMultiTenantPrivacyEntities((publicTenant1, publicTenant2, privateTenant1) => {
+        PrincipalsTestUtil.addUserToAllGroups(
+          publicTenant1.publicUser,
+          publicTenant1,
+          publicTenant2,
+          privateTenant1,
+          () => {
+            // 1. Public group
+
+            // Ensure anonymous can see it
+            RestAPI.Group.getGroup(publicTenant1.anonymousRestContext, publicTenant1.publicGroup.id, (err, group) => {
+              assert.ok(!err);
+
+              // 2. Loggedin group
+
+              // Ensure anonymous cannot see it
+              // Issue1402: If a group is joinable, whether directly or by request, then the user does not get a 401 otherwise he would not be able to join it
+              RestAPI.Group.getGroup(
+                publicTenant2.publicUser.restContext,
+                publicTenant1.loggedinJoinableGroupByRequest.id,
+                (err, group) => {
+                  assert.ok(!err);
+
+                  // Ensure user from another private tenant cannot see it
+
+                  RestAPI.Group.getGroup(
+                    publicTenant1.privateUser.restContext,
+                    publicTenant1.loggedinJoinableGroupByRequest.id,
+                    (err, group) => {
+                      assert.ok(!err);
+
+                      RestAPI.Group.getGroup(
+                        publicTenant1.publicUser.restContext,
+                        publicTenant2.loggedinJoinableGroupByRequest.id,
+                        (err, group) => {
+                          assert.ok(!err);
+
+                          // Ensure tenant admin can see it
+                          RestAPI.Group.getGroup(
+                            publicTenant1.adminRestContext,
+                            publicTenant1.loggedinJoinableGroupByRequest.id,
+                            (err, group) => {
+                              assert.ok(!err);
+
+                              // Ensure global admin can see it
+                              RestAPI.Group.getGroup(
+                                globalAdminOnTenantRestContext,
+                                publicTenant1.loggedinJoinableGroupByRequest.id,
+                                (err, group) => {
+                                  assert.ok(!err);
+
+                                  // 3. Private group
+
+                                  // Ensure anonymous cannot see it
+                                  RestAPI.Group.getGroup(
+                                    publicTenant1.anonymousRestContext,
+                                    publicTenant1.privateJoinableGroupByRequest.id,
+                                    (err, group) => {
+                                      assert.ok(err);
+                                      assert.strictEqual(err.code, 401);
+
+                                      // Ensure user from another public tenant cannot see it
+                                      RestAPI.Group.getGroup(
+                                        publicTenant2.publicUser.restContext,
+                                        publicTenant1.privateJoinableGroupByRequest.id,
+                                        (err, group) => {
+                                          assert.ok(!err);
+
+                                          // Ensure user from another private tenant cannot see it
+                                          RestAPI.Group.getGroup(
+                                            privateTenant1.publicUser.restContext,
+                                            publicTenant1.privateJoinableGroupByRequest.id,
+                                            (err, group) => {
+                                              assert.ok(err);
+                                              assert.strictEqual(err.code, 401);
+
+                                              RestAPI.Group.getGroup(
+                                                publicTenant1.privateUser.restContext,
+                                                publicTenant1.privateJoinableGroupByRequest.id,
+                                                (err, group) => {
+                                                  assert.ok(!err);
+
+                                                  RestAPI.Group.getGroup(
+                                                    publicTenant1.publicUser.restContext,
+                                                    publicTenant2.privateJoinableGroupByRequest.id,
+                                                    (err, group) => {
+                                                      assert.ok(!err);
+
+                                                      RestAPI.Group.getGroup(
+                                                        publicTenant1.adminRestContext,
+                                                        publicTenant1.privateJoinableGroupByRequest.id,
+                                                        (err, group) => {
+                                                          assert.ok(!err);
+
+                                                          RestAPI.Group.getGroup(
+                                                            globalAdminOnTenantRestContext,
+                                                            publicTenant1.privateJoinableGroupByRequest.id,
+                                                            (err, group) => {
+                                                              assert.ok(!err);
+                                                              return callback();
+                                                            }
+                                                          );
+                                                        }
+                                                      );
+                                                    }
+                                                  );
+                                                }
+                                              );
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            });
           }
         );
       });
@@ -896,7 +941,7 @@ describe('Groups', () => {
           publicTenant1,
           publicTenant2,
           privateTenant1,
-          { joinable: 'no' },
+          { joinable: AuthzConstants.joinable.NO },
           () => {
             // Add the public user from publicTenant1 to all the groups
             PrincipalsTestUtil.addUserToAllGroups(
@@ -954,7 +999,7 @@ describe('Groups', () => {
                                         // Ensure anonymous cannot see it
                                         RestAPI.Group.getGroup(
                                           publicTenant1.anonymousRestContext,
-                                          publicTenant1.loggedinGroup.id,
+                                          publicTenant1.loggedinNotJoinableGroup.id,
                                           (err, group) => {
                                             assert.ok(err);
                                             assert.strictEqual(err.code, 401);
@@ -962,7 +1007,7 @@ describe('Groups', () => {
                                             // Ensure user from another public tenant cannot see it (since they would not be able to join it as it is not joinable)
                                             RestAPI.Group.getGroup(
                                               publicTenant2.publicUser.restContext,
-                                              publicTenant1.loggedinGroup.id,
+                                              publicTenant1.loggedinNotJoinableGroup.id,
                                               (err, group) => {
                                                 assert.ok(err);
                                                 assert.strictEqual(err.code, 401);
@@ -970,7 +1015,7 @@ describe('Groups', () => {
                                                 // Ensure user from another private tenant cannot see it (since they would not be able to join it)
                                                 RestAPI.Group.getGroup(
                                                   privateTenant1.publicUser.restContext,
-                                                  publicTenant1.loggedinGroup.id,
+                                                  publicTenant1.loggedinNotJoinableGroup.id,
                                                   (err, group) => {
                                                     assert.ok(err);
                                                     assert.strictEqual(err.code, 401);
@@ -978,28 +1023,28 @@ describe('Groups', () => {
                                                     // Ensure user from same tenant can see it
                                                     RestAPI.Group.getGroup(
                                                       publicTenant1.privateUser.restContext,
-                                                      publicTenant1.loggedinGroup.id,
+                                                      publicTenant1.loggedinNotJoinableGroup.id,
                                                       (err, group) => {
                                                         assert.ok(!err);
 
                                                         // Ensure member user from another tenant can see it
                                                         RestAPI.Group.getGroup(
                                                           publicTenant1.publicUser.restContext,
-                                                          publicTenant2.loggedinGroup.id,
+                                                          publicTenant2.loggedinNotJoinableGroup.id,
                                                           (err, group) => {
                                                             assert.ok(!err);
 
                                                             // Ensure tenant admin can see it
                                                             RestAPI.Group.getGroup(
                                                               publicTenant1.adminRestContext,
-                                                              publicTenant1.loggedinGroup.id,
+                                                              publicTenant1.loggedinNotJoinableGroup.id,
                                                               (err, group) => {
                                                                 assert.ok(!err);
 
                                                                 // Ensure global admin can see it
                                                                 RestAPI.Group.getGroup(
                                                                   globalAdminOnTenantRestContext,
-                                                                  publicTenant1.loggedinGroup.id,
+                                                                  publicTenant1.loggedinNotJoinableGroup.id,
                                                                   (err, group) => {
                                                                     assert.ok(!err);
 
@@ -1008,96 +1053,61 @@ describe('Groups', () => {
                                                                     // Ensure anonymous cannot see it
                                                                     RestAPI.Group.getGroup(
                                                                       publicTenant1.anonymousRestContext,
-                                                                      publicTenant1.loggedinGroup
-                                                                        .id,
+                                                                      publicTenant1.loggedinNotJoinableGroup.id,
                                                                       (err, group) => {
                                                                         assert.ok(err);
-                                                                        assert.strictEqual(
-                                                                          err.code,
-                                                                          401
-                                                                        );
+                                                                        assert.strictEqual(err.code, 401);
 
                                                                         // Ensure user from another public tenant cannot see it (since they would not be able to join it as it's unjoinable)
                                                                         RestAPI.Group.getGroup(
-                                                                          publicTenant2.publicUser
-                                                                            .restContext,
-                                                                          publicTenant1
-                                                                            .loggedinGroup.id,
+                                                                          publicTenant2.publicUser.restContext,
+                                                                          publicTenant1.loggedinNotJoinableGroup.id,
                                                                           (err, group) => {
                                                                             assert.ok(err);
-                                                                            assert.strictEqual(
-                                                                              err.code,
-                                                                              401
-                                                                            );
+                                                                            assert.strictEqual(err.code, 401);
 
                                                                             // Ensure user from another private tenant cannot see it (since they would not be able to join it)
                                                                             RestAPI.Group.getGroup(
-                                                                              privateTenant1
-                                                                                .publicUser
-                                                                                .restContext,
-                                                                              publicTenant1
-                                                                                .loggedinGroup.id,
+                                                                              privateTenant1.publicUser.restContext,
+                                                                              publicTenant1.loggedinNotJoinableGroup.id,
                                                                               (err, group) => {
                                                                                 assert.ok(err);
-                                                                                assert.strictEqual(
-                                                                                  err.code,
-                                                                                  401
-                                                                                );
+                                                                                assert.strictEqual(err.code, 401);
 
                                                                                 // Ensure user from same tenant can see it (since they would be able to join it)
                                                                                 RestAPI.Group.getGroup(
-                                                                                  publicTenant1
-                                                                                    .privateUser
-                                                                                    .restContext,
-                                                                                  publicTenant1
-                                                                                    .loggedinGroup
+                                                                                  publicTenant1.privateUser.restContext,
+                                                                                  publicTenant1.loggedinNotJoinableGroup
                                                                                     .id,
                                                                                   (err, group) => {
                                                                                     assert.ok(!err);
 
                                                                                     // Ensure member user from another tenant can see it
                                                                                     RestAPI.Group.getGroup(
-                                                                                      publicTenant1
-                                                                                        .publicUser
+                                                                                      publicTenant1.publicUser
                                                                                         .restContext,
                                                                                       publicTenant2
-                                                                                        .privateGroup
-                                                                                        .id,
-                                                                                      (
-                                                                                        err,
-                                                                                        group
-                                                                                      ) => {
-                                                                                        assert.ok(
-                                                                                          !err
-                                                                                        );
+                                                                                        .privateNotJoinableGroup.id,
+                                                                                      (err, group) => {
+                                                                                        assert.ok(!err);
 
                                                                                         // Ensure tenant admin can see it
                                                                                         RestAPI.Group.getGroup(
                                                                                           publicTenant1.adminRestContext,
                                                                                           publicTenant1
-                                                                                            .loggedinGroup
+                                                                                            .loggedinNotJoinableGroup
                                                                                             .id,
-                                                                                          (
-                                                                                            err,
-                                                                                            group
-                                                                                          ) => {
-                                                                                            assert.ok(
-                                                                                              !err
-                                                                                            );
+                                                                                          (err, group) => {
+                                                                                            assert.ok(!err);
 
                                                                                             // Ensure global admin can see it
                                                                                             RestAPI.Group.getGroup(
                                                                                               globalAdminOnTenantRestContext,
                                                                                               publicTenant1
-                                                                                                .loggedinGroup
+                                                                                                .loggedinNotJoinableGroup
                                                                                                 .id,
-                                                                                              (
-                                                                                                err,
-                                                                                                group
-                                                                                              ) => {
-                                                                                                assert.ok(
-                                                                                                  !err
-                                                                                                );
+                                                                                              (err, group) => {
+                                                                                                assert.ok(!err);
                                                                                                 return callback();
                                                                                               }
                                                                                             );
@@ -1181,31 +1191,23 @@ describe('Groups', () => {
                   assert.strictEqual(fetchedGroup.displayName, 'Group title');
                   assert.strictEqual(fetchedGroup.description, 'Group description');
                   // Check that recently visited groups includes the test group
-                  RestAPI.User.getRecentlyVisitedGroups(
-                    jane.restContext,
-                    jane.user.id,
-                    (err, recentGroups) => {
+                  RestAPI.User.getRecentlyVisitedGroups(jane.restContext, jane.user.id, (err, recentGroups) => {
+                    assert.ok(!err);
+                    assert.strictEqual(recentGroups.results[0].id, groupOne.id);
+                    // Visit the second group
+                    RestAPI.Group.getGroup(jane.restContext, groupTwo.id, (err, fetchedGroup) => {
                       assert.ok(!err);
-                      assert.strictEqual(recentGroups.results[0].id, groupOne.id);
-                      // Visit the second group
-                      RestAPI.Group.getGroup(jane.restContext, groupTwo.id, (err, fetchedGroup) => {
+                      assert.strictEqual(fetchedGroup.displayName, 'Other Group title');
+                      assert.strictEqual(fetchedGroup.description, 'Other Group description');
+                      // Check that recently visited groups includes the second group as first item and previous group as second item
+                      RestAPI.User.getRecentlyVisitedGroups(jane.restContext, jane.user.id, (err, recentGroups) => {
                         assert.ok(!err);
-                        assert.strictEqual(fetchedGroup.displayName, 'Other Group title');
-                        assert.strictEqual(fetchedGroup.description, 'Other Group description');
-                        // Check that recently visited groups includes the second group as first item and previous group as second item
-                        RestAPI.User.getRecentlyVisitedGroups(
-                          jane.restContext,
-                          jane.user.id,
-                          (err, recentGroups) => {
-                            assert.ok(!err);
-                            assert.strictEqual(recentGroups.results[0].id, groupTwo.id);
-                            assert.strictEqual(recentGroups.results[1].id, groupOne.id);
-                            return callback();
-                          }
-                        );
+                        assert.strictEqual(recentGroups.results[0].id, groupTwo.id);
+                        assert.strictEqual(recentGroups.results[1].id, groupOne.id);
+                        return callback();
                       });
-                    }
-                  );
+                    });
+                  });
                 });
               }
             );
@@ -1281,10 +1283,7 @@ describe('Groups', () => {
                     assert.strictEqual(group.resourceType, 'group');
                     assert.strictEqual(
                       group.profilePath,
-                      '/group/' +
-                        group.tenant.alias +
-                        '/' +
-                        AuthzUtil.getResourceFromId(group.id).resourceId
+                      '/group/' + group.tenant.alias + '/' + AuthzUtil.getResourceFromId(group.id).resourceId
                     );
                     assert.strictEqual(group.lastModified, updatedGroup.lastModified);
                     assert.strictEqual(group.isMember, true);
@@ -1310,21 +1309,12 @@ describe('Groups', () => {
      * Test that verifies updating a non-existent group fails
      */
     it('verify update non-existent group fails', callback => {
-      const groupId = util.format(
-        'g:%s:%s',
-        global.oaeTests.tenants.cam.alias,
-        TestsUtil.generateTestGroupId()
-      );
-      RestAPI.Group.updateGroup(
-        johnRestContext,
-        groupId,
-        { joinable: 'yes' },
-        (err, updatedGroup) => {
-          assert.strictEqual(err.code, 404);
-          assert.ok(!updatedGroup);
-          return callback();
-        }
-      );
+      const groupId = util.format('g:%s:%s', global.oaeTests.tenants.cam.alias, TestsUtil.generateTestGroupId());
+      RestAPI.Group.updateGroup(johnRestContext, groupId, { joinable: 'yes' }, (err, updatedGroup) => {
+        assert.strictEqual(err.code, 404);
+        assert.ok(!updatedGroup);
+        return callback();
+      });
     });
 
     /**
@@ -1364,16 +1354,11 @@ describe('Groups', () => {
         [],
         (err, newGroup) => {
           assert.ok(!err);
-          RestAPI.Group.updateGroup(
-            johnRestContext,
-            newGroup.id,
-            { joinable: 'invalid' },
-            (err, updatedGroup) => {
-              assert.strictEqual(err.code, 400);
-              assert.ok(!updatedGroup);
-              return callback();
-            }
-          );
+          RestAPI.Group.updateGroup(johnRestContext, newGroup.id, { joinable: 'invalid' }, (err, updatedGroup) => {
+            assert.strictEqual(err.code, 400);
+            assert.ok(!updatedGroup);
+            return callback();
+          });
         }
       );
     });
@@ -1392,16 +1377,11 @@ describe('Groups', () => {
         [],
         (err, newGroup) => {
           assert.ok(!err);
-          RestAPI.Group.updateGroup(
-            johnRestContext,
-            newGroup.id,
-            { visibility: 'invalid' },
-            (err, updatedGroup) => {
-              assert.strictEqual(err.code, 400);
-              assert.ok(!updatedGroup);
-              return callback();
-            }
-          );
+          RestAPI.Group.updateGroup(johnRestContext, newGroup.id, { visibility: 'invalid' }, (err, updatedGroup) => {
+            assert.strictEqual(err.code, 400);
+            assert.ok(!updatedGroup);
+            return callback();
+          });
         }
       );
     });
@@ -1421,18 +1401,13 @@ describe('Groups', () => {
         [],
         (err, newGroup) => {
           assert.ok(!err);
-          RestAPI.Group.updateGroup(
-            johnRestContext,
-            newGroup.id,
-            { displayName },
-            (err, updatedGroup) => {
-              assert.ok(err);
-              assert.strictEqual(err.code, 400);
-              assert.ok(err.msg.indexOf('1000') > 0);
-              assert.ok(!updatedGroup);
-              return callback();
-            }
-          );
+          RestAPI.Group.updateGroup(johnRestContext, newGroup.id, { displayName }, (err, updatedGroup) => {
+            assert.ok(err);
+            assert.strictEqual(err.code, 400);
+            assert.ok(err.msg.indexOf('1000') > 0);
+            assert.ok(!updatedGroup);
+            return callback();
+          });
         }
       );
     });
@@ -1452,28 +1427,18 @@ describe('Groups', () => {
         [],
         (err, newGroup) => {
           assert.ok(!err);
-          RestAPI.Group.updateGroup(
-            johnRestContext,
-            newGroup.id,
-            { description },
-            (err, updatedGroup) => {
-              assert.ok(err);
-              assert.strictEqual(err.code, 400);
-              assert.ok(err.msg.indexOf('10000') > 0);
-              assert.ok(!updatedGroup);
+          RestAPI.Group.updateGroup(johnRestContext, newGroup.id, { description }, (err, updatedGroup) => {
+            assert.ok(err);
+            assert.strictEqual(err.code, 400);
+            assert.ok(err.msg.indexOf('10000') > 0);
+            assert.ok(!updatedGroup);
 
-              // Verify that an empty description is acceptable
-              RestAPI.Group.updateGroup(
-                johnRestContext,
-                newGroup.id,
-                { description: '' },
-                (err, updatedGroup) => {
-                  assert.ok(!err);
-                  return callback();
-                }
-              );
-            }
-          );
+            // Verify that an empty description is acceptable
+            RestAPI.Group.updateGroup(johnRestContext, newGroup.id, { description: '' }, (err, updatedGroup) => {
+              assert.ok(!err);
+              return callback();
+            });
+          });
         }
       );
     });
@@ -1531,36 +1496,31 @@ describe('Groups', () => {
             assert.ok(!err);
 
             // Try to update the group as a member
-            RestAPI.Group.updateGroup(
-              jack.restContext,
-              newGroup.id,
-              { visibility: 'public' },
-              (err, updatedGroup) => {
-                assert.strictEqual(err.code, 401);
-                assert.ok(!updatedGroup);
-                // Try to update the group as a non-member
-                RestAPI.Group.updateGroup(
-                  jane.restContext,
-                  newGroup.id,
-                  { visibility: 'public' },
-                  (err, updatedGroup) => {
-                    assert.strictEqual(err.code, 401);
-                    assert.ok(!updatedGroup);
-                    // Try to update the group as an anonymous user
-                    RestAPI.Group.updateGroup(
-                      TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host),
-                      newGroup.id,
-                      { visibility: 'public' },
-                      (err, updatedGroup) => {
-                        assert.strictEqual(err.code, 401);
-                        assert.ok(!updatedGroup);
-                        return callback();
-                      }
-                    );
-                  }
-                );
-              }
-            );
+            RestAPI.Group.updateGroup(jack.restContext, newGroup.id, { visibility: 'public' }, (err, updatedGroup) => {
+              assert.strictEqual(err.code, 401);
+              assert.ok(!updatedGroup);
+              // Try to update the group as a non-member
+              RestAPI.Group.updateGroup(
+                jane.restContext,
+                newGroup.id,
+                { visibility: 'public' },
+                (err, updatedGroup) => {
+                  assert.strictEqual(err.code, 401);
+                  assert.ok(!updatedGroup);
+                  // Try to update the group as an anonymous user
+                  RestAPI.Group.updateGroup(
+                    TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host),
+                    newGroup.id,
+                    { visibility: 'public' },
+                    (err, updatedGroup) => {
+                      assert.strictEqual(err.code, 401);
+                      assert.ok(!updatedGroup);
+                      return callback();
+                    }
+                  );
+                }
+              );
+            });
           }
         );
       });
@@ -1577,151 +1537,109 @@ describe('Groups', () => {
         assert.ok(!err);
 
         // Create a group
-        RestAPI.Group.createGroup(
-          johnRestContext,
-          'Test Group',
-          'Group',
-          'public',
-          'yes',
-          [],
-          [],
-          (err, groupObj) => {
-            assert.ok(!err);
+        RestAPI.Group.createGroup(johnRestContext, 'Test Group', 'Group', 'public', 'yes', [], [], (err, groupObj) => {
+          assert.ok(!err);
 
-            // Try and add a user as a non-member
-            let membersToAdd = {};
-            membersToAdd[nicolaas.user.id] = 'member';
-            RestAPI.Group.setGroupMembers(branden.restContext, groupObj.id, membersToAdd, err => {
-              assert.ok(err);
-              assert.strictEqual(err.code, 401);
+          // Try and add a user as a non-member
+          let membersToAdd = {};
+          membersToAdd[nicolaas.user.id] = 'member';
+          RestAPI.Group.setGroupMembers(branden.restContext, groupObj.id, membersToAdd, err => {
+            assert.ok(err);
+            assert.strictEqual(err.code, 401);
 
-              // Verify that the user has not been added
-              RestAPI.Group.getMembershipsLibrary(
-                nicolaas.restContext,
-                nicolaas.user.id,
-                null,
-                null,
-                (err, groupMemberships) => {
+            // Verify that the user has not been added
+            RestAPI.Group.getMembershipsLibrary(
+              nicolaas.restContext,
+              nicolaas.user.id,
+              null,
+              null,
+              (err, groupMemberships) => {
+                assert.ok(!err);
+                assert.strictEqual(groupMemberships.results.length, 0);
+
+                // Add branden as a member, and make sure that he still cannot add a member
+                membersToAdd = {};
+                membersToAdd[branden.user.id] = 'member';
+                RestAPI.Group.setGroupMembers(johnRestContext, groupObj.id, membersToAdd, err => {
                   assert.ok(!err);
-                  assert.strictEqual(groupMemberships.results.length, 0);
 
-                  // Add branden as a member, and make sure that he still cannot add a member
+                  // Try to add nicolaas as a member
                   membersToAdd = {};
-                  membersToAdd[branden.user.id] = 'member';
-                  RestAPI.Group.setGroupMembers(johnRestContext, groupObj.id, membersToAdd, err => {
-                    assert.ok(!err);
+                  membersToAdd[nicolaas.user.id] = 'member';
+                  RestAPI.Group.setGroupMembers(branden.restContext, groupObj.id, membersToAdd, err => {
+                    assert.ok(err);
+                    assert.strictEqual(err.code, 401);
 
-                    // Try to add nicolaas as a member
-                    membersToAdd = {};
-                    membersToAdd[nicolaas.user.id] = 'member';
-                    RestAPI.Group.setGroupMembers(
-                      branden.restContext,
-                      groupObj.id,
-                      membersToAdd,
-                      err => {
-                        assert.ok(err);
-                        assert.strictEqual(err.code, 401);
+                    // Verify that the user has not been added
+                    RestAPI.Group.getMembershipsLibrary(
+                      nicolaas.restContext,
+                      nicolaas.user.id,
+                      null,
+                      null,
+                      (err, groupMemberships) => {
+                        assert.ok(!err);
+                        assert.strictEqual(groupMemberships.results.length, 0);
 
-                        // Verify that the user has not been added
-                        RestAPI.Group.getMembershipsLibrary(
-                          nicolaas.restContext,
-                          nicolaas.user.id,
-                          null,
-                          null,
-                          (err, groupMemberships) => {
+                        // Add branden a manager, and make sure that he can add a member
+                        membersToAdd = {};
+                        membersToAdd[branden.user.id] = 'manager';
+                        RestAPI.Group.setGroupMembers(johnRestContext, groupObj.id, membersToAdd, err => {
+                          assert.ok(!err);
+
+                          // Try to add nicolaas as a member
+                          membersToAdd = {};
+                          membersToAdd[nicolaas.user.id] = 'member';
+                          RestAPI.Group.setGroupMembers(branden.restContext, groupObj.id, membersToAdd, err => {
                             assert.ok(!err);
-                            assert.strictEqual(groupMemberships.results.length, 0);
 
-                            // Add branden a manager, and make sure that he can add a member
-                            membersToAdd = {};
-                            membersToAdd[branden.user.id] = 'manager';
-                            RestAPI.Group.setGroupMembers(
-                              johnRestContext,
-                              groupObj.id,
-                              membersToAdd,
-                              err => {
+                            // Verify that the user has not been added
+                            RestAPI.Group.getMembershipsLibrary(
+                              nicolaas.restContext,
+                              nicolaas.user.id,
+                              null,
+                              null,
+                              (err, groupMemberships) => {
                                 assert.ok(!err);
+                                assert.strictEqual(groupMemberships.results.length, 1);
+                                assert.strictEqual(groupMemberships.results[0].id, groupObj.id);
 
-                                // Try to add nicolaas as a member
+                                // Verify that members can be removed
                                 membersToAdd = {};
-                                membersToAdd[nicolaas.user.id] = 'member';
-                                RestAPI.Group.setGroupMembers(
-                                  branden.restContext,
-                                  groupObj.id,
-                                  membersToAdd,
-                                  err => {
-                                    assert.ok(!err);
+                                membersToAdd[nicolaas.user.id] = false;
+                                RestAPI.Group.setGroupMembers(branden.restContext, groupObj.id, membersToAdd, err => {
+                                  assert.ok(!err);
 
-                                    // Verify that the user has not been added
-                                    RestAPI.Group.getMembershipsLibrary(
-                                      nicolaas.restContext,
-                                      nicolaas.user.id,
-                                      null,
-                                      null,
-                                      (err, groupMemberships) => {
+                                  // Verify that the user has been removed as a member
+                                  RestAPI.Group.getMembershipsLibrary(
+                                    nicolaas.restContext,
+                                    nicolaas.user.id,
+                                    null,
+                                    null,
+                                    (err, groupMemberships) => {
+                                      assert.ok(!err);
+                                      assert.strictEqual(groupMemberships.results.length, 0);
+
+                                      // Ensure the lastModified date of the group has been updated as a result of these memberships changes
+                                      RestAPI.Group.getGroup(johnRestContext, groupObj.id, (err, updatedGroup) => {
                                         assert.ok(!err);
-                                        assert.strictEqual(groupMemberships.results.length, 1);
-                                        assert.strictEqual(
-                                          groupMemberships.results[0].id,
-                                          groupObj.id
-                                        );
-
-                                        // Verify that members can be removed
-                                        membersToAdd = {};
-                                        membersToAdd[nicolaas.user.id] = false;
-                                        RestAPI.Group.setGroupMembers(
-                                          branden.restContext,
-                                          groupObj.id,
-                                          membersToAdd,
-                                          err => {
-                                            assert.ok(!err);
-
-                                            // Verify that the user has been removed as a member
-                                            RestAPI.Group.getMembershipsLibrary(
-                                              nicolaas.restContext,
-                                              nicolaas.user.id,
-                                              null,
-                                              null,
-                                              (err, groupMemberships) => {
-                                                assert.ok(!err);
-                                                assert.strictEqual(
-                                                  groupMemberships.results.length,
-                                                  0
-                                                );
-
-                                                // Ensure the lastModified date of the group has been updated as a result of these memberships changes
-                                                RestAPI.Group.getGroup(
-                                                  johnRestContext,
-                                                  groupObj.id,
-                                                  (err, updatedGroup) => {
-                                                    assert.ok(!err);
-                                                    assert.ok(
-                                                      groupObj.lastModified <
-                                                        updatedGroup.lastModified
-                                                    );
-                                                    return callback();
-                                                  }
-                                                );
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
+                                        assert.ok(groupObj.lastModified < updatedGroup.lastModified);
+                                        return callback();
+                                      });
+                                    }
+                                  );
+                                });
                               }
                             );
-                          }
-                        );
+                          });
+                        });
                       }
                     );
                   });
-                }
-              );
-            });
-          }
-        );
+                });
+              }
+            );
+          });
+        });
       });
     });
 
@@ -1753,83 +1671,60 @@ describe('Groups', () => {
               assert.ok(!err);
 
               // Verify that each member has the correct role
-              RestAPI.Group.getGroupMembers(
-                johnRestContext,
-                newGroup.id,
-                null,
-                null,
-                (err, members) => {
+              RestAPI.Group.getGroupMembers(johnRestContext, newGroup.id, null, null, (err, members) => {
+                assert.ok(!err);
+                assert.strictEqual(members.results.length, 4);
+                // Morph results to hash for easy access.
+                const hash = _.groupBy(members.results, member => {
+                  return member.profile.id;
+                });
+                assert.strictEqual(hash[johnRestContext.user.id][0].role, 'manager');
+                assert.strictEqual(hash[jack.user.id][0].role, 'member');
+                assert.strictEqual(hash[jane.user.id][0].role, 'manager');
+                assert.strictEqual(hash[joe.user.id][0].role, 'member');
+
+                // Make sure that the group shows up in Joe's membership list
+                RestAPI.Group.getMembershipsLibrary(joe.restContext, joe.user.id, null, null, (err, memberships) => {
                   assert.ok(!err);
-                  assert.strictEqual(members.results.length, 4);
-                  // Morph results to hash for easy access.
-                  const hash = _.groupBy(members.results, member => {
-                    return member.profile.id;
-                  });
-                  assert.strictEqual(hash[johnRestContext.user.id][0].role, 'manager');
-                  assert.strictEqual(hash[jack.user.id][0].role, 'member');
-                  assert.strictEqual(hash[jane.user.id][0].role, 'manager');
-                  assert.strictEqual(hash[joe.user.id][0].role, 'member');
+                  assert.strictEqual(memberships.results.length, 1);
+                  assert.strictEqual(memberships.results[0].id, newGroup.id);
 
-                  // Make sure that the group shows up in Joe's membership list
-                  RestAPI.Group.getMembershipsLibrary(
-                    joe.restContext,
-                    joe.user.id,
-                    null,
-                    null,
-                    (err, memberships) => {
+                  // Delete Joe and make Jane a member
+                  membersToAdd = {};
+                  membersToAdd[jane.user.id] = 'member';
+                  membersToAdd[joe.user.id] = false;
+                  RestAPI.Group.setGroupMembers(johnRestContext, newGroup.id, membersToAdd, err => {
+                    assert.ok(!err);
+
+                    // Make sure that the membership changes have happened
+                    RestAPI.Group.getGroupMembers(johnRestContext, newGroup.id, null, null, (err, members) => {
                       assert.ok(!err);
-                      assert.strictEqual(memberships.results.length, 1);
-                      assert.strictEqual(memberships.results[0].id, newGroup.id);
+                      assert.strictEqual(members.results.length, 3);
+                      // Morph results to hash for easy access.
+                      const hash = _.groupBy(members.results, member => {
+                        return member.profile.id;
+                      });
+                      assert.strictEqual(hash[johnRestContext.user.id][0].role, 'manager');
+                      assert.strictEqual(hash[jack.user.id][0].role, 'member');
+                      assert.strictEqual(hash[jane.user.id][0].role, 'member');
+                      assert.strictEqual(hash[joe.user.id], undefined);
 
-                      // Delete Joe and make Jane a member
-                      membersToAdd = {};
-                      membersToAdd[jane.user.id] = 'member';
-                      membersToAdd[joe.user.id] = false;
-                      RestAPI.Group.setGroupMembers(
-                        johnRestContext,
-                        newGroup.id,
-                        membersToAdd,
-                        err => {
+                      // Make sure that the group does not show up in Joe's membership list
+                      RestAPI.Group.getMembershipsLibrary(
+                        joe.restContext,
+                        joe.user.id,
+                        null,
+                        null,
+                        (err, memberships) => {
                           assert.ok(!err);
-
-                          // Make sure that the membership changes have happened
-                          RestAPI.Group.getGroupMembers(
-                            johnRestContext,
-                            newGroup.id,
-                            null,
-                            null,
-                            (err, members) => {
-                              assert.ok(!err);
-                              assert.strictEqual(members.results.length, 3);
-                              // Morph results to hash for easy access.
-                              const hash = _.groupBy(members.results, member => {
-                                return member.profile.id;
-                              });
-                              assert.strictEqual(hash[johnRestContext.user.id][0].role, 'manager');
-                              assert.strictEqual(hash[jack.user.id][0].role, 'member');
-                              assert.strictEqual(hash[jane.user.id][0].role, 'member');
-                              assert.strictEqual(hash[joe.user.id], undefined);
-
-                              // Make sure that the group does not show up in Joe's membership list
-                              RestAPI.Group.getMembershipsLibrary(
-                                joe.restContext,
-                                joe.user.id,
-                                null,
-                                null,
-                                (err, memberships) => {
-                                  assert.ok(!err);
-                                  assert.strictEqual(memberships.results.length, 0);
-                                  return callback();
-                                }
-                              );
-                            }
-                          );
+                          assert.strictEqual(memberships.results.length, 0);
+                          return callback();
                         }
                       );
-                    }
-                  );
-                }
-              );
+                    });
+                  });
+                });
+              });
             });
           }
         );
@@ -1844,104 +1739,80 @@ describe('Groups', () => {
         assert.ok(!err);
 
         // Create a test group
-        RestAPI.Group.createGroup(
-          johnRestContext,
-          'Test Group',
-          'Group',
-          'public',
-          'yes',
-          [],
-          [],
-          (err, groupObj) => {
-            assert.ok(!err);
+        RestAPI.Group.createGroup(johnRestContext, 'Test Group', 'Group', 'public', 'yes', [], [], (err, groupObj) => {
+          assert.ok(!err);
 
-            // Try and add nicolaas to the group as an unprivileged user
-            let membersToAdd = {};
-            membersToAdd[nicolaas.user.id] = 'member';
-            RestAPI.Group.setGroupMembers(simon.restContext, groupObj.id, membersToAdd, err => {
-              assert.ok(err);
-              assert.strictEqual(err.code, 401);
-              // Verify that nicolaas has not been added to the group
-              RestAPI.Group.getMembershipsLibrary(
-                nicolaas.restContext,
-                nicolaas.user.id,
-                null,
-                null,
-                (err, memberships) => {
+          // Try and add nicolaas to the group as an unprivileged user
+          let membersToAdd = {};
+          membersToAdd[nicolaas.user.id] = 'member';
+          RestAPI.Group.setGroupMembers(simon.restContext, groupObj.id, membersToAdd, err => {
+            assert.ok(err);
+            assert.strictEqual(err.code, 401);
+            // Verify that nicolaas has not been added to the group
+            RestAPI.Group.getMembershipsLibrary(
+              nicolaas.restContext,
+              nicolaas.user.id,
+              null,
+              null,
+              (err, memberships) => {
+                assert.ok(!err);
+                assert.strictEqual(memberships.results.length, 0);
+
+                // Add simon as a member of the group
+                membersToAdd = {};
+                membersToAdd[simon.user.id] = 'member';
+                RestAPI.Group.setGroupMembers(johnRestContext, groupObj.id, membersToAdd, err => {
                   assert.ok(!err);
-                  assert.strictEqual(memberships.results.length, 0);
 
-                  // Add simon as a member of the group
+                  // Make sure that simon still can't add any members
                   membersToAdd = {};
-                  membersToAdd[simon.user.id] = 'member';
-                  RestAPI.Group.setGroupMembers(johnRestContext, groupObj.id, membersToAdd, err => {
-                    assert.ok(!err);
+                  membersToAdd[nicolaas.user.id] = 'member';
+                  RestAPI.Group.setGroupMembers(simon.restContext, groupObj.id, membersToAdd, err => {
+                    assert.ok(err);
+                    // Verify that nicolaas has not been added to the group
+                    RestAPI.Group.getMembershipsLibrary(
+                      nicolaas.restContext,
+                      nicolaas.user.id,
+                      null,
+                      null,
+                      (err, memberships) => {
+                        assert.ok(!err);
+                        assert.strictEqual(memberships.results.length, 0);
 
-                    // Make sure that simon still can't add any members
-                    membersToAdd = {};
-                    membersToAdd[nicolaas.user.id] = 'member';
-                    RestAPI.Group.setGroupMembers(
-                      simon.restContext,
-                      groupObj.id,
-                      membersToAdd,
-                      err => {
-                        assert.ok(err);
-                        // Verify that nicolaas has not been added to the group
-                        RestAPI.Group.getMembershipsLibrary(
-                          nicolaas.restContext,
-                          nicolaas.user.id,
-                          null,
-                          null,
-                          (err, memberships) => {
+                        // Add simon as a manager of the group
+                        membersToAdd = {};
+                        membersToAdd[simon.user.id] = 'manager';
+                        RestAPI.Group.setGroupMembers(johnRestContext, groupObj.id, membersToAdd, err => {
+                          assert.ok(!err);
+
+                          // Verify that simon can now add members to the group
+                          membersToAdd = {};
+                          membersToAdd[nicolaas.user.id] = 'member';
+                          RestAPI.Group.setGroupMembers(simon.restContext, groupObj.id, membersToAdd, err => {
                             assert.ok(!err);
-                            assert.strictEqual(memberships.results.length, 0);
-
-                            // Add simon as a manager of the group
-                            membersToAdd = {};
-                            membersToAdd[simon.user.id] = 'manager';
-                            RestAPI.Group.setGroupMembers(
-                              johnRestContext,
-                              groupObj.id,
-                              membersToAdd,
-                              err => {
+                            // Verify that nicolaas has been added to the group
+                            RestAPI.Group.getMembershipsLibrary(
+                              nicolaas.restContext,
+                              nicolaas.user.id,
+                              null,
+                              null,
+                              (err, memberships) => {
                                 assert.ok(!err);
-
-                                // Verify that simon can now add members to the group
-                                membersToAdd = {};
-                                membersToAdd[nicolaas.user.id] = 'member';
-                                RestAPI.Group.setGroupMembers(
-                                  simon.restContext,
-                                  groupObj.id,
-                                  membersToAdd,
-                                  err => {
-                                    assert.ok(!err);
-                                    // Verify that nicolaas has been added to the group
-                                    RestAPI.Group.getMembershipsLibrary(
-                                      nicolaas.restContext,
-                                      nicolaas.user.id,
-                                      null,
-                                      null,
-                                      (err, memberships) => {
-                                        assert.ok(!err);
-                                        assert.strictEqual(memberships.results.length, 1);
-                                        assert.strictEqual(memberships.results[0].id, groupObj.id);
-                                        return callback();
-                                      }
-                                    );
-                                  }
-                                );
+                                assert.strictEqual(memberships.results.length, 1);
+                                assert.strictEqual(memberships.results[0].id, groupObj.id);
+                                return callback();
                               }
                             );
-                          }
-                        );
+                          });
+                        });
                       }
                     );
                   });
-                }
-              );
-            });
-          }
-        );
+                });
+              }
+            );
+          });
+        });
       });
     });
 
@@ -1979,66 +1850,43 @@ describe('Groups', () => {
                 // Make the "Cambridge" group a manager of the Managed-by-cambridge group
                 let membersToAdd = {};
                 membersToAdd[cambridge.id] = 'manager';
-                RestAPI.Group.setGroupMembers(
-                  johnRestContext,
-                  managedByCambridge.id,
-                  membersToAdd,
-                  err => {
+                RestAPI.Group.setGroupMembers(johnRestContext, managedByCambridge.id, membersToAdd, err => {
+                  assert.ok(!err);
+
+                  // Make "simon" a member of the "Cambridge" group, then verify he can manage "Managed-by-cambridge"
+                  membersToAdd = {};
+                  membersToAdd[simon.user.id] = 'member';
+                  RestAPI.Group.setGroupMembers(johnRestContext, cambridge.id, membersToAdd, err => {
                     assert.ok(!err);
 
-                    // Make "simon" a member of the "Cambridge" group, then verify he can manage "Managed-by-cambridge"
-                    membersToAdd = {};
-                    membersToAdd[simon.user.id] = 'member';
-                    RestAPI.Group.setGroupMembers(
-                      johnRestContext,
-                      cambridge.id,
-                      membersToAdd,
-                      err => {
+                    // Check if "simon" can manage the "Managed-by-cambridge" group through the internal Authz API
+                    AuthzAPI.hasRole(simon.user.id, managedByCambridge.id, 'manager', (err, isAllowed) => {
+                      assert.ok(!err);
+                      assert.strictEqual(isAllowed, true);
+
+                      // Verify that "simon" can add someone to the "Managed-by-cambridge" group
+                      membersToAdd = {};
+                      membersToAdd[nicolaas.user.id] = 'member';
+                      RestAPI.Group.setGroupMembers(simon.restContext, managedByCambridge.id, membersToAdd, err => {
                         assert.ok(!err);
 
-                        // Check if "simon" can manage the "Managed-by-cambridge" group through the internal Authz API
-                        AuthzAPI.hasRole(
-                          simon.user.id,
-                          managedByCambridge.id,
-                          'manager',
-                          (err, isAllowed) => {
+                        // Verify that the "nicolaas" has been added to the group
+                        RestAPI.Group.getMembershipsLibrary(
+                          nicolaas.restContext,
+                          nicolaas.user.id,
+                          null,
+                          null,
+                          (err, memberships) => {
                             assert.ok(!err);
-                            assert.strictEqual(isAllowed, true);
-
-                            // Verify that "simon" can add someone to the "Managed-by-cambridge" group
-                            membersToAdd = {};
-                            membersToAdd[nicolaas.user.id] = 'member';
-                            RestAPI.Group.setGroupMembers(
-                              simon.restContext,
-                              managedByCambridge.id,
-                              membersToAdd,
-                              err => {
-                                assert.ok(!err);
-
-                                // Verify that the "nicolaas" has been added to the group
-                                RestAPI.Group.getMembershipsLibrary(
-                                  nicolaas.restContext,
-                                  nicolaas.user.id,
-                                  null,
-                                  null,
-                                  (err, memberships) => {
-                                    assert.ok(!err);
-                                    assert.strictEqual(memberships.results.length, 1);
-                                    assert.strictEqual(
-                                      memberships.results[0].id,
-                                      managedByCambridge.id
-                                    );
-                                    return callback();
-                                  }
-                                );
-                              }
-                            );
+                            assert.strictEqual(memberships.results.length, 1);
+                            assert.strictEqual(memberships.results[0].id, managedByCambridge.id);
+                            return callback();
                           }
                         );
-                      }
-                    );
-                  }
-                );
+                      });
+                    });
+                  });
+                });
               }
             );
           }
@@ -2074,18 +1922,12 @@ describe('Groups', () => {
               assert.strictEqual(err.code, 400);
 
               // Make sure that the request hasn't gone through
-              RestAPI.Group.getGroupMembers(
-                johnRestContext,
-                groupObj.id,
-                null,
-                null,
-                (err, members) => {
-                  assert.ok(!err);
-                  assert.strictEqual(members.results.length, 1);
-                  assert.strictEqual(members.results[0].profile.id, johnRestContext.user.id);
-                  return callback();
-                }
-              );
+              RestAPI.Group.getGroupMembers(johnRestContext, groupObj.id, null, null, (err, members) => {
+                assert.ok(!err);
+                assert.strictEqual(members.results.length, 1);
+                assert.strictEqual(members.results[0].profile.id, johnRestContext.user.id);
+                return callback();
+              });
             });
           }
         );
@@ -2126,10 +1968,7 @@ describe('Groups', () => {
       TestsUtil.generateTestUsers(camAdminRestContext, 4, (err, users) => {
         assert.ok(!err);
         const contexts = _.values(users);
-        const simon = contexts[0];
-        const branden = contexts[1];
-        const nico = contexts[2];
-        const bert = contexts[3];
+        const { 0: simon, 1: branden, 2: nico, 3: bert } = contexts;
 
         // Make Simon & Branden a manager and Bert & Nico members.
         RestAPI.Group.createGroup(
@@ -2196,31 +2035,19 @@ describe('Groups', () => {
               assert.ok(!err);
 
               // Ensure user A2 can see userA in the members list
-              RestAPI.Group.getGroupMembers(
-                userA2.restContext,
-                groupA.id,
-                null,
-                10,
-                (err, members) => {
-                  assert.ok(!err);
-                  assert.ok(members);
-                  assert.strictEqual(members.results.length, 1);
-                  assert.strictEqual(members.results[0].profile.id, userA1.user.id);
+              RestAPI.Group.getGroupMembers(userA2.restContext, groupA.id, null, 10, (err, members) => {
+                assert.ok(!err);
+                assert.ok(members);
+                assert.strictEqual(members.results.length, 1);
+                assert.strictEqual(members.results[0].profile.id, userA1.user.id);
 
-                  // Verify userB cannot see userA1 as a member of groupA
-                  RestAPI.Group.getGroupMembers(
-                    userB.restContext,
-                    groupA.id,
-                    null,
-                    10,
-                    (err, members) => {
-                      assert.ok(err);
-                      assert.strictEqual(err.code, 401);
-                      return callback();
-                    }
-                  );
-                }
-              );
+                // Verify userB cannot see userA1 as a member of groupA
+                RestAPI.Group.getGroupMembers(userB.restContext, groupA.id, null, 10, (err, members) => {
+                  assert.ok(err);
+                  assert.strictEqual(err.code, 401);
+                  return callback();
+                });
+              });
             }
           );
         });
@@ -2234,85 +2061,55 @@ describe('Groups', () => {
 
         // Create a "public" group in tenant A, with userA1 as a member
         const groupNameA = TestsUtil.generateTestUserId();
-        RestAPI.Group.createGroup(
-          userA1.restContext,
-          groupNameA,
-          groupNameA,
-          'public',
-          'no',
-          [],
-          [],
-          (err, groupA) => {
+        RestAPI.Group.createGroup(userA1.restContext, groupNameA, groupNameA, 'public', 'no', [], [], (err, groupA) => {
+          assert.ok(!err);
+
+          // Ensure user A2 can see userA in the members list
+          RestAPI.Group.getGroupMembers(userA2.restContext, groupA.id, null, 10, (err, members) => {
             assert.ok(!err);
+            assert.ok(members);
+            assert.strictEqual(members.results.length, 1);
+            assert.strictEqual(members.results[0].profile.id, userA1.user.id);
 
-            // Ensure user A2 can see userA in the members list
-            RestAPI.Group.getGroupMembers(
-              userA2.restContext,
-              groupA.id,
-              null,
-              10,
-              (err, members) => {
+            // Create tenant B
+            const tenantAliasB = TenantsTestUtil.generateTestTenantAlias();
+            const tenantHost = TenantsTestUtil.generateTestTenantHost();
+            TestsUtil.createTenantWithAdmin(tenantAliasB, tenantHost, (err, tenantB, adminRestCtxB) => {
+              assert.ok(!err);
+
+              // Create user in tenant B
+              TestsUtil.generateTestUsers(adminRestCtxB, 1, (err, users, userB) => {
                 assert.ok(!err);
-                assert.ok(members);
-                assert.strictEqual(members.results.length, 1);
-                assert.strictEqual(members.results[0].profile.id, userA1.user.id);
 
-                // Create tenant B
-                const tenantAliasB = TenantsTestUtil.generateTestTenantAlias();
-                const tenantHost = TenantsTestUtil.generateTestTenantHost();
-                TestsUtil.createTenantWithAdmin(
+                // Make tenant B private
+                ConfigTestUtil.updateConfigAndWait(
+                  globalAdminRestContext,
                   tenantAliasB,
-                  tenantHost,
-                  (err, tenantB, adminRestCtxB) => {
+                  { 'oae-tenants/tenantprivacy/tenantprivate': true },
+                  err => {
                     assert.ok(!err);
 
-                    // Create user in tenant B
-                    TestsUtil.generateTestUsers(adminRestCtxB, 1, (err, users, userB) => {
-                      assert.ok(!err);
+                    // Verify we can't add userB as a member of groupA.
+                    const newMemberB = {};
+                    newMemberB[userB.user.id] = 'member';
+                    RestAPI.Group.setGroupMembers(userA1.restContext, groupA.id, newMemberB, err => {
+                      assert.ok(err);
+                      assert.strictEqual(err.code, 401);
 
-                      // Make tenant B private
-                      ConfigTestUtil.updateConfigAndWait(
-                        globalAdminRestContext,
-                        tenantAliasB,
-                        { 'oae-tenants/tenantprivacy/tenantprivate': true },
-                        err => {
-                          assert.ok(!err);
-
-                          // Verify we can't add userB as a member of groupA.
-                          const newMemberB = {};
-                          newMemberB[userB.user.id] = 'member';
-                          RestAPI.Group.setGroupMembers(
-                            userA1.restContext,
-                            groupA.id,
-                            newMemberB,
-                            err => {
-                              assert.ok(err);
-                              assert.strictEqual(err.code, 401);
-
-                              // Verify userB is not added to the group
-                              RestAPI.Group.getGroupMembers(
-                                userB.restContext,
-                                groupA.id,
-                                null,
-                                10,
-                                (err, members) => {
-                                  assert.ok(!err);
-                                  assert.strictEqual(members.results.length, 1);
-                                  assert.strictEqual(members.results[0].profile.id, userA1.user.id);
-                                  return callback();
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
+                      // Verify userB is not added to the group
+                      RestAPI.Group.getGroupMembers(userB.restContext, groupA.id, null, 10, (err, members) => {
+                        assert.ok(!err);
+                        assert.strictEqual(members.results.length, 1);
+                        assert.strictEqual(members.results[0].profile.id, userA1.user.id);
+                        return callback();
+                      });
                     });
                   }
                 );
-              }
-            );
-          }
-        );
+              });
+            });
+          });
+        });
       });
     });
 
@@ -2363,29 +2160,18 @@ describe('Groups', () => {
                         // Verify we can't add userA as a member of groupA.
                         const newMemberA = {};
                         newMemberA[userA1.user.id] = 'member';
-                        RestAPI.Group.setGroupMembers(
-                          userB.restContext,
-                          groupB.id,
-                          newMemberA,
-                          err => {
-                            assert.ok(err);
-                            assert.strictEqual(err.code, 401);
+                        RestAPI.Group.setGroupMembers(userB.restContext, groupB.id, newMemberA, err => {
+                          assert.ok(err);
+                          assert.strictEqual(err.code, 401);
 
-                            // Verify userB cannot see userA as a member of groupA
-                            RestAPI.Group.getGroupMembers(
-                              userB.restContext,
-                              groupB.id,
-                              null,
-                              10,
-                              (err, members) => {
-                                assert.ok(!err);
-                                assert.strictEqual(members.results.length, 1);
-                                assert.strictEqual(members.results[0].profile.id, userB.user.id);
-                                return callback();
-                              }
-                            );
-                          }
-                        );
+                          // Verify userB cannot see userA as a member of groupA
+                          RestAPI.Group.getGroupMembers(userB.restContext, groupB.id, null, 10, (err, members) => {
+                            assert.ok(!err);
+                            assert.strictEqual(members.results.length, 1);
+                            assert.strictEqual(members.results[0].profile.id, userB.user.id);
+                            return callback();
+                          });
+                        });
                       }
                     );
                   }
@@ -2405,98 +2191,56 @@ describe('Groups', () => {
         assert.ok(!err);
 
         // Create a group that is joinable
-        RestAPI.Group.createGroup(
-          jack.restContext,
-          'Test Group',
-          'Group',
-          'public',
-          'yes',
-          [],
-          [],
-          (err, group) => {
-            assert.ok(!err);
+        RestAPI.Group.createGroup(jack.restContext, 'Test Group', 'Group', 'public', 'yes', [], [], (err, group) => {
+          assert.ok(!err);
 
-            // Verify cannot leave group of which I am not a member
-            PrincipalsTestUtil.assertLeaveGroupFails(branden.restContext, group.id, 400, () => {
-              // Now join the group and ensure it was successful
-              PrincipalsTestUtil.assertJoinGroupSucceeds(
-                jack.restContext,
-                branden.restContext,
-                group.id,
-                () => {
-                  // Get the group state immediately after join so we can ensure the stability of its lastModified time
-                  RestAPI.Group.getGroup(jack.restContext, group.id, (err, groupAfterJoin) => {
-                    // Verify not a valid id
-                    PrincipalsTestUtil.assertLeaveGroupFails(
-                      branden.restContext,
-                      'not-a-valid-id',
-                      400,
-                      () => {
-                        // Verify a non-group id
-                        PrincipalsTestUtil.assertLeaveGroupFails(
+          // Verify cannot leave group of which I am not a member
+          PrincipalsTestUtil.assertLeaveGroupFails(branden.restContext, group.id, 400, () => {
+            // Now join the group and ensure it was successful
+            PrincipalsTestUtil.assertJoinGroupSucceeds(jack.restContext, branden.restContext, group.id, () => {
+              // Get the group state immediately after join so we can ensure the stability of its lastModified time
+              RestAPI.Group.getGroup(jack.restContext, group.id, (err, groupAfterJoin) => {
+                // Verify not a valid id
+                PrincipalsTestUtil.assertLeaveGroupFails(branden.restContext, 'not-a-valid-id', 400, () => {
+                  // Verify a non-group id
+                  PrincipalsTestUtil.assertLeaveGroupFails(branden.restContext, branden.user.id, 400, () => {
+                    // Verify anonymous user cannot leave
+                    PrincipalsTestUtil.assertLeaveGroupFails(anonymousRestContext, group.id, 401, () => {
+                      // Verify branden is still a member
+                      RestAPI.Group.getGroupMembers(branden.restContext, group.id, null, 10000, (err, members) => {
+                        assert.ok(!err);
+                        assert.strictEqual(members.results.length, 2);
+
+                        // Verify successful leave
+                        PrincipalsTestUtil.assertLeaveGroupSucceeds(
+                          jack.restContext,
                           branden.restContext,
-                          branden.user.id,
-                          400,
+                          group.id,
                           () => {
-                            // Verify anonymous user cannot leave
-                            PrincipalsTestUtil.assertLeaveGroupFails(
-                              anonymousRestContext,
-                              group.id,
-                              401,
-                              () => {
-                                // Verify branden is still a member
-                                RestAPI.Group.getGroupMembers(
-                                  branden.restContext,
-                                  group.id,
-                                  null,
-                                  10000,
-                                  (err, members) => {
-                                    assert.ok(!err);
-                                    assert.strictEqual(members.results.length, 2);
+                            RestAPI.Group.getGroup(jack.restContext, group.id, (err, groupAfterLeave) => {
+                              assert.ok(!err);
 
-                                    // Verify successful leave
-                                    PrincipalsTestUtil.assertLeaveGroupSucceeds(
-                                      jack.restContext,
-                                      branden.restContext,
-                                      group.id,
-                                      () => {
-                                        RestAPI.Group.getGroup(
-                                          jack.restContext,
-                                          group.id,
-                                          (err, groupAfterLeave) => {
-                                            assert.ok(!err);
+                              // Make sure the lastModified has not changed as a result of a leave
+                              assert.strictEqual(groupAfterJoin.lastModified, groupAfterLeave.lastModified);
 
-                                            // Make sure the lastModified has not changed as a result of a leave
-                                            assert.strictEqual(
-                                              groupAfterJoin.lastModified,
-                                              groupAfterLeave.lastModified
-                                            );
-
-                                            // Verify that the last manager can't leave
-                                            return PrincipalsTestUtil.assertLeaveGroupFails(
-                                              jack.restContext,
-                                              group.id,
-                                              400,
-                                              callback
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
+                              // Verify that the last manager can't leave
+                              return PrincipalsTestUtil.assertLeaveGroupFails(
+                                jack.restContext,
+                                group.id,
+                                400,
+                                callback
+                              );
+                            });
                           }
                         );
-                      }
-                    );
+                      });
+                    });
                   });
-                }
-              );
+                });
+              });
             });
-          }
-        );
+          });
+        });
       });
     });
 
@@ -2525,93 +2269,63 @@ describe('Groups', () => {
               assert.strictEqual(err.code, 400);
 
               // Validate invalid group id
-              PrincipalsTestUtil.assertJoinGroupFails(
-                branden.restContext,
-                'not-a-valid-id',
-                400,
-                () => {
-                  // Validate non-group group id
-                  PrincipalsTestUtil.assertJoinGroupFails(
-                    branden.restContext,
-                    branden.user.id,
-                    400,
-                    () => {
-                      // Validate non-joinable group
-                      PrincipalsTestUtil.assertJoinGroupFails(
-                        branden.restContext,
-                        group.id,
-                        401,
-                        () => {
-                          // Make group joinable
-                          RestAPI.Group.updateGroup(
-                            jack.restContext,
-                            group.id,
-                            { joinable: 'yes' },
-                            err => {
-                              assert.ok(!err);
+              PrincipalsTestUtil.assertJoinGroupFails(branden.restContext, 'not-a-valid-id', 400, () => {
+                // Validate non-group group id
+                PrincipalsTestUtil.assertJoinGroupFails(branden.restContext, branden.user.id, 400, () => {
+                  // Validate non-joinable group
+                  PrincipalsTestUtil.assertJoinGroupFails(branden.restContext, group.id, 401, () => {
+                    // Make group joinable
+                    RestAPI.Group.updateGroup(jack.restContext, group.id, { joinable: 'yes' }, err => {
+                      assert.ok(!err);
 
-                              // Join as anonymous and verify it still fails
-                              PrincipalsTestUtil.assertJoinGroupFails(
-                                anonymousRestContext,
-                                group.id,
-                                401,
-                                () => {
-                                  // Verify we still aren't a member
+                      // Join as anonymous and verify it still fails
+                      PrincipalsTestUtil.assertJoinGroupFails(anonymousRestContext, group.id, 401, () => {
+                        // Verify we still aren't a member
+                        PrincipalsTestUtil.assertGetAllMembersLibrarySucceeds(
+                          jack.restContext,
+                          group.id,
+                          null,
+                          members => {
+                            assert.strictEqual(members.length, 1);
+
+                            // Join as branden, should finally work
+                            PrincipalsTestUtil.assertJoinGroupSucceeds(
+                              jack.restContext,
+                              branden.restContext,
+                              group.id,
+                              () => {
+                                // Verify jack cannot join, he is already manager
+                                PrincipalsTestUtil.assertJoinGroupFails(jack.restContext, group.id, 400, () => {
+                                  // Verify he was not demoted to member
                                   PrincipalsTestUtil.assertGetAllMembersLibrarySucceeds(
                                     jack.restContext,
                                     group.id,
                                     null,
                                     members => {
-                                      assert.strictEqual(members.length, 1);
+                                      assert.strictEqual(members.length, 2);
 
-                                      // Join as branden, should finally work
-                                      PrincipalsTestUtil.assertJoinGroupSucceeds(
-                                        jack.restContext,
-                                        branden.restContext,
-                                        group.id,
-                                        () => {
-                                          // Verify jack cannot join, he is already manager
-                                          PrincipalsTestUtil.assertJoinGroupFails(
-                                            jack.restContext,
-                                            group.id,
-                                            400,
-                                            () => {
-                                              // Verify he was not demoted to member
-                                              PrincipalsTestUtil.assertGetAllMembersLibrarySucceeds(
-                                                jack.restContext,
-                                                group.id,
-                                                null,
-                                                members => {
-                                                  assert.strictEqual(members.length, 2);
-
-                                                  let hadJack = false;
-                                                  _.each(members, result => {
-                                                    if (result.profile.id === jack.user.id) {
-                                                      hadJack = true;
-                                                      assert.strictEqual(result.role, 'manager');
-                                                    }
-                                                  });
-
-                                                  assert.ok(hadJack);
-                                                  return callback();
-                                                }
-                                              );
-                                            }
-                                          );
+                                      let hadJack = false;
+                                      _.each(members, result => {
+                                        if (result.profile.id === jack.user.id) {
+                                          hadJack = true;
+                                          assert.strictEqual(result.role, 'manager');
                                         }
-                                      );
+                                      });
+
+                                      assert.ok(hadJack);
+                                      return callback();
                                     }
                                   );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
+                                });
+                              }
+                            );
+                          }
+                        );
+                      });
+                    });
+                  });
+                });
+              });
             });
           }
         );
@@ -2671,7 +2385,7 @@ describe('Groups', () => {
     it('verify paging', callback => {
       TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
         assert.ok(!err);
-        const nicolaas = _.values(users)[0];
+        const { 0: nicolaas } = _.values(users);
 
         // Add Nicolaas to 5 groups
         TestsUtil.generateTestGroups(nicolaas.restContext, 5, (...args) => {
@@ -2684,65 +2398,59 @@ describe('Groups', () => {
           // only returns group objects
           FoldersTestUtil.generateTestFolders(nicolaas.restContext, 5, () => {
             // Get the first 2
-            RestAPI.Group.getMembershipsLibrary(
-              nicolaas.restContext,
-              nicolaas.user.id,
-              null,
-              2,
-              (err, memberships) => {
-                assert.ok(!err);
-                assert.strictEqual(memberships.results.length, 2);
+            RestAPI.Group.getMembershipsLibrary(nicolaas.restContext, nicolaas.user.id, null, 2, (err, memberships) => {
+              assert.ok(!err);
+              assert.strictEqual(memberships.results.length, 2);
 
-                // Assert we only retrieved groups
-                assert.ok(_.contains(groupIds, memberships.results[0].id));
-                assert.ok(_.contains(groupIds, memberships.results[1].id));
+              // Assert we only retrieved groups
+              assert.ok(_.contains(groupIds, memberships.results[0].id));
+              assert.ok(_.contains(groupIds, memberships.results[1].id));
 
-                // Remember these group IDs
-                let seenGroupIds = _.pluck(memberships.results, 'id');
+              // Remember these group IDs
+              let seenGroupIds = _.pluck(memberships.results, 'id');
 
-                // Get the next 2
-                RestAPI.Group.getMembershipsLibrary(
-                  nicolaas.restContext,
-                  nicolaas.user.id,
-                  memberships.nextToken,
-                  2,
-                  (err, memberships) => {
-                    assert.ok(!err);
-                    assert.strictEqual(memberships.results.length, 2);
+              // Get the next 2
+              RestAPI.Group.getMembershipsLibrary(
+                nicolaas.restContext,
+                nicolaas.user.id,
+                memberships.nextToken,
+                2,
+                (err, memberships) => {
+                  assert.ok(!err);
+                  assert.strictEqual(memberships.results.length, 2);
 
-                    // Assert we only retrieved groups
-                    assert.ok(_.contains(groupIds, memberships.results[0].id));
-                    assert.ok(_.contains(groupIds, memberships.results[1].id));
+                  // Assert we only retrieved groups
+                  assert.ok(_.contains(groupIds, memberships.results[0].id));
+                  assert.ok(_.contains(groupIds, memberships.results[1].id));
 
-                    // Assert that we've not seen these groups before
-                    assert.ok(!_.contains(seenGroupIds, memberships.results[0].id));
-                    assert.ok(!_.contains(seenGroupIds, memberships.results[1].id));
+                  // Assert that we've not seen these groups before
+                  assert.ok(!_.contains(seenGroupIds, memberships.results[0].id));
+                  assert.ok(!_.contains(seenGroupIds, memberships.results[1].id));
 
-                    // Add the retrieved groups to the set of seen groups
-                    seenGroupIds = seenGroupIds.concat(_.pluck(memberships.results, 'id'));
+                  // Add the retrieved groups to the set of seen groups
+                  seenGroupIds = seenGroupIds.concat(_.pluck(memberships.results, 'id'));
 
-                    // Get the final group
-                    RestAPI.Group.getMembershipsLibrary(
-                      nicolaas.restContext,
-                      nicolaas.user.id,
-                      memberships.nextToken,
-                      2,
-                      (err, memberships) => {
-                        assert.ok(!err);
-                        assert.strictEqual(memberships.results.length, 1);
+                  // Get the final group
+                  RestAPI.Group.getMembershipsLibrary(
+                    nicolaas.restContext,
+                    nicolaas.user.id,
+                    memberships.nextToken,
+                    2,
+                    (err, memberships) => {
+                      assert.ok(!err);
+                      assert.strictEqual(memberships.results.length, 1);
 
-                        // Assert we only retrieved groups
-                        assert.ok(_.contains(groupIds, memberships.results[0].id));
+                      // Assert we only retrieved groups
+                      assert.ok(_.contains(groupIds, memberships.results[0].id));
 
-                        // Assert that we've not seen this group before
-                        assert.ok(!_.contains(seenGroupIds, memberships.results[0].id));
-                        return callback();
-                      }
-                    );
-                  }
-                );
-              }
-            );
+                      // Assert that we've not seen this group before
+                      assert.ok(!_.contains(seenGroupIds, memberships.results[0].id));
+                      return callback();
+                    }
+                  );
+                }
+              );
+            });
           });
         });
       });
@@ -2752,26 +2460,20 @@ describe('Groups', () => {
      * Test that verifies that getting the list of members of invalid principalIds doesn't work
      */
     it('verify invalid principal in getMembershipsLibrary', callback => {
-      RestAPI.Group.getMembershipsLibrary(
-        camAdminRestContext,
-        'aninvalidid',
-        null,
-        null,
-        (err, memberships) => {
+      RestAPI.Group.getMembershipsLibrary(camAdminRestContext, 'aninvalidid', null, null, (err, memberships) => {
+        assert.ok(err);
+        assert.strictEqual(err.code, 400);
+        assert.ok(!memberships);
+
+        // Test empty user against the API as we cannot represent this throught he REST API
+        const adminCtx = TestsUtil.createGlobalAdminContext();
+        PrincipalsAPI.getMembershipsLibrary(adminCtx, null, null, null, (err, memberships) => {
           assert.ok(err);
           assert.strictEqual(err.code, 400);
           assert.ok(!memberships);
-
-          // Test empty user against the API as we cannot represent this throught he REST API
-          const adminCtx = TestsUtil.createGlobalAdminContext();
-          PrincipalsAPI.getMembershipsLibrary(adminCtx, null, null, null, (err, memberships) => {
-            assert.ok(err);
-            assert.strictEqual(err.code, 400);
-            assert.ok(!memberships);
-            return callback();
-          });
-        }
-      );
+          return callback();
+        });
+      });
     });
 
     /**
@@ -2819,110 +2521,86 @@ describe('Groups', () => {
               [simonParentParent.group.id, nicoParentParent.group.id],
               'member',
               () => {
-                setGroupMembers(
-                  simonParentParent.group.id,
-                  [simonParent.group.id],
-                  'member',
-                  () => {
-                    setGroupMembers(
-                      nicoParentParent.group.id,
-                      [nicoParent.group.id],
-                      'member',
-                      () => {
-                        setGroupMembers(simonParent.group.id, [simon.user.id], 'member', () => {
-                          setGroupMembers(nicoParent.group.id, [nico.user.id], 'member', () => {
-                            // Simon should see 3 memberships in his library
+                setGroupMembers(simonParentParent.group.id, [simonParent.group.id], 'member', () => {
+                  setGroupMembers(nicoParentParent.group.id, [nicoParent.group.id], 'member', () => {
+                    setGroupMembers(simonParent.group.id, [simon.user.id], 'member', () => {
+                      setGroupMembers(nicoParent.group.id, [nico.user.id], 'member', () => {
+                        // Simon should see 3 memberships in his library
+                        RestAPI.Group.getMembershipsLibrary(
+                          simon.restContext,
+                          simon.user.id,
+                          null,
+                          null,
+                          (err, memberships) => {
+                            assert.ok(!err);
+                            assert.strictEqual(memberships.results.length, 3);
                             RestAPI.Group.getMembershipsLibrary(
-                              simon.restContext,
-                              simon.user.id,
+                              nico.restContext,
+                              nico.user.id,
                               null,
                               null,
                               (err, memberships) => {
                                 assert.ok(!err);
                                 assert.strictEqual(memberships.results.length, 3);
-                                RestAPI.Group.getMembershipsLibrary(
-                                  nico.restContext,
-                                  nico.user.id,
-                                  null,
-                                  null,
-                                  (err, memberships) => {
-                                    assert.ok(!err);
-                                    assert.strictEqual(memberships.results.length, 3);
 
-                                    // When we add a third user to the top group it should be bumped to the top of the membership libraries
-                                    setGroupMembers(
-                                      topGroup.group.id,
-                                      [stuart.user.id],
-                                      'member',
-                                      () => {
-                                        RestAPI.Group.getMembershipsLibrary(
-                                          simon.restContext,
-                                          simon.user.id,
-                                          null,
-                                          null,
-                                          (err, memberships) => {
-                                            assert.ok(!err);
-                                            assert.strictEqual(memberships.results.length, 3);
-                                            assert.strictEqual(
-                                              memberships.results[0].id,
-                                              topGroup.group.id
-                                            );
-                                            RestAPI.Group.getMembershipsLibrary(
-                                              nico.restContext,
-                                              nico.user.id,
-                                              null,
-                                              null,
-                                              (err, memberships) => {
-                                                assert.ok(!err);
-                                                assert.strictEqual(memberships.results.length, 3);
-                                                assert.strictEqual(
-                                                  memberships.results[0].id,
-                                                  topGroup.group.id
-                                                );
+                                // When we add a third user to the top group it should be bumped to the top of the membership libraries
+                                setGroupMembers(topGroup.group.id, [stuart.user.id], 'member', () => {
+                                  RestAPI.Group.getMembershipsLibrary(
+                                    simon.restContext,
+                                    simon.user.id,
+                                    null,
+                                    null,
+                                    (err, memberships) => {
+                                      assert.ok(!err);
+                                      assert.strictEqual(memberships.results.length, 3);
+                                      assert.strictEqual(memberships.results[0].id, topGroup.group.id);
+                                      RestAPI.Group.getMembershipsLibrary(
+                                        nico.restContext,
+                                        nico.user.id,
+                                        null,
+                                        null,
+                                        (err, memberships) => {
+                                          assert.ok(!err);
+                                          assert.strictEqual(memberships.results.length, 3);
+                                          assert.strictEqual(memberships.results[0].id, topGroup.group.id);
 
-                                                // When we make the `nicoParent` group a manager of `nicoParentParent` the
-                                                // `nicoParentParent` group should move to the top of nico's membership library
-                                                setGroupMembers(
-                                                  nicoParentParent.group.id,
-                                                  [nicoParent.group.id],
-                                                  'manager',
-                                                  () => {
-                                                    RestAPI.Group.getMembershipsLibrary(
-                                                      nico.restContext,
-                                                      nico.user.id,
-                                                      null,
-                                                      null,
-                                                      (err, memberships) => {
-                                                        assert.ok(!err);
-                                                        assert.strictEqual(
-                                                          memberships.results.length,
-                                                          3
-                                                        );
-                                                        assert.strictEqual(
-                                                          memberships.results[0].id,
-                                                          nicoParentParent.group.id
-                                                        );
-                                                        return callback();
-                                                      }
-                                                    );
-                                                  }
-                                                );
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
+                                          // When we make the `nicoParent` group a manager of `nicoParentParent` the
+                                          // `nicoParentParent` group should move to the top of nico's membership library
+                                          setGroupMembers(
+                                            nicoParentParent.group.id,
+                                            [nicoParent.group.id],
+                                            'manager',
+                                            () => {
+                                              RestAPI.Group.getMembershipsLibrary(
+                                                nico.restContext,
+                                                nico.user.id,
+                                                null,
+                                                null,
+                                                (err, memberships) => {
+                                                  assert.ok(!err);
+                                                  assert.strictEqual(memberships.results.length, 3);
+                                                  assert.strictEqual(
+                                                    memberships.results[0].id,
+                                                    nicoParentParent.group.id
+                                                  );
+                                                  return callback();
+                                                }
+                                              );
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                });
                               }
                             );
-                          });
-                        });
-                      }
-                    );
-                  }
-                );
+                          }
+                        );
+                      });
+                    });
+                  });
+                });
               }
             );
           }
@@ -2944,22 +2622,13 @@ describe('Groups', () => {
       const createPrincipal = function(type, identifier, metadata) {
         const principalId = TestsUtil.generateTestUserId(identifier);
         if (type === 'group') {
-          RestAPI.Group.createGroup(
-            johnRestContext,
-            metadata,
-            metadata,
-            'public',
-            'yes',
-            [],
-            [],
-            (err, groupObj) => {
-              assert.ok(!err);
-              createdPrincipals[identifier] = groupObj;
-              if (_.keys(createdPrincipals).length === 12) {
-                return callback(createdPrincipals);
-              }
+          RestAPI.Group.createGroup(johnRestContext, metadata, metadata, 'public', 'yes', [], [], (err, groupObj) => {
+            assert.ok(!err);
+            createdPrincipals[identifier] = groupObj;
+            if (_.keys(createdPrincipals).length === 12) {
+              return callback(createdPrincipals);
             }
-          );
+          });
         } else {
           TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, user) => {
             assert.ok(!err);
@@ -3027,137 +2696,127 @@ describe('Groups', () => {
                 // Make Branden a member of the canadian group
                 let membersToAdd = {};
                 membersToAdd[createdPrincipals.branden.id] = 'member';
-                RestAPI.Group.setGroupMembers(
-                  johnRestContext,
-                  createdPrincipals.canadian.id,
-                  membersToAdd,
-                  err => {
-                    assert(!err);
+                RestAPI.Group.setGroupMembers(johnRestContext, createdPrincipals.canadian.id, membersToAdd, err => {
+                  assert(!err);
 
-                    // Make Simon a member of the not-canadian group
-                    membersToAdd = {};
-                    membersToAdd[createdPrincipals.simon.id] = 'member';
-                    RestAPI.Group.setGroupMembers(
-                      johnRestContext,
-                      createdPrincipals['not-canadian'].id,
-                      membersToAdd,
-                      err => {
-                        assert(!err);
+                  // Make Simon a member of the not-canadian group
+                  membersToAdd = {};
+                  membersToAdd[createdPrincipals.simon.id] = 'member';
+                  RestAPI.Group.setGroupMembers(
+                    johnRestContext,
+                    createdPrincipals['not-canadian'].id,
+                    membersToAdd,
+                    err => {
+                      assert(!err);
 
-                        // Make West Flemish and East Flemish members of the Belgian Group
-                        membersToAdd = {};
-                        membersToAdd[createdPrincipals['west-flemish'].id] = 'member';
-                        membersToAdd[createdPrincipals['east-flemish'].id] = 'member';
-                        RestAPI.Group.setGroupMembers(
-                          johnRestContext,
-                          createdPrincipals.belgian.id,
-                          membersToAdd,
-                          err => {
-                            assert(!err);
+                      // Make West Flemish and East Flemish members of the Belgian Group
+                      membersToAdd = {};
+                      membersToAdd[createdPrincipals['west-flemish'].id] = 'member';
+                      membersToAdd[createdPrincipals['east-flemish'].id] = 'member';
+                      RestAPI.Group.setGroupMembers(
+                        johnRestContext,
+                        createdPrincipals.belgian.id,
+                        membersToAdd,
+                        err => {
+                          assert(!err);
 
-                            // Make Bert a member of the west flemish group
-                            membersToAdd = {};
-                            membersToAdd[createdPrincipals.bert.id] = 'member';
-                            RestAPI.Group.setGroupMembers(
-                              johnRestContext,
-                              createdPrincipals['west-flemish'].id,
-                              membersToAdd,
-                              err => {
-                                assert(!err);
+                          // Make Bert a member of the west flemish group
+                          membersToAdd = {};
+                          membersToAdd[createdPrincipals.bert.id] = 'member';
+                          RestAPI.Group.setGroupMembers(
+                            johnRestContext,
+                            createdPrincipals['west-flemish'].id,
+                            membersToAdd,
+                            err => {
+                              assert(!err);
 
-                                // Make Nicolaas a member of the east flemish group
-                                membersToAdd = {};
-                                membersToAdd[createdPrincipals.nicolaas.id] = 'member';
-                                RestAPI.Group.setGroupMembers(
-                                  johnRestContext,
-                                  createdPrincipals['east-flemish'].id,
-                                  membersToAdd,
-                                  err => {
-                                    assert(!err);
+                              // Make Nicolaas a member of the east flemish group
+                              membersToAdd = {};
+                              membersToAdd[createdPrincipals.nicolaas.id] = 'member';
+                              RestAPI.Group.setGroupMembers(
+                                johnRestContext,
+                                createdPrincipals['east-flemish'].id,
+                                membersToAdd,
+                                err => {
+                                  assert(!err);
 
-                                    // Make Back end team and UI dev team a member of the OAE Team group
-                                    membersToAdd = {};
-                                    membersToAdd[createdPrincipals['backend-team'].id] = 'member';
-                                    membersToAdd[createdPrincipals['ui-team'].id] = 'member';
-                                    RestAPI.Group.setGroupMembers(
-                                      johnRestContext,
-                                      createdPrincipals['oae-team'].id,
-                                      membersToAdd,
-                                      err => {
-                                        assert(!err);
+                                  // Make Back end team and UI dev team a member of the OAE Team group
+                                  membersToAdd = {};
+                                  membersToAdd[createdPrincipals['backend-team'].id] = 'member';
+                                  membersToAdd[createdPrincipals['ui-team'].id] = 'member';
+                                  RestAPI.Group.setGroupMembers(
+                                    johnRestContext,
+                                    createdPrincipals['oae-team'].id,
+                                    membersToAdd,
+                                    err => {
+                                      assert(!err);
 
-                                        // Make the Candadian and Not canadian group a member of the Back end Team group
-                                        membersToAdd = {};
-                                        membersToAdd[createdPrincipals.canadian.id] = 'member';
-                                        membersToAdd[createdPrincipals['not-canadian'].id] =
-                                          'member';
-                                        RestAPI.Group.setGroupMembers(
-                                          johnRestContext,
-                                          createdPrincipals['backend-team'].id,
-                                          membersToAdd,
-                                          err => {
-                                            assert(!err);
+                                      // Make the Candadian and Not canadian group a member of the Back end Team group
+                                      membersToAdd = {};
+                                      membersToAdd[createdPrincipals.canadian.id] = 'member';
+                                      membersToAdd[createdPrincipals['not-canadian'].id] = 'member';
+                                      RestAPI.Group.setGroupMembers(
+                                        johnRestContext,
+                                        createdPrincipals['backend-team'].id,
+                                        membersToAdd,
+                                        err => {
+                                          assert(!err);
 
-                                            // Make the Belgian Team a member of the UI team
-                                            membersToAdd = {};
-                                            membersToAdd[createdPrincipals.belgian.id] = 'member';
-                                            RestAPI.Group.setGroupMembers(
-                                              johnRestContext,
-                                              createdPrincipals['ui-team'].id,
-                                              membersToAdd,
-                                              err => {
-                                                assert(!err);
+                                          // Make the Belgian Team a member of the UI team
+                                          membersToAdd = {};
+                                          membersToAdd[createdPrincipals.belgian.id] = 'member';
+                                          RestAPI.Group.setGroupMembers(
+                                            johnRestContext,
+                                            createdPrincipals['ui-team'].id,
+                                            membersToAdd,
+                                            err => {
+                                              assert(!err);
 
-                                                // Assert that all the group updates didn't make any of the libraries stale
-                                                LibraryTestUtil.assertNotStale(
-                                                  PrincipalsConstants.library
-                                                    .MEMBERSHIPS_INDEX_NAME,
-                                                  createdPrincipals.nicolaas.id,
-                                                  'private',
-                                                  () => {
-                                                    LibraryTestUtil.assertNotStale(
-                                                      PrincipalsConstants.library
-                                                        .MEMBERSHIPS_INDEX_NAME,
-                                                      createdPrincipals.bert.id,
-                                                      'private',
-                                                      () => {
-                                                        LibraryTestUtil.assertNotStale(
-                                                          PrincipalsConstants.library
-                                                            .MEMBERSHIPS_INDEX_NAME,
-                                                          createdPrincipals.simon.id,
-                                                          'private',
-                                                          () => {
-                                                            LibraryTestUtil.assertNotStale(
-                                                              PrincipalsConstants.library
-                                                                .MEMBERSHIPS_INDEX_NAME,
-                                                              createdPrincipals.branden.id,
-                                                              'private',
-                                                              () => {
-                                                                return callback(createdPrincipals);
-                                                              }
-                                                            );
-                                                          }
-                                                        );
-                                                      }
-                                                    );
-                                                  }
-                                                );
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
+                                              // Assert that all the group updates didn't make any of the libraries stale
+                                              LibraryTestUtil.assertNotStale(
+                                                PrincipalsConstants.library.MEMBERSHIPS_INDEX_NAME,
+                                                createdPrincipals.nicolaas.id,
+                                                'private',
+                                                () => {
+                                                  LibraryTestUtil.assertNotStale(
+                                                    PrincipalsConstants.library.MEMBERSHIPS_INDEX_NAME,
+                                                    createdPrincipals.bert.id,
+                                                    'private',
+                                                    () => {
+                                                      LibraryTestUtil.assertNotStale(
+                                                        PrincipalsConstants.library.MEMBERSHIPS_INDEX_NAME,
+                                                        createdPrincipals.simon.id,
+                                                        'private',
+                                                        () => {
+                                                          LibraryTestUtil.assertNotStale(
+                                                            PrincipalsConstants.library.MEMBERSHIPS_INDEX_NAME,
+                                                            createdPrincipals.branden.id,
+                                                            'private',
+                                                            () => {
+                                                              return callback(createdPrincipals);
+                                                            }
+                                                          );
+                                                        }
+                                                      );
+                                                    }
+                                                  );
+                                                }
+                                              );
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                });
               });
             });
           });
@@ -3176,12 +2835,7 @@ describe('Groups', () => {
      *                                                  should correspond with a created prinicpal in createdPrincipals
      *  @param  {Function}         callback             Standard callback function
      */
-    const assertGroupMembers = function(
-      createdPrincipals,
-      groupIdentifier,
-      expectedMembers,
-      callback
-    ) {
+    const assertGroupMembers = function(createdPrincipals, groupIdentifier, expectedMembers, callback) {
       RestAPI.Group.getGroupMembers(
         johnRestContext,
         createdPrincipals[groupIdentifier].id,
@@ -3217,12 +2871,7 @@ describe('Groups', () => {
      *                                                  should correspond with a created prinicpal in createdPrincipals
      *  @param  {Function}         callback             Standard callback function
      */
-    const assertGetMembershipsLibrary = function(
-      createdPrincipals,
-      userIdentifier,
-      expectedGroups,
-      callback
-    ) {
+    const assertGetMembershipsLibrary = function(createdPrincipals, userIdentifier, expectedGroups, callback) {
       RestAPI.Group.getMembershipsLibrary(
         createdPrincipals[userIdentifier],
         createdPrincipals[userIdentifier].id,
@@ -3253,58 +2902,48 @@ describe('Groups', () => {
       createOAEStructure(createdPrincipals => {
         // Check that all of the groups return the correct group members. This should only contain direct members
         assertGroupMembers(createdPrincipals, 'oae-team', ['backend-team', 'ui-team'], () => {
-          assertGroupMembers(
-            createdPrincipals,
-            'backend-team',
-            ['canadian', 'not-canadian'],
-            () => {
-              assertGroupMembers(createdPrincipals, 'canadian', ['branden'], () => {
-                assertGroupMembers(createdPrincipals, 'not-canadian', ['simon'], () => {
-                  assertGroupMembers(
-                    createdPrincipals,
-                    'belgian',
-                    ['east-flemish', 'west-flemish'],
-                    () => {
-                      assertGroupMembers(createdPrincipals, 'east-flemish', ['nicolaas'], () => {
-                        assertGroupMembers(createdPrincipals, 'west-flemish', ['bert'], () => {
-                          // Check that all groups are listed in each of the user's memberships list
+          assertGroupMembers(createdPrincipals, 'backend-team', ['canadian', 'not-canadian'], () => {
+            assertGroupMembers(createdPrincipals, 'canadian', ['branden'], () => {
+              assertGroupMembers(createdPrincipals, 'not-canadian', ['simon'], () => {
+                assertGroupMembers(createdPrincipals, 'belgian', ['east-flemish', 'west-flemish'], () => {
+                  assertGroupMembers(createdPrincipals, 'east-flemish', ['nicolaas'], () => {
+                    assertGroupMembers(createdPrincipals, 'west-flemish', ['bert'], () => {
+                      // Check that all groups are listed in each of the user's memberships list
+                      assertGetMembershipsLibrary(
+                        createdPrincipals,
+                        'nicolaas',
+                        ['east-flemish', 'ui-team', 'belgian', 'oae-team'],
+                        () => {
                           assertGetMembershipsLibrary(
                             createdPrincipals,
-                            'nicolaas',
-                            ['east-flemish', 'ui-team', 'belgian', 'oae-team'],
+                            'bert',
+                            ['west-flemish', 'ui-team', 'belgian', 'oae-team'],
                             () => {
                               assertGetMembershipsLibrary(
                                 createdPrincipals,
-                                'bert',
-                                ['west-flemish', 'ui-team', 'belgian', 'oae-team'],
+                                'simon',
+                                ['not-canadian', 'backend-team', 'oae-team'],
                                 () => {
                                   assertGetMembershipsLibrary(
                                     createdPrincipals,
-                                    'simon',
-                                    ['not-canadian', 'backend-team', 'oae-team'],
+                                    'branden',
+                                    ['canadian', 'backend-team', 'oae-team'],
                                     () => {
-                                      assertGetMembershipsLibrary(
-                                        createdPrincipals,
-                                        'branden',
-                                        ['canadian', 'backend-team', 'oae-team'],
-                                        () => {
-                                          return callback();
-                                        }
-                                      );
+                                      return callback();
                                     }
                                   );
                                 }
                               );
                             }
                           );
-                        });
-                      });
-                    }
-                  );
+                        }
+                      );
+                    });
+                  });
                 });
               });
-            }
-          );
+            });
+          });
         });
       });
     });
@@ -3377,169 +3016,122 @@ describe('Groups', () => {
                     assertGroupVisibility(anonymousRestContext, groupObj, true, true, 2, () => {
                       assertGroupVisibility(gtUser.restContext, groupObj, true, true, 2, () => {
                         // Make the group visible to loggedin users only
-                        RestAPI.Group.updateGroup(
-                          johnRestContext,
-                          groupObj.id,
-                          { visibility: 'loggedin' },
-                          err => {
-                            assert.ok(!err);
+                        RestAPI.Group.updateGroup(johnRestContext, groupObj.id, { visibility: 'loggedin' }, err => {
+                          assert.ok(!err);
 
-                            // Check that everyone is able to get the group and its members, except for the anonymous user and
-                            // an external user
-                            assertGroupVisibility(johnRestContext, groupObj, true, true, 2, () => {
-                              assertGroupVisibility(
-                                nicolaas.restContext,
-                                groupObj,
-                                true,
-                                true,
-                                2,
-                                () => {
-                                  assertGroupVisibility(
-                                    branden.restContext,
-                                    groupObj,
-                                    true,
-                                    true,
-                                    2,
-                                    () => {
-                                      assertGroupVisibility(
-                                        anonymousRestContext,
-                                        groupObj,
-                                        false,
-                                        false,
-                                        null,
-                                        () => {
-                                          assertGroupVisibility(
-                                            gtUser.restContext,
-                                            groupObj,
-                                            false,
-                                            false,
-                                            null,
-                                            () => {
-                                              // Make the group private
-                                              RestAPI.Group.updateGroup(
-                                                johnRestContext,
-                                                groupObj.id,
-                                                { visibility: 'private' },
-                                                err => {
-                                                  assert.ok(!err);
+                          // Check that everyone is able to get the group and its members, except for the anonymous user and
+                          // an external user
+                          assertGroupVisibility(johnRestContext, groupObj, true, true, 2, () => {
+                            assertGroupVisibility(nicolaas.restContext, groupObj, true, true, 2, () => {
+                              assertGroupVisibility(branden.restContext, groupObj, true, true, 2, () => {
+                                assertGroupVisibility(anonymousRestContext, groupObj, false, false, null, () => {
+                                  assertGroupVisibility(gtUser.restContext, groupObj, false, false, null, () => {
+                                    // Make the group private
+                                    RestAPI.Group.updateGroup(
+                                      johnRestContext,
+                                      groupObj.id,
+                                      { visibility: 'private' },
+                                      err => {
+                                        assert.ok(!err);
 
-                                                  // Check that only the members can see the group members
-                                                  assertGroupVisibility(
-                                                    johnRestContext,
-                                                    groupObj,
-                                                    true,
-                                                    true,
-                                                    2,
-                                                    () => {
-                                                      assertGroupVisibility(
-                                                        nicolaas.restContext,
-                                                        groupObj,
-                                                        true,
-                                                        true,
-                                                        2,
-                                                        () => {
-                                                          assertGroupVisibility(
-                                                            branden.restContext,
-                                                            groupObj,
-                                                            false,
-                                                            false,
-                                                            null,
-                                                            () => {
-                                                              assertGroupVisibility(
-                                                                anonymousRestContext,
-                                                                groupObj,
-                                                                false,
-                                                                false,
-                                                                null,
-                                                                () => {
-                                                                  assertGroupVisibility(
-                                                                    gtUser.restContext,
-                                                                    groupObj,
-                                                                    false,
-                                                                    false,
-                                                                    null,
-                                                                    () => {
-                                                                      // If we make the group joinable, then Branden should now be able to see the group's profile
-                                                                      // and members. The GT user can as well because they would be able to join it if they were
-                                                                      // so inclined
-                                                                      RestAPI.Group.updateGroup(
-                                                                        johnRestContext,
-                                                                        groupObj.id,
-                                                                        { joinable: 'yes' },
-                                                                        err => {
-                                                                          assert.ok(!err);
+                                        // Check that only the members can see the group members
+                                        assertGroupVisibility(johnRestContext, groupObj, true, true, 2, () => {
+                                          assertGroupVisibility(nicolaas.restContext, groupObj, true, true, 2, () => {
+                                            assertGroupVisibility(
+                                              branden.restContext,
+                                              groupObj,
+                                              false,
+                                              false,
+                                              null,
+                                              () => {
+                                                assertGroupVisibility(
+                                                  anonymousRestContext,
+                                                  groupObj,
+                                                  false,
+                                                  false,
+                                                  null,
+                                                  () => {
+                                                    assertGroupVisibility(
+                                                      gtUser.restContext,
+                                                      groupObj,
+                                                      false,
+                                                      false,
+                                                      null,
+                                                      () => {
+                                                        // If we make the group joinable, then Branden should now be able to see the group's profile
+                                                        // and members. The GT user can as well because they would be able to join it if they were
+                                                        // so inclined
+                                                        RestAPI.Group.updateGroup(
+                                                          johnRestContext,
+                                                          groupObj.id,
+                                                          { joinable: 'yes' },
+                                                          err => {
+                                                            assert.ok(!err);
 
-                                                                          assertGroupVisibility(
-                                                                            johnRestContext,
-                                                                            groupObj,
-                                                                            true,
-                                                                            true,
-                                                                            2,
-                                                                            () => {
-                                                                              assertGroupVisibility(
-                                                                                nicolaas.restContext,
-                                                                                groupObj,
-                                                                                true,
-                                                                                true,
-                                                                                2,
-                                                                                () => {
-                                                                                  assertGroupVisibility(
-                                                                                    branden.restContext,
-                                                                                    groupObj,
-                                                                                    true,
-                                                                                    true,
-                                                                                    2,
-                                                                                    () => {
-                                                                                      assertGroupVisibility(
-                                                                                        anonymousRestContext,
-                                                                                        groupObj,
-                                                                                        false,
-                                                                                        false,
-                                                                                        null,
-                                                                                        () => {
-                                                                                          assertGroupVisibility(
-                                                                                            gtUser.restContext,
-                                                                                            groupObj,
-                                                                                            true,
-                                                                                            true,
-                                                                                            2,
-                                                                                            () => {
-                                                                                              return callback();
-                                                                                            }
-                                                                                          );
-                                                                                        }
-                                                                                      );
-                                                                                    }
-                                                                                  );
-                                                                                }
-                                                                              );
-                                                                            }
-                                                                          );
-                                                                        }
-                                                                      );
-                                                                    }
-                                                                  );
-                                                                }
-                                                              );
-                                                            }
-                                                          );
-                                                        }
-                                                      );
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
+                                                            assertGroupVisibility(
+                                                              johnRestContext,
+                                                              groupObj,
+                                                              true,
+                                                              true,
+                                                              2,
+                                                              () => {
+                                                                assertGroupVisibility(
+                                                                  nicolaas.restContext,
+                                                                  groupObj,
+                                                                  true,
+                                                                  true,
+                                                                  2,
+                                                                  () => {
+                                                                    assertGroupVisibility(
+                                                                      branden.restContext,
+                                                                      groupObj,
+                                                                      true,
+                                                                      true,
+                                                                      2,
+                                                                      () => {
+                                                                        assertGroupVisibility(
+                                                                          anonymousRestContext,
+                                                                          groupObj,
+                                                                          false,
+                                                                          false,
+                                                                          null,
+                                                                          () => {
+                                                                            assertGroupVisibility(
+                                                                              gtUser.restContext,
+                                                                              groupObj,
+                                                                              true,
+                                                                              true,
+                                                                              2,
+                                                                              () => {
+                                                                                return callback();
+                                                                              }
+                                                                            );
+                                                                          }
+                                                                        );
+                                                                      }
+                                                                    );
+                                                                  }
+                                                                );
+                                                              }
+                                                            );
+                                                          }
+                                                        );
+                                                      }
+                                                    );
+                                                  }
+                                                );
+                                              }
+                                            );
+                                          });
+                                        });
+                                      }
+                                    );
+                                  });
+                                });
+                              });
                             });
-                          }
-                        );
+                          });
+                        });
                       });
                     });
                   });

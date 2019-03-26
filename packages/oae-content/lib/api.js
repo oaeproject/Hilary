@@ -226,16 +226,7 @@ const _getFullContentProfile = function(ctx, contentObj, isManager, callback) {
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Content}        callback.content        The created link
  */
-const createLink = function(
-  ctx,
-  displayName,
-  description,
-  visibility,
-  link,
-  additionalMembers,
-  folders,
-  callback
-) {
+const createLink = function(ctx, displayName, description, visibility, link, additionalMembers, folders, callback) {
   callback = callback || function() {};
 
   // Setting content to default if no visibility setting is provided
@@ -276,21 +267,13 @@ const createLink = function(
         return callback(err);
       }
 
-      emitter.emit(
-        ContentConstants.events.CREATED_CONTENT,
-        ctx,
-        content,
-        revision,
-        memberChangeInfo,
-        folders,
-        errs => {
-          if (errs) {
-            return callback(_.first(errs));
-          }
-
-          return callback(null, content);
+      emitter.emit(ContentConstants.events.CREATED_CONTENT, ctx, content, revision, memberChangeInfo, folders, errs => {
+        if (errs) {
+          return callback(_.first(errs));
         }
-      );
+
+        return callback(null, content);
+      });
     }
   );
 };
@@ -309,30 +292,12 @@ const createLink = function(
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Content}        callback.content        The created file
  */
-const createFile = function(
-  ctx,
-  displayName,
-  description,
-  visibility,
-  file,
-  additionalMembers,
-  folders,
-  callback
-) {
+const createFile = function(ctx, displayName, description, visibility, file, additionalMembers, folders, callback) {
   // Wrap the callback function into a function that cleans up the file in case something went wrong
   const cleanUpCallback = _getCleanUpCallback({ file }, callback);
 
   // Try to create the file
-  return _createFile(
-    ctx,
-    displayName,
-    description,
-    visibility,
-    file,
-    additionalMembers,
-    folders,
-    cleanUpCallback
-  );
+  return _createFile(ctx, displayName, description, visibility, file, additionalMembers, folders, cleanUpCallback);
 };
 
 /**
@@ -416,25 +381,14 @@ const _cleanupUploadedFiles = function(files, callback) {
  * @param  {Content}        callback.content        The created file
  * @api private
  */
-const _createFile = function(
-  ctx,
-  displayName,
-  description,
-  visibility,
-  file,
-  additionalMembers,
-  folders,
-  callback
-) {
+const _createFile = function(ctx, displayName, description, visibility, file, additionalMembers, folders, callback) {
   callback = callback || function() {};
 
   // Setting content to default if no visibility setting is provided
   visibility = visibility || Config.getValue(ctx.tenant().alias, 'visibility', 'files');
 
   const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'Anonymous users are not allowed to upload files' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'Anonymous users are not allowed to upload files' }).isLoggedInUser(ctx);
   validator.check(file, { code: 400, msg: 'Missing file parameter' }).notNull();
   validator.check(displayName, { code: 400, msg: 'A display name must be provided' }).notEmpty();
   validator
@@ -536,15 +490,7 @@ const _createFile = function(
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Content}        callback.content        The created collaborative document
  */
-const createCollabDoc = function(
-  ctx,
-  displayName,
-  description,
-  visibility,
-  additionalMembers,
-  folders,
-  callback
-) {
+const createCollabDoc = function(ctx, displayName, description, visibility, additionalMembers, folders, callback) {
   callback = callback || function() {};
 
   // Setting content to default if no visibility setting is provided
@@ -654,8 +600,7 @@ const _createContent = function(
   validator
     .check(visibility, {
       code: 400,
-      msg:
-        'An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"'
+      msg: 'An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"'
     })
     .isIn(_.values(AuthzConstants.visibility));
   validator
@@ -677,11 +622,7 @@ const _createContent = function(
     validator
       .check(role, {
         code: 400,
-        msg: util.format(
-          'Invalid role "%s" specified. Must be one of %s',
-          role,
-          validRoles.join(', ')
-        )
+        msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
       })
       .isIn(validRoles);
   });
@@ -720,10 +661,7 @@ const _createContent = function(
       // Add the content item to the specified folders, if any
       _addContentItemToFolders(ctx, content, folders, err => {
         if (err) {
-          log().warn(
-            { err, contentId: content.id, folders },
-            'Could not add a content item to a folder'
-          );
+          log().warn({ err, contentId: content.id, folders }, 'Could not add a content item to a folder');
         }
 
         return callback(null, content, revision, memberChangeInfo);
@@ -825,19 +763,13 @@ const _addContentItemToFolders = function(ctx, content, folders, callback) {
   // We have to require the FoldersAPI inline
   // as we'd get a dependency cycle otherwise
   const folder = folders.pop();
-  require('oae-folders')._addContentItemsToFolderLibrary(
-    ctx,
-    'content-create',
-    folder,
-    [content],
-    err => {
-      if (err) {
-        return callback(err);
-      }
-
-      _addContentItemToFolders(ctx, content, folders, callback);
+  require('oae-folders')._addContentItemsToFolderLibrary(ctx, 'content-create', folder, [content], err => {
+    if (err) {
+      return callback(err);
     }
-  );
+
+    _addContentItemToFolders(ctx, content, folders, callback);
+  });
 };
 
 /// //////////////////////////
@@ -954,13 +886,7 @@ const handlePublish = function(data, callback) {
                   newContentObj.latestRevision = revision;
 
                   // Emit an event for activities and preview processing
-                  emitter.emit(
-                    ContentConstants.events.UPDATED_CONTENT_BODY,
-                    ctx,
-                    newContentObj,
-                    contentObj,
-                    revision
-                  );
+                  emitter.emit(ContentConstants.events.UPDATED_CONTENT_BODY, ctx, newContentObj, contentObj, revision);
                   return callback();
                 }
               );
@@ -1083,9 +1009,7 @@ const shareContent = function(ctx, contentId, principalIds, callback) {
   // Parameter validation
   const validator = new Validator();
   validator.check(contentId, { code: 400, msg: 'A content id must be provided' }).isResourceId();
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to share content' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'You have to be logged in to be able to share content' }).isLoggedInUser(ctx);
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -1096,35 +1020,22 @@ const shareContent = function(ctx, contentId, principalIds, callback) {
       return callback(err);
     }
 
-    ResourceActions.share(
-      ctx,
-      content,
-      principalIds,
-      AuthzConstants.role.VIEWER,
-      (err, memberChangeInfo) => {
-        if (err) {
-          return callback(err);
-        }
-        if (_.isEmpty(memberChangeInfo.changes)) {
-          return callback();
-        }
-
-        emitter.emit(
-          ContentConstants.events.UPDATED_CONTENT_MEMBERS,
-          ctx,
-          content,
-          memberChangeInfo,
-          {},
-          errs => {
-            if (errs) {
-              return callback(_.first(errs));
-            }
-
-            return callback();
-          }
-        );
+    ResourceActions.share(ctx, content, principalIds, AuthzConstants.role.VIEWER, (err, memberChangeInfo) => {
+      if (err) {
+        return callback(err);
       }
-    );
+      if (_.isEmpty(memberChangeInfo.changes)) {
+        return callback();
+      }
+
+      emitter.emit(ContentConstants.events.UPDATED_CONTENT_MEMBERS, ctx, content, memberChangeInfo, {}, errs => {
+        if (errs) {
+          return callback(_.first(errs));
+        }
+
+        return callback();
+      });
+    });
   });
 };
 
@@ -1217,11 +1128,7 @@ const setContentPermissions = function(ctx, contentId, changes, callback) {
         validator
           .check(role, {
             code: 400,
-            msg: util.format(
-              'Invalid role "%s" specified. Must be one of %s',
-              role,
-              validRoles.join(', ')
-            )
+            msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
           })
           .isIn(validRoles);
       }
@@ -1238,20 +1145,13 @@ const setContentPermissions = function(ctx, contentId, changes, callback) {
         return callback();
       }
 
-      emitter.emit(
-        ContentConstants.events.UPDATED_CONTENT_MEMBERS,
-        ctx,
-        content,
-        memberChangeInfo,
-        {},
-        errs => {
-          if (errs) {
-            return callback(_.first(errs));
-          }
-
-          return callback();
+      emitter.emit(ContentConstants.events.UPDATED_CONTENT_MEMBERS, ctx, content, memberChangeInfo, {}, errs => {
+        if (errs) {
+          return callback(_.first(errs));
         }
-      );
+
+        return callback();
+      });
     });
   });
 };
@@ -1276,12 +1176,8 @@ const removeContentFromLibrary = function(ctx, libraryOwnerId, contentId, callba
       msg: 'You must be authenticated to remove a piece of content from a library'
     })
     .isLoggedInUser(ctx);
-  validator
-    .check(libraryOwnerId, { code: 400, msg: 'A user or group id must be provided' })
-    .isPrincipalId();
-  validator
-    .check(contentId, { code: 400, msg: 'A valid content id must be provided' })
-    .isResourceId();
+  validator.check(libraryOwnerId, { code: 400, msg: 'A user or group id must be provided' }).isPrincipalId();
+  validator.check(contentId, { code: 400, msg: 'A valid content id must be provided' }).isResourceId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -1310,20 +1206,13 @@ const removeContentFromLibrary = function(ctx, libraryOwnerId, contentId, callba
             return callback(err);
           }
 
-          emitter.emit(
-            ContentConstants.events.UPDATED_CONTENT_MEMBERS,
-            ctx,
-            content,
-            memberChangeInfo,
-            {},
-            errs => {
-              if (errs) {
-                return callback(_.first(errs));
-              }
-
-              return callback();
+          emitter.emit(ContentConstants.events.UPDATED_CONTENT_MEMBERS, ctx, content, memberChangeInfo, {}, errs => {
+            if (errs) {
+              return callback(_.first(errs));
             }
-          );
+
+            return callback();
+          });
         });
       });
     });
@@ -1358,68 +1247,58 @@ const getContentMembersLibrary = function(ctx, contentId, start, limit, callback
     }
 
     // Determine if and how the current user should access the content members library
-    LibraryAPI.Authz.resolveTargetLibraryAccess(
-      ctx,
-      content.id,
-      content,
-      (err, hasAccess, visibility) => {
+    LibraryAPI.Authz.resolveTargetLibraryAccess(ctx, content.id, content, (err, hasAccess, visibility) => {
+      if (err) {
+        return callback(err);
+      }
+      if (!hasAccess) {
+        return callback({
+          code: 401,
+          msg: 'You are not authorized to access the members of this content item'
+        });
+      }
+
+      // Get the members of the content item from the members library
+      ContentMembersLibrary.list(content, visibility, { start, limit }, (err, memberIds, nextToken) => {
         if (err) {
           return callback(err);
         }
-        if (!hasAccess) {
-          return callback({
-            code: 401,
-            msg: 'You are not authorized to access the members of this content item'
-          });
+        if (_.isEmpty(memberIds)) {
+          return callback(null, [], nextToken);
         }
 
-        // Get the members of the content item from the members library
-        ContentMembersLibrary.list(
-          content,
-          visibility,
-          { start, limit },
-          (err, memberIds, nextToken) => {
+        // Get the roles of the members on the content item
+        AuthzAPI.getDirectRoles(memberIds, content.id, (err, memberRoles) => {
+          if (err) {
+            return callback(err);
+          }
+
+          // Get the member profiles
+          PrincipalsUtil.getPrincipals(ctx, memberIds, (err, memberProfiles) => {
             if (err) {
               return callback(err);
             }
-            if (_.isEmpty(memberIds)) {
-              return callback(null, [], nextToken);
-            }
 
-            // Get the roles of the members on the content item
-            AuthzAPI.getDirectRoles(memberIds, content.id, (err, memberRoles) => {
-              if (err) {
-                return callback(err);
-              }
-
-              // Get the member profiles
-              PrincipalsUtil.getPrincipals(ctx, memberIds, (err, memberProfiles) => {
-                if (err) {
-                  return callback(err);
+            const memberList = _.chain(memberIds)
+              .map(memberId => {
+                const memberProfile = memberProfiles[memberId];
+                const memberRole = memberRoles[memberId];
+                if (memberProfile && memberRole) {
+                  return {
+                    profile: memberProfile,
+                    role: memberRole
+                  };
                 }
+                return null;
+              })
+              .compact()
+              .value();
 
-                const memberList = _.chain(memberIds)
-                  .map(memberId => {
-                    const memberProfile = memberProfiles[memberId];
-                    const memberRole = memberRoles[memberId];
-                    if (memberProfile && memberRole) {
-                      return {
-                        profile: memberProfile,
-                        role: memberRole
-                      };
-                    }
-                    return null;
-                  })
-                  .compact()
-                  .value();
-
-                return callback(null, memberList, nextToken);
-              });
-            });
-          }
-        );
-      }
-    );
+            return callback(null, memberList, nextToken);
+          });
+        });
+      });
+    });
   });
 };
 
@@ -1434,9 +1313,7 @@ const getContentMembersLibrary = function(ctx, contentId, start, limit, callback
  */
 const getContentInvitations = function(ctx, contentId, callback) {
   const validator = new Validator();
-  validator
-    .check(contentId, { code: 400, msg: 'A valid resource id must be specified' })
-    .isResourceId();
+  validator.check(contentId, { code: 400, msg: 'A valid resource id must be specified' }).isResourceId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -1461,9 +1338,7 @@ const getContentInvitations = function(ctx, contentId, callback) {
  */
 const resendContentInvitation = function(ctx, contentId, email, callback) {
   const validator = new Validator();
-  validator
-    .check(contentId, { code: 400, msg: 'A valid resource id must be specified' })
-    .isResourceId();
+  validator.check(contentId, { code: 400, msg: 'A valid resource id must be specified' }).isResourceId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -1567,40 +1442,28 @@ const _updateFileBody = function(ctx, contentId, file, callback) {
         uri
       };
 
-      ContentDAO.Revisions.createRevision(
-        revisionId,
-        contentObj.id,
-        ctx.user().id,
-        opts,
-        (err, revision) => {
+      ContentDAO.Revisions.createRevision(revisionId, contentObj.id, ctx.user().id, opts, (err, revision) => {
+        if (err) {
+          return callback(err);
+        }
+
+        // Set the new filesize, filename and mimetype on the Content object so the UI
+        // can retrieve all the relevant metadata in 1 Cassandra query
+        opts.latestRevisionId = revision.revisionId;
+
+        // We have to set the previews status back to pending
+        opts.previews = { status: ContentConstants.previews.PENDING };
+        ContentDAO.Content.updateContent(contentObj, opts, true, (err, updatedContentObj) => {
           if (err) {
             return callback(err);
           }
 
-          // Set the new filesize, filename and mimetype on the Content object so the UI
-          // can retrieve all the relevant metadata in 1 Cassandra query
-          opts.latestRevisionId = revision.revisionId;
+          emitter.emit(ContentConstants.events.UPDATED_CONTENT_BODY, ctx, updatedContentObj, contentObj, revision);
 
-          // We have to set the previews status back to pending
-          opts.previews = { status: ContentConstants.previews.PENDING };
-          ContentDAO.Content.updateContent(contentObj, opts, true, (err, updatedContentObj) => {
-            if (err) {
-              return callback(err);
-            }
-
-            emitter.emit(
-              ContentConstants.events.UPDATED_CONTENT_BODY,
-              ctx,
-              updatedContentObj,
-              contentObj,
-              revision
-            );
-
-            // Output a full content profile
-            return _getFullContentProfile(ctx, updatedContentObj, true, callback);
-          });
-        }
-      );
+          // Output a full content profile
+          return _getFullContentProfile(ctx, updatedContentObj, true, callback);
+        });
+      });
     });
   });
 };
@@ -1659,10 +1522,7 @@ const setPreviewItems = function(
     }
 
     // Ensure the user is an administrator of the content item's tenant before continuing further
-    if (
-      !ctx.user() ||
-      !(ctx.user().isGlobalAdmin() || ctx.user().isTenantAdmin(contentObj.tenant.alias))
-    ) {
+    if (!ctx.user() || !(ctx.user().isGlobalAdmin() || ctx.user().isTenantAdmin(contentObj.tenant.alias))) {
       return cleanUpCallback({
         code: 401,
         msg: 'Only administrators can attach preview items to a content item'
@@ -1817,14 +1677,7 @@ const setPreviewItems = function(
  * @param  {String}             callback.downloadInfo.filename  The filename to suggest to the client for the download
  * @param  {DownloadStrategy}   callback.downloadInfo.strategy  The DownloadStrategy that details how to download the preview
  */
-const getSignedPreviewDownloadInfo = function(
-  ctx,
-  contentId,
-  revisionId,
-  previewItem,
-  signatureData,
-  callback
-) {
+const getSignedPreviewDownloadInfo = function(ctx, contentId, revisionId, previewItem, signatureData, callback) {
   const validator = new Validator();
   validator.check(contentId, { code: 400, msg: 'Missing content ID' }).isResourceId();
   validator.check(revisionId, { code: 400, msg: 'Missing revision ID' }).isResourceId();
@@ -1833,14 +1686,7 @@ const getSignedPreviewDownloadInfo = function(
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
-  if (
-    !Signature.verifyExpiringResourceSignature(
-      ctx,
-      contentId,
-      signatureData.expires,
-      signatureData.signature
-    )
-  ) {
+  if (!Signature.verifyExpiringResourceSignature(ctx, contentId, signatureData.expires, signatureData.signature)) {
     return callback({ code: 401, msg: 'Invalid content signature data for accessing previews' });
   }
 
@@ -1923,9 +1769,7 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
       })
       .isIn(['displayName', 'description', 'visibility', 'link']);
     if (fieldName === 'displayName') {
-      validator
-        .check(profileFields.displayName, { code: 400, msg: 'A display name cannot be empty' })
-        .notEmpty();
+      validator.check(profileFields.displayName, { code: 400, msg: 'A display name cannot be empty' }).notEmpty();
       validator
         .check(profileFields.displayName, {
           code: 400,
@@ -1940,17 +1784,14 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
         })
         .isMediumString();
     } else if (fieldName === 'link') {
-      validator
-        .check(profileFields.link, { code: 400, msg: 'A valid link should be provided' })
-        .isUrl();
+      validator.check(profileFields.link, { code: 400, msg: 'A valid link should be provided' }).isUrl();
     }
   }
   if (profileFields.visibility) {
     validator
       .check(profileFields.visibility, {
         code: 400,
-        msg:
-          'An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"'
+        msg: 'An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"'
       })
       .isIn(_.values(AuthzConstants.visibility));
   }
@@ -2012,20 +1853,12 @@ const createComment = function(ctx, contentId, body, replyToCreatedTimestamp, ca
 
   // Parameter validation
   const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'Only authorized users can post comments' })
-    .isLoggedInUser(ctx);
-  validator
-    .check(contentId, { code: 400, msg: 'Invalid content resource id provided' })
-    .isResourceId();
+  validator.check(null, { code: 401, msg: 'Only authorized users can post comments' }).isLoggedInUser(ctx);
+  validator.check(contentId, { code: 400, msg: 'Invalid content resource id provided' }).isResourceId();
   validator.check(body, { code: 400, msg: 'A comment must be provided' }).notEmpty();
-  validator
-    .check(body, { code: 400, msg: 'A comment can only be 100000 characters long' })
-    .isLongString();
+  validator.check(body, { code: 400, msg: 'A comment can only be 100000 characters long' }).isLongString();
   if (replyToCreatedTimestamp) {
-    validator
-      .check(replyToCreatedTimestamp, { code: 400, msg: 'Invalid reply-to timestamp provided' })
-      .isInt();
+    validator.check(replyToCreatedTimestamp, { code: 400, msg: 'Invalid reply-to timestamp provided' }).isInt();
   }
 
   if (validator.hasErrors()) {
@@ -2080,9 +1913,7 @@ const getComments = function(ctx, contentId, start, limit, callback) {
 
   // Parameter validation
   const validator = new Validator();
-  validator
-    .check(contentId, { code: 400, msg: 'Invalid content resource id provided' })
-    .isResourceId();
+  validator.check(contentId, { code: 400, msg: 'Invalid content resource id provided' }).isResourceId();
   validator.check(limit, { code: 400, msg: 'A valid limit should be passed in' }).isInt();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
@@ -2094,40 +1925,34 @@ const getComments = function(ctx, contentId, start, limit, callback) {
       return callback(err);
     }
 
-    MessageBoxAPI.getMessagesFromMessageBox(
-      contentId,
-      start,
-      limit,
-      null,
-      (err, comments, nextToken) => {
+    MessageBoxAPI.getMessagesFromMessageBox(contentId, start, limit, null, (err, comments, nextToken) => {
+      if (err) {
+        return callback(err);
+      }
+
+      // Get information on the commenters
+      const userIds = _.chain(comments)
+        .pluck('createdBy')
+        .compact()
+        .uniq()
+        .value();
+
+      // Get the basic principal profiles of the commenters to add to the comments as `createdBy`.
+      PrincipalsUtil.getPrincipals(ctx, userIds, (err, principals) => {
         if (err) {
           return callback(err);
         }
 
-        // Get information on the commenters
-        const userIds = _.chain(comments)
-          .pluck('createdBy')
-          .compact()
-          .uniq()
-          .value();
-
-        // Get the basic principal profiles of the commenters to add to the comments as `createdBy`.
-        PrincipalsUtil.getPrincipals(ctx, userIds, (err, principals) => {
-          if (err) {
-            return callback(err);
+        _.each(comments, comment => {
+          const principal = principals[comment.createdBy];
+          if (principal) {
+            comment.createdBy = principal;
           }
-
-          _.each(comments, comment => {
-            const principal = principals[comment.createdBy];
-            if (principal) {
-              comment.createdBy = principal;
-            }
-          });
-
-          return callback(err, comments, nextToken);
         });
-      }
-    );
+
+        return callback(err, comments, nextToken);
+      });
+    });
   });
 };
 
@@ -2144,9 +1969,7 @@ const getComments = function(ctx, contentId, start, limit, callback) {
  */
 const deleteComment = function(ctx, contentId, commentCreatedDate, callback) {
   const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'Only authorized users can delete comments' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'Only authorized users can delete comments' }).isLoggedInUser(ctx);
   validator.check(contentId, { code: 400, msg: 'A content id must be provided' }).isResourceId();
   validator
     .check(commentCreatedDate, {
@@ -2212,13 +2035,7 @@ const _deleteComment = function(ctx, content, commentToDelete, callback) {
       deletedComment = deletedComment || commentToDelete;
 
       // Notify consumers that the comment was deleted
-      emitter.emit(
-        ContentConstants.events.DELETED_COMMENT,
-        ctx,
-        deletedComment,
-        content,
-        deleteType
-      );
+      emitter.emit(ContentConstants.events.DELETED_COMMENT, ctx, deletedComment, content, deleteType);
 
       if (deleteType === MessageBoxConstants.deleteTypes.SOFT) {
         // If a soft-delete occurred, we want to inform the consumer of the soft-delete message model
@@ -2252,9 +2069,7 @@ const getContentLibraryItems = function(ctx, principalId, start, limit, callback
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   const validator = new Validator();
-  validator
-    .check(principalId, { code: 400, msg: 'A user or group id must be provided' })
-    .isPrincipalId();
+  validator.check(principalId, { code: 400, msg: 'A user or group id must be provided' }).isPrincipalId();
   validator.check(limit, { code: 400, msg: 'A valid limit should be passed in' }).isInt();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
@@ -2267,48 +2082,43 @@ const getContentLibraryItems = function(ctx, principalId, start, limit, callback
     }
 
     // Determine which library visibility we need to fetch
-    LibraryAPI.Authz.resolveTargetLibraryAccess(
-      ctx,
-      principal.id,
-      principal,
-      (err, hasAccess, visibility) => {
-        if (err) {
-          return callback(err);
-        }
-        if (!hasAccess) {
-          return callback({ code: 401, msg: 'You do not have access to this library' });
-        }
-
-        ContentDAO.Content.getContentLibraryItems(
-          principalId,
-          visibility,
-          start,
-          limit,
-          (err, contentObjects, nextToken) => {
-            if (err) {
-              return callback(err);
-            }
-
-            _.each(contentObjects, contentObj => {
-              ContentUtil.augmentContent(ctx, contentObj);
-            });
-
-            // Emit an event indicating that the content library has been retrieved
-            emitter.emit(
-              ContentConstants.events.GET_CONTENT_LIBRARY,
-              ctx,
-              principalId,
-              visibility,
-              start,
-              limit,
-              contentObjects
-            );
-
-            return callback(null, contentObjects, nextToken);
-          }
-        );
+    LibraryAPI.Authz.resolveTargetLibraryAccess(ctx, principal.id, principal, (err, hasAccess, visibility) => {
+      if (err) {
+        return callback(err);
       }
-    );
+      if (!hasAccess) {
+        return callback({ code: 401, msg: 'You do not have access to this library' });
+      }
+
+      ContentDAO.Content.getContentLibraryItems(
+        principalId,
+        visibility,
+        start,
+        limit,
+        (err, contentObjects, nextToken) => {
+          if (err) {
+            return callback(err);
+          }
+
+          _.each(contentObjects, contentObj => {
+            ContentUtil.augmentContent(ctx, contentObj);
+          });
+
+          // Emit an event indicating that the content library has been retrieved
+          emitter.emit(
+            ContentConstants.events.GET_CONTENT_LIBRARY,
+            ctx,
+            principalId,
+            visibility,
+            start,
+            limit,
+            contentObjects
+          );
+
+          return callback(null, contentObjects, nextToken);
+        }
+      );
+    });
   });
 };
 
@@ -2385,36 +2195,30 @@ const getRevisions = function(ctx, contentId, start, limit, callback) {
  */
 const _getRevisions = function(ctx, contentObj, start, limit, opts, callback) {
   // Page the query.
-  ContentDAO.Revisions.getRevisions(
-    contentObj.id,
-    start,
-    limit,
-    opts,
-    (err, revisions, nextToken) => {
+  ContentDAO.Revisions.getRevisions(contentObj.id, start, limit, opts, (err, revisions, nextToken) => {
+    if (err) {
+      return callback(err);
+    }
+
+    const userIds = _.map(revisions, revisions => {
+      return revisions.createdBy;
+    });
+    PrincipalsUtil.getPrincipals(ctx, userIds, (err, users) => {
       if (err) {
         return callback(err);
       }
 
-      const userIds = _.map(revisions, revisions => {
-        return revisions.createdBy;
-      });
-      PrincipalsUtil.getPrincipals(ctx, userIds, (err, users) => {
-        if (err) {
-          return callback(err);
+      // Add the user profiles to the revisions.
+      _.each(revisions, revision => {
+        if (users[revision.createdBy]) {
+          revision.createdBy = users[revision.createdBy];
+          _augmentRevision(ctx, revision, contentObj);
         }
-
-        // Add the user profiles to the revisions.
-        _.each(revisions, revision => {
-          if (users[revision.createdBy]) {
-            revision.createdBy = users[revision.createdBy];
-            _augmentRevision(ctx, revision, contentObj);
-          }
-        });
-
-        return callback(null, revisions, nextToken);
       });
-    }
-  );
+
+      return callback(null, revisions, nextToken);
+    });
+  });
 };
 
 /**
@@ -2429,13 +2233,9 @@ const _getRevisions = function(ctx, contentObj, start, limit, opts, callback) {
  */
 const getRevision = function(ctx, contentId, revisionId, callback) {
   const validator = new Validator();
-  validator
-    .check(contentId, { code: 400, msg: 'A valid contentId must be provided' })
-    .isResourceId();
+  validator.check(contentId, { code: 400, msg: 'A valid contentId must be provided' }).isResourceId();
   if (revisionId) {
-    validator
-      .check(revisionId, { code: 400, msg: 'A valid revisionId must be provided' })
-      .isResourceId();
+    validator.check(revisionId, { code: 400, msg: 'A valid revisionId must be provided' }).isResourceId();
   }
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
@@ -2467,13 +2267,9 @@ const getRevision = function(ctx, contentId, revisionId, callback) {
  */
 const getRevisionDownloadInfo = function(ctx, contentId, revisionId, callback) {
   const validator = new Validator();
-  validator
-    .check(contentId, { code: 400, msg: 'A valid contentId must be provided' })
-    .isResourceId();
+  validator.check(contentId, { code: 400, msg: 'A valid contentId must be provided' }).isResourceId();
   if (revisionId) {
-    validator
-      .check(revisionId, { code: 400, msg: 'A valid revisionId must be provided' })
-      .isResourceId();
+    validator.check(revisionId, { code: 400, msg: 'A valid revisionId must be provided' }).isResourceId();
   }
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
@@ -2515,10 +2311,7 @@ const getRevisionDownloadInfo = function(ctx, contentId, revisionId, callback) {
 
       return callback(null, {
         filename: revision.filename,
-        strategy: ContentUtil.getStorageBackend(ctx, revision.uri).getDownloadStrategy(
-          ctx.tenant().alias,
-          revision.uri
-        )
+        strategy: ContentUtil.getStorageBackend(ctx, revision.uri).getDownloadStrategy(ctx.tenant().alias, revision.uri)
       });
     });
   });
@@ -2608,12 +2401,8 @@ const _augmentRevision = function(ctx, revision, contentObj) {
  */
 const restoreRevision = function(ctx, contentId, revisionId, callback) {
   const validator = new Validator();
-  validator
-    .check(contentId, { code: 400, msg: 'A valid contentId must be provided' })
-    .isResourceId();
-  validator
-    .check(revisionId, { code: 400, msg: 'A valid revisionId must be provided' })
-    .isResourceId();
+  validator.check(contentId, { code: 400, msg: 'A valid contentId must be provided' }).isResourceId();
+  validator.check(revisionId, { code: 400, msg: 'A valid revisionId must be provided' }).isResourceId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -2637,73 +2426,56 @@ const restoreRevision = function(ctx, contentId, revisionId, callback) {
 
       // Create a new revision by copying from the specified revision
       const newRevisionId = _generateRevisionId(contentId);
-      ContentDAO.Revisions.createRevision(
-        newRevisionId,
-        contentId,
-        ctx.user().id,
-        revision,
-        (err, newRevision) => {
-          if (err) {
-            return callback(err);
-          }
+      ContentDAO.Revisions.createRevision(newRevisionId, contentId, ctx.user().id, revision, (err, newRevision) => {
+        if (err) {
+          return callback(err);
+        }
 
-          /*!
+        /*!
            * We need to update the content item in the Content CF.
            * We do so by copying all the non-standard fields from the revision
            * to the Content CF.
            */
-          const blacklist = [
-            'revisionId',
-            'contentId',
-            'createdBy',
-            'created',
-            'etherpadHtml',
-            'previewsId',
-            'downloadPath'
-          ];
-          const updates = _.omit(revision, blacklist);
+        const blacklist = [
+          'revisionId',
+          'contentId',
+          'createdBy',
+          'created',
+          'etherpadHtml',
+          'previewsId',
+          'downloadPath'
+        ];
+        const updates = _.omit(revision, blacklist);
 
-          // We also need to update the latest revisionID in the content CF.
-          updates.latestRevisionId = newRevisionId;
+        // We also need to update the latest revisionID in the content CF.
+        updates.latestRevisionId = newRevisionId;
 
-          ContentDAO.Content.updateContent(contentObj, updates, true, (err, newContentObj) => {
-            if (err) {
-              return callback(err);
-            }
+        ContentDAO.Content.updateContent(contentObj, updates, true, (err, newContentObj) => {
+          if (err) {
+            return callback(err);
+          }
 
-            // Provide user-level data such as signed URLs for the consumer
-            _augmentRevision(ctx, newRevision, newContentObj);
+          // Provide user-level data such as signed URLs for the consumer
+          _augmentRevision(ctx, newRevision, newContentObj);
 
-            // Emit an event
-            emitter.emit(
-              ContentConstants.events.RESTORED_REVISION,
-              ctx,
-              newContentObj,
-              contentObj,
-              revision
-            );
+          // Emit an event
+          emitter.emit(ContentConstants.events.RESTORED_REVISION, ctx, newContentObj, contentObj, revision);
 
-            // If this piece of content is a collaborative document,
-            // we need to set the text in etherpad.
-            if (contentObj.resourceSubType === 'collabdoc') {
-              Etherpad.setHTML(
-                contentObj.id,
-                contentObj.etherpadPadId,
-                revision.etherpadHtml,
-                err => {
-                  if (err) {
-                    return callback(err);
-                  }
+          // If this piece of content is a collaborative document,
+          // we need to set the text in etherpad.
+          if (contentObj.resourceSubType === 'collabdoc') {
+            Etherpad.setHTML(contentObj.id, contentObj.etherpadPadId, revision.etherpadHtml, err => {
+              if (err) {
+                return callback(err);
+              }
 
-                  return callback(null, newRevision);
-                }
-              );
-            } else {
               return callback(null, newRevision);
-            }
-          });
-        }
-      );
+            });
+          } else {
+            return callback(null, newRevision);
+          }
+        });
+      });
     });
   });
 };
@@ -2725,10 +2497,7 @@ const verifySignedDownloadQueryString = function(ctx, qs, callback) {
     return callback({ code: 401, msg: 'Invalid signature data for the provided download url' });
   }
 
-  const downloadStrategy = ContentUtil.getStorageBackend(ctx, uri).getDownloadStrategy(
-    ctx.tenant().alias,
-    uri
-  );
+  const downloadStrategy = ContentUtil.getStorageBackend(ctx, uri).getDownloadStrategy(ctx.tenant().alias, uri);
   return callback(null, { strategy: downloadStrategy, filename: path.basename(uri) });
 };
 

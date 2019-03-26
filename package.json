@@ -174,6 +174,8 @@
     ],
     "rules": {
       "import/no-extraneous-dependencies": "off",
+      "max-params": "off",
+      "max-nested-callbacks": "off",
       "prettier/prettier": "error",
       "no-use-before-define": "off"
     },
@@ -182,10 +184,11 @@
     ],
     "overrides": [
       {
-        "files": "tests/*.js",
+        "files": "**/tests/*.js",
         "rules": {
           "max-lines": 0,
-          "no-unused-vars": "off"
+          "no-unused-vars": "off",
+          "handle-callback-err": "off"
         }
       }
     ]

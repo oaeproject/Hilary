@@ -37,7 +37,7 @@ module.exports = function(config, callback) {
   // Initialize principals delete capabilities
   require('oae-principals/lib/delete'); // eslint-disable-line import/no-unassigned-import
 
-    return _ensureGlobalAdmin(config, callback);
+  return _ensureGlobalAdmin(config, callback);
 };
 
 /**

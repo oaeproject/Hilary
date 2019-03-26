@@ -92,10 +92,7 @@ const getScopeParam = function(val, defaultVal) {
  * @return {String}                     `val` if it is valid. `defaultVal` otherwise
  */
 const getSortDirParam = function(val, defaultVal, sortBy) {
-  if (
-    sortBy === SearchConstants.sort.field.SCORE ||
-    sortBy === SearchConstants.sort.field.MODIFIED
-  ) {
+  if (sortBy === SearchConstants.sort.field.SCORE || sortBy === SearchConstants.sort.field.MODIFIED) {
     return SearchConstants.sort.direction.DESC;
   }
   defaultVal = defaultVal ? getSortDirParam(defaultVal) : SearchConstants.sort.direction.ASC;
@@ -250,10 +247,7 @@ const createQuery = function(query, filter, opts) {
   const validator = new Validator();
   validator.check(null, new Error('createQuery expects a query object.')).isObject(query);
   if (validator.hasErrors()) {
-    log().error(
-      { err: validator.getFirstError() },
-      'Invalid input provided to SearchUtil.createQuery'
-    );
+    log().error({ err: validator.getFirstError() }, 'Invalid input provided to SearchUtil.createQuery');
     throw validator.getFirstError();
   }
 
@@ -539,90 +533,75 @@ const filterScopeAndAccess = function(ctx, scope, needsFilterByExplicitAccess, c
   // If we are searching SCOPE_MY, we always need to search with explicit access. The main reason
   // for this is because we depend on having explicit access filters in the queries since we don't
   // use implicit access checks
-  needsFilterByExplicitAccess =
-    needsFilterByExplicitAccess || scope === SearchConstants.general.SCOPE_MY;
-  OaeUtil.invokeIfNecessary(
-    needsFilterByExplicitAccess,
-    filterExplicitAccess,
-    ctx,
-    (err, explicitAccessFilter) => {
-      if (err) {
-        return callback(err);
-      }
-      if (user && user.isGlobalAdmin() && scope === SearchConstants.general.SCOPE_ALL) {
-        // Global admins can search all public resources, including private tenants'
-        return callback(null, filterOr(implicitAccessFilter, explicitAccessFilter));
-      }
-      if (
-        scope === SearchConstants.general.SCOPE_NETWORK ||
-        scope === SearchConstants.general.SCOPE_ALL
-      ) {
-        // When searching network, we care about access and the scope of the tenant network (i.e.,
-        // scope public tenants away from private). All resources outside the network that the
-        // user has explicit access to are included as well
-        return callback(
-          null,
-          filterOr(
-            filterAnd(implicitAccessFilter, interactingTenantAliasesFilter),
-            explicitAccessFilter
-          )
-        );
-      }
-      if (scope === SearchConstants.general.SCOPE_INTERACT) {
-        if (!user) {
-          // Anonymous users cannot interact with anything, give an authorization error for this scenario
-          return callback({
-            code: 401,
-            msg: 'Anonymous users are not authorized to interact with any resources'
-          });
-        }
-
-        // When scoping for interaction, we care about access and resources that the user can
-        // interact with. This is basically the network scope, minus private joinable resources
-        // from the user's own tenant
-        return callback(
-          null,
-          filterOr(
-            filterAnd(
-              implicitAccessFilter,
-              interactingTenantAliasesFilter,
-
-              // A user cannot interact with any private resource
-              user.isAdmin(user.tenant.alias)
-                ? null
-                : filterNot(filterTerm('visibility', AuthzConstants.visibility.PRIVATE))
-            ),
-            explicitAccessFilter
-          )
-        );
-      }
-      if (scope === SearchConstants.general.SCOPE_MY) {
-        if (!user) {
-          // Anonymous users cannot interact with anything, give an authorization error for this scenario
-          return callback({
-            code: 400,
-            msg: 'Anonymous users cannot search for their own resources'
-          });
-        }
-
-        // When scoping for the things that are "close" to the user, we look at things that are
-        // associated to the user directly or indirectly by group access. This includes users
-        // who share group memberships with the user
-        return callback(null, explicitAccessFilter);
-      }
-
-      // Otherwise, a specific tenant has been specified. In this case we search only for
-      // resources of that tenant, even if there is explicit access to resources of other
-      // tenants
+  needsFilterByExplicitAccess = needsFilterByExplicitAccess || scope === SearchConstants.general.SCOPE_MY;
+  OaeUtil.invokeIfNecessary(needsFilterByExplicitAccess, filterExplicitAccess, ctx, (err, explicitAccessFilter) => {
+    if (err) {
+      return callback(err);
+    }
+    if (user && user.isGlobalAdmin() && scope === SearchConstants.general.SCOPE_ALL) {
+      // Global admins can search all public resources, including private tenants'
+      return callback(null, filterOr(implicitAccessFilter, explicitAccessFilter));
+    }
+    if (scope === SearchConstants.general.SCOPE_NETWORK || scope === SearchConstants.general.SCOPE_ALL) {
+      // When searching network, we care about access and the scope of the tenant network (i.e.,
+      // scope public tenants away from private). All resources outside the network that the
+      // user has explicit access to are included as well
       return callback(
         null,
-        filterAnd(
-          filterOr(implicitAccessFilter, explicitAccessFilter),
-          filterTerm('tenantAlias', scope)
+        filterOr(filterAnd(implicitAccessFilter, interactingTenantAliasesFilter), explicitAccessFilter)
+      );
+    }
+    if (scope === SearchConstants.general.SCOPE_INTERACT) {
+      if (!user) {
+        // Anonymous users cannot interact with anything, give an authorization error for this scenario
+        return callback({
+          code: 401,
+          msg: 'Anonymous users are not authorized to interact with any resources'
+        });
+      }
+
+      // When scoping for interaction, we care about access and resources that the user can
+      // interact with. This is basically the network scope, minus private joinable resources
+      // from the user's own tenant
+      return callback(
+        null,
+        filterOr(
+          filterAnd(
+            implicitAccessFilter,
+            interactingTenantAliasesFilter,
+
+            // A user cannot interact with any private resource
+            user.isAdmin(user.tenant.alias)
+              ? null
+              : filterNot(filterTerm('visibility', AuthzConstants.visibility.PRIVATE))
+          ),
+          explicitAccessFilter
         )
       );
     }
-  );
+    if (scope === SearchConstants.general.SCOPE_MY) {
+      if (!user) {
+        // Anonymous users cannot interact with anything, give an authorization error for this scenario
+        return callback({
+          code: 400,
+          msg: 'Anonymous users cannot search for their own resources'
+        });
+      }
+
+      // When scoping for the things that are "close" to the user, we look at things that are
+      // associated to the user directly or indirectly by group access. This includes users
+      // who share group memberships with the user
+      return callback(null, explicitAccessFilter);
+    }
+
+    // Otherwise, a specific tenant has been specified. In this case we search only for
+    // resources of that tenant, even if there is explicit access to resources of other
+    // tenants
+    return callback(
+      null,
+      filterAnd(filterOr(implicitAccessFilter, explicitAccessFilter), filterTerm('tenantAlias', scope))
+    );
+  });
 };
 
 /**
@@ -727,10 +706,7 @@ const filterExplicitAccess = function(ctx, callback) {
             // @see http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl-terms-filter.html
             filterTerms('direct_members', {
               type: AuthzConstants.search.MAPPING_RESOURCE_MEMBERSHIPS,
-              id: getChildSearchDocumentId(
-                AuthzConstants.search.MAPPING_RESOURCE_MEMBERSHIPS,
-                ctx.user().id
-              ),
+              id: getChildSearchDocumentId(AuthzConstants.search.MAPPING_RESOURCE_MEMBERSHIPS, ctx.user().id),
               path: 'direct_memberships',
               routing: ctx.user().id,
               cache: false

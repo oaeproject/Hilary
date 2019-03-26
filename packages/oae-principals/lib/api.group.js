@@ -90,69 +90,64 @@ const getFullGroupProfile = function(ctx, groupId, callback) {
 
       const currentUser = ctx.user();
       const currentUserId = currentUser && currentUser.id;
-      OaeUtil.invokeIfNecessary(
-        currentUserId,
-        AuthzAPI.hasAnyRole,
-        currentUserId,
-        group.id,
-        (err, hasAnyRole) => {
-          if (err) {
-            return callback(err);
-          }
+      OaeUtil.invokeIfNecessary(currentUserId, AuthzAPI.hasAnyRole, currentUserId, group.id, (err, hasAnyRole) => {
+        if (err) {
+          return callback(err);
+        }
 
-          group.isMember = permissions.canManage || hasAnyRole;
-          group.isManager = permissions.canManage;
-          group.canJoin = !hasAnyRole && permissions.canJoin;
+        group.isMember = permissions.canManage || hasAnyRole;
+        group.isManager = permissions.canManage;
+        group.canJoin = !hasAnyRole && permissions.canJoin;
+        group.canRequest = !hasAnyRole && permissions.canRequest;
 
-          if (group.isMember) {
-            // Generate a signature that can be used for push notifications
-            group.signature = Signature.createExpiringResourceSignature(ctx, groupId);
-          }
+        if (group.isMember) {
+          // Generate a signature that can be used for push notifications
+          group.signature = Signature.createExpiringResourceSignature(ctx, groupId);
+        }
 
-          // Only fetch the group creator if there is one
-          OaeUtil.invokeIfNecessary(
-            group.createdBy,
-            PrincipalsUtil.getPrincipal,
-            ctx,
-            group.createdBy,
-            (err, createdBy) => {
+        // Only fetch the group creator if there is one
+        OaeUtil.invokeIfNecessary(
+          group.createdBy,
+          PrincipalsUtil.getPrincipal,
+          ctx,
+          group.createdBy,
+          (err, createdBy) => {
+            if (err) {
+              return callback(err);
+            }
+            if (createdBy) {
+              group.createdBy = createdBy;
+            }
+
+            // As part of the group profile, get the top 8 members in the members library
+            _getMembersLibrary(ctx, group, hasAnyRole, null, 8, (err, members) => {
               if (err) {
                 return callback(err);
               }
-              if (createdBy) {
-                group.createdBy = createdBy;
-              }
 
-              // As part of the group profile, get the top 8 members in the members library
-              _getMembersLibrary(ctx, group, hasAnyRole, null, 8, (err, members) => {
-                if (err) {
-                  return callback(err);
-                }
-
-                // Add the members list to the full group profile
-                group.members = _.filter(members, member => {
-                  // We should not show any members whose profile is not linkable
-                  if (member.profile) return member.profile.profilePath;
-                });
-
-                PrincipalsEmitter.emit(PrincipalsConstants.events.GET_GROUP_PROFILE, ctx, group);
-
-                if (currentUser && PrincipalsUtil.isUser(currentUserId)) {
-                  // eslint-disable-next-line no-unused-vars
-                  PrincipalsDAO.setLatestVisit(currentUser, group, new Date(), (err, results) => {
-                    if (err) {
-                      return callback(err);
-                    }
-                    return callback(null, group);
-                  });
-                } else {
-                  return callback(null, group);
-                }
+              // Add the members list to the full group profile
+              group.members = _.filter(members, member => {
+                // We should not show any members whose profile is not linkable
+                if (member.profile) return member.profile.profilePath;
               });
-            }
-          );
-        }
-      );
+
+              PrincipalsEmitter.emit(PrincipalsConstants.events.GET_GROUP_PROFILE, ctx, group);
+
+              if (currentUser && PrincipalsUtil.isUser(currentUserId)) {
+                // eslint-disable-next-line no-unused-vars
+                PrincipalsDAO.setLatestVisit(currentUser, group, new Date(), (err, results) => {
+                  if (err) {
+                    return callback(err);
+                  }
+                  return callback(null, group);
+                });
+              } else {
+                return callback(null, group);
+              }
+            });
+          }
+        );
+      });
     });
   });
 };
@@ -282,39 +277,34 @@ const _getMembersLibrary = function(ctx, group, hasRole, start, limit, callback)
       }
 
       // Get the members from the members library and their basic profile
-      PrincipalsMembersLibrary.list(
-        group,
-        visibility,
-        { start, limit },
-        (err, memberEntries, nextToken) => {
+      PrincipalsMembersLibrary.list(group, visibility, { start, limit }, (err, memberEntries, nextToken) => {
+        if (err) {
+          return callback(err);
+        }
+
+        const memberIds = _.pluck(memberEntries, 'id');
+        PrincipalsUtil.getPrincipals(ctx, memberIds, (err, memberProfiles) => {
           if (err) {
             return callback(err);
           }
 
-          const memberIds = _.pluck(memberEntries, 'id');
-          PrincipalsUtil.getPrincipals(ctx, memberIds, (err, memberProfiles) => {
-            if (err) {
-              return callback(err);
-            }
+          const members = _.chain(memberEntries)
+            .map(memberEntry => {
+              let result;
+              if (_.contains(_.keys(memberProfiles), memberEntry.id)) {
+                result = {
+                  profile: memberProfiles[memberEntry.id],
+                  role: memberEntry.role
+                };
+              }
+              return result;
+            })
+            .compact()
+            .value();
 
-            const members = _.chain(memberEntries)
-              .map(memberEntry => {
-                let result;
-                if (_.contains(_.keys(memberProfiles), memberEntry.id)) {
-                  result = {
-                    profile: memberProfiles[memberEntry.id],
-                    role: memberEntry.role
-                  };
-                }
-                return result;
-              })
-              .compact()
-              .value();
-
-            return callback(null, members, nextToken);
-          });
-        }
-      );
+          return callback(null, members, nextToken);
+        });
+      });
     }
   );
 };
@@ -335,9 +325,7 @@ const getMembershipsLibrary = function(ctx, principalId, start, limit, callback)
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   const validator = new Validator();
-  validator
-    .check(principalId, { code: 400, msg: 'Must specify a valid principalId' })
-    .isPrincipalId();
+  validator.check(principalId, { code: 400, msg: 'Must specify a valid principalId' }).isPrincipalId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -350,21 +338,16 @@ const getMembershipsLibrary = function(ctx, principalId, start, limit, callback)
       return callback({ code: 404, msg: util.format("Couldn't find principal: %s", principalId) });
     }
 
-    LibraryAPI.Authz.resolveTargetLibraryAccess(
-      ctx,
-      principal.id,
-      principal,
-      (err, hasAccess, visibility) => {
-        if (err) {
-          return callback(err);
-        }
-        if (!hasAccess) {
-          return callback({ code: 401, msg: 'You do not have access to this memberships library' });
-        }
-
-        return _getMembershipsLibrary(ctx, principalId, visibility, start, limit, callback);
+    LibraryAPI.Authz.resolveTargetLibraryAccess(ctx, principal.id, principal, (err, hasAccess, visibility) => {
+      if (err) {
+        return callback(err);
       }
-    );
+      if (!hasAccess) {
+        return callback({ code: 401, msg: 'You do not have access to this memberships library' });
+      }
+
+      return _getMembershipsLibrary(ctx, principalId, visibility, start, limit, callback);
+    });
   });
 };
 
@@ -383,15 +366,7 @@ const getMembershipsLibrary = function(ctx, principalId, start, limit, callback)
  * @param  {String}      callback.nextToken      The value to provide in the `start` parameter to get the next set of results
  * @api private
  */
-const _getMembershipsLibrary = function(
-  ctx,
-  principalId,
-  visibility,
-  start,
-  limit,
-  callback,
-  _items
-) {
+const _getMembershipsLibrary = function(ctx, principalId, visibility, start, limit, callback, _items) {
   _items = _items || [];
 
   LibraryAPI.Index.list(
@@ -424,15 +399,7 @@ const _getMembershipsLibrary = function(
         // If we don't have the required number of items yet and there is a next token,
         // we retrieve the next page
         if (_items.length < limit && nextToken) {
-          return _getMembershipsLibrary(
-            ctx,
-            principalId,
-            visibility,
-            nextToken,
-            limit,
-            callback,
-            _items
-          );
+          return _getMembershipsLibrary(ctx, principalId, visibility, nextToken, limit, callback, _items);
 
           // Otherwise we can return back to the caller
         }
@@ -476,9 +443,7 @@ const getRecentGroupsForUserId = function(ctx, principalId, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 5, 1);
 
   const validator = new Validator();
-  validator
-    .check(principalId, { code: 400, msg: 'Must specify a valid principalId' })
-    .isPrincipalId();
+  validator.check(principalId, { code: 400, msg: 'Must specify a valid principalId' }).isPrincipalId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -512,6 +477,9 @@ const getRecentGroupsForUserId = function(ctx, principalId, limit, callback) {
  */
 const _getRecentGroupsForUserId = function(ctx, principalId, limit, callback) {
   PrincipalsDAO.getVisitedGroups(principalId, (err, items) => {
+    if (err) {
+      return callback(err);
+    }
     const sorted = _.sortBy(items, 'latestVisit')
       .reverse()
       .slice(0, 5);
@@ -625,9 +593,7 @@ const setGroupMembers = function(ctx, groupId, changes, callback) {
 const leaveGroup = function(ctx, groupId, callback) {
   const validator = new Validator();
   validator.check(groupId, { code: 400, msg: 'Invalid groupId specified' }).isGroupId();
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to join a group' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'You have to be logged in to be able to join a group' }).isLoggedInUser(ctx);
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -651,19 +617,13 @@ const leaveGroup = function(ctx, groupId, callback) {
           return callback(err);
         }
 
-        PrincipalsEmitter.emit(
-          PrincipalsConstants.events.LEFT_GROUP,
-          ctx,
-          group,
-          memberChangeInfo,
-          errs => {
-            if (errs) {
-              return callback(_.first(errs));
-            }
-
-            return callback();
+        PrincipalsEmitter.emit(PrincipalsConstants.events.LEFT_GROUP, ctx, group, memberChangeInfo, errs => {
+          if (errs) {
+            return callback(_.first(errs));
           }
-        );
+
+          return callback();
+        });
       });
     });
   });
@@ -681,9 +641,7 @@ const leaveGroup = function(ctx, groupId, callback) {
 const joinGroup = function(ctx, groupId, callback) {
   const validator = new Validator();
   validator.check(groupId, { code: 400, msg: 'Invalid groupId specified' }).isGroupId();
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to join a group' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'You have to be logged in to be able to join a group' }).isLoggedInUser(ctx);
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -765,12 +723,8 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
 
   // Parameter validation
   const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'Cannot create a group anonymously' })
-    .isLoggedInUser(ctx);
-  validator
-    .check(displayName, { code: 400, msg: 'You need to provide a display name for this group' })
-    .notEmpty();
+  validator.check(null, { code: 401, msg: 'Cannot create a group anonymously' }).isLoggedInUser(ctx);
+  validator.check(displayName, { code: 400, msg: 'You need to provide a display name for this group' }).notEmpty();
   validator
     .check(displayName, { code: 400, msg: 'A display name can be at most 1000 characters long' })
     .isShortString();
@@ -812,11 +766,7 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
   }
 
   // Generate the group id
-  const groupId = AuthzUtil.toId(
-    AuthzConstants.principalTypes.GROUP,
-    tenantAlias,
-    ShortId.generate()
-  );
+  const groupId = AuthzUtil.toId(AuthzConstants.principalTypes.GROUP, tenantAlias, ShortId.generate());
 
   // Immediately add the current user as a manager
   roles[ctx.user().id] = AuthzConstants.role.MANAGER;
@@ -835,19 +785,13 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
       return callback(err);
     }
 
-    PrincipalsEmitter.emit(
-      PrincipalsConstants.events.CREATED_GROUP,
-      ctx,
-      group,
-      memberChangeInfo,
-      errs => {
-        if (errs) {
-          return callback(_.first(errs));
-        }
-
-        return callback(null, group);
+    PrincipalsEmitter.emit(PrincipalsConstants.events.CREATED_GROUP, ctx, group, memberChangeInfo, errs => {
+      if (errs) {
+        return callback(_.first(errs));
       }
-    );
+
+      return callback(null, group);
+    });
   });
 };
 
@@ -870,9 +814,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
   const fieldNames = profileFields ? _.keys(profileFields) : [];
   const validator = new Validator();
   validator.check(groupId, { code: 400, msg: 'A valid group id must be provided' }).isGroupId();
-  validator
-    .check(fieldNames.length, { code: 400, msg: 'You should specify at least one field' })
-    .min(1);
+  validator.check(fieldNames.length, { code: 400, msg: 'You should specify at least one field' }).min(1);
   fieldNames.forEach(fieldName => {
     validator
       .check(fieldName, { code: 400, msg: fieldName + ' is not a recognized group profile field' })
@@ -892,9 +834,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
         })
         .isIn(_.values(AuthzConstants.joinable));
     } else if (fieldName === 'displayName') {
-      validator
-        .check(profileFields.displayName, { code: 400, msg: 'A display name cannot be empty' })
-        .notEmpty();
+      validator.check(profileFields.displayName, { code: 400, msg: 'A display name cannot be empty' }).notEmpty();
       validator
         .check(profileFields.displayName, {
           code: 400,
@@ -934,9 +874,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
 
       profileFields = _.extend({}, profileFields, {
         lastModified: Date.now().toString(),
-        description: profileFields.description
-          ? MessageBoxAPI.replaceLinks(profileFields.description)
-          : ''
+        description: profileFields.description ? MessageBoxAPI.replaceLinks(profileFields.description) : ''
       });
       PrincipalsDAO.updatePrincipal(groupId, profileFields, err => {
         if (err) {
@@ -1006,12 +944,7 @@ const deleteGroup = function(ctx, groupId, callback) {
         }
 
         // Notify consumers that a group has been deleted
-        return PrincipalsEmitter.emit(
-          PrincipalsConstants.events.DELETED_GROUP,
-          ctx,
-          group,
-          callback
-        );
+        return PrincipalsEmitter.emit(PrincipalsConstants.events.DELETED_GROUP, ctx, group, callback);
       });
     });
   });
@@ -1047,12 +980,7 @@ const restoreGroup = function(ctx, groupId, callback) {
       }
 
       // Notify consumers that a group has been restored
-      return PrincipalsEmitter.emit(
-        PrincipalsConstants.events.RESTORED_GROUP,
-        ctx,
-        group,
-        callback
-      );
+      return PrincipalsEmitter.emit(PrincipalsConstants.events.RESTORED_GROUP, ctx, group, callback);
     });
   });
 };
@@ -1161,6 +1089,220 @@ const _canManageAnyGroups = function(ctx, groupIds, callback) {
   });
 };
 
+const _validateJoinGroupRequest = function(ctx, groupId, callback) {
+  const validator = new Validator();
+  validator.check(groupId, { code: 400, msg: 'A valid group id must be provided' }).isGroupId();
+  validator
+    .check(null, { code: 401, msg: 'You have to be logged in to be able to ask to join a group' })
+    .isLoggedInUser(ctx);
+  if (validator.hasErrors()) {
+    return callback(validator.getFirstError());
+  }
+  return callback();
+};
+
+/**
+ * Create a request
+ *
+ * @param  {Context}    ctx                         Standard context object containing the current user and the current tenant
+ * @param  {String}     groupId                     The group id
+ * @param  {Function}   callback                    Standard callback function
+ * @param  {Object}     callback.err                An error that occured, if any
+ */
+const createRequestJoinGroup = function(ctx, groupId, callback) {
+  _validateJoinGroupRequest(ctx, groupId, err => {
+    if (err) return callback(err);
+
+    // If the request exists, return
+    PrincipalsDAO.createRequestJoinGroup(ctx.user().id, groupId, err => {
+      if (err) return callback(err);
+
+      PrincipalsDAO.getPrincipal(groupId, (err, group) => {
+        if (err) return callback(err);
+
+        AuthzAPI.getAuthzMembers(groupId, null, null, (err, memberInfos) => {
+          if (err) return callback(err);
+
+          // Notify managers that someone asked to be part of this group
+          return PrincipalsEmitter.emit(
+            PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP,
+            ctx,
+            group,
+            group,
+            memberInfos,
+            callback
+          );
+        });
+      });
+    });
+  });
+};
+
+/**
+ * Get all requests related to a group
+ *
+ * @param  {Context}    ctx                         Standard context object containing the current user and the current tenant
+ * @param  {String}     groupId                     The group id
+ * @param  {String}     start                       The group paging token from which to start fetching group members
+ * @param  {Number}     limit                       The maximum number of results to return. Default: 10
+ * @param  {Function}   callback                    Standard callback function
+ * @param  {Object}     callback.err                An error that occured, if any
+ */
+const getJoinGroupRequests = function(ctx, filter, callback) {
+  // eslint-disable-next-line no-unused-vars
+  let { groupId, start, limit } = filter;
+  limit = OaeUtil.getNumberParam(limit, 10, 1);
+  _validateJoinGroupRequest(ctx, groupId, err => {
+    if (err) return callback(err);
+
+    PrincipalsDAO.getJoinGroupRequests(groupId, (err, requests) => {
+      if (err) return callback(err);
+
+      if (_.isEmpty(requests)) return callback();
+
+      // Get only pending request
+      const users = _.filter(requests, hash => {
+        return hash.status === PrincipalsConstants.requestStatus.PENDING;
+      });
+
+      // Return principals
+      const userIds = _.map(users, hash => {
+        return hash.principalId;
+      });
+
+      PrincipalsDAO.getPrincipals(userIds, null, (err, principals) => {
+        if (err) return callback(err);
+        return callback(null, principals);
+      });
+    });
+  });
+};
+
+/**
+ * Get a request
+ *
+ * @param  {Context}    ctx                         Standard context object containing the current user and the current tenant
+ * @param  {String}     groupId                     The group id
+ * @param  {Function}   callback                    Standard callback function
+ * @param  {Object}     callback.err                An error that occured, if any
+ */
+const getJoinGroupRequest = function(ctx, groupId, callback) {
+  const validator = new Validator();
+  validator.check(groupId, { code: 400, msg: 'A valid group id must be provided' }).isGroupId();
+  validator
+    .check(null, { code: 401, msg: 'You have to be logged in to be able to ask to join a group' })
+    .isLoggedInUser(ctx);
+  if (validator.hasErrors()) {
+    return callback(validator.getFirstError());
+  }
+
+  PrincipalsDAO.getJoinGroupRequest(groupId, ctx.user().id, (err, request) => {
+    if (err) {
+      return callback(err);
+    }
+
+    /**
+     * Only return the group join request if it's in pending status because:
+     * if in CANCEL status, act as if no request exists
+     * if in REJECT status, act as if no request exists
+     * if in ACCEPT status, then this is useless
+     */
+    if (_.isEmpty(request) || request.status !== PrincipalsConstants.requestStatus.PENDING) {
+      return callback();
+    }
+
+    return callback(null, request);
+  });
+};
+
+const _validateUpdateJoinGroupByRequest = function(ctx, joinRequest, callback) {
+  const { groupId, principalId, role, status } = joinRequest;
+  const validator = new Validator();
+  if (role) {
+    validator
+      .check(role, { code: 400, msg: role + ' is not a recognized role group' })
+      .isIn(PrincipalsConstants.role.ALL_PRIORITY);
+  }
+  validator.check(principalId, { code: 400, msg: 'Must specify a valid principalId' }).isPrincipalId();
+  validator
+    .check(status, { code: 400, msg: status + ' is not a recognized request status' })
+    .isIn(_.values(PrincipalsConstants.requestStatus));
+  validator.check(groupId, { code: 400, msg: 'A valid group id must be provided' }).isGroupId();
+  validator
+    .check(null, { code: 401, msg: 'You have to be logged in to be able to ask to join a group' })
+    .isLoggedInUser(ctx);
+  if (validator.hasErrors()) {
+    return callback(validator.getFirstError());
+  }
+
+  return callback();
+};
+
+/**
+ * Update a request
+ *
+ * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {String}     groupId         The id of the group to join
+ * @param  {String}     principalId     The id of the principal who wants to join this group
+ * @param  {String}     role            The role validated by the admin
+ * @param  {String}     status          The status of the request
+ * @param  {Function}   callback        Standard callback function
+ * @param  {Object}     callback.err    An error that occurred, if any
+ */
+const updateJoinGroupByRequest = function(ctx, joinRequest, callback) {
+  let { groupId, principalId, role, status } = joinRequest;
+  principalId = principalId || ctx.user().id;
+
+  _validateUpdateJoinGroupByRequest(ctx, { groupId, principalId, role, status }, err => {
+    if (err) {
+      return callback(err);
+    }
+
+    if (!ctx.user()) {
+      return callback(null, false);
+    }
+
+    PrincipalsDAO.updateJoinGroupByRequest(principalId, groupId, status, err => {
+      if (err) {
+        return callback(err);
+      }
+
+      if (status === PrincipalsConstants.requestStatus.ACCEPT) {
+        const changes = {};
+        changes[principalId] = role;
+
+        setGroupMembers(ctx, groupId, changes, err => {
+          if (err) {
+            return callback(err);
+          }
+        });
+      }
+      return notifyOfJoinRequestDecision(ctx, { groupId, principalId, status }, callback);
+    });
+  });
+};
+
+const notifyOfJoinRequestDecision = function(ctx, joinRequest, callback) {
+  const { groupId, principalId, status } = joinRequest;
+  const eventToEmit =
+    status === PrincipalsConstants.requestStatus.ACCEPT
+      ? PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP_ACCEPTED
+      : PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP_REJECTED;
+  PrincipalsDAO.getPrincipal(groupId, (err, group) => {
+    if (err) {
+      return callback(err);
+    }
+    PrincipalsDAO.getPrincipal(principalId, (err, requester) => {
+      if (err) {
+        return callback(err);
+      }
+
+      // Notify the requester of the decision of the request
+      return PrincipalsEmitter.emit(eventToEmit, ctx, group, requester, callback);
+    });
+  });
+};
+
 module.exports = {
   getGroup,
   getFullGroupProfile,
@@ -1177,5 +1319,9 @@ module.exports = {
   deleteGroup,
   restoreGroup,
   canRestoreGroup,
-  canManageAny
+  canManageAny,
+  createRequestJoinGroup,
+  getJoinGroupRequests,
+  getJoinGroupRequest,
+  updateJoinGroupByRequest
 };

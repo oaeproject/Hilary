@@ -91,7 +91,8 @@ const resolveTargetLibraryAccess = function(ctx, libraryId, libraryOwner, callba
       if (
         ctx.user() &&
         TenantsUtil.canInteract(ctx.user().tenant.alias, libraryOwner.tenant.alias) &&
-        libraryOwner.joinable === AuthzConstants.joinable.YES
+        (libraryOwner.joinable === AuthzConstants.joinable.YES ||
+          libraryOwner.joinable === AuthzConstants.joinable.REQUEST)
       ) {
         // One weird case is if the user is able to "join" the resource (e.g., a group),
         // then they should also be able to see its public items

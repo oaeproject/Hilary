@@ -53,7 +53,7 @@ const getStandardResourcePropagation = function(resourceVisibility, resourceJoin
     // may have the opportunity to join it
   } else if (
     resourceVisibility === AuthzConstants.visibility.PRIVATE &&
-    resourceJoinable === AuthzConstants.joinable.YES
+    (resourceJoinable === AuthzConstants.joinable.YES || resourceJoinable === AuthzConstants.joinable.REQUEST)
   ) {
     propagation.push({ type: ActivityConstants.entityPropagation.TENANT });
   }
@@ -203,11 +203,7 @@ const _getAllAuthzMembers = function(groupIds, callback, aggregatedMembers) {
     // Aggregate the memberIds
     for (let i = 0; i < members.length; i++) {
       const memberId = members[i].id;
-      if (
-        !aggregatedMembers[memberId] &&
-        AuthzUtil.isGroupId(memberId) &&
-        !_.contains(groupIds, memberId)
-      ) {
+      if (!aggregatedMembers[memberId] && AuthzUtil.isGroupId(memberId) && !_.contains(groupIds, memberId)) {
         // If this is a group and we have not aggregated it yet, add it to the groupIds
         groupIds.push(memberId);
       }

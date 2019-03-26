@@ -56,9 +56,7 @@ const ResourceActions = new EmitterAPI.EventEmitter();
  */
 const create = function(ctx, roles, createFn, callback) {
   const validator = new Validator();
-  validator
-    .check(null, { code: 400, msg: 'Only authenticated users can create a new resource' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 400, msg: 'Only authenticated users can create a new resource' }).isLoggedInUser(ctx);
 
   // Ensure all member ids are valid members
   const memberIds = _.keys(roles);
@@ -148,13 +146,9 @@ const create = function(ctx, roles, createFn, callback) {
  */
 const share = function(ctx, resource, targetIds, role, callback) {
   const validator = new Validator();
-  validator
-    .check(null, { code: 400, msg: 'Only authenticated users can share a resource' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 400, msg: 'Only authenticated users can share a resource' }).isLoggedInUser(ctx);
   validator.check(role, { code: 400, msg: 'Must specify a valid role' }).isValidRole();
-  validator
-    .check(null, { code: 400, msg: 'An invalid resource was provided' })
-    .isResource(resource);
+  validator.check(null, { code: 400, msg: 'An invalid resource was provided' }).isResource(resource);
   validator
     .check(targetIds.length, {
       code: 400,
@@ -177,12 +171,8 @@ const share = function(ctx, resource, targetIds, role, callback) {
           'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
       })
       .isValidShareTarget();
-    validator
-      .check(targetId, { code: 400, msg: 'You cannot share a resource with itself' })
-      .not(resourceAuthzId);
-    validator
-      .check(targetId, { code: 400, msg: 'You cannot share a resource with itself' })
-      .not(resourceId);
+    validator.check(targetId, { code: 400, msg: 'You cannot share a resource with itself' }).not(resourceAuthzId);
+    validator.check(targetId, { code: 400, msg: 'You cannot share a resource with itself' }).not(resourceId);
   });
 
   if (validator.hasErrors()) {
@@ -198,33 +188,27 @@ const share = function(ctx, resource, targetIds, role, callback) {
     const targets = _.values(targetsByTargetId);
 
     // Determine if the share violates any privacy or access
-    AuthzPermissions.canShare(
-      ctx,
-      resource,
-      targets,
-      role,
-      (err, memberChangeInfo, emailChangeInfo) => {
+    AuthzPermissions.canShare(ctx, resource, targets, role, (err, memberChangeInfo, emailChangeInfo) => {
+      if (err) {
+        return callback(err);
+      }
+
+      // Apply the changes to the authz members, if any
+      _applyMemberChanges(ctx, resource, memberChangeInfo, err => {
         if (err) {
           return callback(err);
         }
 
-        // Apply the changes to the authz members, if any
-        _applyMemberChanges(ctx, resource, memberChangeInfo, err => {
+        // Apply the changes to the authz invitations, if any
+        _applyInvitationChanges(ctx, resource, emailChangeInfo, err => {
           if (err) {
             return callback(err);
           }
 
-          // Apply the changes to the authz invitations, if any
-          _applyInvitationChanges(ctx, resource, emailChangeInfo, err => {
-            if (err) {
-              return callback(err);
-            }
-
-            return callback(null, memberChangeInfo, emailChangeInfo);
-          });
+          return callback(null, memberChangeInfo, emailChangeInfo);
         });
-      }
-    );
+      });
+    });
   });
 };
 
@@ -241,15 +225,9 @@ const share = function(ctx, resource, targetIds, role, callback) {
  */
 const setRoles = function(ctx, resource, roles, callback) {
   const validator = new Validator();
-  validator
-    .check(null, { code: 400, msg: 'Only authenticated users can share a resource' })
-    .isLoggedInUser(ctx);
-  validator
-    .check(null, { code: 400, msg: 'An invalid resource was provided' })
-    .isResource(resource);
-  validator
-    .check(_.keys(roles).length, { code: 400, msg: 'At least one role update should be specified' })
-    .min(1);
+  validator.check(null, { code: 400, msg: 'Only authenticated users can share a resource' }).isLoggedInUser(ctx);
+  validator.check(null, { code: 400, msg: 'An invalid resource was provided' }).isResource(resource);
+  validator.check(_.keys(roles).length, { code: 400, msg: 'At least one role update should be specified' }).min(1);
 
   let resourceAuthzId = null;
   let resourceId = null;
@@ -266,12 +244,8 @@ const setRoles = function(ctx, resource, roles, callback) {
           'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
       })
       .isValidShareTarget();
-    validator
-      .check(memberId, { code: 400, msg: 'You cannot share a resource with itself' })
-      .not(resourceAuthzId);
-    validator
-      .check(memberId, { code: 400, msg: 'You cannot share a resource with itself' })
-      .not(resourceId);
+    validator.check(memberId, { code: 400, msg: 'You cannot share a resource with itself' }).not(resourceAuthzId);
+    validator.check(memberId, { code: 400, msg: 'You cannot share a resource with itself' }).not(resourceId);
     validator.check(role, { code: 400, msg: 'An invalid role was provided' }).isValidRoleChange();
   });
 
@@ -288,32 +262,27 @@ const setRoles = function(ctx, resource, roles, callback) {
     const targetRoles = _.values(targetRolesById);
 
     // Permission check to ensure the current user is allowed to set these roles
-    AuthzPermissions.canSetRoles(
-      ctx,
-      resource,
-      targetRoles,
-      (err, memberChangeInfo, emailChangeInfo) => {
+    AuthzPermissions.canSetRoles(ctx, resource, targetRoles, (err, memberChangeInfo, emailChangeInfo) => {
+      if (err) {
+        return callback(err);
+      }
+
+      // Apply the changes to the authz members, if any
+      _applyMemberChanges(ctx, resource, memberChangeInfo, err => {
         if (err) {
           return callback(err);
         }
 
-        // Apply the changes to the authz members, if any
-        _applyMemberChanges(ctx, resource, memberChangeInfo, err => {
+        // Apply the changes to the authz invitations, if any
+        _applyInvitationChanges(ctx, resource, emailChangeInfo, err => {
           if (err) {
             return callback(err);
           }
 
-          // Apply the changes to the authz invitations, if any
-          _applyInvitationChanges(ctx, resource, emailChangeInfo, err => {
-            if (err) {
-              return callback(err);
-            }
-
-            return callback(null, memberChangeInfo, emailChangeInfo);
-          });
+          return callback(null, memberChangeInfo, emailChangeInfo);
         });
-      }
-    );
+      });
+    });
   });
 };
 
@@ -328,12 +297,8 @@ const setRoles = function(ctx, resource, roles, callback) {
  */
 const resendInvitation = function(ctx, resource, email, callback) {
   const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'Only authenticated users can resend an invitation' })
-    .isLoggedInUser(ctx);
-  validator
-    .check(null, { code: 400, msg: 'A valid resource must be provided' })
-    .isResource(resource);
+  validator.check(null, { code: 401, msg: 'Only authenticated users can resend an invitation' }).isLoggedInUser(ctx);
+  validator.check(null, { code: 400, msg: 'A valid resource must be provided' }).isResource(resource);
   validator.check(email, { code: 400, msg: 'A valid email must be provided' }).isEmail();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
@@ -381,9 +346,7 @@ const resendInvitation = function(ctx, resource, email, callback) {
  */
 const acceptInvitation = function(ctx, token, callback) {
   const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'Only authenticated users can accept an invitation' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'Only authenticated users can accept an invitation' }).isLoggedInUser(ctx);
   validator.check(token, { code: 400, msg: 'An invitation token must be specified' }).notEmpty();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
@@ -441,10 +404,7 @@ const acceptInvitation = function(ctx, token, callback) {
           (errs, results) => {
             if (errs) {
               _.each(errs, err => {
-                log().warn(
-                  { err },
-                  'An error occurred while handling an "accept invitation" event'
-                );
+                log().warn({ err }, 'An error occurred while handling an "accept invitation" event');
               });
             }
 
@@ -556,13 +516,10 @@ const _acceptInvitation = function(ctx, token, callback) {
         }
 
         const membersById = _.object([[ctx.user().id, ctx.user()]]);
-        const memberChangeInfosByResourceId = _.mapObject(
-          idChangeInfosByResourceId,
-          idChangeInfo => {
-            // Map the id change infos into member change infos
-            return AuthzModel.MemberChangeInfo.fromIdChangeInfo(idChangeInfo, membersById);
-          }
-        );
+        const memberChangeInfosByResourceId = _.mapObject(idChangeInfosByResourceId, idChangeInfo => {
+          // Map the id change infos into member change infos
+          return AuthzModel.MemberChangeInfo.fromIdChangeInfo(idChangeInfo, membersById);
+        });
 
         // Remove all invitations for the email
         AuthzInvitationsDAO.deleteInvitationsByEmail(email, err => {
@@ -725,42 +682,31 @@ const _applyAllMemberChanges = function(memberRolesByResourceId, callback) {
     // First determine what changes to actually apply. If someone accepts an invitation and they
     // already have manager role, an invitation that invited them as viewer should not demote
     // their role. Therefore, we only take into consideration promotions, similar to share
-    AuthzAPI.computeMemberRolesAfterChanges(
-      resourceId,
-      memberRoles,
-      { promoteOnly: true },
-      (err, idChangeInfo) => {
-        if (err) {
-          log().warn(
-            { err },
-            'An error occurred computing member role changes when an invitation was accepted'
-          );
-          return _done();
-        }
-        if (_.isEmpty(idChangeInfo.changes)) {
-          // Ignore any resource where its invitation change should not be applied
-          return _done();
-        }
-
-        // Perform the actual changes in the resource roles. When an invitation is created, it
-        // is the authz id that is persisted as the resource id in the invitations schema.
-        // Therefore, we can safely use this resource id to update the roles in the authz api
-        AuthzAPI.updateRoles(resourceId, idChangeInfo.changes, err => {
-          if (err) {
-            log().warn(
-              { err },
-              'An error occurred applying member role changes when an invitation was accepted'
-            );
-            return _done();
-          }
-
-          // Record this as a change that was made
-          idChangeInfosByResourceId[resourceId] = idChangeInfo;
-
-          return _done();
-        });
+    AuthzAPI.computeMemberRolesAfterChanges(resourceId, memberRoles, { promoteOnly: true }, (err, idChangeInfo) => {
+      if (err) {
+        log().warn({ err }, 'An error occurred computing member role changes when an invitation was accepted');
+        return _done();
       }
-    );
+      if (_.isEmpty(idChangeInfo.changes)) {
+        // Ignore any resource where its invitation change should not be applied
+        return _done();
+      }
+
+      // Perform the actual changes in the resource roles. When an invitation is created, it
+      // is the authz id that is persisted as the resource id in the invitations schema.
+      // Therefore, we can safely use this resource id to update the roles in the authz api
+      AuthzAPI.updateRoles(resourceId, idChangeInfo.changes, err => {
+        if (err) {
+          log().warn({ err }, 'An error occurred applying member role changes when an invitation was accepted');
+          return _done();
+        }
+
+        // Record this as a change that was made
+        idChangeInfosByResourceId[resourceId] = idChangeInfo;
+
+        return _done();
+      });
+    });
   });
 };
 

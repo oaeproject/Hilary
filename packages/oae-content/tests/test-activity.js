@@ -27,13 +27,10 @@ const AuthzUtil = require('oae-authz/lib/util');
 const Cassandra = require('oae-util/lib/cassandra');
 const EmailTestsUtil = require('oae-email/lib/test/util');
 const FollowingTestsUtil = require('oae-following/lib/test/util');
-const log = require('oae-logger').logger('test-activity');
 const PreviewConstants = require('oae-preview-processor/lib/constants');
 const PrincipalsTestUtil = require('oae-principals/lib/test/util');
 const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
 const RestUtil = require('oae-rest/lib/util');
-const Sanitization = require('oae-util/lib/sanitization');
 const TestsUtil = require('oae-tests');
 
 const ContentTestUtil = require('oae-content/lib/test/util');

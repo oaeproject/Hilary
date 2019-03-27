@@ -209,7 +209,7 @@ describe('Content', () => {
    * whether or not it can be seen in the library of the creator
    * @param  {RestContext}        restCtx             Standard REST Context object that contains the current tenant URL and the current
    *                                                  user credentials
-   * @param  {String}             creator             The user id for which we want to check the library
+   * @param  {String}             libraryToCheck      The user id (creator) for which we want to check the library
    * @param  {Content}            contentObj          The content object we'll be running checks for
    * @param  {Boolean}            expectAccess        Whether or not we expect the current user to have access to the piece of content
    * @param  {Boolean}            expectManager       Whether or not we expect the current user to be able to manage the piece of content
@@ -556,6 +556,7 @@ describe('Content', () => {
           new Context(tenant, contexts.branden.user),
           'local:2012/12/06/file.doc'
         );
+        // eslint-disable-next-line node/no-deprecated-api
         const parsedUrl = url.parse(signedDownloadUrl, true);
 
         // Branden should be able to download it because he is super awesome and important (In this case, downloading = 204)

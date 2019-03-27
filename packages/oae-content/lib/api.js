@@ -630,7 +630,7 @@ const createCollabSheet = function(ctx, displayName, description, visibility, ad
  * @param  {String}         [description]       A longer description for the content item
  * @param  {String}         visibility          The visibility of the collaborative document. One of `public`, `loggedin`, `private`
  * @param  {Object}         roles               Object where the keys represent principal ids that need to be added to the content upon creation and the values represent the role that principal will have. Possible values are "viewer" and "manager", as well as "editor" for collabdocs and collabsheets
- * @param  {String}         folders             The ids of the folders to which this content item should be added
+ * @param  {String}         folderIds             The ids of the folders to which this content item should be added
  * @param  {Object}         otherValues         JSON object where the keys represent other metadata values that need to be stored, and the values represent the metadata values
  * @param  {Object}         revisionData        JSON object where the keys represent revision columns that need to be stored, and the values represent the revision values
  * @param  {Function}       callback            Standard callback function

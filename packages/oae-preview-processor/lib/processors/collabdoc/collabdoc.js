@@ -162,7 +162,8 @@ const generatePreviews = function(ctx, contentObj, callback) {
  * Take the provided Collab HTML, wrap into the preview template and store it to disk
  *
  * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
- * @param  {String}     collabHtml    The HTML to wrap into the preview template
+ * @param  {String}     collabHtml      The HTML to wrap into the preview template
+ * @param  {String}     type            Standard callback function
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  * @param  {String}     callback.path   The path the file has been written to

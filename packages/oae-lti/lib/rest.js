@@ -70,21 +70,13 @@ OAE.tenantRouter.on('post', '/api/lti/:groupId/create', (req, res) => {
     displayName: req.body.displayName,
     description: req.body.description
   };
-  LtiApi.addLtiTool(
-    req.ctx,
-    req.params.groupId,
-    req.body.url,
-    req.body.secret,
-    req.body.key,
-    opts,
-    (err, tool) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-
-      return res.status(201).send(tool);
+  LtiApi.addLtiTool(req.ctx, req.params.groupId, req.body.url, req.body.secret, req.body.key, opts, (err, tool) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    return res.status(201).send(tool);
+  });
 });
 
 /**

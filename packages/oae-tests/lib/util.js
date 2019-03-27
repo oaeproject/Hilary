@@ -61,7 +61,7 @@ const NOT_JOINABLE = 'no';
 const JOINABLE = 'yes';
 const JOINABLE_BY_REQUEST = 'request';
 const PUBLIC = 'public';
-const LOGGED_IN = 'loggedin';
+const LOGGEDIN = 'loggedin';
 const PRIVATE = 'private';
 
 /**
@@ -379,7 +379,7 @@ const generateTestGroups = function(restContext, total, callback, _groups) {
     restContext,
     generateTestGroupId('random-title'),
     generateTestGroupId('random-description'),
-    'public',
+    PUBLIC,
     'yes',
     [],
     [],
@@ -633,7 +633,7 @@ const createGlobalAdminContext = function() {
   const globalTenant = global.oaeTests.tenants.global;
   const globalAdminId = 'u:' + globalTenant.alias + ':admin';
   const globalUser = new User(globalTenant.alias, globalAdminId, 'Global Administrator', 'admin@example.com', {
-    visibility: 'private',
+    visibility: PRIVATE,
     isGlobalAdmin: true
   });
   return new Context(globalTenant, globalUser);
@@ -701,8 +701,10 @@ const generateRandomText = function(numberOfWords) {
       const letter = Math.floor(Math.random() * alphabet.length);
       word += alphabet[letter];
     }
+
     text.push(word);
   }
+
   return text.join(' ');
 };
 
@@ -739,6 +741,7 @@ const createFileReadableStream = function(filename, size) {
         for (let i = 0; i < toGenerate; i++) {
           data += '0';
         }
+
         return data;
       };
 
@@ -825,12 +828,12 @@ const setupMultiTenantPrivacyEntities = function(callback) {
  * @api private
  */
 const _createMultiPrivacyTenants = function(callback) {
-  const publicTenantAlias = TenantsTestUtil.generateTestTenantAlias('public');
+  const publicTenantAlias = TenantsTestUtil.generateTestTenantAlias(PUBLIC);
   const publicTenant1Alias = TenantsTestUtil.generateTestTenantAlias('public1');
-  const privateTenantAlias = TenantsTestUtil.generateTestTenantAlias('private');
+  const privateTenantAlias = TenantsTestUtil.generateTestTenantAlias(PRIVATE);
   const privateTenant1Alias = TenantsTestUtil.generateTestTenantAlias('private1');
 
-  _createPublicTenant(publicTenantAlias, 'public', (tenant, tenantAdmin) => {
+  _createPublicTenant(publicTenantAlias, PUBLIC, (tenant, tenantAdmin) => {
     const publicTenant = {
       tenant,
       adminUser: tenantAdmin,
@@ -838,7 +841,7 @@ const _createMultiPrivacyTenants = function(callback) {
       anonymousRestContext: createTenantRestContext(tenant.host)
     };
 
-    _createPublicTenant(publicTenant1Alias, 'public', (tenant, tenantAdmin) => {
+    _createPublicTenant(publicTenant1Alias, PUBLIC, (tenant, tenantAdmin) => {
       const publicTenant1 = {
         tenant,
         adminUser: tenantAdmin,
@@ -913,9 +916,9 @@ const _setupTenant = function(tenant, callback) {
  * @api private
  */
 const _createMultiPrivacyUsers = function(tenant, callback) {
-  _createUserWithVisibility(tenant, 'public', publicUser => {
-    _createUserWithVisibility(tenant, 'loggedin', loggedinUser => {
-      _createUserWithVisibility(tenant, 'private', privateUser => {
+  _createUserWithVisibility(tenant, PUBLIC, publicUser => {
+    _createUserWithVisibility(tenant, LOGGEDIN, loggedinUser => {
+      _createUserWithVisibility(tenant, PRIVATE, privateUser => {
         return callback(publicUser, loggedinUser, privateUser);
       });
     });
@@ -985,7 +988,7 @@ const _getGroupsToBeCreated = function(tenant) {
   return {
     publicGroup: { visibility: PUBLIC, memberPrincipalId: tenant.publicUser.user.id, joinable: JOINABLE_BY_REQUEST },
     loggedinJoinableGroupByRequest: {
-      visibility: LOGGED_IN,
+      visibility: LOGGEDIN,
       memberPrincipalId: tenant.loggedinUser.user.id,
       joinable: JOINABLE_BY_REQUEST
     },
@@ -995,7 +998,7 @@ const _getGroupsToBeCreated = function(tenant) {
       joinable: JOINABLE_BY_REQUEST
     },
     loggedinNotJoinableGroup: {
-      visibility: LOGGED_IN,
+      visibility: LOGGEDIN,
       memberPrincipalId: tenant.loggedinUser.user.id,
       joinable: NOT_JOINABLE
     },
@@ -1005,7 +1008,7 @@ const _getGroupsToBeCreated = function(tenant) {
       joinable: NOT_JOINABLE
     },
     loggedinJoinableGroup: {
-      visibility: LOGGED_IN,
+      visibility: LOGGEDIN,
       memberPrincipalId: tenant.loggedinUser.user.id,
       joinable: JOINABLE
     },
@@ -1057,7 +1060,7 @@ const _createGroupWithVisibility = function(tenant, group, callback) {
  * @api private
  */
 const _createPrivateTenant = function(tenantAlias, callback) {
-  _createPublicTenant(tenantAlias, 'private', (tenant, tenantAdmin) => {
+  _createPublicTenant(tenantAlias, PRIVATE, (tenant, tenantAdmin) => {
     // Only global admins can update tenant privacy, so use that
     ConfigTestUtil.updateConfigAndWait(
       createGlobalAdminRestContext(),
@@ -1250,6 +1253,7 @@ const setUpBeforeTests = function(config, dropKeyspaceBeforeTest, callback) {
       if (err) {
         return callback(new Error(err.msg));
       }
+
       // Run migrations otherwise keyspace is empty
       migrationRunner.runMigrations(config.cassandra, () => {
         Cassandra.close(() => {

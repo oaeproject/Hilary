@@ -13,67 +13,59 @@
  * permissions and limitations under the License.
  */
 
-var _ = require('underscore');
-var assert = require('assert');
-var fs = require('fs');
-var util = require('util');
+const assert = require('assert');
+const _ = require('underscore');
 
-var RestAPI = require('oae-rest');
-var RestContext = require('oae-rest/lib/model').RestContext;
-var TenantsTestUtil = require('oae-tenants/lib/test/util');
-var TestsUtil = require('oae-tests');
+const RestAPI = require('oae-rest');
+const TestsUtil = require('oae-tests');
 
-var UIAPI = require('oae-ui');
-var UIConstants = require('oae-ui/lib/constants').UIConstants;
-var UITestUtil = require('oae-ui/lib/test/util');
+const FRONTEND_REPO = '3akai-ux';
 
 describe('Version information', function() {
+  /**
+   * Test that verifies that the version information is returned
+   */
+  it('should return the version information', function(callback) {
+    // Create various rest contexts
+    const anonTenantRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
+    const adminTenantRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
+    const anonGlobalRestContext = TestsUtil.createGlobalRestContext();
+    const globalAdminRestContext = TestsUtil.createGlobalAdminRestContext();
+    TestsUtil.generateTestUsers(adminTenantRestContext, 1, function(err, users, user) {
+      assert.ok(!err);
+      const userTenantRestContext = user.restContext;
 
-    /**
-     * Test that verifies that the version information is returned
-     */
-    it('should return the version information', function(callback) {
-        // Create various rest contexts
-        var anonTenantRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-        var adminTenantRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
-        var anonGlobalRestContext = TestsUtil.createGlobalRestContext();
-        var globalAdminRestContext = TestsUtil.createGlobalAdminRestContext();
-        TestsUtil.generateTestUsers(adminTenantRestContext, 1, function(err, users, user) {
-            assert.ok(!err);
-            var userTenantRestContext = user.restContext;
-
-            // Verify the version information on regular tenancies
-            _verifyVersionInformation(anonTenantRestContext, function() {
-                _verifyVersionInformation(userTenantRestContext, function() {
-                    _verifyVersionInformation(adminTenantRestContext, function() {
-
-                        // Verify the version information on the global admin
-                        _verifyVersionInformation(anonGlobalRestContext, function() {
-                            _verifyVersionInformation(globalAdminRestContext, callback);
-                        });
-                    });
-                });
+      // Verify the version information on regular tenancies
+      _verifyVersionInformation(anonTenantRestContext, function() {
+        _verifyVersionInformation(userTenantRestContext, function() {
+          _verifyVersionInformation(adminTenantRestContext, function() {
+            // Verify the version information on the global admin
+            _verifyVersionInformation(anonGlobalRestContext, function() {
+              _verifyVersionInformation(globalAdminRestContext, callback);
             });
+          });
         });
+      });
     });
+  });
 
-    /*!
-     * Verify the version information
-     *
-     * @param  {RestContext}        restContext     The rest context to get the version information with
-     * @param  {Function}           callback        Standard callback function
-     * @throws {AssertionError}                     Thrown if any assertions fail
-     */
-    function _verifyVersionInformation(restContext, callback) {
-        RestAPI.Version.getVersion(restContext, function(err, version) {
-            assert.ok(!err);
-            assert.ok(_.isObject(version));
-            assert.strictEqual(_.size(version), 2);
-            assert.ok(_.isObject(version.hilary));
-            assert.strictEqual(_.size(version.hilary), 4);
-            assert.ok(_.isObject(version['3akai-ux']));
-            assert.strictEqual(_.size(version['3akai-ux']), 3);
-            return callback();
-        });
-    }
+  /*!
+   * Verify the version information
+   *
+   * @param  {RestContext}        restContext     The rest context to get the version information with
+   * @param  {Function}           callback        Standard callback function
+   * @throws {AssertionError}                     Thrown if any assertions fail
+   */
+  function _verifyVersionInformation(restContext, callback) {
+    RestAPI.Version.getVersion(restContext, function(err, version) {
+      assert.ok(!err);
+      assert.ok(_.isObject(version));
+      assert.strictEqual(_.size(version), 2);
+      assert.ok(_.isObject(version.hilary));
+      assert.strictEqual(_.size(version.hilary), 4);
+      assert.ok(_.isObject(version[FRONTEND_REPO]));
+      assert.strictEqual(_.size(version[FRONTEND_REPO]), 3);
+      callback();
+    });
+  }
 });

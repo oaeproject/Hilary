@@ -2,7 +2,7 @@ version: 2
 jobs:
   test:
     docker:
-      - image: 'alpine:3.8'
+      - image: "alpine:3.8"
     environment:
       TMP: /root/tmp
     working_directory: ~/Hilary
@@ -37,6 +37,7 @@ jobs:
             printf "\nconfig.search.hosts[0].host = 'oae-elasticsearch';" >> config.js
             printf "\nconfig.mq.connection.host = ['oae-rabbitmq'];" >> config.js
             printf "\nconfig.etherpad.hosts[0].host = 'oae-etherpad';" >> config.js
+            printf "\nconfig.ethercalc.host = 'oae-ethercalc';" >> config.js
             printf "\nconfig.previews.enabled = true;" >> config.js
             printf "\nconfig.email.debug = false;" >> config.js
             printf "\nconfig.email.transport = 'sendmail';" >> config.js
@@ -49,13 +50,13 @@ jobs:
             pip install docker-compose
       - run:
           name: Create the containers
-          command: docker-compose up --no-start --build oae-cassandra oae-redis oae-rabbitmq oae-elasticsearch oae-hilary
+          command: docker-compose up --no-start --build oae-cassandra oae-redis oae-rabbitmq oae-elasticsearch oae-hilary oae-ethercalc
       - run:
           name: Start the containers we need
           command: |
             docker-compose up -d oae-cassandra oae-redis oae-rabbitmq oae-elasticsearch
             sleep 25s
-            docker-compose up -d oae-etherpad
+            docker-compose up -d oae-etherpad oae-ethercalc
       - run:
           name: Install Hilary dependencies
           command: |

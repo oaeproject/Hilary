@@ -72,7 +72,7 @@ describe('Collaborative documents', () => {
       assert.ok(!err);
       const ctx = _.values(users)[0].restContext;
 
-      // Check that we can only join a collaborative document
+      // Check that we can't join a content item that's not collaborative
       RestAPI.Content.createLink(
         ctx,
         'Test Content',
@@ -106,7 +106,7 @@ describe('Collaborative documents', () => {
                   RestAPI.Content.joinCollabDoc(ctx, 'invalid-id', err => {
                     assert.strictEqual(err.code, 400);
 
-                    // Sanity check
+                    // Sanity check - make sure we can join a collabdoc
                     RestAPI.Content.joinCollabDoc(ctx, contentObj.id, (err, data) => {
                       assert.ok(!err);
                       assert.ok(data);
@@ -154,17 +154,12 @@ describe('Collaborative documents', () => {
         id,
         etherpadPadId: 'padId'
       };
-      const etherpadUrl = Etherpad.getPadUrl(
-        contentObjC,
-        'userId',
-        'sesionId',
-        'authorId',
-        'language'
-      );
+      const etherpadUrl = Etherpad.getPadUrl(contentObjC, 'userId', 'sesionId', 'authorId', 'language');
       const path = url.parse(etherpadUrl).pathname;
       if (!counts[path]) {
         counts[path] = 0;
       }
+
       counts[path]++;
     }
 
@@ -175,14 +170,8 @@ describe('Collaborative documents', () => {
     // The URLs should be evenly spread (allow for a maximum 5% deviation)
     const devA = counts[urls[0]] / (total / 2);
     const devB = counts[urls[1]] / (total / 2);
-    assert.ok(
-      devA > 0.95,
-      'Expected a maximum deviation of 5%, deviation was: ' + Math.round((1 - devA) * 100) + '%'
-    );
-    assert.ok(
-      devB > 0.95,
-      'Expected a maximum deviation of 5%, deviation was: ' + Math.round((1 - devB) * 100) + '%'
-    );
+    assert.ok(devA > 0.95, 'Expected a maximum deviation of 5%, deviation was: ' + Math.round((1 - devA) * 100) + '%');
+    assert.ok(devB > 0.95, 'Expected a maximum deviation of 5%, deviation was: ' + Math.round((1 - devB) * 100) + '%');
 
     // Re-configure Etherpad with the defaults
     Etherpad.refreshConfiguration(testConfig);
@@ -200,60 +189,50 @@ describe('Collaborative documents', () => {
 
       // Simon creates a collaborative document that's private
       const name = TestsUtil.generateTestUserId();
-      RestAPI.Content.createCollabDoc(
-        simonCtx,
-        name,
-        'description',
-        'private',
-        [],
-        [],
-        [],
-        [],
-        (err, contentObj) => {
+      RestAPI.Content.createCollabDoc(simonCtx, name, 'description', 'private', [], [], [], [], (err, contentObj) => {
+        assert.ok(!err);
+
+        RestAPI.Content.joinCollabDoc(simonCtx, contentObj.id, (err, data) => {
           assert.ok(!err);
+          assert.ok(data);
 
-          RestAPI.Content.joinCollabDoc(simonCtx, contentObj.id, (err, data) => {
-            assert.ok(!err);
-            assert.ok(data);
+          // Branden has no access yet, so joining should result in a 401
+          RestAPI.Content.joinCollabDoc(brandenCtx, contentObj.id, (err, data) => {
+            assert.strictEqual(err.code, 401);
+            assert.ok(!data);
 
-            // Branden has no access yet, so joining should result in a 401
-            RestAPI.Content.joinCollabDoc(brandenCtx, contentObj.id, (err, data) => {
-              assert.strictEqual(err.code, 401);
-              assert.ok(!data);
+            // Share it with branden, viewers still can't edit(=join) though
+            const members = {};
+            members[_.keys(users)[1]] = 'viewer';
+            RestAPI.Content.updateMembers(simonCtx, contentObj.id, members, err => {
+              assert.ok(!err);
 
-              // Share it with branden, viewers still can't edit(=join) though
-              const members = {};
-              members[_.keys(users)[1]] = 'viewer';
-              RestAPI.Content.updateMembers(simonCtx, contentObj.id, members, err => {
-                assert.ok(!err);
+              // Branden can see the document, but he cannot join in and start editing it
+              RestAPI.Content.joinCollabDoc(brandenCtx, contentObj.id, (err, data) => {
+                assert.strictEqual(err.code, 401);
+                assert.ok(!data);
 
-                // Branden can see the document, but he cannot join in and start editing it
-                RestAPI.Content.joinCollabDoc(brandenCtx, contentObj.id, (err, data) => {
-                  assert.strictEqual(err.code, 401);
-                  assert.ok(!data);
+                // Now that we make Branden a manager, he should be able to join
+                members[_.keys(users)[1]] = 'manager';
+                RestAPI.Content.updateMembers(simonCtx, contentObj.id, members, err => {
+                  assert.ok(!err);
 
-                  // Now that we make Branden a manager, he should be able to join
-                  members[_.keys(users)[1]] = 'manager';
-                  RestAPI.Content.updateMembers(simonCtx, contentObj.id, members, err => {
+                  // Branden should now be able to access it
+                  RestAPI.Content.joinCollabDoc(brandenCtx, contentObj.id, (err, data) => {
                     assert.ok(!err);
+                    assert.ok(data);
 
-                    // Branden should now be able to access it
-                    RestAPI.Content.joinCollabDoc(brandenCtx, contentObj.id, (err, data) => {
+                    // Add Stuart as an editor, he should be able to join
+                    members[_.keys(users)[2]] = 'editor';
+                    RestAPI.Content.updateMembers(simonCtx, contentObj.id, members, err => {
                       assert.ok(!err);
-                      assert.ok(data);
 
-                      // Add Stuart as an editor, he should be able to join
-                      members[_.keys(users)[2]] = 'editor';
-                      RestAPI.Content.updateMembers(simonCtx, contentObj.id, members, err => {
+                      // Stuart should now be able to access it
+                      RestAPI.Content.joinCollabDoc(stuartCtx, contentObj.id, (err, data) => {
                         assert.ok(!err);
+                        assert.ok(data);
 
-                        // Stuart should now be able to access it
-                        RestAPI.Content.joinCollabDoc(stuartCtx, contentObj.id, (err, data) => {
-                          assert.ok(!err);
-                          assert.ok(data);
-
-                          return callback();
-                        });
+                        return callback();
                       });
                     });
                   });
@@ -261,8 +240,8 @@ describe('Collaborative documents', () => {
               });
             });
           });
-        }
-      );
+        });
+      });
     });
   });
 
@@ -329,6 +308,7 @@ describe('Collaborative documents', () => {
         });
       });
     };
+
     doEditAndPublish();
   };
 
@@ -345,15 +325,10 @@ describe('Collaborative documents', () => {
     RestAPI.Content.getContent(context, contentId, (err, contentObj) => {
       assert.ok(!err);
 
-      RestAPI.Content.getRevision(
-        context,
-        contentId,
-        contentObj.latestRevisionId,
-        (err, revision) => {
-          assert.ok(!err);
-          callback(contentObj, revision);
-        }
-      );
+      RestAPI.Content.getRevision(context, contentId, contentObj.latestRevisionId, (err, revision) => {
+        assert.ok(!err);
+        callback(contentObj, revision);
+      });
     });
   };
 
@@ -375,47 +350,31 @@ describe('Collaborative documents', () => {
         const text =
           'Only two things are infinite, the universe and human stupidity, and I am not sure about the former.';
         editAndPublish(simon, contentObj, [text], () => {
-          getContentWithLatestRevision(
-            simon.restContext,
-            contentObj.id,
-            (updatedContentObj, updatedRevision) => {
-              assert.ok(updatedContentObj.latestRevision.etherpadHtml);
-              assert.ok(updatedRevision.etherpadHtml);
-              assert.notStrictEqual(
-                updatedContentObj.latestRevision.etherpadHtml,
-                revision.etherpadHtml
-              );
-              assert.notStrictEqual(updatedRevision.etherpadHtml, revision.etherpadHtml);
+          getContentWithLatestRevision(simon.restContext, contentObj.id, (updatedContentObj, updatedRevision) => {
+            assert.ok(updatedContentObj.latestRevision.etherpadHtml);
+            assert.ok(updatedRevision.etherpadHtml);
+            assert.notStrictEqual(updatedContentObj.latestRevision.etherpadHtml, revision.etherpadHtml);
+            assert.notStrictEqual(updatedRevision.etherpadHtml, revision.etherpadHtml);
 
-              // Remove linebreaks and check if the text is correct
-              ContentTestUtil.assertEtherpadContentEquals(updatedRevision.etherpadHtml, text);
+            // Remove linebreaks and check if the text is correct
+            ContentTestUtil.assertEtherpadContentEquals(updatedRevision.etherpadHtml, text);
 
-              // If we make any further updates in etherpad they shouldn't show up yet from our API
-              setEtherpadText(
-                simon.user.id,
-                contentObj,
-                'There are no facts, only interpretations.',
-                err => {
-                  assert.ok(!err);
+            // If we make any further updates in etherpad they shouldn't show up yet from our API
+            setEtherpadText(simon.user.id, contentObj, 'There are no facts, only interpretations.', err => {
+              assert.ok(!err);
 
-                  getContentWithLatestRevision(
-                    simon.restContext,
-                    contentObj.id,
-                    (latestContentObj, latestRevision) => {
-                      assert.ok(latestContentObj.latestRevision.etherpadHtml);
-                      assert.ok(latestRevision.etherpadHtml);
-                      assert.strictEqual(
-                        latestContentObj.latestRevision.etherpadHtml,
-                        updatedContentObj.latestRevision.etherpadHtml
-                      );
-                      assert.strictEqual(latestRevision.etherpadHtml, updatedRevision.etherpadHtml);
-                      return callback();
-                    }
-                  );
-                }
-              );
-            }
-          );
+              getContentWithLatestRevision(simon.restContext, contentObj.id, (latestContentObj, latestRevision) => {
+                assert.ok(latestContentObj.latestRevision.etherpadHtml);
+                assert.ok(latestRevision.etherpadHtml);
+                assert.strictEqual(
+                  latestContentObj.latestRevision.etherpadHtml,
+                  updatedContentObj.latestRevision.etherpadHtml
+                );
+                assert.strictEqual(latestRevision.etherpadHtml, updatedRevision.etherpadHtml);
+                return callback();
+              });
+            });
+          });
         });
       });
     });
@@ -466,57 +425,39 @@ describe('Collaborative documents', () => {
         "I don't have to play by these rules or do these things... I can actually have my own kind of version."
       ];
       editAndPublish(simon, contentObj, texts, () => {
-        RestAPI.Content.getRevisions(
-          simon.restContext,
-          contentObj.id,
-          null,
-          null,
-          (err, revisions) => {
+        RestAPI.Content.getRevisions(simon.restContext, contentObj.id, null, null, (err, revisions) => {
+          assert.ok(!err);
+
+          // We published our document 3 times, this should result in 4 revisions. (1 create + 3 publications)
+          assert.strictEqual(revisions.results.length, 4);
+
+          // Restore the second revision. The html on the content item and
+          // in etherpad should be updated
+          RestAPI.Content.restoreRevision(simon.restContext, contentObj.id, revisions.results[1].revisionId, err => {
             assert.ok(!err);
 
-            // We published our document 3 times, this should result in 4 revisions. (1 create + 3 publications)
-            assert.strictEqual(revisions.results.length, 4);
+            getContentWithLatestRevision(simon.restContext, contentObj.id, (updatedContent, updatedRevision) => {
+              // Make sure the revisions feed doesn't have etherpadHtml in it
+              assert.ok(!revisions.results[1].etherpadHtml);
+              // Fetch the individual revision so we can verify the etherpadHtml is correct
+              RestAPI.Content.getRevision(
+                simon.restContext,
+                revisions.results[1].contentId,
+                revisions.results[1].revisionId,
+                (err, fullRev) => {
+                  assert.strictEqual(updatedContent.latestRevision.etherpadHtml, fullRev.etherpadHtml);
+                  assert.strictEqual(updatedRevision.etherpadHtml, fullRev.etherpadHtml);
 
-            // Restore the second revision. The html on the content item and
-            // in etherpad should be updated
-            RestAPI.Content.restoreRevision(
-              simon.restContext,
-              contentObj.id,
-              revisions.results[1].revisionId,
-              err => {
-                assert.ok(!err);
-
-                getContentWithLatestRevision(
-                  simon.restContext,
-                  contentObj.id,
-                  (updatedContent, updatedRevision) => {
-                    // Make sure the revisions feed doesn't have etherpadHtml in it
-                    assert.ok(!revisions.results[1].etherpadHtml);
-                    // Fetch the individual revision so we can verify the etherpadHtml is correct
-                    RestAPI.Content.getRevision(
-                      simon.restContext,
-                      revisions.results[1].contentId,
-                      revisions.results[1].revisionId,
-                      (err, fullRev) => {
-                        assert.strictEqual(
-                          updatedContent.latestRevision.etherpadHtml,
-                          fullRev.etherpadHtml
-                        );
-                        assert.strictEqual(updatedRevision.etherpadHtml, fullRev.etherpadHtml);
-
-                        getEtherpadText(contentObj, (err, data) => {
-                          assert.ok(!err);
-                          assert.strictEqual(data.text, texts[1] + '\n\n');
-                          return callback();
-                        });
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
+                  getEtherpadText(contentObj, (err, data) => {
+                    assert.ok(!err);
+                    assert.strictEqual(data.text, texts[1] + '\n\n');
+                    return callback();
+                  });
+                }
+              );
+            });
+          });
+        });
       });
     });
   });
@@ -531,60 +472,43 @@ describe('Collaborative documents', () => {
 
         const texts = ['Any sufficiently advanced technology is indistinguishable from magic.'];
         editAndPublish(simon, contentObj, texts, () => {
-          RestAPI.Content.getRevisions(
-            simon.restContext,
-            contentObj.id,
-            null,
-            null,
-            (err, revisions) => {
-              assert.ok(!err);
-              assert.strictEqual(revisions.results.length, 2);
+          RestAPI.Content.getRevisions(simon.restContext, contentObj.id, null, null, (err, revisions) => {
+            assert.ok(!err);
+            assert.strictEqual(revisions.results.length, 2);
 
-              // Branden is not a manager, so he cannot restore anything
-              RestAPI.Content.restoreRevision(
-                branden.restContext,
-                contentObj.id,
-                revisions.results[0].revisionId,
-                err => {
-                  assert.strictEqual(err.code, 401);
+            // Branden is not a manager, so he cannot restore anything
+            RestAPI.Content.restoreRevision(
+              branden.restContext,
+              contentObj.id,
+              revisions.results[0].revisionId,
+              err => {
+                assert.strictEqual(err.code, 401);
 
-                  // Elevate Branden to an editor and verify that he still can't restore old versions
-                  const permissions = {};
-                  permissions[branden.user.id] = 'editor';
-                  RestAPI.Content.updateMembers(
-                    simon.restContext,
+                // Elevate Branden to an editor and verify that he still can't restore old versions
+                const permissions = {};
+                permissions[branden.user.id] = 'editor';
+                RestAPI.Content.updateMembers(simon.restContext, contentObj.id, permissions, err => {
+                  assert.ok(!err);
+
+                  RestAPI.Content.restoreRevision(
+                    branden.restContext,
                     contentObj.id,
-                    permissions,
+                    revisions.results[0].revisionId,
                     err => {
-                      assert.ok(!err);
+                      assert.strictEqual(err.code, 401);
 
-                      RestAPI.Content.restoreRevision(
-                        branden.restContext,
-                        contentObj.id,
-                        revisions.results[0].revisionId,
-                        err => {
-                          assert.strictEqual(err.code, 401);
-
-                          // Sanity check
-                          RestAPI.Content.getRevisions(
-                            simon.restContext,
-                            contentObj.id,
-                            null,
-                            null,
-                            (err, revisions) => {
-                              assert.ok(!err);
-                              assert.strictEqual(revisions.results.length, 2);
-                              return callback();
-                            }
-                          );
-                        }
-                      );
+                      // Sanity check
+                      RestAPI.Content.getRevisions(simon.restContext, contentObj.id, null, null, (err, revisions) => {
+                        assert.ok(!err);
+                        assert.strictEqual(revisions.results.length, 2);
+                        return callback();
+                      });
                     }
                   );
-                }
-              );
-            }
-          );
+                });
+              }
+            );
+          });
         });
       });
     });
@@ -599,65 +523,35 @@ describe('Collaborative documents', () => {
       const simonCtx = _.values(users)[0].restContext;
 
       const name = TestsUtil.generateTestUserId('collabdoc');
-      RestAPI.Content.createCollabDoc(
-        simonCtx,
-        name,
-        'description',
-        'public',
-        [],
-        [],
-        [],
-        [],
-        (err, contentObj) => {
-          assert.ok(!err);
+      RestAPI.Content.createCollabDoc(simonCtx, name, 'description', 'public', [], [], [], [], (err, contentObj) => {
+        assert.ok(!err);
 
-          // Try updating any of the etherpad properties
-          RestAPI.Content.updateContent(
-            simonCtx,
-            contentObj.id,
-            { etherpadGroupId: 'bleh' },
-            err => {
-              assert.strictEqual(err.code, 400);
-              RestAPI.Content.updateContent(
-                simonCtx,
-                contentObj.id,
-                { etherpadPadId: 'bleh' },
-                err => {
-                  assert.strictEqual(err.code, 400);
-                  // Update a regular property
-                  RestAPI.Content.updateContent(
-                    simonCtx,
-                    contentObj.id,
-                    { displayName: 'bleh' },
-                    (err, updatedContentObj) => {
-                      assert.ok(!err);
-                      assert.ok(!updatedContentObj.downloadPath);
+        // Try updating any of the etherpad properties
+        RestAPI.Content.updateContent(simonCtx, contentObj.id, { etherpadGroupId: 'bleh' }, err => {
+          assert.strictEqual(err.code, 400);
+          RestAPI.Content.updateContent(simonCtx, contentObj.id, { etherpadPadId: 'bleh' }, err => {
+            assert.strictEqual(err.code, 400);
+            // Update a regular property
+            RestAPI.Content.updateContent(
+              simonCtx,
+              contentObj.id,
+              { displayName: 'bleh' },
+              (err, updatedContentObj) => {
+                assert.ok(!err);
+                assert.ok(!updatedContentObj.downloadPath);
 
-                      // Double-check the the content item didn't change
-                      RestAPI.Content.getContent(
-                        simonCtx,
-                        contentObj.id,
-                        (err, latestContentObj) => {
-                          assert.ok(!err);
-                          assert.strictEqual(
-                            contentObj.etherpadGroupId,
-                            latestContentObj.etherpadGroupId
-                          );
-                          assert.strictEqual(
-                            contentObj.etherpadPadId,
-                            latestContentObj.etherpadPadId
-                          );
-                          return callback();
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
+                // Double-check the the content item didn't change
+                RestAPI.Content.getContent(simonCtx, contentObj.id, (err, latestContentObj) => {
+                  assert.ok(!err);
+                  assert.strictEqual(contentObj.etherpadGroupId, latestContentObj.etherpadGroupId);
+                  assert.strictEqual(contentObj.etherpadPadId, latestContentObj.etherpadPadId);
+                  return callback();
+                });
+              }
+            );
+          });
+        });
+      });
     });
   });
 
@@ -685,49 +579,31 @@ describe('Collaborative documents', () => {
       // Publish the document with no changes made to it
       ContentTestUtil.publishCollabDoc(contentObj.id, simon.user.id, () => {
         // Ensure it only has 1 revision, the initial one
-        RestAPI.Content.getRevisions(
-          simon.restContext,
-          contentObj.id,
-          null,
-          null,
-          (err, revisions) => {
-            assert.ok(!err);
-            assert.strictEqual(revisions.results.length, 1);
+        RestAPI.Content.getRevisions(simon.restContext, contentObj.id, null, null, (err, revisions) => {
+          assert.ok(!err);
+          assert.strictEqual(revisions.results.length, 1);
 
-            // Generate a new revision with some new text in it
-            editAndPublish(simon, contentObj, ['Some text'], () => {
-              // Ensure we now have 2 revisions
-              RestAPI.Content.getRevisions(
-                simon.restContext,
-                contentObj.id,
-                null,
-                null,
-                (err, revisions) => {
+          // Generate a new revision with some new text in it
+          editAndPublish(simon, contentObj, ['Some text'], () => {
+            // Ensure we now have 2 revisions
+            RestAPI.Content.getRevisions(simon.restContext, contentObj.id, null, null, (err, revisions) => {
+              assert.ok(!err);
+              assert.strictEqual(revisions.results.length, 2);
+
+              // Make the same edit and publish, ensuring that a new revision is not
+              // created
+              editAndPublish(simon, contentObj, ['Some text'], () => {
+                // Ensure we still only have 2 revisions (1 empty, one with "Some
+                // Text")
+                RestAPI.Content.getRevisions(simon.restContext, contentObj.id, null, null, (err, revisions) => {
                   assert.ok(!err);
                   assert.strictEqual(revisions.results.length, 2);
-
-                  // Make the same edit and publish, ensuring that a new revision is not
-                  // created
-                  editAndPublish(simon, contentObj, ['Some text'], () => {
-                    // Ensure we still only have 2 revisions (1 empty, one with "Some
-                    // Text")
-                    RestAPI.Content.getRevisions(
-                      simon.restContext,
-                      contentObj.id,
-                      null,
-                      null,
-                      (err, revisions) => {
-                        assert.ok(!err);
-                        assert.strictEqual(revisions.results.length, 2);
-                        return callback();
-                      }
-                    );
-                  });
-                }
-              );
+                  return callback();
+                });
+              });
             });
-          }
-        );
+          });
+        });
       });
     });
   });
@@ -743,45 +619,28 @@ describe('Collaborative documents', () => {
         // the pad is made empty when we restore the empty revision further down
         editAndPublish(simon, contentObj, ['Some text'], () => {
           // Sanity-check our 2 revisions exist
-          RestAPI.Content.getRevisions(
-            simon.restContext,
-            contentObj.id,
-            null,
-            null,
-            (err, revisions) => {
+          RestAPI.Content.getRevisions(simon.restContext, contentObj.id, null, null, (err, revisions) => {
+            assert.ok(!err);
+            assert.strictEqual(revisions.results.length, 2);
+
+            // Try to restore the empty revision
+            RestAPI.Content.restoreRevision(simon.restContext, contentObj.id, revisions.results[1].revisionId, err => {
               assert.ok(!err);
-              assert.strictEqual(revisions.results.length, 2);
 
-              // Try to restore the empty revision
-              RestAPI.Content.restoreRevision(
-                simon.restContext,
-                contentObj.id,
-                revisions.results[1].revisionId,
-                err => {
+              // Assert that the pad is made empty
+              Etherpad.getHTML(contentObj.id, contentObj.etherpadPadId, (err, html) => {
+                assert.ok(!err);
+                assert.ok(Etherpad.isContentEmpty(html));
+
+                // Assert that this created a third revision
+                RestAPI.Content.getRevisions(simon.restContext, contentObj.id, null, null, (err, revisions) => {
                   assert.ok(!err);
-
-                  // Assert that the pad is made empty
-                  Etherpad.getHTML(contentObj.id, contentObj.etherpadPadId, (err, html) => {
-                    assert.ok(!err);
-                    assert.ok(Etherpad.isContentEmpty(html));
-
-                    // Assert that this created a third revision
-                    RestAPI.Content.getRevisions(
-                      simon.restContext,
-                      contentObj.id,
-                      null,
-                      null,
-                      (err, revisions) => {
-                        assert.ok(!err);
-                        assert.strictEqual(revisions.results.length, 3);
-                        return callback();
-                      }
-                    );
-                  });
-                }
-              );
-            }
-          );
+                  assert.strictEqual(revisions.results.length, 3);
+                  return callback();
+                });
+              });
+            });
+          });
         });
       });
     });

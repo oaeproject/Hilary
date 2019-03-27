@@ -59,16 +59,16 @@ const setupServer = function(port, _config) {
   _applyAvailabilityHandling(app.httpServer, app, port);
 
   /*!
-     * We support the following type of request encodings:
-     *
-     *  * urlencoded (regular POST requests)
-     *  * application/json
-     *  * multipart (file uploads)
-     *
-     * A maximum limit of 250kb is imposed for `urlencoded` and `application/json` requests. This limit only
-     * applies to the *incoming request data*. If the client needs to send more than 250kb, it should consider
-     * using a proper multipart form request.
-     */
+   * We support the following type of request encodings:
+   *
+   *  * urlencoded (regular POST requests)
+   *  * application/json
+   *  * multipart (file uploads)
+   *
+   * A maximum limit of 250kb is imposed for `urlencoded` and `application/json` requests. This limit only
+   * applies to the *incoming request data*. If the client needs to send more than 250kb, it should consider
+   * using a proper multipart form request.
+   */
   app.use(bodyParser.urlencoded({ limit: '250kb', extended: true }));
   app.use(bodyParser.json({ limit: '250kb' }));
   app.use(multipart(config.files));
@@ -122,15 +122,10 @@ const setupRouter = function(app) {
         )
       );
     } else if (!isRouteValid) {
-      throw new Error(
-        util.format('Invalid route path "%s" while binding route to OAE Router', route.toString())
-      );
+      throw new Error(util.format('Invalid route path "%s" while binding route to OAE Router', route.toString()));
     } else if (!isHandlerValid) {
       throw new Error(
-        util.format(
-          'Invalid method handler given for route "%s" while binding to OAE Router',
-          route.toString()
-        )
+        util.format('Invalid method handler given for route "%s" while binding to OAE Router', route.toString())
       );
     }
 
@@ -184,23 +179,23 @@ const addSafePathPrefix = function(pathPrefix) {
  */
 const postInitializeServer = function(app, router) {
   /*!
-     * Referer-based CSRF protection. If the request is not safe (e.g., POST, DELETE) and the origin of the request (as
-     * specified by the HTTP Referer header) does not match the target host of the request (as specified by the HTTP
-     * Host header), then the request will result in a 500 error.
-     *
-     * While referer-based protection is not highly recommended due to spoofing possibilities in insecure environments,
-     * it currently offers the best trade-off between ease of use (e.g., for cURL interoperability), effort and security
-     * against CSRF attacks.
-     *
-     * Middleware that gets called earlier, can force the CSRF check to be skipped by setting `_checkCSRF` on the request.
-     *
-     * If using a utility such as `curl` to POST requests to the API, you can bypass this by just setting the referer
-     * header to "/":
-     *
-     * curl -X POST -e / http://my.oae.com/api/auth/login
-     *
-     * More information about CSRF attacks: http://en.wikipedia.org/wiki/Cross-site_request_forgery
-     */
+   * Referer-based CSRF protection. If the request is not safe (e.g., POST, DELETE) and the origin of the request (as
+   * specified by the HTTP Referer header) does not match the target host of the request (as specified by the HTTP
+   * Host header), then the request will result in a 500 error.
+   *
+   * While referer-based protection is not highly recommended due to spoofing possibilities in insecure environments,
+   * it currently offers the best trade-off between ease of use (e.g., for cURL interoperability), effort and security
+   * against CSRF attacks.
+   *
+   * Middleware that gets called earlier, can force the CSRF check to be skipped by setting `_checkCSRF` on the request.
+   *
+   * If using a utility such as `curl` to POST requests to the API, you can bypass this by just setting the referer
+   * header to "/":
+   *
+   * curl -X POST -e / http://my.oae.com/api/auth/login
+   *
+   * More information about CSRF attacks: http://en.wikipedia.org/wiki/Cross-site_request_forgery
+   */
   app.use((req, res, next) => {
     // If earlier middleware determined that CSRF is not required, we can skip the check
     if (req._checkCSRF === false) {
@@ -217,11 +212,7 @@ const postInitializeServer = function(app, router) {
         },
         'CSRF validation failed: attempted to execute unsafe operation from untrusted origin'
       );
-      return _abort(
-        res,
-        500,
-        'CSRF validation failed: attempted to execute unsafe method from untrusted origin'
-      );
+      return _abort(res, 500, 'CSRF validation failed: attempted to execute unsafe method from untrusted origin');
     }
 
     return next();
@@ -361,8 +352,10 @@ const _isSameOrigin = function(req) {
       // we deem it not to be the same origin.
       return false;
     }
+
     return true;
   }
+
   // If the referer is a relative uri, it must be from same origin.
   return true;
 };

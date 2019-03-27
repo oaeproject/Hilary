@@ -15,5 +15,6 @@
 
 module.exports.Content = require('./dao.content');
 module.exports.Etherpad = require('./dao.etherpad');
+module.exports.Ethercalc = require('./dao.ethercalc');
 module.exports.Previews = require('./dao.previews');
 module.exports.Revisions = require('./dao.revisions');

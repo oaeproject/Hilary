@@ -31,7 +31,7 @@ const TenantsAPI = require('oae-tenants');
  * @param  {String}     visibility          The visibility of the content item. One of `public`, `loggedin`, `private`
  * @param  {String}     displayName         The display name of the content item
  * @param  {String}     description         A longer description for the content item
- * @param  {String}     resourceSubType     The content item type. One of `file`, `collabdoc`, `link`
+ * @param  {String}     resourceSubType     The content item type. One of `file`, `collabdoc`, `collabsheet`, `link`
  * @param  {String}     createdBy           The id of the user who created the content item
  * @param  {Number}     created             The timestamp (millis since epoch) at which the content item was created
  * @param  {Number}     lastModified        The timestamp (millis since epoch) at which the content item was last modified
@@ -52,7 +52,7 @@ const Content = function(
   previews
 ) {
   const that = {};
-  const {resourceId} = AuthzUtil.getResourceFromId(id);
+  const { resourceId } = AuthzUtil.getResourceFromId(id);
 
   that.tenant = TenantsAPI.getTenant(tenantAlias).compact();
   that.id = id;

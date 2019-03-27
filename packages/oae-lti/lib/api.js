@@ -43,13 +43,16 @@ const getLtiTool = function(ctx, id, groupId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!group.isManager && !group.isMember) {
       return callback({ code: 401, msg: 'The current user does not have access to this LTI tool' });
     }
+
     PrincipalsApi.getMe(ctx, (err, principal) => {
       if (err) {
         return callback(err);
       }
+
       VersionAPI.getVersion((err, version) => {
         if (err) {
           log().warn('Failed to fetch OAE version');
@@ -59,6 +62,7 @@ const getLtiTool = function(ctx, id, groupId, callback) {
             }
           };
         }
+
         LtiDAO.getLtiTool(id, groupId, (err, tool) => {
           if (err) {
             log().error(
@@ -83,13 +87,7 @@ const getLtiTool = function(ctx, id, groupId, callback) {
           );
 
           // eslint-disable-next-line camelcase
-          launchParams.oauth_signature = oauth.hmacsign(
-            'POST',
-            tool.launchUrl,
-            launchParams,
-            tool.secret,
-            ''
-          );
+          launchParams.oauth_signature = oauth.hmacsign('POST', tool.launchUrl, launchParams, tool.secret, '');
 
           // Scrub out OAUTH parameters from tool
           delete tool.secret;
@@ -126,13 +124,16 @@ const addLtiTool = function(ctx, groupId, launchUrl, secret, consumerKey, opts, 
     if (err) {
       return callback(err);
     }
+
     if (group.deleted) {
       return callback({ code: 404, msg: util.format("Couldn't find group: %s", groupId) });
     }
+
     PrincipalsApi.getMe(ctx, (err, me) => {
       if (err) {
         return callback(err);
       }
+
       if (!me.isTenantAdmin && !me.isGlobalAdmin) {
         return callback({
           code: 401,
@@ -148,9 +149,7 @@ const addLtiTool = function(ctx, groupId, launchUrl, secret, consumerKey, opts, 
 
         // Parameter validation
         const validator = new Validator();
-        validator
-          .check(groupId, { code: 400, msg: 'A valid group id must be provided' })
-          .isGroupId();
+        validator.check(groupId, { code: 400, msg: 'A valid group id must be provided' }).isGroupId();
         validator
           .check(launchUrl, {
             code: 400,
@@ -202,6 +201,7 @@ const addLtiTool = function(ctx, groupId, launchUrl, secret, consumerKey, opts, 
               );
               return callback(err);
             }
+
             return callback(null, tool);
           }
         );
@@ -225,9 +225,11 @@ const getLtiTools = function(ctx, groupId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (group.deleted) {
       return callback({ code: 404, msg: util.format("Couldn't find group: %s", groupId) });
     }
+
     LtiDAO.getLtiToolsByGroupId(groupId, (err, tools) => {
       if (err) {
         log().error(
@@ -238,6 +240,7 @@ const getLtiTools = function(ctx, groupId, callback) {
         );
         return callback(err);
       }
+
       return callback(null, tools);
     });
   });
@@ -258,9 +261,11 @@ const deleteLtiTool = function(ctx, id, groupId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (group.deleted) {
       return callback({ code: 404, msg: util.format("Couldn't find group: %s", groupId) });
     }
+
     // Check if we can delete tools in this group
     AuthzPermissions.canManage(ctx, group, err => {
       if (err) {
@@ -277,6 +282,7 @@ const deleteLtiTool = function(ctx, id, groupId, callback) {
           );
           return callback(err);
         }
+
         return callback();
       });
     });

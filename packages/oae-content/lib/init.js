@@ -23,6 +23,7 @@ const ContentAPI = require('./api');
 const { ContentConstants } = require('./constants');
 const ContentSearch = require('./search');
 const Etherpad = require('./internal/etherpad');
+const Ethercalc = require('./internal/ethercalc');
 const LocalStorage = require('./backends/local');
 
 module.exports = function(config, callback) {
@@ -44,6 +45,9 @@ module.exports = function(config, callback) {
 
   // Initialize the etherpad client.
   Etherpad.refreshConfiguration(config.etherpad);
+
+  // Initialize the ethercalc client
+  Ethercalc.refreshConfiguration(config.ethercalc);
 
   ContentSearch.init(err => {
     if (err) {
@@ -75,7 +79,30 @@ module.exports = function(config, callback) {
             return callback(err);
           }
 
-          return callback();
+          // Same for Ethercalc - no ack because ack breaks Ethercalc
+          TaskQueue.bind(
+            ContentConstants.queue.ETHERCALC_EDIT,
+            Ethercalc.setEditedBy,
+            { subscribe: { ack: false } },
+            function(err) {
+              if (err) {
+                return callback(err);
+              }
+
+              TaskQueue.bind(
+                ContentConstants.queue.ETHERCALC_PUBLISH,
+                ContentAPI.ethercalcPublish,
+                { subscribe: { ack: false } },
+                function(err) {
+                  if (err) {
+                    return callback(err);
+                  }
+
+                  return callback();
+                }
+              );
+            }
+          );
         });
       });
     });

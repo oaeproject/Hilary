@@ -17,6 +17,7 @@ const assert = require('assert');
 const util = require('util');
 const _ = require('underscore');
 const ShortId = require('shortid');
+const async = require('async');
 
 const AuthzTestUtil = require('oae-authz/lib/test/util');
 const MqTestUtil = require('oae-util/lib/test/mq-util');
@@ -826,6 +827,7 @@ const createCollabDoc = function(adminRestContext, nrOfUsers, nrOfJoinedUsers, c
             callCallback();
           });
         };
+
         for (let i = 0; i < nrOfJoinedUsers; i++) {
           joinCollabDoc(i);
         }
@@ -853,6 +855,69 @@ const publishCollabDoc = function(contentId, userId, callback) {
   });
 
   MqTestUtil.whenTasksEmpty(ContentConstants.queue.ETHERPAD_PUBLISH, callback);
+};
+
+/**
+ * Create a set of test users and a collaborative spreadsheet.
+ * The `nrOfJoinedUsers` specifies how many users should join the spreadsheet
+ *
+ * @param  {RestContext}    adminRestContext        An administrator rest context that can be used to create the users
+ * @param  {Number}         nrOfUsers               The number of users that should be created
+ * @param  {Number}         nrOfJoinedUsers         The number of users that should be joined in the spreadsheet. These will be the first `nrOfJoinedUsers` of the users hash
+ * @param  {Function}       callback                Standard callback function
+ * @param  {Object}         callback.err            An error that occurred, if any
+ * @param  {Content}        callback.contentObj     The created collaborative spreadsheet
+ * @param  {Object}         callback.users          The created users
+ * @param  {Object}         callback.user1          An object containing the user profile and a rest context for the first user of the set of users that was created
+ * @param  {Object}         callback.user..         An object containing the user profile and a rest context for the next user of the set of users that was created
+ */
+const createCollabsheet = function(adminRestContext, nrOfUsers, nrOfJoinedUsers, callback) {
+  TestsUtil.generateTestUsers(adminRestContext, nrOfUsers, function(err, users) {
+    assert.ok(!err);
+
+    const userIds = _.keys(users);
+    const userValues = _.values(users);
+
+    // Create a collaborative document where all the users are managers
+    const name = TestsUtil.generateTestUserId('collabdoc');
+    RestAPI.Content.createCollabsheet(
+      userValues[0].restContext,
+      name,
+      'description',
+      'public',
+      userIds,
+      [],
+      [],
+      [],
+      function(err, contentObj) {
+        assert.ok(!err);
+
+        const restContexts = _.pluck(userValues, 'restContext');
+        async.each(
+          restContexts,
+          (eachUserToJoin, exit) => {
+            RestAPI.Content.joinCollabDoc(eachUserToJoin, contentObj.id, function(err, data) {
+              if (err) {
+                exit(err);
+              }
+
+              assert.ok(!err);
+              exit(null, data);
+            });
+          },
+          err => {
+            if (err) {
+              callback(err);
+            }
+
+            const callbackArgs = _.union([contentObj, users], userValues);
+
+            return callback.apply(callback, callbackArgs);
+          }
+        );
+      }
+    );
+  });
 };
 
 /**
@@ -885,5 +950,6 @@ module.exports = {
   assertGetContentLibrarySucceeds,
   generateTestLinks,
   publishCollabDoc,
-  createCollabDoc
+  createCollabDoc,
+  createCollabsheet
 };

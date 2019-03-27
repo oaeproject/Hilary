@@ -13,18 +13,19 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
 const fs = require('fs');
-const gift = require('gift');
 const path = require('path');
 const util = require('util');
+const gift = require('gift');
+const _ = require('underscore');
 
 const IO = require('oae-util/lib/io');
 const log = require('oae-logger').logger('oae-version');
 
 // A variable that will hold the path to the UI directory
-let hilaryDirectory = path.resolve(__dirname, '..', '..', '..');
+const hilaryDirectory = path.resolve(__dirname, '..', '..', '..');
 let _uiPath = null;
+const FRONTEND_REPO = '3akai-ux';
 
 // A variable that will hold a copy of the version information
 let _version = null;
@@ -35,7 +36,7 @@ let _version = null;
  * @param  {String}     uiPath  The path to the UI directory
  */
 const init = function(uiPath) {
-    _uiPath = uiPath;
+  _uiPath = uiPath;
 };
 
 /**
@@ -48,27 +49,27 @@ const init = function(uiPath) {
  * @param  {String}     callback.version.3akai-ux   The version information for the UI
  */
 const getVersion = function(callback) {
-    if (_version) {
-        return callback(null, _version);
+  if (_version) {
+    return callback(null, _version);
+  }
+
+  _getHilaryVersion(function(err, hilaryVersion) {
+    if (err) {
+      return callback(err);
     }
 
-    _getHilaryVersion(function(err, hilaryVersion) {
-        if (err) {
-            return callback(err);
-        }
+    _getUIVersion(function(err, uiVersion) {
+      if (err) {
+        return callback(err);
+      }
 
-        _getUIVersion(function(err, uiVersion) {
-            if (err) {
-                return callback(err);
-            }
-
-            _version = {
-                'hilary': hilaryVersion,
-                '3akai-ux': uiVersion
-            };
-            return callback(null, _version);
-        });
+      _version = {
+        hilary: hilaryVersion,
+        FRONTEND_REPO: uiVersion
+      };
+      return callback(null, _version);
     });
+  });
 };
 
 /**
@@ -80,7 +81,7 @@ const getVersion = function(callback) {
  * @api private
  */
 function _getHilaryVersion(callback) {
-    _getVersionInfo(hilaryDirectory, callback);
+  _getVersionInfo(hilaryDirectory, callback);
 }
 
 /**
@@ -92,36 +93,31 @@ function _getHilaryVersion(callback) {
  * @api private
  */
 function _getUIVersion(callback) {
+  gift.init(hilaryDirectory, (err, repo) => {
+    repo.tree().contents((err, children) => {
+      // Find the 3akai-ux submodule within the tree
+      const submodulePointer = _.find(children, eachChild => {
+        return eachChild.name === FRONTEND_REPO;
+      }).id;
 
-    let submodulePointer = "";
-    let lastCheckedOutCommit = "";
+      // Now let's check if the submodule pointer corresponds to the last commit on 3akai-ux
+      // if it does, that means everything has been checked out properly
+      gift.init(path.resolve(hilaryDirectory, _uiPath), (err, submodule) => {
+        submodule.current_commit((err, lastCheckedOutCommit) => {
+          if (submodulePointer === lastCheckedOutCommit.id) {
+            const version = {
+              branch: 'HEAD detached at ' + lastCheckedOutCommit.id,
+              date: lastCheckedOutCommit.committed_date,
+              type: 'git submodule'
+            };
+            return callback(null, version);
+          }
 
-    gift.init(hilaryDirectory, (err, repo)  => {
-        repo.tree().contents((err, children) => {
-
-            // find the 3akai-ux submodule within the tree
-            const submodulePointer = _.find(children, (eachChild) => {
-                return eachChild.name === '3akai-ux';
-            }).id;
-
-            // now let's check if the submodule pointer corresponds to the last commit on 3akai-ux
-            // if it does, that means everything has been checked out properly
-            gift.init(path.resolve(hilaryDirectory, _uiPath), (err, submodule) => {
-                submodule.current_commit((err, lastCheckedOutCommit) => {
-                    if (submodulePointer === lastCheckedOutCommit.id) {
-                        let version = {
-                            branch: 'HEAD detached at ' + lastCheckedOutCommit.id,
-                            date: lastCheckedOutCommit.committed_date,
-                            type: 'git submodule'
-                        };
-                        return callback(null, version);
-                    } else {
-                        return callback({'code': 500, 'msg': 'The submodule hasn\'t been checked out properly'});
-                    }
-                });
-            });
+          return callback({ code: 500, msg: "The submodule hasn't been checked out properly" });
         });
+      });
     });
+  });
 }
 
 /**
@@ -137,15 +133,17 @@ function _getUIVersion(callback) {
  * @api private
  */
 function _getVersionInfo(directory, callback) {
-    _getBuildInfoFile(directory, function(err, buildInfoPath) {
-        if (err) {
-            return callback(err);
-        } else if (buildInfoPath) {
-            return _getBuildVersion(buildInfoPath, callback);
-        } else {
-            return _getGitVersion(directory, callback);
-        }
-    });
+  _getBuildInfoFile(directory, function(err, buildInfoPath) {
+    if (err) {
+      return callback(err);
+    }
+
+    if (buildInfoPath) {
+      return _getBuildVersion(buildInfoPath, callback);
+    }
+
+    return _getGitVersion(directory, callback);
+  });
 }
 
 /**
@@ -159,24 +157,28 @@ function _getVersionInfo(directory, callback) {
  * @api private
  */
 function _getBuildVersion(buildInfoPath, callback) {
-    fs.readFile(buildInfoPath, function(err, buildInfo) {
-        if (err) {
-            return callback({'code': 500, 'msg': 'Unable to read the build info file'});
-        }
+  fs.readFile(buildInfoPath, function(err, buildInfo) {
+    if (err) {
+      return callback({ code: 500, msg: 'Unable to read the build info file' });
+    }
 
-        try {
-            buildInfo = JSON.parse(buildInfo);
-        } catch (ex) {
-            log().error({
-                'err': ex,
-                'path': buildInfoPath
-            }, 'Unable to parse the build info file');
-            return callback({'code': 500, 'msg': 'Unable to parse the build info file'});
-        }
-        buildInfo.type = 'archive';
+    try {
+      buildInfo = JSON.parse(buildInfo);
+    } catch (error) {
+      log().error(
+        {
+          err: error,
+          path: buildInfoPath
+        },
+        'Unable to parse the build info file'
+      );
+      return callback({ code: 500, msg: 'Unable to parse the build info file' });
+    }
 
-        return callback(null, buildInfo);
-    });
+    buildInfo.type = 'archive';
+
+    return callback(null, buildInfo);
+  });
 }
 
 /**
@@ -189,60 +191,72 @@ function _getBuildVersion(buildInfoPath, callback) {
  * @api private
  */
 function _getGitVersion(directory, callback) {
-    gift.init(directory, function(err, repo) {
+  gift.init(directory, function(err, repo) {
+    if (err) {
+      log().error(
+        {
+          err,
+          path: directory
+        },
+        'Could not open the git repo to get the version information'
+      );
+      return callback({ code: 500, msg: 'Could not open the git repo' });
+    }
+
+    // Get the tag info
+    repo.tags(function(err, tags) {
+      if (err) {
+        log().error(
+          {
+            err,
+            path: directory
+          },
+          'Could not get the git tags'
+        );
+        return callback({ code: 500, msg: 'Could not get the git tags' });
+      }
+
+      const tagsByCommitId = _.indexBy(tags, function(tag) {
+        return tag.commit.id;
+      });
+
+      // Get the current branch info
+      repo.branch(function(err, branch) {
         if (err) {
-            log().error({
-                'err': err,
-                'path': directory
-            }, 'Could not open the git repo to get the version information');
-            return callback({'code': 500, 'msg': 'Could not open the git repo'});
+          log().error(
+            {
+              err,
+              path: directory
+            },
+            'Could not get the current git branch for the version information'
+          );
+          return callback({ code: 500, msg: 'Could not get the branch information' });
         }
 
-        // Get the tag info
-         repo.tags(function(err, tags) {
-            if (err) {
-                log().error({
-                    'err': err,
-                    'path': directory
-                }, 'Could not get the git tags');
-                return callback({'code': 500, 'msg': 'Could not get the git tags'});
-            }
+        // Get the number of commits since the last tag
+        _getGitDescribeVersion(repo, branch.name, tagsByCommitId, function(err, describeVersion) {
+          if (err) {
+            log().error(
+              {
+                err,
+                path: directory
+              },
+              'Could not get the git describe version for a repo'
+            );
+            return callback({ code: 500, msg: 'Could not get the branch information' });
+          }
 
-            let tagsByCommitId = _.indexBy(tags, function(tag) {
-                return tag.commit.id;
-            });
-
-            // Get the current branch info
-             repo.branch(function (err, branch) {
-                 if (err) {
-                     log().error({
-                         'err': err,
-                         'path': directory
-                     }, 'Could not get the current git branch for the version information');
-                     return callback({ 'code': 500, 'msg': 'Could not get the branch information' });
-                 }
-
-                 // Get the number of commits since the last tag
-                 _getGitDescribeVersion(repo, branch.name, tagsByCommitId, function (err, describeVersion) {
-                     if (err) {
-                         log().error({
-                             'err': err,
-                             'path': directory
-                         }, 'Could not get the git describe version for a repo');
-                         return callback({ 'code': 500, 'msg': 'Could not get the branch information' });
-                     }
-
-                     let buildInfo = {
-                         'branch': branch.name,
-                         'date': branch.commit.committed_date,
-                         'type': 'git',
-                         'version': describeVersion
-                     };
-                     return callback(null, buildInfo);
-                 });
-             });
+          const buildInfo = {
+            branch: branch.name,
+            date: branch.commit.committed_date,
+            type: 'git',
+            version: describeVersion
+          };
+          return callback(null, buildInfo);
         });
+      });
     });
+  });
 }
 
 /**
@@ -260,35 +274,36 @@ function _getGitVersion(directory, callback) {
  * @api private
  */
 function _getGitDescribeVersion(repo, branchName, tagsByCommitId, callback, _nrOfCommits, _lastCommitSha) {
-    _nrOfCommits = _nrOfCommits || 0;
-    repo.commits(branchName, 30, _nrOfCommits, function(err, commits) {
-        if (err) {
-            return callback(err);
-        }
+  _nrOfCommits = _nrOfCommits || 0;
+  repo.commits(branchName, 30, _nrOfCommits, function(err, commits) {
+    if (err) {
+      return callback(err);
+    }
 
-        // Retain the sha1 of the last commit on this branch
-        _lastCommitSha = _lastCommitSha || commits[0].id;
+    // Retain the sha1 of the last commit on this branch
+    _lastCommitSha = _lastCommitSha || commits[0].id;
 
-        // Try to find the last tagged commit in these set of commits
-        let lastTag = null;
-        for (let i = 0; i < commits.length; i++) {
-            if (tagsByCommitId[commits[i].id]) {
-                lastTag = tagsByCommitId[commits[i].id].name;
-                break;
-            }
-            _nrOfCommits++;
-        }
+    // Try to find the last tagged commit in these set of commits
+    let lastTag = null;
+    for (let i = 0; i < commits.length; i++) {
+      if (tagsByCommitId[commits[i].id]) {
+        lastTag = tagsByCommitId[commits[i].id].name;
+        break;
+      }
 
-        // If we found a tag in the set of commits we can return the git describe information
-        if (lastTag) {
-            let describeVersion = util.format('%s+%d+%s', lastTag, _nrOfCommits, _lastCommitSha);
-            return callback(null, describeVersion);
+      _nrOfCommits++;
+    }
 
-        // Otherwise we need to retrieve the next set of commits
-        } else {
-            return _getGitDescribeVersion(repo, branchName, tagsByCommitId, callback, _nrOfCommits, _lastCommitSha);
-        }
-    });
+    // If we found a tag in the set of commits we can return the git describe information
+    if (lastTag) {
+      const describeVersion = util.format('%s+%d+%s', lastTag, _nrOfCommits, _lastCommitSha);
+      return callback(null, describeVersion);
+
+      // Otherwise we need to retrieve the next set of commits
+    }
+
+    return _getGitDescribeVersion(repo, branchName, tagsByCommitId, callback, _nrOfCommits, _lastCommitSha);
+  });
 }
 
 /**
@@ -302,25 +317,30 @@ function _getGitDescribeVersion(repo, branchName, tagsByCommitId, callback, _nrO
  * @api private
  */
 function _getBuildInfoFile(directory, callback) {
-    let buildInfoPath = _getBuildInfoFilePath(directory);
-    IO.exists(buildInfoPath, function(err, exists) {
-        if (err) {
-            log.error({
-                'directory': directory,
-                'err': err
-            }, 'Unable to check if a build info file exists');
-            return callback(err);
-        } else if (exists) {
-            return callback(null, buildInfoPath);
-        } else {
-            let parent = path.dirname(directory);
-            if (parent !== directory) {
-                return _getBuildInfoFile(parent, callback);
-            } else {
-                return callback();
-            }
-        }
-    });
+  const buildInfoPath = _getBuildInfoFilePath(directory);
+  IO.exists(buildInfoPath, function(err, exists) {
+    if (err) {
+      log.error(
+        {
+          directory,
+          err
+        },
+        'Unable to check if a build info file exists'
+      );
+      return callback(err);
+    }
+
+    if (exists) {
+      return callback(null, buildInfoPath);
+    }
+
+    const parent = path.dirname(directory);
+    if (parent !== directory) {
+      return _getBuildInfoFile(parent, callback);
+    }
+
+    return callback();
+  });
 }
 
 /**
@@ -331,9 +351,10 @@ function _getBuildInfoFile(directory, callback) {
  * @api private
  */
 function _getBuildInfoFilePath(directory) {
-    return path.join(directory, 'build-info.json');
+  return path.join(directory, 'build-info.json');
 }
 
 module.exports = {
-    init, getVersion
+  init,
+  getVersion
 };

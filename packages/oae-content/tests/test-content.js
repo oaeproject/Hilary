@@ -24,8 +24,6 @@ const _ = require('underscore');
 const AuthzAPI = require('oae-authz');
 const AuthzTestUtil = require('oae-authz/lib/test/util');
 const AuthzUtil = require('oae-authz/lib/util');
-const Config = require('oae-config').config('oae-content');
-const ConfigTestUtil = require('oae-config/lib/test/util');
 const { Context } = require('oae-context');
 const PreviewConstants = require('oae-preview-processor/lib/constants');
 const PrincipalsTestUtil = require('oae-principals/lib/test/util');
@@ -39,6 +37,10 @@ const TestsUtil = require('oae-tests');
 const ContentAPI = require('oae-content');
 const ContentTestUtil = require('oae-content/lib/test/util');
 const ContentUtil = require('oae-content/lib/internal/util');
+
+const PUBLIC = 'public';
+const PRIVATE = 'private';
+const LOGGEDIN = 'loggedin';
 
 describe('Content', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user
@@ -72,10 +74,10 @@ describe('Content', () => {
         assert.ok(!err);
 
         /*!
-                 * Task handler that will just drain the queue.
-                 *
-                 * @see MQ#bind
-                 */
+         * Task handler that will just drain the queue.
+         *
+         * @see MQ#bind
+         */
         const _handleTaskDrain = function(data, mqCallback) {
           // Simply callback, which acknowledges the message without doing anything.
           mqCallback();
@@ -120,6 +122,7 @@ describe('Content', () => {
           if (err) {
             assert.fail('Could not create test user');
           }
+
           contexts[identifier] = {
             user: createdUser,
             restContext: TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host, userId, 'password')
@@ -131,13 +134,13 @@ describe('Content', () => {
       );
     };
 
-    createUser('nicolaas', 'public', 'Nicolaas Matthijs');
-    createUser('simon', 'loggedin', 'Simon Gaeremynck');
-    createUser('bert', 'private', 'Bert Pareyn');
-    createUser('branden', 'private', 'Branden Visser');
-    createUser('anthony', 'public', 'Anthony Whyte');
-    createUser('stuart', 'public', 'Stuart Freeman');
-    createUser('ian', 'public', 'Ian Dolphin');
+    createUser('nicolaas', PUBLIC, 'Nicolaas Matthijs');
+    createUser('simon', LOGGEDIN, 'Simon Gaeremynck');
+    createUser('bert', PRIVATE, 'Bert Pareyn');
+    createUser('branden', PRIVATE, 'Branden Visser');
+    createUser('anthony', PUBLIC, 'Anthony Whyte');
+    createUser('stuart', PUBLIC, 'Stuart Freeman');
+    createUser('ian', PUBLIC, 'Ian Dolphin');
   };
 
   /**
@@ -156,7 +159,7 @@ describe('Content', () => {
       contexts.bert.restContext,
       'UI Dev Team',
       'UI Dev Group',
-      'public',
+      PUBLIC,
       'yes',
       [],
       [contexts.nicolaas.user.id],
@@ -171,7 +174,7 @@ describe('Content', () => {
           contexts.branden.restContext,
           'Back-end Dev Team',
           'Back-end Dev Group',
-          'public',
+          PUBLIC,
           'yes',
           [],
           [contexts.simon.user.id],
@@ -185,7 +188,7 @@ describe('Content', () => {
               contexts.anthony.restContext,
               'OAE Team',
               'OAE Team Group',
-              'public',
+              PUBLIC,
               'yes',
               [],
               [groups['ui-team'].id, groups['backend-team'].id, contexts.stuart.user.id],
@@ -252,6 +255,7 @@ describe('Content', () => {
         assert.ok(err);
         assert.ok(!retrievedContent);
       }
+
       // Check if the item comes back in the library
       RestAPI.Content.getLibrary(restCtx, libraryToCheck, null, 10, (err, contentItems) => {
         // If no logged in user is provided, we expect an error
@@ -266,6 +270,7 @@ describe('Content', () => {
         } else {
           assert.ok(err);
         }
+
         callback();
       });
     });
@@ -303,7 +308,7 @@ describe('Content', () => {
           contexts.nicolaas.restContext,
           'Test Content 1',
           'Test content description 1',
-          'public',
+          PUBLIC,
           'http://www.oaeproject.org/',
           [],
           [],
@@ -365,7 +370,7 @@ describe('Content', () => {
           contexts.nicolaas.restContext,
           'Test Content 1',
           'Test content description 1',
-          'private',
+          PRIVATE,
           getFileStream,
           [],
           [],
@@ -443,7 +448,7 @@ describe('Content', () => {
           contexts.nicolaas.restContext,
           'Test Content 1',
           'Test content description 1',
-          'private',
+          PRIVATE,
           getFileStream,
           [],
           [],
@@ -512,7 +517,7 @@ describe('Content', () => {
           contexts.nicolaas.restContext,
           'Test Content 1',
           'Test content description 1',
-          'private',
+          PRIVATE,
           getFileStream,
           [],
           [],
@@ -541,8 +546,8 @@ describe('Content', () => {
     });
 
     /*
-         * Test that will verify the validation of signed urls.
-         */
+     * Test that will verify the validation of signed urls.
+     */
     it('verify validation of signed urls', callback => {
       setUpUsers(contexts => {
         // Generate a signed download url for Branden
@@ -651,6 +656,7 @@ describe('Content', () => {
                                                 Date.now = function() {
                                                   return now + 15 * 24 * 60 * 60 * 1000;
                                                 };
+
                                                 RestUtil.performRestRequest(
                                                   contexts.branden.restContext,
                                                   '/api/download/signed',
@@ -749,7 +755,7 @@ describe('Content', () => {
           contexts.bert.restContext,
           'Test Content 1',
           'Test content description 1',
-          'public',
+          PUBLIC,
           'http://www.oaeproject.org/',
           [],
           [],
@@ -831,7 +837,7 @@ describe('Content', () => {
             bert.restContext,
             'displayName',
             'description',
-            'public',
+            PUBLIC,
             'http://www.oaeproject.org',
             [],
             [nicolaas.user.id],
@@ -940,7 +946,7 @@ describe('Content', () => {
           contexts.bert.restContext,
           'Test Content 1',
           'Test content description 1',
-          'public',
+          PUBLIC,
           'http://www.oaeproject.org/',
           [],
           [],
@@ -1055,7 +1061,7 @@ describe('Content', () => {
                                               contexts.bert.restContext,
                                               'Test Content',
                                               'Test content description',
-                                              'public',
+                                              PUBLIC,
                                               'http://www.oaeproject.org/',
                                               [],
                                               [],
@@ -1173,7 +1179,7 @@ describe('Content', () => {
           contexts.bert.restContext,
           'Test Content 1',
           'Test content description 1',
-          'public',
+          PUBLIC,
           'http://www.oaeproject.org/',
           [],
           [],
@@ -1244,7 +1250,7 @@ describe('Content', () => {
           ctx,
           'Test Content',
           'Test content description',
-          'public',
+          PUBLIC,
           'http://www.oaeproject.org/',
           [],
           [],
@@ -1291,7 +1297,7 @@ describe('Content', () => {
           contexts.bert.restContext,
           'Test Content 1',
           'Test content description 1',
-          'public',
+          PUBLIC,
           'http://www.oaeproject.org/',
           [],
           [],
@@ -1464,7 +1470,7 @@ describe('Content', () => {
           contexts.simon.restContext,
           'Test Content 1',
           'Test content description 1',
-          'public',
+          PUBLIC,
           'http://www.oaeproject.org/',
           [],
           [],
@@ -1477,7 +1483,7 @@ describe('Content', () => {
               contexts.nicolaas.restContext,
               'Test Content 2',
               'Test content description 2',
-              'private',
+              PRIVATE,
               'http://www.oaeproject.org/',
               [],
               [contexts.simon.user.id],
@@ -1649,7 +1655,7 @@ describe('Content', () => {
           contexts.nicolaas.restContext,
           'Test Content 1',
           'Test content description 1',
-          'public',
+          PUBLIC,
           'http://www.oaeproject.org/',
           [],
           [],
@@ -1700,7 +1706,7 @@ describe('Content', () => {
        * @param  {RestContext}   linkContext       The RestContext object of a user to create the content item with
        * @param  {RestContext}   commentContext    The RestContext object of a user to comment on the content item with
        * @param  {RestContext}   deleteContext     The RestContext object of a user to delete the comment with
-       * @param  {String}        visibility        The visibility of the content item that will be created ('public', 'loggedin' or 'private')
+       * @param  {String}        visibility        The visibility of the content item that will be created (PUBLIC, LOGGEDIN or PRIVATE)
        * @param  {String[]}      managers          An array of user IDs that will be added as managers to the newly created content
        * @param  {String[]}      members           An array of user IDs that will be added as members (viewers) to the newly created content
        * @param  {Function}      callback          Standard callback function
@@ -1788,6 +1794,7 @@ describe('Content', () => {
                   assert.ok(err);
                   assert.ok(!softDeleted);
                 }
+
                 // Delete comment as anonymous on piece of content (--> fail)
                 _canDelete(bert, bert, anonymousRestContext, visibility, [], [], true, (err, softDeleted) => {
                   assert.ok(err);
@@ -1806,7 +1813,7 @@ describe('Content', () => {
      */
     it('verify delete comment permissions public', callback => {
       setUpUsers(contexts => {
-        testDeleteCommentPermissions(contexts, 'public', true, callback);
+        testDeleteCommentPermissions(contexts, PUBLIC, true, callback);
       });
     });
 
@@ -1815,7 +1822,7 @@ describe('Content', () => {
      */
     it('verify delete comment permissions loggedin', callback => {
       setUpUsers(contexts => {
-        testDeleteCommentPermissions(contexts, 'loggedin', true, callback);
+        testDeleteCommentPermissions(contexts, LOGGEDIN, true, callback);
       });
     });
 
@@ -1824,7 +1831,7 @@ describe('Content', () => {
      */
     it('verify delete comment permissions private', callback => {
       setUpUsers(contexts => {
-        testDeleteCommentPermissions(contexts, 'private', false, callback);
+        testDeleteCommentPermissions(contexts, PRIVATE, false, callback);
       });
     });
 
@@ -1838,7 +1845,7 @@ describe('Content', () => {
           contexts.bert.restContext,
           'Test Content 1',
           'Test content description 1',
-          'public',
+          PUBLIC,
           'http://www.oaeproject.org/',
           [],
           [],
@@ -2002,6 +2009,7 @@ describe('Content', () => {
                               assert.ok(err);
                               assert.ok(!comment);
                             }
+
                             // Verify that the comment was placed as a logged in user
                             RestAPI.Content.getComments(
                               contexts.simon.restContext,
@@ -2062,7 +2070,7 @@ describe('Content', () => {
      */
     it('verify create comment permissions public', callback => {
       setUpUsers(contexts => {
-        testCommentPermissions(contexts, 'public', true, callback);
+        testCommentPermissions(contexts, PUBLIC, true, callback);
       });
     });
 
@@ -2071,7 +2079,7 @@ describe('Content', () => {
      */
     it('verify create comment permissions loggedin', callback => {
       setUpUsers(contexts => {
-        testCommentPermissions(contexts, 'loggedin', true, callback);
+        testCommentPermissions(contexts, LOGGEDIN, true, callback);
       });
     });
 
@@ -2080,7 +2088,7 @@ describe('Content', () => {
      */
     it('verify create comment permissions private', callback => {
       setUpUsers(contexts => {
-        testCommentPermissions(contexts, 'private', false, callback);
+        testCommentPermissions(contexts, PRIVATE, false, callback);
       });
     });
   });
@@ -2114,7 +2122,7 @@ describe('Content', () => {
           anonymousRestContext,
           'Test Content 1',
           'Test content description 1',
-          'public',
+          PUBLIC,
           'http://www.oaeproject.org/',
           [],
           [],
@@ -2128,7 +2136,7 @@ describe('Content', () => {
               contexts.nicolaas.restContext,
               'Test Content 2',
               'Test content description 2',
-              'public',
+              PUBLIC,
               'http://www.oaeproject.org/',
               [],
               [],
@@ -2145,7 +2153,7 @@ describe('Content', () => {
                   contexts.nicolaas.restContext,
                   'Test Content 3',
                   null,
-                  'public',
+                  PUBLIC,
                   'http://www.oaeproject.org/',
                   [],
                   [],
@@ -2160,7 +2168,7 @@ describe('Content', () => {
                       contexts.nicolaas.restContext,
                       'Test Content 4',
                       longDescription,
-                      'public',
+                      PUBLIC,
                       null,
                       [],
                       [],
@@ -2174,7 +2182,7 @@ describe('Content', () => {
                           contexts.nicolaas.restContext,
                           'Test Content 4',
                           'Test content description 4',
-                          'public',
+                          PUBLIC,
                           null,
                           [],
                           [],
@@ -2188,7 +2196,7 @@ describe('Content', () => {
                               contexts.nicolaas.restContext,
                               'Test Content 5',
                               'Test content description 5',
-                              'public',
+                              PUBLIC,
                               'Just a string',
                               [],
                               [],
@@ -2202,11 +2210,12 @@ describe('Content', () => {
                                 for (let i = 0; i < 2500; i++) {
                                   longUrl += 'a';
                                 }
+
                                 RestAPI.Content.createLink(
                                   contexts.nicolaas.restContext,
                                   'Test Content 5',
                                   'Test content description 5',
-                                  'public',
+                                  PUBLIC,
                                   longUrl,
                                   [],
                                   [],
@@ -2221,7 +2230,7 @@ describe('Content', () => {
                                       contexts.nicolaas.restContext,
                                       null,
                                       'Test content description 6',
-                                      'public',
+                                      PUBLIC,
                                       'http://www.oaeproject.org/',
                                       [],
                                       [],
@@ -2236,7 +2245,7 @@ describe('Content', () => {
                                           contexts.nicolaas.restContext,
                                           longDisplayName,
                                           'Test content description 6',
-                                          'public',
+                                          PUBLIC,
                                           'http://www.oaeproject.org/',
                                           [],
                                           [],
@@ -2267,7 +2276,7 @@ describe('Content', () => {
                                                   contentObj.id,
                                                   (err, contentObj) => {
                                                     assert.ok(!err);
-                                                    assert.strictEqual(contentObj.visibility, 'public');
+                                                    assert.strictEqual(contentObj.visibility, PUBLIC);
                                                     assert.ok(!contentObj.downloadPath);
 
                                                     // Verify that an empty description is allowed
@@ -2289,7 +2298,7 @@ describe('Content', () => {
                                                           contexts.nicolaas.restContext,
                                                           'Test Content 8',
                                                           'Test content description 8',
-                                                          'public',
+                                                          PUBLIC,
                                                           'www.oaeproject.org',
                                                           [],
                                                           [],
@@ -2348,7 +2357,7 @@ describe('Content', () => {
           anonymousRestContext,
           'Test Content 1',
           'Test content description 1',
-          'public',
+          PUBLIC,
           getFileStream,
           [],
           [],
@@ -2362,7 +2371,7 @@ describe('Content', () => {
               contexts.nicolaas.restContext,
               'Test Content 2',
               'Test content description 2',
-              'public',
+              PUBLIC,
               getFileStream,
               [],
               [],
@@ -2381,7 +2390,7 @@ describe('Content', () => {
                   contexts.nicolaas.restContext,
                   'Test Content 3',
                   null,
-                  'public',
+                  PUBLIC,
                   getFileStream,
                   [],
                   [],
@@ -2396,7 +2405,7 @@ describe('Content', () => {
                       contexts.nicolaas.restContext,
                       'Test content',
                       longDescription,
-                      'public',
+                      PUBLIC,
                       getFileStream,
                       [],
                       [],
@@ -2412,7 +2421,7 @@ describe('Content', () => {
                           contexts.nicolaas.restContext,
                           null,
                           'Test content description 4',
-                          'public',
+                          PUBLIC,
                           getFileStream,
                           [],
                           [],
@@ -2427,7 +2436,7 @@ describe('Content', () => {
                               contexts.nicolaas.restContext,
                               longDisplayName,
                               'Test content description 4',
-                              'public',
+                              PUBLIC,
                               getFileStream,
                               [],
                               [],
@@ -2443,7 +2452,7 @@ describe('Content', () => {
                                   contexts.nicolaas.restContext,
                                   'Test Content 4',
                                   'Test content description 4',
-                                  'public',
+                                  PUBLIC,
                                   null,
                                   [],
                                   [],
@@ -2471,7 +2480,7 @@ describe('Content', () => {
                                           contentObj.id,
                                           (err, contentObj) => {
                                             assert.ok(!err);
-                                            assert.strictEqual(contentObj.visibility, 'public');
+                                            assert.strictEqual(contentObj.visibility, PUBLIC);
                                             assert.strictEqual(
                                               contentObj.downloadPath,
                                               '/api/content/' +
@@ -2485,7 +2494,7 @@ describe('Content', () => {
                                               contexts.nicolaas.restContext,
                                               'Test Content 5',
                                               '',
-                                              'public',
+                                              PUBLIC,
                                               getFileStream,
                                               [],
                                               [],
@@ -2527,7 +2536,7 @@ describe('Content', () => {
           anonymousRestContext,
           'Test Content 1',
           'Test content description 1',
-          'public',
+          PUBLIC,
           [],
           [],
           [],
@@ -2541,7 +2550,7 @@ describe('Content', () => {
               contexts.nicolaas.restContext,
               'Test Content 2',
               'Test content description 2',
-              'public',
+              PUBLIC,
               [],
               [],
               [],
@@ -2558,7 +2567,7 @@ describe('Content', () => {
                   contexts.nicolaas.restContext,
                   'Test Content 3',
                   null,
-                  'public',
+                  PUBLIC,
                   [],
                   [],
                   [],
@@ -2573,7 +2582,7 @@ describe('Content', () => {
                       contexts.nicolaas.restContext,
                       'Test content',
                       longDescription,
-                      'public',
+                      PUBLIC,
                       [],
                       [],
                       [],
@@ -2589,7 +2598,7 @@ describe('Content', () => {
                           contexts.nicolaas.restContext,
                           null,
                           'Test content description 4',
-                          'public',
+                          PUBLIC,
                           [],
                           [],
                           [],
@@ -2604,7 +2613,7 @@ describe('Content', () => {
                               contexts.nicolaas.restContext,
                               longDisplayName,
                               'descripton',
-                              'public',
+                              PUBLIC,
                               [],
                               [],
                               [],
@@ -2634,7 +2643,7 @@ describe('Content', () => {
                                       contentObj.id,
                                       (err, contentObj) => {
                                         assert.ok(!err);
-                                        assert.strictEqual(contentObj.visibility, 'private');
+                                        assert.strictEqual(contentObj.visibility, PRIVATE);
                                         assert.ok(!contentObj.downloadPath);
 
                                         // Verify that an empty description is accepted
@@ -2642,7 +2651,7 @@ describe('Content', () => {
                                           contexts.nicolaas.restContext,
                                           'Test Content 5',
                                           '',
-                                          'public',
+                                          PUBLIC,
                                           [],
                                           [],
                                           [],
@@ -2683,7 +2692,7 @@ describe('Content', () => {
           contexts.nicolaas.restContext,
           'Test Content 1',
           'Test content description 1',
-          'public',
+          PUBLIC,
           'http://www.oaeproject.org/',
           [],
           [],
@@ -2743,7 +2752,7 @@ describe('Content', () => {
           contexts.nicolaas.restContext,
           'Test Content 1',
           'Test content description 1',
-          'loggedin',
+          LOGGEDIN,
           'http://www.oaeproject.org/',
           [],
           [],
@@ -2803,7 +2812,7 @@ describe('Content', () => {
           contexts.nicolaas.restContext,
           'Test Content 1',
           'Test content description 1',
-          'private',
+          PRIVATE,
           'http://www.oaeproject.org/',
           [],
           [],
@@ -2864,7 +2873,7 @@ describe('Content', () => {
           contexts.nicolaas.restContext,
           'Test Content 1',
           'Test content description 1',
-          'private',
+          PRIVATE,
           'http://www.oaeproject.org/',
           [contexts.simon.user.id],
           [contexts.stuart.user.id],
@@ -2949,7 +2958,7 @@ describe('Content', () => {
           contexts.nicolaas.restContext,
           'Test Content 2',
           'Test content description 2',
-          'private',
+          PRIVATE,
           getFileStream,
           [contexts.simon.user.id],
           [contexts.stuart.user.id],
@@ -3034,7 +3043,7 @@ describe('Content', () => {
           contexts.nicolaas.restContext,
           'Test Content 2',
           'Test content description 2',
-          'private',
+          PRIVATE,
           [contexts.simon.user.id],
           [],
           [contexts.stuart.user.id],
@@ -3116,14 +3125,14 @@ describe('Content', () => {
         const nico = _.values(users)[0];
         const bert = _.values(users)[1];
 
-        RestAPI.User.updateUser(bert.restContext, bert.user.id, { visibility: 'private' }, err => {
+        RestAPI.User.updateUser(bert.restContext, bert.user.id, { visibility: PRIVATE }, err => {
           assert.ok(!err);
 
           RestAPI.Content.createLink(
             nico.restContext,
             'Test Content',
             'Test content description',
-            'public',
+            PUBLIC,
             'http://www.oaeproject.org/',
             [bert.user.id],
             [],
@@ -3151,7 +3160,7 @@ describe('Content', () => {
           bert.restContext,
           'Group title',
           'Group description',
-          'private',
+          PRIVATE,
           undefined,
           [],
           [],
@@ -3162,7 +3171,7 @@ describe('Content', () => {
               nico.restContext,
               'Test Content',
               'Test content description',
-              'public',
+              PUBLIC,
               'http://www.oaeproject.org/',
               [groupObj.id],
               [],
@@ -3232,7 +3241,7 @@ describe('Content', () => {
           contexts.nicolaas.restContext,
           'Test Content 1',
           'Test content description 1',
-          'public',
+          PUBLIC,
           'http://www.oaeproject.org/',
           [],
           [],
@@ -3478,6 +3487,7 @@ describe('Content', () => {
                       assert.ok(err);
                       assert.ok(!contentObj);
                     }
+
                     // Check that it isn't part of his library
                     RestAPI.Content.getLibrary(
                       contexts.bert.restContext,
@@ -3511,6 +3521,7 @@ describe('Content', () => {
                                 assert.ok(err);
                                 assert.ok(!contentObj);
                               }
+
                               // Check that it is visible in the manager's library
                               RestAPI.Content.getLibrary(
                                 anonymousRestContext,
@@ -3525,6 +3536,7 @@ describe('Content', () => {
                                   } else {
                                     assert.strictEqual(items.results.length, 0);
                                   }
+
                                   callback();
                                 }
                               );
@@ -3555,7 +3567,7 @@ describe('Content', () => {
           contexts.nicolaas.restContext,
           'Test Content 1',
           'Test content description 1',
-          'public',
+          PUBLIC,
           'http://www.oaeproject.org/',
           [],
           [],
@@ -3597,7 +3609,7 @@ describe('Content', () => {
                               RestAPI.Content.updateContent(
                                 contexts.nicolaas.restContext,
                                 contentObj.id,
-                                { visibility: 'loggedin' },
+                                { visibility: LOGGEDIN },
                                 err => {
                                   assert.ok(!err);
 
@@ -3607,7 +3619,7 @@ describe('Content', () => {
                                     RestAPI.Content.updateContent(
                                       contexts.nicolaas.restContext,
                                       contentObj.id,
-                                      { visibility: 'private' },
+                                      { visibility: PRIVATE },
                                       err => {
                                         assert.ok(!err);
 
@@ -3617,7 +3629,7 @@ describe('Content', () => {
                                           RestAPI.Content.updateContent(
                                             contexts.simon.restContext,
                                             contentObj.id,
-                                            { visibility: 'public' },
+                                            { visibility: PUBLIC },
                                             err => {
                                               assert.ok(err);
 
@@ -3656,7 +3668,7 @@ describe('Content', () => {
           nicolaas.restContext,
           'display name',
           'description',
-          'public',
+          PUBLIC,
           'http://www.oaeproject.org',
           [],
           [],
@@ -3698,6 +3710,7 @@ describe('Content', () => {
                         for (let i = 0; i < 2500; i++) {
                           longUrl += 'a';
                         }
+
                         RestAPI.Content.updateContent(
                           nicolaas.restContext,
                           contentObj.id,
@@ -3738,7 +3751,7 @@ describe('Content', () => {
           contexts.nicolaas.restContext,
           'Test Content 2',
           'Test content description 2',
-          'public',
+          PUBLIC,
           getFileStream,
           [],
           [],
@@ -3758,7 +3771,7 @@ describe('Content', () => {
                   contexts.nicolaas.restContext,
                   'Test Content 1',
                   'Test content description 1',
-                  'public',
+                  PUBLIC,
                   [],
                   [],
                   [],
@@ -3794,7 +3807,7 @@ describe('Content', () => {
           contexts.nicolaas.restContext,
           'Test Content 2',
           'Test content description 2',
-          'public',
+          PUBLIC,
           'http://www.oaeproject.org',
           [],
           [],
@@ -3810,7 +3823,7 @@ describe('Content', () => {
                 contexts.nicolaas.restContext,
                 'Test Content 2',
                 'Test content description 2',
-                'public',
+                PUBLIC,
                 getFileStream,
                 [],
                 [],
@@ -3918,7 +3931,7 @@ describe('Content', () => {
           contexts.nicolaas.restContext,
           'Test Content 2',
           'Test content description 2',
-          'public',
+          PUBLIC,
           getFileStream,
           [],
           [],
@@ -4044,7 +4057,7 @@ describe('Content', () => {
           contexts.simon.restContext,
           'Test Content 1',
           'Test content description 1',
-          'private',
+          PRIVATE,
           getFileStream,
           [],
           [],
@@ -4091,7 +4104,7 @@ describe('Content', () => {
                             contexts.nicolaas.restContext,
                             'Apereo Foundation',
                             'The Apereo Foundation',
-                            'private',
+                            PRIVATE,
                             'http://www.apereo.org/',
                             [],
                             [],
@@ -4137,7 +4150,7 @@ describe('Content', () => {
           contexts.simon.restContext,
           'Test Content 1',
           'Test content description 1',
-          'private',
+          PRIVATE,
           getFileStream,
           [],
           [],
@@ -4192,7 +4205,7 @@ describe('Content', () => {
           contexts.simon.restContext,
           'Test Content',
           'Test content description',
-          'private',
+          PRIVATE,
           getFileStream,
           [],
           [],
@@ -4214,6 +4227,7 @@ describe('Content', () => {
                   if (createdRevisions.length === 30) {
                     return callback(createdRevisions);
                   }
+
                   createRevisions(callback);
                 }
               );
@@ -4273,7 +4287,7 @@ describe('Content', () => {
           contexts.simon.restContext,
           'Test Content 1',
           'Test content description 1',
-          'private',
+          PRIVATE,
           getFileStream,
           [],
           [],
@@ -4387,7 +4401,7 @@ describe('Content', () => {
                       true,
                       false,
                       true,
-                      privacy !== 'private',
+                      privacy !== PRIVATE,
                       () => {
                         // Share the content with another user
                         RestAPI.Content.shareContent(
@@ -4403,7 +4417,7 @@ describe('Content', () => {
                               true,
                               false,
                               true,
-                              privacy !== 'private',
+                              privacy !== PRIVATE,
                               () => {
                                 // Try to delete the content as an anonymous user
                                 RestAPI.Content.deleteContent(anonymousRestContext, contentObj.id, err => {
@@ -4569,7 +4583,7 @@ describe('Content', () => {
      */
     it('verify public delete', callback => {
       setUpUsers(contexts => {
-        prepareDelete(contexts, 'public', callback);
+        prepareDelete(contexts, PUBLIC, callback);
       });
     });
 
@@ -4578,7 +4592,7 @@ describe('Content', () => {
      */
     it('verify logged in delete', callback => {
       setUpUsers(contexts => {
-        prepareDelete(contexts, 'loggedin', callback);
+        prepareDelete(contexts, LOGGEDIN, callback);
       });
     });
 
@@ -4587,7 +4601,7 @@ describe('Content', () => {
      */
     it('verify private delete', callback => {
       setUpUsers(contexts => {
-        prepareDelete(contexts, 'private', callback);
+        prepareDelete(contexts, PRIVATE, callback);
       });
     });
 
@@ -4600,7 +4614,7 @@ describe('Content', () => {
           contexts.nicolaas.restContext,
           'Test Content 2',
           'Test content description 2',
-          'public',
+          PUBLIC,
           getFileStream,
           [],
           [],
@@ -4636,15 +4650,15 @@ describe('Content', () => {
   });
 
   /**
-   * Verify collabdoc editors can't delete
+   * Verify collabdoc or collabsheet editors can't delete
    */
-  it("verify collabdoc editors can't delete", callback => {
+  it("verify collabdoc or collabsheet editors can't delete", callback => {
     setUpUsers(contexts => {
       RestAPI.Content.createCollabDoc(
         contexts.nicolaas.restContext,
         'Test CollabDoc',
         'Doc description',
-        'public',
+        PUBLIC,
         [],
         [contexts.stuart.user.id],
         [],
@@ -4656,7 +4670,27 @@ describe('Content', () => {
 
             RestAPI.Content.deleteContent(contexts.nicolaas.restContext, contentObj.id, err => {
               assert.ok(!err);
-              return callback();
+              RestAPI.Content.createCollabsheet(
+                contexts.nicolaas.restContext,
+                'Test collabsheet',
+                'Description',
+                PUBLIC,
+                [],
+                [contexts.stuart.user.id],
+                [],
+                [],
+                function(err, contentObj) {
+                  assert.ok(!err);
+                  RestAPI.Content.deleteContent(contexts.stuart.restContext, contentObj.id, function(err) {
+                    assert.strictEqual(err.code, 401);
+
+                    RestAPI.Content.deleteContent(contexts.nicolaas.restContext, contentObj.id, function(err) {
+                      assert.ok(!err);
+                      return callback();
+                    });
+                  });
+                }
+              );
             });
           });
         }
@@ -4723,7 +4757,7 @@ describe('Content', () => {
      */
     it('verify public content permissions', callback => {
       setUpUsers(contexts => {
-        setUpContentPermissions(contexts, 'public', contentObj => {
+        setUpContentPermissions(contexts, PUBLIC, contentObj => {
           // Get the piece of content as a non-associated user
           checkPieceOfContent(
             contexts.branden.restContext,
@@ -4756,7 +4790,7 @@ describe('Content', () => {
      */
     it('verify logged in content permissions', callback => {
       setUpUsers(contexts => {
-        setUpContentPermissions(contexts, 'loggedin', contentObj => {
+        setUpContentPermissions(contexts, LOGGEDIN, contentObj => {
           // Get the piece of content as a non-associated user
           checkPieceOfContent(
             contexts.branden.restContext,
@@ -4789,7 +4823,7 @@ describe('Content', () => {
      */
     it('verify private content permissions', callback => {
       setUpUsers(contexts => {
-        setUpContentPermissions(contexts, 'private', contentObj => {
+        setUpContentPermissions(contexts, PRIVATE, contentObj => {
           // Get the piece of content as a non-associated user
           checkPieceOfContent(
             contexts.branden.restContext,
@@ -4828,7 +4862,7 @@ describe('Content', () => {
           contexts.nicolaas.restContext,
           'Test Content 1',
           'Test content description 1',
-          'public',
+          PUBLIC,
           'http://www.oaeproject.org/',
           [],
           [],
@@ -4893,7 +4927,7 @@ describe('Content', () => {
           contexts.nicolaas.restContext,
           'Test Content 1',
           'Test content description 1',
-          'public',
+          PUBLIC,
           'http://www.oaeproject.org/',
           [],
           [],
@@ -4961,7 +4995,7 @@ describe('Content', () => {
           contexts.nicolaas.restContext,
           'Test Content 1',
           'Test content description 1',
-          'public',
+          PUBLIC,
           'http://www.oaeproject.org/',
           [],
           [],
@@ -5047,14 +5081,14 @@ describe('Content', () => {
         const nico = _.values(users)[0];
         const bert = _.values(users)[1];
 
-        RestAPI.User.updateUser(bert.restContext, bert.user.id, { visibility: 'private' }, err => {
+        RestAPI.User.updateUser(bert.restContext, bert.user.id, { visibility: PRIVATE }, err => {
           assert.ok(!err);
 
           RestAPI.Content.createLink(
             nico.restContext,
             'Test Content',
             'Test content description',
-            'public',
+            PUBLIC,
             'http://www.google.com',
             [],
             [],
@@ -5087,7 +5121,7 @@ describe('Content', () => {
           bert.restContext,
           'Group title',
           'Group description',
-          'private',
+          PRIVATE,
           undefined,
           [],
           [],
@@ -5098,7 +5132,7 @@ describe('Content', () => {
               nico.restContext,
               'Test Content',
               'Test content description',
-              'public',
+              PUBLIC,
               'http://www.google.com',
               [],
               [],
@@ -5132,7 +5166,7 @@ describe('Content', () => {
           nico.restContext,
           'Test Content',
           'Test content description',
-          'public',
+          PUBLIC,
           'http://www.google.com',
           [],
           [bert.user.id],
@@ -5140,7 +5174,7 @@ describe('Content', () => {
           (err, contentObj) => {
             assert.ok(!err);
 
-            RestAPI.User.updateUser(bert.restContext, bert.user.id, { visibility: 'private' }, err => {
+            RestAPI.User.updateUser(bert.restContext, bert.user.id, { visibility: PRIVATE }, err => {
               assert.ok(!err);
 
               // Changing the role of a private user (that was already a member) should work
@@ -5191,7 +5225,7 @@ describe('Content', () => {
           simon.restContext,
           'Test Content',
           'Test content description',
-          'public',
+          PUBLIC,
           'http://www.oaeproject.org/',
           [],
           memberIds,
@@ -5231,7 +5265,7 @@ describe('Content', () => {
           ctx,
           'Test Content',
           'Test content description',
-          'public',
+          PUBLIC,
           'http://www.oaeproject.org/',
           [],
           [],
@@ -5255,15 +5289,15 @@ describe('Content', () => {
     });
 
     /**
-     * Test that verifies collabdoc editors can't change permissions, but can share
+     * Test that verifies collabdoc or collabsheets editors can't change permissions, but can share
      */
-    it("verify collabdoc editors can't change permissions", callback => {
+    it("verify collabdoc or collabsheets editors can't change permissions", callback => {
       setUpUsers(contexts => {
         RestAPI.Content.createCollabDoc(
           contexts.nicolaas.restContext,
           'Test CollabDoc',
           'Doc description',
-          'public',
+          PUBLIC,
           [],
           [contexts.stuart.user.id],
           [],
@@ -5285,7 +5319,40 @@ describe('Content', () => {
                   contexts.stuart.restContext,
                   contentObj.id,
                   _.keys(members),
-                  callback
+                  function() {
+                    // Make sure same is true for collaborative spreadsheets
+                    RestAPI.Content.createCollabsheet(
+                      contexts.stuart.restContext,
+                      'Test collabsheet',
+                      'Sheet description',
+                      PUBLIC,
+                      [],
+                      [contexts.nicolaas.user.id],
+                      [],
+                      [],
+                      function(err, contentObj) {
+                        assert.ok(!err);
+                        const members = {};
+                        members[contexts.anthony.user.id] = 'viewer';
+                        ContentTestUtil.assertUpdateContentMembersFails(
+                          contexts.stuart.restContext,
+                          contexts.nicolaas.restContext,
+                          contentObj.id,
+                          members,
+                          401,
+                          function() {
+                            ContentTestUtil.assertShareContentSucceeds(
+                              contexts.stuart.restContext,
+                              contexts.nicolaas.restContext,
+                              contentObj.id,
+                              _.keys(members),
+                              callback
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
                 );
               }
             );
@@ -5308,7 +5375,7 @@ describe('Content', () => {
           creatingUserInfo.restContext,
           randomString,
           randomString,
-          'public',
+          PUBLIC,
           'http://www.oaeproject.org',
           [],
           [],
@@ -5349,7 +5416,7 @@ describe('Content', () => {
             creatingUserInfo.restContext,
             randomString,
             randomString,
-            'public',
+            PUBLIC,
             'http://www.oaeproject.org',
             [],
             [],
@@ -5502,6 +5569,7 @@ describe('Content', () => {
         } else {
           assert.ok(err);
         }
+
         checkPieceOfContent(
           shareWith.restContext,
           shareWith.user ? shareWith.user.id : null,
@@ -5521,6 +5589,7 @@ describe('Content', () => {
               } else {
                 assert.ok(err);
               }
+
               callback();
             });
           }
@@ -5536,7 +5605,7 @@ describe('Content', () => {
     it('verify public sharing', callback => {
       setUpUsers(contexts => {
         // Create a public content item
-        prepareSharing(contexts, 'public', contentObj => {
+        prepareSharing(contexts, PUBLIC, contentObj => {
           // Share as content owner
           const expectedMembers = {};
           expectedMembers[contexts.nicolaas.user.id] = 'manager';
@@ -5623,7 +5692,7 @@ describe('Content', () => {
     it('verify logged in sharing', callback => {
       setUpUsers(contexts => {
         // Create a loggedin content item
-        prepareSharing(contexts, 'loggedin', contentObj => {
+        prepareSharing(contexts, LOGGEDIN, contentObj => {
           // Share as content owner
           const expectedMembers = {};
           expectedMembers[contexts.nicolaas.user.id] = 'manager';
@@ -5710,7 +5779,7 @@ describe('Content', () => {
     it('verify private sharing', callback => {
       setUpUsers(contexts => {
         // Create a private content item
-        prepareSharing(contexts, 'private', contentObj => {
+        prepareSharing(contexts, PRIVATE, contentObj => {
           // Share as content owner
           const expectedMembers = {};
           expectedMembers[contexts.nicolaas.user.id] = 'manager';
@@ -5783,7 +5852,7 @@ describe('Content', () => {
     it('verify multiple sharing', callback => {
       setUpUsers(contexts => {
         // Create a piece of content
-        prepareSharing(contexts, 'private', contentObj => {
+        prepareSharing(contexts, PRIVATE, contentObj => {
           // Share with multiple people at the same time
           let toShare = [contexts.simon.user.id, contexts.ian.user.id, contexts.stuart.user.id];
           RestAPI.Content.shareContent(contexts.nicolaas.restContext, contentObj.id, toShare, err => {
@@ -5874,7 +5943,7 @@ describe('Content', () => {
           actor.restContext,
           'Test Content 1',
           'Test content description 1',
-          'private',
+          PRIVATE,
           'http://www.oaeproject.org/',
           [],
           [],
@@ -5958,7 +6027,7 @@ describe('Content', () => {
               true,
               false,
               true,
-              privacy !== 'private',
+              privacy !== PRIVATE,
               () => {
                 checkPieceOfContent(
                   contexts.nicolaas.restContext,
@@ -5967,7 +6036,7 @@ describe('Content', () => {
                   true,
                   false,
                   false,
-                  privacy !== 'private',
+                  privacy !== PRIVATE,
                   () => {
                     checkPieceOfContent(
                       contexts.bert.restContext,
@@ -5976,7 +6045,7 @@ describe('Content', () => {
                       true,
                       false,
                       false,
-                      privacy !== 'private',
+                      privacy !== PRIVATE,
                       () => {
                         // Check that it shows in UI Dev Team's library
                         RestAPI.Content.getLibrary(
@@ -6038,20 +6107,20 @@ describe('Content', () => {
                                                   contexts.stuart.restContext,
                                                   contexts.stuart.user.id,
                                                   contentObj,
-                                                  privacy !== 'private',
+                                                  privacy !== PRIVATE,
                                                   false,
                                                   false,
-                                                  privacy !== 'private',
+                                                  privacy !== PRIVATE,
                                                   () => {
                                                     // Check that Branden doesn't have access
                                                     checkPieceOfContent(
                                                       contexts.branden.restContext,
                                                       contexts.branden.user.id,
                                                       contentObj,
-                                                      privacy !== 'private',
+                                                      privacy !== PRIVATE,
                                                       false,
                                                       false,
-                                                      privacy !== 'private',
+                                                      privacy !== PRIVATE,
                                                       () => {
                                                         // Share with the OAE Team group
                                                         RestAPI.Content.shareContent(
@@ -6067,7 +6136,7 @@ describe('Content', () => {
                                                               true,
                                                               false,
                                                               false,
-                                                              privacy !== 'private',
+                                                              privacy !== PRIVATE,
                                                               () => {
                                                                 // Check that Branden has access
                                                                 checkPieceOfContent(
@@ -6077,7 +6146,7 @@ describe('Content', () => {
                                                                   true,
                                                                   false,
                                                                   false,
-                                                                  privacy !== 'private',
+                                                                  privacy !== PRIVATE,
                                                                   () => {
                                                                     // Check that it shows in OAE Team and UI Dev team's library and not in the Back-End Team's library
                                                                     RestAPI.Content.getLibrary(
@@ -6159,7 +6228,7 @@ describe('Content', () => {
                                                                                               true,
                                                                                               false,
                                                                                               false,
-                                                                                              privacy !== 'private',
+                                                                                              privacy !== PRIVATE,
                                                                                               () => {
                                                                                                 // Remove permission for Back-end team manager and OAE Team
                                                                                                 permissions = {};
@@ -6189,7 +6258,7 @@ describe('Content', () => {
                                                                                                       false,
                                                                                                       false,
                                                                                                       privacy !==
-                                                                                                        'private',
+                                                                                                        PRIVATE,
                                                                                                       () => {
                                                                                                         checkPieceOfContent(
                                                                                                           contexts.simon
@@ -6201,7 +6270,7 @@ describe('Content', () => {
                                                                                                           false,
                                                                                                           true,
                                                                                                           privacy !==
-                                                                                                            'private',
+                                                                                                            PRIVATE,
                                                                                                           () => {
                                                                                                             checkPieceOfContent(
                                                                                                               contexts
@@ -6213,11 +6282,11 @@ describe('Content', () => {
                                                                                                                 .id,
                                                                                                               contentObj,
                                                                                                               privacy !==
-                                                                                                                'private',
+                                                                                                                PRIVATE,
                                                                                                               false,
                                                                                                               false,
                                                                                                               privacy !==
-                                                                                                                'private',
+                                                                                                                PRIVATE,
                                                                                                               callback
                                                                                                             );
                                                                                                           }
@@ -6279,7 +6348,7 @@ describe('Content', () => {
     it('verify public content group access', callback => {
       setUpUsers(contexts => {
         setUpGroups(contexts, groups => {
-          testGroupAccess(contexts, groups, 'public', callback);
+          testGroupAccess(contexts, groups, PUBLIC, callback);
         });
       });
     });
@@ -6290,7 +6359,7 @@ describe('Content', () => {
     it('verify logged in content group access', callback => {
       setUpUsers(contexts => {
         setUpGroups(contexts, groups => {
-          testGroupAccess(contexts, groups, 'loggedin', callback);
+          testGroupAccess(contexts, groups, LOGGEDIN, callback);
         });
       });
     });
@@ -6301,7 +6370,7 @@ describe('Content', () => {
     it('verify private content group access', callback => {
       setUpUsers(contexts => {
         setUpGroups(contexts, groups => {
-          testGroupAccess(contexts, groups, 'private', callback);
+          testGroupAccess(contexts, groups, PRIVATE, callback);
         });
       });
     });

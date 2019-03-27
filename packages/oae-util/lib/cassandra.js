@@ -58,6 +58,7 @@ const init = function(config, callback) {
           callback(err);
         });
       }
+
       client = _createNewClient(CONFIG.hosts, keyspace);
       callback();
     });
@@ -164,10 +165,12 @@ const keyspaceExists = function(name, callback) {
     if (results.rowLength === 0) {
       return callback(null, false);
     }
+
     if (err) {
       log().error({ err, name }, 'Error while describing cassandra keyspace');
       callback({ code: 500, msg: 'Error while describing cassandra keyspace' });
     }
+
     return callback(null, true);
   });
 };
@@ -204,6 +207,7 @@ const dropColumnFamily = function(name, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!exists) {
       return callback({
         code: 400,
@@ -254,6 +258,7 @@ const _dropColumnFamilies = function(families, callback) {
     if (err) {
       return callback(err);
     }
+
     _dropColumnFamilies(families, callback);
   });
 };
@@ -324,6 +329,7 @@ const _createColumnFamilies = function(keys, families, callback) {
     if (err) {
       return callback(err);
     }
+
     _createColumnFamilies(keys, families, callback);
   });
 };
@@ -404,6 +410,7 @@ const runBatchQuery = function(queries, callback) {
     if (err) {
       return callback(err);
     }
+
     return callback(null, result.rows);
   });
 };
@@ -472,6 +479,7 @@ const runPagedQuery = function(
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(rows)) {
       return callback(null, [], null, false);
     }
@@ -658,6 +666,7 @@ const _iterateAll = function(
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(rows)) {
       // Notify the caller that we've finished
       return callback();
@@ -688,6 +697,7 @@ const _iterateAll = function(
           row[eachNewRowContent.key] = eachNewRowContent.value;
         });
       }
+
       requestedRowColumns.push(row);
     });
     rows = requestedRowColumns;
@@ -737,6 +747,7 @@ const _buildIterateAllQuery = function(columnNames, columnFamily, keyColumnName,
 
         // Return as-is
       }
+
       return columnName;
     }).join(', ');
   }
@@ -794,6 +805,7 @@ const constructUpsertCQL = function(cf, rowKey, rowValue, values, ttl) {
   if (!cf || !rowKey || !rowValue || !_.isObject(values) || _.isEmpty(values)) {
     return false;
   }
+
   if (_.isArray(rowKey)) {
     // If the row key is an array, the row value should be an array of the same length
     if (!_.isArray(rowValue) || rowKey.length !== rowValue.length) {

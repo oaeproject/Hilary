@@ -29,6 +29,9 @@ const { ContentConstants } = require('oae-content/lib/constants');
 const ContentDAO = require('oae-content/lib/internal/dao');
 const ContentUtil = require('oae-content/lib/internal/util');
 
+const COLLABDOC = 'collabdoc';
+const COLLABSHEET = 'collabsheet';
+
 /**
  * Initializes the child search documents for the Content module
  *
@@ -51,6 +54,7 @@ module.exports.init = function(callback) {
       if (err) {
         return callback(err);
       }
+
       return MessageBoxSearch.registerMessageSearchDocument(
         ContentConstants.search.MAPPING_CONTENT_COMMENT,
         ['content'],
@@ -265,38 +269,34 @@ const _produceContentBodyDocuments = function(resources, callback, _documents, _
       }
 
       const { tenantAlias } = AuthzUtil.getResourceFromId(revision.previewsId);
-      ContentUtil.getStorageBackend(null, preview.uri).get(
-        tenantAlias,
-        preview.uri,
-        (err, file) => {
-          if (err) {
-            _errs = _.union(_errs, [err]);
-            return _produceContentBodyDocuments(resources, callback, _documents, _errs);
+      ContentUtil.getStorageBackend(null, preview.uri).get(tenantAlias, preview.uri, (err, file) => {
+        if (err) {
+          _errs = _.union(_errs, [err]);
+          return _produceContentBodyDocuments(resources, callback, _documents, _errs);
+        }
+
+        fs.readFile(file.path, (err, data) => {
+          if (!err) {
+            const childDoc = SearchUtil.createChildSearchDocument(
+              ContentConstants.search.MAPPING_CONTENT_BODY,
+              resource.id,
+              // eslint-disable-next-line camelcase
+              { content_body: data.toString('utf8') }
+            );
+            _documents.push(childDoc);
           }
 
-          fs.readFile(file.path, (err, data) => {
-            if (!err) {
-              const childDoc = SearchUtil.createChildSearchDocument(
-                ContentConstants.search.MAPPING_CONTENT_BODY,
-                resource.id,
-      // eslint-disable-next-line camelcase
-                { content_body: data.toString('utf8') }
-              );
-              _documents.push(childDoc);
+          // In all cases, the file should be removed again
+          fs.unlink(file.path, err => {
+            if (err) {
+              _errs = _.union(_errs, [err]);
             }
 
-            // In all cases, the file should be removed again
-            fs.unlink(file.path, err => {
-              if (err) {
-                _errs = _.union(_errs, [err]);
-              }
-
-              // Move on to the next file
-              _produceContentBodyDocuments(resources, callback, _documents, _errs);
-            });
+            // Move on to the next file
+            _produceContentBodyDocuments(resources, callback, _documents, _errs);
           });
-        }
-      );
+        });
+      });
     });
   });
 };
@@ -319,6 +319,7 @@ const _produceContentSearchDocuments = function(resources, callback) {
 
       // If the content items could not be found, there isn't much we can do
     }
+
     if (_.isEmpty(contentItems)) {
       return callback(null, docs);
     }
@@ -329,9 +330,7 @@ const _produceContentSearchDocuments = function(resources, callback) {
       }
 
       _.each(contentItems, contentItem => {
-        docs.push(
-          _produceContentSearchDocument(contentItem, revisionsById[contentItem.latestRevisionId])
-        );
+        docs.push(_produceContentSearchDocument(contentItem, revisionsById[contentItem.latestRevisionId]));
       });
 
       return callback(null, docs);
@@ -351,7 +350,7 @@ const _getRevisionItems = function(contentItems, callback) {
   // Check if we need to fetch revisions
   const revisionsToRetrieve = [];
   _.each(contentItems, content => {
-    if (content.resourceSubType === 'collabdoc') {
+    if (content.resourceSubType === COLLABDOC || content.resourceSubType === COLLABSHEET) {
       revisionsToRetrieve.push(content.latestRevisionId);
     }
   });
@@ -362,7 +361,7 @@ const _getRevisionItems = function(contentItems, callback) {
 
   ContentDAO.Revisions.getMultipleRevisions(
     revisionsToRetrieve,
-    { fields: ['revisionId', 'etherpadHtml'] },
+    { fields: ['revisionId', 'etherpadHtml', 'ethercalcHtml'] },
     (err, revisions) => {
       if (err) {
         return callback(err);
@@ -430,8 +429,10 @@ const _getContentItems = function(resources, callback) {
 const _produceContentSearchDocument = function(content, revision) {
   // Allow full-text search on name and description, but only if they are specified. We also sort on this text
   let fullText = _.compact([content.displayName, content.description]).join(' ');
-  if (content.resourceSubType === 'collabdoc' && revision && revision.etherpadHtml) {
+  if (content.resourceSubType === COLLABDOC && revision && revision.etherpadHtml) {
     fullText += ' ' + revision.etherpadHtml;
+  } else if (content.resourceSubType === COLLABSHEET && revision && revision.ethercalcHtml) {
+    fullText += ` ${revision.ethercalcHtml}`;
   }
 
   // Add all properties for the resource document metadata
@@ -441,9 +442,9 @@ const _produceContentSearchDocument = function(content, revision) {
     tenantAlias: content.tenant.alias,
     displayName: content.displayName,
     visibility: content.visibility,
-      // eslint-disable-next-line camelcase
+    // eslint-disable-next-line camelcase
     q_high: content.displayName,
-      // eslint-disable-next-line camelcase
+    // eslint-disable-next-line camelcase
     q_low: fullText,
     sort: content.displayName,
     dateCreated: content.created,
@@ -504,11 +505,7 @@ const _transformContentDocuments = function(ctx, docs, callback) {
     // Add the full tenant object and profile path
     _.extend(result, {
       tenant: TenantsAPI.getTenant(result.tenantAlias).compact(),
-      profilePath: util.format(
-        '/content/%s/%s',
-        result.tenantAlias,
-        AuthzUtil.getResourceFromId(result.id).resourceId
-      )
+      profilePath: util.format('/content/%s/%s', result.tenantAlias, AuthzUtil.getResourceFromId(result.id).resourceId)
     });
 
     // If applicable, sign the thumbnailUrl so the current user can access it
@@ -532,12 +529,12 @@ SearchAPI.registerSearchDocumentTransformer('content', _transformContentDocument
 
 SearchAPI.registerReindexAllHandler('content', callback => {
   /*!
-     * Handles each iteration of the ContentDAO iterate all method, firing tasks for all content to
-     * be reindexed.
-     *
-     * @see ContentDAO.Content#iterateAll
-     * @api private
-     */
+   * Handles each iteration of the ContentDAO iterate all method, firing tasks for all content to
+   * be reindexed.
+   *
+   * @see ContentDAO.Content#iterateAll
+   * @api private
+   */
   const _onEach = function(contentRows, done) {
     // Batch up this iteration of task resources
     const contentResources = [];

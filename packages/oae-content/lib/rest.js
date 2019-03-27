@@ -23,6 +23,9 @@ const OaeUtil = require('oae-util/lib/util');
 const ContentAPI = require('./api');
 const { ContentConstants } = require('./constants');
 
+const COLLABDOC = 'collabdoc';
+const COLLABSHEET = 'collabsheet';
+
 /**
  * Verify the signature information provided by a signed download request and
  * pass it on to the download handler to complete the download request
@@ -71,6 +74,35 @@ const _handleSignedDownload = function(req, res) {
  */
 
 /**
+ * @REST postContentCreateCollabsheet
+ *
+ * Create a new collaborative spreadsheet
+ *
+ * @Server      tenant
+ * @Method      POST
+ * @Path        /content/create
+ * @FormParam   {string}            displayName         The display name of the collaborative spreadsheet
+ * @FormParam   {string}            resourceSubType     The content item type                                                                       [spreadsheet]
+ * @FormParam   {string}            [description]       A longer description for the collaborative spreadsheet
+ * @FormParam   {string[]}          [managers]          Unique identifier(s) for users and groups to add as managers of the collaborative spreadsheet. The user creating the collaborative document will be added as a manager automatically
+ * @FormParam   {string[]}          [editors]           Unique identifier(s) for users and groups to add as editors of the collaborative spreadsheet
+ * @FormParam   {string[]}          [viewers]           Unique identifier(s) for users and groups to add as members of the collaborative spreadsheet
+ * @FormParam   {string[]}          [folders]           Unique identifier(s) for folders to which the collaborative spreadsheet should be added
+ * @FormParam   {string}            [visibility]        The visibility of the collaborative spreadsheet. Defaults to the configured tenant default     [loggedin,private,public]
+ * @Return      {BasicContent}                          The created collaborative spreadsheet
+ * @HttpResponse                    201                 Spreadsheet created
+ * @HttpResponse                    400                 A display name must be provided
+ * @HttpResponse                    400                 A display name can be at most 1000 characters long
+ * @HttpResponse                    400                 A description can only be 10000 characters long
+ * @HttpResponse                    400                 A valid resourceSubType must be provided. This can be "file", "collabdoc", "collabsheet" or "link"
+ * @HttpResponse                    400                 An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"
+ * @HttpResponse                    400                 One or more target members being granted access are not authorized to become members on this content item
+ * @HttpResponse                    400                 One or more target members being granted access do not exist
+ * @HttpResponse                    400                 The additional members should be specified as an object
+ * @HttpResponse                    401                 You have to be logged in to be able to create a content item
+ */
+
+/**
  * @REST postContentCreateFile
  *
  * Create new file
@@ -91,7 +123,7 @@ const _handleSignedDownload = function(req, res) {
  * @HttpResponse                    400                 A display name must be provided
  * @HttpResponse                    400                 A display name can be at most 1000 characters long
  * @HttpResponse                    400                 A description can only be 10000 characters long
- * @HttpResponse                    400                 A valid resourceSubType must be provided. This can be "file", "collabdoc" or "link"
+ * @HttpResponse                    400                 A valid resourceSubType must be provided. This can be "file", "collabdoc", "collabsheet" or "link"
  * @HttpResponse                    400                 An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"
  * @HttpResponse                    400                 One or more target members being granted access are not authorized to become members on this content item
  * @HttpResponse                    400                 One or more target members being granted access do not exist
@@ -122,7 +154,7 @@ const _handleSignedDownload = function(req, res) {
  * @HttpResponse                    400                 A display name can be at most 1000 characters long
  * @HttpResponse                    400                 A description can only be 10000 characters long
  * @HttpResponse                    400                 A valid link must be provided
- * @HttpResponse                    400                 A valid resourceSubType must be provided. This can be "file", "collabdoc" or "link"
+ * @HttpResponse                    400                 A valid resourceSubType must be provided. This can be "file", "collabdoc", "collabsheet" or "link"
  * @HttpResponse                    400                 An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"
  * @HttpResponse                    400                 One or more target members being granted access are not authorized to become members on this content item
  * @HttpResponse                    400                 One or more target members being granted access do not exist
@@ -152,6 +184,7 @@ OAE.tenantRouter.on('post', '/api/content/create', (req, res) => {
   if (req.files && req.files.file) {
     uploadedFile = req.files.file;
   }
+
   _createContent(
     req.ctx,
     req.body.resourceSubType,
@@ -190,7 +223,7 @@ OAE.tenantRouter.on('post', '/api/content/create', (req, res) => {
  * @param  {String}         [link]                  The URL when creating a content item of resourceSubType `link`
  * @param  {File}           [uploadedFile]          The file object when creating a content item of resourceSubType `file`
  * @param  {String[]}       folderIds               The ids of folders where the content item should be added to
- * @param  {Object}         additionalMembers       Object where the keys represent principal ids that need to be added to the content upon creation and the values represent the role that principal will have. Possible values are "viewer" and "manager", as well as "editor" for collabdocs
+ * @param  {Object}         additionalMembers       Object where the keys represent principal ids that need to be added to the content upon creation and the values represent the role that principal will have. Possible values are "viewer" and "manager", as well as "editor" for collabdocs or collabsheets
  * @param  {Function}       callback                Standard callback function
  * @param  {Object}         callback.err            An error object, if any
  * @param  {Content}        callback.content        The created content object
@@ -223,6 +256,7 @@ const _createContent = function(
 
     // File creation
   }
+
   if (resourceSubType === 'file') {
     return ContentAPI.createFile(
       ctx,
@@ -237,7 +271,8 @@ const _createContent = function(
 
     // Collaborative document creation
   }
-  if (resourceSubType === 'collabdoc') {
+
+  if (resourceSubType === COLLABDOC) {
     return ContentAPI.createCollabDoc(
       ctx,
       displayName,
@@ -250,9 +285,23 @@ const _createContent = function(
 
     // Not a recognized file type
   }
+
+  // Collaborative spreadsheet creation
+  if (resourceSubType === COLLABSHEET) {
+    return ContentAPI.createCollabSheet(
+      ctx,
+      displayName,
+      description,
+      visibility,
+      additionalMembers,
+      folderIds,
+      callback
+    );
+  }
+
   return callback({
     code: 400,
-    msg: 'Unrecognized resourceSubType. Accepted values are "link", "file" and "collabdoc"'
+    msg: 'Unrecognized resourceSubType. Accepted values are "link", "file", "collabdoc" and "collabsheet"'
   });
 };
 
@@ -276,6 +325,7 @@ OAE.tenantRouter.on('delete', '/api/content/:contentId', (req, res) => {
     if (err) {
       return res.status(err.code).send(err.msg);
     }
+
     res.status(200).end();
   });
 });
@@ -298,6 +348,7 @@ OAE.tenantRouter.on('get', '/api/content/:contentId', (req, res) => {
     if (err) {
       return res.status(err.code).send(err.msg);
     }
+
     res.status(200).send(contentProfile);
   });
 });
@@ -330,17 +381,13 @@ OAE.tenantRouter.on('get', '/api/content/:contentId', (req, res) => {
  * @HttpResponse                        401                 You have to be logged in to be able to update a content item
  */
 OAE.tenantRouter.on('post', '/api/content/:contentId', (req, res) => {
-  ContentAPI.updateContentMetadata(
-    req.ctx,
-    req.params.contentId,
-    req.body,
-    (err, newContentObj) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-      res.status(200).send(newContentObj);
+  ContentAPI.updateContentMetadata(req.ctx, req.params.contentId, req.body, (err, newContentObj) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    res.status(200).send(newContentObj);
+  });
 });
 
 /**
@@ -390,18 +437,13 @@ OAE.tenantRouter.on('get', '/api/content/:contentId/download', (req, res) => {
  * @HttpResponse                        404                 Content not available
  */
 OAE.tenantRouter.on('get', '/api/content/:contentId/download/:revisionId', (req, res) => {
-  ContentAPI.getRevisionDownloadInfo(
-    req.ctx,
-    req.params.contentId,
-    req.params.revisionId,
-    (err, downloadInfo) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-
-      return _handleDownload(res, downloadInfo, true);
+  ContentAPI.getRevisionDownloadInfo(req.ctx, req.params.contentId, req.params.revisionId, (err, downloadInfo) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    return _handleDownload(res, downloadInfo, true);
+  });
 });
 
 /**
@@ -427,34 +469,30 @@ OAE.tenantRouter.on('post', '/api/content/:contentId/newversion', (req, res) => 
     return res.status(400).send('Missing file parameter');
   }
 
-  ContentAPI.updateFileBody(
-    req.ctx,
-    req.params.contentId,
-    req.files.file,
-    (err, updatedContentObj) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-      // Set the response type to text/plain, as the UI uses an iFrame upload mechanism to support IE9
-      // file uploads. If the response type is not set to text/plain, IE9 will try to download the response.
-      res.set('Content-Type', 'text/plain');
-      res.status(200).send(updatedContentObj);
+  ContentAPI.updateFileBody(req.ctx, req.params.contentId, req.files.file, (err, updatedContentObj) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    // Set the response type to text/plain, as the UI uses an iFrame upload mechanism to support IE9
+    // file uploads. If the response type is not set to text/plain, IE9 will try to download the response.
+    res.set('Content-Type', 'text/plain');
+    res.status(200).send(updatedContentObj);
+  });
 });
 
 /**
  * @REST postContentContentIdJoin
  *
- * Join a collaborative document
+ * Join a collaborative document or spreadsheet
  *
  * @Server      tenant
  * @Method      POST
  * @Path        /content/{contentId}/join
  * @PathParam   {string}            contentId               The id of the collaborative document to join
  * @Return      {CollabdocJoinInfo}                         Information on how to join the collaborative document
- * @HttpResponse                    200                     Joined collabdoc
- * @HttpResponse                    400                     This is not a collaborative document
+ * @HttpResponse                    200                     Joined collabdoc or spreadsheet
+ * @HttpResponse                    400                     This is not a collaborative document or spreadsheet
  * @HttpResponse                    401                     You need to be a manager of this piece of content to be able to join it
  * @HttpResponse                    404                     Content not available
  */
@@ -463,6 +501,7 @@ OAE.tenantRouter.on('post', '/api/content/:contentId/join', (req, res) => {
     if (err) {
       return res.status(err.code).send(err.msg);
     }
+
     res.status(200).send(data);
   });
 });
@@ -490,62 +529,57 @@ OAE.tenantRouter.on('post', '/api/content/:contentId/join', (req, res) => {
  * @HttpResponse                    401                     Only administrators can attach preview items to a content item
  * @HttpResponse                    404                     Content not available
  */
-OAE.tenantRouter.on(
-  'post',
-  '/api/content/:contentId/revisions/:revisionId/previews',
-  (req, res) => {
-    let contentMetadata = null;
-    let previewMetadata = null;
-    let sizes = null;
-    let files = null;
-    try {
-      contentMetadata = JSON.parse(req.body.contentMetadata);
-      previewMetadata = JSON.parse(req.body.previewMetadata);
-      sizes = JSON.parse(req.body.sizes);
+OAE.tenantRouter.on('post', '/api/content/:contentId/revisions/:revisionId/previews', (req, res) => {
+  let contentMetadata = null;
+  let previewMetadata = null;
+  let sizes = null;
+  let files = null;
+  try {
+    contentMetadata = JSON.parse(req.body.contentMetadata);
+    previewMetadata = JSON.parse(req.body.previewMetadata);
+    sizes = JSON.parse(req.body.sizes);
 
-      if (req.body.links) {
-        files = JSON.parse(req.body.links);
-      }
-    } catch (error) {
-      let invalidField = null;
-      if (!contentMetadata) {
-        invalidField = 'contentMetadata';
-      } else if (!previewMetadata) {
-        invalidField = 'previewMetadata';
-      } else if (!sizes) {
-        invalidField = 'sizes';
-      } else if (!files) {
-        invalidField = 'links';
-      }
-
-      return res
-        .status(400)
-        .send('Malformed metadata object. Expected proper JSON for: ' + invalidField);
+    if (req.body.links) {
+      files = JSON.parse(req.body.links);
+    }
+  } catch (error) {
+    let invalidField = null;
+    if (!contentMetadata) {
+      invalidField = 'contentMetadata';
+    } else if (!previewMetadata) {
+      invalidField = 'previewMetadata';
+    } else if (!sizes) {
+      invalidField = 'sizes';
+    } else if (!files) {
+      invalidField = 'links';
     }
 
-    if (req.files) {
-      files = files || {};
-      _.extend(files, req.files);
-    }
-
-    ContentAPI.setPreviewItems(
-      req.ctx,
-      req.params.contentId,
-      req.params.revisionId,
-      req.body.status,
-      files,
-      sizes,
-      contentMetadata,
-      previewMetadata,
-      err => {
-        if (err) {
-          return res.status(err.code).send(err.msg);
-        }
-        res.status(201).end();
-      }
-    );
+    return res.status(400).send('Malformed metadata object. Expected proper JSON for: ' + invalidField);
   }
-);
+
+  if (req.files) {
+    files = files || {};
+    _.extend(files, req.files);
+  }
+
+  ContentAPI.setPreviewItems(
+    req.ctx,
+    req.params.contentId,
+    req.params.revisionId,
+    req.body.status,
+    files,
+    sizes,
+    contentMetadata,
+    previewMetadata,
+    err => {
+      if (err) {
+        return res.status(err.code).send(err.msg);
+      }
+
+      res.status(201).end();
+    }
+  );
+});
 
 /**
  * @REST getContentContentIdRevisionsRevisionIdPreviews
@@ -564,18 +598,13 @@ OAE.tenantRouter.on(
  * @HttpResponse                    404                     Content not available
  */
 OAE.tenantRouter.on('get', '/api/content/:contentId/revisions/:revisionId/previews', (req, res) => {
-  ContentAPI.getPreviewItems(
-    req.ctx,
-    req.params.contentId,
-    req.params.revisionId,
-    (err, previews) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-
-      res.status(200).send(previews);
+  ContentAPI.getPreviewItems(req.ctx, req.params.contentId, req.params.revisionId, (err, previews) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    res.status(200).send(previews);
+  });
 });
 
 /**
@@ -603,31 +632,27 @@ OAE.tenantRouter.on('get', '/api/content/:contentId/revisions/:revisionId/previe
  * @HttpResponse                        401                 Invalid content signature data for accessing previews
  * @HttpResponse                        404                 Preview not available
  */
-OAE.tenantRouter.on(
-  'get',
-  '/api/content/:contentId/revisions/:revisionId/previews/:item',
-  (req, res) => {
-    const signature = {
-      signature: req.query.signature,
-      expires: req.query.expires,
-      lastModified: req.query.lastmodified
-    };
-    ContentAPI.getSignedPreviewDownloadInfo(
-      req.ctx,
-      req.params.contentId,
-      req.params.revisionId,
-      req.params.item,
-      signature,
-      (err, downloadInfo) => {
-        if (err) {
-          return res.status(err.code).send(err.msg);
-        }
-
-        return _handleDownload(res, downloadInfo, true);
+OAE.tenantRouter.on('get', '/api/content/:contentId/revisions/:revisionId/previews/:item', (req, res) => {
+  const signature = {
+    signature: req.query.signature,
+    expires: req.query.expires,
+    lastModified: req.query.lastmodified
+  };
+  ContentAPI.getSignedPreviewDownloadInfo(
+    req.ctx,
+    req.params.contentId,
+    req.params.revisionId,
+    req.params.item,
+    signature,
+    (err, downloadInfo) => {
+      if (err) {
+        return res.status(err.code).send(err.msg);
       }
-    );
-  }
-);
+
+      return _handleDownload(res, downloadInfo, true);
+    }
+  );
+});
 
 /**
  * @REST getContentContentIdRevisions
@@ -648,18 +673,13 @@ OAE.tenantRouter.on(
  */
 OAE.tenantRouter.on('get', '/api/content/:contentId/revisions', (req, res) => {
   const limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
-  ContentAPI.getRevisions(
-    req.ctx,
-    req.params.contentId,
-    req.query.start,
-    limit,
-    (err, revisions, nextToken) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-      res.status(200).send({ results: revisions, nextToken });
+  ContentAPI.getRevisions(req.ctx, req.params.contentId, req.query.start, limit, (err, revisions, nextToken) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    res.status(200).send({ results: revisions, nextToken });
+  });
 });
 
 /**
@@ -683,6 +703,7 @@ OAE.tenantRouter.on('get', '/api/content/:contentId/revisions/:revisionId', (req
     if (err) {
       return res.status(err.code).send(err.msg);
     }
+
     res.status(200).send(revision);
   });
 });
@@ -706,17 +727,13 @@ OAE.tenantRouter.on('get', '/api/content/:contentId/revisions/:revisionId', (req
  * @HttpResponse                    404                 Content not available
  */
 OAE.tenantRouter.on('post', '/api/content/:contentId/revisions/:revisionId/restore', (req, res) => {
-  ContentAPI.restoreRevision(
-    req.ctx,
-    req.params.contentId,
-    req.params.revisionId,
-    (err, newRevision) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-      res.status(200).send(newRevision);
+  ContentAPI.restoreRevision(req.ctx, req.params.contentId, req.params.revisionId, (err, newRevision) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    res.status(200).send(newRevision);
+  });
 });
 
 /**
@@ -748,6 +765,7 @@ OAE.tenantRouter.on('get', '/api/content/:contentId/members', (req, res) => {
       if (err) {
         return res.status(err.code).send(err.msg);
       }
+
       res.status(200).send({ results: members, nextToken });
     }
   );
@@ -780,10 +798,12 @@ OAE.tenantRouter.on('post', '/api/content/:contentId/members', (req, res) => {
   for (let r = 0; r < requestKeys.length; r++) {
     req.body[requestKeys[r]] = OaeUtil.castToBoolean(req.body[requestKeys[r]]);
   }
+
   ContentAPI.setContentPermissions(req.ctx, req.params.contentId, req.body, err => {
     if (err) {
       return res.status(err.code).send(err.msg);
     }
+
     res.status(200).end();
   });
 });
@@ -871,6 +891,7 @@ OAE.tenantRouter.on('post', '/api/content/:contentId/share', (req, res) => {
     if (err) {
       return res.status(err.code).send(err.msg);
     }
+
     res.status(200).end();
   });
 });
@@ -905,18 +926,13 @@ OAE.tenantRouter.on('post', '/api/content/:contentId/share', (req, res) => {
  * @HttpResponse                500                 Failed to create a new message
  */
 OAE.tenantRouter.on('post', '/api/content/:contentId/messages', (req, res) => {
-  ContentAPI.createComment(
-    req.ctx,
-    req.params.contentId,
-    req.body.body,
-    req.body.replyTo,
-    (err, message) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-      res.status(201).send(message);
+  ContentAPI.createComment(req.ctx, req.params.contentId, req.body.body, req.body.replyTo, (err, message) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    res.status(201).send(message);
+  });
 });
 
 /**
@@ -941,18 +957,13 @@ OAE.tenantRouter.on('post', '/api/content/:contentId/messages', (req, res) => {
  */
 OAE.tenantRouter.on('get', '/api/content/:contentId/messages', (req, res) => {
   const limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
-  ContentAPI.getComments(
-    req.ctx,
-    req.params.contentId,
-    req.query.start,
-    limit,
-    (err, messages, nextToken) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-      res.status(200).send({ results: messages, nextToken });
+  ContentAPI.getComments(req.ctx, req.params.contentId, req.query.start, limit, (err, messages, nextToken) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    res.status(200).send({ results: messages, nextToken });
+  });
 });
 
 /**
@@ -988,6 +999,7 @@ OAE.tenantRouter.on('delete', '/api/content/:contentId/messages/:created', (req,
     if (err) {
       return res.status(err.code).send(err.msg);
     }
+
     res.status(200).send(deleted);
   });
 });
@@ -1020,6 +1032,7 @@ OAE.tenantRouter.on('get', '/api/content/library/:principalId', (req, res) => {
       if (err) {
         return res.status(err.code).send(err.msg);
       }
+
       res.status(200).send({ results: items, nextToken });
     }
   );
@@ -1049,17 +1062,13 @@ OAE.tenantRouter.on('get', '/api/content/library/:principalId', (req, res) => {
  * @HttpResponse                    401                     You must be authenticated to remove a piece of content from a library
  */
 OAE.tenantRouter.on('delete', '/api/content/library/:principalId/:contentId', (req, res) => {
-  ContentAPI.removeContentFromLibrary(
-    req.ctx,
-    req.params.principalId,
-    req.params.contentId,
-    err => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-      res.status(200).end();
+  ContentAPI.removeContentFromLibrary(req.ctx, req.params.principalId, req.params.contentId, err => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    res.status(200).end();
+  });
 });
 
 /**
@@ -1115,10 +1124,7 @@ const _handleDownload = function(res, downloadInfo, expiresMax) {
       res.setHeader('Cache-Control', 'max-age=315360000');
     }
 
-    res.setHeader(
-      'Content-Disposition',
-      'attachment; filename="' + querystring.escape(downloadInfo.filename) + '"'
-    );
+    res.setHeader('Content-Disposition', 'attachment; filename="' + querystring.escape(downloadInfo.filename) + '"');
     res.status(204).send(downloadStrategy.target);
 
     // A redirect strategy will invoke a redirect to the target

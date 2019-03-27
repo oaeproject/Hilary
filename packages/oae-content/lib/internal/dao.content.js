@@ -27,6 +27,9 @@ const { Content } = require('oae-content/lib/model');
 const { ContentConstants } = require('oae-content/lib/constants');
 const RevisionsDAO = require('./dao.revisions');
 
+const COLLABDOC = 'collabdoc';
+const COLLABSHEET = 'collabsheet';
+
 /// ////////////
 // Retrieval //
 /// ////////////
@@ -44,6 +47,7 @@ const getContent = function(contentId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(rows)) {
       return callback({ code: 404, msg: "Couldn't find content: " + contentId }, null);
     }
@@ -126,7 +130,7 @@ const getAllContentMembers = function(contentId, callback) {
  * @param  {String}         contentId                   The id of the piece of content
  * @param  {String}         revisionId                  The id of the first revision
  * @param  {String}         createdBy                   The id of the user who is creating the content item
- * @param  {String}         resourceSubType             The content type. Possible values are "file", "collabdoc" and "link"
+ * @param  {String}         resourceSubType             The content type. Possible values are "file", "collabdoc", "collabsheet" and "link"
  * @param  {String}         displayName                 The display name for the piece of content
  * @param  {String}         description                 The description of the piece of content [optional]
  * @param  {String}         visibility                  The visibility setting for the piece of content. Possible values are "public", "loggedin" and "private" [optional]
@@ -232,17 +236,18 @@ const updateContent = function(contentObj, profileUpdates, librariesUpdate, call
 
     // In case the revision ID has changed
     if (newContentObj.resourceSubType === 'file') {
-      newContentObj.downloadPath =
-        '/api/content/' + newContentObj.id + '/download/' + newContentObj.latestRevisionId;
+      newContentObj.downloadPath = '/api/content/' + newContentObj.id + '/download/' + newContentObj.latestRevisionId;
     }
 
     if (!librariesUpdate) {
       return callback(null, newContentObj);
     }
+
     _updateContentLibraries(newContentObj, oldLastModified, newContentObj.lastModified, [], err => {
       if (err) {
         return callback(err);
       }
+
       callback(null, newContentObj);
     });
   });
@@ -267,6 +272,7 @@ const deleteContent = function(contentObj, callback) {
       if (err) {
         return callback(err);
       }
+
       if (_.isEmpty(members)) {
         return callback(null, []);
       }
@@ -289,25 +295,21 @@ const deleteContent = function(contentObj, callback) {
         }
 
         // Simply remove this item from all member libraries
-        LibraryAPI.Index.remove(
-          ContentConstants.library.CONTENT_LIBRARY_INDEX_NAME,
-          libraryRemoveEntries,
-          err => {
-            if (err) {
-              // If there was an error updating libraries here, the permissions were still changed, so we should not return an error. Just log it.
-              log().warn(
-                {
-                  err,
-                  contentObj,
-                  libraryRemoveEntries
-                },
-                'Failed to update user libraries after updating content permissions.'
-              );
-            }
-
-            return callback(null, members);
+        LibraryAPI.Index.remove(ContentConstants.library.CONTENT_LIBRARY_INDEX_NAME, libraryRemoveEntries, err => {
+          if (err) {
+            // If there was an error updating libraries here, the permissions were still changed, so we should not return an error. Just log it.
+            log().warn(
+              {
+                err,
+                contentObj,
+                libraryRemoveEntries
+              },
+              'Failed to update user libraries after updating content permissions.'
+            );
           }
-        );
+
+          return callback(null, members);
+        });
       });
     });
   });
@@ -381,23 +383,16 @@ const iterateAll = function(properties, batchSize, onEach, callback) {
   }
 
   /*!
-     * Handles each batch from the cassandra iterateAll method.
-     *
-     * @see Cassandra#iterateAll
-     */
+   * Handles each batch from the cassandra iterateAll method.
+   *
+   * @see Cassandra#iterateAll
+   */
   const _iterateAllOnEach = function(rows, done) {
     // Convert the rows to a hash and delegate action to the caller onEach method
     return onEach(_.map(rows, Cassandra.rowToHash), done);
   };
 
-  Cassandra.iterateAll(
-    properties,
-    'Content',
-    'contentId',
-    { batchSize },
-    _iterateAllOnEach,
-    callback
-  );
+  Cassandra.iterateAll(properties, 'Content', 'contentId', { batchSize }, _iterateAllOnEach, callback);
 };
 
 /**
@@ -422,19 +417,13 @@ const updateContentLibraries = function(contentObj, removedMembers, callback) {
     }
 
     // Update the libraries.
-    _updateContentLibraries(
-      contentObj,
-      oldLastModified,
-      newContentObj.lastModified,
-      removedMembers,
-      err => {
-        if (err) {
-          return callback(err, newContentObj);
-        }
-
-        return callback(null, newContentObj);
+    _updateContentLibraries(contentObj, oldLastModified, newContentObj.lastModified, removedMembers, err => {
+      if (err) {
+        return callback(err, newContentObj);
       }
-    );
+
+      return callback(null, newContentObj);
+    });
   });
 };
 
@@ -448,13 +437,7 @@ const updateContentLibraries = function(contentObj, removedMembers, callback) {
  * @param  {Function}   [callback]          Standard callback function
  * @param  {Object}     [callback.err]      Error object containing the error message
  */
-const _updateContentLibraries = function(
-  contentObj,
-  oldLastModified,
-  newLastModified,
-  removedMembers,
-  callback
-) {
+const _updateContentLibraries = function(contentObj, oldLastModified, newLastModified, removedMembers, callback) {
   // Grab all the current members.
   getAllContentMembers(contentObj.id, (err, members) => {
     if (err) {
@@ -474,11 +457,7 @@ const _updateContentLibraries = function(
           resource: contentObj
         };
       });
-      return LibraryAPI.Index.insert(
-        ContentConstants.library.CONTENT_LIBRARY_INDEX_NAME,
-        insertEntries,
-        callback
-      );
+      return LibraryAPI.Index.insert(ContentConstants.library.CONTENT_LIBRARY_INDEX_NAME, insertEntries, callback);
     }
 
     // Collect any library index update operations from the member ids that are not removal
@@ -564,9 +543,11 @@ const _rowToContent = function(row) {
     contentObj.mime = hash.mime;
   } else if (contentObj.resourceSubType === 'link') {
     contentObj.link = hash.link;
-  } else if (contentObj.resourceSubType === 'collabdoc') {
+  } else if (contentObj.resourceSubType === COLLABDOC) {
     contentObj.etherpadGroupId = hash.etherpadGroupId;
     contentObj.etherpadPadId = hash.etherpadPadId;
+  } else if (contentObj.resourceSubType === COLLABSHEET) {
+    contentObj.ethercalcRoomId = hash.ethercalcRoomId;
   }
 
   return contentObj;

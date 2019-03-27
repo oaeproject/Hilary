@@ -1,3 +1,4 @@
+const async = require('async');
 const Cassandra = require('oae-util/lib/cassandra');
 
 /**
@@ -19,7 +20,22 @@ const ensureSchema = function(callback) {
       RevisionByContent:
         'CREATE TABLE "RevisionByContent" ("contentId" text, "created" text, "revisionId" text, PRIMARY KEY ("contentId", "created")) WITH COMPACT STORAGE'
     },
-    callback
+    () => {
+      const queries = [
+        { cql: 'ALTER TABLE "Content" ADD "ethercalcRoomId" text;', parameters: [] },
+        { cql: 'ALTER TABLE "Revisions" ADD "ethercalcSnapshot" text;', parameters: [] },
+        { cql: 'ALTER TABLE "Revisions" ADD "ethercalcHtml" text;', parameters: [] }
+      ];
+      async.eachSeries(
+        queries,
+        (eachQuery, done) => {
+          Cassandra.runQuery(eachQuery.cql, eachQuery.parameters, done);
+        },
+        () => {
+          callback();
+        }
+      );
+    }
   );
 };
 

@@ -40,11 +40,12 @@ const lookForMigrations = async function(allModules) {
         if (migrateFileExists.isFile()) {
           migrationsToRun.push({ name: eachModule, file: migrationFilePath });
         }
-      } catch (e) {
+      } catch (error) {
         log().warn('Skipping ' + eachModule);
       }
     }
   }
+
   return migrationsToRun;
 };
 
@@ -73,15 +74,16 @@ const runMigrations = async function(dbConfig, callback) {
                 log().error({ err }, 'Error running migration.');
                 callback(err);
               }
+
               log().info('Migrations complete');
               callback();
             }
           );
         });
       });
-  } catch (e) {
-    log().error({ err: e }, 'Error running migration.');
-    callback(e);
+  } catch (error) {
+    log().error({ err: error }, 'Error running migration.');
+    callback(error);
   }
 };
 

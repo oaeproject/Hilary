@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
-const bunyan = require('bunyan');
+import util from 'util';
+import _ from 'underscore';
+import bunyan from 'bunyan';
 
 // The logger to use when no logger is specified
 const SYSTEM_LOGGER_NAME = 'system';
@@ -41,9 +41,7 @@ const refreshLogConfiguration = function(newConfig) {
  * @param  {String}     name   The name of the logger, this name will be used to identify this logger for potentially custom log configuration
  * @return {Function}          A function that can be used to retrieve the logger takes argument `ctx`
  */
-const logger = function(name) {
-  name = name || SYSTEM_LOGGER_NAME;
-
+const logger = function(name = SYSTEM_LOGGER_NAME) {
   // Lazy-load the logger and cache it so new loggers don't have to be recreated all the time
   if (!loggers[name]) {
     loggers[name] = _createLogger(name);
@@ -73,6 +71,7 @@ const _refreshLogConfigurations = function() {
  * Create a logger with the provided name.
  *
  * @param  {String}     name    The name to assign to the created logger
+ * @return {Object}     logger  The logging object
  * @api private
  */
 const _createLogger = function(name) {
@@ -118,15 +117,15 @@ const _resolveBootstrapLoggerConfig = function() {
 /**
  * Wrap the error logger function so we can count errors with the telemetry api
  *
- * @param  {String}     name                The name of the logger for which the error logger will be wrapped
+ * @param  {String}     loggerName                The name of the logger for which the error logger will be wrapped
  * @param  {Function}   errorFunction       The error logger to wrap
  * @return {Function}                       A wrapped error logger
  * @api private
  */
 const _wrapErrorFunction = function(loggerName, errorFunction) {
   /*!
-     * Keep track of the error count with the telemetry API before handing control back to Bunyan
-     */
+   * Keep track of the error count with the telemetry API before handing control back to Bunyan
+   */
   const wrapperErrorFunction = function(...args) {
     // The telemetry API needs to be required inline as there would otherwise be a cyclical dependency
     const Telemetry = require('oae-telemetry').telemetry('logger');
@@ -144,7 +143,4 @@ const _wrapErrorFunction = function(loggerName, errorFunction) {
   return wrapperErrorFunction;
 };
 
-module.exports = {
-  refreshLogConfiguration,
-  logger
-};
+export { refreshLogConfiguration, logger };

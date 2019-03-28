@@ -15,30 +15,28 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable security/detect-non-literal-require */
-const path = require('path');
-const repl = require('repl');
-const PrettyStream = require('bunyan-prettystream');
-const optimist = require('optimist');
-const _ = require('underscore');
+import path from 'path';
+import repl from 'repl';
+import PrettyStream from 'bunyan-prettystream';
+import optimist from 'optimist';
+import _ from 'underscore';
+
+import * as OAE from 'oae-util/lib/oae';
+import { logger } from 'oae-logger';
+
+const log = logger();
 
 const { argv } = optimist
   .usage('$0 [--config <path/to/config.js>]')
   .alias('c', 'config')
   .describe('c', 'Specify an alternate config file')
   .default('c', path.join(__dirname, '/config.js'))
-
   .alias('h', 'help')
   .describe('h', 'Show usage information')
-
   .alias('i', 'interactive')
   .describe('i', 'Start an interactive shell, implies --pretty')
-
   .alias('p', 'pretty')
   .describe('p', 'Pretty print the logs');
-
-const OAE = require('oae-util/lib/oae');
-const log = require('oae-logger').logger();
 
 if (argv.help) {
   optimist.showHelp();
@@ -57,7 +55,6 @@ if (argv.config.match(/^\.\//)) {
 
 const configPath = argv.config;
 let { config } = require(configPath);
-
 const envConfigPath = `${process.cwd()}/${process.env.NODE_ENV || 'local'}`;
 const envConfig = require(envConfigPath).config;
 config = _.extend({}, config, envConfig);

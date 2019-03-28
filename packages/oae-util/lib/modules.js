@@ -43,6 +43,7 @@ const bootstrapModules = function(config, callback) {
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(modules)) {
       return callback(new Error('No modules to install, or error aggregating modules.'));
     }
@@ -54,6 +55,7 @@ const bootstrapModules = function(config, callback) {
       if (err) {
         return callback(err);
       }
+
       // Register all endpoints
       return bootstrapModulesRest(modules, callback);
     });
@@ -84,6 +86,7 @@ const bootstrapModulesInit = function(modules, config, callback) {
             log().error({ err }, 'Error initializing module %s', moduleName);
             return callback(err);
           }
+
           log().info('Initialized module %s', moduleName);
           done();
         });
@@ -95,6 +98,7 @@ const bootstrapModulesInit = function(modules, config, callback) {
       if (err) {
         callback(err);
       }
+
       callback(null);
     }
   );
@@ -116,6 +120,7 @@ const bootstrapModulesRest = function(modules, callback) {
       log().info('REST services for %s have been registered', module);
       require(module + '/lib/rest');
     }
+
     // Swagger document all modules
     return Swagger.documentModule(module, complete);
   });

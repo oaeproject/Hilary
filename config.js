@@ -16,6 +16,7 @@
 /* eslint-disable camelcase, capitalized-comments */
 const Path = require('path');
 const bunyan = require('bunyan');
+
 const config = {};
 const LOCALHOST = 'localhost';
 module.exports.config = config;
@@ -431,6 +432,19 @@ config.etherpad = {
   ]
 };
 
+/**
+ * `config.ethercalc`
+ *
+ * Configuration namespace for the ethercalc logic.
+ *
+ * @param  {String}     host            The hostname or IP address on which Hilary will be accessing the Ethercalc API.
+ * @param  {Number}     port            The port number on which Hilary will be accessing the ethercalc API.
+ */
+config.ethercalc = {
+  host: LOCALHOST,
+  port: 8000,
+  protocol: 'http'
+};
 /**
  * `config.tincanapi`
  *

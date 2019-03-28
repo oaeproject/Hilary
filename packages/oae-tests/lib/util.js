@@ -49,7 +49,7 @@ const { Tenant } = require('oae-tenants/lib/model');
 const TenantsTestUtil = require('oae-tenants/lib/test/util');
 const { User } = require('oae-principals/lib/model');
 
-const migrationRunner = require(path.join(process.cwd(), 'etc/migration/migration_runner.js'));
+const migrationRunner = require(path.join(process.cwd(), 'etc/migration/migration-runner.js'));
 
 const log = require('oae-logger').logger('before-tests');
 

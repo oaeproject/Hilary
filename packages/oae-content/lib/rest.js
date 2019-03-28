@@ -13,6 +13,13 @@
  * permissions and limitations under the License.
  */
 
+import {
+  isResourceACollabDoc,
+  isResourceACollabSheet,
+  isResourceAFile,
+  isResourceALink
+} from 'oae-content/lib/backends/util';
+
 const querystring = require('querystring');
 const _ = require('underscore');
 
@@ -22,9 +29,6 @@ const OaeUtil = require('oae-util/lib/util');
 
 const ContentAPI = require('./api');
 const { ContentConstants } = require('./constants');
-
-const COLLABDOC = 'collabdoc';
-const COLLABSHEET = 'collabsheet';
 
 /**
  * Verify the signature information provided by a signed download request and
@@ -242,7 +246,7 @@ const _createContent = function(
   callback
 ) {
   // Link creation
-  if (resourceSubType === 'link') {
+  if (isResourceALink(resourceSubType)) {
     return ContentAPI.createLink(
       ctx,
       displayName,
@@ -257,7 +261,7 @@ const _createContent = function(
     // File creation
   }
 
-  if (resourceSubType === 'file') {
+  if (isResourceAFile(resourceSubType)) {
     return ContentAPI.createFile(
       ctx,
       displayName,
@@ -272,7 +276,7 @@ const _createContent = function(
     // Collaborative document creation
   }
 
-  if (resourceSubType === COLLABDOC) {
+  if (isResourceACollabDoc(resourceSubType)) {
     return ContentAPI.createCollabDoc(
       ctx,
       displayName,
@@ -287,7 +291,7 @@ const _createContent = function(
   }
 
   // Collaborative spreadsheet creation
-  if (resourceSubType === COLLABSHEET) {
+  if (isResourceACollabSheet(resourceSubType)) {
     return ContentAPI.createCollabSheet(
       ctx,
       displayName,

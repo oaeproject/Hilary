@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-const DocAPI = require('./api.js');
+import * as DocAPI from './api';
 
 module.exports = function(config, callback) {
   DocAPI.initializeDocs(config.ui, callback);

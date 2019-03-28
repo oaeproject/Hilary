@@ -19,6 +19,10 @@ const ShortId = require('shortid');
 const AuthzUtil = require('oae-authz/lib/util');
 
 const VALID_CHARACTERS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_';
+const COLLABDOC = 'collabdoc';
+const COLLABSHEET = 'collabsheet';
+const FILE = 'file';
+const LINK = 'link';
 
 /**
  * Split a content uri into its 2 parts: The storage implementation identifier and the location string. With a
@@ -71,6 +75,7 @@ const generateUri = function(file, options) {
     if (r.resourceId.length < 8) {
       r.resourceId = _padRight(r.resourceId, 8);
     }
+
     hash = _hash(r.resourceType, r.tenantAlias, r.resourceId);
 
     // In all other cases we generate a random hash.
@@ -86,6 +91,7 @@ const generateUri = function(file, options) {
   if (options.prefix) {
     uri += '/' + options.prefix;
   }
+
   uri += '/' + filename;
 
   // Because the URI gets used in file paths sometimes
@@ -127,10 +133,31 @@ const _padRight = function(str, minLength) {
   while (str.length < minLength) {
     str += VALID_CHARACTERS[Math.floor(Math.random() * VALID_CHARACTERS.length)];
   }
+
   return str;
+};
+
+const isResourceACollabSheet = function(resourceType) {
+  return resourceType === COLLABSHEET;
+};
+
+const isResourceACollabDoc = function(resourceType) {
+  return resourceType === COLLABDOC;
+};
+
+const isResourceALink = function(resourceType) {
+  return resourceType === LINK;
+};
+
+const isResourceAFile = function(resourceType) {
+  return resourceType === FILE;
 };
 
 module.exports = {
   splitUri,
-  generateUri
+  generateUri,
+  isResourceACollabDoc,
+  isResourceACollabSheet,
+  isResourceAFile,
+  isResourceALink
 };

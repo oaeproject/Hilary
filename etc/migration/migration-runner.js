@@ -13,12 +13,23 @@
  * permissions and limitations under the License.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { promisify } = require('util');
-const async = require('async');
+import fs from 'fs';
+import path from 'path';
+import { promisify } from 'util';
+import { logger, refreshLogConfiguration } from 'oae-logger';
+import PrettyStream from 'bunyan-prettystream';
+import { eachSeries } from 'async';
+import { config } from '../../config';
 
-const log = require('oae-logger').logger();
+const _createLogger = function(config) {
+  const prettyLog = new PrettyStream();
+  prettyLog.pipe(process.stdout);
+  config.log.streams[0].stream = prettyLog;
+  refreshLogConfiguration(config.log);
+  return logger();
+};
+
+const log = _createLogger(config);
 
 const readFolderContents = promisify(fs.readdir);
 const checkIfExists = promisify(fs.stat);
@@ -49,7 +60,8 @@ const lookForMigrations = async function(allModules) {
   return migrationsToRun;
 };
 
-const runMigrations = async function(dbConfig, callback) {
+export const runMigrations = async function(dbConfig, callback) {
+  log().info('Running migrations for keyspace ' + dbConfig.keyspace + '...');
   const data = {};
 
   try {
@@ -63,7 +75,7 @@ const runMigrations = async function(dbConfig, callback) {
       })
       .then(() => {
         require(path.join(PACKAGES_FOLDER, 'oae-util', LIB_FOLDER, 'cassandra.js')).init(dbConfig, () => {
-          async.eachSeries(
+          eachSeries(
             data.allMigrationsToRun,
             (eachMigration, done) => {
               log().info(`Updating schema for ${eachMigration.name}`);
@@ -86,5 +98,3 @@ const runMigrations = async function(dbConfig, callback) {
     callback(error);
   }
 };
-
-module.exports = { runMigrations };

@@ -172,8 +172,8 @@ const addSafePathPrefix = function(pathPrefix) {
  * This method is used to bind server functionality after all modules have had an opportunity to do so. This can be useful for things such
  * as:
  *
- *  * Response code logging / telemetry
- *  * Default "catch-all" error handling
+ * Response code logging / telemetry
+ * Default "catch-all" error handling
  *
  * @param  {Express}    app     The express app for which the initialized should be finalized
  */

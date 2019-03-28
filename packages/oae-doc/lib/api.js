@@ -13,15 +13,18 @@
  * permissions and limitations under the License.
  */
 
-const fs = require('fs');
-const _ = require('underscore');
-const dox = require('dox');
+import fs from 'fs';
+import { logger } from 'oae-logger';
 
-const IO = require('oae-util/lib/io');
-const Modules = require('oae-util/lib/modules');
-const OaeUtil = require('oae-util/lib/util');
-const { Validator } = require('oae-util/lib/validator');
-const log = require('oae-logger').logger('oae-doc');
+import _ from 'underscore';
+import dox from 'dox';
+
+import IO from 'oae-util/lib/io';
+import modules from 'oae-util/lib/modules';
+import OaeUtil from 'oae-util/lib/util';
+import { Validator } from 'oae-util/lib/validator';
+
+const log = logger('oae-doc');
 
 // Variable that will be used to cache the back-end and front-end documentation
 const cachedDocs = {
@@ -44,7 +47,7 @@ const initializeDocs = function(uiConfig, callback) {
     }
 
     // Initialize the back-end documentation
-    _initializeBackendDocs(Modules.getAvailableModules(), callback);
+    _initializeBackendDocs(modules.getAvailableModules(), callback);
   });
 };
 
@@ -187,6 +190,7 @@ const _filterFiles = function(fileNames, exclude) {
     if (fileName.indexOf('.js') !== -1 && _.indexOf(exclude, fileName) === -1) {
       return true;
     }
+
     return false;
   });
 };
@@ -237,11 +241,8 @@ const getModuleDocumentation = function(moduleId, type, callback) {
   if (cachedDocs[type] && cachedDocs[type][moduleId]) {
     return callback(null, cachedDocs[type][moduleId]);
   }
+
   return callback({ code: 404, msg: 'No documentation for this module was found' });
 };
 
-module.exports = {
-  getModules,
-  initializeDocs,
-  getModuleDocumentation
-};
+export { getModules, initializeDocs, getModuleDocumentation };

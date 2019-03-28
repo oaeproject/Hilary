@@ -54,20 +54,20 @@ const COLLABSHEET = 'collabsheet';
  *
  * The `ContentAPI`, as enumerated in `ContentConstants.events`, emits the following events:
  *
- * * `createdComment(ctx, comment, content)`: A new comment was posted for a content item. The `ctx`, `comment` and commented `content` object are provided.
- * * `createdContent(ctx, content)`: A new content item was created. The `ctx` and the `content` object that was created are both provided.
- * * `deletedComment(ctx, comment, content, deleteType)`: An existing comment has been deleted on a content item. The `ctx`, `content` and target `comment` object are provided.
- * * `deletedContent(ctx, contentObj, members)`: A content item was deleted. The 'ctx', the deleted 'contentObj' and the list of authz principals that had this content item in their library
- * * `downloadedContent(ctx, content, revision)`: A content item was downloaded. The `ctx`, `content` and the `revision` are all provided.
- * * `editedCollabdoc(ctx, contentObj)`: A collaborative document was edited by a user without resulting in a new revision. This happens if the revision-creation was already triggered by another user leaving the document
- * * `editedCollabsheet(ctx, contentObj)`: A collaborative spreadsheet was edited by a user without resulting in a new revision. This happens if the revision-creation was already triggered by another user leaving the spreadsheet
- * * `getContentLibrary(ctx, principalId, visibility, start, limit, contentObjects)`: A content library was retrieved.
- * * `getContentProfile(ctx, content)`: A content profile was retrieved. The `ctx` and the `content` are both provided.
- * * `restoredContent(ctx, newContentObj, oldContentObj, restoredRevision)`: An older revision for a content item has been restored.
- * * `updatedContent(ctx, newContentObj, oldContentObj)`: A content item was updated. The `ctx`, the updated content object and the content before was updated are provided.
- * * `updatedContentBody(ctx, newContentObj, oldContentObj, revision)`: A content item's file body was updated. The `ctx` of the request, the `newContentObj` object after being updated, the `oldContentObj` object before the update, and the revision object.
- * * `updatedContentMembers(ctx, content, memberUpdates, addedMemberIds, updatedMemberIds, removedMemberIds)`: A content's members list was updated. The `ctx`, full `content` object of the updated content, and the hash of principalId -> role that outlines the changes that were made are provided, as well as arrays containing the ids of the added members, updated members and removed members that resulted from the change
- * * `updatedContentPreview(content)`: A content item's preview has been updated
+ * `createdComment(ctx, comment, content)`: A new comment was posted for a content item. The `ctx`, `comment` and commented `content` object are provided.
+ * `createdContent(ctx, content)`: A new content item was created. The `ctx` and the `content` object that was created are both provided.
+ * `deletedComment(ctx, comment, content, deleteType)`: An existing comment has been deleted on a content item. The `ctx`, `content` and target `comment` object are provided.
+ * `deletedContent(ctx, contentObj, members)`: A content item was deleted. The 'ctx', the deleted 'contentObj' and the list of authz principals that had this content item in their library
+ * `downloadedContent(ctx, content, revision)`: A content item was downloaded. The `ctx`, `content` and the `revision` are all provided.
+ * `editedCollabdoc(ctx, contentObj)`: A collaborative document was edited by a user without resulting in a new revision. This happens if the revision-creation was already triggered by another user leaving the document
+ * `editedCollabsheet(ctx, contentObj)`: A collaborative spreadsheet was edited by a user without resulting in a new revision. This happens if the revision-creation was already triggered by another user leaving the spreadsheet
+ * `getContentLibrary(ctx, principalId, visibility, start, limit, contentObjects)`: A content library was retrieved.
+ * `getContentProfile(ctx, content)`: A content profile was retrieved. The `ctx` and the `content` are both provided.
+ * `restoredContent(ctx, newContentObj, oldContentObj, restoredRevision)`: An older revision for a content item has been restored.
+ * `updatedContent(ctx, newContentObj, oldContentObj)`: A content item was updated. The `ctx`, the updated content object and the content before was updated are provided.
+ * `updatedContentBody(ctx, newContentObj, oldContentObj, revision)`: A content item's file body was updated. The `ctx` of the request, the `newContentObj` object after being updated, the `oldContentObj` object before the update, and the revision object.
+ * `updatedContentMembers(ctx, content, memberUpdates, addedMemberIds, updatedMemberIds, removedMemberIds)`: A content's members list was updated. The `ctx`, full `content` object of the updated content, and the hash of principalId -> role that outlines the changes that were made are provided, as well as arrays containing the ids of the added members, updated members and removed members that resulted from the change
+ * `updatedContentPreview(content)`: A content item's preview has been updated
  */
 const emitter = new EmitterAPI.EventEmitter();
 
@@ -556,15 +556,15 @@ const createCollabDoc = function(ctx, displayName, description, visibility, addi
 
 /**
  * Create a collaborative sheet as a pooled content item
- * @param  { Context } ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context} ctx                     Standard context object containing the current user and the current tenant
  *
- * @param  { String } displayName             The display name of the collaborative spreadsheet
- * @param  { String } [description]           A longer description for the collaborative spreadsheet
- * @param  { String } [visibility]            The visibility of the collaborative spreadsheet.One of`public`, `loggedin`, `private`
- * @param  { Object } [additionalMembers]     Object where the keys represent principal ids that need to be added to the content upon creation and the values represent the role that principal will have.Possible values are "viewer", "editor" and "manager"
- * @param  { String[] } [folders]               The ids of the folders to which this collaborative spreadsheet should be added
- * @param  { Function } callback                Standard callback function* @param  { Object } callback.err            An error that occurred, if any
- * @param  { Content } callback.content        The created collaborative spreadsheet
+ * @param  {String} displayName             The display name of the collaborative spreadsheet
+ * @param  {String} [description]           A longer description for the collaborative spreadsheet
+ * @param  {String} [visibility]            The visibility of the collaborative spreadsheet.One of`public`, `loggedin`, `private`
+ * @param  {Object} [additionalMembers]     Object where the keys represent principal ids that need to be added to the content upon creation and the values represent the role that principal will have.Possible values are "viewer", "editor" and "manager"
+ * @param  {String[]} [folders]               The ids of the folders to which this collaborative spreadsheet should be added
+ * @param  {Function} callback                Standard callback function* @param  { Object } callback.err            An error that occurred, if any
+ * @param  {Content} callback.content        The created collaborative spreadsheet
  */
 const createCollabSheet = function(ctx, displayName, description, visibility, additionalMembers, folders, callback) {
   callback = callback || function() {};

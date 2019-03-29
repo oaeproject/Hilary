@@ -13,10 +13,11 @@
  * permissions and limitations under the License.
  */
 
+import EthercalcClient from 'ethercalc-client';
+
 const url = require('url');
 const _ = require('underscore');
 const cheerio = require('cheerio');
-const Ethercalc = require('ethercalc-client');
 
 const log = require('oae-logger').logger('ethercalc');
 
@@ -39,7 +40,12 @@ const TABLE_ELEMENT = 'table';
 const refreshConfiguration = function(_ethercalcConfig) {
   // Remember this config.
   ethercalcConfig = _ethercalcConfig;
-  ethercalc = new Ethercalc(ethercalcConfig.host, ethercalcConfig.port, ethercalcConfig.protocol);
+  ethercalc = new EthercalcClient(
+    ethercalcConfig.host,
+    ethercalcConfig.port,
+    ethercalcConfig.protocol,
+    ethercalcConfig.timeout
+  );
 };
 
 /**

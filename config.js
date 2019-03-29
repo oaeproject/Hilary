@@ -443,7 +443,8 @@ config.etherpad = {
 config.ethercalc = {
   host: LOCALHOST,
   port: 8000,
-  protocol: 'http'
+  protocol: 'http',
+  timeout: 2500
 };
 /**
  * `config.tincanapi`

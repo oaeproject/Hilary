@@ -134,7 +134,7 @@ services:
     tty: false
   oae-ethercalc:
     container_name: oae-ethercalc
-    image: "oaeproject/oae-ethercalc-docker"
+    image: oaeproject/oae-ethercalc-docker
     restart: always
     networks:
       - my_network

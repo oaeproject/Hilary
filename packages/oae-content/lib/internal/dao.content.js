@@ -13,6 +13,13 @@
  * permissions and limitations under the License.
  */
 
+import {
+  isResourceACollabDoc,
+  isResourceACollabSheet,
+  isResourceALink,
+  isResourceAFile
+} from 'oae-content/lib/backends/util';
+
 const util = require('util');
 const _ = require('underscore');
 
@@ -26,9 +33,6 @@ const OaeUtil = require('oae-util/lib/util');
 const { Content } = require('oae-content/lib/model');
 const { ContentConstants } = require('oae-content/lib/constants');
 const RevisionsDAO = require('./dao.revisions');
-
-const COLLABDOC = 'collabdoc';
-const COLLABSHEET = 'collabsheet';
 
 /// ////////////
 // Retrieval //
@@ -537,16 +541,16 @@ const _rowToContent = function(row) {
     hash.latestRevisionId,
     hash.previews
   );
-  if (contentObj.resourceSubType === 'file') {
+  if (isResourceAFile(contentObj.resourceSubType)) {
     contentObj.filename = hash.filename;
     contentObj.size = hash.size ? parseInt(hash.size, 10) : 0;
     contentObj.mime = hash.mime;
-  } else if (contentObj.resourceSubType === 'link') {
+  } else if (isResourceALink(contentObj.resourceSubType)) {
     contentObj.link = hash.link;
-  } else if (contentObj.resourceSubType === COLLABDOC) {
+  } else if (isResourceACollabDoc(contentObj.resourceSubType)) {
     contentObj.etherpadGroupId = hash.etherpadGroupId;
     contentObj.etherpadPadId = hash.etherpadPadId;
-  } else if (contentObj.resourceSubType === COLLABSHEET) {
+  } else if (isResourceACollabSheet(contentObj.resourceSubType)) {
     contentObj.ethercalcRoomId = hash.ethercalcRoomId;
   }
 

@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+import { isResourceACollabDoc, isResourceACollabSheet } from 'oae-content/lib/backends/util';
+
 const fs = require('fs');
 const path = require('path');
 const util = require('util');
@@ -186,7 +188,7 @@ const _getFullContentProfile = function(ctx, contentObj, isManager, callback) {
       contentObj.canShare = canShare;
 
       // For any other than collabdoc or collabsheet, we simply return with the share information
-      if ((contentObj.resourceSubType !== COLLABDOC) & (contentObj.resourceSubType !== COLLABSHEET)) {
+      if (!isResourceACollabDoc(contentObj.resourceSubType) && !isResourceACollabSheet(contentObj.resourceSubType)) {
         emitter.emit(ContentConstants.events.GET_CONTENT_PROFILE, ctx, contentObj);
         return callback(null, contentObj);
       }
@@ -692,7 +694,7 @@ const _createContent = function(
 
   // Ensure all roles applied are valid. Editor is only valid for collabdocs
   const validRoles = [AuthzConstants.role.VIEWER, AuthzConstants.role.MANAGER];
-  if (resourceSubType === COLLABDOC || resourceSubType === COLLABSHEET) {
+  if (isResourceACollabDoc(resourceSubType) || isResourceACollabSheet(resourceSubType)) {
     validRoles.push(AuthzConstants.role.EDITOR);
   }
 
@@ -1170,7 +1172,7 @@ const joinCollabDoc = function(ctx, contentId, callback) {
       return callback(err);
     }
 
-    if (contentObj.resourceSubType === COLLABDOC) {
+    if (isResourceACollabDoc(contentObj.resourceSubType)) {
       // Join the pad
       Etherpad.joinPad(ctx, contentObj, (err, data) => {
         if (err) {
@@ -1185,7 +1187,7 @@ const joinCollabDoc = function(ctx, contentId, callback) {
           return callback(null, { url: data.url });
         });
       });
-    } else if (contentObj.resourceSubType === COLLABSHEET) {
+    } else if (isResourceACollabSheet(contentObj.resourceSubType)) {
       Ethercalc.joinRoom(ctx, contentObj, function(err, data) {
         if (err) {
           return callback(err);
@@ -1246,7 +1248,7 @@ const deleteContent = function(ctx, contentId, callback) {
         return callback(err);
       }
 
-      if (contentObj.resourceSubType === COLLABSHEET) {
+      if (isResourceACollabSheet(contentObj.resourceSubType)) {
         Ethercalc.deleteRoom(contentObj.ethercalcRoomId, function(err) {
           if (err) {
             return callback(err);
@@ -1392,7 +1394,7 @@ const setContentPermissions = function(ctx, contentId, changes, callback) {
 
     // Ensure all roles applied are valid. Editor is only valid for collabdocs and collabsheets
     const validRoles = [AuthzConstants.role.VIEWER, AuthzConstants.role.MANAGER];
-    if (content.resourceSubType === COLLABDOC || content.resourceSubType === COLLABSHEET) {
+    if (isResourceACollabDoc(content.resourceSubType) || isResourceACollabSheet(content.resourceSubType)) {
       validRoles.push(AuthzConstants.role.EDITOR);
     }
 
@@ -2758,7 +2760,7 @@ const restoreRevision = function(ctx, contentId, revisionId, callback) {
 
           // If this piece of content is a collaborative document,
           // we need to set the text in etherpad.
-          if (contentObj.resourceSubType === COLLABDOC) {
+          if (isResourceACollabDoc(contentObj.resourceSubType)) {
             Etherpad.setHTML(contentObj.id, contentObj.etherpadPadId, revision.etherpadHtml, err => {
               if (err) {
                 return callback(err);

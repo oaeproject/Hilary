@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+import { isResourceACollabDoc, isResourceACollabSheet } from 'oae-content/lib/backends/util';
+
 const fs = require('fs');
 const util = require('util');
 const _ = require('underscore');
@@ -28,9 +30,6 @@ const ContentAPI = require('oae-content');
 const { ContentConstants } = require('oae-content/lib/constants');
 const ContentDAO = require('oae-content/lib/internal/dao');
 const ContentUtil = require('oae-content/lib/internal/util');
-
-const COLLABDOC = 'collabdoc';
-const COLLABSHEET = 'collabsheet';
 
 /**
  * Initializes the child search documents for the Content module
@@ -350,7 +349,7 @@ const _getRevisionItems = function(contentItems, callback) {
   // Check if we need to fetch revisions
   const revisionsToRetrieve = [];
   _.each(contentItems, content => {
-    if (content.resourceSubType === COLLABDOC || content.resourceSubType === COLLABSHEET) {
+    if (isResourceACollabDoc(content.resourceSubType) || isResourceACollabSheet(content.resourceSubType)) {
       revisionsToRetrieve.push(content.latestRevisionId);
     }
   });
@@ -429,9 +428,9 @@ const _getContentItems = function(resources, callback) {
 const _produceContentSearchDocument = function(content, revision) {
   // Allow full-text search on name and description, but only if they are specified. We also sort on this text
   let fullText = _.compact([content.displayName, content.description]).join(' ');
-  if (content.resourceSubType === COLLABDOC && revision && revision.etherpadHtml) {
+  if (isResourceACollabDoc(content.resourceSubType) && revision && revision.etherpadHtml) {
     fullText += ' ' + revision.etherpadHtml;
-  } else if (content.resourceSubType === COLLABSHEET && revision && revision.ethercalcHtml) {
+  } else if (isResourceACollabSheet(content.resourceSubType) && revision && revision.ethercalcHtml) {
     fullText += ` ${revision.ethercalcHtml}`;
   }
 

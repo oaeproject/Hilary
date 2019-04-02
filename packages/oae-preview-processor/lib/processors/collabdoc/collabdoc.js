@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+import { isResourceACollabDoc, isResourceACollabSheet } from 'oae-content/lib/backends/util';
+
 const fs = require('fs');
 const Path = require('path');
 const _ = require('underscore');
@@ -34,7 +36,6 @@ const screenShottingOptions = {
   }
 };
 const COLLABDOC = 'collabdoc';
-const COLLABSHEET = 'collabsheet';
 
 /**
  * Initializes the CollabDocProcessor
@@ -70,7 +71,7 @@ const FILE_URI = 'file://';
  * @borrows Interface.test as CollabDocProcessor.test
  */
 const test = function(ctx, contentObj, callback) {
-  if (contentObj.resourceSubType === COLLABDOC || contentObj.resourceSubType === COLLABSHEET) {
+  if (isResourceACollabDoc(contentObj.resourceSubType) || isResourceACollabSheet(contentObj.resourceSubType)) {
     callback(null, 10);
   } else {
     callback(null, -1);
@@ -96,7 +97,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
 
     // Store whether this document is a collaborative document or spreadsheet
     const type = contentObj.resourceSubType;
-    const html = type === COLLABDOC ? 'etherpadHtml' : 'ethercalcHtml';
+    const html = isResourceACollabDoc(contentObj.resourceSubType) ? 'etherpadHtml' : 'ethercalcHtml';
 
     // Write the HTML to an HTML file, so a screenshot can be generated as the preview
     _writeCollabHtml(ctx, contentObj.latestRevision[html], type, function(err, collabFilePath) {
@@ -176,8 +177,9 @@ const _writeCollabHtml = function(ctx, collabHtml, type, callback) {
     }
 
     // Write the resulting HTML to a temporary file on disk
-    const collabFilePath =
-      type === COLLABDOC ? Path.join(ctx.baseDir, '/etherpad.html') : Path.join(ctx.baseDir, '/ethercalc.html');
+    const collabFilePath = isResourceACollabDoc(type)
+      ? Path.join(ctx.baseDir, '/etherpad.html')
+      : Path.join(ctx.baseDir, '/ethercalc.html');
     fs.writeFile(collabFilePath, wrappedHtml, err => {
       if (err) {
         log().error({ err, contentId: ctx.contentId }, 'Could not write the collaborative file preview HTML to disk');

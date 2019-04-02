@@ -87,18 +87,21 @@ const documentModule = function(moduleName, callback) {
       if (err.code !== 'ENOENT') {
         log().warn({ err }, 'Problem recursing directories while documenting ' + moduleName);
       }
+
       return callback();
     })
     .on('end', () => {
       if (_.isEmpty(files)) {
         return callback();
       }
+
       const done = _.after(files.length, callback);
       _.each(files, file => {
         register(file, err => {
           if (err) {
             log().warn({ err }, 'Problem opening a file while documenting ' + moduleName);
           }
+
           return done();
         });
       });
@@ -117,6 +120,7 @@ const register = function(filePath, callback) {
     if (err) {
       return callback(err);
     }
+
     try {
       const doc = restjsdoc.parse(data);
       // Add all models to both servers
@@ -126,23 +130,23 @@ const register = function(filePath, callback) {
           // RestJSDoc arrays look like `type[]` so unArray will just be the bare `type`
           const unArray = property.type.replace(/\[\]$/, '');
           /*!
-                     * If the property.type doesn't match unArray then it was an array so we need to transform it to
-                     * swagger model notation like:
-                     *
-                     *      property = {
-                     *          'type': 'array',
-                     *          'items': { 'type': 'string' }
-                     *      }
-                     *
-                     * for primitive types and:
-                     *
-                     *      property = {
-                     *          'type': 'array',
-                     *          'items': { '$ref': 'Model' }
-                     *      }
-                     *
-                     * for complex types
-                     */
+           * If the property.type doesn't match unArray then it was an array so we need to transform it to
+           * swagger model notation like:
+           *
+           *      property = {
+           *          'type': 'array',
+           *          'items': { 'type': 'string' }
+           *      }
+           *
+           * for primitive types and:
+           *
+           *      property = {
+           *          'type': 'array',
+           *          'items': { '$ref': 'Model' }
+           *      }
+           *
+           * for complex types
+           */
           if (property.type !== unArray) {
             property.type = 'array';
             if (_.contains(Constants.primitives, unArray)) {
@@ -151,6 +155,7 @@ const register = function(filePath, callback) {
               property.items = { $ref: unArray };
             }
           }
+
           if (property.validValues) {
             property.enum = property.validValues;
           }
@@ -164,10 +169,9 @@ const register = function(filePath, callback) {
         if (endpoint.api === 'private') {
           return;
         }
+
         endpoint.summary = endpoint.description;
-        endpoint.responseClass = endpoint.return
-          ? _convertRJDArrayDefToSwagger(endpoint.return.type)
-          : 'void';
+        endpoint.responseClass = endpoint.return ? _convertRJDArrayDefToSwagger(endpoint.return.type) : 'void';
 
         endpoint.parameters = [];
         _.each(endpoint.pathParams, pathParam => {
@@ -240,15 +244,14 @@ const register = function(filePath, callback) {
           } else if (server === 'admin') {
             _addSwaggerEndpoint(endpoint, adminResources);
           } else {
-            log().warn(
-              'Tried to register swagger docs for unknown server "' + endpoint.server + '"'
-            );
+            log().warn('Tried to register swagger docs for unknown server "' + endpoint.server + '"');
           }
         });
       });
     } catch (error) {
       log().warn({ err: error }, util.format('Could not parse restjsdoc in %s', filePath));
     }
+
     return callback();
   });
 };
@@ -313,9 +316,7 @@ const _appendToApi = function(rootResource, api, spec) {
       // eslint-disable-next-line no-undef
       .isIn(Swagger.Constants.paramTypes);
     if (param.paramType === 'path') {
-      validator
-        .check(param.name, { path: api.path, name: param.name, msg: 'Invalid path' })
-        .isIn(api.path);
+      validator.check(param.name, { path: api.path, name: param.name, msg: 'Invalid path' }).isIn(api.path);
     }
   });
 
@@ -340,6 +341,7 @@ const _convertRJDArrayDefToSwagger = function(def) {
   if (def.match(/\[\]$/)) {
     def = util.format('List[%s]', def.slice(0, -2));
   }
+
   return def;
 };
 
@@ -436,17 +438,13 @@ const _recurseModel = function(resource, modelName) {
     // The referenced type was either a primitive or it referenced a model that doesn't exist. No need to recursively look for model references
     return;
   }
+
   if (resource.models[modelName]) {
     // This model type has already been visited. Don't recurse over it again or else we'll have an infinite loop
     return;
   }
 
-  log().trace(
-    { resource, model },
-    'Recursively adding model "%s" to resource "%s"',
-    modelName,
-    resource.path
-  );
+  log().trace({ resource, model }, 'Recursively adding model "%s" to resource "%s"', modelName, resource.path);
   resource.models[modelName] = model;
   _.each(model.properties, property => {
     const { type } = property;

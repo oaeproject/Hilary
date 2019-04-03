@@ -53,15 +53,14 @@ const getLtiTool = function(ctx, id, groupId, callback) {
         return callback(err);
       }
 
-      VersionAPI.getVersion((err, version) => {
+      VersionAPI.getVersionCB((err, gitRepoInformation) => {
         if (err) {
           log().warn('Failed to fetch OAE version');
-          version = {
-            hilary: {
-              version: ''
-            }
-          };
+          version = '';
         }
+
+        const hilaryRepoInfo = gitRepoInformation.get('Hilary');
+        let version = hilaryRepoInfo.latestTag;
 
         LtiDAO.getLtiTool(id, groupId, (err, tool) => {
           if (err) {
@@ -78,7 +77,7 @@ const getLtiTool = function(ctx, id, groupId, callback) {
 
           const launchParams = new LtiLaunchParams(
             tool,
-            version.hilary.version,
+            version,
             group.tenant.alias,
             group.displayName,
             group.isManager,

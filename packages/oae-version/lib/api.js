@@ -1,4 +1,5 @@
-/*!
+/*! r
+
  * Copyright 2015 Apereo Foundation (AF) Licensed under the
  * Educational Community License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License. You may
@@ -13,31 +14,14 @@
  * permissions and limitations under the License.
  */
 
-const fs = require('fs');
-const path = require('path');
-const util = require('util');
-const gift = require('gift');
-const _ = require('underscore');
+import path from 'path';
+import { Map } from 'immutable';
+import git from 'nodegit';
 
-const IO = require('oae-util/lib/io');
-const log = require('oae-logger').logger('oae-version');
+import _ from 'underscore';
 
 // A variable that will hold the path to the UI directory
 const hilaryDirectory = path.resolve(__dirname, '..', '..', '..');
-let _uiPath = null;
-const FRONTEND_REPO = '3akai-ux';
-
-// A variable that will hold a copy of the version information
-let _version = null;
-
-/**
- * Initialize the version module
- *
- * @param  {String}     uiPath  The path to the UI directory
- */
-const init = function(uiPath) {
-  _uiPath = uiPath;
-};
 
 /**
  * Get the version information for OAE
@@ -48,313 +32,50 @@ const init = function(uiPath) {
  * @param  {String}     callback.version.hilary     The version information for Hilary
  * @param  {String}     callback.version.3akai-ux   The version information for the UI
  */
-const getVersion = function(callback) {
-  if (_version) {
-    return callback(null, _version);
+const getVersionCB = function(callback) {
+  // eslint-disable-next-line promise/prefer-await-to-then
+  getVersion().then(version => {
+    return callback(null, version);
+  });
+};
+
+const getVersion = async function(repoPath = hilaryDirectory, repoInformation = new Map()) {
+  const repo = await git.Repository.open(repoPath);
+  const headCommit = await repo.getHeadCommit();
+
+  const lastCommitId = headCommit.id().toString();
+  const lastCommitDate = headCommit.date();
+
+  const tags = await git.Tag.list(repo);
+
+  const findLatestTag = (accumulator, currentValue) => {
+    return parseFloat(accumulator) > parseFloat(currentValue) ? accumulator : currentValue;
+  };
+
+  const latestTag = tags.reduce(findLatestTag);
+
+  const submodulePointers = {};
+  const submodules = await repo.getSubmoduleNames();
+  if (!_.isEmpty(submodules)) {
+    for (let index = 0; index < submodules.length; index++) {
+      const eachSubmodule = submodules[index];
+      // eslint-disable-next-line no-await-in-loop
+      const eachSubmoduleRepo = await git.Submodule.lookup(repo, eachSubmodule);
+      submodulePointers[eachSubmodule] = eachSubmoduleRepo.headId().toString();
+      // eslint-disable-next-line no-await-in-loop
+      repoInformation = await getVersion(path.join(repoPath, eachSubmodule), repoInformation);
+    }
   }
 
-  _getHilaryVersion(function(err, hilaryVersion) {
-    if (err) {
-      return callback(err);
-    }
-
-    _getUIVersion(function(err, uiVersion) {
-      if (err) {
-        return callback(err);
-      }
-
-      _version = {
-        hilary: hilaryVersion,
-        FRONTEND_REPO: uiVersion
-      };
-      return callback(null, _version);
-    });
+  const repoName = _.last(repoPath.split('/'));
+  repoInformation = repoInformation.set(repoName, {
+    lastCommitId,
+    lastCommitDate,
+    latestTag,
+    submodulePointers
   });
+
+  return repoInformation;
 };
 
-/**
- * Get the version information for the backend
- *
- * @param  {Function}   callback            Standard callback function
- * @param  {Object}     callback.err        An error that occurred, if any
- * @param  {String}     callback.version    The version information for the backend
- * @api private
- */
-function _getHilaryVersion(callback) {
-  _getVersionInfo(hilaryDirectory, callback);
-}
-
-/**
- * Get the 'version' for 3akai-ux, which mainly consists of the commit Hilary submodule is pointing to
- *
- * @param  {Function}   callback              Standard callback function
- * @param  {Object}     callback.err          An error that occurred, if any
- * @param  {String}     callback.version   The version information for the UI
- * @api private
- */
-function _getUIVersion(callback) {
-  gift.init(hilaryDirectory, (err, repo) => {
-    repo.tree().contents((err, children) => {
-      // Find the 3akai-ux submodule within the tree
-      const submodulePointer = _.find(children, eachChild => {
-        return eachChild.name === FRONTEND_REPO;
-      }).id;
-
-      // Now let's check if the submodule pointer corresponds to the last commit on 3akai-ux
-      // if it does, that means everything has been checked out properly
-      gift.init(path.resolve(hilaryDirectory, _uiPath), (err, submodule) => {
-        submodule.current_commit((err, lastCheckedOutCommit) => {
-          if (submodulePointer === lastCheckedOutCommit.id) {
-            const version = {
-              branch: 'HEAD detached at ' + lastCheckedOutCommit.id,
-              date: lastCheckedOutCommit.committed_date,
-              type: 'git submodule'
-            };
-            return callback(null, version);
-          }
-
-          return callback({ code: 500, msg: "The submodule hasn't been checked out properly" });
-        });
-      });
-    });
-  });
-}
-
-/**
- * Get the version information for a directory. The version will be retrieved from
- * the build info file in the root of the directory. If there's no such file present
- * or it can't be parsed, the information will be retrieved from git. If that fails
- * as well `Unknown` will be returned
- *
- * @param  {String}     directory           The directory to get the version information for
- * @param  {Function}   callback            Standard callback function
- * @param  {Object}     callback.err        An error that occurred, if any
- * @param  {String}     callback.version    The version information for the directory
- * @api private
- */
-function _getVersionInfo(directory, callback) {
-  _getBuildInfoFile(directory, function(err, buildInfoPath) {
-    if (err) {
-      return callback(err);
-    }
-
-    if (buildInfoPath) {
-      return _getBuildVersion(buildInfoPath, callback);
-    }
-
-    return _getGitVersion(directory, callback);
-  });
-}
-
-/**
- * Each generated build has a `build-info.json` file that contains information about the build.
- * Parse it and return the relevant version information
- *
- * @param  {String}     buildInfoPath       The path to the build info file
- * @param  {Function}   callback            Standard callback function
- * @param  {Object}     callback.err        An error that occurred, if any
- * @param  {String}     callback.version    The version information for the directory
- * @api private
- */
-function _getBuildVersion(buildInfoPath, callback) {
-  fs.readFile(buildInfoPath, function(err, buildInfo) {
-    if (err) {
-      return callback({ code: 500, msg: 'Unable to read the build info file' });
-    }
-
-    try {
-      buildInfo = JSON.parse(buildInfo);
-    } catch (error) {
-      log().error(
-        {
-          err: error,
-          path: buildInfoPath
-        },
-        'Unable to parse the build info file'
-      );
-      return callback({ code: 500, msg: 'Unable to parse the build info file' });
-    }
-
-    buildInfo.type = 'archive';
-
-    return callback(null, buildInfo);
-  });
-}
-
-/**
- * Get the version from git
- *
- * @param  {String}     directory           The directory to the git repository
- * @param  {Function}   callback            Standard callback function
- * @param  {Object}     callback.err        An error that occurred, if any
- * @param  {String}     callback.version    The version information for the directory
- * @api private
- */
-function _getGitVersion(directory, callback) {
-  gift.init(directory, function(err, repo) {
-    if (err) {
-      log().error(
-        {
-          err,
-          path: directory
-        },
-        'Could not open the git repo to get the version information'
-      );
-      return callback({ code: 500, msg: 'Could not open the git repo' });
-    }
-
-    // Get the tag info
-    repo.tags(function(err, tags) {
-      if (err) {
-        log().error(
-          {
-            err,
-            path: directory
-          },
-          'Could not get the git tags'
-        );
-        return callback({ code: 500, msg: 'Could not get the git tags' });
-      }
-
-      const tagsByCommitId = _.indexBy(tags, function(tag) {
-        return tag.commit.id;
-      });
-
-      // Get the current branch info
-      repo.branch(function(err, branch) {
-        if (err) {
-          log().error(
-            {
-              err,
-              path: directory
-            },
-            'Could not get the current git branch for the version information'
-          );
-          return callback({ code: 500, msg: 'Could not get the branch information' });
-        }
-
-        // Get the number of commits since the last tag
-        _getGitDescribeVersion(repo, branch.name, tagsByCommitId, function(err, describeVersion) {
-          if (err) {
-            log().error(
-              {
-                err,
-                path: directory
-              },
-              'Could not get the git describe version for a repo'
-            );
-            return callback({ code: 500, msg: 'Could not get the branch information' });
-          }
-
-          const buildInfo = {
-            branch: branch.name,
-            date: branch.commit.committed_date,
-            type: 'git',
-            version: describeVersion
-          };
-          return callback(null, buildInfo);
-        });
-      });
-    });
-  });
-}
-
-/**
- * Get a "git describe"-like descriptor for a branch.
- *
- * This will return information in the form:
- *   <last tag>+<number of commits>+<sha1 of last commit>
- *
- * @param  {Repository}     repo                The git repository to get the information for
- * @param  {String}         branchName          The name of the branch to get the information for
- * @param  {Object}         tagsByCommitId      The Tag objects keyed by their commit sha1 hash
- * @param  {Function}       callback            Standard callback function
- * @param  {Object}         callback.err        An error that occurred, if any
- * @param  {String}         callback.version    The git describe information
- * @api private
- */
-function _getGitDescribeVersion(repo, branchName, tagsByCommitId, callback, _nrOfCommits, _lastCommitSha) {
-  _nrOfCommits = _nrOfCommits || 0;
-  repo.commits(branchName, 30, _nrOfCommits, function(err, commits) {
-    if (err) {
-      return callback(err);
-    }
-
-    // Retain the sha1 of the last commit on this branch
-    _lastCommitSha = _lastCommitSha || commits[0].id;
-
-    // Try to find the last tagged commit in these set of commits
-    let lastTag = null;
-    for (let i = 0; i < commits.length; i++) {
-      if (tagsByCommitId[commits[i].id]) {
-        lastTag = tagsByCommitId[commits[i].id].name;
-        break;
-      }
-
-      _nrOfCommits++;
-    }
-
-    // If we found a tag in the set of commits we can return the git describe information
-    if (lastTag) {
-      const describeVersion = util.format('%s+%d+%s', lastTag, _nrOfCommits, _lastCommitSha);
-      return callback(null, describeVersion);
-
-      // Otherwise we need to retrieve the next set of commits
-    }
-
-    return _getGitDescribeVersion(repo, branchName, tagsByCommitId, callback, _nrOfCommits, _lastCommitSha);
-  });
-}
-
-/**
- * Check whether a directory has a build-info.json file. This function
- * will recursively check each parent directory as well.
- *
- * @param  {String}     directory                       The directory to get the version information for
- * @param  {Function}   callback                        Standard callback function
- * @param  {Object}     callback.err                    An error that occurred, if any
- * @param  {String}     [callback.buildInfoPath]        The path to the build-info.json file. `null` if no such file could be found
- * @api private
- */
-function _getBuildInfoFile(directory, callback) {
-  const buildInfoPath = _getBuildInfoFilePath(directory);
-  IO.exists(buildInfoPath, function(err, exists) {
-    if (err) {
-      log.error(
-        {
-          directory,
-          err
-        },
-        'Unable to check if a build info file exists'
-      );
-      return callback(err);
-    }
-
-    if (exists) {
-      return callback(null, buildInfoPath);
-    }
-
-    const parent = path.dirname(directory);
-    if (parent !== directory) {
-      return _getBuildInfoFile(parent, callback);
-    }
-
-    return callback();
-  });
-}
-
-/**
- * Get the path to the `build-info.json` file
- *
- * @param  {String}     directory       The directory to get the version information for
- * @return {String}                     The path to the `build-info.json` file
- * @api private
- */
-function _getBuildInfoFilePath(directory) {
-  return path.join(directory, 'build-info.json');
-}
-
-module.exports = {
-  init,
-  getVersion
-};
+export { getVersion, getVersionCB };

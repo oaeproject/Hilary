@@ -13,15 +13,14 @@
  * permissions and limitations under the License.
  */
 
-const fs = require('fs');
-const VersionAPI = require('./api');
-
 /**
  * Initialize the version module
  *
+ * @param   {Object}         config    The config object if any
+ * @param   {Object}         callback  Standard callback function
+ * @returns {Object}         function  the callback from parameters
  * @see {oae-util/lib/oae}
  */
 module.exports = function(config, callback) {
-  VersionAPI.init(fs.realpathSync(config.ui.path));
   return callback();
 };

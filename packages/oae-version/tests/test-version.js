@@ -13,39 +13,28 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import { fromJS } from 'immutable';
 
-const RestAPI = require('oae-rest');
-const TestsUtil = require('oae-tests');
+import _ from 'underscore';
 
-const FRONTEND_REPO = '3akai-ux';
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
 
-describe('Version information', function() {
+describe('Git information', function() {
   /**
-   * Test that verifies that the version information is returned
+   * Test that verifies that the git information is returned
    */
-  it('should return the version information', function(callback) {
+  it('verify that the submodules exist and are up to date', function(callback) {
     // Create various rest contexts
-    const anonTenantRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
     const adminTenantRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
-    const anonGlobalRestContext = TestsUtil.createGlobalRestContext();
-    const globalAdminRestContext = TestsUtil.createGlobalAdminRestContext();
+    const anonTenantRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
     TestsUtil.generateTestUsers(adminTenantRestContext, 1, function(err, users, user) {
       assert.ok(!err);
       const userTenantRestContext = user.restContext;
 
       // Verify the version information on regular tenancies
-      _verifyVersionInformation(anonTenantRestContext, function() {
-        _verifyVersionInformation(userTenantRestContext, function() {
-          _verifyVersionInformation(adminTenantRestContext, function() {
-            // Verify the version information on the global admin
-            _verifyVersionInformation(anonGlobalRestContext, function() {
-              _verifyVersionInformation(globalAdminRestContext, callback);
-            });
-          });
-        });
-      });
+      _verifyVersionInformation(anonTenantRestContext, callback);
     });
   });
 
@@ -57,14 +46,48 @@ describe('Version information', function() {
    * @throws {AssertionError}                     Thrown if any assertions fail
    */
   function _verifyVersionInformation(restContext, callback) {
-    RestAPI.Version.getVersion(restContext, function(err, version) {
+    RestAPI.Version.getVersion(restContext, function(err, gitRepoInformation) {
       assert.ok(!err);
-      assert.ok(_.isObject(version));
-      assert.strictEqual(_.size(version), 2);
-      assert.ok(_.isObject(version.hilary));
-      assert.strictEqual(_.size(version.hilary), 4);
-      assert.ok(_.isObject(version[FRONTEND_REPO]));
-      assert.strictEqual(_.size(version[FRONTEND_REPO]), 3);
+
+      const repoInfo = fromJS(gitRepoInformation);
+
+      const hilaryInfo = repoInfo.get('Hilary');
+      assert.ok(_.isObject(hilaryInfo));
+      assert.ok(_.isString(hilaryInfo.get('lastCommitId')));
+      assert.ok(_.isString(hilaryInfo.get('lastCommitDate')));
+      assert.ok(_.isString(hilaryInfo.get('latestTag')));
+
+      const submodulePointers = hilaryInfo.get('submodulePointers');
+      assert.ok(_.isObject(submodulePointers));
+      assert.strictEqual(submodulePointers.size, 3);
+
+      const frontendInfo = repoInfo.get('3akai-ux');
+      assert.ok(_.isObject(frontendInfo));
+      assert.ok(_.isString(frontendInfo.get('lastCommitId')));
+      assert.ok(_.isString(frontendInfo.get('lastCommitDate')));
+      assert.ok(_.isString(frontendInfo.get('latestTag')));
+      assert.strictEqual(frontendInfo.get('submodulePointers').size, 0);
+
+      const oaeRestInfo = repoInfo.get('oae-rest');
+      assert.ok(_.isObject(oaeRestInfo));
+      assert.ok(_.isString(oaeRestInfo.get('lastCommitId')));
+      assert.ok(_.isString(oaeRestInfo.get('lastCommitDate')));
+      assert.ok(_.isString(oaeRestInfo.get('latestTag')));
+      assert.strictEqual(oaeRestInfo.get('submodulePointers').size, 0);
+
+      const restjsDocInfo = repoInfo.get('restjsdoc');
+      assert.ok(_.isObject(restjsDocInfo));
+      assert.ok(_.isString(restjsDocInfo.get('lastCommitId')));
+      assert.ok(_.isString(restjsDocInfo.get('lastCommitDate')));
+      assert.ok(_.isString(restjsDocInfo.get('latestTag')));
+      assert.strictEqual(restjsDocInfo.get('submodulePointers').size, 0);
+
+      // Verify that the latest commit on every submodule repo is where Hilary is pointing
+      // this would mean that Hilary submodules are up to date
+      assert.strictEqual(submodulePointers.get('3akai-ux'), frontendInfo.get('lastCommitId'));
+      assert.strictEqual(submodulePointers.get('packages/oae-rest'), oaeRestInfo.get('lastCommitId'));
+      assert.strictEqual(submodulePointers.get('packages/restjsdoc'), restjsDocInfo.get('lastCommitId'));
+
       callback();
     });
   }

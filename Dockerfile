@@ -32,6 +32,10 @@ LABEL Name=OAE-Hilary
 LABEL Author=ApereoFoundation
 LABEL Email=oae@apereo.org
 
+# install nodegit
+RUN apk --update --no-cache add build-base libgit2-dev
+RUN ln -s /usr/lib/libcurl.so.4 /usr/lib/libcurl-gnutls.so.4
+
 # Set the base directory
 ENV HILARY_DIR usr/src/Hilary
 RUN mkdir -p ${HILARY_DIR} \

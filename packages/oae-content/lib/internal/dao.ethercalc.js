@@ -13,9 +13,11 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
-const Redis = require('oae-util/lib/redis');
-const log = require('oae-logger').logger('oae-ethercalc');
+import _ from 'underscore';
+import * as Redis from 'oae-util/lib/redis';
+import { logger } from 'oae-logger';
+
+const log = logger('oae-ethercalc');
 
 /**
  * Check whether a particular user has edited an Ethercalc spreadsheet
@@ -115,4 +117,4 @@ const _getEditMappingKey = function(contentId) {
   return `ethercalc:edits:${contentId}`;
 };
 
-module.exports = { hasUserEditedSpreadsheet, setEditedBy };
+export { hasUserEditedSpreadsheet, setEditedBy };

@@ -13,16 +13,20 @@
  * permissions and limitations under the License.
  */
 
-var Fields = require('oae-config/lib/fields');
+import * as Fields from 'oae-config/lib/fields';
 
-module.exports = {
-    'title': 'OAE Email Module',
-    'general': {
-        'name': 'General',
-        'description': 'General e-mail configuration',
-        'elements': {
-            'fromName': new Fields.Text('Sender Name', 'The name that will appear in the "From" header for emails sent by the system. e.g., "Apereo OAE"'),
-            'fromAddress': new Fields.Text('Sender Address', 'The address that will appear in the "From" header for emails sent by the system. e.g., "noreply@example.com"')
-        }
-    }
+export const title = 'OAE Email Module';
+export const general = {
+  name: 'General',
+  description: 'General e-mail configuration',
+  elements: {
+    fromName: new Fields.Text(
+      'Sender Name',
+      'The name that will appear in the "From" header for emails sent by the system. e.g., "Apereo OAE"'
+    ),
+    fromAddress: new Fields.Text(
+      'Sender Address',
+      'The address that will appear in the "From" header for emails sent by the system. e.g., "noreply@example.com"'
+    )
+  }
 };

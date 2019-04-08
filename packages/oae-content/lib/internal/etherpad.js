@@ -13,13 +13,15 @@
  * permissions and limitations under the License.
  */
 
-const url = require('url');
-const util = require('util');
-const _ = require('underscore');
-const cheerio = require('cheerio');
-const etherpad = require('etherpad-lite-client');
+import url from 'url';
+import util from 'util';
+import _ from 'underscore';
+import cheerio from 'cheerio';
 
-const log = require('oae-logger').logger('etherpad');
+import { logger } from 'oae-logger';
+import * as etherpad from 'etherpad-lite-client';
+
+const log = logger('etherpad');
 
 let etherpadServers = [];
 let etherpadConfig = null;
@@ -83,10 +85,7 @@ const createPad = function(contentId, callback) {
   log().trace({ contentId }, 'Creating etherpad group');
   client.createGroupIfNotExistsFor(args, (err, groupData) => {
     if (err) {
-      log().error(
-        { err, contentId, etherpad: client.options.host },
-        'Could not create an etherpad group'
-      );
+      log().error({ err, contentId, etherpad: client.options.host }, 'Could not create an etherpad group');
       return callback({ code: 500, msg: err.message });
     }
 
@@ -98,10 +97,7 @@ const createPad = function(contentId, callback) {
     log().trace({ contentId, groupID: groupData.groupID }, 'Creating etherpad group pad');
     client.createGroupPad(groupPad, (err, padData) => {
       if (err) {
-        log().error(
-          { err, contentId, etherpad: client.options.host },
-          'Could not create an etherpad group pad'
-        );
+        log().error({ err, contentId, etherpad: client.options.host }, 'Could not create an etherpad group pad');
         return callback({ code: 500, msg: err.message });
       }
 
@@ -110,10 +106,7 @@ const createPad = function(contentId, callback) {
         etherpadGroupId: groupData.groupID,
         etherpadPadId: padData.padID
       };
-      log().info(
-        { contentId, groupID: groupData.groupID, padID: padData.padID },
-        'Created an etherpad group and pad'
-      );
+      log().info({ contentId, groupID: groupData.groupID, padID: padData.padID }, 'Created an etherpad group and pad');
       callback(null, ids);
     });
   });
@@ -162,10 +155,7 @@ const setHTML = function(contentId, padId, html, callback) {
     html = html || '';
     html = _ensureHtmlDocument(html);
   } catch (error) {
-    log().error(
-      { err: error, html, contentId },
-      'Caught an error when trying to wrap an HTML fragment'
-    );
+    log().error({ err: error, html, contentId }, 'Caught an error when trying to wrap an HTML fragment');
     return callback({ code: 500, msg: 'Unable to set the etherpad HTML' });
   }
 
@@ -208,14 +198,14 @@ const joinPad = function(ctx, contentObj, callback) {
   const client = getClient(contentObj.id);
 
   /*
-     *   Joining a pad consists out of three things:
-     *    1/ Mapping the OAE user to an etherpad author
-     *    2/ Creating a session for the etherpad author
-     *    3/ Returning a url to the UI. It should contain
-     *       * The server etherpad is running on (ex: http://7.etherpad.oae.com/)
-     *       * The pad URI (ex: /oae/c_cam_abc123)
-     *       * The session ID (ex: ?sessionID=s.32b01f91d0e2c9a344)
-     */
+   *   Joining a pad consists out of three things:
+   *    1/ Mapping the OAE user to an etherpad author
+   *    2/ Creating a session for the etherpad author
+   *    3/ Returning a url to the UI. It should contain
+   *       * The server etherpad is running on (ex: http://7.etherpad.oae.com/)
+   *       * The pad URI (ex: /oae/c_cam_abc123)
+   *       * The session ID (ex: ?sessionID=s.32b01f91d0e2c9a344)
+   */
   const args = {
     authorMapper: ctx.user().id,
     name: ctx.user().displayName
@@ -345,6 +335,7 @@ const isContentEqual = function(one, other) {
   if (one === other) {
     return true;
   }
+
   if (!one || !other) {
     return false;
   }
@@ -474,10 +465,11 @@ const _hash = function(str, nr) {
   for (let i = 0; i < str.length; i++) {
     code += str.charCodeAt(i);
   }
+
   return code % nr;
 };
 
-module.exports = {
+export {
   refreshConfiguration,
   getConfig,
   createPad,

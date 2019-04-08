@@ -13,13 +13,12 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const OAE = require('oae-util/lib/oae');
-const OaeUtil = require('oae-util/lib/util');
-
-const MeetingsAPI = require('oae-jitsi');
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import * as OAE from 'oae-util/lib/oae';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as MeetingsAPI from 'oae-jitsi';
 
 /**
  * @REST postMeetingCreate
@@ -73,6 +72,7 @@ OAE.tenantRouter.on('post', '/api/meeting-jitsi/create', (req, res) => {
       if (err) {
         return res.status(err.code).send(err.msg);
       }
+
       return res.status(201).send(meeting);
     }
   );
@@ -320,19 +320,13 @@ OAE.tenantRouter.on('get', '/api/meeting-jitsi/:meetingId/messages', (req, res) 
  * @HttpResponse                404                 Could not find the specified meeting
  */
 OAE.tenantRouter.on('post', '/api/meeting-jitsi/:meetingId/messages', (req, res) => {
-  MeetingsAPI.Meetings.createMessage(
-    req.ctx,
-    req.params.meetingId,
-    req.body.body,
-    req.body.replyTo,
-    (err, message) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-
-      res.status(200).send(message);
+  MeetingsAPI.Meetings.createMessage(req.ctx, req.params.meetingId, req.body.body, req.body.replyTo, (err, message) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    res.status(200).send(message);
+  });
 });
 
 /**
@@ -356,18 +350,13 @@ OAE.tenantRouter.on('post', '/api/meeting-jitsi/:meetingId/messages', (req, res)
  * @HttpResponse                        404                 Could not find the specified message
  */
 OAE.tenantRouter.on('delete', '/api/meeting-jitsi/:meetingId/messages/:created', (req, res) => {
-  MeetingsAPI.Meetings.deleteMessage(
-    req.ctx,
-    req.params.meetingId,
-    req.params.created,
-    (err, message) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-
-      res.status(200).send(message);
+  MeetingsAPI.Meetings.deleteMessage(req.ctx, req.params.meetingId, req.params.created, (err, message) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    res.status(200).send(message);
+  });
 });
 
 /**
@@ -422,16 +411,11 @@ OAE.tenantRouter.on('get', '/api/meeting-jitsi/library/:principalId', (req, res)
  * @HttpResponse                        404                 Could not find the specified meeting
  */
 OAE.tenantRouter.on('delete', '/api/meeting-jitsi/library/:principalId/:meetingId', (req, res) => {
-  MeetingsAPI.Meetings.removeMeetingFromLibrary(
-    req.ctx,
-    req.params.principalId,
-    req.params.meetingId,
-    err => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-
-      return res.status(200).end();
+  MeetingsAPI.Meetings.removeMeetingFromLibrary(req.ctx, req.params.principalId, req.params.meetingId, err => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    return res.status(200).end();
+  });
 });

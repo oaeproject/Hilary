@@ -13,15 +13,15 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const Cassandra = require('oae-util/lib/cassandra');
-const ConfigTestUtil = require('oae-config/lib/test/util');
-const LibraryAPI = require('oae-library');
-const RestAPI = require('oae-rest');
-const TenantsTestUtil = require('oae-tenants/lib/test/util');
-const TestsUtil = require('oae-tests');
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as LibraryAPI from 'oae-library';
+import * as RestAPI from 'oae-rest';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import * as TestsUtil from 'oae-tests';
 
 describe('Content Libraries', () => {
   let camAnonymousRestCtx = null;
@@ -87,46 +87,29 @@ describe('Content Libraries', () => {
                   items.push(contentObj.id);
 
                   // Get the 2 most recent items.
-                  RestAPI.Content.getLibrary(
-                    nicolaas.restContext,
-                    nicolaas.user.id,
-                    null,
-                    2,
-                    (err, data) => {
+                  RestAPI.Content.getLibrary(nicolaas.restContext, nicolaas.user.id, null, 2, (err, data) => {
+                    assert.ok(!err);
+                    const library = data.results;
+                    assert.strictEqual(library.length, 2);
+                    assert.strictEqual(library[0].id, items[2]);
+                    assert.strictEqual(library[1].id, items[1]);
+
+                    // Modify the oldest one.
+                    RestAPI.Content.updateContent(nicolaas.restContext, items[0], { description: 'lalila' }, err => {
                       assert.ok(!err);
-                      const library = data.results;
-                      assert.strictEqual(library.length, 2);
-                      assert.strictEqual(library[0].id, items[2]);
-                      assert.strictEqual(library[1].id, items[1]);
 
-                      // Modify the oldest one.
-                      RestAPI.Content.updateContent(
-                        nicolaas.restContext,
-                        items[0],
-                        { description: 'lalila' },
-                        err => {
-                          assert.ok(!err);
+                      // When we retrieve the library the just modified one, should be on-top.
+                      RestAPI.Content.getLibrary(nicolaas.restContext, nicolaas.user.id, null, 2, (err, data) => {
+                        assert.ok(!err);
+                        const library = data.results;
+                        assert.strictEqual(library.length, 2);
+                        assert.strictEqual(library[0].id, items[0]);
+                        assert.strictEqual(library[1].id, items[2]);
 
-                          // When we retrieve the library the just modified one, should be on-top.
-                          RestAPI.Content.getLibrary(
-                            nicolaas.restContext,
-                            nicolaas.user.id,
-                            null,
-                            2,
-                            (err, data) => {
-                              assert.ok(!err);
-                              const library = data.results;
-                              assert.strictEqual(library.length, 2);
-                              assert.strictEqual(library[0].id, items[0]);
-                              assert.strictEqual(library[1].id, items[2]);
-
-                              callback();
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
+                        callback();
+                      });
+                    });
+                  });
                 }
               );
             }
@@ -147,30 +130,18 @@ describe('Content Libraries', () => {
       RestAPI.Content.getLibrary(simon.restContext, ' ', null, null, (err, data) => {
         assert.strictEqual(err.code, 400);
 
-        RestAPI.Content.getLibrary(
-          simon.restContext,
-          'invalid-user-id',
-          null,
-          null,
-          (err, data) => {
+        RestAPI.Content.getLibrary(simon.restContext, 'invalid-user-id', null, null, (err, data) => {
+          assert.strictEqual(err.code, 400);
+
+          RestAPI.Content.getLibrary(simon.restContext, 'c:cam:bleh', null, null, (err, data) => {
             assert.strictEqual(err.code, 400);
 
-            RestAPI.Content.getLibrary(simon.restContext, 'c:cam:bleh', null, null, (err, data) => {
-              assert.strictEqual(err.code, 400);
-
-              RestAPI.Content.getLibrary(
-                simon.restContext,
-                'u:cam:bleh',
-                null,
-                null,
-                (err, data) => {
-                  assert.strictEqual(err.code, 404);
-                  callback();
-                }
-              );
+            RestAPI.Content.getLibrary(simon.restContext, 'u:cam:bleh', null, null, (err, data) => {
+              assert.strictEqual(err.code, 404);
+              callback();
             });
-          }
-        );
+          });
+        });
       });
     });
   });
@@ -195,42 +166,27 @@ describe('Content Libraries', () => {
         (err, contentObj) => {
           assert.ok(!err);
 
-          RestAPI.Content.removeContentFromLibrary(
-            camAnonymousRestCtx,
-            simon.user.id,
-            contentObj.id,
-            err => {
-              assert.strictEqual(err.code, 401);
+          RestAPI.Content.removeContentFromLibrary(camAnonymousRestCtx, simon.user.id, contentObj.id, err => {
+            assert.strictEqual(err.code, 401);
 
-              RestAPI.Content.removeContentFromLibrary(
-                simon.restContext,
-                'invalid-user-id',
-                contentObj.id,
-                err => {
-                  assert.strictEqual(err.code, 400);
+            RestAPI.Content.removeContentFromLibrary(simon.restContext, 'invalid-user-id', contentObj.id, err => {
+              assert.strictEqual(err.code, 400);
 
-                  RestAPI.Content.removeContentFromLibrary(
-                    simon.restContext,
-                    simon.user.id,
-                    'invalid-content-id',
-                    err => {
-                      assert.strictEqual(err.code, 400);
+              RestAPI.Content.removeContentFromLibrary(simon.restContext, simon.user.id, 'invalid-content-id', err => {
+                assert.strictEqual(err.code, 400);
 
-                      RestAPI.Content.removeContentFromLibrary(
-                        simon.restContext,
-                        simon.user.id,
-                        'c:camtest:nonexisting',
-                        err => {
-                          assert.strictEqual(err.code, 404);
-                          callback();
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
+                RestAPI.Content.removeContentFromLibrary(
+                  simon.restContext,
+                  simon.user.id,
+                  'c:camtest:nonexisting',
+                  err => {
+                    assert.strictEqual(err.code, 404);
+                    callback();
+                  }
+                );
+              });
+            });
+          });
         }
       );
     });
@@ -259,18 +215,12 @@ describe('Content Libraries', () => {
           RestAPI.Content.deleteContent(nicolaas.restContext, contentObj.id, err => {
             assert.ok(!err);
 
-            RestAPI.Content.getLibrary(
-              nicolaas.restContext,
-              nicolaas.user.id,
-              null,
-              null,
-              (err, data) => {
-                assert.ok(!err);
-                const library = data.results;
-                assert.strictEqual(library.length, 0);
-                callback();
-              }
-            );
+            RestAPI.Content.getLibrary(nicolaas.restContext, nicolaas.user.id, null, null, (err, data) => {
+              assert.ok(!err);
+              const library = data.results;
+              assert.strictEqual(library.length, 0);
+              callback();
+            });
           });
         }
       );
@@ -298,49 +248,27 @@ describe('Content Libraries', () => {
         (err, contentObj) => {
           assert.ok(!err);
 
-          RestAPI.Content.shareContent(
-            nicolaas.restContext,
-            contentObj.id,
-            [simon.user.id],
-            err => {
-              assert.ok(!err);
+          RestAPI.Content.shareContent(nicolaas.restContext, contentObj.id, [simon.user.id], err => {
+            assert.ok(!err);
 
-              // Sanity check that Simon has the item
-              RestAPI.Content.getLibrary(
-                simon.restContext,
-                simon.user.id,
-                null,
-                null,
-                (err, data) => {
+            // Sanity check that Simon has the item
+            RestAPI.Content.getLibrary(simon.restContext, simon.user.id, null, null, (err, data) => {
+              assert.ok(!err);
+              const library = data.results;
+              assert.strictEqual(library.length, 1);
+              assert.strictEqual(library[0].id, contentObj.id);
+
+              RestAPI.Content.removeContentFromLibrary(simon.restContext, simon.user.id, contentObj.id, err => {
+                assert.ok(!err);
+                RestAPI.Content.getLibrary(simon.restContext, simon.user.id, null, null, (err, data) => {
                   assert.ok(!err);
                   const library = data.results;
-                  assert.strictEqual(library.length, 1);
-                  assert.strictEqual(library[0].id, contentObj.id);
-
-                  RestAPI.Content.removeContentFromLibrary(
-                    simon.restContext,
-                    simon.user.id,
-                    contentObj.id,
-                    err => {
-                      assert.ok(!err);
-                      RestAPI.Content.getLibrary(
-                        simon.restContext,
-                        simon.user.id,
-                        null,
-                        null,
-                        (err, data) => {
-                          assert.ok(!err);
-                          const library = data.results;
-                          assert.strictEqual(library.length, 0);
-                          callback();
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
+                  assert.strictEqual(library.length, 0);
+                  callback();
+                });
+              });
+            });
+          });
         }
       );
     });
@@ -369,15 +297,10 @@ describe('Content Libraries', () => {
 
           // Nicolaas can't remove the content from his library
           // as he is the only manager for it.
-          RestAPI.Content.removeContentFromLibrary(
-            nicolaas.restContext,
-            nicolaas.user.id,
-            contentObj.id,
-            err => {
-              assert.strictEqual(err.code, 400);
-              callback();
-            }
-          );
+          RestAPI.Content.removeContentFromLibrary(nicolaas.restContext, nicolaas.user.id, contentObj.id, err => {
+            assert.strictEqual(err.code, 400);
+            callback();
+          });
         }
       );
     });
@@ -423,49 +346,32 @@ describe('Content Libraries', () => {
                 assert.ok(!err);
 
                 // Sanity check that userB has the item in his library
-                RestAPI.Content.getLibrary(
-                  userB.restContext,
-                  userB.user.id,
-                  null,
-                  null,
-                  (err, data) => {
-                    assert.ok(!err);
-                    const library = data.results;
-                    assert.strictEqual(library.length, 1);
-                    assert.strictEqual(library[0].id, contentObj.id);
+                RestAPI.Content.getLibrary(userB.restContext, userB.user.id, null, null, (err, data) => {
+                  assert.ok(!err);
+                  const library = data.results;
+                  assert.strictEqual(library.length, 1);
+                  assert.strictEqual(library[0].id, contentObj.id);
 
-                    // Now make tenantA private.
-                    ConfigTestUtil.updateConfigAndWait(
-                      globalAdminRestContext,
-                      tenantAliasA,
-                      { 'oae-tenants/tenantprivacy/tenantprivate': true },
-                      err => {
+                  // Now make tenantA private.
+                  ConfigTestUtil.updateConfigAndWait(
+                    globalAdminRestContext,
+                    tenantAliasA,
+                    { 'oae-tenants/tenantprivacy/tenantprivate': true },
+                    err => {
+                      assert.ok(!err);
+
+                      RestAPI.Content.removeContentFromLibrary(userB.restContext, userB.user.id, contentObj.id, err => {
                         assert.ok(!err);
-
-                        RestAPI.Content.removeContentFromLibrary(
-                          userB.restContext,
-                          userB.user.id,
-                          contentObj.id,
-                          err => {
-                            assert.ok(!err);
-                            RestAPI.Content.getLibrary(
-                              userB.restContext,
-                              userB.user.id,
-                              null,
-                              null,
-                              (err, data) => {
-                                assert.ok(!err);
-                                const library = data.results;
-                                assert.strictEqual(library.length, 0);
-                                callback();
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
+                        RestAPI.Content.getLibrary(userB.restContext, userB.user.id, null, null, (err, data) => {
+                          assert.ok(!err);
+                          const library = data.results;
+                          assert.strictEqual(library.length, 0);
+                          callback();
+                        });
+                      });
+                    }
+                  );
+                });
               }
             );
           });
@@ -496,29 +402,18 @@ describe('Content Libraries', () => {
           assert.ok(!err);
 
           // This should fail as Simon can't manage Nicolaas his library.
-          RestAPI.Content.removeContentFromLibrary(
-            simon.restContext,
-            nicolaas.user.id,
-            contentObj.id,
-            err => {
-              assert.strictEqual(err.code, 401);
+          RestAPI.Content.removeContentFromLibrary(simon.restContext, nicolaas.user.id, contentObj.id, err => {
+            assert.strictEqual(err.code, 401);
 
-              // Sanity check Nicolaas his library to ensure nothing got removed.
-              RestAPI.Content.getLibrary(
-                nicolaas.restContext,
-                nicolaas.user.id,
-                null,
-                null,
-                (err, data) => {
-                  assert.ok(!err);
-                  const library = data.results;
-                  assert.strictEqual(library.length, 1);
-                  assert.strictEqual(library[0].id, contentObj.id);
-                  callback();
-                }
-              );
-            }
-          );
+            // Sanity check Nicolaas his library to ensure nothing got removed.
+            RestAPI.Content.getLibrary(nicolaas.restContext, nicolaas.user.id, null, null, (err, data) => {
+              assert.ok(!err);
+              const library = data.results;
+              assert.strictEqual(library.length, 1);
+              assert.strictEqual(library[0].id, contentObj.id);
+              callback();
+            });
+          });
         }
       );
     });
@@ -559,42 +454,36 @@ describe('Content Libraries', () => {
                 assert.ok(!err);
 
                 // Sanity check it's there.
-                RestAPI.Content.getLibrary(
-                  nicolaas.restContext,
-                  grandParent.group.id,
-                  null,
-                  null,
-                  (err, data) => {
-                    assert.ok(!err);
-                    const library = data.results;
-                    assert.strictEqual(library.length, 1);
-                    assert.strictEqual(library[0].id, contentObj.id);
+                RestAPI.Content.getLibrary(nicolaas.restContext, grandParent.group.id, null, null, (err, data) => {
+                  assert.ok(!err);
+                  const library = data.results;
+                  assert.strictEqual(library.length, 1);
+                  assert.strictEqual(library[0].id, contentObj.id);
 
-                    // Simon decides the content isn't all that great and removes it.
-                    RestAPI.Content.removeContentFromLibrary(
-                      simon.restContext,
-                      grandParent.group.id,
-                      contentObj.id,
-                      err => {
-                        assert.ok(!err);
+                  // Simon decides the content isn't all that great and removes it.
+                  RestAPI.Content.removeContentFromLibrary(
+                    simon.restContext,
+                    grandParent.group.id,
+                    contentObj.id,
+                    err => {
+                      assert.ok(!err);
 
-                        // Sanity check that it's gone.
-                        RestAPI.Content.getLibrary(
-                          nicolaas.restContext,
-                          grandParent.group.id,
-                          null,
-                          null,
-                          (err, data) => {
-                            assert.ok(!err);
-                            const library = data.results;
-                            assert.strictEqual(library.length, 0);
-                            return callback();
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
+                      // Sanity check that it's gone.
+                      RestAPI.Content.getLibrary(
+                        nicolaas.restContext,
+                        grandParent.group.id,
+                        null,
+                        null,
+                        (err, data) => {
+                          assert.ok(!err);
+                          const library = data.results;
+                          assert.strictEqual(library.length, 0);
+                          return callback();
+                        }
+                      );
+                    }
+                  );
+                });
               }
             );
           });
@@ -630,6 +519,7 @@ describe('Content Libraries', () => {
         assert.strictEqual(err.code, 401);
         assert.ok(!items);
       }
+
       callback();
     });
   };
@@ -649,56 +539,51 @@ describe('Content Libraries', () => {
     // Create a user with the proper visibility
     TestsUtil.generateTestUsers(restCtx, 1, (err, users) => {
       const { 0: user } = _.values(users);
-      RestAPI.User.updateUser(
-        user.restContext,
-        user.user.id,
-        { visibility: userVisibility },
-        err => {
-          assert.ok(!err);
+      RestAPI.User.updateUser(user.restContext, user.user.id, { visibility: userVisibility }, err => {
+        assert.ok(!err);
 
-          // Fill up this user his library with 3 content items.
-          RestAPI.Content.createLink(
-            user.restContext,
-            'name',
-            'description',
-            'private',
-            'http://www.oaeproject.org',
-            null,
-            null,
-            [],
-            (err, privateContent) => {
-              assert.ok(!err);
-              RestAPI.Content.createLink(
-                user.restContext,
-                'name',
-                'description',
-                'loggedin',
-                'http://www.oaeproject.org',
-                null,
-                null,
-                [],
-                (err, loggedinContent) => {
-                  assert.ok(!err);
-                  RestAPI.Content.createLink(
-                    user.restContext,
-                    'name',
-                    'description',
-                    'public',
-                    'http://www.oaeproject.org',
-                    null,
-                    null,
-                    [],
-                    (err, publicContent) => {
-                      assert.ok(!err);
-                      callback(user, privateContent, loggedinContent, publicContent);
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
+        // Fill up this user his library with 3 content items.
+        RestAPI.Content.createLink(
+          user.restContext,
+          'name',
+          'description',
+          'private',
+          'http://www.oaeproject.org',
+          null,
+          null,
+          [],
+          (err, privateContent) => {
+            assert.ok(!err);
+            RestAPI.Content.createLink(
+              user.restContext,
+              'name',
+              'description',
+              'loggedin',
+              'http://www.oaeproject.org',
+              null,
+              null,
+              [],
+              (err, loggedinContent) => {
+                assert.ok(!err);
+                RestAPI.Content.createLink(
+                  user.restContext,
+                  'name',
+                  'description',
+                  'public',
+                  'http://www.oaeproject.org',
+                  null,
+                  null,
+                  [],
+                  (err, publicContent) => {
+                    assert.ok(!err);
+                    callback(user, privateContent, loggedinContent, publicContent);
+                  }
+                );
+              }
+            );
+          }
+        );
+      });
     });
   };
 
@@ -714,60 +599,51 @@ describe('Content Libraries', () => {
    * @param  {Content}        callback.publicContent      The public piece of content
    */
   const createGroupAndLibrary = function(restCtx, groupVisibility, callback) {
-    RestAPI.Group.createGroup(
-      restCtx,
-      'displayName',
-      'description',
-      groupVisibility,
-      'no',
-      [],
-      [],
-      (err, group) => {
-        assert.ok(!err);
+    RestAPI.Group.createGroup(restCtx, 'displayName', 'description', groupVisibility, 'no', [], [], (err, group) => {
+      assert.ok(!err);
 
-        // Fill up the group library with 3 content items.
-        RestAPI.Content.createLink(
-          restCtx,
-          'name',
-          'description',
-          'private',
-          'http://www.oaeproject.org',
-          [group.id],
-          null,
-          [],
-          (err, privateContent) => {
-            assert.ok(!err);
-            RestAPI.Content.createLink(
-              restCtx,
-              'name',
-              'description',
-              'loggedin',
-              'http://www.oaeproject.org',
-              [group.id],
-              null,
-              [],
-              (err, loggedinContent) => {
-                assert.ok(!err);
-                RestAPI.Content.createLink(
-                  restCtx,
-                  'name',
-                  'description',
-                  'public',
-                  'http://www.oaeproject.org',
-                  [group.id],
-                  null,
-                  [],
-                  (err, publicContent) => {
-                    assert.ok(!err);
-                    callback(group, privateContent, loggedinContent, publicContent);
-                  }
-                );
-              }
-            );
-          }
-        );
-      }
-    );
+      // Fill up the group library with 3 content items.
+      RestAPI.Content.createLink(
+        restCtx,
+        'name',
+        'description',
+        'private',
+        'http://www.oaeproject.org',
+        [group.id],
+        null,
+        [],
+        (err, privateContent) => {
+          assert.ok(!err);
+          RestAPI.Content.createLink(
+            restCtx,
+            'name',
+            'description',
+            'loggedin',
+            'http://www.oaeproject.org',
+            [group.id],
+            null,
+            [],
+            (err, loggedinContent) => {
+              assert.ok(!err);
+              RestAPI.Content.createLink(
+                restCtx,
+                'name',
+                'description',
+                'public',
+                'http://www.oaeproject.org',
+                [group.id],
+                null,
+                [],
+                (err, publicContent) => {
+                  assert.ok(!err);
+                  callback(group, privateContent, loggedinContent, publicContent);
+                }
+              );
+            }
+          );
+        }
+      );
+    });
   };
 
   /**
@@ -779,30 +655,15 @@ describe('Content Libraries', () => {
     createUserAndLibrary(
       camAdminRestCtx,
       'private',
-      (
-        privateUser,
-        privateUserPrivateContent,
-        privateUserLoggedinContent,
-        privateUserPublicContent
-      ) => {
+      (privateUser, privateUserPrivateContent, privateUserLoggedinContent, privateUserPublicContent) => {
         createUserAndLibrary(
           camAdminRestCtx,
           'loggedin',
-          (
-            loggedinUser,
-            loggedinUserPrivateContent,
-            loggedinUserLoggedinContent,
-            loggedinUserPublicContent
-          ) => {
+          (loggedinUser, loggedinUserPrivateContent, loggedinUserLoggedinContent, loggedinUserPublicContent) => {
             createUserAndLibrary(
               camAdminRestCtx,
               'public',
-              (
-                publicUser,
-                publicUserPrivateContent,
-                publicUserLoggedinContent,
-                publicUserPublicContent
-              ) => {
+              (publicUser, publicUserPrivateContent, publicUserLoggedinContent, publicUserPublicContent) => {
                 // Each user should be able to see all the items in his library.
                 checkLibrary(
                   privateUser.restContext,
@@ -814,21 +675,13 @@ describe('Content Libraries', () => {
                       loggedinUser.restContext,
                       loggedinUser.user.id,
                       true,
-                      [
-                        loggedinUserPublicContent,
-                        loggedinUserLoggedinContent,
-                        loggedinUserPrivateContent
-                      ],
+                      [loggedinUserPublicContent, loggedinUserLoggedinContent, loggedinUserPrivateContent],
                       () => {
                         checkLibrary(
                           publicUser.restContext,
                           publicUser.user.id,
                           true,
-                          [
-                            publicUserPublicContent,
-                            publicUserLoggedinContent,
-                            publicUserPrivateContent
-                          ],
+                          [publicUserPublicContent, publicUserLoggedinContent, publicUserPrivateContent],
                           () => {
                             // The anonymous user can only see the public stream of the public user.
                             checkLibrary(
@@ -837,193 +690,143 @@ describe('Content Libraries', () => {
                               true,
                               [publicUserPublicContent],
                               () => {
-                                checkLibrary(
-                                  camAnonymousRestCtx,
-                                  loggedinUser.user.id,
-                                  false,
-                                  [],
-                                  () => {
+                                checkLibrary(camAnonymousRestCtx, loggedinUser.user.id, false, [], () => {
+                                  checkLibrary(camAnonymousRestCtx, privateUser.user.id, false, [], () => {
                                     checkLibrary(
-                                      camAnonymousRestCtx,
-                                      privateUser.user.id,
-                                      false,
-                                      [],
+                                      gtAnonymousRestCtx,
+                                      publicUser.user.id,
+                                      true,
+                                      [publicUserPublicContent],
                                       () => {
-                                        checkLibrary(
-                                          gtAnonymousRestCtx,
-                                          publicUser.user.id,
-                                          true,
-                                          [publicUserPublicContent],
-                                          () => {
-                                            checkLibrary(
-                                              gtAnonymousRestCtx,
-                                              loggedinUser.user.id,
-                                              false,
-                                              [],
-                                              () => {
-                                                checkLibrary(
-                                                  gtAnonymousRestCtx,
-                                                  privateUser.user.id,
-                                                  false,
-                                                  [],
-                                                  () => {
-                                                    // A loggedin user on the same tenant can see the loggedin stream for the public and loggedin user.
-                                                    TestsUtil.generateTestUsers(
-                                                      camAdminRestCtx,
-                                                      1,
-                                                      (err, users) => {
-                                                        const { 0: anotherUser } = _.values(users);
-                                                        checkLibrary(
-                                                          anotherUser.restContext,
-                                                          publicUser.user.id,
-                                                          true,
-                                                          [
-                                                            publicUserPublicContent,
-                                                            publicUserLoggedinContent
-                                                          ],
-                                                          () => {
-                                                            checkLibrary(
-                                                              anotherUser.restContext,
-                                                              loggedinUser.user.id,
-                                                              true,
-                                                              [
-                                                                loggedinUserPublicContent,
-                                                                loggedinUserLoggedinContent
-                                                              ],
-                                                              () => {
-                                                                checkLibrary(
-                                                                  anotherUser.restContext,
-                                                                  privateUser.user.id,
-                                                                  false,
-                                                                  [],
-                                                                  () => {
-                                                                    // A loggedin user on *another* tenant can only see the public stream for the public user.
-                                                                    TestsUtil.generateTestUsers(
-                                                                      gtAdminRestCtx,
-                                                                      1,
-                                                                      (err, users) => {
-                                                                        const {
-                                                                          0: otherTenantUser
-                                                                        } = _.values(users);
-                                                                        checkLibrary(
-                                                                          otherTenantUser.restContext,
-                                                                          publicUser.user.id,
-                                                                          true,
-                                                                          [publicUserPublicContent],
-                                                                          () => {
-                                                                            checkLibrary(
-                                                                              otherTenantUser.restContext,
-                                                                              loggedinUser.user.id,
-                                                                              false,
-                                                                              [],
-                                                                              () => {
-                                                                                checkLibrary(
-                                                                                  otherTenantUser.restContext,
-                                                                                  privateUser.user
-                                                                                    .id,
-                                                                                  false,
-                                                                                  [],
-                                                                                  () => {
-                                                                                    // The cambridge tenant admin can see all the things.
-                                                                                    checkLibrary(
-                                                                                      camAdminRestCtx,
-                                                                                      publicUser
-                                                                                        .user.id,
-                                                                                      true,
-                                                                                      [
-                                                                                        publicUserPublicContent,
-                                                                                        publicUserLoggedinContent,
-                                                                                        publicUserPrivateContent
-                                                                                      ],
-                                                                                      () => {
-                                                                                        checkLibrary(
-                                                                                          camAdminRestCtx,
-                                                                                          loggedinUser
-                                                                                            .user
-                                                                                            .id,
-                                                                                          true,
-                                                                                          [
-                                                                                            loggedinUserPublicContent,
-                                                                                            loggedinUserLoggedinContent,
-                                                                                            loggedinUserPrivateContent
-                                                                                          ],
-                                                                                          () => {
-                                                                                            checkLibrary(
-                                                                                              camAdminRestCtx,
-                                                                                              privateUser
-                                                                                                .user
-                                                                                                .id,
-                                                                                              true,
-                                                                                              [
-                                                                                                privateUserPublicContent,
-                                                                                                privateUserLoggedinContent,
-                                                                                                privateUserPrivateContent
-                                                                                              ],
-                                                                                              () => {
-                                                                                                // The GT tenant admin can only see the public stream for the public user.
-                                                                                                checkLibrary(
-                                                                                                  gtAdminRestCtx,
-                                                                                                  publicUser
-                                                                                                    .user
-                                                                                                    .id,
-                                                                                                  true,
-                                                                                                  [
-                                                                                                    publicUserPublicContent
-                                                                                                  ],
-                                                                                                  () => {
-                                                                                                    checkLibrary(
-                                                                                                      gtAdminRestCtx,
-                                                                                                      loggedinUser
-                                                                                                        .user
-                                                                                                        .id,
-                                                                                                      false,
-                                                                                                      [],
-                                                                                                      () => {
-                                                                                                        checkLibrary(
-                                                                                                          gtAdminRestCtx,
-                                                                                                          privateUser
-                                                                                                            .user
-                                                                                                            .id,
-                                                                                                          false,
-                                                                                                          [],
-                                                                                                          callback
-                                                                                                        );
-                                                                                                      }
-                                                                                                    );
-                                                                                                  }
-                                                                                                );
-                                                                                              }
-                                                                                            );
-                                                                                          }
-                                                                                        );
-                                                                                      }
-                                                                                    );
-                                                                                  }
-                                                                                );
-                                                                              }
-                                                                            );
-                                                                          }
-                                                                        );
-                                                                      }
-                                                                    );
-                                                                  }
-                                                                );
-                                                              }
-                                                            );
-                                                          }
-                                                        );
-                                                      }
-                                                    );
-                                                  }
-                                                );
-                                              }
-                                            );
-                                          }
-                                        );
+                                        checkLibrary(gtAnonymousRestCtx, loggedinUser.user.id, false, [], () => {
+                                          checkLibrary(gtAnonymousRestCtx, privateUser.user.id, false, [], () => {
+                                            // A loggedin user on the same tenant can see the loggedin stream for the public and loggedin user.
+                                            TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+                                              const { 0: anotherUser } = _.values(users);
+                                              checkLibrary(
+                                                anotherUser.restContext,
+                                                publicUser.user.id,
+                                                true,
+                                                [publicUserPublicContent, publicUserLoggedinContent],
+                                                () => {
+                                                  checkLibrary(
+                                                    anotherUser.restContext,
+                                                    loggedinUser.user.id,
+                                                    true,
+                                                    [loggedinUserPublicContent, loggedinUserLoggedinContent],
+                                                    () => {
+                                                      checkLibrary(
+                                                        anotherUser.restContext,
+                                                        privateUser.user.id,
+                                                        false,
+                                                        [],
+                                                        () => {
+                                                          // A loggedin user on *another* tenant can only see the public stream for the public user.
+                                                          TestsUtil.generateTestUsers(
+                                                            gtAdminRestCtx,
+                                                            1,
+                                                            (err, users) => {
+                                                              const { 0: otherTenantUser } = _.values(users);
+                                                              checkLibrary(
+                                                                otherTenantUser.restContext,
+                                                                publicUser.user.id,
+                                                                true,
+                                                                [publicUserPublicContent],
+                                                                () => {
+                                                                  checkLibrary(
+                                                                    otherTenantUser.restContext,
+                                                                    loggedinUser.user.id,
+                                                                    false,
+                                                                    [],
+                                                                    () => {
+                                                                      checkLibrary(
+                                                                        otherTenantUser.restContext,
+                                                                        privateUser.user.id,
+                                                                        false,
+                                                                        [],
+                                                                        () => {
+                                                                          // The cambridge tenant admin can see all the things.
+                                                                          checkLibrary(
+                                                                            camAdminRestCtx,
+                                                                            publicUser.user.id,
+                                                                            true,
+                                                                            [
+                                                                              publicUserPublicContent,
+                                                                              publicUserLoggedinContent,
+                                                                              publicUserPrivateContent
+                                                                            ],
+                                                                            () => {
+                                                                              checkLibrary(
+                                                                                camAdminRestCtx,
+                                                                                loggedinUser.user.id,
+                                                                                true,
+                                                                                [
+                                                                                  loggedinUserPublicContent,
+                                                                                  loggedinUserLoggedinContent,
+                                                                                  loggedinUserPrivateContent
+                                                                                ],
+                                                                                () => {
+                                                                                  checkLibrary(
+                                                                                    camAdminRestCtx,
+                                                                                    privateUser.user.id,
+                                                                                    true,
+                                                                                    [
+                                                                                      privateUserPublicContent,
+                                                                                      privateUserLoggedinContent,
+                                                                                      privateUserPrivateContent
+                                                                                    ],
+                                                                                    () => {
+                                                                                      // The GT tenant admin can only see the public stream for the public user.
+                                                                                      checkLibrary(
+                                                                                        gtAdminRestCtx,
+                                                                                        publicUser.user.id,
+                                                                                        true,
+                                                                                        [publicUserPublicContent],
+                                                                                        () => {
+                                                                                          checkLibrary(
+                                                                                            gtAdminRestCtx,
+                                                                                            loggedinUser.user.id,
+                                                                                            false,
+                                                                                            [],
+                                                                                            () => {
+                                                                                              checkLibrary(
+                                                                                                gtAdminRestCtx,
+                                                                                                privateUser.user.id,
+                                                                                                false,
+                                                                                                [],
+                                                                                                callback
+                                                                                              );
+                                                                                            }
+                                                                                          );
+                                                                                        }
+                                                                                      );
+                                                                                    }
+                                                                                  );
+                                                                                }
+                                                                              );
+                                                                            }
+                                                                          );
+                                                                        }
+                                                                      );
+                                                                    }
+                                                                  );
+                                                                }
+                                                              );
+                                                            }
+                                                          );
+                                                        }
+                                                      );
+                                                    }
+                                                  );
+                                                }
+                                              );
+                                            });
+                                          });
+                                        });
                                       }
                                     );
-                                  }
-                                );
+                                  });
+                                });
                               }
                             );
                           }
@@ -1052,157 +855,138 @@ describe('Content Libraries', () => {
       createGroupAndLibrary(
         groupCreator.restContext,
         'private',
-        (
-          privateGroup,
-          privateGroupPrivateContent,
-          privateGroupLoggedinContent,
-          privateGroupPublicContent
-        ) => {
+        (privateGroup, privateGroupPrivateContent, privateGroupLoggedinContent, privateGroupPublicContent) => {
           createGroupAndLibrary(
             groupCreator.restContext,
             'loggedin',
-            (
-              loggedinGroup,
-              loggedinGroupPrivateContent,
-              loggedinGroupLoggedinContent,
-              loggedinGroupPublicContent
-            ) => {
+            (loggedinGroup, loggedinGroupPrivateContent, loggedinGroupLoggedinContent, loggedinGroupPublicContent) => {
               createGroupAndLibrary(
                 groupCreator.restContext,
                 'public',
-                (
-                  publicGroup,
-                  publicGroupPrivateContent,
-                  publicGroupLoggedinContent,
-                  publicGroupPublicContent
-                ) => {
+                (publicGroup, publicGroupPrivateContent, publicGroupLoggedinContent, publicGroupPublicContent) => {
                   // An anonymous user can only see the public stream for the public group.
-                  checkLibrary(
-                    camAnonymousRestCtx,
-                    publicGroup.id,
-                    true,
-                    [publicGroupPublicContent],
-                    () => {
-                      checkLibrary(camAnonymousRestCtx, loggedinGroup.id, false, [], () => {
-                        checkLibrary(camAnonymousRestCtx, privateGroup.id, false, [], () => {
-                          checkLibrary(
-                            gtAnonymousRestCtx,
-                            publicGroup.id,
-                            true,
-                            [publicGroupPublicContent],
-                            () => {
-                              checkLibrary(gtAnonymousRestCtx, loggedinGroup.id, false, [], () => {
-                                checkLibrary(gtAnonymousRestCtx, privateGroup.id, false, [], () => {
-                                  // A loggedin user on the same tenant can see the loggedin stream for the public and loggedin group.
+                  checkLibrary(camAnonymousRestCtx, publicGroup.id, true, [publicGroupPublicContent], () => {
+                    checkLibrary(camAnonymousRestCtx, loggedinGroup.id, false, [], () => {
+                      checkLibrary(camAnonymousRestCtx, privateGroup.id, false, [], () => {
+                        checkLibrary(gtAnonymousRestCtx, publicGroup.id, true, [publicGroupPublicContent], () => {
+                          checkLibrary(gtAnonymousRestCtx, loggedinGroup.id, false, [], () => {
+                            checkLibrary(gtAnonymousRestCtx, privateGroup.id, false, [], () => {
+                              // A loggedin user on the same tenant can see the loggedin stream for the public and loggedin group.
+                              checkLibrary(
+                                anotherUser.restContext,
+                                publicGroup.id,
+                                true,
+                                [publicGroupPublicContent, publicGroupLoggedinContent],
+                                () => {
                                   checkLibrary(
                                     anotherUser.restContext,
-                                    publicGroup.id,
+                                    loggedinGroup.id,
                                     true,
-                                    [publicGroupPublicContent, publicGroupLoggedinContent],
+                                    [loggedinGroupPublicContent, loggedinGroupLoggedinContent],
                                     () => {
-                                      checkLibrary(
-                                        anotherUser.restContext,
-                                        loggedinGroup.id,
-                                        true,
-                                        [loggedinGroupPublicContent, loggedinGroupLoggedinContent],
-                                        () => {
+                                      checkLibrary(anotherUser.restContext, privateGroup.id, false, [], () => {
+                                        // A loggedin user on *another* tenant can only see the public stream for the public group.
+                                        TestsUtil.generateTestUsers(gtAdminRestCtx, 1, (err, users) => {
+                                          const otherTenantUser = _.values(users)[0];
                                           checkLibrary(
-                                            anotherUser.restContext,
-                                            privateGroup.id,
-                                            false,
-                                            [],
+                                            otherTenantUser.restContext,
+                                            publicGroup.id,
+                                            true,
+                                            [publicGroupPublicContent],
                                             () => {
-                                              // A loggedin user on *another* tenant can only see the public stream for the public group.
-                                              TestsUtil.generateTestUsers(
-                                                gtAdminRestCtx,
-                                                1,
-                                                (err, users) => {
-                                                  const otherTenantUser = _.values(users)[0];
+                                              checkLibrary(
+                                                otherTenantUser.restContext,
+                                                loggedinGroup.id,
+                                                false,
+                                                [],
+                                                () => {
                                                   checkLibrary(
                                                     otherTenantUser.restContext,
-                                                    publicGroup.id,
-                                                    true,
-                                                    [publicGroupPublicContent],
+                                                    privateGroup.id,
+                                                    false,
+                                                    [],
                                                     () => {
+                                                      // The cambridge tenant admin can see all the things.
                                                       checkLibrary(
-                                                        otherTenantUser.restContext,
-                                                        loggedinGroup.id,
-                                                        false,
-                                                        [],
+                                                        camAdminRestCtx,
+                                                        publicGroup.id,
+                                                        true,
+                                                        [
+                                                          publicGroupPublicContent,
+                                                          publicGroupLoggedinContent,
+                                                          publicGroupPrivateContent
+                                                        ],
                                                         () => {
                                                           checkLibrary(
-                                                            otherTenantUser.restContext,
-                                                            privateGroup.id,
-                                                            false,
-                                                            [],
+                                                            camAdminRestCtx,
+                                                            loggedinGroup.id,
+                                                            true,
+                                                            [
+                                                              loggedinGroupPublicContent,
+                                                              loggedinGroupLoggedinContent,
+                                                              loggedinGroupPrivateContent
+                                                            ],
                                                             () => {
-                                                              // The cambridge tenant admin can see all the things.
                                                               checkLibrary(
                                                                 camAdminRestCtx,
-                                                                publicGroup.id,
+                                                                privateGroup.id,
                                                                 true,
                                                                 [
-                                                                  publicGroupPublicContent,
-                                                                  publicGroupLoggedinContent,
-                                                                  publicGroupPrivateContent
+                                                                  privateGroupPrivateContent,
+                                                                  privateGroupLoggedinContent,
+                                                                  privateGroupPrivateContent
                                                                 ],
                                                                 () => {
+                                                                  // The GT tenant admin can only see the public stream for the public group.
                                                                   checkLibrary(
-                                                                    camAdminRestCtx,
-                                                                    loggedinGroup.id,
+                                                                    gtAdminRestCtx,
+                                                                    publicGroup.id,
                                                                     true,
-                                                                    [
-                                                                      loggedinGroupPublicContent,
-                                                                      loggedinGroupLoggedinContent,
-                                                                      loggedinGroupPrivateContent
-                                                                    ],
+                                                                    [publicGroupPublicContent],
                                                                     () => {
                                                                       checkLibrary(
-                                                                        camAdminRestCtx,
-                                                                        privateGroup.id,
-                                                                        true,
-                                                                        [
-                                                                          privateGroupPrivateContent,
-                                                                          privateGroupLoggedinContent,
-                                                                          privateGroupPrivateContent
-                                                                        ],
+                                                                        gtAdminRestCtx,
+                                                                        loggedinGroup.id,
+                                                                        false,
+                                                                        [],
                                                                         () => {
-                                                                          // The GT tenant admin can only see the public stream for the public group.
                                                                           checkLibrary(
                                                                             gtAdminRestCtx,
-                                                                            publicGroup.id,
-                                                                            true,
-                                                                            [
-                                                                              publicGroupPublicContent
-                                                                            ],
+                                                                            privateGroup.id,
+                                                                            false,
+                                                                            [],
                                                                             () => {
-                                                                              checkLibrary(
-                                                                                gtAdminRestCtx,
-                                                                                loggedinGroup.id,
-                                                                                false,
-                                                                                [],
-                                                                                () => {
+                                                                              // If we make the cambridge user a member of the private group he should see everything.
+                                                                              let changes = {};
+                                                                              changes[anotherUser.user.id] = 'member';
+                                                                              RestAPI.Group.setGroupMembers(
+                                                                                groupCreator.restContext,
+                                                                                privateGroup.id,
+                                                                                changes,
+                                                                                err => {
+                                                                                  assert.ok(!err);
                                                                                   checkLibrary(
-                                                                                    gtAdminRestCtx,
+                                                                                    anotherUser.restContext,
                                                                                     privateGroup.id,
-                                                                                    false,
-                                                                                    [],
+                                                                                    true,
+                                                                                    [
+                                                                                      privateGroupPrivateContent,
+                                                                                      privateGroupLoggedinContent,
+                                                                                      privateGroupPrivateContent
+                                                                                    ],
                                                                                     () => {
-                                                                                      // If we make the cambridge user a member of the private group he should see everything.
-                                                                                      let changes = {};
-                                                                                      changes[
-                                                                                        anotherUser.user.id
-                                                                                      ] = 'member';
+                                                                                      // If we make the GT user a member of the private group, he should see everything.
+                                                                                      changes = {};
+                                                                                      changes[otherTenantUser.user.id] =
+                                                                                        'member';
                                                                                       RestAPI.Group.setGroupMembers(
                                                                                         groupCreator.restContext,
                                                                                         privateGroup.id,
                                                                                         changes,
                                                                                         err => {
-                                                                                          assert.ok(
-                                                                                            !err
-                                                                                          );
+                                                                                          assert.ok(!err);
                                                                                           checkLibrary(
-                                                                                            anotherUser.restContext,
+                                                                                            otherTenantUser.restContext,
                                                                                             privateGroup.id,
                                                                                             true,
                                                                                             [
@@ -1210,35 +994,7 @@ describe('Content Libraries', () => {
                                                                                               privateGroupLoggedinContent,
                                                                                               privateGroupPrivateContent
                                                                                             ],
-                                                                                            () => {
-                                                                                              // If we make the GT user a member of the private group, he should see everything.
-                                                                                              changes = {};
-                                                                                              changes[
-                                                                                                otherTenantUser.user.id
-                                                                                              ] =
-                                                                                                'member';
-                                                                                              RestAPI.Group.setGroupMembers(
-                                                                                                groupCreator.restContext,
-                                                                                                privateGroup.id,
-                                                                                                changes,
-                                                                                                err => {
-                                                                                                  assert.ok(
-                                                                                                    !err
-                                                                                                  );
-                                                                                                  checkLibrary(
-                                                                                                    otherTenantUser.restContext,
-                                                                                                    privateGroup.id,
-                                                                                                    true,
-                                                                                                    [
-                                                                                                      privateGroupPrivateContent,
-                                                                                                      privateGroupLoggedinContent,
-                                                                                                      privateGroupPrivateContent
-                                                                                                    ],
-                                                                                                    callback
-                                                                                                  );
-                                                                                                }
-                                                                                              );
-                                                                                            }
+                                                                                            callback
                                                                                           );
                                                                                         }
                                                                                       );
@@ -1264,18 +1020,18 @@ describe('Content Libraries', () => {
                                               );
                                             }
                                           );
-                                        }
-                                      );
+                                        });
+                                      });
                                     }
                                   );
-                                });
-                              });
-                            }
-                          );
+                                }
+                              );
+                            });
+                          });
                         });
                       });
-                    }
-                  );
+                    });
+                  });
                 }
               );
             }
@@ -1289,46 +1045,26 @@ describe('Content Libraries', () => {
    * Test that verifies that a library can be rebuilt from a dirty authz table
    */
   it('verify a library can be rebuilt from a dirty authz table', callback => {
-    createUserAndLibrary(
-      camAdminRestCtx,
-      'private',
-      (simong, privateContent, loggedinContent, publicContent) => {
-        // Ensure all the items are in the user's library
-        checkLibrary(
-          simong.restContext,
-          simong.user.id,
-          true,
-          [privateContent, loggedinContent, publicContent],
-          () => {
-            // Remove a content item directly in Cassandra. This will leave a pointer
-            // in the Authz table that points to nothing. The library re-indexer should
-            // be able to deal with this. Note that we go straight to Cassandra, as the
-            // ContentDAO also takes care of removing the item from the appropriate libraries
-            Cassandra.runQuery(
-              'DELETE FROM "Content" WHERE "contentId" = ?',
-              [privateContent.id],
-              err => {
-                assert.ok(!err);
+    createUserAndLibrary(camAdminRestCtx, 'private', (simong, privateContent, loggedinContent, publicContent) => {
+      // Ensure all the items are in the user's library
+      checkLibrary(simong.restContext, simong.user.id, true, [privateContent, loggedinContent, publicContent], () => {
+        // Remove a content item directly in Cassandra. This will leave a pointer
+        // in the Authz table that points to nothing. The library re-indexer should
+        // be able to deal with this. Note that we go straight to Cassandra, as the
+        // ContentDAO also takes care of removing the item from the appropriate libraries
+        Cassandra.runQuery('DELETE FROM "Content" WHERE "contentId" = ?', [privateContent.id], err => {
+          assert.ok(!err);
 
-                // Purge the library so that it has to be rebuild on the next request
-                LibraryAPI.Index.purge('content:content', simong.user.id, err => {
-                  assert.ok(!err);
+          // Purge the library so that it has to be rebuild on the next request
+          LibraryAPI.Index.purge('content:content', simong.user.id, err => {
+            assert.ok(!err);
 
-                  // We should be able to rebuild the library on-the-fly. The private
-                  // content item should not be returned as it has been removed
-                  checkLibrary(
-                    simong.restContext,
-                    simong.user.id,
-                    true,
-                    [loggedinContent, publicContent],
-                    callback
-                  );
-                });
-              }
-            );
-          }
-        );
-      }
-    );
+            // We should be able to rebuild the library on-the-fly. The private
+            // content item should not be returned as it has been removed
+            checkLibrary(simong.restContext, simong.user.id, true, [loggedinContent, publicContent], callback);
+          });
+        });
+      });
+    });
   });
 });

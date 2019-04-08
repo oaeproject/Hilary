@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const { ContentConstants } = require('../constants');
-const { DownloadStrategy } = require('../model');
-const BackendUtil = require('./util');
+import { ContentConstants } from '../constants';
+import { DownloadStrategy } from '../model';
+import * as BackendUtil from './util';
 
 /**
  * This backend isn't actually able to to store or retrieve anything.
@@ -55,15 +55,7 @@ const remove = function(tenantAlias, uri, callback) {
 const getDownloadStrategy = function(tenantAlias, uri) {
   // The URI will look something like: remote:http://www.google.com. To get the target URL we simply strip out the
   // scheme portion of the URI
-  return new DownloadStrategy(
-    ContentConstants.backend.DOWNLOAD_STRATEGY_DIRECT,
-    BackendUtil.splitUri(uri).location
-  );
+  return new DownloadStrategy(ContentConstants.backend.DOWNLOAD_STRATEGY_DIRECT, BackendUtil.splitUri(uri).location);
 };
 
-module.exports = {
-  store,
-  get,
-  remove,
-  getDownloadStrategy
-};
+export { store, get, remove, getDownloadStrategy };

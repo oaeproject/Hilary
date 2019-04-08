@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
 
 const libraryIndexes = {};
 
@@ -26,15 +26,10 @@ const registerLibraryIndex = function(name, options) {
   options = options || {};
 
   if (libraryIndexes[name]) {
-    throw new Error(
-      util.format('Attempted to register duplicate library index with name "%s"', name)
-    );
+    throw new Error(util.format('Attempted to register duplicate library index with name "%s"', name));
   } else if (!_.isFunction(options.pageResources)) {
     throw new TypeError(
-      util.format(
-        'Attempted to register library index "%s" that has no "pageResources" function',
-        name
-      )
+      util.format('Attempted to register library index "%s" that has no "pageResources" function', name)
     );
   }
 
@@ -51,7 +46,4 @@ const getRegisteredLibraryIndex = function(name) {
   return libraryIndexes[name];
 };
 
-module.exports = {
-  registerLibraryIndex,
-  getRegisteredLibraryIndex
-};
+export { registerLibraryIndex, getRegisteredLibraryIndex };

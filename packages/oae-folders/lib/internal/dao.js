@@ -13,18 +13,18 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
-const ShortId = require('shortid');
+import util from 'util';
+import _ from 'underscore';
+import ShortId from 'shortid';
 
-const AuthzAPI = require('oae-authz');
-const AuthzUtil = require('oae-authz/lib/util');
-const Cassandra = require('oae-util/lib/cassandra');
-const ContentDAO = require('oae-content/lib/internal/dao');
-const PrincipalsUtil = require('oae-principals/lib/util');
-const TenantsAPI = require('oae-tenants');
+import * as AuthzAPI from 'oae-authz';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as ContentDAO from 'oae-content/lib/internal/dao';
+import * as PrincipalsUtil from 'oae-principals/lib/util';
+import * as TenantsAPI from 'oae-tenants';
 
-const { Folder } = require('oae-folders/lib/model');
+import { Folder } from 'oae-folders/lib/model';
 
 /**
  * Create a folder
@@ -54,12 +54,7 @@ const createFolder = function(createdBy, displayName, description, visibility, c
   };
 
   // Create the queries to insert both the folder and the record that indexes it with its surrogate group id
-  const insertGroupIdIndexQuery = Cassandra.constructUpsertCQL(
-    'FoldersGroupId',
-    'groupId',
-    groupId,
-    { folderId }
-  );
+  const insertGroupIdIndexQuery = Cassandra.constructUpsertCQL('FoldersGroupId', 'groupId', groupId, { folderId });
   const insertFolderQuery = Cassandra.constructUpsertCQL('Folders', 'id', folderId, storageHash);
 
   // Insert the surrogate group id index entry
@@ -119,30 +114,26 @@ const getFoldersByGroupIds = function(groupIds, callback) {
     return callback(null, []);
   }
 
-  Cassandra.runQuery(
-    'SELECT * FROM "FoldersGroupId" WHERE "groupId" IN ?',
-    [groupIds],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
-      }
-
-      // Assemble the folder ids, ensuring the original ordering is maintained
-      const folderIdsByGroupIds = _.chain(rows)
-        .map(Cassandra.rowToHash)
-        .indexBy('groupId')
-        .value();
-      const folderIds = _.chain(groupIds)
-        .map(groupId => {
-          return folderIdsByGroupIds[groupId];
-        })
-        .compact()
-        .pluck('folderId')
-        .value();
-
-      return getFoldersByIds(folderIds, callback);
+  Cassandra.runQuery('SELECT * FROM "FoldersGroupId" WHERE "groupId" IN ?', [groupIds], (err, rows) => {
+    if (err) {
+      return callback(err);
     }
-  );
+
+    // Assemble the folder ids, ensuring the original ordering is maintained
+    const folderIdsByGroupIds = _.chain(rows)
+      .map(Cassandra.rowToHash)
+      .indexBy('groupId')
+      .value();
+    const folderIds = _.chain(groupIds)
+      .map(groupId => {
+        return folderIdsByGroupIds[groupId];
+      })
+      .compact()
+      .pluck('folderId')
+      .value();
+
+    return getFoldersByIds(folderIds, callback);
+  });
 };
 
 /**
@@ -158,6 +149,7 @@ const getFolder = function(folderId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(folders)) {
       return callback({
         code: 404,
@@ -222,27 +214,21 @@ const getContentItems = function(folderGroupId, opts, callback) {
   // Query all the content ids ('c') to which the folder is directly associated in this batch of
   // paged resources. Since the group can be a member of both user groups and folder groups, we
   // filter down to just the folder groups for folder libraries
-  AuthzAPI.getRolesForPrincipalAndResourceType(
-    folderGroupId,
-    'c',
-    opts.start,
-    opts.limit,
-    (err, roles, nextToken) => {
+  AuthzAPI.getRolesForPrincipalAndResourceType(folderGroupId, 'c', opts.start, opts.limit, (err, roles, nextToken) => {
+    if (err) {
+      return callback(err);
+    }
+
+    // Get all the content items that we queried by id
+    const ids = _.pluck(roles, 'id');
+    ContentDAO.Content.getMultipleContentItems(ids, opts.fields, (err, contentItems) => {
       if (err) {
         return callback(err);
       }
 
-      // Get all the content items that we queried by id
-      const ids = _.pluck(roles, 'id');
-      ContentDAO.Content.getMultipleContentItems(ids, opts.fields, (err, contentItems) => {
-        if (err) {
-          return callback(err);
-        }
-
-        return callback(null, contentItems, nextToken);
-      });
-    }
-  );
+      return callback(null, contentItems, nextToken);
+    });
+  });
 };
 
 /**
@@ -290,10 +276,10 @@ const iterateAll = function(properties, batchSize, onEach, callback) {
   }
 
   /*!
-     * Handles each batch from the cassandra iterateAll method
-     *
-     * @see Cassandra#iterateAll
-     */
+   * Handles each batch from the cassandra iterateAll method
+   *
+   * @see Cassandra#iterateAll
+   */
   const _iterateAllOnEach = function(rows, done) {
     // Convert the rows to a hash and delegate action to the caller onEach method
     return onEach(_.map(rows, Cassandra.rowToHash), done);
@@ -340,6 +326,7 @@ const _rowToFolder = function(row) {
   } catch (error) {
     storageHash.previews = {};
   }
+
   return _storageHashToFolder(storageHash.id, storageHash);
 };
 
@@ -377,7 +364,7 @@ const _createFolderId = function(tenantAlias) {
   return AuthzUtil.toId('f', tenantAlias, ShortId.generate());
 };
 
-module.exports = {
+export {
   setPreviews,
   iterateAll,
   getContentItems,

@@ -85,4 +85,4 @@ AuthzConstants.activity = {
   ACTIVITY_INVITE: 'invite'
 };
 
-module.exports = { AuthzConstants };
+export { AuthzConstants };

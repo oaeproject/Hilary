@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
-const { AuthzConstants } = require('oae-authz/lib/constants');
+import { AuthzConstants } from 'oae-authz/lib/constants';
 
 const ContentConstants = {};
-module.exports = { ContentConstants };
+export { ContentConstants };
 
 ContentConstants.role = {
   // Determines not only all known roles, but the ordered priority they take as the "effective"

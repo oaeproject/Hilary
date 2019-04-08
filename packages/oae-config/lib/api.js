@@ -13,16 +13,18 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
-const clone = require('clone');
+import util from 'util';
+import _ from 'underscore';
+import clone from 'clone';
 
-const EmitterAPI = require('oae-emitter');
-const IO = require('oae-util/lib/io');
-const OaeUtil = require('oae-util/lib/util');
-const Pubsub = require('oae-util/lib/pubsub');
-const { Validator } = require('oae-util/lib/validator');
-const log = require('oae-logger').logger('oae-config');
+import * as EmitterAPI from 'oae-emitter';
+import IO from 'oae-util/lib/io';
+import OaeUtil from 'oae-util/lib/util';
+import Pubsub from 'oae-util/lib/pubsub';
+import { Validator } from 'oae-util/lib/validator';
+import { logger } from 'oae-logger';
+
+const log = logger('oae-config');
 
 // Will be used to cache the global OAE config
 let config = null;
@@ -62,10 +64,7 @@ Pubsub.emitter.on('oae-config', tenantAlias => {
   // Update the tenant configuration that was updated
   updateTenantConfig(tenantAlias, err => {
     if (err) {
-      return log().error(
-        { err, tenantAlias },
-        'Error refreshing cached configuration after update'
-      );
+      return log().error({ err, tenantAlias }, 'Error refreshing cached configuration after update');
     }
 
     eventEmitter.emit('update', tenantAlias);
@@ -83,7 +82,7 @@ Pubsub.emitter.on('oae-config', tenantAlias => {
  * @return {Function}   getValue    Function that returns the cached a cached config value from the provided module
  * @throws {Error}                  Error thrown when no module id has been provided
  */
-config = function(moduleId) {
+const setUpConfig = function(moduleId) {
   // Parameter validation
   if (!moduleId) {
     throw new Error('A module id must be provided');
@@ -100,15 +99,11 @@ config = function(moduleId) {
      * @return {Boolean|String|Number|Object}   cachedConfiguration     The requested config value e.g. `true`. This will be null if the config element cannot be found
      */
     getValue(tenantAlias, featureKey, elementKey) {
-      const configValueInfo = _resolveConfigValueInfo(
-        tenantAlias,
-        moduleId,
-        featureKey,
-        elementKey
-      );
+      const configValueInfo = _resolveConfigValueInfo(tenantAlias, moduleId, featureKey, elementKey);
       if (configValueInfo) {
         return configValueInfo.value;
       }
+
       return null;
     },
 
@@ -141,6 +136,7 @@ const getSchema = function(ctx, callback) {
   if (!ctx.user() || !ctx.user().isAdmin(ctx.tenant().alias)) {
     return callback({ code: 401, msg: 'Only global and tenant admin can get the config schema' });
   }
+
   if (ctx.user().isGlobalAdmin()) {
     return callback(null, cachedGlobalSchema);
   }
@@ -177,18 +173,14 @@ const getTenantConfig = function(ctx, tenantAlias, callback) {
         if (!isGlobalAdmin && !isTenantAdmin && element.suppress) {
           return;
         }
+
         if (isTenantAdmin && element.globalAdminOnly) {
           return;
         }
 
         // The current user can see this value, so get the value info (value and timestamp)
         // to populate it in the tenant configuration response
-        const configValueInfo = _resolveConfigValueInfo(
-          tenantAlias,
-          moduleKey,
-          featureKey,
-          elementKey
-        );
+        const configValueInfo = _resolveConfigValueInfo(tenantAlias, moduleKey, featureKey, elementKey);
 
         // Finally set the value on the tenant configuration
         tenantConfig[moduleKey] = tenantConfig[moduleKey] || {};
@@ -323,11 +315,11 @@ const _cacheSchema = function(callback) {
   let complete = false;
 
   /*!
-     * Get the configuration files for a given module and create the schema for global and tenant administrators
-     * when all configuration files have been loaded
-     *
-     * @param  {String}     module      The module we're getting the configuration for. e.g., `oae-principals`
-     */
+   * Get the configuration files for a given module and create the schema for global and tenant administrators
+   * when all configuration files have been loaded
+   *
+   * @param  {String}     module      The module we're getting the configuration for. e.g., `oae-principals`
+   */
   const getModuleSchema = function(module) {
     const dir = OaeUtil.getNodeModulesDir() + module + '/config/';
     // Get a list of the available config files
@@ -335,6 +327,7 @@ const _cacheSchema = function(callback) {
       if (complete) {
         return;
       }
+
       if (err) {
         complete = true;
         return callback(err);
@@ -490,10 +483,7 @@ const _rowsToConfig = function(rows) {
             timestamp
           };
         } catch (error) {
-          log().error(
-            { err: error, key, value },
-            'Failed to parse configuration value from database'
-          );
+          log().error({ err: error, key, value }, 'Failed to parse configuration value from database');
         }
       }
     }
@@ -599,8 +589,7 @@ const updateConfig = function(ctx, tenantAlias, configValues, callback) {
   validator
     .check(configFieldNames.length, {
       code: 400,
-      msg:
-        'Missing configuration. Example configuration: {"oae-authentication/twitter/enabled": false}'
+      msg: 'Missing configuration. Example configuration: {"oae-authentication/twitter/enabled": false}'
     })
     .min(1);
 
@@ -623,6 +612,7 @@ const updateConfig = function(ctx, tenantAlias, configValues, callback) {
         msg: util.format('Config key "%s" does not exist', configFieldName)
       });
     }
+
     if (!_canUpdateConfigValue(ctx, tenantAlias, parts[0], parts[1], parts[2])) {
       return callback({
         code: 401,
@@ -630,6 +620,7 @@ const updateConfig = function(ctx, tenantAlias, configValues, callback) {
       });
     }
   }
+
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -651,13 +642,11 @@ const updateConfig = function(ctx, tenantAlias, configValues, callback) {
 
     const storageKey = _generateColumnKey(module, feature, element);
     if (optionalKey) {
-      const currentConfigValue = _resolveConfigValueInfo(tenantAlias, module, feature, element)
-        .value;
+      const currentConfigValue = _resolveConfigValueInfo(tenantAlias, module, feature, element).value;
 
       // If we specified an optional key, we're only partially updating an element's value
       // We need to merge it with the existing value
-      aggregatedValues[storageKey] =
-        aggregatedValues[storageKey] || _.extend({}, currentConfigValue) || {};
+      aggregatedValues[storageKey] = aggregatedValues[storageKey] || _.extend({}, currentConfigValue) || {};
       aggregatedValues[storageKey][optionalKey] = value;
     } else {
       aggregatedValues[storageKey] = value;
@@ -736,6 +725,7 @@ const clearConfig = function(ctx, tenantAlias, configFields, callback) {
         msg: util.format('Config value "%s" does not exist', configFields[i])
       });
     }
+
     if (!_canUpdateConfigValue(ctx, tenantAlias, configField[0], configField[1], configField[2])) {
       return callback({
         code: 401,
@@ -743,6 +733,7 @@ const clearConfig = function(ctx, tenantAlias, configFields, callback) {
       });
     }
   }
+
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -761,8 +752,7 @@ const clearConfig = function(ctx, tenantAlias, configFields, callback) {
     // If no optional key was specified, we can delete the entire column
 
     if (optionalKey) {
-      const currentConfigValue = _resolveConfigValueInfo(tenantAlias, module, feature, element)
-        .value;
+      const currentConfigValue = _resolveConfigValueInfo(tenantAlias, module, feature, element).value;
 
       // It's possible we've already deleted an optional key within this element
       const value = rowChanges[columnKey] || _.extend({}, currentConfigValue);
@@ -788,6 +778,7 @@ const clearConfig = function(ctx, tenantAlias, configFields, callback) {
         parameters: [tenantAlias, columnName]
       };
     }
+
     if (_.isObject(value)) {
       value = JSON.stringify(value);
     }
@@ -866,9 +857,9 @@ const _parseColumnKey = function(columnKey) {
   };
 };
 
-module.exports = {
+export {
   eventEmitter,
-  config,
+  setUpConfig,
   getSchema,
   getTenantConfig,
   initConfig,

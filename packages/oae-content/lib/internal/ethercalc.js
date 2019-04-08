@@ -13,16 +13,17 @@
  * permissions and limitations under the License.
  */
 
+import url from 'url';
 import EthercalcClient from 'ethercalc-client';
 
-const url = require('url');
+import _ from 'underscore';
+import cheerio from 'cheerio';
 
-const _ = require('underscore');
-const cheerio = require('cheerio');
+import { logger } from 'oae-logger';
 
-const log = require('oae-logger').logger('ethercalc');
+import * as ContentDAO from './dao';
 
-const ContentDAO = require('./dao');
+const log = logger('ethercalc');
 
 let ethercalcConfig = null;
 let ethercalc = null;
@@ -351,7 +352,7 @@ const _isSCDocument = function(content) {
   return content.startsWith(SOCIAL_CALC_FORMAT_BEGIN_LINE) && content.endsWith(SOCIAL_CALC_FORMAT_END_LINE);
 };
 
-module.exports = {
+export {
   refreshConfiguration,
   getConfig,
   createRoom,

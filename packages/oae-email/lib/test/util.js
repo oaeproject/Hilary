@@ -13,18 +13,18 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const util = require('util');
-const _ = require('underscore');
+import assert from 'assert';
+import util from 'util';
+import _ from 'underscore';
 
-const ActivityAggregator = require('oae-activity/lib/internal/aggregator');
+import * as ActivityAggregator from 'oae-activity/lib/internal/aggregator';
+import * as ActivityEmail from 'oae-activity/lib/internal/email';
+import * as ActivityNotifications from 'oae-activity/lib/internal/notifications';
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as MqTestsUtil from 'oae-util/lib/test/mq-util';
+import * as EmailAPI from 'oae-email';
+
 const { ActivityConstants } = require('oae-activity/lib/constants');
-const ActivityEmail = require('oae-activity/lib/internal/email');
-const ActivityNotifications = require('oae-activity/lib/internal/notifications');
-const Cassandra = require('oae-util/lib/cassandra');
-const MqTestsUtil = require('oae-util/lib/test/mq-util');
-
-const EmailAPI = require('oae-email');
 
 /**
  * Send and return a single email message. This helper utility will ensure that the activity / notifications queue
@@ -189,10 +189,7 @@ const collectAndFetchAllEmails = function(callback) {
                     );
                     assert.ok(
                       line.split('<a').length < 3,
-                      util.format(
-                        'Expected no email line to have more than 1 link, but found: %s',
-                        line
-                      )
+                      util.format('Expected no email line to have more than 1 link, but found: %s', line)
                     );
                   });
                 });
@@ -218,13 +215,7 @@ const collectAndFetchAllEmails = function(callback) {
  * @param  {Function}   callback            Standard callback function
  * @param  {Object[]}   callback.messages   An array of mails that were sent out
  */
-const collectAndFetchEmailsForBucket = function(
-  bucketNumber,
-  emailPreference,
-  dayOfWeek,
-  hourOfDay,
-  callback
-) {
+const collectAndFetchEmailsForBucket = function(bucketNumber, emailPreference, dayOfWeek, hourOfDay, callback) {
   const messages = [];
 
   // Ensure no notifications from other tests are still processing
@@ -284,11 +275,7 @@ const _assertEmailTemplateFieldValid = function(mail, fieldName) {
   const content = mail[fieldName];
   assert.ok(
     _.isString(content),
-    util.format(
-      'Expected email field "%s" be a string, but was: %s',
-      fieldName,
-      JSON.stringify(content, null, 2)
-    )
+    util.format('Expected email field "%s" be a string, but was: %s', fieldName, JSON.stringify(content, null, 2))
   );
   assert.strictEqual(
     content.indexOf('__MSG__'),
@@ -297,7 +284,7 @@ const _assertEmailTemplateFieldValid = function(mail, fieldName) {
   );
 };
 
-module.exports = {
+export {
   clearEmailCollections,
   collectAndFetchEmailsForBucket,
   collectAndFetchAllEmails,

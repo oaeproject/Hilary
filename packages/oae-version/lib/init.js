@@ -21,6 +21,6 @@
  * @returns {Object}         function  the callback from parameters
  * @see {oae-util/lib/oae}
  */
-module.exports = function(config, callback) {
+export const init = function(config, callback) {
   return callback();
 };

@@ -13,15 +13,15 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const util = require('util');
-const ShortId = require('shortid');
-
-const ConfigTestUtil = require('oae-config/lib/test/util');
-const Counter = require('oae-util/lib/counter');
-const RestAPI = require('oae-rest');
-
-const TenantsAPI = require('oae-tenants');
+import assert from 'assert';
+import util from 'util';
+import ShortId from 'shortid';
+import Counter from 'oae-util/lib/counter';
+import { generateRandomText } from 'oae-tests';
+import * as TestsUtil from 'oae-tests';
+import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as TenantsAPI from 'oae-tenants';
 
 // Keep track of the asynchronous operations that are still pending in the Tenants API
 const asyncOperationsCounter = new Counter();
@@ -59,7 +59,6 @@ const generateTestTenants = function(globalAdminRestCtx, numToCreate, callback, 
 
   // Create a tenant with random data
   const alias = generateTestTenantAlias();
-  const TestsUtil = require('oae-tests');
   const description = TestsUtil.generateRandomText();
   const host = generateTestTenantHost(null, TestsUtil.generateRandomText());
   createTenantAndWait(globalAdminRestCtx, alias, description, host, { emailDomains: host }, (err, tenant) => {
@@ -189,7 +188,7 @@ const generateTestTenantAlias = function(seed) {
 const generateTestTenantHost = function(seed, randomText) {
   seed = seed || 'host';
   // This is so wrong
-  randomText = randomText || require('oae-tests').generateRandomText();
+  randomText = randomText || generateRandomText();
   return util.format('%s-%s.local', seed, randomText);
 };
 
@@ -206,13 +205,14 @@ const clearTenantLandingPage = function(adminRestContext, callback) {
     const blockName = util.format('block_%d', i);
     config['oae-tenants/' + blockName + '/type'] = 'empty';
   }
+
   ConfigTestUtil.updateConfigAndWait(adminRestContext, null, config, err => {
     assert.ok(!err);
     return callback();
   });
 };
 
-module.exports = {
+export {
   whenTenantChangePropagated,
   generateTestTenants,
   createTenantAndWait,

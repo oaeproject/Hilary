@@ -13,20 +13,20 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const fs = require('fs');
-const util = require('util');
-const path = require('path');
-const _ = require('underscore');
+import assert from 'assert';
+import fs from 'fs';
+import util from 'util';
+import path from 'path';
+import _ from 'underscore';
 
-const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
-const TenantsTestUtil = require('oae-tenants/lib/test/util');
-const TestsUtil = require('oae-tests');
+import * as RestAPI from 'oae-rest';
+import { RestContext } from 'oae-rest/lib/model';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import * as TestsUtil from 'oae-tests';
 
-const UIAPI = require('oae-ui');
-const { UIConstants } = require('oae-ui/lib/constants');
-const UITestUtil = require('oae-ui/lib/test/util');
+import * as UIAPI from 'oae-ui';
+import { UIConstants } from 'oae-ui/lib/constants';
+import * as UITestUtil from 'oae-ui/lib/test/util';
 
 describe('UI', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user to the cambridge tenant
@@ -232,15 +232,10 @@ describe('UI', () => {
       const skinConfig = {
         'body-background-color': '#' + DEFAULT_BODY_BACKGROUND_COLOR
       };
-      UITestUtil.updateSkinAndWait(
-        globalAdminRestContext,
-        global.oaeTests.tenants.cam.alias,
-        skinConfig,
-        err => {
-          assert.ok(!err);
-          callback();
-        }
-      );
+      UITestUtil.updateSkinAndWait(globalAdminRestContext, global.oaeTests.tenants.cam.alias, skinConfig, err => {
+        assert.ok(!err);
+        callback();
+      });
     });
 
     /**
@@ -325,23 +320,18 @@ describe('UI', () => {
       // Sanity-check correct parsing
       checkSkin(anonymousCamRestContext, expectedOldBackgroundColor, () => {
         // Update the cambridge skin.
-        UITestUtil.updateSkinAndWait(
-          globalAdminRestContext,
-          global.oaeTests.tenants.cam.alias,
-          skinConfig,
-          err => {
-            assert.ok(!err);
+        UITestUtil.updateSkinAndWait(globalAdminRestContext, global.oaeTests.tenants.cam.alias, skinConfig, err => {
+          assert.ok(!err);
 
-            // Check the skin for the new value.
-            checkSkin(anonymousCamRestContext, expectedNewBackgroundColor, () => {
-              // Check the global admin skin is unchanged.
-              checkSkin(globalAdminRestContext, DEFAULT_BODY_BACKGROUND_COLOR, () => {
-                // Check the GT skin is unchanged.
-                checkSkin(anonymousGTRestContext, DEFAULT_BODY_BACKGROUND_COLOR, callback);
-              });
+          // Check the skin for the new value.
+          checkSkin(anonymousCamRestContext, expectedNewBackgroundColor, () => {
+            // Check the global admin skin is unchanged.
+            checkSkin(globalAdminRestContext, DEFAULT_BODY_BACKGROUND_COLOR, () => {
+              // Check the GT skin is unchanged.
+              checkSkin(anonymousGTRestContext, DEFAULT_BODY_BACKGROUND_COLOR, callback);
             });
-          }
-        );
+          });
+        });
       });
     };
 
@@ -375,21 +365,15 @@ describe('UI', () => {
 
         // Verify the body background color for the `Branding` section
         assert.ok(data.results[0].subsections[0].variables.length > 0);
-        assert.strictEqual(
-          data.results[0].subsections[0].variables[0].type,
-          UIConstants.variables.types.COLOR
-        );
-        assert.strictEqual(
-          data.results[0].subsections[0].variables[0].value,
-          expectedBackgroundColor
-        );
+        assert.strictEqual(data.results[0].subsections[0].variables[0].type, UIConstants.variables.types.COLOR);
+        assert.strictEqual(data.results[0].subsections[0].variables[0].value, expectedBackgroundColor);
         callback();
       });
     };
 
     /*
-         * Updating the config should result in a change in the skin.
-         */
+     * Updating the config should result in a change in the skin.
+     */
     it('verify updating the skin', callback => {
       updateSkinAndCheck(
         anonymousCamRestContext,
@@ -401,8 +385,8 @@ describe('UI', () => {
     });
 
     /*
-         * Submitting incorrect CSS values should not break the CSS skin generation.
-         */
+     * Submitting incorrect CSS values should not break the CSS skin generation.
+     */
     it('verify that submitting incorrect CSS values does not break skinning', callback => {
       updateSkinAndCheck(
         anonymousCamRestContext,
@@ -414,9 +398,9 @@ describe('UI', () => {
     });
 
     /*
-         * When submitting skin values with keys that are not used,
-         * this should not break skin generation.
-         */
+     * When submitting skin values with keys that are not used,
+     * this should not break skin generation.
+     */
     it('verify that submitting unused key does not break skinning', callback => {
       updateSkinAndCheck(
         anonymousCamRestContext,
@@ -428,9 +412,9 @@ describe('UI', () => {
     });
 
     /*
-         * When you update the config with new skin values,
-         * these should be returned in the variables endpoint.
-         */
+     * When you update the config with new skin values,
+     * these should be returned in the variables endpoint.
+     */
     it('verify that variables get updated with values from the config', callback => {
       // Sanity check the default value.
       checkVariables(global.oaeTests.tenants.cam.alias, '#eceae5', () => {
@@ -449,38 +433,30 @@ describe('UI', () => {
     });
 
     /*
-         * Test that verifies that only admininstrators are able to retrieve skin variables
-         */
+     * Test that verifies that only admininstrators are able to retrieve skin variables
+     */
     it('verify only administrators can retrieve skin variabes', callback => {
-      RestAPI.UI.getSkinVariables(
-        anonymousGlobalRestContext,
-        global.oaeTests.tenants.cam.alias,
-        (err, data) => {
+      RestAPI.UI.getSkinVariables(anonymousGlobalRestContext, global.oaeTests.tenants.cam.alias, (err, data) => {
+        assert.strictEqual(err.code, 401);
+        RestAPI.UI.getSkinVariables(anonymousCamRestContext, null, (err, data) => {
           assert.strictEqual(err.code, 401);
-          RestAPI.UI.getSkinVariables(anonymousCamRestContext, null, (err, data) => {
-            assert.strictEqual(err.code, 401);
-            RestAPI.UI.getSkinVariables(
-              globalAdminRestContext,
-              global.oaeTests.tenants.cam.alias,
-              (err, data) => {
+          RestAPI.UI.getSkinVariables(globalAdminRestContext, global.oaeTests.tenants.cam.alias, (err, data) => {
+            assert.ok(!err);
+            RestAPI.UI.getSkinVariables(camAdminRestContext, null, (err, data) => {
+              assert.ok(!err);
+              TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
                 assert.ok(!err);
-                RestAPI.UI.getSkinVariables(camAdminRestContext, null, (err, data) => {
-                  assert.ok(!err);
-                  TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
-                    assert.ok(!err);
 
-                    const user = _.values(users)[0];
-                    RestAPI.UI.getSkinVariables(user.restContext, null, (err, data) => {
-                      assert.strictEqual(err.code, 401);
-                      return callback();
-                    });
-                  });
+                const user = _.values(users)[0];
+                RestAPI.UI.getSkinVariables(user.restContext, null, (err, data) => {
+                  assert.strictEqual(err.code, 401);
+                  return callback();
                 });
-              }
-            );
+              });
+            });
           });
-        }
-      );
+        });
+      });
     });
 
     /**
@@ -500,10 +476,7 @@ describe('UI', () => {
             assert.ok(!err);
 
             // Get the default logo url, parsing out the single quotes
-            const defaultLogoUrl = _getSkinVariableValue('institutional-logo-url', variables).slice(
-              1,
-              -1
-            );
+            const defaultLogoUrl = _getSkinVariableValue('institutional-logo-url', variables).slice(1, -1);
 
             // Create some mock hash mappings to test with
             const hashes = {
@@ -523,11 +496,7 @@ describe('UI', () => {
                 assert.ok(!err);
 
                 // Verify that the default logoUrl was replaced
-                assert.strictEqual(
-                  css.indexOf(defaultLogoUrl),
-                  -1,
-                  'Expected the default logo url to be replaced'
-                );
+                assert.strictEqual(css.indexOf(defaultLogoUrl), -1, 'Expected the default logo url to be replaced');
                 assert.notStrictEqual(
                   css.indexOf('/optimized/logo/path'),
                   -1,
@@ -542,77 +511,67 @@ describe('UI', () => {
                 };
 
                 // Set the skin configuration so that only the institutional logo should be substituted by the hashed files
-                UITestUtil.updateSkinAndWait(
-                  globalAdminRestContext,
-                  testTenantAlias,
-                  skinConfig,
-                  err => {
+                UITestUtil.updateSkinAndWait(globalAdminRestContext, testTenantAlias, skinConfig, err => {
+                  assert.ok(!err);
+
+                  RestAPI.UI.getSkin(testTenantAdminRestContext, (err, css, response) => {
                     assert.ok(!err);
 
-                    RestAPI.UI.getSkin(testTenantAdminRestContext, (err, css, response) => {
+                    // Verify /test/directory was replaced
+                    assert.strictEqual(
+                      css.indexOf('/test/directory'),
+                      -1,
+                      'Expected the generated skin to have "/test/directory" replaced by the mapping'
+                    );
+                    assert.notStrictEqual(
+                      css.indexOf('/test/target/directory'),
+                      -1,
+                      'Expected the generated skin to have "/test/directory" replaced by the mapping'
+                    );
+
+                    // Verify google.ca was not replaced
+                    assert.notStrictEqual(
+                      css.indexOf('http://www.google.ca/haha.png'),
+                      -1,
+                      'Expected the generated skin to not have "http://www.google.ca/haha.png" replaced by anything'
+                    );
+
+                    // Verify /test/color was not replaced
+                    assert.notStrictEqual(
+                      css.indexOf('/test/color'),
+                      -1,
+                      'Did not expected the generated skin to replace "/test/color"'
+                    );
+                    assert.strictEqual(
+                      css.indexOf('/test/target/color'),
+                      -1,
+                      'Did not expected the generated skin to replace "/test/color"'
+                    );
+
+                    // Mingle with the spacing to make sure we're somewhat robust for user input
+                    skinConfig = { 'institutional-logo-url': "  '  /test/directory  '  " };
+                    UITestUtil.updateSkinAndWait(globalAdminRestContext, testTenantAlias, skinConfig, err => {
                       assert.ok(!err);
 
-                      // Verify /test/directory was replaced
-                      assert.strictEqual(
-                        css.indexOf('/test/directory'),
-                        -1,
-                        'Expected the generated skin to have "/test/directory" replaced by the mapping'
-                      );
-                      assert.notStrictEqual(
-                        css.indexOf('/test/target/directory'),
-                        -1,
-                        'Expected the generated skin to have "/test/directory" replaced by the mapping'
-                      );
+                      RestAPI.UI.getSkin(testTenantAdminRestContext, (err, css, response) => {
+                        assert.ok(!err);
 
-                      // Verify google.ca was not replaced
-                      assert.notStrictEqual(
-                        css.indexOf('http://www.google.ca/haha.png'),
-                        -1,
-                        'Expected the generated skin to not have "http://www.google.ca/haha.png" replaced by anything'
-                      );
-
-                      // Verify /test/color was not replaced
-                      assert.notStrictEqual(
-                        css.indexOf('/test/color'),
-                        -1,
-                        'Did not expected the generated skin to replace "/test/color"'
-                      );
-                      assert.strictEqual(
-                        css.indexOf('/test/target/color'),
-                        -1,
-                        'Did not expected the generated skin to replace "/test/color"'
-                      );
-
-                      // Mingle with the spacing to make sure we're somewhat robust for user input
-                      skinConfig = { 'institutional-logo-url': "  '  /test/directory  '  " };
-                      UITestUtil.updateSkinAndWait(
-                        globalAdminRestContext,
-                        testTenantAlias,
-                        skinConfig,
-                        err => {
-                          assert.ok(!err);
-
-                          RestAPI.UI.getSkin(testTenantAdminRestContext, (err, css, response) => {
-                            assert.ok(!err);
-
-                            // Verify /test/directory was replaced, it is ok if we lost the excessive space
-                            assert.strictEqual(
-                              css.indexOf('/test/directory'),
-                              -1,
-                              'Expected the generated skin to have "/test/directory" replaced by the mapping'
-                            );
-                            assert.notStrictEqual(
-                              css.indexOf('/test/target/directory'),
-                              -1,
-                              'Expected the generated skin to have "/test/directory" replaced by the mapping'
-                            );
-                            return callback();
-                          });
-                        }
-                      );
+                        // Verify /test/directory was replaced, it is ok if we lost the excessive space
+                        assert.strictEqual(
+                          css.indexOf('/test/directory'),
+                          -1,
+                          'Expected the generated skin to have "/test/directory" replaced by the mapping'
+                        );
+                        assert.notStrictEqual(
+                          css.indexOf('/test/target/directory'),
+                          -1,
+                          'Expected the generated skin to have "/test/directory" replaced by the mapping'
+                        );
+                        return callback();
+                      });
                     });
-                  }
-                );
+                  });
+                });
               });
             });
           });
@@ -645,44 +604,37 @@ describe('UI', () => {
 
             // Ensure that the base skin values are not rendered with
             // dynamic values
-            RestAPI.UI.getSkinVariables(
-              globalAdminRestContext,
-              testTenantAlias,
-              (err, variables) => {
+            RestAPI.UI.getSkinVariables(globalAdminRestContext, testTenantAlias, (err, variables) => {
+              assert.ok(!err);
+
+              const institutionalLogoUrlValue = _getSkinVariableValue('institutional-logo-url', variables);
+              assert.strictEqual(
+                institutionalLogoUrlValue,
+                // eslint-disable-next-line no-template-curly-in-string
+                "'/assets/${tenantAlias}/logo/${tenantAlias}.png'"
+              );
+
+              // Get the rendered skin and ensure the tenant alias is
+              // placed in the institutional logo url
+              RestAPI.UI.getSkin(testTenantAdminRestContext, (err, css) => {
                 assert.ok(!err);
 
-                const institutionalLogoUrlValue = _getSkinVariableValue(
-                  'institutional-logo-url',
-                  variables
+                // Ensure the `.oae-institutiona-logo` class
+                // contains the dynamic value
+                const expectedInstitutionalLogoStr = util.format(
+                  '.oae-institutional-logo{background-image:url(/assets/%s/logo/%s.png)}',
+                  testTenantAlias,
+                  testTenantAlias
                 );
-                assert.strictEqual(
-                  institutionalLogoUrlValue,
-                  // eslint-disable-next-line no-template-curly-in-string
-                  "'/assets/${tenantAlias}/logo/${tenantAlias}.png'"
-                );
+                assert.notStrictEqual(css.indexOf(expectedInstitutionalLogoStr), -1);
 
-                // Get the rendered skin and ensure the tenant alias is
-                // placed in the institutional logo url
-                RestAPI.UI.getSkin(testTenantAdminRestContext, (err, css) => {
-                  assert.ok(!err);
-
-                  // Ensure the `.oae-institutiona-logo` class
-                  // contains the dynamic value
-                  const expectedInstitutionalLogoStr = util.format(
-                    '.oae-institutional-logo{background-image:url(/assets/%s/logo/%s.png)}',
-                    testTenantAlias,
-                    testTenantAlias
-                  );
-                  assert.notStrictEqual(css.indexOf(expectedInstitutionalLogoStr), -1);
-
-                  RestAPI.UI.getLogo(testTenantAdminRestContext, (err, logoURL) => {
-                    // Ensure the logo we're getting is the same as fetched in the CSS above
-                    assert.notStrictEqual(expectedInstitutionalLogoStr.indexOf(logoURL), -1);
-                    return callback();
-                  });
+                RestAPI.UI.getLogo(testTenantAdminRestContext, (err, logoURL) => {
+                  // Ensure the logo we're getting is the same as fetched in the CSS above
+                  assert.notStrictEqual(expectedInstitutionalLogoStr.indexOf(logoURL), -1);
+                  return callback();
                 });
-              }
-            );
+              });
+            });
           });
         }
       );

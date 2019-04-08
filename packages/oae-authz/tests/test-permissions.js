@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const AuthzAPI = require('oae-authz');
-const AuthzUtil = require('oae-authz/lib/util');
+import assert from 'assert';
+import * as AuthzAPI from 'oae-authz';
+import * as AuthzUtil from 'oae-authz/lib/util';
 
 describe('Authz-Permissions', () => {
   /**

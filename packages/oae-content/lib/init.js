@@ -13,20 +13,22 @@
  * permissions and limitations under the License.
  */
 
-const mkdirp = require('mkdirp');
+import mkdirp from 'mkdirp';
 
-const Cleaner = require('oae-util/lib/cleaner');
-const log = require('oae-logger').logger('oae-content');
-const TaskQueue = require('oae-util/lib/taskqueue');
+import * as Cleaner from 'oae-util/lib/cleaner';
+import { logger } from 'oae-logger';
+import * as TaskQueue from 'oae-util/lib/taskqueue';
 
-const ContentAPI = require('./api');
-const { ContentConstants } = require('./constants');
-const ContentSearch = require('./search');
-const Etherpad = require('./internal/etherpad');
-const Ethercalc = require('./internal/ethercalc');
-const LocalStorage = require('./backends/local');
+import * as Etherpad from './internal/etherpad';
+import * as Ethercalc from './internal/ethercalc';
+import * as LocalStorage from './backends/local';
+import * as ContentAPI from './api';
+import { ContentConstants } from './constants';
+import * as ContentSearch from './search';
 
-module.exports = function(config, callback) {
+const log = logger('oae-content');
+
+export function init(config, callback) {
   // Initialize the content library capabilities
   // eslint-disable-next-line import/no-unassigned-import
   require('./library');
@@ -107,4 +109,4 @@ module.exports = function(config, callback) {
       });
     });
   });
-};
+}

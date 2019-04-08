@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
-const clone = require('clone');
+import _ from 'underscore';
+import clone from 'clone';
 
-const { ActivityConstants } = require('oae-activity/lib/constants');
+import { ActivityConstants } from 'oae-activity/lib/constants';
 
 /// /////////////
 // SEED MODEL //
@@ -48,11 +48,7 @@ const ActivitySeedResource = function(resourceType, resourceId, resourceData) {
  * @return {ActivitySeedResource}               The activity seed resource, as described in the summary
  */
 ActivitySeedResource.fromResource = function(resource) {
-  return new ActivitySeedResource(
-    resource.resourceType,
-    resource.id,
-    _.object([[resource.resourceType, resource]])
-  );
+  return new ActivitySeedResource(resource.resourceType, resource.id, _.object([[resource.resourceType, resource]]));
 };
 
 /**
@@ -66,14 +62,7 @@ ActivitySeedResource.fromResource = function(resource) {
  * @param  {ActivitySeedResource}  [objectResource]    The Object on which the activity was performed
  * @param  {ActivitySeedResource}  [targetResource]    The Target resource of the activity, as recommended in the ActivityStrea.ms specification
  */
-const ActivitySeed = function(
-  activityType,
-  published,
-  verb,
-  actorResource,
-  objectResource,
-  targetResource
-) {
+const ActivitySeed = function(activityType, published, verb, actorResource, objectResource, targetResource) {
   const that = {};
   that.activityType = activityType;
   that.published = published;
@@ -272,6 +261,7 @@ const AssociationsSession = function(registeredAssociations, actor, object, targ
         if (err) {
           return callback(err);
         }
+
         if (!association) {
           // A successful but falsey association is simply treated as an empty result, as it cannot be confused with
           // the association (or context entity) not existing
@@ -300,25 +290,23 @@ const AssociationsSession = function(registeredAssociations, actor, object, targ
     const associationsContext = {};
 
     /*!
-         * Get the parent associations session for this associations context
-         *
-         * @return {AssociationsSession}    The parent associationsSession
-         */
+     * Get the parent associations session for this associations context
+     *
+     * @return {AssociationsSession}    The parent associationsSession
+     */
     associationsContext.getSession = function() {
       return associationsSession;
     };
 
     /*!
-         * A method that can be used to fetch the associations of the entity in context
-         *
-         * @param  {String}     associationName         The name of the association to fetch
-         * @param  {Object}     callback.err            An error that occurred, if any
-         * @param  {Object}     callback.association    The association. Usually a list of strings indicating ids, however can really be any value. Note that it cannot be used for routing purposes if it does not return an array of strings
-         */
+     * A method that can be used to fetch the associations of the entity in context
+     *
+     * @param  {String}     associationName         The name of the association to fetch
+     * @param  {Object}     callback.err            An error that occurred, if any
+     * @param  {Object}     callback.association    The association. Usually a list of strings indicating ids, however can really be any value. Note that it cannot be used for routing purposes if it does not return an array of strings
+     */
     associationsContext.get = function(associationName, callback) {
-      return associationsContext
-        .getSession()
-        .getByEntityId(entityType, entityId, associationName, callback);
+      return associationsContext.getSession().getByEntityId(entityType, entityId, associationName, callback);
     };
 
     return associationsContext;
@@ -327,7 +315,7 @@ const AssociationsSession = function(registeredAssociations, actor, object, targ
   return associationsSession;
 };
 
-module.exports = {
+export {
   ActivitySeedResource,
   ActivitySeed,
   ActivityMediaLink,

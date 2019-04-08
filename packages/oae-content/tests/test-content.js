@@ -13,30 +13,29 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const fs = require('fs');
-const path = require('path');
-const url = require('url');
-const util = require('util');
-const temp = require('temp');
-const _ = require('underscore');
+import assert from 'assert';
+import fs from 'fs';
+import path from 'path';
+import url from 'url';
+import util from 'util';
+import temp from 'temp';
+import _ from 'underscore';
 
-const AuthzAPI = require('oae-authz');
-const AuthzTestUtil = require('oae-authz/lib/test/util');
-const AuthzUtil = require('oae-authz/lib/util');
-const { Context } = require('oae-context');
-const PreviewConstants = require('oae-preview-processor/lib/constants');
-const PrincipalsTestUtil = require('oae-principals/lib/test/util');
-const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
-const RestUtil = require('oae-rest/lib/util');
-const TenantsAPI = require('oae-tenants/lib/api');
-const TaskQueue = require('oae-util/lib/taskqueue');
-const TestsUtil = require('oae-tests');
-
-const ContentAPI = require('oae-content');
-const ContentTestUtil = require('oae-content/lib/test/util');
-const ContentUtil = require('oae-content/lib/internal/util');
+import * as AuthzAPI from 'oae-authz';
+import * as AuthzTestUtil from 'oae-authz/lib/test/util';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import { Context } from 'oae-context';
+import PreviewConstants from 'oae-preview-processor/lib/constants';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import { RestContext } from 'oae-rest/lib/model';
+import * as RestUtil from 'oae-rest/lib/util';
+import * as TenantsAPI from 'oae-tenants/lib/api';
+import * as TaskQueue from 'oae-util/lib/taskqueue';
+import * as TestsUtil from 'oae-tests';
+import * as ContentAPI from 'oae-content';
+import * as ContentTestUtil from 'oae-content/lib/test/util';
+import * as ContentUtil from 'oae-content/lib/internal/util';
 
 const PUBLIC = 'public';
 const PRIVATE = 'private';

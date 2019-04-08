@@ -13,11 +13,10 @@
  * permissions and limitations under the License.
  */
 
-var EmitterAPI = require('oae-emitter');
+import * as EmitterAPI from 'oae-emitter';
+import * as Meetings from './api.meetings';
 
-var meetingsAPI = new EmitterAPI.EventEmitter();
+const meetingsAPI = new EmitterAPI.EventEmitter();
 
-module.exports = {
-  emitter: meetingsAPI
-};
-module.exports.Meetings = require('./api.meetings');
+export { meetingsAPI as emitter };
+export { Meetings };

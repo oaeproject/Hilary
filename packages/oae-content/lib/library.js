@@ -13,17 +13,18 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
-const AuthzAPI = require('oae-authz');
-const LibraryAPI = require('oae-library');
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
+import _ from 'underscore';
+import * as AuthzAPI from 'oae-authz';
+import * as LibraryAPI from 'oae-library';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as ContentAPI from 'oae-content';
+import * as ContentDAO from 'oae-content/lib/internal/dao';
+import * as ContentMembersLibrary from 'oae-content/lib/internal/membersLibrary';
 
-const ContentAPI = require('oae-content');
-const { ContentConstants} = require('oae-content/lib/constants');
-const ContentDAO = require('oae-content/lib/internal/dao');
-const ContentMembersLibrary = require('oae-content/lib/internal/membersLibrary');
+import { ContentConstants } from 'oae-content/lib/constants';
+import { logger } from 'oae-logger';
 
-const log = require('oae-logger').logger('oae-content-library');
+const log = logger('oae-content-library');
 
 /*!
  * Register a library indexer that can provide resources to reindex the content library
@@ -31,41 +32,35 @@ const log = require('oae-logger').logger('oae-content-library');
 LibraryAPI.Index.registerLibraryIndex(ContentConstants.library.CONTENT_LIBRARY_INDEX_NAME, {
   pageResources(libraryId, start, limit, callback) {
     // Query all the content ids ('c') to which the library owner is directly associated in this batch of paged resources
-    AuthzAPI.getRolesForPrincipalAndResourceType(
-      libraryId,
-      'c',
-      start,
-      limit,
-      (err, roles, nextToken) => {
-        if (err) {
-          return callback(err);
-        }
-
-        // We just need the ids, not the roles
-        const ids = _.pluck(roles, 'id');
-
-        // Get the properties of the content items in the library that are relevant to building the library
-        ContentDAO.Content.getMultipleContentItems(
-          ids,
-          ['contentId', 'tenantAlias', 'visibility', 'lastModified'],
-          (err, contentItems) => {
-            if (err) {
-              return callback(err);
-            }
-
-            // Map the content items to light-weight resources with just the properties needed to populate the library index
-            const resources = _.chain(contentItems)
-              .compact()
-              .map(content => {
-                return { rank: content.lastModified, resource: content };
-              })
-              .value();
-
-            return callback(null, resources, nextToken);
-          }
-        );
+    AuthzAPI.getRolesForPrincipalAndResourceType(libraryId, 'c', start, limit, (err, roles, nextToken) => {
+      if (err) {
+        return callback(err);
       }
-    );
+
+      // We just need the ids, not the roles
+      const ids = _.pluck(roles, 'id');
+
+      // Get the properties of the content items in the library that are relevant to building the library
+      ContentDAO.Content.getMultipleContentItems(
+        ids,
+        ['contentId', 'tenantAlias', 'visibility', 'lastModified'],
+        (err, contentItems) => {
+          if (err) {
+            return callback(err);
+          }
+
+          // Map the content items to light-weight resources with just the properties needed to populate the library index
+          const resources = _.chain(contentItems)
+            .compact()
+            .map(content => {
+              return { rank: content.lastModified, resource: content };
+            })
+            .value();
+
+          return callback(null, resources, nextToken);
+        }
+      );
+    });
   }
 });
 
@@ -80,21 +75,17 @@ LibraryAPI.Index.registerLibraryIndex(ContentConstants.library.MEMBERS_LIBRARY_I
       }
 
       const ids = _.pluck(memberInfos, 'id');
-      PrincipalsDAO.getPrincipals(
-        ids,
-        ['principalId', 'tenantAlias', 'visibility'],
-        (err, memberProfiles) => {
-          if (err) {
-            return callback(err);
-          }
-
-          const resources = _.map(memberProfiles, memberProfile => {
-            return { resource: memberProfile };
-          });
-
-          return callback(null, resources, nextToken);
+      PrincipalsDAO.getPrincipals(ids, ['principalId', 'tenantAlias', 'visibility'], (err, memberProfiles) => {
+        if (err) {
+          return callback(err);
         }
-      );
+
+        const resources = _.map(memberProfiles, memberProfile => {
+          return { resource: memberProfile };
+        });
+
+        return callback(null, resources, nextToken);
+      });
     });
   }
 });

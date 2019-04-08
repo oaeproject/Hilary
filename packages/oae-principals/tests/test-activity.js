@@ -13,21 +13,18 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const fs = require('fs');
-const path = require('path');
-const url = require('url');
-const ShortId = require('shortid');
-const _ = require('underscore');
+import assert from 'assert';
+import fs from 'fs';
+import path from 'path';
+import url from 'url';
+import _ from 'underscore';
 
-const ActivityTestsUtil = require('oae-activity/lib/test/util');
-const AuthzAPI = require('oae-authz');
-const AuthzUtil = require('oae-authz/lib/util');
-const EmailTestsUtil = require('oae-email/lib/test/util');
-const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
-const RestUtil = require('oae-rest/lib/util');
-const TestsUtil = require('oae-tests');
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as EmailTestsUtil from 'oae-email/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as RestUtil from 'oae-rest/lib/util';
+import * as TestsUtil from 'oae-tests';
 
 const PrincipalsTestUtil = require('oae-principals/lib/test/util');
 
@@ -82,6 +79,7 @@ describe('Principals Activity', () => {
         return activity;
       }
     }
+
     return null;
   };
 

@@ -13,15 +13,15 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const util = require('util');
-const _ = require('underscore');
+import assert from 'assert';
+import util from 'util';
+import _ from 'underscore';
 
-const RestAPI = require('oae-rest');
-const TestsUtil = require('oae-tests');
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
 
-const PrincipalsAPI = require('oae-principals');
-const { User } = require('oae-principals/lib/model.user');
+import * as PrincipalsAPI from 'oae-principals';
+import { User } from 'oae-principals/lib/model.user';
 
 describe('LTI tools', () => {
   // Rest context that can be used to perform requests as different types of users

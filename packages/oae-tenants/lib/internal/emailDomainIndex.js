@@ -14,7 +14,7 @@
  */
 
 /* eslint-disable unicorn/filename-case */
-const _ = require('underscore');
+import _ from 'underscore';
 
 /**
  * Indexes domains so that suffix-matching can be efficiently performed. An entry can be add to
@@ -43,12 +43,12 @@ const EmailDomainIndex = function() {
   const index = {};
 
   /*!
-     * Find all string values that are set to domains that are descendants of the given email
-     * domain
-     *
-     * @param  {String}     emailDomain     The email domain for which to find descendant values
-     * @return {String[]}                   The values (not a domain, the value that was set to the email domain) associated descendants of the specified domain
-     */
+   * Find all string values that are set to domains that are descendants of the given email
+   * domain
+   *
+   * @param  {String}     emailDomain     The email domain for which to find descendant values
+   * @return {String[]}                   The values (not a domain, the value that was set to the email domain) associated descendants of the specified domain
+   */
   const _find = function(emailDomain) {
     if (!emailDomain) {
       return [];
@@ -62,12 +62,12 @@ const EmailDomainIndex = function() {
   };
 
   /*!
-     * Set the given string alias to the given email domain
-     *
-     * @param  {String}     alias           The string alias to set
-     * @param  {String}     emailDomain     The email domain to use as the key
-     * @return {String}                     If specified, indicates that there was a conflict. The value will be one of potentially many string values that the domain conflicted with. If `false`y, it indicates that setting the value was successful and there were no conflicts
-     */
+   * Set the given string alias to the given email domain
+   *
+   * @param  {String}     alias           The string alias to set
+   * @param  {String}     emailDomain     The email domain to use as the key
+   * @return {String}                     If specified, indicates that there was a conflict. The value will be one of potentially many string values that the domain conflicted with. If `false`y, it indicates that setting the value was successful and there were no conflicts
+   */
   const _set = function(alias, emailDomain) {
     if (!emailDomain) {
       return;
@@ -98,6 +98,7 @@ const EmailDomainIndex = function() {
       // If we found a leaf node, we can't set anything as we'll overwrite an existing entry
       return segment;
     }
+
     if (_.isString(segment[lastPart])) {
       // If this domain is an exact match to an existing domain, we cannot override, it should
       // be deleted first instead. Result in a conflict
@@ -112,8 +113,8 @@ const EmailDomainIndex = function() {
   };
 
   /*!
-     * @see EmailDomainIndex.match
-     */
+   * @see EmailDomainIndex.match
+   */
   const _match = function(emailDomain) {
     if (!emailDomain) {
       return null;
@@ -126,6 +127,7 @@ const EmailDomainIndex = function() {
         // If the result is a tenant alias string, we have found a tenant
         return;
       }
+
       if (!result) {
         // If we reached the end without finding a string leaf, we have exhausted the tree
         return;
@@ -138,8 +140,8 @@ const EmailDomainIndex = function() {
   };
 
   /*!
-     * @see EmailDomainIndex.conflict
-     */
+   * @see EmailDomainIndex.conflict
+   */
   const _conflict = function(alias, emailDomain) {
     // If there is an existing match for this email domain that is not this tenant alias, we
     // return with the alias that it conflicts with. We cannot proceed with the update
@@ -160,10 +162,10 @@ const EmailDomainIndex = function() {
   };
 
   /*!
-     * Delete a domain from the index
-     *
-     * @param  {String}     oldEmailDomain  The email domain to remove from the index
-     */
+   * Delete a domain from the index
+   *
+   * @param  {String}     oldEmailDomain  The email domain to remove from the index
+   */
   const _delete = function(oldEmailDomain) {
     if (!oldEmailDomain) {
       return;
@@ -266,6 +268,7 @@ const _findStringLeaves = function(obj, _leaves) {
     // If we've reached the end of the search, return the aggregated `_leaves`
     return _leaves;
   }
+
   if (_.isString(obj)) {
     // If we have arrived at a leaf, aggregate the leaf node and return the array
     _leaves.push(obj);
@@ -308,4 +311,4 @@ const _split = function(emailDomain) {
   return emailDomain.split('.').reverse();
 };
 
-module.exports = EmailDomainIndex;
+export default EmailDomainIndex;

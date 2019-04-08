@@ -13,19 +13,22 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
 
-const Cassandra = require('oae-util/lib/cassandra');
-const EmitterAPI = require('oae-emitter');
-const Locking = require('oae-util/lib/locking');
-const log = require('oae-logger').logger('oae-messagebox-api');
-const OaeUtil = require('oae-util/lib/util');
-const TenantsAPI = require('oae-tenants');
-const { Validator } = require('oae-util/lib/validator');
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as EmitterAPI from 'oae-emitter';
+import * as Locking from 'oae-util/lib/locking';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as TenantsAPI from 'oae-tenants';
 
-const MessageBoxModel = require('./model');
-const { MessageBoxConstants } = require('./constants');
+import { logger } from 'oae-logger';
+
+import { Validator } from 'oae-util/lib/validator';
+import * as MessageBoxModel from './model';
+import { MessageBoxConstants } from './constants';
+
+const log = logger('oae-messagebox-api');
 
 // A contribution will be considered "recent" for 30 days after it occurs
 const DURATION_RECENT_CONTRIBUTIONS_SECONDS = 30 * 24 * 60 * 60;
@@ -103,12 +106,14 @@ const replaceLinks = function(body) {
 
       // Check for a match in the target of a markdown link
     }
+
     if (preURLChar === '(' && postURLChar === ')') {
       return '(' + path + ')';
 
       // If the URL wasn't wrapped in braces we can assume that it was not provided in
       // markdown format. If that's the case, we do the conversion ourselves
     }
+
     return preURLChar + '[' + path + '](' + path + ')' + postURLChar;
   });
 };
@@ -133,9 +138,7 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
 
   const validator = new Validator();
   validator.check(messageBoxId, { code: 400, msg: 'A messageBoxId must be specified.' }).notNull();
-  validator
-    .check(createdBy, { code: 400, msg: 'The createdBy parameter must be a valid user id.' })
-    .isUserId();
+  validator.check(createdBy, { code: 400, msg: 'The createdBy parameter must be a valid user id.' }).isUserId();
   validator.check(body, { code: 400, msg: 'The body of the message must be specified.' }).notNull();
   if (opts.replyToCreated) {
     validator
@@ -157,6 +160,7 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
       })
       .max(Date.now());
   }
+
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -190,9 +194,7 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
       }
 
       // Derive this message's thread key by appending it to the parent, if applicable. Otherwise, it is a top-level key
-      const threadKey = replyToThreadKey
-        ? _appendToThreadKey(replyToThreadKey, created)
-        : created + '|';
+      const threadKey = replyToThreadKey ? _appendToThreadKey(replyToThreadKey, created) : created + '|';
 
       // Replace absolute OAE links with relative ones to avoid cross-tenant
       // permission issues
@@ -207,12 +209,7 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
       };
 
       // Create the query that creates the message object
-      const createMessageQuery = Cassandra.constructUpsertCQL(
-        'Messages',
-        'id',
-        messageId,
-        messageStorageHash
-      );
+      const createMessageQuery = Cassandra.constructUpsertCQL('Messages', 'id', messageId, messageStorageHash);
       if (!createMessageQuery) {
         log().error(diagnosticData, 'Failed to create a new message query.');
         return callback({ code: 500, msg: 'Failed to create a new message' });
@@ -220,8 +217,7 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
 
       // Create the query that adds the message object to the messagebox
       const indexMessageQuery = {
-        query:
-          'INSERT INTO "MessageBoxMessages" ("messageBoxId", "threadKey", "value") VALUES (?, ?, ?)',
+        query: 'INSERT INTO "MessageBoxMessages" ("messageBoxId", "threadKey", "value") VALUES (?, ?, ?)',
         parameters: [messageBoxId, threadKey, '1']
       };
 
@@ -278,10 +274,12 @@ const _lockUniqueTimestamp = function(id, timestamp, callback) {
       // This should only occur if Redis is down, just return the requested ts
       return callback(timestamp, lockToken);
     }
+
     if (!lockToken) {
       // Someone else has the requested ts, try to lock one ms later
       return _lockUniqueTimestamp(id, timestamp + 1, callback);
     }
+
     // Successful lock, return the details
     return callback(timestamp, key, lockToken);
   });
@@ -299,9 +297,7 @@ const _lockUniqueTimestamp = function(id, timestamp, callback) {
 const updateMessageBody = function(messageBoxId, created, newBody, callback) {
   const validator = new Validator();
   validator.check(messageBoxId, { code: 400, msg: 'A messageBoxId must be specified.' }).notNull();
-  validator
-    .check(created, { code: 400, msg: 'The created parameter must be specified.' })
-    .notNull();
+  validator.check(created, { code: 400, msg: 'The created parameter must be specified.' }).notNull();
   validator
     .check(created, {
       code: 400,
@@ -314,9 +310,7 @@ const updateMessageBody = function(messageBoxId, created, newBody, callback) {
       msg: 'The created parameter must be a valid timestamp (integer) that is not in the future.'
     })
     .max(Date.now());
-  validator
-    .check(newBody, { code: 400, msg: 'The new body of the message must be specified.' })
-    .notNull();
+  validator.check(newBody, { code: 400, msg: 'The new body of the message must be specified.' }).notNull();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -369,18 +363,13 @@ const getMessagesFromMessageBox = function(messageBoxId, start, limit, opts, cal
 
     // Will maintain the output order of the messages according to their threadkey
     const createdTimestamps = _.map(threadKeys, _parseCreatedFromThreadKey);
-    getMessages(
-      messageBoxId,
-      createdTimestamps,
-      { scrubDeleted: opts.scrubDeleted },
-      (err, messages) => {
-        if (err) {
-          return callback(err);
-        }
-
-        return callback(null, messages, nextToken);
+    getMessages(messageBoxId, createdTimestamps, { scrubDeleted: opts.scrubDeleted }, (err, messages) => {
+      if (err) {
+        return callback(err);
       }
-    );
+
+      return callback(null, messages, nextToken);
+    });
   });
 };
 
@@ -408,9 +397,7 @@ const getMessages = function(messageBoxId, createdTimestamps, opts, callback) {
   _.each(createdTimestamps, timestamp => {
     validator.check(timestamp, { code: 400, msg: 'A timestamp cannot be null.' }).notNull();
     validator.check(timestamp, { code: 400, msg: 'A timestamp should be an integer.' }).isInt();
-    validator
-      .check(timestamp, { code: 400, msg: 'A timestamp cannot be in the future.' })
-      .max(Date.now());
+    validator.check(timestamp, { code: 400, msg: 'A timestamp cannot be in the future.' }).max(Date.now());
   });
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
@@ -504,12 +491,8 @@ const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
 
   const validator = new Validator();
   validator.check(messageBoxId, { code: 400, msg: 'A messageBoxId must be specified.' }).notNull();
-  validator
-    .check(createdTimestamp, { code: 400, msg: 'The createdTimestamp should not be null.' })
-    .notNull();
-  validator
-    .check(createdTimestamp, { code: 400, msg: 'The createdTimestamp should be an integer.' })
-    .isInt();
+  validator.check(createdTimestamp, { code: 400, msg: 'The createdTimestamp should not be null.' }).notNull();
+  validator.check(createdTimestamp, { code: 400, msg: 'The createdTimestamp should be an integer.' }).isInt();
   validator
     .check(createdTimestamp, { code: 400, msg: 'The createdTimestamp cannot be in the future.' })
     .max(Date.now());
@@ -522,6 +505,7 @@ const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
       })
       .isIn(deleteValues);
   }
+
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -530,6 +514,7 @@ const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!messages[0]) {
       return callback({ code: 404, msg: 'Message not found.' });
     }
@@ -545,9 +530,11 @@ const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
               MessageBoxConstants.deleteTypes.HARD
             );
           }
+
           callback(err, MessageBoxConstants.deleteTypes.HARD);
         });
       }
+
       if (opts.deleteType === MessageBoxConstants.deleteTypes.SOFT) {
         return _softDelete(message, (err, msg) => {
           if (!err) {
@@ -557,16 +544,20 @@ const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
               MessageBoxConstants.deleteTypes.SOFT
             );
           }
+
           callback(err, MessageBoxConstants.deleteTypes.SOFT, msg);
         });
       }
+
       return _leafDelete(message, (err, deleteType, msg) => {
         if (!err) {
           MessageBoxAPI.emit(MessageBoxConstants.events.DELETED_MESSAGE, message.id, deleteType);
         }
+
         callback(err, deleteType, msg);
       });
     }
+
     return callback({ code: 404, msg: 'The specified message did not exist' });
   });
 };
@@ -634,21 +625,18 @@ const _getMessageThreadKey = function(messageId, callback) {
     return callback();
   }
 
-  Cassandra.runQuery(
-    'SELECT "threadKey" FROM "Messages" WHERE "id" = ?',
-    [messageId],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
-      }
-      if (_.isEmpty(rows)) {
-        // A message by that id may not have existed, simply return undefined
-        return callback();
-      }
-
-      return callback(null, rows[0].get('threadKey'));
+  Cassandra.runQuery('SELECT "threadKey" FROM "Messages" WHERE "id" = ?', [messageId], (err, rows) => {
+    if (err) {
+      return callback(err);
     }
-  );
+
+    if (_.isEmpty(rows)) {
+      // A message by that id may not have existed, simply return undefined
+      return callback();
+    }
+
+    return callback(null, rows[0].get('threadKey'));
+  });
 };
 
 /**
@@ -765,20 +753,16 @@ const _softDelete = function(message, callback) {
   const deletedTimestamp = Date.now().toString();
 
   // Set the deleted flag to the current timestamp
-  Cassandra.runQuery(
-    'UPDATE "Messages" SET "deleted" = ? WHERE "id" = ?',
-    [deletedTimestamp, messageId],
-    err => {
-      if (err) {
-        return callback(err);
-      }
-
-      message.deleted = deletedTimestamp;
-      message = _scrubMessage(message);
-
-      return callback(null, message);
+  Cassandra.runQuery('UPDATE "Messages" SET "deleted" = ? WHERE "id" = ?', [deletedTimestamp, messageId], err => {
+    if (err) {
+      return callback(err);
     }
-  );
+
+    message.deleted = deletedTimestamp;
+    message = _scrubMessage(message);
+
+    return callback(null, message);
+  });
 };
 
 /**
@@ -938,16 +922,7 @@ const _getLevelFromThreadKey = function(threadKey) {
  * @api private
  */
 const _scrubMessage = function(message) {
-  return _.pick(
-    message,
-    'id',
-    'messageBoxId',
-    'threadKey',
-    'created',
-    'replyTo',
-    'deleted',
-    'level'
-  );
+  return _.pick(message, 'id', 'messageBoxId', 'threadKey', 'created', 'replyTo', 'deleted', 'level');
 };
 
 /**
@@ -964,12 +939,13 @@ const _parseReplyToTimestampFromThreadKey = function(threadKey) {
     // "timestamp3" is a reply to "timestamp2", so we pick out the second last one in the hierarchy
     return hierarchy[hierarchy.length - 2];
   }
+
   // If we only had 1 element, then this is not a reply at all
   return null;
 };
 
-module.exports = {
-  emitter: MessageBoxAPI,
+export {
+  MessageBoxAPI as emitter,
   replaceLinks,
   createMessage,
   updateMessageBody,

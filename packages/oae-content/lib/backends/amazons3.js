@@ -13,20 +13,24 @@
  * permissions and limitations under the License.
  */
 
-const fs = require('fs');
-const Path = require('path');
-const util = require('util');
-const mime = require('mime');
-const { S3 } = require('awssum-amazon-s3');
+import fs from 'fs';
+import Path from 'path';
+import util from 'util';
+import mime from 'mime';
 
-const Config = require('oae-config').config('oae-content');
-const IO = require('oae-util/lib/io');
-const log = require('oae-logger').logger('amazon-storage');
-const TempFile = require('oae-util/lib/tempfile');
+import { S3 } from 'awssum-amazon-s3';
 
-const { ContentConstants } = require('../constants');
-const { DownloadStrategy } = require('../model');
-const BackendUtil = require('./util');
+import { setUpConfig } from 'oae-config';
+import * as IO from 'oae-util/lib/io';
+import { logger } from 'oae-logger';
+import * as TempFile from 'oae-util/lib/tempfile';
+
+import { ContentConstants } from '../constants';
+import { DownloadStrategy } from '../model';
+import * as BackendUtil from './util';
+
+const Config = setUpConfig('oae-content');
+const log = logger('amazon-storage');
 
 /// ///////////////////
 // Storage methods. //
@@ -75,6 +79,7 @@ const store = function(tenantAlias, file, options, callback) {
         log().error({ err }, 'Could not upload to S3.');
         return callback(err);
       }
+
       callback(null, 'amazons3:' + uri);
     });
   });
@@ -146,6 +151,7 @@ const remove = function(tenantAlias, uri, callback) {
       log().error({ err }, 'Error removing %s', uriObj.location);
       return callback({ code: 500, msg: 'Unable to remove the file: ' + err });
     }
+
     callback(null);
   });
 };
@@ -212,9 +218,4 @@ const _getClient = function(tenantAlias) {
   });
 };
 
-module.exports = {
-  store,
-  get,
-  remove,
-  getDownloadStrategy
-};
+export { store, get, remove, getDownloadStrategy };

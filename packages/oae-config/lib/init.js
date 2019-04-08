@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-const ConfigAPI = require('oae-config');
+import { initConfig } from 'oae-config';
 
-module.exports = function(config, callback) {
-  return ConfigAPI.initConfig(config, callback);
+export const init = function(config, callback) {
+  return initConfig(config, callback);
 };

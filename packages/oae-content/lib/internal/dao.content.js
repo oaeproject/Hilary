@@ -13,26 +13,28 @@
  * permissions and limitations under the License.
  */
 
-const {
+import util from 'util';
+import {
   isResourceACollabDoc,
   isResourceACollabSheet,
   isResourceALink,
   isResourceAFile
-} = require('oae-content/lib/backends/util');
+} from 'oae-content/lib/backends/util';
 
-const util = require('util');
-const _ = require('underscore');
+import _ from 'underscore';
 
-const AuthzAPI = require('oae-authz');
-const AuthzUtil = require('oae-authz/lib/util');
-const Cassandra = require('oae-util/lib/cassandra');
-const LibraryAPI = require('oae-library');
-const log = require('oae-logger').logger('content-dao');
-const OaeUtil = require('oae-util/lib/util');
+import * as AuthzAPI from 'oae-authz';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as LibraryAPI from 'oae-library';
+import { logger } from 'oae-logger';
+import * as OaeUtil from 'oae-util/lib/util';
 
-const { Content } = require('oae-content/lib/model');
-const { ContentConstants } = require('oae-content/lib/constants');
-const RevisionsDAO = require('./dao.revisions');
+import { Content } from 'oae-content/lib/model';
+import { ContentConstants } from 'oae-content/lib/constants';
+import * as RevisionsDAO from './dao.revisions';
+
+const log = logger('content-dao');
 
 /// ////////////
 // Retrieval //
@@ -575,7 +577,7 @@ const _parsePreviews = function(hash) {
   }
 };
 
-module.exports = {
+export {
   getContent,
   getMultipleContentItems,
   getAllContentMembers,

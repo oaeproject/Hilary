@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const RestAPI = require('oae-rest');
-const SearchTestUtil = require('oae-search/lib/test/util');
-const TestsUtil = require('oae-tests/lib/util');
+import * as RestAPI from 'oae-rest';
+import * as SearchTestUtil from 'oae-search/lib/test/util';
+import * as TestsUtil from 'oae-tests/lib/util';
 
 /**
  * Create 2 users, one following the other
@@ -121,34 +121,22 @@ const assertGetAllFollowersEquals = function(restCtx, userId, opts, expectedFoll
  * @param  {User[]}         callback.followers      All followers of the specified user
  * @throws {AssertionError}                         Thrown if any assertions fail
  */
-const assertGetAllFollowersSucceeds = function(
-  restCtx,
-  userId,
-  opts,
-  callback,
-  _followers,
-  _nextToken
-) {
+const assertGetAllFollowersSucceeds = function(restCtx, userId, opts, callback, _followers, _nextToken) {
   if (_nextToken === null) {
     return callback(_followers);
   }
 
   opts = opts || {};
-  assertGetFollowersSucceeds(
-    restCtx,
-    userId,
-    { start: _nextToken, limit: opts.batchSize },
-    result => {
-      return assertGetAllFollowersSucceeds(
-        restCtx,
-        userId,
-        opts,
-        callback,
-        _.union(_followers, result.results),
-        result.nextToken
-      );
-    }
-  );
+  assertGetFollowersSucceeds(restCtx, userId, { start: _nextToken, limit: opts.batchSize }, result => {
+    return assertGetAllFollowersSucceeds(
+      restCtx,
+      userId,
+      opts,
+      callback,
+      _.union(_followers, result.results),
+      result.nextToken
+    );
+  });
 };
 
 /**
@@ -165,22 +153,17 @@ const assertGetAllFollowersSucceeds = function(
  */
 const assertGetFollowersSucceeds = function(restCtx, userId, opts, callback) {
   opts = opts || {};
-  RestAPI.Following.getFollowers(
-    restCtx,
-    userId,
-    opts.start,
-    opts.limit,
-    (err, result, nextToken) => {
-      assert.ok(!err);
-      assert.ok(_.isArray(result.results));
-      if (_.isNumber(opts.limit) && opts.limit > 0) {
-        assert.ok(result.results.length <= opts.limit);
-      }
-      assert.ok(_.isString(result.nextToken) || _.isNull(result.nextToken));
-
-      return callback(result, nextToken);
+  RestAPI.Following.getFollowers(restCtx, userId, opts.start, opts.limit, (err, result, nextToken) => {
+    assert.ok(!err);
+    assert.ok(_.isArray(result.results));
+    if (_.isNumber(opts.limit) && opts.limit > 0) {
+      assert.ok(result.results.length <= opts.limit);
     }
-  );
+
+    assert.ok(_.isString(result.nextToken) || _.isNull(result.nextToken));
+
+    return callback(result, nextToken);
+  });
 };
 
 /**
@@ -196,13 +179,7 @@ const assertGetFollowersSucceeds = function(restCtx, userId, opts, callback) {
  * @param  {User[]}         callback.following      All followed users of the specified user
  * @throws {AssertionError}                         Thrown if any assertions fail
  */
-const assertGetAllFollowingEquals = function(
-  restCtx,
-  userId,
-  opts,
-  expectedFollowingIds,
-  callback
-) {
+const assertGetAllFollowingEquals = function(restCtx, userId, opts, expectedFollowingIds, callback) {
   assertGetAllFollowingSucceeds(restCtx, userId, opts, following => {
     assert.deepStrictEqual(_.pluck(following, 'id').sort(), expectedFollowingIds.slice().sort());
     return callback(following);
@@ -220,34 +197,22 @@ const assertGetAllFollowingEquals = function(
  * @param  {User[]}         callback.following      All followed users of the specified user
  * @throws {AssertionError}                         Thrown if any assertions fail
  */
-const assertGetAllFollowingSucceeds = function(
-  restCtx,
-  userId,
-  opts,
-  callback,
-  _following,
-  _nextToken
-) {
+const assertGetAllFollowingSucceeds = function(restCtx, userId, opts, callback, _following, _nextToken) {
   if (_nextToken === null) {
     return callback(_following);
   }
 
   opts = opts || {};
-  assertGetFollowingSucceeds(
-    restCtx,
-    userId,
-    { start: _nextToken, limit: opts.batchSize },
-    result => {
-      return assertGetAllFollowingSucceeds(
-        restCtx,
-        userId,
-        opts,
-        callback,
-        _.union(_following, result.results),
-        result.nextToken
-      );
-    }
-  );
+  assertGetFollowingSucceeds(restCtx, userId, { start: _nextToken, limit: opts.batchSize }, result => {
+    return assertGetAllFollowingSucceeds(
+      restCtx,
+      userId,
+      opts,
+      callback,
+      _.union(_following, result.results),
+      result.nextToken
+    );
+  });
 };
 
 /**
@@ -264,22 +229,17 @@ const assertGetAllFollowingSucceeds = function(
  */
 const assertGetFollowingSucceeds = function(restCtx, userId, opts, callback) {
   opts = opts || {};
-  RestAPI.Following.getFollowing(
-    restCtx,
-    userId,
-    opts.start,
-    opts.limit,
-    (err, result, nextToken) => {
-      assert.ok(!err);
-      assert.ok(_.isArray(result.results));
-      if (_.isNumber(opts.limit) && opts.limit > 0) {
-        assert.ok(result.results.length <= opts.limit);
-      }
-      assert.ok(_.isString(result.nextToken) || _.isNull(result.nextToken));
-
-      return callback(result, nextToken);
+  RestAPI.Following.getFollowing(restCtx, userId, opts.start, opts.limit, (err, result, nextToken) => {
+    assert.ok(!err);
+    assert.ok(_.isArray(result.results));
+    if (_.isNumber(opts.limit) && opts.limit > 0) {
+      assert.ok(result.results.length <= opts.limit);
     }
-  );
+
+    assert.ok(_.isString(result.nextToken) || _.isNull(result.nextToken));
+
+    return callback(result, nextToken);
+  });
 };
 
 /**
@@ -291,26 +251,14 @@ const assertGetFollowingSucceeds = function(restCtx, userId, opts, callback) {
  * @param  {RestContext}    followerRestCtx     The REST context that can be used to execute requests on behalf of the followed user
  * @param  {Function}       callback            Standard callback function
  */
-const assertFollows = function(
-  followerUserId,
-  followerRestCtx,
-  followedUserId,
-  followedRestCtx,
-  callback
-) {
-  _findFollowerAndFollowing(
-    followerUserId,
-    followerRestCtx,
-    followedUserId,
-    followedRestCtx,
-    (follower, followed) => {
-      assert.ok(follower);
-      assert.strictEqual(follower.id, followerUserId);
-      assert.ok(followed);
-      assert.strictEqual(followed.id, followedUserId);
-      return callback();
-    }
-  );
+const assertFollows = function(followerUserId, followerRestCtx, followedUserId, followedRestCtx, callback) {
+  _findFollowerAndFollowing(followerUserId, followerRestCtx, followedUserId, followedRestCtx, (follower, followed) => {
+    assert.ok(follower);
+    assert.strictEqual(follower.id, followerUserId);
+    assert.ok(followed);
+    assert.strictEqual(followed.id, followedUserId);
+    return callback();
+  });
 };
 
 /**
@@ -322,30 +270,18 @@ const assertFollows = function(
  * @param  {RestContext}    followerRestCtx     The REST context that can be used to execute requests on behalf of the followed user
  * @param  {Function}       callback            Standard callback function
  */
-const assertDoesNotFollow = function(
-  followerUserId,
-  followerRestCtx,
-  followedUserId,
-  followedRestCtx,
-  callback
-) {
-  _findFollowerAndFollowing(
-    followerUserId,
-    followerRestCtx,
-    followedUserId,
-    followedRestCtx,
-    (follower, followed) => {
-      if (follower) {
-        assert.notStrictEqual(follower.id, followerUserId);
-      }
-
-      if (followed) {
-        assert.notStrictEqual(followed.id, followedUserId);
-      }
-
-      return callback();
+const assertDoesNotFollow = function(followerUserId, followerRestCtx, followedUserId, followedRestCtx, callback) {
+  _findFollowerAndFollowing(followerUserId, followerRestCtx, followedUserId, followedRestCtx, (follower, followed) => {
+    if (follower) {
+      assert.notStrictEqual(follower.id, followerUserId);
     }
-  );
+
+    if (followed) {
+      assert.notStrictEqual(followed.id, followedUserId);
+    }
+
+    return callback();
+  });
 };
 
 /**
@@ -461,30 +397,18 @@ const searchFollowerAndFollowing = function(
   followedRestCtx,
   callback
 ) {
-  SearchTestUtil.searchAll(
-    followerRestCtx,
-    'following',
-    [followerUserId],
-    null,
-    (err, followingResponse) => {
+  SearchTestUtil.searchAll(followerRestCtx, 'following', [followerUserId], null, (err, followingResponse) => {
+    assert.ok(!err);
+
+    SearchTestUtil.searchAll(followedRestCtx, 'followers', [followedUserId], null, (err, followerResponse) => {
       assert.ok(!err);
 
-      SearchTestUtil.searchAll(
-        followedRestCtx,
-        'followers',
-        [followedUserId],
-        null,
-        (err, followerResponse) => {
-          assert.ok(!err);
-
-          return callback(
-            _.findWhere(followerResponse.results, { id: followerUserId }),
-            _.findWhere(followingResponse.results, { id: followedUserId })
-          );
-        }
+      return callback(
+        _.findWhere(followerResponse.results, { id: followerUserId }),
+        _.findWhere(followingResponse.results, { id: followedUserId })
       );
-    }
-  );
+    });
+  });
 };
 
 /**
@@ -499,13 +423,7 @@ const searchFollowerAndFollowing = function(
  * @param  {User}           [callback.followed]     The followed user from the followers list. If unspecified, the user was not found
  * @api private
  */
-const _findFollowerAndFollowing = function(
-  followerUserId,
-  followerRestCtx,
-  followedUserId,
-  followedRestCtx,
-  callback
-) {
+const _findFollowerAndFollowing = function(followerUserId, followerRestCtx, followedUserId, followedRestCtx, callback) {
   // To ensure the first item would be the user we're looking for, we simply slice one character off the end as the start
   assertGetAllFollowingSucceeds(followerRestCtx, followerUserId, null, following => {
     const followed = _.findWhere(following, { id: followedUserId });
@@ -519,7 +437,7 @@ const _findFollowerAndFollowing = function(
   });
 };
 
-module.exports = {
+export {
   createFollowerAndFollowed,
   followByAll,
   followAll,

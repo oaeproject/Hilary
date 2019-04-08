@@ -13,27 +13,24 @@
  * permissions and limitations under the License.
  */
 
-const PreviewProcessorAPI = require('oae-preview-processor');
+import * as PreviewProcessorAPI from 'oae-preview-processor';
 
-const { ContentConstants } = require('oae-content/lib/constants');
-const ContentAPI = require('./api');
+import { ContentConstants } from 'oae-content/lib/constants';
+import * as ContentAPI from './api';
 
 ContentAPI.emitter.on(ContentConstants.events.CREATED_CONTENT, (ctx, content, revision) => {
   PreviewProcessorAPI.submitForProcessing(content.id, revision.revisionId);
 });
 
-ContentAPI.emitter.on(
-  ContentConstants.events.UPDATED_CONTENT,
-  (ctx, newContentObj, oldContentObj) => {
-    /*
-     * This event gets emitted when the content metadata gets updated.
-     * We only need to check links here.
-     */
-    if (newContentObj.resourceSubType === 'link' && newContentObj.link !== oldContentObj.link) {
-      PreviewProcessorAPI.submitForProcessing(newContentObj.id, oldContentObj.latestRevisionId);
-    }
+ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT, (ctx, newContentObj, oldContentObj) => {
+  /*
+   * This event gets emitted when the content metadata gets updated.
+   * We only need to check links here.
+   */
+  if (newContentObj.resourceSubType === 'link' && newContentObj.link !== oldContentObj.link) {
+    PreviewProcessorAPI.submitForProcessing(newContentObj.id, oldContentObj.latestRevisionId);
   }
-);
+});
 
 // A collaborative document gets published or a new file body gets uploaded.
 ContentAPI.emitter.on(

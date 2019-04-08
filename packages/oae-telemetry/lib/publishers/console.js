@@ -13,9 +13,11 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const log = require('oae-logger').logger('telemetry-console');
+import { logger } from 'oae-logger';
+
+const log = logger('telemetry-console');
 
 /**
  * Starts monitoring redis and logs the telemetry data on the console.
@@ -53,7 +55,8 @@ const _padString = function(str, char, length) {
   while (str.length < length) {
     str += char;
   }
+
   return str;
 };
 
-module.exports = { publish, init };
+export { publish, init };

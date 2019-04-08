@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const { refreshLogConfiguration } = require('oae-logger');
+import { refreshLogConfiguration } from 'oae-logger';
 
-module.exports = function(config, callback) {
+export const init = function(config, callback) {
   refreshLogConfiguration(config.log);
   callback();
 };

@@ -13,17 +13,18 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
 
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const Cassandra = require('oae-util/lib/cassandra');
-const Counter = require('oae-util/lib/counter');
-const log = require('oae-logger').logger('library-index');
-const OaeUtil = require('oae-util/lib/util');
+import * as Cassandra from 'oae-util/lib/cassandra';
+import Counter from 'oae-util/lib/counter';
+import * as OaeUtil from 'oae-util/lib/util';
+import { logger } from 'oae-logger';
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import * as LibraryAuthz from './api.authz';
+import * as LibraryRegistry from './internal/registry';
 
-const LibraryAuthz = require('./api.authz');
-const LibraryRegistry = require('./internal/registry');
+const log = logger('library-index');
 
 // We need a slug column name to denote a fresh library index at both the lower
 // bound and upper bound to determine if an index is fresh or invalidated
@@ -469,11 +470,13 @@ const _query = function(indexName, libraryId, visibility, opts, callback) {
       if (err) {
         return callback(err);
       }
+
       if (_isStaleLibraryIndex(opts.start, internalLimit, rows)) {
         if (opts.rebuildIfNecessary) {
           // If we've specified to rebuild a stale index, rebuild it and try to query again
           return _rebuildAndQuery(indexName, libraryId, visibility, opts, callback);
         }
+
         // If we have not specified to rebuild and this index is stale, then warn that something funny is going on
         log().warn(
           {
@@ -715,6 +718,7 @@ const _isStaleLibraryIndex = function(start, limit, rows) {
     // refresh the index because it indicates this index has been purged and not yet rebuilt
     return true;
   }
+
   if (rows.length < limit && !slugLowColumn) {
     // If we exhausted the entries and the last entry wasn't the low-bound slug, then we have a
     // purged index and need to rebuild it
@@ -842,14 +846,4 @@ const _splitRankedResourceId = function(rankedResourceId, callback) {
   return callback(parts.slice(1).join('#'), parts[0]);
 };
 
-module.exports = {
-  registerLibraryIndex,
-  insert,
-  update,
-  remove,
-  whenUpdatesComplete,
-  list,
-  purge,
-  isStale
-};
-// Const LibraryIndex = module.exports;
+export { registerLibraryIndex, insert, update, remove, whenUpdatesComplete, list, purge, isStale };

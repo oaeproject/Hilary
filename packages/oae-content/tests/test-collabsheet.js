@@ -13,14 +13,13 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
+import * as ContentTestUtil from 'oae-content/lib/test/util';
+import * as Ethercalc from 'oae-content/lib/internal/ethercalc';
 
-const RestAPI = require('oae-rest');
-const TestsUtil = require('oae-tests');
-
-const ContentTestUtil = require('oae-content/lib/test/util');
-const Ethercalc = require('oae-content/lib/internal/ethercalc');
+import _ from 'underscore';
 
 describe('Collaborative spreadsheets', function() {
   // Rest context that can be used every time we need to make a request as an anonymous user

@@ -118,13 +118,19 @@ const getClient = function() {
  * @param  {Object}   callback.err   An error that occurred, if any
  */
 const flush = function(callback) {
-  client.flushdb([], err => {
+  const done = err => {
     if (err) {
       return callback({ code: 500, msg: err });
     }
 
     callback();
-  });
+  };
+
+  if (client) {
+    client.flushdb([], done);
+  } else {
+    done('Unable to flush redis. Try initializing it first.');
+  }
 };
 
 module.exports = {

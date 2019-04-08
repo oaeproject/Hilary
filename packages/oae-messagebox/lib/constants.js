@@ -42,4 +42,4 @@ MessageBoxConstants.activity = {
   IN_REPLY_TO: 'inReplyTo'
 };
 
-module.exports = { MessageBoxConstants };
+export { MessageBoxConstants };

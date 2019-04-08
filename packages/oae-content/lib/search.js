@@ -13,23 +13,25 @@
  * permissions and limitations under the License.
  */
 
-const { isResourceACollabDoc, isResourceACollabSheet } = require('oae-content/lib/backends/util');
+import fs from 'fs';
+import util from 'util';
+import { isResourceACollabDoc, isResourceACollabSheet } from 'oae-content/lib/backends/util';
+import _ from 'underscore';
 
-const fs = require('fs');
-const util = require('util');
-const _ = require('underscore');
+import * as AuthzUtil from 'oae-authz/lib/util';
+import { logger } from 'oae-logger';
+import * as MessageBoxSearch from 'oae-messagebox/lib/search';
+import * as SearchAPI from 'oae-search';
+import * as SearchUtil from 'oae-search/lib/util';
+import * as TenantsAPI from 'oae-tenants';
 
-const AuthzUtil = require('oae-authz/lib/util');
-const log = require('oae-logger').logger('content-search');
-const MessageBoxSearch = require('oae-messagebox/lib/search');
-const SearchAPI = require('oae-search');
-const SearchUtil = require('oae-search/lib/util');
-const TenantsAPI = require('oae-tenants');
+import * as ContentAPI from 'oae-content';
+import * as ContentDAO from 'oae-content/lib/internal/dao';
+import * as ContentUtil from 'oae-content/lib/internal/util';
+import { ContentConstants } from 'oae-content/lib/constants';
+import * as contentBodySchema from './search/schema/contentBodySchema';
 
-const ContentAPI = require('oae-content');
-const { ContentConstants } = require('oae-content/lib/constants');
-const ContentDAO = require('oae-content/lib/internal/dao');
-const ContentUtil = require('oae-content/lib/internal/util');
+const log = logger('content-search');
 
 /**
  * Initializes the child search documents for the Content module
@@ -37,10 +39,10 @@ const ContentUtil = require('oae-content/lib/internal/util');
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-module.exports.init = function(callback) {
+export const init = function(callback) {
   const contentBodyChildSearchDocumentOptions = {
     resourceTypes: ['content'],
-    schema: require('./search/schema/contentBodySchema'),
+    schema: contentBodySchema,
     producer(resources, callback) {
       return _produceContentBodyDocuments(resources.slice(), callback);
     }

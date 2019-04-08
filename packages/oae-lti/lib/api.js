@@ -13,20 +13,22 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const oauth = require('oauth-sign');
-const ShortId = require('shortid');
+import util from 'util';
+import * as VersionAPI from 'oae-version';
 
-const AuthzPermissions = require('oae-authz/lib/permissions');
-const AuthzUtil = require('oae-authz/lib/util');
-const log = require('oae-logger').logger('oae-lti');
-const PrincipalsApi = require('oae-principals');
-const { Validator } = require('oae-authz/lib/validator');
-const VersionAPI = require('oae-version');
+import oauth from 'oauth-sign';
+import ShortId from 'shortid';
 
-const LtiDAO = require('./internal/dao');
-const { LtiToolLaunchParams } = require('./model');
-const { LtiLaunchParams } = require('./model');
+import * as AuthzPermissions from 'oae-authz/lib/permissions';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import { logger } from 'oae-logger';
+import PrincipalsApi from 'oae-principals';
+import { Validator } from 'oae-authz/lib/validator';
+
+import * as LtiDAO from './internal/dao';
+import { LtiToolLaunchParams, LtiLaunchParams } from './model';
+
+const log = logger('oae-lti');
 
 /**
  * Get the parameters required to launch an LTI tool
@@ -288,9 +290,4 @@ const deleteLtiTool = function(ctx, id, groupId, callback) {
   });
 };
 
-module.exports = {
-  getLtiTool,
-  addLtiTool,
-  getLtiTools,
-  deleteLtiTool
-};
+export { getLtiTool, addLtiTool, getLtiTools, deleteLtiTool };

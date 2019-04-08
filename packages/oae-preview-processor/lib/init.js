@@ -13,19 +13,21 @@
  * permissions and limitations under the License.
  */
 
-const mkdirp = require('mkdirp');
+import mkdirp from 'mkdirp';
 
-const log = require('oae-logger').logger('oae-preview-processor');
-const Cleaner = require('oae-util/lib/cleaner');
+import { logger } from 'oae-logger';
 
-const PreviewAPI = require('./api');
+import * as Cleaner from 'oae-util/lib/cleaner';
+import * as PreviewAPI from './api';
 // eslint-disable-next-line no-unused-vars
-const activity = require('./activity');
+import * as activity from './activity';
+
+const log = logger('oae-preview-processor');
 
 /**
  * Starts listening for new pieces of content that should be handled.
  */
-module.exports = function(config, callback) {
+export function init(config, callback) {
   // Create the previews directory and periodically clean it.
   // mkdirp does not throw an error if the directory already exist
   // so there is no need to check that first.
@@ -40,4 +42,4 @@ module.exports = function(config, callback) {
   });
 
   PreviewAPI.refreshPreviewConfiguration(config, callback);
-};
+}

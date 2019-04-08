@@ -13,13 +13,11 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const RestAPI = require('oae-rest');
-const TestsUtil = require('oae-tests');
-
-const AuthenticationAPI = require('oae-authentication');
+import RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
 
 describe('Authentication', () => {
   // Rest context that can be used every time we need to make a request as a tenant admin
@@ -40,16 +38,16 @@ describe('Authentication', () => {
 
   describe('Local authentication', () => {
     /*!
-         * Given a set of user agents, perform an authentication using each and record the cookie
-         * data that is returned in the authentication response for each user agent
-         *
-         * @param  {RestContext}    restContext                 The REST context to use for each authentication
-         * @param  {String}         username                    The username to use for each authentication
-         * @param  {String}         password                    The password to use for each authentication
-         * @param  {String[]}       userAgents                  A list of user agents to authenticate with
-         * @param  {Function}       callback                    Invoked when all authentications have successfully completed
-         * @param  {Object}         callback.userAgentCookies   An object whose keys are the user agents, and values are an array of `request` Cookie's that were returned in the authentication response
-         */
+     * Given a set of user agents, perform an authentication using each and record the cookie
+     * data that is returned in the authentication response for each user agent
+     *
+     * @param  {RestContext}    restContext                 The REST context to use for each authentication
+     * @param  {String}         username                    The username to use for each authentication
+     * @param  {String}         password                    The password to use for each authentication
+     * @param  {String[]}       userAgents                  A list of user agents to authenticate with
+     * @param  {Function}       callback                    Invoked when all authentications have successfully completed
+     * @param  {Object}         callback.userAgentCookies   An object whose keys are the user agents, and values are an array of `request` Cookie's that were returned in the authentication response
+     */
     const _getCookiesForUserAgents = function(
       restContext,
       username,
@@ -82,9 +80,7 @@ describe('Authentication', () => {
           assert.ok(!err);
 
           // Aggregate the cookies into the user agent map
-          _userAgentCookies[userAgent] = restContext.cookieJar._jar.getCookiesSync(
-            restContext.host
-          );
+          _userAgentCookies[userAgent] = restContext.cookieJar._jar.getCookiesSync(restContext.host);
 
           return _getCookiesForUserAgents(
             restContext,
@@ -105,8 +101,8 @@ describe('Authentication', () => {
      */
     it('verify cookie expiration for mobile and non-mobile browsers', callback => {
       /*!
-             * A collection of user agents for a variety of desktop / non-mobile clients
-             */
+       * A collection of user agents for a variety of desktop / non-mobile clients
+       */
       const nonMobileUserAgents = [
         // Firefox variants
         'Mozilla/5.0 (Windows NT 6.3; rv:36.0) Gecko/20100101 Firefox/36.0',
@@ -141,8 +137,8 @@ describe('Authentication', () => {
       ];
 
       /*!
-             * A collection of user agents for mobile devices (phones, tablets, etc...)
-             */
+       * A collection of user agents for mobile devices (phones, tablets, etc...)
+       */
       const mobileUserAgents = [
         // IPhone/iPad variants
         'Mozilla/5.0 (iPhone; U; CPU iPhone OS 4_0 like Mac OS X; en-us) AppleWebKit/532.9 (KHTML, like Gecko) Version/4.0.5 Mobile/8A293 Safari/6531.22.7',
@@ -171,93 +167,76 @@ describe('Authentication', () => {
 
       // Create a test user
       const username = TestsUtil.generateTestUserId();
-      const email = TestsUtil.generateTestEmailAddress(
-        null,
-        global.oaeTests.tenants.cam.emailDomains[0]
-      );
-      RestAPI.User.createUser(
-        camAdminRestContext,
-        username,
-        'password',
-        'Test User',
-        email,
-        {},
-        (err, createdUser) => {
-          assert.ok(!err);
-          const userRestContext = TestsUtil.createTenantRestContext(
-            global.oaeTests.tenants.cam.host,
-            username,
-            'password'
-          );
+      const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
+      RestAPI.User.createUser(camAdminRestContext, username, 'password', 'Test User', email, {}, (err, createdUser) => {
+        assert.ok(!err);
+        const userRestContext = TestsUtil.createTenantRestContext(
+          global.oaeTests.tenants.cam.host,
+          username,
+          'password'
+        );
 
-          // Get all user agents for a user. When using a user tenant, mobile user-agents
-          // should result in a cookie that has a length expiry
+        // Get all user agents for a user. When using a user tenant, mobile user-agents
+        // should result in a cookie that has a length expiry
+        _getCookiesForUserAgents(userRestContext, username, 'password', allUserAgents, userAgentCookies => {
+          assert.strictEqual(_.keys(userAgentCookies).length, allUserAgents.length);
+
+          // Ensure each mobile user agent has a cookie with an explicit expiry time that
+          // is more than 29 days into the future
+          _.each(mobileUserAgents, mobileUserAgent => {
+            const cookies = userAgentCookies[mobileUserAgent];
+
+            assert.strictEqual(cookies.length, 2);
+            _.each(cookies, cookie => {
+              // eslint-disable-next-line new-cap
+              assert.ok(_.isNumber(cookie.TTL()));
+              // eslint-disable-next-line new-cap
+              assert.ok(cookie.TTL() > 1000 * 60 * 60 * 24 * 29);
+              // eslint-disable-next-line new-cap
+              assert.notStrictEqual(cookie.TTL(), Infinity);
+            });
+          });
+
+          // Ensure each non-mobile user agent has a cookie without an explicit expiry
+          // (i.e., browser session cookie)
+          _.each(nonMobileUserAgents, nonMobileUserAgent => {
+            const cookies = userAgentCookies[nonMobileUserAgent];
+
+            assert.strictEqual(cookies.length, 2);
+            _.each(cookies, cookie => {
+              // eslint-disable-next-line new-cap
+              assert.strictEqual(cookie.TTL(), Infinity);
+            });
+          });
+
+          // Get all user agents for a global admin login. When using the global admin
+          // tenant, both mobile and non-mobile user-agents should not have an extended
+          // expiry
           _getCookiesForUserAgents(
-            userRestContext,
-            username,
-            'password',
+            globalAdminRestContext,
+            'administrator',
+            'administrator',
             allUserAgents,
             userAgentCookies => {
               assert.strictEqual(_.keys(userAgentCookies).length, allUserAgents.length);
 
-              // Ensure each mobile user agent has a cookie with an explicit expiry time that
-              // is more than 29 days into the future
-              _.each(mobileUserAgents, mobileUserAgent => {
-                const cookies = userAgentCookies[mobileUserAgent];
+              // Ensure all user agents have a cookie without an explicit expiry (i.e.,
+              // browser session cookie)
+              _.each(allUserAgents, userAgent => {
+                const cookies = userAgentCookies[userAgent];
 
-                assert.strictEqual(cookies.length, 2);
-                _.each(cookies, cookie => {
-                  // eslint-disable-next-line new-cap
-                  assert.ok(_.isNumber(cookie.TTL()));
-                  // eslint-disable-next-line new-cap
-                  assert.ok(cookie.TTL() > 1000 * 60 * 60 * 24 * 29);
-                  // eslint-disable-next-line new-cap
-                  assert.notStrictEqual(cookie.TTL(), Infinity);
-                });
-              });
-
-              // Ensure each non-mobile user agent has a cookie without an explicit expiry
-              // (i.e., browser session cookie)
-              _.each(nonMobileUserAgents, nonMobileUserAgent => {
-                const cookies = userAgentCookies[nonMobileUserAgent];
-
-                assert.strictEqual(cookies.length, 2);
+                assert.ok(!_.isEmpty(cookies));
                 _.each(cookies, cookie => {
                   // eslint-disable-next-line new-cap
                   assert.strictEqual(cookie.TTL(), Infinity);
                 });
               });
 
-              // Get all user agents for a global admin login. When using the global admin
-              // tenant, both mobile and non-mobile user-agents should not have an extended
-              // expiry
-              _getCookiesForUserAgents(
-                globalAdminRestContext,
-                'administrator',
-                'administrator',
-                allUserAgents,
-                userAgentCookies => {
-                  assert.strictEqual(_.keys(userAgentCookies).length, allUserAgents.length);
-
-                  // Ensure all user agents have a cookie without an explicit expiry (i.e.,
-                  // browser session cookie)
-                  _.each(allUserAgents, userAgent => {
-                    const cookies = userAgentCookies[userAgent];
-
-                    assert.ok(!_.isEmpty(cookies));
-                    _.each(cookies, cookie => {
-                      // eslint-disable-next-line new-cap
-                      assert.strictEqual(cookie.TTL(), Infinity);
-                    });
-                  });
-
-                  return callback();
-                }
-              );
+              return callback();
             }
           );
-        }
-      );
+        });
+      });
     });
   });
 });

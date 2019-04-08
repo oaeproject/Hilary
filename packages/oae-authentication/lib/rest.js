@@ -12,32 +12,32 @@
  * or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-const OAE = require('oae-util/lib/oae');
+import * as OAE from 'oae-util/lib/oae';
 
-const AuthenticationAPI = require('oae-authentication');
+import * as AuthenticationAPI from 'oae-authentication';
 
 /// ///////////////////////////
 // AUTHENTICATION PROVIDERS //
 /// ///////////////////////////
 
 // eslint-disable-next-line import/no-unassigned-import
-require('./strategies/cas/rest');
+import cas from './strategies/cas/rest';
 // eslint-disable-next-line import/no-unassigned-import
-require('./strategies/facebook/rest');
+import facebook from './strategies/facebook/rest';
 // eslint-disable-next-line import/no-unassigned-import
-require('./strategies/google/rest');
+import google from './strategies/google/rest';
 // eslint-disable-next-line import/no-unassigned-import
-require('./strategies/ldap/rest');
+import ldap from './strategies/ldap/rest';
 // eslint-disable-next-line import/no-unassigned-import
-require('./strategies/local/rest');
+import local from './strategies/local/rest';
 // eslint-disable-next-line import/no-unassigned-import
-require('./strategies/oauth/rest');
+import oauth from './strategies/oauth/rest';
 // eslint-disable-next-line import/no-unassigned-import
-require('./strategies/shibboleth/rest');
+import shibb from './strategies/shibboleth/rest';
 // eslint-disable-next-line import/no-unassigned-import
-require('./strategies/signed/rest');
+import signed from './strategies/signed/rest';
 // eslint-disable-next-line import/no-unassigned-import
-require('./strategies/twitter/rest');
+import twitter from './strategies/twitter/rest';
 
 /**
  * @REST postAuthLogout
@@ -85,19 +85,13 @@ const _getResetPasswordSecret = function(req, res) {
 OAE.tenantRouter.on('get', '/api/auth/local/reset/secret/:username', _getResetPasswordSecret);
 
 const _resetPassword = function(req, res) {
-  AuthenticationAPI.resetPassword(
-    req.ctx,
-    req.params.username,
-    req.body.secret,
-    req.body.newPassword,
-    err => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-
-      return res.status(200).end();
+  AuthenticationAPI.resetPassword(req.ctx, req.params.username, req.body.secret, req.body.newPassword, err => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    return res.status(200).end();
+  });
 };
 
 /**

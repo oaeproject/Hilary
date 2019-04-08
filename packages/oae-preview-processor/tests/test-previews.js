@@ -13,44 +13,43 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable no-unused-vars */
 /* eslint-disable camelcase */
-const assert = require('assert');
-const fs = require('fs');
-const path = require('path');
-const url = require('url');
-const util = require('util');
-const _ = require('underscore');
-const gm = require('gm');
-const less = require('less');
-const request = require('request');
+import assert from 'assert';
+import fs from 'fs';
+import path from 'path';
+import url from 'url';
+import util from 'util';
+import _ from 'underscore';
+import gm from 'gm';
+import request from 'request';
+import nock from 'nock';
 
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const ActivityTestsUtil = require('oae-activity/lib/test/util');
-const Cassandra = require('oae-util/lib/cassandra');
-const ConfigTestUtil = require('oae-config/lib/test/util');
-const ContentTestUtil = require('oae-content/lib/test/util');
-const Etherpad = require('oae-content/lib/internal/etherpad');
-const FoldersPreviews = require('oae-folders/lib/previews');
-const FoldersTestUtil = require('oae-folders/lib/test/util');
-const MQ = require('oae-util/lib/mq');
-const MQTestUtil = require('oae-util/lib/test/mq-util');
-const RestAPI = require('oae-rest');
-const RestUtil = require('oae-rest/lib/util');
-const { SearchConstants } = require('oae-search/lib/constants');
-const TaskQueue = require('oae-util/lib/taskqueue');
-const Tempfile = require('oae-util/lib/tempfile');
-const TestsUtil = require('oae-tests/lib/util');
+import { SearchConstants } from 'oae-search/lib/constants';
+import { ActivityConstants } from 'oae-activity/lib/constants';
 
-const PreviewAPI = require('oae-preview-processor/lib/api');
-const PreviewConstants = require('oae-preview-processor/lib/constants');
-const PreviewDefaultLinks = require('oae-preview-processor/lib/processors/link/default');
-const PreviewFlickr = require('oae-preview-processor/lib/processors/link/flickr');
-const PreviewOffice = require('oae-preview-processor/lib/processors/file/office');
-const PreviewPDF = require('oae-preview-processor/lib/processors/file/pdf');
-const PreviewSlideShare = require('oae-preview-processor/lib/processors/link/slideshare');
-const PreviewTestUtil = require('oae-preview-processor/lib/test/util');
-const PreviewUtil = require('oae-preview-processor/lib/util');
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as ContentTestUtil from 'oae-content/lib/test/util';
+import * as Etherpad from 'oae-content/lib/internal/etherpad';
+import * as FoldersPreviews from 'oae-folders/lib/previews';
+import * as FoldersTestUtil from 'oae-folders/lib/test/util';
+import * as MQ from 'oae-util/lib/mq';
+import * as MQTestUtil from 'oae-util/lib/test/mq-util';
+import * as RestAPI from 'oae-rest';
+import * as RestUtil from 'oae-rest/lib/util';
+import * as TaskQueue from 'oae-util/lib/taskqueue';
+import * as Tempfile from 'oae-util/lib/tempfile';
+import * as TestsUtil from 'oae-tests/lib/util';
+import * as PreviewAPI from 'oae-preview-processor/lib/api';
+import PreviewConstants from 'oae-preview-processor/lib/constants';
+import * as PreviewDefaultLinks from 'oae-preview-processor/lib/processors/link/default';
+import * as PreviewFlickr from 'oae-preview-processor/lib/processors/link/flickr';
+import * as PreviewOffice from 'oae-preview-processor/lib/processors/file/office';
+import * as PreviewPDF from 'oae-preview-processor/lib/processors/file/pdf';
+import * as PreviewSlideShare from 'oae-preview-processor/lib/processors/link/slideshare';
+import * as PreviewTestUtil from 'oae-preview-processor/lib/test/util';
+import * as PreviewUtil from 'oae-preview-processor/lib/util';
 
 describe('Preview processor', () => {
   // We fill this variable on tests startup with the configuration
@@ -871,9 +870,11 @@ describe('Preview processor', () => {
             if (xFrameOptions) {
               res.set('x-frame-options', xFrameOptions);
             }
+
             if (contentDisposition) {
               res.set('Content-Disposition', contentDisposition);
             }
+
             return res.send('This is the best page on the webz');
           });
 
@@ -1054,10 +1055,6 @@ describe('Preview processor', () => {
      * @api private
      */
     const _mockYoutube = function() {
-      // Require nock inline as it messes with the HTTP stack
-      // We only want this to happen in a controlled environment
-      const nock = require('nock');
-
       // Ensure we can still perform regular HTTP requests during our tests
       nock.enableNetConnect();
 
@@ -1235,6 +1232,7 @@ describe('Preview processor', () => {
               '    <ThumbnailURL>//cdn.slidesharecdn.com/ss_thumbnails/apereooae-stateoftheproject-130610122332-phpapp02-thumbnail.jpg?cb=1371114073</ThumbnailURL>';
             xml += '</Slideshow>';
           }
+
           return res.status(200).send(xml);
         });
 
@@ -2512,6 +2510,7 @@ describe('Preview processor', () => {
                 contentToBeReprocessed.push(data);
                 callback();
               };
+
               TaskQueue.bind(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, reprocessTracker, null, err => {
                 assert.ok(!err);
 

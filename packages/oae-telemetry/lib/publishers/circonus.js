@@ -13,10 +13,11 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
-const request = require('request');
+import _ from 'underscore';
+import request from 'request';
+import { logger } from 'oae-logger';
 
-const log = require('oae-logger').logger('telemetry-circonus');
+const log = logger('telemetry-circonus');
 
 let circonusConfig = null;
 
@@ -70,18 +71,13 @@ const publish = function(data) {
     if (err) {
       return log().warn({ err }, 'Error publishing telemetry data to circonus');
     }
+
     if (response.statusCode !== 200) {
-      return log().warn(
-        { body, code: response.statusCode },
-        'Circonus replied with a non-200 response'
-      );
+      return log().warn({ body, code: response.statusCode }, 'Circonus replied with a non-200 response');
     }
 
     return log().info('Sent %d metrics to circonus', metricsToSend);
   });
 };
 
-module.exports = {
-  init,
-  publish
-};
+export { init, publish };

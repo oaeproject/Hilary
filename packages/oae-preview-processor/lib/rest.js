@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
-const urlExpander = require('expand-url');
+import _ from 'underscore';
+import urlExpander from 'expand-url';
 
-const OAE = require('oae-util/lib/oae');
+import * as OAE from 'oae-util/lib/oae';
 
-const PreviewProcessorAPI = require('oae-preview-processor');
+import * as PreviewProcessorAPI from 'oae-preview-processor';
 
 /**
  * @REST postContentReprocessPreviews

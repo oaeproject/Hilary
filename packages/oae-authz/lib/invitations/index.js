@@ -13,15 +13,15 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const PrincipalsUtil = require('oae-principals/lib/util');
+import * as PrincipalsUtil from 'oae-principals/lib/util';
 
-const AuthzInvitationsDAO = require('oae-authz/lib/invitations/dao');
-const AuthzPermissions = require('oae-authz/lib/permissions');
-const AuthzUtil = require('oae-authz/lib/util');
+import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
+import * as AuthzPermissions from 'oae-authz/lib/permissions';
+import * as AuthzUtil from 'oae-authz/lib/util';
 
-const { Invitation } = require('oae-authz/lib/invitations/model');
+import { Invitation } from 'oae-authz/lib/invitations/model';
 
 /**
  * Get all the invitations for the specified resource
@@ -79,6 +79,4 @@ const _invitationsFromHashes = function(ctx, resource, invitationHashes, callbac
   });
 };
 
-module.exports = {
-  getAllInvitations
-};
+export { getAllInvitations };

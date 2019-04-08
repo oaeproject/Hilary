@@ -13,15 +13,17 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const passport = require('passport');
+import util from 'util';
+import passport from 'passport';
 
-const log = require('oae-logger').logger('shibboleth');
-const OAE = require('oae-util/lib/oae');
+import { logger } from 'oae-logger';
+import * as OAE from 'oae-util/lib/oae';
 
-const { AuthenticationConstants } = require('oae-authentication/lib/constants');
-const AuthenticationUtil = require('oae-authentication/lib/util');
-const ShibbolethAPI = require('./api');
+import { AuthenticationConstants } from 'oae-authentication/lib/constants';
+import * as AuthenticationUtil from 'oae-authentication/lib/util';
+import * as ShibbolethAPI from './api';
+
+const log = logger('shibboleth');
 
 /**
  * @REST postAuthShibbolethTenant
@@ -79,10 +81,7 @@ OAE.tenantRouter.on('get', '/api/auth/shibboleth/sp', (req, res, next) => {
     res.cookie('shibboleth', tenantAlias, { signed: true });
 
     // Get the ID under which this strategy was registered for this tenant
-    const strategyId = AuthenticationUtil.getStrategyId(
-      tenant,
-      AuthenticationConstants.providers.SHIBBOLETH
-    );
+    const strategyId = AuthenticationUtil.getStrategyId(tenant, AuthenticationConstants.providers.SHIBBOLETH);
 
     // Perform the initial authentication step
     AuthenticationUtil.handleExternalSetup(strategyId, null, req, res, next);
@@ -127,10 +126,7 @@ OAE.tenantRouter.on('get', '/api/auth/shibboleth/sp/callback', (req, res) => {
     const tenantUrl = util.format('https://%s', tenant.host);
 
     // Get the Shibboleth strategy
-    const strategyId = AuthenticationUtil.getStrategyId(
-      tenant,
-      AuthenticationConstants.providers.SHIBBOLETH
-    );
+    const strategyId = AuthenticationUtil.getStrategyId(tenant, AuthenticationConstants.providers.SHIBBOLETH);
 
     // Validate and authenticate the request
     passport.authenticate(strategyId, {}, (err, user, challenges, status) => {
@@ -138,15 +134,13 @@ OAE.tenantRouter.on('get', '/api/auth/shibboleth/sp/callback', (req, res) => {
         log().error({ err, tenantAlias }, 'Error during Shibboleth authentication');
         return res.redirect(tenantUrl + '/?authentication=failed&reason=error');
       }
+
       if (!user) {
         // The user's credentials didn't check out. This would rarely occur in a
         // normal situation as external auth providers don't usually redirect with
         // bad parameters in the request, so somebody is probably tampering with it.
         // We bail out immediately
-        log().warn(
-          { challenges, status },
-          'Possible tampering of external callback request detected'
-        );
+        log().warn({ challenges, status }, 'Possible tampering of external callback request detected');
         return res.redirect(tenantUrl + '/?authentication=failed&reason=tampering');
       }
 
@@ -186,10 +180,9 @@ OAE.tenantRouter.on('get', '/api/auth/shibboleth/callback', (req, res, next) => 
     }
 
     // Log the user in
-    const strategyId = AuthenticationUtil.getStrategyId(
-      req.tenant,
-      AuthenticationConstants.providers.SHIBBOLETH
-    );
+    const strategyId = AuthenticationUtil.getStrategyId(req.tenant, AuthenticationConstants.providers.SHIBBOLETH);
     return AuthenticationUtil.handleLogin(strategyId, user, req, res, next);
   });
 });
+
+export default OAE;

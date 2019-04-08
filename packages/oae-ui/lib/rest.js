@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
-const OAE = require('oae-util/lib/oae');
-const OaeUtil = require('oae-util/lib/util');
+import * as OAE from 'oae-util/lib/oae';
+import * as OaeUtil from 'oae-util/lib/util';
 
-const UIAPI = require('./api');
+import * as UIAPI from './api';
 
 /**
  * @REST getUiWidgets
@@ -110,6 +110,7 @@ const _getLogo = function(req, res) {
     if (err) {
       return res.status(err.code).send(err.msg);
     }
+
     return res.status(200).send(css);
   });
 };

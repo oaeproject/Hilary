@@ -18,7 +18,7 @@ const AuthzUtil = require('oae-authz/lib/util');
 const ConfigAPI = require('oae-config');
 const { Validator } = require('oae-util/lib/validator');
 
-const PrincipalsConfig = ConfigAPI.config('oae-principals');
+const PrincipalsConfig = ConfigAPI.setUpConfig('oae-principals');
 const PrincipalsDAO = require('./internal/dao');
 const PrincipalsUtil = require('./util');
 
@@ -41,19 +41,11 @@ const getTermsAndConditions = function(ctx, locale) {
   locale = locale || ctx.resolvedLocale();
 
   // Grab the internationalizable field. This will return an object with each Terms and Conditions keyed against its locale
-  const termsAndConditions = PrincipalsConfig.getValue(
-    ctx.tenant().alias,
-    'termsAndConditions',
-    'text'
-  );
+  const termsAndConditions = PrincipalsConfig.getValue(ctx.tenant().alias, 'termsAndConditions', 'text');
 
   return {
     text: termsAndConditions[locale] || termsAndConditions.default,
-    lastUpdate: PrincipalsConfig.getLastUpdated(
-      ctx.tenant().alias,
-      'termsAndConditions',
-      'text'
-    ).getTime()
+    lastUpdate: PrincipalsConfig.getLastUpdated(ctx.tenant().alias, 'termsAndConditions', 'text').getTime()
   };
 };
 
@@ -129,11 +121,7 @@ const needsToAcceptTermsAndConditions = function(ctx) {
   }
 
   // This tenant has Terms and Conditions. We need to check the user has accepted the Terms and Conditions since the last time the Terms and Conditions were updated
-  const lastUpdated = PrincipalsConfig.getLastUpdated(
-    ctx.tenant().alias,
-    'termsAndConditions',
-    'text'
-  );
+  const lastUpdated = PrincipalsConfig.getLastUpdated(ctx.tenant().alias, 'termsAndConditions', 'text');
   return ctx.user().acceptedTC < lastUpdated.getTime();
 };
 

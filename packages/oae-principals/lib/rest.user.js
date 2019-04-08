@@ -22,7 +22,7 @@ const { LoginId } = require('oae-authentication/lib/model');
 const OAE = require('oae-util/lib/oae');
 const OaeUtil = require('oae-util/lib/util');
 
-const PrincipalsConfig = require('oae-config').config('oae-principals');
+const PrincipalsConfig = require('oae-config').setUpConfig('oae-principals');
 const PrincipalsAPI = require('./api');
 
 /**

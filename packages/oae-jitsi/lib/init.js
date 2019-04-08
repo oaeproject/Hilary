@@ -13,11 +13,13 @@
  * permissions and limitations under the License.
  */
 
-const log = require('oae-logger').logger('oae-jitsi-init');
+import { logger } from 'oae-logger';
 
-const MeetingSearch = require('./search');
+import * as MeetingSearch from './search';
 
-module.exports = function(config, callback) {
+const log = logger('oae-jitsi-init');
+
+export function init(config, callback) {
   log().info('Initializing the oae-jitsi module');
 
   // Register the activity functionality
@@ -29,4 +31,4 @@ module.exports = function(config, callback) {
   const library = require('./library');
 
   return MeetingSearch.init(callback);
-};
+}

@@ -1,12 +1,11 @@
-const _ = require('underscore');
-const ShortId = require('shortid');
+import _ from 'underscore';
+import ShortId from 'shortid';
+import { Meeting } from 'oae-jitsi/lib/model';
 
-const AuthzUtil = require('oae-authz/lib/util');
-const Cassandra = require('oae-util/lib/cassandra');
-const OaeUtil = require('oae-util/lib/util');
-const TenantsAPI = require('oae-tenants');
-
-const { Meeting } = require('oae-jitsi/lib/model');
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as TenantsAPI from 'oae-tenants';
 
 /**
  * PUBLIC FUNCTIONS
@@ -15,15 +14,7 @@ const { Meeting } = require('oae-jitsi/lib/model');
 /**
  * Create a new meeting.
  */
-const createMeeting = function(
-  createdBy,
-  displayName,
-  description,
-  chat,
-  contactList,
-  visibility,
-  callback
-) {
+const createMeeting = function(createdBy, displayName, description, chat, contactList, visibility, callback) {
   const created = Date.now().toString();
 
   const { tenantAlias } = AuthzUtil.getPrincipalFromId(createdBy);
@@ -160,23 +151,16 @@ const iterateAll = function(properties, batchSize, onEach, callback) {
   }
 
   /*
-     * Handles each batch from the cassandra iterateAll method
-     *
-     * @see Cassandra#iterateAll
-     */
+   * Handles each batch from the cassandra iterateAll method
+   *
+   * @see Cassandra#iterateAll
+   */
   const _iterateAllOnEach = function(rows, done) {
     // Convert the rows to a hash and delegate action to the caller onEach method
     return onEach(_.map(rows, Cassandra.rowToHash), done);
   };
 
-  Cassandra.iterateAll(
-    properties,
-    'MeetingsJitsi',
-    'id',
-    { batchSize },
-    _iterateAllOnEach,
-    callback
-  );
+  Cassandra.iterateAll(properties, 'MeetingsJitsi', 'id', { batchSize }, _iterateAllOnEach, callback);
 };
 
 /**
@@ -262,11 +246,4 @@ const _createUpdatedMeetingFromStorageHash = function(meeting, hash) {
   );
 };
 
-module.exports = {
-  createMeeting,
-  getMeeting,
-  getMeetingsById,
-  updateMeeting,
-  deleteMeeting,
-  iterateAll
-};
+export { createMeeting, getMeeting, getMeetingsById, updateMeeting, deleteMeeting, iterateAll };

@@ -13,11 +13,11 @@
  * permissions and limitations under the License.
  */
 
-const AuthenticationAPI = require('oae-authentication');
-const { AuthenticationConstants } = require('oae-authentication/lib/constants');
-const SignedStrategy = require('oae-authentication/lib/strategies/signed/strategy');
+import * as AuthenticationAPI from 'oae-authentication';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants';
+import SignedStrategy from 'oae-authentication/lib/strategies/signed/strategy';
 
-module.exports = function() {
+export default function() {
   const strategy = {};
 
   /**
@@ -37,4 +37,4 @@ module.exports = function() {
 
   // Register our strategy.
   AuthenticationAPI.registerStrategy(AuthenticationConstants.providers.SIGNED, strategy);
-};
+}

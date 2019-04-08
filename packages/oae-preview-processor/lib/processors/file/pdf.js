@@ -13,24 +13,23 @@
  * permissions and limitations under the License.
  */
 
+import fs from 'fs';
+import util from 'util';
+import path from 'path';
+import stream from 'stream';
+import PreviewConstants from 'oae-preview-processor/lib/constants';
+import gm from 'gm';
+import pdfjsLib from 'pdfjs-dist';
+import _ from 'underscore';
+import { logger } from 'oae-logger';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as PreviewUtil from 'oae-preview-processor/lib/util';
 import domStubs from './domstubs';
-
-const fs = require('fs');
-const util = require('util');
 
 const fsWriteFile = util.promisify(fs.writeFile);
 const fsMakeDir = util.promisify(fs.mkdir);
-const path = require('path');
-const stream = require('stream');
-const gm = require('gm');
-const pdfjsLib = require('pdfjs-dist');
-const _ = require('underscore');
 
-const log = require('oae-logger').logger('oae-preview-processor');
-const OaeUtil = require('oae-util/lib/util');
-
-const PreviewConstants = require('oae-preview-processor/lib/constants');
-const PreviewUtil = require('oae-preview-processor/lib/util');
+const log = logger('oae-preview-processor');
 
 const PAGES_SUBDIRECTORY = 'pages';
 const TXT_CONTENT_FILENAME = 'plain.txt';
@@ -282,9 +281,4 @@ const processAllPages = async function(ctx, pagesDir, numPages, doc) {
   }
 };
 
-module.exports = {
-  init,
-  test,
-  generatePreviews,
-  previewPDF
-};
+export { init, test, generatePreviews, previewPDF };

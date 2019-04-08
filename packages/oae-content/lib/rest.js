@@ -13,22 +13,22 @@
  * permissions and limitations under the License.
  */
 
-const {
+import * as querystring from 'querystring';
+import {
   isResourceACollabDoc,
   isResourceACollabSheet,
   isResourceAFile,
   isResourceALink
-} = require('oae-content/lib/backends/util');
+} from 'oae-content/lib/backends/util';
 
-const querystring = require('querystring');
-const _ = require('underscore');
+import _ from 'underscore';
 
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const OAE = require('oae-util/lib/oae');
-const OaeUtil = require('oae-util/lib/util');
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import * as OAE from 'oae-util/lib/oae';
+import * as OaeUtil from 'oae-util/lib/util';
 
-const ContentAPI = require('./api');
-const { ContentConstants } = require('./constants');
+import * as ContentAPI from './api';
+import { ContentConstants } from './constants';
 
 /**
  * Verify the signature information provided by a signed download request and

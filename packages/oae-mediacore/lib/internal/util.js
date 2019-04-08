@@ -17,7 +17,7 @@ const crypto = require('crypto');
 const util = require('util');
 const request = require('request');
 
-const MediaCoreConfig = require('oae-config').config('oae-mediacore');
+const MediaCoreConfig = require('oae-config').setUpConfig('oae-mediacore');
 
 /**
  * Get the MediaCore API values that have been configured in the Admin UI.

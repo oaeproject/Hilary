@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
-const sockjs = require('sockjs');
+import sockjs from 'sockjs';
 
-const OAE = require('oae-util/lib/oae');
-const OaeUtil = require('oae-util/lib/util');
+import * as OAE from 'oae-util/lib/oae';
+import * as OaeUtil from 'oae-util/lib/util';
 
-const ActivityAPI = require('oae-activity');
-const ActivityPush = require('./internal/push');
+import * as ActivityAPI from 'oae-activity';
+import * as ActivityPush from './internal/push';
 
 /// ///////////////////
 // ACTIVITY STREAMS //
@@ -37,20 +37,13 @@ const ActivityPush = require('./internal/push');
 const _handleGetActivities = function(resourceId, req, res) {
   const limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
   const { start } = req.query;
-  ActivityAPI.getActivityStream(
-    req.ctx,
-    resourceId,
-    start,
-    limit,
-    req.query.format,
-    (err, activityStream) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-
-      res.status(200).send(activityStream);
+  ActivityAPI.getActivityStream(req.ctx, resourceId, start, limit, req.query.format, (err, activityStream) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    res.status(200).send(activityStream);
+  });
 };
 
 /**

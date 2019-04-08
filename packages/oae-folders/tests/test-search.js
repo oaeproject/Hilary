@@ -13,20 +13,16 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const util = require('util');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const ConfigTestUtil = require('oae-config/lib/test/util');
-const RestAPI = require('oae-rest');
-const SearchTestsUtil = require('oae-search/lib/test/util');
-const TestsUtil = require('oae-tests');
-
-const FoldersAPI = require('oae-folders');
-const { FoldersConstants } = require('oae-folders/lib/constants');
-const FoldersDAO = require('oae-folders/lib/internal/dao');
-const FoldersLibrary = require('oae-folders/lib/library');
-const FoldersTestUtil = require('oae-folders/lib/test/util');
+import * as RestAPI from 'oae-rest';
+import * as SearchTestsUtil from 'oae-search/lib/test/util';
+import * as TestsUtil from 'oae-tests';
+import * as FoldersAPI from 'oae-folders';
+import * as FoldersDAO from 'oae-folders/lib/internal/dao';
+import * as FoldersTestUtil from 'oae-folders/lib/test/util';
+import { FoldersConstants } from 'oae-folders/lib/constants';
 
 describe('Folders', () => {
   let camAdminRestContext = null;
@@ -36,9 +32,9 @@ describe('Folders', () => {
   let gtAnonymousRestContext = null;
 
   /*!
-     * Set up all the REST contexts for admin and anonymous users with which we
-     * will invoke requests
-     */
+   * Set up all the REST contexts for admin and anonymous users with which we
+   * will invoke requests
+   */
   before(callback => {
     camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     camAnonymousRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
@@ -67,69 +63,62 @@ describe('Folders', () => {
    * @throws {AssertionError}                                 Throws an error if anything unexpected happens when setting up the entities
    */
   const _setup = function(visibility, callback) {
-    FoldersTestUtil.setupMultiTenantPrivacyEntities(
-      (publicTenant1, publicTenant2, privateTenant, privateTenant1) => {
-        // Create a test user who will generate a test folder
-        TestsUtil.generateTestUsers(publicTenant1.adminRestContext, 1, (err, users, simong) => {
-          assert.ok(!err);
-          FoldersTestUtil.generateTestFoldersWithVisibility(
+    FoldersTestUtil.setupMultiTenantPrivacyEntities((publicTenant1, publicTenant2, privateTenant, privateTenant1) => {
+      // Create a test user who will generate a test folder
+      TestsUtil.generateTestUsers(publicTenant1.adminRestContext, 1, (err, users, simong) => {
+        assert.ok(!err);
+        FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, visibility, folder => {
+          // Create 3 content items
+          RestAPI.Content.createLink(
             simong.restContext,
-            1,
-            visibility,
-            folder => {
-              // Create 3 content items
+            'public',
+            'public',
+            'public',
+            'http://www.google.com',
+            null,
+            [],
+            [],
+            (err, publicContent) => {
+              assert.ok(!err);
               RestAPI.Content.createLink(
                 simong.restContext,
-                'public',
-                'public',
-                'public',
+                'loggedin',
+                'loggedin',
+                'loggedin',
                 'http://www.google.com',
                 null,
                 [],
                 [],
-                (err, publicContent) => {
+                (err, loggedinContent) => {
                   assert.ok(!err);
                   RestAPI.Content.createLink(
                     simong.restContext,
-                    'loggedin',
-                    'loggedin',
-                    'loggedin',
+                    'private',
+                    'private',
+                    'private',
                     'http://www.google.com',
                     null,
                     [],
                     [],
-                    (err, loggedinContent) => {
+                    (err, privateContent) => {
                       assert.ok(!err);
-                      RestAPI.Content.createLink(
-                        simong.restContext,
-                        'private',
-                        'private',
-                        'private',
-                        'http://www.google.com',
-                        null,
-                        [],
-                        [],
-                        (err, privateContent) => {
-                          assert.ok(!err);
 
-                          // Add them to the folder
-                          FoldersTestUtil.assertAddContentItemsToFolderSucceeds(
-                            simong.restContext,
-                            folder.id,
-                            [publicContent.id, loggedinContent.id, privateContent.id],
-                            () => {
-                              return callback(
-                                simong,
-                                folder,
-                                publicContent,
-                                loggedinContent,
-                                privateContent,
-                                publicTenant1,
-                                publicTenant2,
-                                privateTenant,
-                                privateTenant1
-                              );
-                            }
+                      // Add them to the folder
+                      FoldersTestUtil.assertAddContentItemsToFolderSucceeds(
+                        simong.restContext,
+                        folder.id,
+                        [publicContent.id, loggedinContent.id, privateContent.id],
+                        () => {
+                          return callback(
+                            simong,
+                            folder,
+                            publicContent,
+                            loggedinContent,
+                            privateContent,
+                            publicTenant1,
+                            publicTenant2,
+                            privateTenant,
+                            privateTenant1
                           );
                         }
                       );
@@ -140,8 +129,8 @@ describe('Folders', () => {
             }
           );
         });
-      }
-    );
+      });
+    });
   };
 
   describe('Searching in folders', () => {
@@ -156,76 +145,64 @@ describe('Folders', () => {
         FoldersTestUtil.generateTestFolders(simong.restContext, 2, (folder1, folder2) => {
           // Both folders should be empty
           FoldersTestUtil.assertFolderSearchEquals(simong.restContext, folder1.id, null, [], () => {
-            FoldersTestUtil.assertFolderSearchEquals(
-              simong.restContext,
-              folder2.id,
-              null,
-              [],
-              () => {
-                // Create some content items and add them to the first folder
-                RestAPI.Content.createLink(
-                  camAdminRestContext,
-                  'test',
-                  'test',
-                  'public',
-                  'http://www.google.com',
-                  null,
-                  [],
-                  [],
-                  (err, google) => {
-                    assert.ok(!err);
-                    RestAPI.Content.createLink(
-                      camAdminRestContext,
-                      'marsupilamisausage',
-                      'marsupilamisausage',
-                      'public',
-                      'http://www.marsupilamisausage.com',
-                      null,
-                      [],
-                      [],
-                      (err, mars) => {
-                        assert.ok(!err);
-                        FoldersTestUtil.assertAddContentItemsToFolderSucceeds(
-                          simong.restContext,
-                          folder1.id,
-                          [google.id, mars.id],
-                          () => {
-                            // Searching through the first folder should give the
-                            // first 2 links. The other folder should still be empty
-                            FoldersTestUtil.assertFolderSearchEquals(
-                              simong.restContext,
-                              folder1.id,
-                              null,
-                              [google, mars],
-                              () => {
+            FoldersTestUtil.assertFolderSearchEquals(simong.restContext, folder2.id, null, [], () => {
+              // Create some content items and add them to the first folder
+              RestAPI.Content.createLink(
+                camAdminRestContext,
+                'test',
+                'test',
+                'public',
+                'http://www.google.com',
+                null,
+                [],
+                [],
+                (err, google) => {
+                  assert.ok(!err);
+                  RestAPI.Content.createLink(
+                    camAdminRestContext,
+                    'marsupilamisausage',
+                    'marsupilamisausage',
+                    'public',
+                    'http://www.marsupilamisausage.com',
+                    null,
+                    [],
+                    [],
+                    (err, mars) => {
+                      assert.ok(!err);
+                      FoldersTestUtil.assertAddContentItemsToFolderSucceeds(
+                        simong.restContext,
+                        folder1.id,
+                        [google.id, mars.id],
+                        () => {
+                          // Searching through the first folder should give the
+                          // first 2 links. The other folder should still be empty
+                          FoldersTestUtil.assertFolderSearchEquals(
+                            simong.restContext,
+                            folder1.id,
+                            null,
+                            [google, mars],
+                            () => {
+                              FoldersTestUtil.assertFolderSearchEquals(simong.restContext, folder2.id, null, [], () => {
+                                // Assert that folders can be searched through
                                 FoldersTestUtil.assertFolderSearchEquals(
                                   simong.restContext,
-                                  folder2.id,
-                                  null,
-                                  [],
+                                  folder1.id,
+                                  'marsupilamisausage',
+                                  [mars],
                                   () => {
-                                    // Assert that folders can be searched through
-                                    FoldersTestUtil.assertFolderSearchEquals(
-                                      simong.restContext,
-                                      folder1.id,
-                                      'marsupilamisausage',
-                                      [mars],
-                                      () => {
-                                        return callback();
-                                      }
-                                    );
+                                    return callback();
                                   }
                                 );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
+                              });
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            });
           });
         });
       });
@@ -334,66 +311,51 @@ describe('Folders', () => {
           privateTenant1
         ) => {
           // Anonymous users cannot search this folder
-          FoldersTestUtil.assertFolderSearchFails(
-            publicTenant1.anonymousRestContext,
-            folder.id,
-            401,
-            () => {
-              // A user from another tenant cannot search this folder
-              FoldersTestUtil.assertFolderSearchFails(
-                publicTenant2.publicUser.restContext,
+          FoldersTestUtil.assertFolderSearchFails(publicTenant1.anonymousRestContext, folder.id, 401, () => {
+            // A user from another tenant cannot search this folder
+            FoldersTestUtil.assertFolderSearchFails(publicTenant2.publicUser.restContext, folder.id, 401, () => {
+              // A user from the same tenant sees both public and loggedin content
+              FoldersTestUtil.assertFolderSearchEquals(
+                publicTenant1.publicUser.restContext,
                 folder.id,
-                401,
+                null,
+                [publicContent, loggedinContent],
                 () => {
-                  // A user from the same tenant sees both public and loggedin content
+                  // A tenant admin sees everything
                   FoldersTestUtil.assertFolderSearchEquals(
-                    publicTenant1.publicUser.restContext,
+                    publicTenant1.adminRestContext,
                     folder.id,
                     null,
-                    [publicContent, loggedinContent],
+                    [publicContent, loggedinContent, privateContent],
                     () => {
-                      // A tenant admin sees everything
-                      FoldersTestUtil.assertFolderSearchEquals(
-                        publicTenant1.adminRestContext,
-                        folder.id,
-                        null,
-                        [publicContent, loggedinContent, privateContent],
-                        () => {
-                          // A tenant admin from another tenant cannot search in this folder
-                          FoldersTestUtil.assertFolderSearchFails(
-                            publicTenant2.adminRestContext,
-                            folder.id,
-                            401,
-                            () => {
-                              // A manager sees everything
-                              FoldersTestUtil.assertFolderSearchEquals(
-                                simong.restContext,
-                                folder.id,
-                                null,
-                                [publicContent, loggedinContent, privateContent],
-                                () => {
-                                  // A global admin sees everything
-                                  FoldersTestUtil.assertFolderSearchEquals(
-                                    globalAdminRestContext,
-                                    folder.id,
-                                    null,
-                                    [publicContent, loggedinContent, privateContent],
-                                    () => {
-                                      return callback();
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
+                      // A tenant admin from another tenant cannot search in this folder
+                      FoldersTestUtil.assertFolderSearchFails(publicTenant2.adminRestContext, folder.id, 401, () => {
+                        // A manager sees everything
+                        FoldersTestUtil.assertFolderSearchEquals(
+                          simong.restContext,
+                          folder.id,
+                          null,
+                          [publicContent, loggedinContent, privateContent],
+                          () => {
+                            // A global admin sees everything
+                            FoldersTestUtil.assertFolderSearchEquals(
+                              globalAdminRestContext,
+                              folder.id,
+                              null,
+                              [publicContent, loggedinContent, privateContent],
+                              () => {
+                                return callback();
+                              }
+                            );
+                          }
+                        );
+                      });
                     }
                   );
                 }
               );
-            }
-          );
+            });
+          });
         }
       );
     });
@@ -416,65 +378,45 @@ describe('Folders', () => {
           privateTenant1
         ) => {
           // Anonymous users cannot search this folder
-          FoldersTestUtil.assertFolderSearchFails(
-            publicTenant1.anonymousRestContext,
-            folder.id,
-            401,
-            () => {
-              // A user from another tenant cannot search this folder
-              FoldersTestUtil.assertFolderSearchFails(
-                publicTenant2.publicUser.restContext,
-                folder.id,
-                401,
-                () => {
-                  // A user from the same tenant cannot search this folder
-                  FoldersTestUtil.assertFolderSearchFails(
-                    publicTenant1.publicUser.restContext,
-                    folder.id,
-                    401,
-                    () => {
-                      // A tenant admin sees everything
+          FoldersTestUtil.assertFolderSearchFails(publicTenant1.anonymousRestContext, folder.id, 401, () => {
+            // A user from another tenant cannot search this folder
+            FoldersTestUtil.assertFolderSearchFails(publicTenant2.publicUser.restContext, folder.id, 401, () => {
+              // A user from the same tenant cannot search this folder
+              FoldersTestUtil.assertFolderSearchFails(publicTenant1.publicUser.restContext, folder.id, 401, () => {
+                // A tenant admin sees everything
+                FoldersTestUtil.assertFolderSearchEquals(
+                  publicTenant1.adminRestContext,
+                  folder.id,
+                  null,
+                  [publicContent, loggedinContent, privateContent],
+                  () => {
+                    // A tenant admin from another tenant cannot search in this folder
+                    FoldersTestUtil.assertFolderSearchFails(publicTenant2.adminRestContext, folder.id, 401, () => {
+                      // A manager sees everything
                       FoldersTestUtil.assertFolderSearchEquals(
-                        publicTenant1.adminRestContext,
+                        simong.restContext,
                         folder.id,
                         null,
                         [publicContent, loggedinContent, privateContent],
                         () => {
-                          // A tenant admin from another tenant cannot search in this folder
-                          FoldersTestUtil.assertFolderSearchFails(
-                            publicTenant2.adminRestContext,
+                          // A global admin sees everything
+                          FoldersTestUtil.assertFolderSearchEquals(
+                            globalAdminRestContext,
                             folder.id,
-                            401,
+                            null,
+                            [publicContent, loggedinContent, privateContent],
                             () => {
-                              // A manager sees everything
-                              FoldersTestUtil.assertFolderSearchEquals(
-                                simong.restContext,
-                                folder.id,
-                                null,
-                                [publicContent, loggedinContent, privateContent],
-                                () => {
-                                  // A global admin sees everything
-                                  FoldersTestUtil.assertFolderSearchEquals(
-                                    globalAdminRestContext,
-                                    folder.id,
-                                    null,
-                                    [publicContent, loggedinContent, privateContent],
-                                    () => {
-                                      return callback();
-                                    }
-                                  );
-                                }
-                              );
+                              return callback();
                             }
                           );
                         }
                       );
-                    }
-                  );
-                }
-              );
-            }
-          );
+                    });
+                  }
+                );
+              });
+            });
+          });
         }
       );
     });
@@ -489,46 +431,24 @@ describe('Folders', () => {
         assert.ok(!err);
 
         // Setup a folder
-        RestAPI.Folders.createFolder(
-          simong.restContext,
-          'aaaaaa',
-          null,
-          null,
-          null,
-          null,
-          (err, folderA) => {
+        RestAPI.Folders.createFolder(simong.restContext, 'aaaaaa', null, null, null, null, (err, folderA) => {
+          assert.ok(!err);
+          RestAPI.Folders.createFolder(simong.restContext, 'bbbbbb', null, null, null, null, (err, folderB) => {
             assert.ok(!err);
-            RestAPI.Folders.createFolder(
-              simong.restContext,
-              'bbbbbb',
-              null,
-              null,
-              null,
-              null,
-              (err, folderB) => {
-                assert.ok(!err);
 
-                // Search for it
-                FoldersTestUtil.assertGeneralFolderSearchEquals(
-                  simong.restContext,
-                  null,
-                  [folderA, folderB],
-                  [],
-                  () => {
-                    // Search on the display name
-                    FoldersTestUtil.assertGeneralFolderSearchEquals(
-                      simong.restContext,
-                      folderA.displayName,
-                      [folderA],
-                      [folderB],
-                      callback
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
+            // Search for it
+            FoldersTestUtil.assertGeneralFolderSearchEquals(simong.restContext, null, [folderA, folderB], [], () => {
+              // Search on the display name
+              FoldersTestUtil.assertGeneralFolderSearchEquals(
+                simong.restContext,
+                folderA.displayName,
+                [folderA],
+                [folderB],
+                callback
+              );
+            });
+          });
+        });
       });
     });
 
@@ -559,32 +479,17 @@ describe('Folders', () => {
               FoldersAPI.emitter.emit(FoldersConstants.events.UPDATED_FOLDER_PREVIEWS, folder);
 
               // When we search for the folder it should contain our thumbnail
-              FoldersTestUtil.assertGeneralFolderSearchEquals(
-                simong.restContext,
-                null,
-                [folder],
-                [],
-                () => {
-                  // When we remove the thumbnail, it should be removed from the search result
-                  FoldersDAO.setPreviews(folder, {}, (err, folder) => {
-                    assert.ok(!err);
+              FoldersTestUtil.assertGeneralFolderSearchEquals(simong.restContext, null, [folder], [], () => {
+                // When we remove the thumbnail, it should be removed from the search result
+                FoldersDAO.setPreviews(folder, {}, (err, folder) => {
+                  assert.ok(!err);
 
-                    FoldersAPI.emitter.emit(
-                      FoldersConstants.events.UPDATED_FOLDER_PREVIEWS,
-                      folder
-                    );
+                  FoldersAPI.emitter.emit(FoldersConstants.events.UPDATED_FOLDER_PREVIEWS, folder);
 
-                    // When we search for the folder it should contain our thumbnail
-                    FoldersTestUtil.assertGeneralFolderSearchEquals(
-                      simong.restContext,
-                      null,
-                      [folder],
-                      [],
-                      callback
-                    );
-                  });
-                }
-              );
+                  // When we search for the folder it should contain our thumbnail
+                  FoldersTestUtil.assertGeneralFolderSearchEquals(simong.restContext, null, [folder], [], callback);
+                });
+              });
             }
           );
         }
@@ -726,39 +631,33 @@ describe('Folders', () => {
             [folder1, folder2],
             () => {
               // Create a message on the first folder
-              FoldersTestUtil.assertCreateMessageSucceeds(
-                simong.restContext,
-                folder1.id,
-                searchTerm,
-                null,
-                message => {
-                  // Verify that the first folder returns in the search result but not the second folder
-                  FoldersTestUtil.assertGeneralFolderSearchEquals(
-                    simong.restContext,
-                    searchTerm,
-                    [folder1],
-                    [folder2],
-                    () => {
-                      // Delete the message
-                      FoldersTestUtil.assertDeleteMessageSucceeds(
-                        simong.restContext,
-                        folder1.id,
-                        message.created,
-                        message => {
-                          // Verify that none of the folders return in the search results
-                          FoldersTestUtil.assertGeneralFolderSearchEquals(
-                            simong.restContext,
-                            searchTerm,
-                            [],
-                            [folder1, folder2],
-                            callback
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
+              FoldersTestUtil.assertCreateMessageSucceeds(simong.restContext, folder1.id, searchTerm, null, message => {
+                // Verify that the first folder returns in the search result but not the second folder
+                FoldersTestUtil.assertGeneralFolderSearchEquals(
+                  simong.restContext,
+                  searchTerm,
+                  [folder1],
+                  [folder2],
+                  () => {
+                    // Delete the message
+                    FoldersTestUtil.assertDeleteMessageSucceeds(
+                      simong.restContext,
+                      folder1.id,
+                      message.created,
+                      message => {
+                        // Verify that none of the folders return in the search results
+                        FoldersTestUtil.assertGeneralFolderSearchEquals(
+                          simong.restContext,
+                          searchTerm,
+                          [],
+                          [folder1, folder2],
+                          callback
+                        );
+                      }
+                    );
+                  }
+                );
+              });
             }
           );
         });
@@ -771,29 +670,17 @@ describe('Folders', () => {
      * Test that verifies only valid principal ids return results
      */
     it('verify the principal id gets validated', callback => {
-      SearchTestsUtil.searchAll(
-        camAdminRestContext,
-        'folder-library',
-        [''],
-        null,
-        (err, results) => {
+      SearchTestsUtil.searchAll(camAdminRestContext, 'folder-library', [''], null, (err, results) => {
+        assert.strictEqual(err.code, 400);
+        assert.ok(!results);
+
+        SearchTestsUtil.searchAll(camAdminRestContext, 'folder-library', ['invalid-user-id'], null, (err, results) => {
           assert.strictEqual(err.code, 400);
           assert.ok(!results);
 
-          SearchTestsUtil.searchAll(
-            camAdminRestContext,
-            'folder-library',
-            ['invalid-user-id'],
-            null,
-            (err, results) => {
-              assert.strictEqual(err.code, 400);
-              assert.ok(!results);
-
-              return callback();
-            }
-          );
-        }
-      );
+          return callback();
+        });
+      });
     });
 
     /**
@@ -807,84 +694,327 @@ describe('Folders', () => {
           assert.ok(!err);
 
           // Setup a public, loggedin and private folder
-          FoldersTestUtil.generateTestFoldersWithVisibility(
+          FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'public', publicFolder => {
+            FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'loggedin', loggedinFolder => {
+              FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'private', privateFolder => {
+                // Anonymous users can only see the public folder
+                FoldersTestUtil.assertFolderLibrarySearch(
+                  camAnonymousRestContext,
+                  simong.user.id,
+                  'disp',
+                  [publicFolder],
+                  [loggedinFolder, privateFolder],
+                  () => {
+                    // Anonymous users from other tenants can only see the public folder
+                    FoldersTestUtil.assertFolderLibrarySearch(
+                      gtAnonymousRestContext,
+                      simong.user.id,
+                      'disp',
+                      [publicFolder],
+                      [loggedinFolder, privateFolder],
+                      () => {
+                        // Users from other tenants can only see the public folder
+                        FoldersTestUtil.assertFolderLibrarySearch(
+                          stuartf.restContext,
+                          simong.user.id,
+                          'disp',
+                          [publicFolder],
+                          [loggedinFolder, privateFolder],
+                          () => {
+                            // Authenticated users can only see the public and logged in folders
+                            FoldersTestUtil.assertFolderLibrarySearch(
+                              nico.restContext,
+                              simong.user.id,
+                              'disp',
+                              [publicFolder, loggedinFolder],
+                              [privateFolder],
+                              () => {
+                                // Simong can see all folders as he created them. Keep in mind that
+                                // we need to search for some term as the endpoint would otherwise
+                                // only return implicit results (and not filtered by access)
+                                FoldersTestUtil.assertFolderLibrarySearch(
+                                  simong.restContext,
+                                  simong.user.id,
+                                  'disp',
+                                  [publicFolder, loggedinFolder, privateFolder],
+                                  [],
+                                  () => {
+                                    // Tenant administrators can see everything
+                                    FoldersTestUtil.assertFolderLibrarySearch(
+                                      camAdminRestContext,
+                                      simong.user.id,
+                                      'disp',
+                                      [publicFolder, loggedinFolder, privateFolder],
+                                      [],
+                                      () => {
+                                        // Tenant administrators from other tenants can only see the public folder
+                                        FoldersTestUtil.assertFolderLibrarySearch(
+                                          gtAdminRestContext,
+                                          simong.user.id,
+                                          'disp',
+                                          [publicFolder],
+                                          [loggedinFolder, privateFolder],
+                                          callback
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              });
+            });
+          });
+        });
+      });
+    });
+  });
+
+  describe('Indexing', () => {
+    /**
+     * Test that verifies that folders can be reindexed
+     */
+    it('verify folders can be reindexed', callback => {
+      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, simong) => {
+        assert.ok(!err);
+
+        // Setup a public folder with some content
+        FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'public', folder => {
+          RestAPI.Content.createLink(
             simong.restContext,
-            1,
             'public',
-            publicFolder => {
-              FoldersTestUtil.generateTestFoldersWithVisibility(
+            'public',
+            'public',
+            'http://www.google.com',
+            null,
+            [],
+            [],
+            (err, link) => {
+              assert.ok(!err);
+
+              FoldersTestUtil.assertAddContentItemsToFolderSucceeds(simong.restContext, folder.id, [link.id], () => {
+                // Sanity-check that folder can be found in a general search
+                FoldersTestUtil.assertGeneralFolderSearchEquals(simong.restContext, 'disp', [folder], [], () => {
+                  // Sanity-check we can search in the folder
+                  FoldersTestUtil.assertFolderSearchEquals(simong.restContext, folder.id, null, [link], () => {
+                    // Delete all the things
+                    SearchTestsUtil.deleteAll(() => {
+                      // Check that we can no longer find the folder
+                      FoldersTestUtil.assertGeneralFolderSearchEquals(simong.restContext, 'disp', [], [folder], () => {
+                        // Sanity check that searching in the folder returns 0 results
+                        FoldersTestUtil.assertFolderSearchEquals(simong.restContext, folder.id, null, [], () => {
+                          // Reindex all the things
+                          SearchTestsUtil.reindexAll(globalAdminRestContext, () => {
+                            // Check that we can now find the folder again
+                            FoldersTestUtil.assertGeneralFolderSearchEquals(
+                              simong.restContext,
+                              'disp',
+                              [folder],
+                              [],
+                              () => {
+                                // Check that we can search in the folder again
+                                FoldersTestUtil.assertFolderSearchEquals(
+                                  simong.restContext,
+                                  folder.id,
+                                  null,
+                                  [link],
+                                  callback
+                                );
+                              }
+                            );
+                          });
+                        });
+                      });
+                    });
+                  });
+                });
+              });
+            }
+          );
+        });
+      });
+    });
+
+    /**
+     * Test that verifies that updating a folder triggers a reindex for that folder
+     */
+    it('verify updating a folder triggers a reindex', callback => {
+      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, simong) => {
+        assert.ok(!err);
+
+        // Setup a public folder
+        FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'public', folder => {
+          // Sanity-check that it can be found
+          FoldersTestUtil.assertGeneralFolderSearchEquals(simong.restContext, 'disp', [folder], [], () => {
+            // Update the folder's name and visibility
+            const updates = { displayName: 'New displayName', visibility: 'private' };
+            RestAPI.Folders.updateFolder(simong.restContext, folder.id, updates, (err, updatedFolder) => {
+              assert.ok(!err);
+
+              // Assert that the folder's metadata has changed
+              FoldersTestUtil.assertGeneralFolderSearchEquals(
                 simong.restContext,
-                1,
-                'loggedin',
-                loggedinFolder => {
-                  FoldersTestUtil.generateTestFoldersWithVisibility(
-                    simong.restContext,
-                    1,
-                    'private',
-                    privateFolder => {
-                      // Anonymous users can only see the public folder
-                      FoldersTestUtil.assertFolderLibrarySearch(
-                        camAnonymousRestContext,
-                        simong.user.id,
-                        'disp',
-                        [publicFolder],
-                        [loggedinFolder, privateFolder],
+                'display',
+                [updatedFolder],
+                [],
+                callback
+              );
+            });
+          });
+        });
+      });
+    });
+
+    /**
+     * Test that verifies that updating a folder's visibility (and containing content) triggers updates in the search index
+     */
+    it("verify updating a folder's visibility affects the content that can be searched on", callback => {
+      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, simong, nico) => {
+        assert.ok(!err);
+
+        // Setup a public folder
+        FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'public', folder => {
+          // Add some public content
+          RestAPI.Content.createLink(
+            simong.restContext,
+            'displayName',
+            'description',
+            'public',
+            'http://www.google.com',
+            null,
+            [],
+            [],
+            (err, link) => {
+              assert.ok(!err);
+
+              FoldersTestUtil.assertAddContentItemsToFolderSucceeds(simong.restContext, folder.id, [link.id], () => {
+                // Sanity-check that the content item can be found by Nico
+                SearchTestsUtil.searchAll(
+                  nico.restContext,
+                  'general',
+                  null,
+                  { resourceTypes: 'content', q: 'displayName' },
+                  (err, results) => {
+                    assert.ok(!err);
+                    assert.ok(_.findWhere(results.results, { id: link.id }));
+
+                    // Make the folder and all content in it private
+                    const updates = { visibility: 'private' };
+                    RestAPI.Folders.updateFolder(simong.restContext, folder.id, updates, (err, data) => {
+                      assert.ok(!err);
+                      RestAPI.Folders.updateFolderContentVisibility(
+                        simong.restContext,
+                        folder.id,
+                        'private',
+                        (err, data) => {
+                          assert.ok(!err);
+
+                          // Nico should no longer be able to see the content item
+                          SearchTestsUtil.searchAll(
+                            nico.restContext,
+                            'general',
+                            null,
+                            { resourceTypes: 'content', q: 'displayName' },
+                            (err, results) => {
+                              assert.ok(!err);
+                              assert.ok(!_.findWhere(results.results, { id: link.id }));
+
+                              return callback();
+                            }
+                          );
+                        }
+                      );
+                    });
+                  }
+                );
+              });
+            }
+          );
+        });
+      });
+    });
+
+    /**
+     * Test that verifies that updating a folder's members updates the index
+     */
+    it("verify updating a folder's members updates the index", callback => {
+      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, simong, nico) => {
+        assert.ok(!err);
+
+        // Setup a private folder
+        FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'private', folder => {
+          // Sanity-check that the folder cannot be found by Nico
+          SearchTestsUtil.searchAll(
+            nico.restContext,
+            'general',
+            null,
+            { resourceTypes: 'folder', q: 'displayName' },
+            (err, results) => {
+              assert.ok(!err);
+              assert.ok(!_.findWhere(results.results, { id: folder.id }));
+
+              // Make Nico a viewer
+              const memberUpdate = {};
+              memberUpdate[nico.user.id] = 'viewer';
+              FoldersTestUtil.assertUpdateFolderMembersSucceeds(
+                simong.restContext,
+                simong.restContext,
+                folder.id,
+                memberUpdate,
+                () => {
+                  // Nico should now be able to search for the folder
+                  SearchTestsUtil.searchAll(
+                    nico.restContext,
+                    'general',
+                    null,
+                    { resourceTypes: 'folder', q: 'displayName' },
+                    (err, results) => {
+                      assert.ok(!err);
+                      assert.ok(_.findWhere(results.results, { id: folder.id }));
+
+                      // Make Nico a manager
+                      memberUpdate[nico.user.id] = 'manager';
+                      FoldersTestUtil.assertUpdateFolderMembersSucceeds(
+                        simong.restContext,
+                        simong.restContext,
+                        folder.id,
+                        memberUpdate,
                         () => {
-                          // Anonymous users from other tenants can only see the public folder
-                          FoldersTestUtil.assertFolderLibrarySearch(
-                            gtAnonymousRestContext,
-                            simong.user.id,
-                            'disp',
-                            [publicFolder],
-                            [loggedinFolder, privateFolder],
-                            () => {
-                              // Users from other tenants can only see the public folder
-                              FoldersTestUtil.assertFolderLibrarySearch(
-                                stuartf.restContext,
-                                simong.user.id,
-                                'disp',
-                                [publicFolder],
-                                [loggedinFolder, privateFolder],
+                          // Nico should still be able to search for the folder
+                          SearchTestsUtil.searchAll(
+                            nico.restContext,
+                            'general',
+                            null,
+                            { resourceTypes: 'folder', q: 'displayName' },
+                            (err, results) => {
+                              assert.ok(!err);
+                              assert.ok(_.findWhere(results.results, { id: folder.id }));
+
+                              // Removing Nico's membership
+                              memberUpdate[nico.user.id] = false;
+                              FoldersTestUtil.assertUpdateFolderMembersSucceeds(
+                                simong.restContext,
+                                simong.restContext,
+                                folder.id,
+                                memberUpdate,
                                 () => {
-                                  // Authenticated users can only see the public and logged in folders
-                                  FoldersTestUtil.assertFolderLibrarySearch(
+                                  // Nico should no longer see the folder in the search results
+                                  SearchTestsUtil.searchAll(
                                     nico.restContext,
-                                    simong.user.id,
-                                    'disp',
-                                    [publicFolder, loggedinFolder],
-                                    [privateFolder],
-                                    () => {
-                                      // Simong can see all folders as he created them. Keep in mind that
-                                      // we need to search for some term as the endpoint would otherwise
-                                      // only return implicit results (and not filtered by access)
-                                      FoldersTestUtil.assertFolderLibrarySearch(
-                                        simong.restContext,
-                                        simong.user.id,
-                                        'disp',
-                                        [publicFolder, loggedinFolder, privateFolder],
-                                        [],
-                                        () => {
-                                          // Tenant administrators can see everything
-                                          FoldersTestUtil.assertFolderLibrarySearch(
-                                            camAdminRestContext,
-                                            simong.user.id,
-                                            'disp',
-                                            [publicFolder, loggedinFolder, privateFolder],
-                                            [],
-                                            () => {
-                                              // Tenant administrators from other tenants can only see the public folder
-                                              FoldersTestUtil.assertFolderLibrarySearch(
-                                                gtAdminRestContext,
-                                                simong.user.id,
-                                                'disp',
-                                                [publicFolder],
-                                                [loggedinFolder, privateFolder],
-                                                callback
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
+                                    'general',
+                                    null,
+                                    { resourceTypes: 'folder', q: 'displayName' },
+                                    (err, results) => {
+                                      assert.ok(!err);
+                                      assert.ok(!_.findWhere(results.results, { id: folder.id }));
+
+                                      return callback();
                                     }
                                   );
                                 }
@@ -902,334 +1032,6 @@ describe('Folders', () => {
         });
       });
     });
-  });
-
-  describe('Indexing', () => {
-    /**
-     * Test that verifies that folders can be reindexed
-     */
-    it('verify folders can be reindexed', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, simong) => {
-        assert.ok(!err);
-
-        // Setup a public folder with some content
-        FoldersTestUtil.generateTestFoldersWithVisibility(
-          simong.restContext,
-          1,
-          'public',
-          folder => {
-            RestAPI.Content.createLink(
-              simong.restContext,
-              'public',
-              'public',
-              'public',
-              'http://www.google.com',
-              null,
-              [],
-              [],
-              (err, link) => {
-                assert.ok(!err);
-
-                FoldersTestUtil.assertAddContentItemsToFolderSucceeds(
-                  simong.restContext,
-                  folder.id,
-                  [link.id],
-                  () => {
-                    // Sanity-check that folder can be found in a general search
-                    FoldersTestUtil.assertGeneralFolderSearchEquals(
-                      simong.restContext,
-                      'disp',
-                      [folder],
-                      [],
-                      () => {
-                        // Sanity-check we can search in the folder
-                        FoldersTestUtil.assertFolderSearchEquals(
-                          simong.restContext,
-                          folder.id,
-                          null,
-                          [link],
-                          () => {
-                            // Delete all the things
-                            SearchTestsUtil.deleteAll(() => {
-                              // Check that we can no longer find the folder
-                              FoldersTestUtil.assertGeneralFolderSearchEquals(
-                                simong.restContext,
-                                'disp',
-                                [],
-                                [folder],
-                                () => {
-                                  // Sanity check that searching in the folder returns 0 results
-                                  FoldersTestUtil.assertFolderSearchEquals(
-                                    simong.restContext,
-                                    folder.id,
-                                    null,
-                                    [],
-                                    () => {
-                                      // Reindex all the things
-                                      SearchTestsUtil.reindexAll(globalAdminRestContext, () => {
-                                        // Check that we can now find the folder again
-                                        FoldersTestUtil.assertGeneralFolderSearchEquals(
-                                          simong.restContext,
-                                          'disp',
-                                          [folder],
-                                          [],
-                                          () => {
-                                            // Check that we can search in the folder again
-                                            FoldersTestUtil.assertFolderSearchEquals(
-                                              simong.restContext,
-                                              folder.id,
-                                              null,
-                                              [link],
-                                              callback
-                                            );
-                                          }
-                                        );
-                                      });
-                                    }
-                                  );
-                                }
-                              );
-                            });
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
-      });
-    });
-
-    /**
-     * Test that verifies that updating a folder triggers a reindex for that folder
-     */
-    it('verify updating a folder triggers a reindex', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, simong) => {
-        assert.ok(!err);
-
-        // Setup a public folder
-        FoldersTestUtil.generateTestFoldersWithVisibility(
-          simong.restContext,
-          1,
-          'public',
-          folder => {
-            // Sanity-check that it can be found
-            FoldersTestUtil.assertGeneralFolderSearchEquals(
-              simong.restContext,
-              'disp',
-              [folder],
-              [],
-              () => {
-                // Update the folder's name and visibility
-                const updates = { displayName: 'New displayName', visibility: 'private' };
-                RestAPI.Folders.updateFolder(
-                  simong.restContext,
-                  folder.id,
-                  updates,
-                  (err, updatedFolder) => {
-                    assert.ok(!err);
-
-                    // Assert that the folder's metadata has changed
-                    FoldersTestUtil.assertGeneralFolderSearchEquals(
-                      simong.restContext,
-                      'display',
-                      [updatedFolder],
-                      [],
-                      callback
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
-      });
-    });
-
-    /**
-     * Test that verifies that updating a folder's visibility (and containing content) triggers updates in the search index
-     */
-    it("verify updating a folder's visibility affects the content that can be searched on", callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, simong, nico) => {
-        assert.ok(!err);
-
-        // Setup a public folder
-        FoldersTestUtil.generateTestFoldersWithVisibility(
-          simong.restContext,
-          1,
-          'public',
-          folder => {
-            // Add some public content
-            RestAPI.Content.createLink(
-              simong.restContext,
-              'displayName',
-              'description',
-              'public',
-              'http://www.google.com',
-              null,
-              [],
-              [],
-              (err, link) => {
-                assert.ok(!err);
-
-                FoldersTestUtil.assertAddContentItemsToFolderSucceeds(
-                  simong.restContext,
-                  folder.id,
-                  [link.id],
-                  () => {
-                    // Sanity-check that the content item can be found by Nico
-                    SearchTestsUtil.searchAll(
-                      nico.restContext,
-                      'general',
-                      null,
-                      { resourceTypes: 'content', q: 'displayName' },
-                      (err, results) => {
-                        assert.ok(!err);
-                        assert.ok(_.findWhere(results.results, { id: link.id }));
-
-                        // Make the folder and all content in it private
-                        const updates = { visibility: 'private' };
-                        RestAPI.Folders.updateFolder(
-                          simong.restContext,
-                          folder.id,
-                          updates,
-                          (err, data) => {
-                            assert.ok(!err);
-                            RestAPI.Folders.updateFolderContentVisibility(
-                              simong.restContext,
-                              folder.id,
-                              'private',
-                              (err, data) => {
-                                assert.ok(!err);
-
-                                // Nico should no longer be able to see the content item
-                                SearchTestsUtil.searchAll(
-                                  nico.restContext,
-                                  'general',
-                                  null,
-                                  { resourceTypes: 'content', q: 'displayName' },
-                                  (err, results) => {
-                                    assert.ok(!err);
-                                    assert.ok(!_.findWhere(results.results, { id: link.id }));
-
-                                    return callback();
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
-      });
-    });
-
-    /**
-     * Test that verifies that updating a folder's members updates the index
-     */
-    it("verify updating a folder's members updates the index", callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, simong, nico) => {
-        assert.ok(!err);
-
-        // Setup a private folder
-        FoldersTestUtil.generateTestFoldersWithVisibility(
-          simong.restContext,
-          1,
-          'private',
-          folder => {
-            // Sanity-check that the folder cannot be found by Nico
-            SearchTestsUtil.searchAll(
-              nico.restContext,
-              'general',
-              null,
-              { resourceTypes: 'folder', q: 'displayName' },
-              (err, results) => {
-                assert.ok(!err);
-                assert.ok(!_.findWhere(results.results, { id: folder.id }));
-
-                // Make Nico a viewer
-                const memberUpdate = {};
-                memberUpdate[nico.user.id] = 'viewer';
-                FoldersTestUtil.assertUpdateFolderMembersSucceeds(
-                  simong.restContext,
-                  simong.restContext,
-                  folder.id,
-                  memberUpdate,
-                  () => {
-                    // Nico should now be able to search for the folder
-                    SearchTestsUtil.searchAll(
-                      nico.restContext,
-                      'general',
-                      null,
-                      { resourceTypes: 'folder', q: 'displayName' },
-                      (err, results) => {
-                        assert.ok(!err);
-                        assert.ok(_.findWhere(results.results, { id: folder.id }));
-
-                        // Make Nico a manager
-                        memberUpdate[nico.user.id] = 'manager';
-                        FoldersTestUtil.assertUpdateFolderMembersSucceeds(
-                          simong.restContext,
-                          simong.restContext,
-                          folder.id,
-                          memberUpdate,
-                          () => {
-                            // Nico should still be able to search for the folder
-                            SearchTestsUtil.searchAll(
-                              nico.restContext,
-                              'general',
-                              null,
-                              { resourceTypes: 'folder', q: 'displayName' },
-                              (err, results) => {
-                                assert.ok(!err);
-                                assert.ok(_.findWhere(results.results, { id: folder.id }));
-
-                                // Removing Nico's membership
-                                memberUpdate[nico.user.id] = false;
-                                FoldersTestUtil.assertUpdateFolderMembersSucceeds(
-                                  simong.restContext,
-                                  simong.restContext,
-                                  folder.id,
-                                  memberUpdate,
-                                  () => {
-                                    // Nico should no longer see the folder in the search results
-                                    SearchTestsUtil.searchAll(
-                                      nico.restContext,
-                                      'general',
-                                      null,
-                                      { resourceTypes: 'folder', q: 'displayName' },
-                                      (err, results) => {
-                                        assert.ok(!err);
-                                        assert.ok(!_.findWhere(results.results, { id: folder.id }));
-
-                                        return callback();
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
-      });
-    });
 
     /**
      * Test that verifies that updating a folder's members updates those members their membership documents
@@ -1239,101 +1041,89 @@ describe('Folders', () => {
         assert.ok(!err);
 
         // Setup a private folder
-        FoldersTestUtil.generateTestFoldersWithVisibility(
-          simong.restContext,
-          1,
-          'private',
-          folder => {
-            // Create a private content item
-            const uniqueString = TestsUtil.generateRandomText(5);
-            RestAPI.Content.createLink(
-              simong.restContext,
-              uniqueString,
-              'description',
-              'private',
-              'http://www.google.com',
-              null,
-              [],
-              [],
-              (err, link) => {
-                assert.ok(!err);
+        FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'private', folder => {
+          // Create a private content item
+          const uniqueString = TestsUtil.generateRandomText(5);
+          RestAPI.Content.createLink(
+            simong.restContext,
+            uniqueString,
+            'description',
+            'private',
+            'http://www.google.com',
+            null,
+            [],
+            [],
+            (err, link) => {
+              assert.ok(!err);
 
-                // Add the content item to the folder
-                FoldersTestUtil.assertAddContentItemsToFolderSucceeds(
-                  simong.restContext,
-                  folder.id,
-                  [link.id],
-                  () => {
-                    // Sanity-check that the content item cannot be found by Nico
-                    SearchTestsUtil.searchAll(
-                      nico.restContext,
-                      'general',
-                      null,
-                      { resourceTypes: 'content', q: uniqueString },
-                      (err, results) => {
-                        assert.ok(!err);
-                        assert.ok(!_.findWhere(results.results, { id: link.id }));
+              // Add the content item to the folder
+              FoldersTestUtil.assertAddContentItemsToFolderSucceeds(simong.restContext, folder.id, [link.id], () => {
+                // Sanity-check that the content item cannot be found by Nico
+                SearchTestsUtil.searchAll(
+                  nico.restContext,
+                  'general',
+                  null,
+                  { resourceTypes: 'content', q: uniqueString },
+                  (err, results) => {
+                    assert.ok(!err);
+                    assert.ok(!_.findWhere(results.results, { id: link.id }));
 
-                        // Make Nico a viewer
-                        const memberUpdate = {};
-                        memberUpdate[nico.user.id] = 'viewer';
-                        FoldersTestUtil.assertUpdateFolderMembersSucceeds(
-                          simong.restContext,
-                          simong.restContext,
-                          folder.id,
-                          memberUpdate,
-                          () => {
-                            // Nico should now be able to search for the content item
-                            SearchTestsUtil.searchAll(
-                              nico.restContext,
-                              'general',
-                              null,
-                              { q: uniqueString, scope: '_network' },
-                              (err, results) => {
-                                assert.ok(!err);
-                                assert.ok(_.findWhere(results.results, { id: link.id }));
+                    // Make Nico a viewer
+                    const memberUpdate = {};
+                    memberUpdate[nico.user.id] = 'viewer';
+                    FoldersTestUtil.assertUpdateFolderMembersSucceeds(
+                      simong.restContext,
+                      simong.restContext,
+                      folder.id,
+                      memberUpdate,
+                      () => {
+                        // Nico should now be able to search for the content item
+                        SearchTestsUtil.searchAll(
+                          nico.restContext,
+                          'general',
+                          null,
+                          { q: uniqueString, scope: '_network' },
+                          (err, results) => {
+                            assert.ok(!err);
+                            assert.ok(_.findWhere(results.results, { id: link.id }));
 
-                                // Make Nico a manager
-                                memberUpdate[nico.user.id] = 'manager';
-                                FoldersTestUtil.assertUpdateFolderMembersSucceeds(
-                                  simong.restContext,
-                                  simong.restContext,
-                                  folder.id,
-                                  memberUpdate,
-                                  () => {
-                                    // Nico should still be able to search for the content item
-                                    SearchTestsUtil.searchAll(
-                                      nico.restContext,
-                                      'general',
-                                      null,
-                                      { resourceTypes: 'content', q: uniqueString },
-                                      (err, results) => {
-                                        assert.ok(!err);
-                                        assert.ok(_.findWhere(results.results, { id: link.id }));
+                            // Make Nico a manager
+                            memberUpdate[nico.user.id] = 'manager';
+                            FoldersTestUtil.assertUpdateFolderMembersSucceeds(
+                              simong.restContext,
+                              simong.restContext,
+                              folder.id,
+                              memberUpdate,
+                              () => {
+                                // Nico should still be able to search for the content item
+                                SearchTestsUtil.searchAll(
+                                  nico.restContext,
+                                  'general',
+                                  null,
+                                  { resourceTypes: 'content', q: uniqueString },
+                                  (err, results) => {
+                                    assert.ok(!err);
+                                    assert.ok(_.findWhere(results.results, { id: link.id }));
 
-                                        // Removing Nico's membership
-                                        memberUpdate[nico.user.id] = false;
-                                        FoldersTestUtil.assertUpdateFolderMembersSucceeds(
-                                          simong.restContext,
-                                          simong.restContext,
-                                          folder.id,
-                                          memberUpdate,
-                                          () => {
-                                            // Nico should no longer see the content item in the search results
-                                            SearchTestsUtil.searchAll(
-                                              nico.restContext,
-                                              'general',
-                                              null,
-                                              { resourceTypes: 'content', q: uniqueString },
-                                              (err, results) => {
-                                                assert.ok(!err);
-                                                assert.ok(
-                                                  !_.findWhere(results.results, { id: link.id })
-                                                );
+                                    // Removing Nico's membership
+                                    memberUpdate[nico.user.id] = false;
+                                    FoldersTestUtil.assertUpdateFolderMembersSucceeds(
+                                      simong.restContext,
+                                      simong.restContext,
+                                      folder.id,
+                                      memberUpdate,
+                                      () => {
+                                        // Nico should no longer see the content item in the search results
+                                        SearchTestsUtil.searchAll(
+                                          nico.restContext,
+                                          'general',
+                                          null,
+                                          { resourceTypes: 'content', q: uniqueString },
+                                          (err, results) => {
+                                            assert.ok(!err);
+                                            assert.ok(!_.findWhere(results.results, { id: link.id }));
 
-                                                return callback();
-                                              }
-                                            );
+                                            return callback();
                                           }
                                         );
                                       }
@@ -1348,10 +1138,10 @@ describe('Folders', () => {
                     );
                   }
                 );
-              }
-            );
-          }
-        );
+              });
+            }
+          );
+        });
       });
     });
 
@@ -1363,50 +1153,22 @@ describe('Folders', () => {
         assert.ok(!err);
 
         // Setup a public folder
-        FoldersTestUtil.generateTestFoldersWithVisibility(
-          simong.restContext,
-          1,
-          'public',
-          folder => {
-            // Sanity-check that it can be found
-            FoldersTestUtil.assertGeneralFolderSearchEquals(
-              simong.restContext,
-              'disp',
-              [folder],
-              [],
-              () => {
-                // Delete the folder
-                FoldersTestUtil.assertDeleteFolderSucceeds(
-                  simong.restContext,
-                  folder.id,
-                  false,
-                  () => {
-                    // Assert that the folder's metadata cannot be found
-                    FoldersTestUtil.assertGeneralFolderSearchEquals(
-                      simong.restContext,
-                      'disp',
-                      [],
-                      [folder],
-                      () => {
-                        // Reindex everything
-                        SearchTestsUtil.reindexAll(globalAdminRestContext, () => {
-                          // We still should not be able to find the folder
-                          FoldersTestUtil.assertGeneralFolderSearchEquals(
-                            simong.restContext,
-                            'disp',
-                            [],
-                            [folder],
-                            callback
-                          );
-                        });
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
+        FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'public', folder => {
+          // Sanity-check that it can be found
+          FoldersTestUtil.assertGeneralFolderSearchEquals(simong.restContext, 'disp', [folder], [], () => {
+            // Delete the folder
+            FoldersTestUtil.assertDeleteFolderSucceeds(simong.restContext, folder.id, false, () => {
+              // Assert that the folder's metadata cannot be found
+              FoldersTestUtil.assertGeneralFolderSearchEquals(simong.restContext, 'disp', [], [folder], () => {
+                // Reindex everything
+                SearchTestsUtil.reindexAll(globalAdminRestContext, () => {
+                  // We still should not be able to find the folder
+                  FoldersTestUtil.assertGeneralFolderSearchEquals(simong.restContext, 'disp', [], [folder], callback);
+                });
+              });
+            });
+          });
+        });
       });
     });
 
@@ -1418,86 +1180,81 @@ describe('Folders', () => {
         assert.ok(!err);
 
         // Setup a folder
-        FoldersTestUtil.generateTestFoldersWithVisibility(
-          simong.restContext,
-          1,
-          'private',
-          folder => {
-            // Add some private content to the folder. We add it in two different ways
-            // to ensure that both mechanismes get properly indexed
-            RestAPI.Content.createLink(
-              simong.restContext,
-              'private',
-              'private',
-              'private',
-              'http://www.google.com',
-              null,
-              [],
-              [folder.id],
-              (err, link1) => {
-                assert.ok(!err);
+        FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'private', folder => {
+          // Add some private content to the folder. We add it in two different ways
+          // to ensure that both mechanismes get properly indexed
+          RestAPI.Content.createLink(
+            simong.restContext,
+            'private',
+            'private',
+            'private',
+            'http://www.google.com',
+            null,
+            [],
+            [folder.id],
+            (err, link1) => {
+              assert.ok(!err);
 
-                RestAPI.Content.createLink(
-                  simong.restContext,
-                  'private',
-                  'private',
-                  'private',
-                  'http://www.google.com',
-                  null,
-                  [],
-                  [],
-                  (err, link2) => {
-                    assert.ok(!err);
-                    FoldersTestUtil.assertAddContentItemsToFolderSucceeds(
-                      simong.restContext,
-                      folder.id,
-                      [link2.id],
-                      () => {
-                        // Assert that Nico can't find the items through search yet
-                        SearchTestsUtil.searchAll(
-                          nico.restContext,
-                          'general',
-                          null,
-                          { resourceTypes: 'content', q: 'private' },
-                          (err, results) => {
-                            assert.ok(!err);
-                            assert.ok(!_.findWhere(results.results, { id: link1.id }));
-                            assert.ok(!_.findWhere(results.results, { id: link2.id }));
+              RestAPI.Content.createLink(
+                simong.restContext,
+                'private',
+                'private',
+                'private',
+                'http://www.google.com',
+                null,
+                [],
+                [],
+                (err, link2) => {
+                  assert.ok(!err);
+                  FoldersTestUtil.assertAddContentItemsToFolderSucceeds(
+                    simong.restContext,
+                    folder.id,
+                    [link2.id],
+                    () => {
+                      // Assert that Nico can't find the items through search yet
+                      SearchTestsUtil.searchAll(
+                        nico.restContext,
+                        'general',
+                        null,
+                        { resourceTypes: 'content', q: 'private' },
+                        (err, results) => {
+                          assert.ok(!err);
+                          assert.ok(!_.findWhere(results.results, { id: link1.id }));
+                          assert.ok(!_.findWhere(results.results, { id: link2.id }));
 
-                            // Make Nico a member
-                            const memberUpdate = {};
-                            memberUpdate[nico.user.id] = 'viewer';
-                            FoldersTestUtil.assertUpdateFolderMembersSucceeds(
-                              simong.restContext,
-                              simong.restContext,
-                              folder.id,
-                              memberUpdate,
-                              () => {
-                                // Now Nico should be able to see the items
-                                SearchTestsUtil.searchAll(
-                                  nico.restContext,
-                                  'general',
-                                  null,
-                                  { resourceTypes: 'content', q: 'private' },
-                                  (err, results) => {
-                                    assert.ok(!err);
-                                    assert.ok(_.findWhere(results.results, { id: link1.id }));
-                                    assert.ok(_.findWhere(results.results, { id: link2.id }));
-                                    return callback();
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
+                          // Make Nico a member
+                          const memberUpdate = {};
+                          memberUpdate[nico.user.id] = 'viewer';
+                          FoldersTestUtil.assertUpdateFolderMembersSucceeds(
+                            simong.restContext,
+                            simong.restContext,
+                            folder.id,
+                            memberUpdate,
+                            () => {
+                              // Now Nico should be able to see the items
+                              SearchTestsUtil.searchAll(
+                                nico.restContext,
+                                'general',
+                                null,
+                                { resourceTypes: 'content', q: 'private' },
+                                (err, results) => {
+                                  assert.ok(!err);
+                                  assert.ok(_.findWhere(results.results, { id: link1.id }));
+                                  assert.ok(_.findWhere(results.results, { id: link2.id }));
+                                  return callback();
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        });
       });
     });
   });

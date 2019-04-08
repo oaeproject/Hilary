@@ -13,10 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const ShortId = require('shortid');
-
-const AuthzUtil = require('oae-authz/lib/util');
+import util from 'util';
+import ShortId from 'shortid';
+import * as AuthzUtil from 'oae-authz/lib/util';
 
 const VALID_CHARACTERS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_';
 const COLLABDOC = 'collabdoc';
@@ -153,11 +152,4 @@ const isResourceAFile = function(resourceType) {
   return resourceType === FILE;
 };
 
-module.exports = {
-  splitUri,
-  generateUri,
-  isResourceACollabDoc,
-  isResourceACollabSheet,
-  isResourceAFile,
-  isResourceALink
-};
+export { splitUri, generateUri, isResourceACollabDoc, isResourceACollabSheet, isResourceAFile, isResourceALink };

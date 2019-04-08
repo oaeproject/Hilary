@@ -13,14 +13,14 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
 
-const AuthzAPI = require('oae-authz');
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const AuthzUtil = require('oae-authz/lib/util');
+import * as AuthzAPI from 'oae-authz';
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import * as AuthzUtil from 'oae-authz/lib/util';
 
-const { ActivityConstants } = require('oae-activity/lib/constants');
+import { ActivityConstants } from 'oae-activity/lib/constants';
 
 /**
  * Get a propagation specification that is standard for a resource. This effectively assumes that a resource does not get
@@ -241,9 +241,4 @@ const parseActivityStreamId = function(activityStreamId) {
   };
 };
 
-module.exports = {
-  getStandardResourcePropagation,
-  getAllAuthzMembersByRole,
-  createActivityStreamId,
-  parseActivityStreamId
-};
+export { getStandardResourcePropagation, getAllAuthzMembersByRole, createActivityStreamId, parseActivityStreamId };

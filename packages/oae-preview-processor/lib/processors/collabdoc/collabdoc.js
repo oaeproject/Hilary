@@ -13,21 +13,22 @@
  * permissions and limitations under the License.
  */
 
-const { isResourceACollabDoc, isResourceACollabSheet } = require('oae-content/lib/backends/util');
+import fs from 'fs';
+import Path from 'path';
+import PreviewConstants from 'oae-preview-processor/lib/constants';
+import _ from 'underscore';
+import cheerio from 'cheerio';
+import { isResourceACollabDoc, isResourceACollabSheet } from 'oae-content/lib/backends/util';
+import { logger } from 'oae-logger';
 
-const fs = require('fs');
-const Path = require('path');
-const _ = require('underscore');
-const cheerio = require('cheerio');
+import * as puppeteerHelper from 'oae-preview-processor/lib/internal/puppeteer';
 
-const ImageUtil = require('oae-util/lib/image');
-const IO = require('oae-util/lib/io');
-const log = require('oae-logger').logger('oae-preview-processor');
-const RestAPI = require('oae-rest');
-const OaeUtil = require('oae-util/lib/util');
+import * as ImageUtil from 'oae-util/lib/image';
+import * as IO from 'oae-util/lib/io';
+import * as RestAPI from 'oae-rest';
+import * as OaeUtil from 'oae-util/lib/util';
 
-const PreviewConstants = require('oae-preview-processor/lib/constants');
-const puppeteerHelper = require('oae-preview-processor/lib/internal/puppeteer');
+const log = logger('oae-preview-processor');
 
 const screenShottingOptions = {
   viewport: {
@@ -35,7 +36,6 @@ const screenShottingOptions = {
     height: PreviewConstants.SIZES.IMAGE.WIDE_HEIGHT
   }
 };
-const COLLABDOC = 'collabdoc';
 
 /**
  * Initializes the CollabDocProcessor
@@ -239,8 +239,4 @@ const _getWrappedCollabHtml = function(ctx, collabHtml, callback) {
   }
 };
 
-module.exports = {
-  init,
-  test,
-  generatePreviews
-};
+export { init, test, generatePreviews };

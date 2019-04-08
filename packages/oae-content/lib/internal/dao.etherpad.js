@@ -13,11 +13,13 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
 
-const log = require('oae-logger').logger('content-dao-etherpad');
-const Redis = require('oae-util/lib/redis');
+import { logger } from 'oae-logger';
+import * as Redis from 'oae-util/lib/redis';
+
+const log = logger('content-dao-etherpad');
 
 /**
  * Given a set of Etherpad author IDs, retrieve the corresponding OAE user ids
@@ -35,10 +37,7 @@ const getUserIds = function(authorIds, callback) {
   const keys = _.map(authorIds, _getMappingKey);
   Redis.getClient().mget(keys, (err, userIds) => {
     if (err) {
-      log().error(
-        { err, authorIds },
-        'Failed to retrieve OAE users for a set of etherpad author ids'
-      );
+      log().error({ err, authorIds }, 'Failed to retrieve OAE users for a set of etherpad author ids');
       return callback({
         code: 500,
         msg: 'Failed to retrieve OAE users for a set of etherpad author ids'
@@ -81,7 +80,4 @@ const _getMappingKey = function(authorId) {
   return util.format('etherpad:mapping:%s', authorId);
 };
 
-module.exports = {
-  getUserIds,
-  saveAuthorId
-};
+export { getUserIds, saveAuthorId };

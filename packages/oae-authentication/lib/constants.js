@@ -39,4 +39,4 @@ AuthenticationConstants.events = {
   USER_LOGGED_OUT: 'userLoggedOut'
 };
 
-module.exports = { AuthenticationConstants };
+export { AuthenticationConstants };

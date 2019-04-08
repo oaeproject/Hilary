@@ -12,17 +12,17 @@
  * or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-const assert = require('assert');
-const _ = require('underscore');
 
-const AuthzUtil = require('oae-authz/lib/util');
-const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
-const { Context } = require('oae-context');
-const TestsUtil = require('oae-tests');
+import assert from 'assert';
+import _ from 'underscore';
 
-const PrincipalsUtil = require('oae-principals/lib/util');
-const { User } = require('oae-principals/lib/model');
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
+import * as PrincipalsUtil from 'oae-principals/lib/util';
+
+import { Context } from 'oae-context';
+import { User } from 'oae-principals/lib/model';
 
 describe('Principals', () => {
   // Rest context that can be used every time we need to make a request as a global admin
@@ -61,43 +61,23 @@ describe('Principals', () => {
       const createPrincipal = function(type, identifier, metadata) {
         const principalId = TestsUtil.generateTestUserId(identifier);
         if (type === 'group') {
-          RestAPI.Group.createGroup(
-            johnRestContext,
-            metadata,
-            metadata,
-            'public',
-            'yes',
-            [],
-            [],
-            (err, groupObj) => {
-              assert.ok(!err);
-              createdPrincipals[identifier] = groupObj;
-              if (_.keys(createdPrincipals).length === 7) {
-                callback(createdPrincipals);
-              }
+          RestAPI.Group.createGroup(johnRestContext, metadata, metadata, 'public', 'yes', [], [], (err, groupObj) => {
+            assert.ok(!err);
+            createdPrincipals[identifier] = groupObj;
+            if (_.keys(createdPrincipals).length === 7) {
+              callback(createdPrincipals);
             }
-          );
+          });
         } else {
-          const email = TestsUtil.generateTestEmailAddress(
-            null,
-            global.oaeTests.tenants.cam.emailDomains[0]
-          );
-          RestAPI.User.createUser(
-            camAdminRestContext,
-            principalId,
-            'password',
-            metadata,
-            email,
-            {},
-            (err, userObj) => {
-              assert.ok(!err);
-              const userContext = new Context(global.oaeTests.tenants.cam, userObj);
-              createdPrincipals[identifier] = userContext;
-              if (_.keys(createdPrincipals).length === 7) {
-                callback(createdPrincipals);
-              }
+          const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
+          RestAPI.User.createUser(camAdminRestContext, principalId, 'password', metadata, email, {}, (err, userObj) => {
+            assert.ok(!err);
+            const userContext = new Context(global.oaeTests.tenants.cam, userObj);
+            createdPrincipals[identifier] = userContext;
+            if (_.keys(createdPrincipals).length === 7) {
+              callback(createdPrincipals);
             }
-          );
+          });
         }
       };
 
@@ -119,62 +99,43 @@ describe('Principals', () => {
     it('verify get principal', callback => {
       createUsersAndGroup(createdPrincipals => {
         // Get an existing user
-        PrincipalsUtil.getPrincipal(
-          createdPrincipals.nicolaas,
-          createdPrincipals.nicolaas.user().id,
-          (err, user) => {
-            assert.ok(!err);
-            assert.ok(user);
-            assert.strictEqual(user.id, createdPrincipals.nicolaas.user().id);
-            assert.strictEqual(user.displayName, 'Nicolaas Matthijs');
-            assert.strictEqual(user.resourceType, 'user');
-            assert.strictEqual(
-              user.profilePath,
-              '/user/' + user.tenant.alias + '/' + AuthzUtil.getResourceFromId(user.id).resourceId
-            );
+        PrincipalsUtil.getPrincipal(createdPrincipals.nicolaas, createdPrincipals.nicolaas.user().id, (err, user) => {
+          assert.ok(!err);
+          assert.ok(user);
+          assert.strictEqual(user.id, createdPrincipals.nicolaas.user().id);
+          assert.strictEqual(user.displayName, 'Nicolaas Matthijs');
+          assert.strictEqual(user.resourceType, 'user');
+          assert.strictEqual(
+            user.profilePath,
+            '/user/' + user.tenant.alias + '/' + AuthzUtil.getResourceFromId(user.id).resourceId
+          );
 
-            // Get a non-existing user
-            PrincipalsUtil.getPrincipal(
-              createdPrincipals.nicolaas,
-              'non-existing-user',
-              (err, user) => {
+          // Get a non-existing user
+          PrincipalsUtil.getPrincipal(createdPrincipals.nicolaas, 'non-existing-user', (err, user) => {
+            assert.ok(err);
+            assert.ok(!user);
+
+            // Get an existing group
+            PrincipalsUtil.getPrincipal(createdPrincipals.nicolaas, createdPrincipals['oae-team'].id, (err, group) => {
+              assert.ok(!err);
+              assert.ok(group);
+              assert.strictEqual(group.id, createdPrincipals['oae-team'].id);
+              assert.strictEqual(group.displayName, 'OAE Team');
+              assert.strictEqual(group.resourceType, 'group');
+              assert.strictEqual(
+                group.profilePath,
+                '/group/' + group.tenant.alias + '/' + AuthzUtil.getResourceFromId(group.id).resourceId
+              );
+
+              // Get a non-existing group
+              PrincipalsUtil.getPrincipal(createdPrincipals.nicolaas, 'non-existing-group', (err, group) => {
                 assert.ok(err);
-                assert.ok(!user);
-
-                // Get an existing group
-                PrincipalsUtil.getPrincipal(
-                  createdPrincipals.nicolaas,
-                  createdPrincipals['oae-team'].id,
-                  (err, group) => {
-                    assert.ok(!err);
-                    assert.ok(group);
-                    assert.strictEqual(group.id, createdPrincipals['oae-team'].id);
-                    assert.strictEqual(group.displayName, 'OAE Team');
-                    assert.strictEqual(group.resourceType, 'group');
-                    assert.strictEqual(
-                      group.profilePath,
-                      '/group/' +
-                        group.tenant.alias +
-                        '/' +
-                        AuthzUtil.getResourceFromId(group.id).resourceId
-                    );
-
-                    // Get a non-existing group
-                    PrincipalsUtil.getPrincipal(
-                      createdPrincipals.nicolaas,
-                      'non-existing-group',
-                      (err, group) => {
-                        assert.ok(err);
-                        assert.ok(!group);
-                        callback();
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
+                assert.ok(!group);
+                callback();
+              });
+            });
+          });
+        });
       });
     });
 
@@ -187,27 +148,14 @@ describe('Principals', () => {
         // Get existing users
         PrincipalsUtil.getPrincipals(
           createdPrincipals.nicolaas,
-          [
-            createdPrincipals.nicolaas.user().id,
-            createdPrincipals.simon.user().id,
-            createdPrincipals.bert.user().id
-          ],
+          [createdPrincipals.nicolaas.user().id, createdPrincipals.simon.user().id, createdPrincipals.bert.user().id],
           (err, users) => {
             assert.ok(!err);
             assert.ok(users);
             assert.strictEqual(_.keys(users).length, 3);
-            assert.strictEqual(
-              users[createdPrincipals.nicolaas.user().id].id,
-              createdPrincipals.nicolaas.user().id
-            );
-            assert.strictEqual(
-              users[createdPrincipals.simon.user().id].id,
-              createdPrincipals.simon.user().id
-            );
-            assert.strictEqual(
-              users[createdPrincipals.bert.user().id].id,
-              createdPrincipals.bert.user().id
-            );
+            assert.strictEqual(users[createdPrincipals.nicolaas.user().id].id, createdPrincipals.nicolaas.user().id);
+            assert.strictEqual(users[createdPrincipals.simon.user().id].id, createdPrincipals.simon.user().id);
+            assert.strictEqual(users[createdPrincipals.bert.user().id].id, createdPrincipals.bert.user().id);
 
             // Get existing groups
             PrincipalsUtil.getPrincipals(
@@ -217,10 +165,7 @@ describe('Principals', () => {
                 assert.ok(!err);
                 assert.ok(groups);
                 assert.strictEqual(_.keys(groups).length, 2);
-                assert.strictEqual(
-                  groups[createdPrincipals['oae-team'].id].id,
-                  createdPrincipals['oae-team'].id
-                );
+                assert.strictEqual(groups[createdPrincipals['oae-team'].id].id, createdPrincipals['oae-team'].id);
                 assert.strictEqual(
                   groups[createdPrincipals['backend-team'].id].id,
                   createdPrincipals['backend-team'].id

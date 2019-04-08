@@ -23,10 +23,8 @@
  *         {String[]}   schema.following    A multi-value field that holds the resource ids of which the parent resource is following
  */
 /* eslint-disable unicorn/filename-case */
-module.exports = {
-  following: {
-    type: 'string',
-    store: 'no',
-    index: 'not_analyzed'
-  }
+export const following = {
+  type: 'string',
+  store: 'no',
+  index: 'not_analyzed'
 };

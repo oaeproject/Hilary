@@ -15,7 +15,7 @@
 
 /* eslint-disable camelcase */
 
-const util = require('util');
+import util from 'util';
 
 /**
  * The LTI tool model.
@@ -29,7 +29,7 @@ const util = require('util');
  * @param  {Number}     [opts.displayName]     The name of the LTI tool
  * @param  {Number}     [opts.description]     A description of the LTI tool
  */
-module.exports.LtiTool = function(id, groupId, launchUrl, secret, consumerKey, opts) {
+const LtiTool = function(id, groupId, launchUrl, secret, consumerKey, opts) {
   opts = opts || {};
 
   const that = {};
@@ -60,15 +60,7 @@ module.exports.LtiTool = function(id, groupId, launchUrl, secret, consumerKey, o
  * @param  {String} groupId             The globally unique id for the group that owns the tool
  * @param  {Object} principal           The object representing the user launching the tool
  */
-module.exports.LtiLaunchParams = function(
-  tool,
-  version,
-  tenantAlias,
-  groupDisplayName,
-  isGroupManager,
-  groupId,
-  principal
-) {
+const LtiLaunchParams = function(tool, version, tenantAlias, groupDisplayName, isGroupManager, groupId, principal) {
   const that = {};
   that.oauth_consumer_key = tool.consumerKey;
   that.oauth_nonce = Date.now();
@@ -111,7 +103,7 @@ module.exports.LtiLaunchParams = function(
  * @param  {LtiTool}         tool           An LtiTool object
  * @param  {LtiLaunchParams} launchParams   An LtiLaunchParams object
  */
-module.exports.LtiToolLaunchParams = function(tool, launchParams) {
+const LtiToolLaunchParams = function(tool, launchParams) {
   launchParams = launchParams || {};
 
   const that = {};
@@ -120,3 +112,5 @@ module.exports.LtiToolLaunchParams = function(tool, launchParams) {
 
   return that;
 };
+
+export { LtiLaunchParams, LtiToolLaunchParams, LtiTool };

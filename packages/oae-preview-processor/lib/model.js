@@ -13,16 +13,18 @@
  * permissions and limitations under the License.
  */
 
-const fs = require('fs');
-const path = require('path');
-const url = require('url');
-const util = require('util');
-const mkdirp = require('mkdirp');
-const rimraf = require('rimraf');
+import fs from 'fs';
+import path from 'path';
+import url from 'url';
+import util from 'util';
+import mkdirp from 'mkdirp';
+import rimraf from 'rimraf';
 
-const log = require('oae-logger').logger('oae-preview-processor');
-const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
+import { logger } from 'oae-logger';
+import * as RestAPI from 'oae-rest';
+import { RestContext } from 'oae-rest/lib/model';
+
+const log = logger('oae-preview-processor');
 
 const extensionRegex = /^[a-zA-Z]+$/;
 
@@ -106,51 +108,47 @@ const PreviewContext = function(config, contentId, revisionId) {
     log().trace({ contentId }, 'Logging into %s', tenantAlias);
 
     // Log in via signed auth, and get a new RestContext
-    RestAPI.Admin.getSignedTenantAuthenticationRequestInfo(
-      globalRestContext,
-      tenantAlias,
-      (err, requestInfo) => {
+    RestAPI.Admin.getSignedTenantAuthenticationRequestInfo(globalRestContext, tenantAlias, (err, requestInfo) => {
+      if (err) {
+        log().error(
+          { err, contentId },
+          'We could not get signed authentication request info for the tenant. The status of the content item will not be set'
+        );
+        return callback(err);
+      }
+
+      // Parse the URL we should use to authenticate to the tenant
+      const parsedUrl = url.parse(requestInfo.url);
+
+      // We need to try and use the internally configured host rather than using the external host,
+      // so we extract the Host header portion from the suggested URI and replace the connection URI
+      // with the internal host
+      const { protocol } = parsedUrl;
+      const hostHeader = parsedUrl.host;
+
+      // Use internal address if configured
+      const host = config.servers.serverInternalAddress || hostHeader;
+      const restCtx = new RestContext(util.format('%s//%s', protocol, host), {
+        hostHeader,
+        strictSSL
+      });
+
+      // Perform the actual login
+      // eslint-disable-next-line no-unused-vars
+      RestAPI.Admin.doSignedAuthentication(restCtx, requestInfo.body, (err, body, response) => {
         if (err) {
           log().error(
             { err, contentId },
-            'We could not get signed authentication request info for the tenant. The status of the content item will not be set'
+            'We could not log in on the tenant. The status of the content item will not be set'
           );
           return callback(err);
         }
 
-        // Parse the URL we should use to authenticate to the tenant
-        const parsedUrl = url.parse(requestInfo.url);
-
-        // We need to try and use the internally configured host rather than using the external host,
-        // so we extract the Host header portion from the suggested URI and replace the connection URI
-        // with the internal host
-        const { protocol } = parsedUrl;
-        const hostHeader = parsedUrl.host;
-
-        // Use internal address if configured
-        const host = config.servers.serverInternalAddress || hostHeader;
-        const restCtx = new RestContext(util.format('%s//%s', protocol, host), {
-          hostHeader,
-          strictSSL
-        });
-
-        // Perform the actual login
-        // eslint-disable-next-line no-unused-vars
-        RestAPI.Admin.doSignedAuthentication(restCtx, requestInfo.body, (err, body, response) => {
-          if (err) {
-            log().error(
-              { err, contentId },
-              'We could not log in on the tenant. The status of the content item will not be set'
-            );
-            return callback(err);
-          }
-
-          // Use this context for subsequent requests to the tenant
-          that.tenantRestContext = restCtx;
-          return callback();
-        });
-      }
-    );
+        // Use this context for subsequent requests to the tenant
+        that.tenantRestContext = restCtx;
+        return callback();
+      });
+    });
   };
 
   /**
@@ -170,22 +168,17 @@ const PreviewContext = function(config, contentId, revisionId) {
       // Stick the piece of content on the context.
       that.content = content;
 
-      RestAPI.Content.getRevision(
-        that.tenantRestContext,
-        contentId,
-        revisionId,
-        (err, revision) => {
-          if (err) {
-            log().error({ err, contentId, revisionId }, 'Could not get the revision');
-            return callback(err);
-          }
-
-          // Stick the revision on the context.
-          that.revision = revision;
-
-          callback();
+      RestAPI.Content.getRevision(that.tenantRestContext, contentId, revisionId, (err, revision) => {
+        if (err) {
+          log().error({ err, contentId, revisionId }, 'Could not get the revision');
+          return callback(err);
         }
-      );
+
+        // Stick the revision on the context.
+        that.revision = revision;
+
+        callback();
+      });
     });
   };
 
@@ -217,11 +210,9 @@ const PreviewContext = function(config, contentId, revisionId) {
         log().error({ err, contentId }, 'Error trying to download the file');
         fs.unlink(path, unlinkErr => {
           if (unlinkErr) {
-            log().error(
-              { err: unlinkErr, contentId },
-              'Could not remove the downloaded file on download error'
-            );
+            log().error({ err: unlinkErr, contentId }, 'Could not remove the downloaded file on download error');
           }
+
           callback(err);
         });
       } else {
@@ -314,6 +305,7 @@ const PreviewContext = function(config, contentId, revisionId) {
       files['thumbnail.png'] = function() {
         return fs.createReadStream(_thumbnailPath);
       };
+
       sizes['thumbnail.png'] = 'thumbnail';
     }
 
@@ -330,6 +322,7 @@ const PreviewContext = function(config, contentId, revisionId) {
         filename = path.basename(preview.path);
         files[filename] = preview.path;
       }
+
       sizes[filename] = preview.size;
     });
 
@@ -356,17 +349,7 @@ const PreviewContext = function(config, contentId, revisionId) {
   that.setStatus = function(status, callback) {
     log().trace({ contentId }, 'Setting status to %s', status);
     _status = status;
-    RestAPI.Content.setPreviewItems(
-      that.tenantRestContext,
-      contentId,
-      revisionId,
-      status,
-      {},
-      {},
-      {},
-      {},
-      callback
-    );
+    RestAPI.Content.setPreviewItems(that.tenantRestContext, contentId, revisionId, status, {}, {}, {}, {}, callback);
   };
 
   /**
@@ -381,6 +364,4 @@ const PreviewContext = function(config, contentId, revisionId) {
   return that;
 };
 
-module.exports = {
-  PreviewContext
-};
+export { PreviewContext };

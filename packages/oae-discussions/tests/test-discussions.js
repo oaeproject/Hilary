@@ -14,22 +14,17 @@
  */
 
 /* eslint-disable no-unused-vars */
-const assert = require('assert');
-const fs = require('fs');
-const path = require('path');
-const _ = require('underscore');
+import assert from 'assert';
+import fs from 'fs';
+import path from 'path';
+import _ from 'underscore';
 
-const AuthzAPI = require('oae-authz');
-const ConfigTestsUtil = require('oae-config/lib/test/util');
-const LibraryAPI = require('oae-library');
-const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
-const RestUtil = require('oae-rest/lib/util');
-const TestsUtil = require('oae-tests');
-
-const DiscussionsConfig = require('oae-config').config('oae-discussions');
-const DiscussionsDAO = require('oae-discussions/lib/internal/dao');
-const DiscussionsTestsUtil = require('oae-discussions/lib/test/util');
+import * as ConfigTestsUtil from 'oae-config/lib/test/util';
+import * as LibraryAPI from 'oae-library';
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
+import * as DiscussionsDAO from 'oae-discussions/lib/internal/dao';
+import * as DiscussionsTestsUtil from 'oae-discussions/lib/test/util';
 
 describe('Discussions', () => {
   let camAnonymousRestCtx = null;

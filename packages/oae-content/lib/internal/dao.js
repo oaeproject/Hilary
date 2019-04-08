@@ -13,8 +13,10 @@
  * permissions and limitations under the License.
  */
 
-module.exports.Content = require('./dao.content');
-module.exports.Etherpad = require('./dao.etherpad');
-module.exports.Ethercalc = require('./dao.ethercalc');
-module.exports.Previews = require('./dao.previews');
-module.exports.Revisions = require('./dao.revisions');
+import * as Content from './dao.content';
+import * as Etherpad from './dao.etherpad';
+import * as Ethercalc from './dao.ethercalc';
+import * as Previews from './dao.previews';
+import * as Revisions from './dao.revisions';
+
+export { Content, Etherpad, Ethercalc, Previews, Revisions };

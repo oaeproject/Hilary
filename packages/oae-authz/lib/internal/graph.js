@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
-const { Graph } = require('data-structures');
+import util from 'util';
+import _ from 'underscore';
+import { Graph } from 'data-structures';
 
 /**
  * AuthzGraph inherits from the data-structures Graph and provides some additional data and function
@@ -24,6 +24,7 @@ const { Graph } = require('data-structures');
 const AuthzGraph = function() {
   Graph.call(this);
 };
+
 util.inherits(AuthzGraph, Graph);
 
 /**
@@ -150,13 +151,7 @@ AuthzGraph.prototype.traverseOut = function(nodeId) {
  * @return {Node[]}                         The array of nodes that are visited while traversing the graph
  * @api private
  */
-AuthzGraph.prototype._traverse = function(
-  nodeId,
-  getEdgeFn,
-  nextNodeProperty,
-  _nodes,
-  _visitedIds
-) {
+AuthzGraph.prototype._traverse = function(nodeId, getEdgeFn, nextNodeProperty, _nodes, _visitedIds) {
   const self = this;
 
   _nodes = _nodes || [];
@@ -182,4 +177,4 @@ AuthzGraph.prototype._traverse = function(
   return _nodes;
 };
 
-module.exports = AuthzGraph;
+export default AuthzGraph;

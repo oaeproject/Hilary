@@ -13,14 +13,16 @@
  * permissions and limitations under the License.
  */
 
-const crypto = require('crypto');
-const util = require('util');
-const _ = require('underscore');
+import crypto from 'crypto';
+import util from 'util';
+import _ from 'underscore';
 
-const Locking = require('oae-util/lib/locking');
-const log = require('oae-logger').logger('oae-activity-buckets');
-const OAE = require('oae-util/lib/oae');
-const TelemetryAPI = require('oae-telemetry');
+import * as Locking from 'oae-util/lib/locking';
+import { logger } from 'oae-logger';
+import OAE from 'oae-util/lib/oae';
+import * as TelemetryAPI from 'oae-telemetry';
+
+const log = logger('oae-activity-buckets');
 
 // Holds the current amount of buckets that are being collected and telemtry object per type of bucket
 const bucketsInfo = {};
@@ -34,9 +36,7 @@ let shuttingDown = false;
  * we can ensure that is to force it to stop after the current batch.
  */
 OAE.registerPreShutdownHandler('oae-activity-buckets', null, callback => {
-  log().info(
-    'Enabling shutdown status to abort any current bucket collections as soon as possible'
-  );
+  log().info('Enabling shutdown status to abort any current bucket collections as soon as possible');
   shuttingDown = true;
   return callback();
 });
@@ -105,12 +105,11 @@ const collectAllBuckets = function(
   };
 
   // Ensure we don't surpass the maximum number of concurrent collections
-  if (
-    bucketsInfo[type].currentConcurrentCollectionCount >= bucketsInfo[type].maxConcurrentCollections
-  ) {
+  if (bucketsInfo[type].currentConcurrentCollectionCount >= bucketsInfo[type].maxConcurrentCollections) {
     log().trace({ type }, 'Aborting collection due to max concurrent collections count reached');
     return callback();
   }
+
   bucketsInfo[type].currentConcurrentCollectionCount++;
 
   // Fill all the possible bucket numbers to collect
@@ -173,11 +172,7 @@ const _collectBuckets = function(type, bucketNumbers, callback, _errs) {
  */
 const _collectBucket = function(type, bucketNumber, callback) {
   if (shuttingDown) {
-    log().info(
-      { type },
-      'Aborting bucket collection of bucket %s as shutdown is in progress',
-      bucketNumber
-    );
+    log().info({ type }, 'Aborting bucket collection of bucket %s as shutdown is in progress', bucketNumber);
     return callback();
   }
 
@@ -190,6 +185,7 @@ const _collectBucket = function(type, bucketNumber, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!lockId) {
       // We could not acquire a lock, someone else came around and managed to snag the bucket
       return callback();
@@ -204,6 +200,7 @@ const _collectBucket = function(type, bucketNumber, callback) {
         if (collectionErr) {
           return callback(collectionErr);
         }
+
         if (releaseErr) {
           log().warn(
             { err: releaseErr, type },
@@ -216,11 +213,7 @@ const _collectBucket = function(type, bucketNumber, callback) {
           return callback(releaseErr);
         }
 
-        log().trace(
-          { lockId, type },
-          'Successfully released lock for bucket number %s',
-          bucketNumber
-        );
+        log().trace({ lockId, type }, 'Successfully released lock for bucket number %s', bucketNumber);
 
         if (!hadLock) {
           // This means that the lock expired before we finished collecting, which likely means the lock expiry
@@ -261,7 +254,4 @@ const _getLockKey = function(type, bucketNumber) {
   return util.format('oae-activity:%s:lock-%s', type, bucketNumber);
 };
 
-module.exports = {
-  getBucketNumber,
-  collectAllBuckets
-};
+export { getBucketNumber, collectAllBuckets };

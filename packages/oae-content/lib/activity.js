@@ -13,23 +13,22 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const ActivityAPI = require('oae-activity');
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const ActivityModel = require('oae-activity/lib/model');
-const ActivityUtil = require('oae-activity/lib/util');
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const AuthzUtil = require('oae-authz/lib/util');
-const MessageBoxAPI = require('oae-messagebox');
-const MessageBoxUtil = require('oae-messagebox/lib/util');
-const PrincipalsUtil = require('oae-principals/lib/util');
-
-const ContentAPI = require('oae-content');
-const { ContentConstants } = require('oae-content/lib/constants');
-const ContentDAO = require('./internal/dao');
-const ContentUtil = require('./internal/util');
-const Etherpad = require('./internal/etherpad');
+import * as ActivityAPI from 'oae-activity';
+import * as ActivityModel from 'oae-activity/lib/model';
+import * as ActivityUtil from 'oae-activity/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as MessageBoxAPI from 'oae-messagebox';
+import * as MessageBoxUtil from 'oae-messagebox/lib/util';
+import * as PrincipalsUtil from 'oae-principals/lib/util';
+import * as ContentAPI from 'oae-content';
+import { ActivityConstants } from 'oae-activity/lib/constants';
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import { ContentConstants } from 'oae-content/lib/constants';
+import * as Etherpad from './internal/etherpad';
+import * as ContentUtil from './internal/util';
+import * as ContentDAO from './internal/dao';
 
 /// /////////////////
 // CONTENT-CREATE //
@@ -420,83 +419,74 @@ ActivityAPI.registerActivityType(ContentConstants.activity.ACTIVITY_CONTENT_UPDA
 /*!
  * Post a content-share or content-add-to-library activity based on content sharing
  */
-ContentAPI.emitter.on(
-  ContentConstants.events.UPDATED_CONTENT_MEMBERS,
-  (ctx, content, memberChangeInfo, opts) => {
-    if (opts.invitation) {
-      // If this member update came from an invitation, we bypass adding activity as there is a
-      // dedicated activity for that
-      return;
-    }
+ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT_MEMBERS, (ctx, content, memberChangeInfo, opts) => {
+  if (opts.invitation) {
+    // If this member update came from an invitation, we bypass adding activity as there is a
+    // dedicated activity for that
+    return;
+  }
 
-    const addedMemberIds = _.pluck(memberChangeInfo.members.added, 'id');
-    const updatedMemberIds = _.pluck(memberChangeInfo.members.updated, 'id');
+  const addedMemberIds = _.pluck(memberChangeInfo.members.added, 'id');
+  const updatedMemberIds = _.pluck(memberChangeInfo.members.updated, 'id');
 
-    const millis = Date.now();
-    const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
-      user: ctx.user()
-    });
-    const contentResource = new ActivityModel.ActivitySeedResource('content', content.id, {
-      content
-    });
+  const millis = Date.now();
+  const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
+    user: ctx.user()
+  });
+  const contentResource = new ActivityModel.ActivitySeedResource('content', content.id, {
+    content
+  });
 
-    // When a user is added, it is considered either a content-share or a content-add-to-library activity, depending on if the
-    // added user is the current user in context
-    _.each(addedMemberIds, memberId => {
-      if (memberId === ctx.user().id) {
-        // Users can't "share" with themselves, they actually "add it to their library"
-        ActivityAPI.postActivity(
-          ctx,
-          new ActivityModel.ActivitySeed(
-            ContentConstants.activity.ACTIVITY_CONTENT_ADD_TO_LIBRARY,
-            millis,
-            ActivityConstants.verbs.ADD,
-            actorResource,
-            contentResource
-          )
-        );
-      } else {
-        // A user shared content with some other user, fire the content share activity
-        const principalResourceType = PrincipalsUtil.isGroup(memberId) ? 'group' : 'user';
-        const principalResource = new ActivityModel.ActivitySeedResource(
-          principalResourceType,
-          memberId
-        );
-        ActivityAPI.postActivity(
-          ctx,
-          new ActivityModel.ActivitySeed(
-            ContentConstants.activity.ACTIVITY_CONTENT_SHARE,
-            millis,
-            ActivityConstants.verbs.SHARE,
-            actorResource,
-            contentResource,
-            principalResource
-          )
-        );
-      }
-    });
-
-    // When a user's role is updated, we fire a "content-update-member-role" activity
-    _.each(updatedMemberIds, memberId => {
-      const principalResourceType = PrincipalsUtil.isGroup(memberId) ? 'group' : 'user';
-      const principalResource = new ActivityModel.ActivitySeedResource(
-        principalResourceType,
-        memberId
-      );
+  // When a user is added, it is considered either a content-share or a content-add-to-library activity, depending on if the
+  // added user is the current user in context
+  _.each(addedMemberIds, memberId => {
+    if (memberId === ctx.user().id) {
+      // Users can't "share" with themselves, they actually "add it to their library"
       ActivityAPI.postActivity(
         ctx,
         new ActivityModel.ActivitySeed(
-          ContentConstants.activity.ACTIVITY_CONTENT_UPDATE_MEMBER_ROLE,
+          ContentConstants.activity.ACTIVITY_CONTENT_ADD_TO_LIBRARY,
           millis,
-          ActivityConstants.verbs.UPDATE,
+          ActivityConstants.verbs.ADD,
           actorResource,
-          principalResource,
           contentResource
         )
       );
-    });
-  }
-);
+    } else {
+      // A user shared content with some other user, fire the content share activity
+      const principalResourceType = PrincipalsUtil.isGroup(memberId) ? 'group' : 'user';
+      const principalResource = new ActivityModel.ActivitySeedResource(principalResourceType, memberId);
+      ActivityAPI.postActivity(
+        ctx,
+        new ActivityModel.ActivitySeed(
+          ContentConstants.activity.ACTIVITY_CONTENT_SHARE,
+          millis,
+          ActivityConstants.verbs.SHARE,
+          actorResource,
+          contentResource,
+          principalResource
+        )
+      );
+    }
+  });
+
+  // When a user's role is updated, we fire a "content-update-member-role" activity
+  _.each(updatedMemberIds, memberId => {
+    const principalResourceType = PrincipalsUtil.isGroup(memberId) ? 'group' : 'user';
+    const principalResource = new ActivityModel.ActivitySeedResource(principalResourceType, memberId);
+    ActivityAPI.postActivity(
+      ctx,
+      new ActivityModel.ActivitySeed(
+        ContentConstants.activity.ACTIVITY_CONTENT_UPDATE_MEMBER_ROLE,
+        millis,
+        ActivityConstants.verbs.UPDATE,
+        actorResource,
+        principalResource,
+        contentResource
+      )
+    );
+  });
+});
 
 /// ////////////////////////
 // ACTIVITY ENTITY TYPES //
@@ -507,8 +497,7 @@ ContentAPI.emitter.on(
  * @see ActivityAPI#registerActivityEntityType
  */
 const _contentProducer = function(resource, callback) {
-  const content =
-    resource.resourceData && resource.resourceData.content ? resource.resourceData.content : null;
+  const content = resource.resourceData && resource.resourceData.content ? resource.resourceData.content : null;
 
   // If the content item was fired with the resource, use it instead of fetching
   if (content) {
@@ -579,9 +568,7 @@ const _contentTransformer = function(ctx, activityEntities, callback) {
       transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
       _.each(entities, (entity, entityId) => {
         // Transform the persistent entity with its up-to-date preview status
-        transformedActivityEntities[activityId][
-          entityId
-        ] = ContentUtil.transformPersistentContentActivityEntity(
+        transformedActivityEntities[activityId][entityId] = ContentUtil.transformPersistentContentActivityEntity(
           ctx,
           entity,
           previews[entity.content.latestRevisionId]
@@ -658,12 +645,9 @@ const _contentCommentTransformer = function(ctx, activityEntities, callback) {
       const entity = activityEntities[activityId][entityId];
       const contentId = entity.message.messageBoxId;
       const contentResource = AuthzUtil.getResourceFromId(contentId);
-      const profilePath =
-        '/content/' + contentResource.tenantAlias + '/' + contentResource.resourceId;
+      const profilePath = '/content/' + contentResource.tenantAlias + '/' + contentResource.resourceId;
       const urlFormat = '/api/content/' + contentId + '/messages/%s';
-      transformedActivityEntities[activityId][
-        entityId
-      ] = MessageBoxUtil.transformPersistentMessageActivityEntity(
+      transformedActivityEntities[activityId][entityId] = MessageBoxUtil.transformPersistentMessageActivityEntity(
         ctx,
         entity,
         profilePath,
@@ -674,6 +658,7 @@ const _contentCommentTransformer = function(ctx, activityEntities, callback) {
 
   return callback(null, transformedActivityEntities);
 };
+
 /*!
  * Transform the comment persistent activity entities into OAE profiles
  * @see ActivityAPI#registerActivityEntityType
@@ -700,11 +685,7 @@ ActivityAPI.registerActivityEntityType('content', {
     internal: _contentInternalTransformer
   },
   propagation(associationsCtx, entity, callback) {
-    ActivityUtil.getStandardResourcePropagation(
-      entity.content.visibility,
-      AuthzConstants.joinable.NO,
-      callback
-    );
+    ActivityUtil.getStandardResourcePropagation(entity.content.visibility, AuthzConstants.joinable.NO, callback);
   }
 });
 
@@ -726,91 +707,67 @@ ActivityAPI.registerActivityEntityType('content-comment', {
 /*!
  * Register an association that presents the content item
  */
-ActivityAPI.registerActivityEntityAssociation(
-  'content',
-  'self',
-  (associationsCtx, entity, callback) => {
-    return callback(null, [entity[ActivityConstants.properties.OAE_ID]]);
-  }
-);
+ActivityAPI.registerActivityEntityAssociation('content', 'self', (associationsCtx, entity, callback) => {
+  return callback(null, [entity[ActivityConstants.properties.OAE_ID]]);
+});
 
 /*!
  * Register an association that presents the members of a content item categorized by role
  */
-ActivityAPI.registerActivityEntityAssociation(
-  'content',
-  'members-by-role',
-  (associationsCtx, entity, callback) => {
-    ActivityUtil.getAllAuthzMembersByRole(entity[ActivityConstants.properties.OAE_ID], callback);
-  }
-);
+ActivityAPI.registerActivityEntityAssociation('content', 'members-by-role', (associationsCtx, entity, callback) => {
+  ActivityUtil.getAllAuthzMembersByRole(entity[ActivityConstants.properties.OAE_ID], callback);
+});
 
 /*!
  * Register an association that presents all the indirect members of a content item
  */
-ActivityAPI.registerActivityEntityAssociation(
-  'content',
-  'members',
-  (associationsCtx, entity, callback) => {
-    associationsCtx.get('members-by-role', (err, membersByRole) => {
-      if (err) {
-        return callback(err);
-      }
+ActivityAPI.registerActivityEntityAssociation('content', 'members', (associationsCtx, entity, callback) => {
+  associationsCtx.get('members-by-role', (err, membersByRole) => {
+    if (err) {
+      return callback(err);
+    }
 
-      return callback(null, _.flatten(_.values(membersByRole)));
-    });
-  }
-);
+    return callback(null, _.flatten(_.values(membersByRole)));
+  });
+});
 
 /*!
  * Register an association that presents all the managers of a content item
  */
-ActivityAPI.registerActivityEntityAssociation(
-  'content',
-  'managers',
-  (associationsCtx, entity, callback) => {
-    associationsCtx.get('members-by-role', (err, membersByRole) => {
-      if (err) {
-        return callback(err);
-      }
+ActivityAPI.registerActivityEntityAssociation('content', 'managers', (associationsCtx, entity, callback) => {
+  associationsCtx.get('members-by-role', (err, membersByRole) => {
+    if (err) {
+      return callback(err);
+    }
 
-      return callback(null, membersByRole[AuthzConstants.role.MANAGER]);
-    });
-  }
-);
+    return callback(null, membersByRole[AuthzConstants.role.MANAGER]);
+  });
+});
 
 /*!
  * Register an association that presents those users who are active on a collaborative document right now
  */
-ActivityAPI.registerActivityEntityAssociation(
-  'content',
-  'online-authors',
-  (associationsCtx, entity, callback) => {
-    // Ignore content items that aren't collaborative documents
-    if (entity.content.resourceSubType !== 'collabdoc') {
-      return callback(null, []);
+ActivityAPI.registerActivityEntityAssociation('content', 'online-authors', (associationsCtx, entity, callback) => {
+  // Ignore content items that aren't collaborative documents
+  if (entity.content.resourceSubType !== 'collabdoc') {
+    return callback(null, []);
+  }
+
+  // Grab the authors who are currently in the collaborative document
+  Etherpad.getOnlineAuthors(entity.content.id, entity.content.etherpadPadId, (err, onlineAuthorIds) => {
+    if (err) {
+      return callback(err);
     }
 
-    // Grab the authors who are currently in the collaborative document
-    Etherpad.getOnlineAuthors(
-      entity.content.id,
-      entity.content.etherpadPadId,
-      (err, onlineAuthorIds) => {
-        if (err) {
-          return callback(err);
-        }
-
-        ContentDAO.Etherpad.getUserIds(onlineAuthorIds, (err, userIds) => {
-          if (err) {
-            return callback(err);
-          }
-
-          return callback(null, _.values(userIds));
-        });
+    ContentDAO.Etherpad.getUserIds(onlineAuthorIds, (err, userIds) => {
+      if (err) {
+        return callback(err);
       }
-    );
-  }
-);
+
+      return callback(null, _.values(userIds));
+    });
+  });
+});
 
 /*!
  * Register an assocation that presents all the commenting contributors of a content item
@@ -819,22 +776,13 @@ ActivityAPI.registerActivityEntityAssociation(
   'content',
   'message-contributors',
   (associationsCtx, entity, callback) => {
-    MessageBoxAPI.getRecentContributions(
-      entity[ActivityConstants.properties.OAE_ID],
-      null,
-      100,
-      callback
-    );
+    MessageBoxAPI.getRecentContributions(entity[ActivityConstants.properties.OAE_ID], null, 100, callback);
   }
 );
 
 /*!
  * Register an association that presents the content item for a content-comment entity
  */
-ActivityAPI.registerActivityEntityAssociation(
-  'content-comment',
-  'self',
-  (associationsCtx, entity, callback) => {
-    return callback(null, [entity.contentId]);
-  }
-);
+ActivityAPI.registerActivityEntityAssociation('content-comment', 'self', (associationsCtx, entity, callback) => {
+  return callback(null, [entity.contentId]);
+});

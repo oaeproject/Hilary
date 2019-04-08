@@ -12,20 +12,19 @@
  * or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+/* eslint-disable camelcase */
 
-const assert = require('assert');
-const fs = require('fs');
-const path = require('path');
-const url = require('url');
-const _ = require('underscore');
+import assert from 'assert';
+import fs from 'fs';
+import path from 'path';
+import url from 'url';
+import _ from 'underscore';
 
-const ActivityTestsUtil = require('oae-activity/lib/test/util');
-const ConfigTestUtil = require('oae-config/lib/test/util');
-const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
-const RestUtil = require('oae-rest/lib/util');
-const SearchTestsUtil = require('oae-search/lib/test/util');
-const TestsUtil = require('oae-tests');
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as RestUtil from 'oae-rest/lib/util';
+import * as SearchTestsUtil from 'oae-search/lib/test/util';
+import * as TestsUtil from 'oae-tests';
 
 describe('File previews', () => {
   // Rest context that can be used every time we need to make a request as a global admin
@@ -47,9 +46,7 @@ describe('File previews', () => {
     // Fill up global admin rest context
     globalAdminRestContext = TestsUtil.createGlobalAdminRestContext();
     // Fill up the anonymous context
-    anonymousRestContext = TestsUtil.createTenantRestContext(
-      global.oaeTests.tenants.localhost.host
-    );
+    anonymousRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.localhost.host);
     // Cambridge tenant admin context
     camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
 
@@ -152,21 +149,17 @@ describe('File previews', () => {
                   assert.strictEqual(previews.files.length, 2);
 
                   // Ensure that the thumbnail and status parameters are set
-                  RestAPI.Content.getContent(
-                    contexts.nicolaas.restContext,
-                    contentObj.id,
-                    (err, updatedContent) => {
-                      assert.ok(!err);
-                      assert.ok(!updatedContent.previews.thumbnailUri);
-                      assert.ok(updatedContent.previews.thumbnailUrl);
-                      assert.strictEqual(updatedContent.previews.status, 'done');
-                      assert.ok(!updatedContent.previews.smallUri);
-                      assert.ok(updatedContent.previews.smallUrl);
-                      assert.ok(!updatedContent.previews.mediumUri);
-                      assert.ok(updatedContent.previews.mediumUrl);
-                      return callback(contexts, updatedContent, previews);
-                    }
-                  );
+                  RestAPI.Content.getContent(contexts.nicolaas.restContext, contentObj.id, (err, updatedContent) => {
+                    assert.ok(!err);
+                    assert.ok(!updatedContent.previews.thumbnailUri);
+                    assert.ok(updatedContent.previews.thumbnailUrl);
+                    assert.strictEqual(updatedContent.previews.status, 'done');
+                    assert.ok(!updatedContent.previews.smallUri);
+                    assert.ok(updatedContent.previews.smallUrl);
+                    assert.ok(!updatedContent.previews.mediumUri);
+                    assert.ok(updatedContent.previews.mediumUrl);
+                    return callback(contexts, updatedContent, previews);
+                  });
                 }
               );
             }
@@ -246,96 +239,76 @@ describe('File previews', () => {
           assert.ok(!err);
 
           // Update the file body, creating a new revision
-          RestAPI.Content.updateFileBody(
-            contexts.nicolaas.restContext,
-            content.id,
-            getFileStream,
-            (err, content) => {
-              assert.ok(!err);
+          RestAPI.Content.updateFileBody(contexts.nicolaas.restContext, content.id, getFileStream, (err, content) => {
+            assert.ok(!err);
 
-              // Finish processing the previews for the new revision
-              RestAPI.Content.setPreviewItems(
-                globalAdminOnTenantRestContext,
-                content.id,
-                content.latestRevisionId,
-                'done',
-                suitable_files,
-                suitable_sizes,
-                {},
-                {},
-                err => {
-                  assert.ok(!err);
+            // Finish processing the previews for the new revision
+            RestAPI.Content.setPreviewItems(
+              globalAdminOnTenantRestContext,
+              content.id,
+              content.latestRevisionId,
+              'done',
+              suitable_files,
+              suitable_sizes,
+              {},
+              {},
+              err => {
+                assert.ok(!err);
 
-                  // Restore to the first revision
-                  RestAPI.Content.restoreRevision(
-                    contexts.nicolaas.restContext,
-                    content.id,
-                    firstRevisionId,
-                    (err, revision3) => {
-                      assert.ok(!err);
+                // Restore to the first revision
+                RestAPI.Content.restoreRevision(
+                  contexts.nicolaas.restContext,
+                  content.id,
+                  firstRevisionId,
+                  (err, revision3) => {
+                    assert.ok(!err);
 
-                      // Get the preview items of the 3rd revision (restored from first), and verify that the model is the same
-                      RestAPI.Content.getPreviewItems(
-                        contexts.nicolaas.restContext,
-                        content.id,
-                        revision3.revisionId,
-                        (err, thirdRevisionPreviews) => {
-                          assert.ok(!err);
-                          assert.strictEqual(
-                            firstRevisionPreviews.files.length,
-                            thirdRevisionPreviews.files.length
-                          );
+                    // Get the preview items of the 3rd revision (restored from first), and verify that the model is the same
+                    RestAPI.Content.getPreviewItems(
+                      contexts.nicolaas.restContext,
+                      content.id,
+                      revision3.revisionId,
+                      (err, thirdRevisionPreviews) => {
+                        assert.ok(!err);
+                        assert.strictEqual(firstRevisionPreviews.files.length, thirdRevisionPreviews.files.length);
 
-                          // Get the medium picture of the first and third revisions
-                          const firstRevisionMediumPicture = _.filter(
-                            firstRevisionPreviews.files,
-                            file => {
-                              return file.size === 'medium';
-                            }
-                          )[0];
-                          const thirdRevisionMediumPicture = _.filter(
-                            thirdRevisionPreviews.files,
-                            file => {
-                              return file.size === 'medium';
-                            }
-                          )[0];
+                        // Get the medium picture of the first and third revisions
+                        const firstRevisionMediumPicture = _.filter(firstRevisionPreviews.files, file => {
+                          return file.size === 'medium';
+                        })[0];
+                        const thirdRevisionMediumPicture = _.filter(thirdRevisionPreviews.files, file => {
+                          return file.size === 'medium';
+                        })[0];
 
-                          assert.ok(firstRevisionMediumPicture);
-                          assert.ok(thirdRevisionMediumPicture);
-                          assert.strictEqual(
-                            firstRevisionMediumPicture.filename,
-                            thirdRevisionMediumPicture.filename
-                          );
-                          assert.strictEqual(
-                            firstRevisionMediumPicture.uri,
-                            thirdRevisionMediumPicture.uri
-                          );
+                        assert.ok(firstRevisionMediumPicture);
+                        assert.ok(thirdRevisionMediumPicture);
+                        assert.strictEqual(firstRevisionMediumPicture.filename, thirdRevisionMediumPicture.filename);
+                        assert.strictEqual(firstRevisionMediumPicture.uri, thirdRevisionMediumPicture.uri);
 
-                          // Verify that we can download the preview pictures of the new revision
-                          RestAPI.Content.downloadPreviewItem(
-                            contexts.nicolaas.restContext,
-                            content.id,
-                            revision3.revisionId,
-                            thirdRevisionMediumPicture.filename,
-                            thirdRevisionPreviews.signature,
-                            (err, body, response) => {
-                              assert.ok(!err);
-                              assert.strictEqual(response.statusCode, 204);
-                              assert.ok(response.headers['x-accel-redirect']);
+                        // Verify that we can download the preview pictures of the new revision
+                        RestAPI.Content.downloadPreviewItem(
+                          contexts.nicolaas.restContext,
+                          content.id,
+                          revision3.revisionId,
+                          thirdRevisionMediumPicture.filename,
+                          thirdRevisionPreviews.signature,
+                          (err, body, response) => {
+                            assert.ok(!err);
+                            assert.strictEqual(response.statusCode, 204);
+                            assert.ok(response.headers['x-accel-redirect']);
 
-                              // Nginx streams the file body, so there will be no body to this response here
-                              assert.ok(!body);
-                              return callback();
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
+                            // Nginx streams the file body, so there will be no body to this response here
+                            assert.ok(!body);
+                            return callback();
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          });
         }
       );
     });
@@ -414,92 +387,86 @@ describe('File previews', () => {
           assert.ok(contentObj.id);
           assert.strictEqual(contentObj.previews.status, 'pending');
 
-          RestAPI.Content.getRevisions(
-            simon.restContext,
-            contentObj.id,
-            null,
-            1,
-            (err, revisions) => {
-              assert.ok(!err);
-              const { revisionId } = revisions.results[0];
+          RestAPI.Content.getRevisions(simon.restContext, contentObj.id, null, 1, (err, revisions) => {
+            assert.ok(!err);
+            const { revisionId } = revisions.results[0];
 
-              // A valid call as a sanity check.
-              RestAPI.Content.setPreviewItems(
-                globalAdminOnTenantRestContext,
-                contentObj.id,
-                revisionId,
-                'done',
-                {},
-                {},
-                {},
-                {},
-                err => {
-                  assert.ok(!err);
+            // A valid call as a sanity check.
+            RestAPI.Content.setPreviewItems(
+              globalAdminOnTenantRestContext,
+              contentObj.id,
+              revisionId,
+              'done',
+              {},
+              {},
+              {},
+              {},
+              err => {
+                assert.ok(!err);
 
-                  // Invalid contentId.
-                  RestAPI.Content.setPreviewItems(
-                    globalAdminOnTenantRestContext,
-                    'blah',
-                    revisionId,
-                    'foo',
-                    {},
-                    {},
-                    {},
-                    {},
-                    err => {
-                      assert.strictEqual(err.code, 400);
+                // Invalid contentId.
+                RestAPI.Content.setPreviewItems(
+                  globalAdminOnTenantRestContext,
+                  'blah',
+                  revisionId,
+                  'foo',
+                  {},
+                  {},
+                  {},
+                  {},
+                  err => {
+                    assert.strictEqual(err.code, 400);
 
-                      // Bad status parameter.
-                      RestAPI.Content.setPreviewItems(
-                        globalAdminOnTenantRestContext,
-                        contentObj.id,
-                        revisionId,
-                        'foo',
-                        {},
-                        {},
-                        {},
-                        {},
-                        err => {
-                          assert.strictEqual(err.code, 400);
+                    // Bad status parameter.
+                    RestAPI.Content.setPreviewItems(
+                      globalAdminOnTenantRestContext,
+                      contentObj.id,
+                      revisionId,
+                      'foo',
+                      {},
+                      {},
+                      {},
+                      {},
+                      err => {
+                        assert.strictEqual(err.code, 400);
 
-                          // Non existing piece of content.
-                          RestAPI.Content.setPreviewItems(
-                            globalAdminOnTenantRestContext,
-                            'c:foo:bar',
-                            revisionId,
-                            'done',
-                            {},
-                            {},
-                            {},
-                            {},
-                            err => {
-                              assert.strictEqual(err.code, 404);
+                        // Non existing piece of content.
+                        RestAPI.Content.setPreviewItems(
+                          globalAdminOnTenantRestContext,
+                          'c:foo:bar',
+                          revisionId,
+                          'done',
+                          {},
+                          {},
+                          {},
+                          {},
+                          err => {
+                            assert.strictEqual(err.code, 404);
 
-                              // Missing revision
-                              RestAPI.Content.setPreviewItems(
-                                globalAdminOnTenantRestContext,
-                                'c:foo:bar',
-                                null,
-                                'done',
-                                {},
-                                {},
-                                {},
-                                {},
-                                err => {
-                                  assert.strictEqual(err.code, 404);
-                                  callback();
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
+                            // Missing revision
+                            RestAPI.Content.setPreviewItems(
+                              globalAdminOnTenantRestContext,
+                              'c:foo:bar',
+                              null,
+                              'done',
+                              {},
+                              {},
+                              {},
+                              {},
+                              err => {
+                                assert.strictEqual(err.code, 404);
+                                callback();
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          });
         }
       );
     });
@@ -527,40 +494,30 @@ describe('File previews', () => {
           assert.ok(contentObj.id);
           assert.strictEqual(contentObj.previews.status, 'pending');
 
-          RestAPI.Content.getRevisions(
-            globalAdminOnTenantRestContext,
-            contentObj.id,
-            null,
-            1,
-            (err, revisions) => {
-              assert.ok(!err);
-              const { revisionId } = revisions.results[0];
+          RestAPI.Content.getRevisions(globalAdminOnTenantRestContext, contentObj.id, null, 1, (err, revisions) => {
+            assert.ok(!err);
+            const { revisionId } = revisions.results[0];
 
-              RestAPI.Content.setPreviewItems(
-                globalAdminOnTenantRestContext,
-                contentObj.id,
-                revisionId,
-                'ignored',
-                {},
-                {},
-                {},
-                {},
-                err => {
+            RestAPI.Content.setPreviewItems(
+              globalAdminOnTenantRestContext,
+              contentObj.id,
+              revisionId,
+              'ignored',
+              {},
+              {},
+              {},
+              {},
+              err => {
+                assert.ok(!err);
+
+                RestAPI.Content.getContent(simon.restContext, contentObj.id, (err, updatedContentObj) => {
                   assert.ok(!err);
-
-                  RestAPI.Content.getContent(
-                    simon.restContext,
-                    contentObj.id,
-                    (err, updatedContentObj) => {
-                      assert.ok(!err);
-                      assert.strictEqual(updatedContentObj.previews.status, 'ignored');
-                      callback();
-                    }
-                  );
-                }
-              );
-            }
-          );
+                  assert.strictEqual(updatedContentObj.previews.status, 'ignored');
+                  callback();
+                });
+              }
+            );
+          });
         }
       );
     });
@@ -593,18 +550,14 @@ describe('File previews', () => {
               assert.ok(!err);
               assert.strictEqual(previews.files.length, 0);
 
-              RestAPI.Content.getContent(
-                contexts.nicolaas.restContext,
-                contentObj.id,
-                (err, content) => {
-                  assert.ok(!err);
-                  assert.strictEqual(content.previews.total, 0);
-                  assert.strictEqual(content.previews.status, 'error');
-                  assert.ok(!content.previews.thumbnailUri);
-                  assert.ok(!content.previews.thumbnailUrl);
-                  callback();
-                }
-              );
+              RestAPI.Content.getContent(contexts.nicolaas.restContext, contentObj.id, (err, content) => {
+                assert.ok(!err);
+                assert.strictEqual(content.previews.total, 0);
+                assert.strictEqual(content.previews.status, 'error');
+                assert.ok(!content.previews.thumbnailUri);
+                assert.ok(!content.previews.thumbnailUrl);
+                callback();
+              });
             }
           );
         }
@@ -640,19 +593,15 @@ describe('File previews', () => {
               assert.ok(!err);
               assert.strictEqual(previews.files.length, 1);
 
-              RestAPI.Content.getContent(
-                contexts.nicolaas.restContext,
-                contentObj.id,
-                (err, content) => {
-                  assert.ok(!err);
-                  assert.strictEqual(content.previews.total, 1);
-                  assert.ok(!content.previews.thumbnailUri);
-                  assert.ok(!content.previews.thumbnailUrl);
-                  assert.ok(!content.previews.smallUri);
-                  assert.ok(content.previews.smallUrl);
-                  return callback();
-                }
-              );
+              RestAPI.Content.getContent(contexts.nicolaas.restContext, contentObj.id, (err, content) => {
+                assert.ok(!err);
+                assert.strictEqual(content.previews.total, 1);
+                assert.ok(!content.previews.thumbnailUri);
+                assert.ok(!content.previews.thumbnailUrl);
+                assert.ok(!content.previews.smallUri);
+                assert.ok(content.previews.smallUrl);
+                return callback();
+              });
             }
           );
         }
@@ -690,47 +639,39 @@ describe('File previews', () => {
             { link: 'http://www.google.com' },
             err => {
               assert.ok(!err);
-              RestAPI.Content.getContent(
-                contexts.nicolaas.restContext,
-                contentObj.id,
-                (err, contentObj) => {
-                  assert.ok(!err);
-                  assert.strictEqual(contentObj.previews.status, 'pending');
+              RestAPI.Content.getContent(contexts.nicolaas.restContext, contentObj.id, (err, contentObj) => {
+                assert.ok(!err);
+                assert.strictEqual(contentObj.previews.status, 'pending');
 
-                  // Verify that an update with the same link doesn't change the previews object
-                  // First, set the status to done manually so we can verify a no-change on a non-update
-                  RestAPI.Content.setPreviewItems(
-                    globalAdminOnTenantRestContext,
-                    contentObj.id,
-                    contentObj.latestRevisionId,
-                    'done',
-                    {},
-                    {},
-                    {},
-                    {},
-                    err => {
-                      assert.ok(!err);
-                      RestAPI.Content.updateContent(
-                        contexts.nicolaas.restContext,
-                        contentObj.id,
-                        { link: 'http://www.google.com' },
-                        err => {
+                // Verify that an update with the same link doesn't change the previews object
+                // First, set the status to done manually so we can verify a no-change on a non-update
+                RestAPI.Content.setPreviewItems(
+                  globalAdminOnTenantRestContext,
+                  contentObj.id,
+                  contentObj.latestRevisionId,
+                  'done',
+                  {},
+                  {},
+                  {},
+                  {},
+                  err => {
+                    assert.ok(!err);
+                    RestAPI.Content.updateContent(
+                      contexts.nicolaas.restContext,
+                      contentObj.id,
+                      { link: 'http://www.google.com' },
+                      err => {
+                        assert.ok(!err);
+                        RestAPI.Content.getContent(contexts.nicolaas.restContext, contentObj.id, (err, contentObj) => {
                           assert.ok(!err);
-                          RestAPI.Content.getContent(
-                            contexts.nicolaas.restContext,
-                            contentObj.id,
-                            (err, contentObj) => {
-                              assert.ok(!err);
-                              assert.strictEqual(contentObj.previews.status, 'done');
-                              return callback();
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
+                          assert.strictEqual(contentObj.previews.status, 'done');
+                          return callback();
+                        });
+                      }
+                    );
+                  }
+                );
+              });
             }
           );
         }
@@ -823,26 +764,20 @@ describe('File previews', () => {
   });
 
   /*!
-     * Verifies that the `downloadUrl` can in fact be downloaded
-     *
-     * @param  {RestContext}    restContext     The RestContext that we should use to download the file
-     * @param  {String}         downloadUrl     The signed URL that should be verified
-     * @param  {Function}       callback        Standard callback function
-     */
+   * Verifies that the `downloadUrl` can in fact be downloaded
+   *
+   * @param  {RestContext}    restContext     The RestContext that we should use to download the file
+   * @param  {String}         downloadUrl     The signed URL that should be verified
+   * @param  {Function}       callback        Standard callback function
+   */
   const _verifySignedDownloadUrl = function(restContext, downloadUrl, callback) {
     // Verify we can download it
     const parsedUrl = url.parse(downloadUrl, true);
-    RestUtil.performRestRequest(
-      restContext,
-      '/api/download/signed',
-      'GET',
-      parsedUrl.query,
-      (err, body, response) => {
-        assert.ok(!err);
-        assert.strictEqual(response.statusCode, 204);
-        return callback();
-      }
-    );
+    RestUtil.performRestRequest(restContext, '/api/download/signed', 'GET', parsedUrl.query, (err, body, response) => {
+      assert.ok(!err);
+      assert.strictEqual(response.statusCode, 204);
+      return callback();
+    });
   };
 
   /**
@@ -856,79 +791,57 @@ describe('File previews', () => {
       TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
         assert.ok(!err);
         const bert = _.values(users)[0];
-        RestAPI.Content.shareContent(
-          contexts.nicolaas.restContext,
-          contentObj.id,
-          [bert.user.id],
-          err => {
+        RestAPI.Content.shareContent(contexts.nicolaas.restContext, contentObj.id, [bert.user.id], err => {
+          assert.ok(!err);
+
+          // Bert should receive an activity that Nicolaas shared a piece of content with him
+          ActivityTestsUtil.collectAndGetActivityStream(bert.restContext, bert.user.id, null, (err, activityStream) => {
             assert.ok(!err);
 
-            // Bert should receive an activity that Nicolaas shared a piece of content with him
-            ActivityTestsUtil.collectAndGetActivityStream(
-              bert.restContext,
-              bert.user.id,
-              null,
-              (err, activityStream) => {
+            const activity = _.find(activityStream.items, activity => {
+              return activity.object['oae:id'] === contentObj.id;
+            });
+            assert.ok(activity);
+
+            // Verify the activity
+            _verifySignedDownloadUrl(bert.restContext, activity.object.image.url, () => {
+              // Verify the thumbnailUrl is on the content profile, but not the back-end uri
+              RestAPI.Content.getContent(bert.restContext, contentObj.id, (err, contentObjOnCamTenant) => {
                 assert.ok(!err);
+                assert.ok(!contentObjOnCamTenant.previews.thumbnailUri);
+                assert.ok(contentObjOnCamTenant.previews.thumbnailUrl);
 
-                const activity = _.find(activityStream.items, activity => {
-                  return activity.object['oae:id'] === contentObj.id;
-                });
-                assert.ok(activity);
-
-                // Verify the activity
-                _verifySignedDownloadUrl(bert.restContext, activity.object.image.url, () => {
-                  // Verify the thumbnailUrl is on the content profile, but not the back-end uri
-                  RestAPI.Content.getContent(
-                    bert.restContext,
+                _verifySignedDownloadUrl(bert.restContext, contentObjOnCamTenant.previews.thumbnailUrl, () => {
+                  // Verify the thumbnailUrl in search results
+                  const randomText = TestsUtil.generateRandomText(5);
+                  RestAPI.Content.updateContent(
+                    contexts.nicolaas.restContext,
                     contentObj.id,
-                    (err, contentObjOnCamTenant) => {
+                    { displayName: randomText },
+                    (err, updatedContentObj) => {
                       assert.ok(!err);
-                      assert.ok(!contentObjOnCamTenant.previews.thumbnailUri);
-                      assert.ok(contentObjOnCamTenant.previews.thumbnailUrl);
-
-                      _verifySignedDownloadUrl(
+                      SearchTestsUtil.searchAll(
                         bert.restContext,
-                        contentObjOnCamTenant.previews.thumbnailUrl,
-                        () => {
-                          // Verify the thumbnailUrl in search results
-                          const randomText = TestsUtil.generateRandomText(5);
-                          RestAPI.Content.updateContent(
-                            contexts.nicolaas.restContext,
-                            contentObj.id,
-                            { displayName: randomText },
-                            (err, updatedContentObj) => {
-                              assert.ok(!err);
-                              SearchTestsUtil.searchAll(
-                                bert.restContext,
-                                'general',
-                                null,
-                                { resourceTypes: 'content', q: randomText },
-                                (err, results) => {
-                                  assert.ok(!err);
-                                  const doc = _.find(results.results, doc => {
-                                    return doc.id === contentObj.id;
-                                  });
-                                  assert.ok(doc);
+                        'general',
+                        null,
+                        { resourceTypes: 'content', q: randomText },
+                        (err, results) => {
+                          assert.ok(!err);
+                          const doc = _.find(results.results, doc => {
+                            return doc.id === contentObj.id;
+                          });
+                          assert.ok(doc);
 
-                                  return _verifySignedDownloadUrl(
-                                    bert.restContext,
-                                    doc.thumbnailUrl,
-                                    callback
-                                  );
-                                }
-                              );
-                            }
-                          );
+                          return _verifySignedDownloadUrl(bert.restContext, doc.thumbnailUrl, callback);
                         }
                       );
                     }
                   );
                 });
-              }
-            );
-          }
-        );
+              });
+            });
+          });
+        });
       });
     });
   });
@@ -939,77 +852,55 @@ describe('File previews', () => {
   it('verify thumbnail and medium URLs are present on the revision object', callback => {
     createPreviews((contexts, content, previews) => {
       // Verify a list of revisions
-      RestAPI.Content.getRevisions(
-        contexts.nicolaas.restContext,
-        content.id,
-        null,
-        null,
-        (err, revisions) => {
-          assert.ok(!err);
-          assert.ok(!revisions.results[0].thumbnailUri);
-          assert.ok(revisions.results[0].thumbnailUrl);
-          assert.ok(!revisions.results[0].mediumUri);
-          assert.ok(revisions.results[0].mediumUrl);
+      RestAPI.Content.getRevisions(contexts.nicolaas.restContext, content.id, null, null, (err, revisions) => {
+        assert.ok(!err);
+        assert.ok(!revisions.results[0].thumbnailUri);
+        assert.ok(revisions.results[0].thumbnailUrl);
+        assert.ok(!revisions.results[0].mediumUri);
+        assert.ok(revisions.results[0].mediumUrl);
 
-          _verifySignedDownloadUrl(
-            contexts.nicolaas.restContext,
-            revisions.results[0].thumbnailUrl,
-            () => {
-              _verifySignedDownloadUrl(
-                contexts.nicolaas.restContext,
-                revisions.results[0].mediumUrl,
-                () => {
-                  // Verify a single revision
-                  RestAPI.Content.getRevision(
-                    contexts.nicolaas.restContext,
-                    content.id,
-                    revisions.results[0].revisionId,
-                    (err, revision) => {
-                      assert.ok(!err);
-                      assert.ok(!revision.thumbnailUri);
-                      assert.ok(revision.thumbnailUrl);
-                      assert.ok(!revision.mediumUri);
-                      assert.ok(revision.mediumUrl);
+        _verifySignedDownloadUrl(contexts.nicolaas.restContext, revisions.results[0].thumbnailUrl, () => {
+          _verifySignedDownloadUrl(contexts.nicolaas.restContext, revisions.results[0].mediumUrl, () => {
+            // Verify a single revision
+            RestAPI.Content.getRevision(
+              contexts.nicolaas.restContext,
+              content.id,
+              revisions.results[0].revisionId,
+              (err, revision) => {
+                assert.ok(!err);
+                assert.ok(!revision.thumbnailUri);
+                assert.ok(revision.thumbnailUrl);
+                assert.ok(!revision.mediumUri);
+                assert.ok(revision.mediumUrl);
 
-                      // Verify the URLs can resolve to a successful response
-                      _verifySignedDownloadUrl(
-                        contexts.nicolaas.restContext,
-                        revision.thumbnailUrl,
-                        () => {
-                          _verifySignedDownloadUrl(
-                            contexts.nicolaas.restContext,
-                            revision.mediumUrl,
-                            () => {
-                              // Restore the revision
-                              RestAPI.Content.restoreRevision(
-                                contexts.nicolaas.restContext,
-                                content.id,
-                                revisions.results[0].revisionId,
-                                (err, restoredRevision) => {
-                                  assert.ok(!err);
+                // Verify the URLs can resolve to a successful response
+                _verifySignedDownloadUrl(contexts.nicolaas.restContext, revision.thumbnailUrl, () => {
+                  _verifySignedDownloadUrl(contexts.nicolaas.restContext, revision.mediumUrl, () => {
+                    // Restore the revision
+                    RestAPI.Content.restoreRevision(
+                      contexts.nicolaas.restContext,
+                      content.id,
+                      revisions.results[0].revisionId,
+                      (err, restoredRevision) => {
+                        assert.ok(!err);
 
-                                  // Make sure the restored revision contains all the image urls and not the back-end uris
-                                  assert.ok(restoredRevision);
-                                  assert.ok(!restoredRevision.thumbnailUri);
-                                  assert.ok(restoredRevision.thumbnailUrl);
-                                  assert.ok(!restoredRevision.mediumUri);
-                                  assert.ok(restoredRevision.mediumUrl);
-                                  assert.strictEqual(restoredRevision.previews.status, 'done');
-                                  return callback();
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
+                        // Make sure the restored revision contains all the image urls and not the back-end uris
+                        assert.ok(restoredRevision);
+                        assert.ok(!restoredRevision.thumbnailUri);
+                        assert.ok(restoredRevision.thumbnailUrl);
+                        assert.ok(!restoredRevision.mediumUri);
+                        assert.ok(restoredRevision.mediumUrl);
+                        assert.strictEqual(restoredRevision.previews.status, 'done');
+                        return callback();
+                      }
+                    );
+                  });
+                });
+              }
+            );
+          });
+        });
+      });
     });
   });
 
@@ -1080,10 +971,7 @@ describe('File previews', () => {
                               });
                               assert.ok(contentDocB);
                               assert.ok(contentDocB.thumbnailUrl);
-                              assert.notStrictEqual(
-                                contentDocA.thumbnailUrl,
-                                contentDocB.thumbnailUrl
-                              );
+                              assert.notStrictEqual(contentDocA.thumbnailUrl, contentDocB.thumbnailUrl);
                               return callback();
                             }
                           );

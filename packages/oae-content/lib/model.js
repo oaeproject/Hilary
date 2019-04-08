@@ -13,11 +13,11 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
 
-const AuthzUtil = require('oae-authz/lib/util');
-const TenantsAPI = require('oae-tenants');
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as TenantsAPI from 'oae-tenants';
 
 /// ////////
 // Model //
@@ -140,8 +140,4 @@ const _getDownloadPath = function(contentId, revisionId) {
   return util.format('/api/content/%s/download/%s', contentId, revisionId);
 };
 
-module.exports = {
-  Content,
-  Revision,
-  DownloadStrategy
-};
+export { Content, Revision, DownloadStrategy };

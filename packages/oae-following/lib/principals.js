@@ -13,10 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const PrincipalsAPI = require('oae-principals');
-
-const FollowingAuthz = require('oae-following/lib/authz');
-const FollowingDAO = require('oae-following/lib/internal/dao');
+import * as PrincipalsAPI from 'oae-principals';
+import * as FollowingAuthz from 'oae-following/lib/authz';
+import * as FollowingDAO from 'oae-following/lib/internal/dao';
 
 /*!
  * Register a full user profile decorator that will indicate if the user in context
@@ -26,6 +25,7 @@ PrincipalsAPI.registerFullUserProfileDecorator('following', (ctx, user, callback
   if (!ctx.user()) {
     return callback();
   }
+
   if (ctx.user().id === user.id) {
     return callback();
   }
@@ -48,6 +48,7 @@ PrincipalsAPI.registerFullUserProfileDecorator('following', (ctx, user, callback
       if (err && err.code !== 401) {
         return callback(err);
       }
+
       if (err) {
         canFollow = false;
       }

@@ -13,30 +13,33 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const AuthzUtil = require('oae-authz/lib/util');
-const LibraryAuthz = require('oae-library/lib/api.authz');
-const log = require('oae-logger').logger('oae-activity-api');
-const OAE = require('oae-util/lib/oae');
-const OaeUtil = require('oae-util/lib/util');
-const PrincipalsUtil = require('oae-principals/lib/util');
-const Redis = require('oae-util/lib/redis');
-const TaskQueue = require('oae-util/lib/taskqueue');
-const { Validator } = require('oae-authz/lib/validator');
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as LibraryAuthz from 'oae-library/lib/api.authz';
+import { logger } from 'oae-logger';
+import * as OAE from 'oae-util/lib/oae';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as PrincipalsUtil from 'oae-principals/lib/util';
+import * as Redis from 'oae-util/lib/redis';
+import * as TaskQueue from 'oae-util/lib/taskqueue';
+import { Validator } from 'oae-authz/lib/validator';
 
-const ActivityConfig = require('oae-config').config('oae-activity');
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const { ActivityStream } = require('oae-activity/lib/model');
-const ActivityEmail = require('./internal/email');
-const ActivityEmitter = require('./internal/emitter');
-const ActivityNotifications = require('./internal/notifications');
-const ActivityRegistry = require('./internal/registry');
-const ActivityRouter = require('./internal/router');
-const ActivitySystemConfig = require('./internal/config');
-const ActivityTransformer = require('./internal/transformer');
-const ActivityDAO = require('./internal/dao');
-const ActivityAggregator = require('./internal/aggregator');
+import { setUpConfig } from 'oae-config';
+import { ActivityConstants } from 'oae-activity/lib/constants';
+import { ActivityStream } from 'oae-activity/lib/model';
+import ActivityEmitter from './internal/emitter';
+import * as ActivityEmail from './internal/email';
+import * as ActivityNotifications from './internal/notifications';
+import * as ActivityRegistry from './internal/registry';
+import * as ActivityRouter from './internal/router';
+import * as ActivitySystemConfig from './internal/config';
+import * as ActivityTransformer from './internal/transformer';
+import * as ActivityDAO from './internal/dao';
+import * as ActivityAggregator from './internal/aggregator';
+
+const log = logger('oae-activity-api');
+const ActivityConfig = setUpConfig('oae-activity');
 
 // Keeps track of whether or not the activity processing handler has been bound to the task queue
 let boundWorker = false;
@@ -114,10 +117,12 @@ const refreshConfiguration = function(config, callback) {
       callback
     );
   }
+
   if (!config.processActivityJobs && boundWorker) {
     boundWorker = false;
     return TaskQueue.unbind(ActivityConstants.mq.TASK_ACTIVITY, callback);
   }
+
   return callback();
 };
 
@@ -550,6 +555,7 @@ const getActivityStream = function(ctx, principalId, start, limit, transformerTy
       if (err) {
         return callback(err);
       }
+
       if (!hasAccess) {
         return callback({ code: 401, msg: 'You cannot access this activity stream' });
       }
@@ -760,7 +766,7 @@ const _getActivityStream = function(ctx, activityStreamId, start, limit, transfo
   });
 };
 
-module.exports = {
+export {
   refreshConfiguration,
   registerActivityStreamType,
   getRegisteredActivityStreamType,
@@ -771,5 +777,5 @@ module.exports = {
   getNotificationStream,
   markNotificationsRead,
   postActivity,
-  emitter: ActivityEmitter
+  ActivityEmitter as emitter
 };

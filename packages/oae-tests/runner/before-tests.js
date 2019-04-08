@@ -13,10 +13,12 @@
  * permissions and limitations under the License.
  */
 
-const TestsUtil = require('oae-tests/lib/util');
-const { logger } = require('oae-logger');
+import * as TestsUtil from 'oae-tests/lib/util';
+import { logger } from 'oae-logger';
 
 const log = logger('before-tests');
+
+const DEFAULT_TIMEOUT = 60000;
 
 // eslint-disable-next-line no-unused-vars
 const { argv } = require('optimist')
@@ -39,7 +41,7 @@ before(function(callback) {
   // Create the configuration for the test
   const config = TestsUtil.createInitialTestConfig();
 
-  this.timeout(config.test.timeout || 60000);
+  this.timeout(config.test.timeout || DEFAULT_TIMEOUT);
 
   TestsUtil.setUpBeforeTests(config, dropKeyspaceBeforeTest, callback);
 });

@@ -13,45 +13,50 @@
  * permissions and limitations under the License.
  */
 
-const path = require('path');
-const assert = require('assert');
-const stream = require('stream');
-const util = require('util');
-const async = require('async');
-const _ = require('underscore');
-const bodyParser = require('body-parser');
-const clone = require('clone');
-const express = require('express');
-const ShortId = require('shortid');
+import path from 'path';
+import assert from 'assert';
+import stream from 'stream';
+import util from 'util';
 
-const AuthenticationAPI = require('oae-authentication');
-const { AuthenticationConstants } = require('oae-authentication/lib/constants');
-const Cassandra = require('oae-util/lib/cassandra');
-const ConfigTestUtil = require('oae-config/lib/test/util');
-const { Context } = require('oae-context');
-const LibraryAPI = require('oae-library');
-const { LoginId } = require('oae-authentication/lib/model');
-const multipart = require('oae-util/lib/middleware/multipart');
-const MQ = require('oae-util/lib/mq');
-const MQTestUtil = require('oae-util/lib/test/mq-util');
-const OAE = require('oae-util/lib/oae');
-const OaeUtil = require('oae-util/lib/util');
-const PreviewAPI = require('oae-preview-processor/lib/api');
-const PreviewConstants = require('oae-preview-processor/lib/constants');
-const PrincipalsAPI = require('oae-principals');
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
-const Redis = require('oae-util/lib/redis');
-const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
-const RestUtil = require('oae-rest/lib/util');
-const SearchTestUtil = require('oae-search/lib/test/util');
-const { Tenant } = require('oae-tenants/lib/model');
-const TenantsTestUtil = require('oae-tenants/lib/test/util');
-const { User } = require('oae-principals/lib/model');
+import async from 'async';
+import _ from 'underscore';
+
+import bodyParser from 'body-parser';
+import clone from 'clone';
+import express from 'express';
+import ShortId from 'shortid';
+
+import * as AuthenticationAPI from 'oae-authentication';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants';
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import { Context } from 'oae-context';
+import * as LibraryAPI from 'oae-library';
+
+import { LoginId } from 'oae-authentication/lib/model';
+import multipart from 'oae-util/lib/middleware/multipart';
+import * as MQ from 'oae-util/lib/mq';
+import * as MQTestUtil from 'oae-util/lib/test/mq-util';
+import * as OAE from 'oae-util/lib/oae';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as PreviewAPI from 'oae-preview-processor/lib/api';
+import PreviewConstants from 'oae-preview-processor/lib/constants';
+import * as PrincipalsAPI from 'oae-principals';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as Redis from 'oae-util/lib/redis';
+import * as RestAPI from 'oae-rest';
+import { RestContext } from 'oae-rest/lib/model';
+import * as RestUtil from 'oae-rest/lib/util';
+import * as SearchTestUtil from 'oae-search/lib/test/util';
+import { Tenant } from 'oae-tenants/lib/model';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import { User } from 'oae-principals/lib/model';
+
+import { logger } from 'oae-logger';
 
 const migrationRunner = require(path.join(process.cwd(), 'etc/migration/migration-runner.js'));
 
-const log = require('oae-logger').logger('before-tests');
+const log = logger('before-tests');
 
 /**
  * The name of the session cookie
@@ -1346,7 +1351,7 @@ const isIntegrationTest = function() {
   return process.env.OAE_TEST_INTEGRATION !== 'false';
 };
 
-module.exports = {
+export {
   CONFIG_COOKIE_NAME,
   createTestServer,
   clearAllData,

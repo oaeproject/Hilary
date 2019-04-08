@@ -13,11 +13,11 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const Cassandra = require('oae-util/lib/cassandra');
+import * as Cassandra from 'oae-util/lib/cassandra';
 
-const { AccessToken } = require('../model');
+import { AccessToken } from '../model';
 
 /**
  * Creates an access token
@@ -36,12 +36,7 @@ const createAccessToken = function(token, userId, clientId, callback) {
       userId,
       clientId
     }),
-    Cassandra.constructUpsertCQL(
-      'OAuthAccessTokenByUser',
-      ['userId', 'clientId'],
-      [userId, clientId],
-      { token }
-    )
+    Cassandra.constructUpsertCQL('OAuthAccessTokenByUser', ['userId', 'clientId'], [userId, clientId], { token })
   ];
 
   Cassandra.runBatchQuery(queries, err => {
@@ -67,6 +62,7 @@ const getAccessToken = function(token, callback) {
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(rows)) {
       return callback(null, null);
     }
@@ -95,6 +91,7 @@ const getAccessTokenForUserAndClient = function(userId, clientId, callback) {
       if (err) {
         return callback(err);
       }
+
       if (_.isEmpty(rows)) {
         return callback(null, null);
       }
@@ -106,8 +103,4 @@ const getAccessTokenForUserAndClient = function(userId, clientId, callback) {
   );
 };
 
-module.exports = {
-  createAccessToken,
-  getAccessToken,
-  getAccessTokenForUserAndClient
-};
+export { createAccessToken, getAccessToken, getAccessTokenForUserAndClient };

@@ -13,19 +13,17 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const url = require('url');
-const util = require('util');
-const ShortId = require('shortid');
-const _ = require('underscore');
+import assert from 'assert';
+import url from 'url';
+import util from 'util';
+import ShortId from 'shortid';
+import _ from 'underscore';
 
-const ActivityTestUtil = require('oae-activity/lib/test/util');
-const RestAPI = require('oae-rest');
-const SearchTestsUtil = require('oae-search/lib/test/util');
-const TestsUtil = require('oae-tests');
-
-const ContentTestUtil = require('oae-content/lib/test/util');
-const Etherpad = require('oae-content/lib/internal/etherpad');
+import * as RestAPI from 'oae-rest';
+import * as SearchTestsUtil from 'oae-search/lib/test/util';
+import * as TestsUtil from 'oae-tests';
+import * as ContentTestUtil from 'oae-content/lib/test/util';
+import * as Etherpad from 'oae-content/lib/internal/etherpad';
 
 describe('Collaborative documents', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user

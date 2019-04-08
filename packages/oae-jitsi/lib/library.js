@@ -13,15 +13,18 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const AuthzAPI = require('oae-authz');
-const LibraryAPI = require('oae-library');
-const log = require('oae-logger').logger('meetings-jitsi-library');
+import { logger } from 'oae-logger';
 
-const MeetingsAPI = require('oae-jitsi');
-const { MeetingsConstants } = require('oae-jitsi/lib/constants');
-const MeetingsDAO = require('oae-jitsi/lib/internal/dao');
+import * as AuthzAPI from 'oae-authz';
+import * as LibraryAPI from 'oae-library';
+import * as MeetingsAPI from 'oae-jitsi';
+import * as MeetingsDAO from 'oae-jitsi/lib/internal/dao';
+
+import { MeetingsConstants } from 'oae-jitsi/lib/constants';
+
+const log = logger('meetings-jitsi-library');
 
 /**
  * Register a library indexer that can provide resources to reindex the meeting library
@@ -29,35 +32,29 @@ const MeetingsDAO = require('oae-jitsi/lib/internal/dao');
 LibraryAPI.Index.registerLibraryIndex(MeetingsConstants.library.MEETINGS_LIBRARY_INDEX_NAME, {
   pageResources(libraryId, start, limit, callback) {
     // Query all the meeting ids ('m') to which the library owner is directly associated
-    AuthzAPI.getRolesForPrincipalAndResourceType(
-      libraryId,
-      'm',
-      start,
-      limit,
-      (err, roles, nextToken) => {
+    AuthzAPI.getRolesForPrincipalAndResourceType(libraryId, 'm', start, limit, (err, roles, nextToken) => {
+      if (err) {
+        return callback(err);
+      }
+
+      const ids = _.pluck(roles, 'id');
+
+      MeetingsDAO.getMeetingsById(ids, (err, meetings) => {
         if (err) {
           return callback(err);
         }
 
-        const ids = _.pluck(roles, 'id');
+        // Convert all the meetings into the light-weight library items that describe how its placed in a library index
+        const resources = _.chain(meetings)
+          .compact()
+          .map(meeting => {
+            return { rank: meeting.lastModified, resource: meeting };
+          })
+          .value();
 
-        MeetingsDAO.getMeetingsById(ids, (err, meetings) => {
-          if (err) {
-            return callback(err);
-          }
-
-          // Convert all the meetings into the light-weight library items that describe how its placed in a library index
-          const resources = _.chain(meetings)
-            .compact()
-            .map(meeting => {
-              return { rank: meeting.lastModified, resource: meeting };
-            })
-            .value();
-
-          return callback(null, resources, nextToken);
-        });
-      }
-    );
+        return callback(null, resources, nextToken);
+      });
+    });
   }
 });
 
@@ -69,68 +66,59 @@ LibraryAPI.Search.registerLibrarySearch('meeting-jitsi-library', ['meeting-jitsi
 /**
  * When a meeting is created, add the meeting to the member meeting library
  */
-MeetingsAPI.emitter.when(
-  MeetingsConstants.events.CREATED_MEETING,
-  (ctx, meeting, memberChangeInfo, callback) => {
-    const addedMemberIds = _.pluck(memberChangeInfo.members.added, 'id');
-    _insertLibrary(addedMemberIds, meeting, err => {
-      if (err) {
-        log().warn(
-          {
-            err,
-            meetingId: meeting.id,
-            memberIds: addedMemberIds
-          },
-          'An error occurred inserting meeting into meeting libraries after create'
-        );
-      }
+MeetingsAPI.emitter.when(MeetingsConstants.events.CREATED_MEETING, (ctx, meeting, memberChangeInfo, callback) => {
+  const addedMemberIds = _.pluck(memberChangeInfo.members.added, 'id');
+  _insertLibrary(addedMemberIds, meeting, err => {
+    if (err) {
+      log().warn(
+        {
+          err,
+          meetingId: meeting.id,
+          memberIds: addedMemberIds
+        },
+        'An error occurred inserting meeting into meeting libraries after create'
+      );
+    }
 
-      return callback();
-    });
-  }
-);
+    return callback();
+  });
+});
 
 /**
  * When a meeting is updated, update all meeting libraries with its updated last modified
  */
-MeetingsAPI.emitter.on(
-  MeetingsConstants.events.UPDATED_MEETING,
-  (ctx, updatedMeeting, oldMeeting) => {
-    // Get all the member ids of the updated meeting
-    _getAllMemberIds(updatedMeeting.id, (err, memberIds) => {
-      if (err) {
-        return err;
-      }
+MeetingsAPI.emitter.on(MeetingsConstants.events.UPDATED_MEETING, (ctx, updatedMeeting, oldMeeting) => {
+  // Get all the member ids of the updated meeting
+  _getAllMemberIds(updatedMeeting.id, (err, memberIds) => {
+    if (err) {
+      return err;
+    }
 
-      // Perform the libraries updates
-      return _updateLibrary(memberIds, updatedMeeting, oldMeeting.lastModified);
-    });
-  }
-);
+    // Perform the libraries updates
+    return _updateLibrary(memberIds, updatedMeeting, oldMeeting.lastModified);
+  });
+});
 
 /**
  * When a meeting is deleted, remove it from all the meeting libraries
  */
-MeetingsAPI.emitter.when(
-  MeetingsConstants.events.DELETED_MEETING,
-  (ctx, meeting, removedMemberIds, callback) => {
-    // Remove the meeting from all libraries
-    _removeFromLibrary(removedMemberIds, meeting, err => {
-      if (err) {
-        log().warn(
-          {
-            err,
-            meetingId: meeting.id,
-            memberIds: removedMemberIds
-          },
-          'An error occurred while removing a deleted meeting from all meeting libraries'
-        );
-      }
+MeetingsAPI.emitter.when(MeetingsConstants.events.DELETED_MEETING, (ctx, meeting, removedMemberIds, callback) => {
+  // Remove the meeting from all libraries
+  _removeFromLibrary(removedMemberIds, meeting, err => {
+    if (err) {
+      log().warn(
+        {
+          err,
+          meetingId: meeting.id,
+          memberIds: removedMemberIds
+        },
+        'An error occurred while removing a deleted meeting from all meeting libraries'
+      );
+    }
 
-      return callback();
-    });
-  }
-);
+    return callback();
+  });
+});
 
 /**
  * When meeting members are updated, pass the required updated to its members library

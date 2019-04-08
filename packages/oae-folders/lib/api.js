@@ -13,36 +13,41 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
+import { logger } from 'oae-logger';
+import { setUpConfig } from 'oae-config';
 
-const AuthzAPI = require('oae-authz');
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const AuthzInvitations = require('oae-authz/lib/invitations');
-const AuthzPermissions = require('oae-authz/lib/permissions');
-const ContentAPI = require('oae-content');
-const ContentDAO = require('oae-content/lib/internal/dao');
-const ContentUtil = require('oae-content/lib/internal/util');
-const EmitterAPI = require('oae-emitter');
-const LibraryAPI = require('oae-library');
-const log = require('oae-logger').logger('oae-folders-api');
-const MessageBoxAPI = require('oae-messagebox');
-const { MessageBoxConstants } = require('oae-messagebox/lib/constants');
-const OaeUtil = require('oae-util/lib/util');
-const PrincipalsAPI = require('oae-principals');
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
-const PrincipalsUtil = require('oae-principals/lib/util');
-const ResourceActions = require('oae-resource/lib/actions');
-const SearchAPI = require('oae-search');
-const Signature = require('oae-util/lib/signature');
-const { Validator } = require('oae-util/lib/validator');
+import * as AuthzAPI from 'oae-authz';
+import * as AuthzInvitations from 'oae-authz/lib/invitations';
+import * as AuthzPermissions from 'oae-authz/lib/permissions';
+import * as ContentAPI from 'oae-content';
+import * as ContentDAO from 'oae-content/lib/internal/dao';
+import * as ContentUtil from 'oae-content/lib/internal/util';
+import * as EmitterAPI from 'oae-emitter';
+import * as LibraryAPI from 'oae-library';
 
-const FoldersConfig = require('oae-config').config('oae-folders');
-const FoldersFoldersLibrary = require('./internal/foldersLibrary');
-const FoldersAuthz = require('./authz');
-const { FoldersConstants } = require('./constants');
-const FoldersContentLibrary = require('./internal/contentLibrary');
-const FoldersDAO = require('./internal/dao');
+import * as MessageBoxAPI from 'oae-messagebox';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as PrincipalsAPI from 'oae-principals';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as PrincipalsUtil from 'oae-principals/lib/util';
+import * as ResourceActions from 'oae-resource/lib/actions';
+import * as SearchAPI from 'oae-search';
+import * as Signature from 'oae-util/lib/signature';
+import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
+import { Validator } from 'oae-util/lib/validator';
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import * as FoldersFoldersLibrary from './internal/foldersLibrary';
+import * as FoldersAuthz from './authz';
+import * as FoldersContentLibrary from './internal/contentLibrary';
+import * as FoldersDAO from './internal/dao';
+
+import { FoldersConstants } from './constants';
+
+const log = logger('oae-folders-api');
+
+const FoldersConfig = setUpConfig('oae-folders');
 
 /*!
  * ### Events
@@ -79,12 +84,8 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
 
   // Verify basic properties
   const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'Anonymous users cannot create a folder' })
-    .isLoggedInUser(ctx);
-  validator
-    .check(displayName, { code: 400, msg: 'Must provide a display name for the folder' })
-    .notEmpty();
+  validator.check(null, { code: 401, msg: 'Anonymous users cannot create a folder' }).isLoggedInUser(ctx);
+  validator.check(displayName, { code: 400, msg: 'Must provide a display name for the folder' }).notEmpty();
   validator
     .check(displayName, { code: 400, msg: 'A display name can be at most 1000 characters long' })
     .isShortString();
@@ -93,12 +94,11 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
       .check(description, { code: 400, msg: 'A description can be at most 10000 characters long' })
       .isMediumString();
   }
+
   validator
     .check(visibility, {
       code: 400,
-      msg:
-        'An invalid folder visibility option has been provided. Must be one of: ' +
-        allVisibilities.join(', ')
+      msg: 'An invalid folder visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
     })
     .isIn(allVisibilities);
 
@@ -127,40 +127,30 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
     if (err && err.code !== 404) {
       return callback(err);
     }
+
     if (err) {
       return callback({ code: 400, msg: 'One or more target principals could not be found' });
     }
+
     if (!canManageAny) {
       // We only make the current user a manager of the folder if they cannot
       // manage any of the specified managers
       roles[ctx.user().id] = AuthzConstants.role.MANAGER;
     }
 
-    const createFn = _.partial(
-      FoldersDAO.createFolder,
-      ctx.user().id,
-      displayName,
-      description,
-      visibility
-    );
+    const createFn = _.partial(FoldersDAO.createFolder, ctx.user().id, displayName, description, visibility);
     ResourceActions.create(ctx, roles, createFn, (err, folder, memberChangeInfo) => {
       if (err) {
         return callback(err);
       }
 
-      FoldersAPI.emit(
-        FoldersConstants.events.CREATED_FOLDER,
-        ctx,
-        folder,
-        memberChangeInfo,
-        errs => {
-          if (errs) {
-            return callback(_.first(errs));
-          }
-
-          return callback(null, folder);
+      FoldersAPI.emit(FoldersConstants.events.CREATED_FOLDER, ctx, folder, memberChangeInfo, errs => {
+        if (errs) {
+          return callback(_.first(errs));
         }
-      );
+
+        return callback(null, folder);
+      });
     });
   });
 };
@@ -182,9 +172,7 @@ const updateFolder = function(ctx, folderId, updates, callback) {
   const allVisibilities = _.values(AuthzConstants.visibility);
 
   const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'Anonymous users cannot create a folder' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'Anonymous users cannot create a folder' }).isLoggedInUser(ctx);
   validator
     .check(folderId, {
       code: 400,
@@ -204,9 +192,7 @@ const updateFolder = function(ctx, folderId, updates, callback) {
     .min(1);
 
   _.each(updates, (val, key) => {
-    validator
-      .check(key, { code: 400, msg: 'Unknown update field provided' })
-      .isIn(legalUpdateFields);
+    validator.check(key, { code: 400, msg: 'Unknown update field provided' }).isIn(legalUpdateFields);
   });
 
   if (updates.displayName) {
@@ -217,6 +203,7 @@ const updateFolder = function(ctx, folderId, updates, callback) {
       })
       .isShortString();
   }
+
   if (updates.description) {
     validator
       .check(updates.description, {
@@ -225,13 +212,12 @@ const updateFolder = function(ctx, folderId, updates, callback) {
       })
       .isMediumString();
   }
+
   if (updates.visibility) {
     validator
       .check(updates.visibility, {
         code: 400,
-        msg:
-          'An invalid folder visibility option has been provided. Must be one of: ' +
-          allVisibilities.join(', ')
+        msg: 'An invalid folder visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
       })
       .isIn(allVisibilities);
   }
@@ -297,9 +283,7 @@ const updateFolderContentVisibility = function(ctx, folderId, visibility, callba
   validator
     .check(visibility, {
       code: 400,
-      msg:
-        'An invalid folder visibility option has been provided. Must be one of: ' +
-        allVisibilities.join(', ')
+      msg: 'An invalid folder visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
     })
     .isIn(allVisibilities);
   if (validator.hasErrors()) {
@@ -350,20 +334,14 @@ const _updateFolderContentVisibility = function(ctx, folder, visibility, callbac
   // Get all the content items in this folder
   FoldersAuthz.getContentInFolder(folder, (err, contentIds) => {
     if (err) {
-      log().error(
-        { err, folderId: folder.id },
-        'Got an error when updating the visibility of content in a folder'
-      );
+      log().error({ err, folderId: folder.id }, 'Got an error when updating the visibility of content in a folder');
       return callback(err);
     }
 
     // Get the content objects
     ContentDAO.Content.getMultipleContentItems(contentIds, null, (err, contentItems) => {
       if (err) {
-        log().error(
-          { err, folderId: folder.id },
-          'Got an error when updating the visibility of content in a folder'
-        );
+        log().error({ err, folderId: folder.id }, 'Got an error when updating the visibility of content in a folder');
         return callback(err);
       }
 
@@ -575,6 +553,7 @@ const _getFullFolderProfile = function(ctx, folder, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!permissions.canView) {
       return callback({ code: 401, msg: 'You are not authorized to view this folder' });
     }
@@ -627,9 +606,7 @@ const _getFullFolderProfile = function(ctx, folder, callback) {
 const deleteFolder = function(ctx, folderId, deleteContent, callback) {
   const validator = new Validator();
   validator.check(folderId, { code: 400, msg: 'A folder id must be provided' }).isResourceId();
-  validator
-    .check(null, { code: 401, msg: 'You must be authenticated to delete a folder' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'You must be authenticated to delete a folder' }).isLoggedInUser(ctx);
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -662,30 +639,26 @@ const deleteFolder = function(ctx, folderId, deleteContent, callback) {
             if (deleteContent) {
               _deleteContent(ctx, contentIds, failedContent => {
                 // Get the content objects that we couldn't delete
-                ContentDAO.Content.getMultipleContentItems(
-                  failedContent,
-                  null,
-                  (err, contentItems) => {
-                    if (err) {
-                      return callback(err);
-                    }
-
-                    _.chain(contentItems)
-                      // Remove null content items. This can happen if libraries are in an inconsistent
-                      // state. For example, if an item was deleted from the system but hasn't been removed
-                      // from the libraries, a `null` value would be returned by `getMultipleContentItems`
-                      .compact()
-
-                      // Sign the content items, note that we don't have to do any permission
-                      // checks here, as the user had access to these content items by virtue
-                      // of being a member of the folder
-                      .each(contentItem => {
-                        ContentUtil.augmentContent(ctx, contentItem);
-                      });
-
-                    return callback(null, contentItems);
+                ContentDAO.Content.getMultipleContentItems(failedContent, null, (err, contentItems) => {
+                  if (err) {
+                    return callback(err);
                   }
-                );
+
+                  _.chain(contentItems)
+                    // Remove null content items. This can happen if libraries are in an inconsistent
+                    // state. For example, if an item was deleted from the system but hasn't been removed
+                    // from the libraries, a `null` value would be returned by `getMultipleContentItems`
+                    .compact()
+
+                    // Sign the content items, note that we don't have to do any permission
+                    // checks here, as the user had access to these content items by virtue
+                    // of being a member of the folder
+                    .each(contentItem => {
+                      ContentUtil.augmentContent(ctx, contentItem);
+                    });
+
+                  return callback(null, contentItems);
+                });
               });
 
               // Otherwise remove the folder as an authz member of
@@ -820,6 +793,7 @@ const _removeAuthzFolderFromContentItems = function(folder, contentIds, callback
           'Unable to remove the folder from a group'
         );
       }
+
       done();
     });
   });
@@ -890,9 +864,7 @@ const getFolderMembers = function(ctx, folderId, start, limit, callback) {
  */
 const getFolderInvitations = function(ctx, folderId, callback) {
   const validator = new Validator();
-  validator
-    .check(folderId, { code: 400, msg: 'A valid resource id must be specified' })
-    .isResourceId();
+  validator.check(folderId, { code: 400, msg: 'A valid resource id must be specified' }).isResourceId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -917,9 +889,7 @@ const getFolderInvitations = function(ctx, folderId, callback) {
  */
 const resendFolderInvitation = function(ctx, folderId, email, callback) {
   const validator = new Validator();
-  validator
-    .check(folderId, { code: 400, msg: 'A valid resource id must be specified' })
-    .isResourceId();
+  validator.check(folderId, { code: 400, msg: 'A valid resource id must be specified' }).isResourceId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -949,9 +919,7 @@ const shareFolder = function(ctx, folderId, principalIds, callback) {
   validator
     .check(null, { code: 401, msg: 'You have to be logged in to be able to share a folder' })
     .isLoggedInUser(ctx);
-  validator
-    .check(folderId, { code: 400, msg: 'A valid folder id must be provided' })
-    .isResourceId();
+  validator.check(folderId, { code: 400, msg: 'A valid folder id must be provided' }).isResourceId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -963,36 +931,24 @@ const shareFolder = function(ctx, folderId, principalIds, callback) {
     }
 
     // Perform the share operation
-    ResourceActions.share(
-      ctx,
-      folder,
-      principalIds,
-      AuthzConstants.role.VIEWER,
-      (err, memberChangeInfo) => {
-        if (err) {
-          return callback(err);
-        }
-        if (_.isEmpty(memberChangeInfo.changes)) {
-          // If no new members were actually added, we don't have to do anything more
-          return callback();
-        }
-
-        FoldersAPI.emit(
-          FoldersConstants.events.UPDATED_FOLDER_MEMBERS,
-          ctx,
-          folder,
-          memberChangeInfo,
-          {},
-          errs => {
-            if (errs) {
-              return callback(_.first(errs));
-            }
-
-            return callback();
-          }
-        );
+    ResourceActions.share(ctx, folder, principalIds, AuthzConstants.role.VIEWER, (err, memberChangeInfo) => {
+      if (err) {
+        return callback(err);
       }
-    );
+
+      if (_.isEmpty(memberChangeInfo.changes)) {
+        // If no new members were actually added, we don't have to do anything more
+        return callback();
+      }
+
+      FoldersAPI.emit(FoldersConstants.events.UPDATED_FOLDER_MEMBERS, ctx, folder, memberChangeInfo, {}, errs => {
+        if (errs) {
+          return callback(_.first(errs));
+        }
+
+        return callback();
+      });
+    });
   });
 };
 
@@ -1015,9 +971,7 @@ const setFolderPermissions = function(ctx, folderId, changes, callback) {
       msg: 'You have to be logged in to be able to change folder permissions'
     })
     .isLoggedInUser(ctx);
-  validator
-    .check(folderId, { code: 400, msg: 'A valid folder id must be provided' })
-    .isResourceId();
+  validator.check(folderId, { code: 400, msg: 'A valid folder id must be provided' }).isResourceId();
   // eslint-disable-next-line no-unused-vars
   _.each(changes, (role, principalId) => {
     validator
@@ -1056,24 +1010,18 @@ const setFolderPermissions = function(ctx, folderId, changes, callback) {
       if (err) {
         return callback(err);
       }
+
       if (_.isEmpty(memberChangeInfo.changes)) {
         return callback();
       }
 
-      FoldersAPI.emit(
-        FoldersConstants.events.UPDATED_FOLDER_MEMBERS,
-        ctx,
-        folder,
-        memberChangeInfo,
-        {},
-        errs => {
-          if (errs) {
-            return callback(_.first(errs));
-          }
-
-          return callback();
+      FoldersAPI.emit(FoldersConstants.events.UPDATED_FOLDER_MEMBERS, ctx, folder, memberChangeInfo, {}, errs => {
+        if (errs) {
+          return callback(_.first(errs));
         }
-      );
+
+        return callback();
+      });
     });
   });
 };
@@ -1095,12 +1043,8 @@ const addContentItemsToFolder = function(ctx, folderId, contentIds, callback) {
       msg: 'You have to be authenticated to be able to add an item to a folder'
     })
     .isLoggedInUser(ctx);
-  validator
-    .check(folderId, { code: 400, msg: 'A valid folder id must be provided' })
-    .isResourceId();
-  validator
-    .check(null, { code: 400, msg: 'Must specify at least one content item to add' })
-    .isArray(contentIds);
+  validator.check(folderId, { code: 400, msg: 'A valid folder id must be provided' }).isResourceId();
+  validator.check(null, { code: 400, msg: 'Must specify at least one content item to add' }).isArray(contentIds);
   validator
     .check(_.values(contentIds).length, {
       code: 400,
@@ -1148,6 +1092,7 @@ const addContentItemsToFolder = function(ctx, folderId, contentIds, callback) {
         if (err && err.code !== 401) {
           return callback(err);
         }
+
         if (err && !_.isEmpty(err.invalidContentIds)) {
           return callback({
             code: 401,
@@ -1157,18 +1102,13 @@ const addContentItemsToFolder = function(ctx, folderId, contentIds, callback) {
             )
           });
         }
+
         if (err) {
           return callback(err);
         }
 
         // Add all the items to the folder
-        return _addContentItemsToFolderLibrary(
-          ctx,
-          'add-to-folder',
-          folder,
-          contentItems.slice(),
-          callback
-        );
+        return _addContentItemsToFolderLibrary(ctx, 'add-to-folder', folder, contentItems.slice(), callback);
       });
     });
   });
@@ -1185,13 +1125,7 @@ const addContentItemsToFolder = function(ctx, folderId, contentIds, callback) {
  * @param  {Object}         callback.err        An error object, if any
  * @api private
  */
-const _addContentItemsToFolderLibrary = function(
-  ctx,
-  actionContext,
-  folder,
-  contentItems,
-  callback
-) {
+const _addContentItemsToFolderLibrary = function(ctx, actionContext, folder, contentItems, callback) {
   // First, make the folder a member of all the content items
   _addContentItemsToAuthzFolder(folder, contentItems.slice(), err => {
     if (err) {
@@ -1211,13 +1145,7 @@ const _addContentItemsToFolderLibrary = function(
         );
       }
 
-      FoldersAPI.emit(
-        FoldersConstants.events.ADDED_CONTENT_ITEMS,
-        ctx,
-        actionContext,
-        folder,
-        contentItems
-      );
+      FoldersAPI.emit(FoldersConstants.events.ADDED_CONTENT_ITEMS, ctx, actionContext, folder, contentItems);
 
       return callback(err);
     });
@@ -1241,12 +1169,8 @@ const removeContentItemsFromFolder = function(ctx, folderId, contentIds, callbac
       msg: 'You have to be authenticated to be able to remove an item from a folder'
     })
     .isLoggedInUser(ctx);
-  validator
-    .check(folderId, { code: 400, msg: 'A valid folder id must be provided' })
-    .isResourceId();
-  validator
-    .check(null, { code: 400, msg: 'You must specify at least one content item to remove' })
-    .isArray(contentIds);
+  validator.check(folderId, { code: 400, msg: 'A valid folder id must be provided' }).isResourceId();
+  validator.check(null, { code: 400, msg: 'You must specify at least one content item to remove' }).isArray(contentIds);
   validator
     .check(_.values(contentIds).length, {
       code: 400,
@@ -1313,12 +1237,7 @@ const removeContentItemsFromFolder = function(ctx, folderId, contentIds, callbac
               );
             }
 
-            FoldersAPI.emit(
-              FoldersConstants.events.REMOVED_CONTENT_ITEMS,
-              ctx,
-              folder,
-              contentItems
-            );
+            FoldersAPI.emit(FoldersConstants.events.REMOVED_CONTENT_ITEMS, ctx, folder, contentItems);
             return callback();
           });
         });
@@ -1343,9 +1262,7 @@ const getFoldersLibrary = function(ctx, principalId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   const validator = new Validator();
-  validator
-    .check(principalId, { code: 400, msg: 'A user or group id must be provided' })
-    .isPrincipalId();
+  validator.check(principalId, { code: 400, msg: 'A user or group id must be provided' }).isPrincipalId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -1357,55 +1274,46 @@ const getFoldersLibrary = function(ctx, principalId, start, limit, callback) {
     }
 
     // Determine which library visibility the current user should receive
-    LibraryAPI.Authz.resolveTargetLibraryAccess(
-      ctx,
-      principal.id,
-      principal,
-      (err, hasAccess, visibility) => {
+    LibraryAPI.Authz.resolveTargetLibraryAccess(ctx, principal.id, principal, (err, hasAccess, visibility) => {
+      if (err) {
+        return callback(err);
+      }
+
+      if (!hasAccess) {
+        return callback({ code: 401, msg: 'You do not have have access to this library' });
+      }
+
+      // Get the folder ids from the library index
+      FoldersFoldersLibrary.list(principal, visibility, { start, limit }, (err, folderIds, nextToken) => {
         if (err) {
           return callback(err);
         }
-        if (!hasAccess) {
-          return callback({ code: 401, msg: 'You do not have have access to this library' });
-        }
 
-        // Get the folder ids from the library index
-        FoldersFoldersLibrary.list(
-          principal,
-          visibility,
-          { start, limit },
-          (err, folderIds, nextToken) => {
-            if (err) {
-              return callback(err);
-            }
-
-            // Get the folder objects from the folderIds
-            FoldersDAO.getFoldersByIds(folderIds, (err, folders) => {
-              if (err) {
-                return callback(err);
-              }
-
-              folders = _.map(folders, folder => {
-                return _augmentFolder(ctx, folder);
-              });
-
-              // Emit an event indicating that the folder library has been retrieved
-              FoldersAPI.emit(
-                FoldersConstants.events.GET_FOLDERS_LIBRARY,
-                ctx,
-                principalId,
-                visibility,
-                start,
-                limit,
-                folders
-              );
-
-              return callback(null, folders, nextToken);
-            });
+        // Get the folder objects from the folderIds
+        FoldersDAO.getFoldersByIds(folderIds, (err, folders) => {
+          if (err) {
+            return callback(err);
           }
-        );
-      }
-    );
+
+          folders = _.map(folders, folder => {
+            return _augmentFolder(ctx, folder);
+          });
+
+          // Emit an event indicating that the folder library has been retrieved
+          FoldersAPI.emit(
+            FoldersConstants.events.GET_FOLDERS_LIBRARY,
+            ctx,
+            principalId,
+            visibility,
+            start,
+            limit,
+            folders
+          );
+
+          return callback(null, folders, nextToken);
+        });
+      });
+    });
   });
 };
 
@@ -1476,12 +1384,8 @@ const removeFolderFromLibrary = function(ctx, principalId, folderId, callback) {
   validator
     .check(null, { code: 401, msg: 'You must be authenticated to remove a folder from a library' })
     .isLoggedInUser(ctx);
-  validator
-    .check(principalId, { code: 400, msg: 'A user or group id must be provided' })
-    .isPrincipalId();
-  validator
-    .check(folderId, { code: 400, msg: 'A valid folder id must be provided' })
-    .isResourceId();
+  validator.check(principalId, { code: 400, msg: 'A user or group id must be provided' }).isPrincipalId();
+  validator.check(folderId, { code: 400, msg: 'A valid folder id must be provided' }).isResourceId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -1510,20 +1414,13 @@ const removeFolderFromLibrary = function(ctx, principalId, folderId, callback) {
             return callback(err);
           }
 
-          FoldersAPI.emit(
-            FoldersConstants.events.UPDATED_FOLDER_MEMBERS,
-            ctx,
-            folder,
-            memberChangeInfo,
-            {},
-            errs => {
-              if (errs) {
-                return callback(_.first(errs));
-              }
-
-              return callback();
+          FoldersAPI.emit(FoldersConstants.events.UPDATED_FOLDER_MEMBERS, ctx, folder, memberChangeInfo, {}, errs => {
+            if (errs) {
+              return callback(_.first(errs));
             }
-          );
+
+            return callback();
+          });
         });
       });
     });
@@ -1558,50 +1455,41 @@ const getFolderContentLibrary = function(ctx, folderId, start, limit, callback) 
     }
 
     // Determine which library visibility the current user should receive
-    LibraryAPI.Authz.resolveTargetLibraryAccess(
-      ctx,
-      folder.groupId,
-      folder,
-      (err, hasAccess, visibility) => {
+    LibraryAPI.Authz.resolveTargetLibraryAccess(ctx, folder.groupId, folder, (err, hasAccess, visibility) => {
+      if (err) {
+        return callback(err);
+      }
+
+      if (!hasAccess) {
+        return callback({ code: 401, msg: 'You do not have access to this folder' });
+      }
+
+      FoldersContentLibrary.list(folder, visibility, { start, limit }, (err, contentIds, nextToken) => {
         if (err) {
           return callback(err);
         }
-        if (!hasAccess) {
-          return callback({ code: 401, msg: 'You do not have access to this folder' });
-        }
 
-        FoldersContentLibrary.list(
-          folder,
-          visibility,
-          { start, limit },
-          (err, contentIds, nextToken) => {
-            if (err) {
-              return callback(err);
-            }
-
-            ContentDAO.Content.getMultipleContentItems(contentIds, null, (err, contentItems) => {
-              if (err) {
-                return callback(err);
-              }
-
-              contentItems = _.chain(contentItems)
-                // Remove null content items. This can happen if libraries are in an inconsistent
-                // state. For example, if an item was deleted from the system but hasn't been removed
-                // from the libraries, a `null` value would be returned by `getMultipleContentItems`
-                .compact()
-
-                // Augment each content item with its signed preview urls
-                .each(contentItem => {
-                  ContentUtil.augmentContent(ctx, contentItem);
-                })
-                .value();
-
-              return callback(null, contentItems, nextToken);
-            });
+        ContentDAO.Content.getMultipleContentItems(contentIds, null, (err, contentItems) => {
+          if (err) {
+            return callback(err);
           }
-        );
-      }
-    );
+
+          contentItems = _.chain(contentItems)
+            // Remove null content items. This can happen if libraries are in an inconsistent
+            // state. For example, if an item was deleted from the system but hasn't been removed
+            // from the libraries, a `null` value would be returned by `getMultipleContentItems`
+            .compact()
+
+            // Augment each content item with its signed preview urls
+            .each(contentItem => {
+              ContentUtil.augmentContent(ctx, contentItem);
+            })
+            .value();
+
+          return callback(null, contentItems, nextToken);
+        });
+      });
+    });
   });
 };
 
@@ -1623,19 +1511,14 @@ const getFolderContentLibrary = function(ctx, folderId, start, limit, callback) 
  */
 const createMessage = function(ctx, folderId, body, replyToCreatedTimestamp, callback) {
   const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'Only authenticated users can post to folders' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'Only authenticated users can post to folders' }).isLoggedInUser(ctx);
   validator.check(folderId, { code: 400, msg: 'Invalid folder id provided' }).isResourceId();
   validator.check(body, { code: 400, msg: 'A message body must be provided' }).notEmpty();
-  validator
-    .check(body, { code: 400, msg: 'A message body can only be 100000 characters long' })
-    .isLongString();
+  validator.check(body, { code: 400, msg: 'A message body can only be 100000 characters long' }).isLongString();
   if (replyToCreatedTimestamp) {
-    validator
-      .check(replyToCreatedTimestamp, { code: 400, msg: 'Invalid reply-to timestamp provided' })
-      .isInt();
+    validator.check(replyToCreatedTimestamp, { code: 400, msg: 'Invalid reply-to timestamp provided' }).isInt();
   }
+
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -1699,9 +1582,7 @@ const createMessage = function(ctx, folderId, body, replyToCreatedTimestamp, cal
  */
 const deleteMessage = function(ctx, folderId, messageCreatedDate, callback) {
   const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'Only authenticated users can delete messages' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'Only authenticated users can delete messages' }).isLoggedInUser(ctx);
   validator.check(folderId, { code: 400, msg: 'A folder id must be provided' }).isResourceId();
   validator
     .check(messageCreatedDate, {
@@ -1720,54 +1601,45 @@ const deleteMessage = function(ctx, folderId, messageCreatedDate, callback) {
     }
 
     // Ensure that the message exists. We also need it so we can make sure we have access to delete it
-    MessageBoxAPI.getMessages(
-      folderId,
-      [messageCreatedDate],
-      { scrubDeleted: false },
-      (err, messages) => {
+    MessageBoxAPI.getMessages(folderId, [messageCreatedDate], { scrubDeleted: false }, (err, messages) => {
+      if (err) {
+        return callback(err);
+      }
+
+      if (!messages[0]) {
+        return callback({ code: 404, msg: 'The specified message does not exist' });
+      }
+
+      const message = messages[0];
+
+      // Determine if we have access to delete the folder message
+      AuthzPermissions.canManageMessage(ctx, folder, message, err => {
         if (err) {
           return callback(err);
         }
-        if (!messages[0]) {
-          return callback({ code: 404, msg: 'The specified message does not exist' });
-        }
 
-        const message = messages[0];
-
-        // Determine if we have access to delete the folder message
-        AuthzPermissions.canManageMessage(ctx, folder, message, err => {
-          if (err) {
-            return callback(err);
-          }
-
-          // Delete the message using the "leaf" method, which will SOFT delete if the message has replies, or HARD delete if it does not
-          MessageBoxAPI.deleteMessage(
-            folderId,
-            messageCreatedDate,
-            { deleteType: MessageBoxConstants.deleteTypes.LEAF },
-            (err, deleteType, deletedMessage) => {
-              if (err) {
-                return callback(err);
-              }
-
-              FoldersAPI.emit(
-                FoldersConstants.events.DELETED_COMMENT,
-                ctx,
-                message,
-                folder,
-                deleteType
-              );
-
-              // If a soft-delete occurred, we want to inform the consumer of the soft-delete message model
-              if (deleteType === MessageBoxConstants.deleteTypes.SOFT) {
-                return callback(null, deletedMessage);
-              }
-              return callback();
+        // Delete the message using the "leaf" method, which will SOFT delete if the message has replies, or HARD delete if it does not
+        MessageBoxAPI.deleteMessage(
+          folderId,
+          messageCreatedDate,
+          { deleteType: MessageBoxConstants.deleteTypes.LEAF },
+          (err, deleteType, deletedMessage) => {
+            if (err) {
+              return callback(err);
             }
-          );
-        });
-      }
-    );
+
+            FoldersAPI.emit(FoldersConstants.events.DELETED_COMMENT, ctx, message, folder, deleteType);
+
+            // If a soft-delete occurred, we want to inform the consumer of the soft-delete message model
+            if (deleteType === MessageBoxConstants.deleteTypes.SOFT) {
+              return callback(null, deletedMessage);
+            }
+
+            return callback();
+          }
+        );
+      });
+    });
   });
 };
 
@@ -1806,42 +1678,36 @@ const getMessages = function(ctx, folderId, start, limit, callback) {
       }
 
       // Fetch the messages from the message box
-      MessageBoxAPI.getMessagesFromMessageBox(
-        folderId,
-        start,
-        limit,
-        null,
-        (err, messages, nextToken) => {
+      MessageBoxAPI.getMessagesFromMessageBox(folderId, start, limit, null, (err, messages, nextToken) => {
+        if (err) {
+          return callback(err);
+        }
+
+        // Get the unique user ids from the messages so we can retrieve their full user objects
+        const userIds = _.chain(messages)
+          .map(message => {
+            return message.createdBy;
+          })
+          .uniq()
+          .compact()
+          .value();
+
+        // Get the basic principal profiles of the messagers
+        PrincipalsUtil.getPrincipals(ctx, userIds, (err, users) => {
           if (err) {
             return callback(err);
           }
 
-          // Get the unique user ids from the messages so we can retrieve their full user objects
-          const userIds = _.chain(messages)
-            .map(message => {
-              return message.createdBy;
-            })
-            .uniq()
-            .compact()
-            .value();
-
-          // Get the basic principal profiles of the messagers
-          PrincipalsUtil.getPrincipals(ctx, userIds, (err, users) => {
-            if (err) {
-              return callback(err);
+          // Attach the user profiles to the message objects
+          _.each(messages, message => {
+            if (users[message.createdBy]) {
+              message.createdBy = users[message.createdBy];
             }
-
-            // Attach the user profiles to the message objects
-            _.each(messages, message => {
-              if (users[message.createdBy]) {
-                message.createdBy = users[message.createdBy];
-              }
-            });
-
-            return callback(err, messages, nextToken);
           });
-        }
-      );
+
+          return callback(err, messages, nextToken);
+        });
+      });
     });
   });
 };
@@ -1912,18 +1778,17 @@ const _removeContentItemsFromFolder = function(folder, contentIds, callback) {
  */
 const _augmentFolder = function(ctx, folder) {
   if (folder.previews && folder.previews.thumbnailUri) {
-    folder.previews.thumbnailUrl = ContentUtil.getSignedDownloadUrl(
-      ctx,
-      folder.previews.thumbnailUri
-    );
+    folder.previews.thumbnailUrl = ContentUtil.getSignedDownloadUrl(ctx, folder.previews.thumbnailUri);
   }
+
   if (folder.previews && folder.previews.wideUri) {
     folder.previews.wideUrl = ContentUtil.getSignedDownloadUrl(ctx, folder.previews.wideUri);
   }
+
   return folder;
 };
 
-module.exports = {
+export {
   createFolder,
   updateFolder,
   updateFolderContentVisibility,
@@ -1945,5 +1810,5 @@ module.exports = {
   createMessage,
   deleteMessage,
   getMessages,
-  emitter: FoldersAPI
+  FoldersAPI as emitter
 };

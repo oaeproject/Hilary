@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const AuthenticationUtil = require('oae-authentication/lib/util');
+import * as AuthenticationUtil from 'oae-authentication/lib/util';
 
 describe('Authentication - util', () => {
   describe('#setProfileParameter', () => {
@@ -30,12 +30,7 @@ describe('Authentication - util', () => {
         initial: true
       };
       const profileParameterName = 'displayName';
-      AuthenticationUtil.setProfileParameter(
-        profileParameters,
-        profileParameterName,
-        template,
-        data
-      );
+      AuthenticationUtil.setProfileParameter(profileParameters, profileParameterName, template, data);
 
       // Assert the displayName was added
       assert.strictEqual(profileParameters.displayName, 'John Doe');

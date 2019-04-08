@@ -13,15 +13,15 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const ActivityAPI = require('oae-activity');
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const ActivityModel = require('oae-activity/lib/model');
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const ResourceActions = require('oae-resource/lib/actions');
-const { ResourceConstants } = require('oae-resource/lib/constants');
-const TenantsAPI = require('oae-tenants');
+import * as ActivityAPI from 'oae-activity';
+import { ActivityConstants } from 'oae-activity/lib/constants';
+import * as ActivityModel from 'oae-activity/lib/model';
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import * as ResourceActions from 'oae-resource/lib/actions';
+import { ResourceConstants } from 'oae-resource/lib/constants';
+import * as TenantsAPI from 'oae-tenants';
 
 /// ///////////////
 // EMAIL ENTITY //
@@ -116,13 +116,9 @@ ActivityAPI.registerActivityEntityType('email', {
  * Register the "self" association for the email, which specifies only the email resource itself as
  * a potentital recipient
  */
-ActivityAPI.registerActivityEntityAssociation(
-  'email',
-  'self',
-  (associationsCtx, entity, callback) => {
-    return callback(null, [entity[ActivityConstants.properties.OAE_ID]]);
-  }
-);
+ActivityAPI.registerActivityEntityAssociation('email', 'self', (associationsCtx, entity, callback) => {
+  return callback(null, [entity[ActivityConstants.properties.OAE_ID]]);
+});
 
 /// //////////////////
 // INVITE ACTIVITY //

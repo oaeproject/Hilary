@@ -14,16 +14,17 @@
  */
 
 /* eslint-disable camelcase */
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const AuthzUtil = require('oae-authz/lib/util');
-const MQTestsUtil = require('oae-util/lib/test/mq-util');
-const RestAPI = require('oae-rest');
-const SearchAPI = require('oae-search');
-const { SearchConstants } = require('oae-search/lib/constants');
-const TaskQueue = require('oae-util/lib/taskqueue');
-const TestsUtil = require('oae-tests/lib/util');
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as MQTestsUtil from 'oae-util/lib/test/mq-util';
+import * as RestAPI from 'oae-rest';
+import * as SearchAPI from 'oae-search';
+import * as TaskQueue from 'oae-util/lib/taskqueue';
+import * as TestsUtil from 'oae-tests/lib/util';
+
+import { SearchConstants } from 'oae-search/lib/constants';
 
 describe('Search API', () => {
   // REST Contexts we will use to execute requests
@@ -41,10 +42,10 @@ describe('Search API', () => {
       assert.ok(!err);
 
       /*!
-             * Task handler that will just drain the queue.
-             *
-             * @see TaskQueue#bind
-             */
+       * Task handler that will just drain the queue.
+       *
+       * @see TaskQueue#bind
+       */
       const _handleTaskDrain = function(data, mqCallback) {
         // Simply callback, which acknowledges messages without doing anything.
         mqCallback();
@@ -66,10 +67,7 @@ describe('Search API', () => {
 
     // Try and register a second transformer of the same type, log the error and verify it happened.
     assert.throws(() => {
-      SearchAPI.registerSearchDocumentTransformer(
-        'test-registerSearchDocumentTransformer',
-        () => {}
-      );
+      SearchAPI.registerSearchDocumentTransformer('test-registerSearchDocumentTransformer', () => {});
     }, Error);
 
     return callback();
@@ -166,11 +164,11 @@ describe('Search API', () => {
       assert.ok(!err);
 
       /*!
-             * Simply call the test callback to continue tests. If this is not invoked, the test will timeout
-             * and fail.
-             *
-             * @see TaskQueue#bind
-             */
+       * Simply call the test callback to continue tests. If this is not invoked, the test will timeout
+       * and fail.
+       *
+       * @see TaskQueue#bind
+       */
       const _handleTask = function(data, mqCallback) {
         mqCallback();
         callback();
@@ -197,10 +195,10 @@ describe('Search API', () => {
       assert.ok(!err);
 
       /*!
-             * Task handler that will fail the test if invoked.
-             *
-             * @see TaskQueue#bind
-             */
+       * Task handler that will fail the test if invoked.
+       *
+       * @see TaskQueue#bind
+       */
       const _handleTaskFail = function(data, mqCallback) {
         mqCallback();
         assert.fail('Did not expect the task to be invoked.');
@@ -287,29 +285,19 @@ describe('Search API', () => {
         assert.ok(!err);
 
         // Send an index task of a document of the proper resource type
-        SearchAPI.postIndexTask(
-          'test_resource_type',
-          [{ id: 't:cam:test' }],
-          { children: true },
-          err => {
-            assert.ok(!err);
+        SearchAPI.postIndexTask('test_resource_type', [{ id: 't:cam:test' }], { children: true }, err => {
+          assert.ok(!err);
 
-            // Send an index task of a document of not the proper resource type
-            SearchAPI.postIndexTask(
-              'not_test_resource_type',
-              [{ id: 'n:cam:test' }],
-              { children: true },
-              err => {
-                // Wait for the producers to be invoked
-                MQTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_INDEX_DOCUMENT, () => {
-                  // Ensure only the proper resource type invoked the producer
-                  assert.strictEqual(invoked, 1);
-                  return callback();
-                });
-              }
-            );
-          }
-        );
+          // Send an index task of a document of not the proper resource type
+          SearchAPI.postIndexTask('not_test_resource_type', [{ id: 'n:cam:test' }], { children: true }, err => {
+            // Wait for the producers to be invoked
+            MQTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_INDEX_DOCUMENT, () => {
+              // Ensure only the proper resource type invoked the producer
+              assert.strictEqual(invoked, 1);
+              return callback();
+            });
+          });
+        });
       }
     );
   });
@@ -339,29 +327,19 @@ describe('Search API', () => {
         assert.ok(!err);
 
         // Send an index task of a document of the proper resource type
-        SearchAPI.postIndexTask(
-          'test_resource_type',
-          [{ id: 't:cam:test' }],
-          { children: true },
-          err => {
-            assert.ok(!err);
+        SearchAPI.postIndexTask('test_resource_type', [{ id: 't:cam:test' }], { children: true }, err => {
+          assert.ok(!err);
 
-            // Send an index task of a document of not the proper resource type
-            SearchAPI.postIndexTask(
-              'another_test_resource_type',
-              [{ id: 'n:cam:test' }],
-              { children: true },
-              err => {
-                // Wait for the producers to be invoked
-                MQTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_INDEX_DOCUMENT, () => {
-                  // Ensure only the proper resource type invoked the producer
-                  assert.strictEqual(invoked, 2);
-                  return callback();
-                });
-              }
-            );
-          }
-        );
+          // Send an index task of a document of not the proper resource type
+          SearchAPI.postIndexTask('another_test_resource_type', [{ id: 'n:cam:test' }], { children: true }, err => {
+            // Wait for the producers to be invoked
+            MQTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_INDEX_DOCUMENT, () => {
+              // Ensure only the proper resource type invoked the producer
+              assert.strictEqual(invoked, 2);
+              return callback();
+            });
+          });
+        });
       }
     );
   });

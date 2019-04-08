@@ -31,7 +31,4 @@ const shouldBeEnabled = function(tenantAlias) {};
 // eslint-disable-next-line no-unused-vars
 const getPassportStrategy = function(tenant) {};
 
-module.exports = {
-  shouldBeEnabled,
-  getPassportStrategy
-};
+export { shouldBeEnabled, getPassportStrategy };

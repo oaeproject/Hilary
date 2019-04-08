@@ -13,13 +13,12 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
-const PrincipalsTestUtil = require('oae-principals/lib/test/util');
-const RestAPI = require('oae-rest');
-const TestsUtil = require('oae-tests');
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as TestsUtil from 'oae-tests';
 
 describe('Principals DAO', () => {
   // Rest contexts that will be used for requests
@@ -52,40 +51,35 @@ describe('Principals DAO', () => {
           simong.user.id,
           { email },
           (simong1, emailToken) => {
-            PrincipalsTestUtil.assertVerifyEmailSucceeds(
-              simong.restContext,
-              simong.user.id,
-              emailToken,
-              () => {
-                // Ensure both users are represented in the user email mapping for the email
-                PrincipalsDAO.getUserIdsByEmails([email], (err, userIdsByEmail) => {
+            PrincipalsTestUtil.assertVerifyEmailSucceeds(simong.restContext, simong.user.id, emailToken, () => {
+              // Ensure both users are represented in the user email mapping for the email
+              PrincipalsDAO.getUserIdsByEmails([email], (err, userIdsByEmail) => {
+                assert.ok(!err);
+
+                const ids = userIdsByEmail[email];
+                assert.ok(_.isArray(ids));
+                assert.strictEqual(_.size(ids), 2);
+                assert.ok(_.contains(ids, mrvisser.user.id));
+                assert.ok(_.contains(ids, simong.user.id));
+
+                // Now change simong's email to something else using the DAO
+                const email1 = TestsUtil.generateTestEmailAddress().toLowerCase();
+                PrincipalsDAO.updatePrincipal(simong.user.id, { email: email1 }, err => {
                   assert.ok(!err);
 
-                  const ids = userIdsByEmail[email];
-                  assert.ok(_.isArray(ids));
-                  assert.strictEqual(_.size(ids), 2);
-                  assert.ok(_.contains(ids, mrvisser.user.id));
-                  assert.ok(_.contains(ids, simong.user.id));
-
-                  // Now change simong's email to something else using the DAO
-                  const email1 = TestsUtil.generateTestEmailAddress().toLowerCase();
-                  PrincipalsDAO.updatePrincipal(simong.user.id, { email: email1 }, err => {
+                  // Ensure mrvisser's email entry still has him mapped
+                  PrincipalsDAO.getUserIdsByEmails([email], (err, userIdsByEmail) => {
                     assert.ok(!err);
 
-                    // Ensure mrvisser's email entry still has him mapped
-                    PrincipalsDAO.getUserIdsByEmails([email], (err, userIdsByEmail) => {
-                      assert.ok(!err);
-
-                      const ids = userIdsByEmail[email];
-                      assert.ok(_.isArray(ids));
-                      assert.strictEqual(_.size(ids), 1);
-                      assert.strictEqual(ids[0], mrvisser.user.id);
-                      return callback();
-                    });
+                    const ids = userIdsByEmail[email];
+                    assert.ok(_.isArray(ids));
+                    assert.strictEqual(_.size(ids), 1);
+                    assert.strictEqual(ids[0], mrvisser.user.id);
+                    return callback();
                   });
                 });
-              }
-            );
+              });
+            });
           }
         );
       });
@@ -118,17 +112,13 @@ describe('Principals DAO', () => {
                 assert.strictEqual(err.code, 400);
                 assert.strictEqual(err.msg, 'Attempted to update an invalid property');
 
-                PrincipalsDAO.updatePrincipal(
-                  mrvisser.id,
-                  { 'admin:tenant': true, 'admin:global': true },
-                  err => {
-                    assert.ok(err);
-                    assert.strictEqual(err.code, 400);
-                    assert.strictEqual(err.msg, 'Attempted to update an invalid property');
+                PrincipalsDAO.updatePrincipal(mrvisser.id, { 'admin:tenant': true, 'admin:global': true }, err => {
+                  assert.ok(err);
+                  assert.strictEqual(err.code, 400);
+                  assert.strictEqual(err.msg, 'Attempted to update an invalid property');
 
-                    return callback();
-                  }
-                );
+                  return callback();
+                });
               });
             });
           });
@@ -174,8 +164,8 @@ describe('Principals DAO', () => {
         let foundUser = false;
 
         /*!
-                 * Verifies that each principal row only has the principalId
-                 */
+         * Verifies that each principal row only has the principalId
+         */
         const _onEach = function(principalRows, done) {
           // Ensure we only get the principalId of the users
           _.each(principalRows, principalRow => {
@@ -203,8 +193,8 @@ describe('Principals DAO', () => {
           foundUser = false;
 
           /*!
-                     * Verifies that we only get the principalId and displayName of each principalRow
-                     */
+           * Verifies that we only get the principalId and displayName of each principalRow
+           */
           const _onEach = function(principalRows, done) {
             // Ensure we only get the principalId and displayName of the principal
             _.each(principalRows, principalRow => {

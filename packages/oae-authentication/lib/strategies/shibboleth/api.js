@@ -13,15 +13,17 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
+import util from 'util';
 
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
-const Signature = require('oae-util/lib/signature');
-const TenantsAPI = require('oae-tenants/lib/api');
-const { Validator } = require('oae-util/lib/validator');
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as Signature from 'oae-util/lib/signature';
+import * as TenantsAPI from 'oae-tenants/lib/api';
+import { Validator } from 'oae-util/lib/validator';
 
-const { AuthenticationConstants } = require('oae-authentication/lib/constants');
-const AuthenticationConfig = require('oae-config').config('oae-authentication');
+import { AuthenticationConstants } from 'oae-authentication/lib/constants';
+import { setUpConfig } from 'oae-config';
+
+const AuthenticationConfig = setUpConfig('oae-authentication');
 
 let config = null;
 
@@ -50,11 +52,7 @@ const getSPHost = function() {
  * @return {Boolean}                    `true` if the strategy is enabled, `false` otherwise
  */
 const isEnabled = function(tenantAlias) {
-  return AuthenticationConfig.getValue(
-    tenantAlias,
-    AuthenticationConstants.providers.SHIBBOLETH,
-    'enabled'
-  );
+  return AuthenticationConfig.getValue(tenantAlias, AuthenticationConstants.providers.SHIBBOLETH, 'enabled');
 };
 
 /**
@@ -95,9 +93,7 @@ const getServiceProviderUrl = function(ctx) {
  */
 const validateInitiateParameters = function(tenantAlias, signature, expires, callback) {
   const validator = new Validator();
-  validator
-    .check(tenantAlias, { code: 400, msg: 'Missing tenant alias parameter' })
-    .notEmpty(tenantAlias);
+  validator.check(tenantAlias, { code: 400, msg: 'Missing tenant alias parameter' }).notEmpty(tenantAlias);
   validator.check(signature, { code: 400, msg: 'Missing signature parameter' }).notEmpty(signature);
   validator.check(expires, { code: 400, msg: 'Missing expires parameter' }).notEmpty(expires);
   validator.check(expires, { code: 400, msg: 'Invalid expires parameter' }).isNumeric();
@@ -199,6 +195,7 @@ const getUser = function(tenant, userId, signature, expires, callback) {
       if (err) {
         return callback(err);
       }
+
       if (user.deleted) {
         return callback({
           code: 401,
@@ -211,7 +208,7 @@ const getUser = function(tenant, userId, signature, expires, callback) {
   });
 };
 
-module.exports = {
+export {
   refreshConfiguration,
   getSPHost,
   isEnabled,

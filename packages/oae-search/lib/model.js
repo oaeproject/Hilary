@@ -37,4 +37,4 @@ const SearchResult = function(total, results) {
   return that;
 };
 
-module.exports = { SearchResult };
+export { SearchResult };

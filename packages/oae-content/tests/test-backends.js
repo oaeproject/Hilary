@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const BackendsUtil = require('oae-content/lib/backends/util');
-const LocalBackend = require('oae-content/lib/backends/local');
-const RemoteBackend = require('oae-content/lib/backends/remote');
+import * as BackendsUtil from 'oae-content/lib/backends/util';
+import * as LocalBackend from 'oae-content/lib/backends/local';
+import * as RemoteBackend from 'oae-content/lib/backends/remote';
 
 describe('Content Backends', () => {
   describe('Util', () => {
@@ -34,25 +34,14 @@ describe('Content Backends', () => {
       const uri = BackendsUtil.generateUri(file, options);
       const result = uri.split('/');
 
-      assert.strictEqual(
-        result[0],
-        'c',
-        'The first level of a URI should be the resource type (or unspecified.)'
-      );
+      assert.strictEqual(result[0], 'c', 'The first level of a URI should be the resource type (or unspecified.)');
       assert.strictEqual(
         result[1],
         'camtest',
         'The second level of a URI should be the tenant alias (or unspecified.)'
       );
-      assert.strictEqual(
-        result[result.length - 1],
-        'testfile.png',
-        'The last level of the URI should be the filename'
-      );
-      assert.ok(
-        result.length > 3,
-        'A URI should have some kind of hashing in it which generated more than 3 levels'
-      );
+      assert.strictEqual(result[result.length - 1], 'testfile.png', 'The last level of the URI should be the filename');
+      assert.ok(result.length > 3, 'A URI should have some kind of hashing in it which generated more than 3 levels');
       _.each(result, part => {
         assert.ok(part.length > 0, 'Each part of the URI should be non-empty.');
       });
@@ -69,11 +58,7 @@ describe('Content Backends', () => {
       const uri = BackendsUtil.generateUri(file, options);
       const result = uri.split('/');
 
-      assert.strictEqual(
-        result[0],
-        'u',
-        'The first level of a URI should be the resource type (or unspecified.)'
-      );
+      assert.strictEqual(result[0], 'u', 'The first level of a URI should be the resource type (or unspecified.)');
       assert.strictEqual(
         result[1],
         'camtest',
@@ -84,11 +69,7 @@ describe('Content Backends', () => {
         'profilepictures',
         'The second to last level of the URI should be the prefix (if it contains no slashes.)'
       );
-      assert.strictEqual(
-        result[result.length - 1],
-        'testfile.png',
-        'The last level of the URI should be the filename'
-      );
+      assert.strictEqual(result[result.length - 1], 'testfile.png', 'The last level of the URI should be the filename');
       assert.ok(
         result.length > 4,
         'A URI should have some kind of hashing in it which generated more than 4 levels if a prefix is specified'
@@ -116,15 +97,8 @@ describe('Content Backends', () => {
         'unspecified',
         'The second level of a URI should be the tenant alias (or unspecified.)'
       );
-      assert.strictEqual(
-        result[result.length - 1],
-        'testfile.png',
-        'The last level of the URI should be the filename'
-      );
-      assert.ok(
-        result.length > 3,
-        'A URI should have some kind of hashing in it which generated more than 3 levels'
-      );
+      assert.strictEqual(result[result.length - 1], 'testfile.png', 'The last level of the URI should be the filename');
+      assert.ok(result.length > 3, 'A URI should have some kind of hashing in it which generated more than 3 levels');
       _.each(result, part => {
         assert.ok(part.length > 0, 'Each part of the URI should be non-empty.');
       });
@@ -140,25 +114,14 @@ describe('Content Backends', () => {
       const uri = BackendsUtil.generateUri(file, options);
       const result = uri.split('/');
 
-      assert.strictEqual(
-        result[0],
-        'c',
-        'The first level of a URI should be the resource type (or unspecified.)'
-      );
+      assert.strictEqual(result[0], 'c', 'The first level of a URI should be the resource type (or unspecified.)');
       assert.strictEqual(
         result[1],
         'camtest',
         'The second level of a URI should be the tenant alias (or unspecified.)'
       );
-      assert.strictEqual(
-        result[result.length - 1],
-        'testfile.png',
-        'The last level of the URI should be the filename'
-      );
-      assert.ok(
-        result.length > 3,
-        'A URI should have some kind of hashing in it which generated more than 3 levels'
-      );
+      assert.strictEqual(result[result.length - 1], 'testfile.png', 'The last level of the URI should be the filename');
+      assert.ok(result.length > 3, 'A URI should have some kind of hashing in it which generated more than 3 levels');
       _.each(result, part => {
         assert.ok(part.length > 0, 'Each part of the URI should be non-empty.');
       });

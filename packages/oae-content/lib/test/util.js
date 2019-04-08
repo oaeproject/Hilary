@@ -13,21 +13,21 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const util = require('util');
-const _ = require('underscore');
-const ShortId = require('shortid');
-const async = require('async');
+import assert from 'assert';
+import util from 'util';
+import _ from 'underscore';
+import ShortId from 'shortid';
+import async from 'async';
 
-const AuthzTestUtil = require('oae-authz/lib/test/util');
-const MqTestUtil = require('oae-util/lib/test/mq-util');
-const LibraryTestUtil = require('oae-library/lib/test/util');
-const PrincipalsTestUtil = require('oae-principals/lib/test/util');
-const RestAPI = require('oae-rest');
-const TaskQueue = require('oae-util/lib/taskqueue');
-const TestsUtil = require('oae-tests/lib/util');
+import * as AuthzTestUtil from 'oae-authz/lib/test/util';
+import * as MqTestUtil from 'oae-util/lib/test/mq-util';
+import * as LibraryTestUtil from 'oae-library/lib/test/util';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as TaskQueue from 'oae-util/lib/taskqueue';
+import * as TestsUtil from 'oae-tests/lib/util';
 
-const { ContentConstants } = require('oae-content/lib/constants');
+import { ContentConstants } from 'oae-content/lib/constants';
 
 /**
  * Set up 2 public tenants and 2 private tenants, each with a public, loggedin, private set of users, groups and
@@ -932,7 +932,7 @@ const _purgeMembersLibrary = function(contentId, callback) {
   LibraryTestUtil.assertPurgeFreshLibraries(ContentConstants.library.MEMBERS_LIBRARY_INDEX_NAME, [contentId], callback);
 };
 
-module.exports = {
+export {
   setupMultiTenantPrivacyEntities,
   assertCreateLinkSucceeds,
   assertCreateLinkFails,

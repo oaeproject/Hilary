@@ -13,25 +13,35 @@
  * permissions and limitations under the License.
  */
 
-const { logger } = require('oae-logger');
+import util from 'util';
+import { logger } from 'oae-logger';
 
-const util = require('util');
-const _ = require('underscore');
-const async = require('async');
+import _ from 'underscore';
+import async from 'async';
 
-const Cassandra = require('oae-util/lib/cassandra');
-const ConfigAPI = require('oae-config');
-const EmitterAPI = require('oae-emitter');
-const OAE = require('oae-util/lib/oae');
-const OaeUtil = require('oae-util/lib/util');
-const Pubsub = require('oae-util/lib/pubsub');
-const { Validator } = require('oae-util/lib/validator');
+// We have to require the config api inline, as this would
+// otherwise lead to circular require calls
+import { setUpConfig } from 'oae-config';
+// We have to require the UI api inline, as this would
+// otherwise lead to circular require calls
+import * as UIAPI from 'oae-ui';
+import * as UserAPI from 'oae-principals/lib/api.user.js';
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as ConfigAPI from 'oae-config';
+import * as EmitterAPI from 'oae-emitter';
+import * as OAE from 'oae-util/lib/oae';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as Pubsub from 'oae-util/lib/pubsub';
+import { Validator } from 'oae-util/lib/validator';
+import TenantEmailDomainIndex from './internal/emailDomainIndex';
+import TenantIndex from './internal/tenantIndex';
+import * as TenantNetworksDAO from './internal/dao.networks';
+import * as TenantsUtil from './util';
 
-const { Tenant } = require('./model');
-const TenantEmailDomainIndex = require('./internal/emailDomainIndex');
-const TenantIndex = require('./internal/tenantIndex');
-const TenantNetworksDAO = require('./internal/dao.networks');
-const TenantsUtil = require('./util');
+import { Tenant } from './model';
+
+const TenantsConfig = setUpConfig('oae-tenants');
+
 const log = logger('oae-tenants');
 
 // Caches the server configuration as specified in the config.js file
@@ -236,6 +246,7 @@ const searchTenants = function(q, opts) {
     if (result.isGlobalAdminServer) {
       return false;
     }
+
     if (!includeDisabled) {
       return result.active && !result.deleted;
     }
@@ -422,6 +433,7 @@ const _updateCachedTenant = function(tenantAlias, callback) {
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(rows)) {
       TenantsAPI.emit('cached');
       return callback();
@@ -801,7 +813,6 @@ const disableTenants = function(ctx, aliases, disabled, callback) {
     // Broadcast the message accross the cluster so we can start/stop the tenants
     const cmd = disabled ? 'stop' : 'start';
 
-    const UserAPI = require('oae-principals/lib/api.user.js');
     async.mapSeries(
       aliases,
       (eachAlias, transformed) => {
@@ -823,6 +834,7 @@ const disableTenants = function(ctx, aliases, disabled, callback) {
         if (err) {
           callback(err);
         }
+
         return callback();
       }
     );
@@ -852,6 +864,7 @@ const getLandingPage = function(ctx) {
       landingPage.push(block);
     }
   }
+
   return landingPage;
 };
 
@@ -890,14 +903,11 @@ const _getLandingPageBlock = function(ctx, blockName) {
     block.text = block.text[locale] || block.text.default;
   }
 
-  // We have to require the UI api inline, as this would
-  // otherwise lead to circular require calls
-  const UIAPI = require('oae-ui');
-
   // If any URLs are configured, we try to resolve them in the hashed UI files
   if (block.imgUrl) {
     block.imgUrl = UIAPI.getHashedPath(block.imgUrl);
   }
+
   if (block.videoPlaceholder) {
     block.videoPlaceholder = UIAPI.getHashedPath(block.videoPlaceholder);
   }
@@ -915,10 +925,6 @@ const _getLandingPageBlock = function(ctx, blockName) {
  * @api private
  */
 const _setLandingPageBlockAttribute = function(ctx, block, blockName, attributeName) {
-  // We have to require the config api inline, as this would
-  // otherwise lead to circular require calls
-  const TenantsConfig = require('oae-config').config('oae-tenants');
-
   // Set the attribute value
   block[attributeName] = TenantsConfig.getValue(ctx.tenant().alias, blockName, attributeName);
 };
@@ -1017,11 +1023,12 @@ const _tenantToStorageHash = function(tenant) {
   if (hash.emailDomains) {
     hash.emailDomains = hash.emailDomains.join(',');
   }
+
   return hash;
 };
 
-module.exports = {
-  emitter: TenantsAPI,
+export {
+  TenantsAPI as emitter,
   init,
   getTenants,
   getNonInteractingTenants,

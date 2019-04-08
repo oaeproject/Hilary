@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-const EmailAPI = require('oae-email');
+import * as EmailAPI from 'oae-email';
 
-module.exports = function(config, callback) {
+export function init(config, callback) {
   EmailAPI.init(config.email, callback);
-};
+}

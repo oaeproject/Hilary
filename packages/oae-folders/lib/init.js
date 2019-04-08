@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const FoldersSearch = require('./search');
+import * as FoldersSearch from './search';
 
-module.exports = function(config, callback) {
+export function init(config, callback) {
   // Register activity, library, previews and search functionality
   // eslint-disable-next-line no-unused-vars
   const activity = require('./activity');
@@ -27,4 +27,4 @@ module.exports = function(config, callback) {
   const invitations = require('./invitations');
 
   return FoldersSearch.init(callback);
-};
+}

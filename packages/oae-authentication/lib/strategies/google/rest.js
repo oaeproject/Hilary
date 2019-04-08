@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
-const ConfigAPI = require('oae-config');
-const OAE = require('oae-util/lib/oae');
+import * as ConfigAPI from 'oae-config';
+import * as OAE from 'oae-util/lib/oae';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants';
+import * as AuthenticationUtil from 'oae-authentication/lib/util';
 
-const AuthenticationConfig = ConfigAPI.config('oae-authentication');
-const { AuthenticationConstants } = require('oae-authentication/lib/constants');
-const AuthenticationUtil = require('oae-authentication/lib/util');
+const AuthenticationConfig = ConfigAPI.setUpConfig('oae-authentication');
 
 /**
  * @REST postAuthGoogle
@@ -34,10 +34,7 @@ const AuthenticationUtil = require('oae-authentication/lib/util');
  */
 OAE.tenantRouter.on('post', '/api/auth/google', (req, res, next) => {
   // Get the ID under which we registered this strategy for this tenant
-  const strategyId = AuthenticationUtil.getStrategyId(
-    req.tenant,
-    AuthenticationConstants.providers.GOOGLE
-  );
+  const strategyId = AuthenticationUtil.getStrategyId(req.tenant, AuthenticationConstants.providers.GOOGLE);
 
   const options = {
     // To avoid authenticating with the wrong Google account, we give the user the opportunity to select or add
@@ -74,11 +71,10 @@ OAE.tenantRouter.on('post', '/api/auth/google', (req, res, next) => {
  */
 OAE.tenantRouter.on('get', '/api/auth/google/callback', (req, res, next) => {
   // Get the ID under which we registered this strategy for this tenant
-  const strategyId = AuthenticationUtil.getStrategyId(
-    req.tenant,
-    AuthenticationConstants.providers.GOOGLE
-  );
+  const strategyId = AuthenticationUtil.getStrategyId(req.tenant, AuthenticationConstants.providers.GOOGLE);
 
   // Log the user in
   AuthenticationUtil.handleExternalCallback(strategyId, req, res, next);
 });
+
+export default OAE;

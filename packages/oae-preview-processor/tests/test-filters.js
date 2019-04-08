@@ -13,11 +13,11 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const { Content } = require('oae-content/lib/model');
-const { FilterGenerator } = require('oae-preview-processor/lib/filters');
+import { Content } from 'oae-content/lib/model';
+import { FilterGenerator } from 'oae-preview-processor/lib/filters';
 
 describe('Preview processor - filters', () => {
   // A set of timestamps (ms since epoch) each a day apart (A = 5 days ago against F, B = 4 days ago, etc)
@@ -39,30 +39,8 @@ describe('Preview processor - filters', () => {
   const _getMockData = function() {
     // Fake 5 content items
     const content = [
-      new Content(
-        'camtest',
-        'c:camtest:a',
-        'public',
-        'A',
-        'A',
-        'file',
-        'u:camtest:simon',
-        times.A,
-        times.E,
-        'a-3'
-      ),
-      new Content(
-        'camtest',
-        'c:camtest:b',
-        'public',
-        'B',
-        'B',
-        'link',
-        'u:camtest:nico',
-        times.B,
-        times.B,
-        'b-1'
-      ),
+      new Content('camtest', 'c:camtest:a', 'public', 'A', 'A', 'file', 'u:camtest:simon', times.A, times.E, 'a-3'),
+      new Content('camtest', 'c:camtest:b', 'public', 'B', 'B', 'link', 'u:camtest:nico', times.B, times.B, 'b-1'),
       new Content(
         'camtest',
         'c:camtest:c',
@@ -75,30 +53,8 @@ describe('Preview processor - filters', () => {
         times.D,
         'c-3'
       ),
-      new Content(
-        'camtest',
-        'c:camtest:d',
-        'public',
-        'D',
-        'D',
-        'file',
-        'u:camtest:simon',
-        times.C,
-        times.D,
-        'd-2'
-      ),
-      new Content(
-        'gttest',
-        'c:gttest:e',
-        'public',
-        'E',
-        'E',
-        'file',
-        'u:gttest:stuart',
-        times.D,
-        times.F,
-        'e-2'
-      )
+      new Content('camtest', 'c:camtest:d', 'public', 'D', 'D', 'file', 'u:camtest:simon', times.C, times.D, 'd-2'),
+      new Content('gttest', 'c:gttest:e', 'public', 'E', 'E', 'file', 'u:gttest:stuart', times.D, times.F, 'e-2')
     ];
 
     // Give each content item a revision
@@ -274,10 +230,7 @@ describe('Preview processor - filters', () => {
       for (let i = 0; i < filteredContent.length; i++) {
         assert.strictEqual(filteredContent[i].id, expectations.revisionStage[i].contentId);
         for (let r = 0; r < expectations.revisionStage[i].revisions.length; r++) {
-          assert.strictEqual(
-            filteredContent[i].revisions[r].revisionId,
-            expectations.revisionStage[i].revisions[r]
-          );
+          assert.strictEqual(filteredContent[i].revisions[r].revisionId, expectations.revisionStage[i].revisions[r]);
         }
       }
     };
@@ -445,18 +398,7 @@ describe('Preview processor - filters', () => {
 
       // Ensure that content items without a proper previews object get reprocessed
       const content = [
-        new Content(
-          'camtest',
-          'c:camtest:a',
-          'public',
-          'A',
-          'A',
-          'file',
-          'u:camtest:simon',
-          times.A,
-          times.E,
-          'a-3'
-        )
+        new Content('camtest', 'c:camtest:a', 'public', 'A', 'A', 'file', 'u:camtest:simon', times.A, times.E, 'a-3')
       ];
       const filterGenerator = new FilterGenerator(filters);
       assert.ok(!filterGenerator.hasErrors());
@@ -490,18 +432,7 @@ describe('Preview processor - filters', () => {
 
       // Ensure that revision items without a proper previews object get reprocessed
       const content = [
-        new Content(
-          'camtest',
-          'c:camtest:a',
-          'public',
-          'A',
-          'A',
-          'file',
-          'u:camtest:simon',
-          times.A,
-          times.E,
-          'a-3'
-        )
+        new Content('camtest', 'c:camtest:a', 'public', 'A', 'A', 'file', 'u:camtest:simon', times.A, times.E, 'a-3')
       ];
       content[0].revisions = [
         {

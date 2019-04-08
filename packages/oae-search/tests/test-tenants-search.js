@@ -13,13 +13,12 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const TenantsTestUtil = require('oae-tenants/lib/test/util');
-const TestsUtil = require('oae-tests');
-
-const SearchTestsUtil = require('oae-search/lib/test/util');
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import * as TestsUtil from 'oae-tests';
+import * as SearchTestsUtil from 'oae-search/lib/test/util';
 
 describe('Tenants Search', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user

@@ -14,8 +14,8 @@
  */
 
 /* eslint-disable unicorn/filename-case */
-const _ = require('underscore');
-const lunr = require('lunr');
+import _ from 'underscore';
+import lunr from 'lunr';
 
 /**
  * Represents an index where tenants can be indexed and then later full-text searched
@@ -90,4 +90,4 @@ const _tenantToDocument = function(tenant) {
   return _.pick(tenant, 'alias', 'host', 'displayName');
 };
 
-module.exports = TenantIndex;
+export default TenantIndex;

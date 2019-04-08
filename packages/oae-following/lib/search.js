@@ -13,13 +13,22 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
-const SearchAPI = require('oae-search');
-const SearchUtil = require('oae-search/lib/util');
+import _ from 'underscore';
 
-const FollowingAPI = require('oae-following');
-const { FollowingConstants } = require('oae-following/lib/constants');
-const FollowingDAO = require('oae-following/lib/internal/dao');
+import * as SearchAPI from 'oae-search';
+import * as SearchUtil from 'oae-search/lib/util';
+import * as FollowingAPI from 'oae-following';
+import * as FollowingDAO from 'oae-following/lib/internal/dao';
+import { FollowingConstants } from 'oae-following/lib/constants';
+import * as resourceFollowersSchema from './search/schema/resourceFollowersSchema';
+import * as resourceFollowingSchema from './search/schema/resourceFollowingSchema';
+
+/// ///////////////////
+// SEARCH ENDPOINTS //
+/// ///////////////////
+
+import followers from './search/searches/followers';
+import following from './search/searches/following';
 
 /**
  * Initializes the child search documents for the Following module
@@ -30,7 +39,7 @@ const FollowingDAO = require('oae-following/lib/internal/dao');
 const init = function(callback) {
   const followersChildSearchDocumentOptions = {
     resourceTypes: ['user'],
-    schema: require('./search/schema/resourceFollowersSchema'),
+    schema: resourceFollowersSchema,
     producer(resources, callback) {
       return _produceResourceFollowersDocuments(resources.slice(), callback);
     }
@@ -38,7 +47,7 @@ const init = function(callback) {
 
   const followingChildSearchDocumentOptions = {
     resourceTypes: ['user'],
-    schema: require('./search/schema/resourceFollowingSchema'),
+    schema: resourceFollowingSchema,
     producer(resources, callback) {
       return _produceResourceFollowingDocuments(resources.slice(), callback);
     }
@@ -83,11 +92,9 @@ const _produceResourceFollowersDocuments = function(resources, callback, _docume
     }
 
     _documents.push(
-      SearchUtil.createChildSearchDocument(
-        FollowingConstants.search.MAPPING_RESOURCE_FOLLOWERS,
-        resource.id,
-        { followers: followerUserIds }
-      )
+      SearchUtil.createChildSearchDocument(FollowingConstants.search.MAPPING_RESOURCE_FOLLOWERS, resource.id, {
+        followers: followerUserIds
+      })
     );
     return _produceResourceFollowersDocuments(resources, callback, _documents, _errs);
   });
@@ -114,11 +121,9 @@ const _produceResourceFollowingDocuments = function(resources, callback, _docume
     }
 
     _documents.push(
-      SearchUtil.createChildSearchDocument(
-        FollowingConstants.search.MAPPING_RESOURCE_FOLLOWING,
-        resource.id,
-        { following: followingUserIds }
-      )
+      SearchUtil.createChildSearchDocument(FollowingConstants.search.MAPPING_RESOURCE_FOLLOWING, resource.id, {
+        following: followingUserIds
+      })
     );
     return _produceResourceFollowingDocuments(resources, callback, _documents, _errs);
   });
@@ -151,17 +156,14 @@ const _getAllIds = function(method, id, start, limit, callback, _ids) {
       // There are no more ids to fetch, recursively get the next set
       return callback(null, _ids);
     }
+
     // There are still more, recursively get the next set
     return _getAllIds(method, id, nextToken, limit, callback, _ids);
   });
 };
 
-/// ///////////////////
-// SEARCH ENDPOINTS //
-/// ///////////////////
-
-SearchAPI.registerSearch('followers', require('./search/searches/followers'));
-SearchAPI.registerSearch('following', require('./search/searches/following'));
+SearchAPI.registerSearch('followers', followers);
+SearchAPI.registerSearch('following', following);
 
 /// /////////////////
 // INDEXING TASKS //
@@ -177,12 +179,9 @@ FollowingAPI.emitter.on(FollowingConstants.events.FOLLOW, (ctx, followingUser, f
 /*!
  * Update the following search index and the followers search index based on the change in the following user and the unfollowed user
  */
-FollowingAPI.emitter.on(
-  FollowingConstants.events.UNFOLLOW,
-  (ctx, followingUser, unfollowedUserId) => {
-    return _handleIndexChange(ctx, followingUser.id, unfollowedUserId);
-  }
-);
+FollowingAPI.emitter.on(FollowingConstants.events.UNFOLLOW, (ctx, followingUser, unfollowedUserId) => {
+  return _handleIndexChange(ctx, followingUser.id, unfollowedUserId);
+});
 
 /*!
  * Handle the change in follower/following index. The `followingUserId` will have their following index updated
@@ -208,6 +207,4 @@ const _handleIndexChange = function(ctx, followingUserId, followedUserId) {
   });
 };
 
-module.exports = {
-  init
-};
+export { init };

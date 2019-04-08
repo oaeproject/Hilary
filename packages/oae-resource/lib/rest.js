@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const OAE = require('oae-util/lib/oae');
+import * as OAE from 'oae-util/lib/oae';
 
-const ResourceActions = require('oae-resource/lib/actions');
+import * as ResourceActions from 'oae-resource/lib/actions';
 
 /**
  * @REST postInvitationAccept

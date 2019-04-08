@@ -13,15 +13,18 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
-const AuthzAPI = require('oae-authz');
-const LibraryAPI = require('oae-library');
-const OaeUtil = require('oae-util/lib/util');
-const log = require('oae-logger');
+import DiscussionsAPI from 'oae-discussions';
 
-const DiscussionsAPI = require('oae-discussions');
-const { DiscussionsConstants } = require('oae-discussions/lib/constants');
-const DiscussionsDAO = require('oae-discussions/lib/internal/dao');
+import _ from 'underscore';
+import * as AuthzAPI from 'oae-authz';
+import * as LibraryAPI from 'oae-library';
+import * as OaeUtil from 'oae-util/lib/util';
+import { logger } from 'oae-logger';
+
+import { DiscussionsConstants } from 'oae-discussions/lib/constants';
+import * as DiscussionsDAO from 'oae-discussions/lib/internal/dao';
+
+const log = logger('oae-discussions');
 
 // When updating discussions as a result of new messages, update it at most every hour
 const LIBRARY_UPDATE_THRESHOLD_SECONDS = 3600;
@@ -32,40 +35,34 @@ const LIBRARY_UPDATE_THRESHOLD_SECONDS = 3600;
 LibraryAPI.Index.registerLibraryIndex(DiscussionsConstants.library.DISCUSSIONS_LIBRARY_INDEX_NAME, {
   pageResources(libraryId, start, limit, callback) {
     // Query all the discussion ids ('d') to which the library owner is directly associated in this batch of paged resources
-    AuthzAPI.getRolesForPrincipalAndResourceType(
-      libraryId,
-      'd',
-      start,
-      limit,
-      (err, roles, nextToken) => {
-        if (err) {
-          return callback(err);
-        }
-
-        // We just need the ids, not the roles
-        const ids = _.pluck(roles, 'id');
-
-        DiscussionsDAO.getDiscussionsById(
-          ids,
-          ['id', 'tenantAlias', 'visibility', 'lastModified'],
-          (err, discussions) => {
-            if (err) {
-              return callback(err);
-            }
-
-            // Convert all the discussions into the light-weight library items that describe how its placed in a library index
-            const resources = _.chain(discussions)
-              .compact()
-              .map(discussion => {
-                return { rank: discussion.lastModified, resource: discussion };
-              })
-              .value();
-
-            return callback(null, resources, nextToken);
-          }
-        );
+    AuthzAPI.getRolesForPrincipalAndResourceType(libraryId, 'd', start, limit, (err, roles, nextToken) => {
+      if (err) {
+        return callback(err);
       }
-    );
+
+      // We just need the ids, not the roles
+      const ids = _.pluck(roles, 'id');
+
+      DiscussionsDAO.getDiscussionsById(
+        ids,
+        ['id', 'tenantAlias', 'visibility', 'lastModified'],
+        (err, discussions) => {
+          if (err) {
+            return callback(err);
+          }
+
+          // Convert all the discussions into the light-weight library items that describe how its placed in a library index
+          const resources = _.chain(discussions)
+            .compact()
+            .map(discussion => {
+              return { rank: discussion.lastModified, resource: discussion };
+            })
+            .value();
+
+          return callback(null, resources, nextToken);
+        }
+      );
+    });
   }
 });
 
@@ -77,75 +74,66 @@ LibraryAPI.Search.registerLibrarySearch('discussion-library', ['discussion']);
 /*!
  * When a discussion is created, add the discussion to the member discussion libraries
  */
-DiscussionsAPI.when(
-  DiscussionsConstants.events.CREATED_DISCUSSION,
-  (ctx, discussion, memberChangeInfo, callback) => {
-    const addedMemberIds = _.pluck(memberChangeInfo.members.added, 'id');
-    _insertLibrary(addedMemberIds, discussion, err => {
-      if (err) {
-        log().warn(
-          {
-            err,
-            discussionId: discussion.id,
-            memberIds: addedMemberIds
-          },
-          'An error occurred inserting discussion into discussion libraries after create'
-        );
-      }
+DiscussionsAPI.when(DiscussionsConstants.events.CREATED_DISCUSSION, (ctx, discussion, memberChangeInfo, callback) => {
+  const addedMemberIds = _.pluck(memberChangeInfo.members.added, 'id');
+  _insertLibrary(addedMemberIds, discussion, err => {
+    if (err) {
+      log().warn(
+        {
+          err,
+          discussionId: discussion.id,
+          memberIds: addedMemberIds
+        },
+        'An error occurred inserting discussion into discussion libraries after create'
+      );
+    }
 
-      return callback();
-    });
-  }
-);
+    return callback();
+  });
+});
 
 /*!
  * When a discussion is updated, update all discussion libraries with its updated last modified
  * date
  */
-DiscussionsAPI.on(
-  DiscussionsConstants.events.UPDATED_DISCUSSION,
-  (ctx, updatedDiscussion, oldDiscussion) => {
-    // Get all the member ids, we will update their discussion libraries
-    _getAllMemberIds(updatedDiscussion.id, (err, memberIds) => {
-      if (err) {
-        log().warn(
-          {
-            err,
-            discussionId: updatedDiscussion.id,
-            memberIds
-          },
-          'An error occurred while updating a discussion in all discussion libraries'
-        );
-      }
+DiscussionsAPI.on(DiscussionsConstants.events.UPDATED_DISCUSSION, (ctx, updatedDiscussion, oldDiscussion) => {
+  // Get all the member ids, we will update their discussion libraries
+  _getAllMemberIds(updatedDiscussion.id, (err, memberIds) => {
+    if (err) {
+      log().warn(
+        {
+          err,
+          discussionId: updatedDiscussion.id,
+          memberIds
+        },
+        'An error occurred while updating a discussion in all discussion libraries'
+      );
+    }
 
-      // Perform all the library updates
-      return _updateLibrary(memberIds, updatedDiscussion, oldDiscussion.lastModified);
-    });
-  }
-);
+    // Perform all the library updates
+    return _updateLibrary(memberIds, updatedDiscussion, oldDiscussion.lastModified);
+  });
+});
 
 /**
  * When a discussion is deleted, remove it from all discussion libraries
  */
-DiscussionsAPI.when(
-  DiscussionsConstants.events.DELETED_DISCUSSION,
-  (ctx, discussion, removedMemberIds, callback) => {
-    // Remove the discussion from all libraries
-    _removeLibrary(removedMemberIds, discussion, err => {
-      if (err) {
-        log().warn(
-          {
-            err,
-            discussionId: discussion.id
-          },
-          'An error occurred while removing a deleted discussion from all discussion libraries'
-        );
-      }
+DiscussionsAPI.when(DiscussionsConstants.events.DELETED_DISCUSSION, (ctx, discussion, removedMemberIds, callback) => {
+  // Remove the discussion from all libraries
+  _removeLibrary(removedMemberIds, discussion, err => {
+    if (err) {
+      log().warn(
+        {
+          err,
+          discussionId: discussion.id
+        },
+        'An error occurred while removing a deleted discussion from all discussion libraries'
+      );
+    }
 
-      return callback();
-    });
-  }
-);
+    return callback();
+  });
+});
 
 /**
  * When a discussions members are updated, pass the required updates to its members library as well
@@ -245,48 +233,45 @@ DiscussionsAPI.when(
  * When a new message is created for the discussion, update its last modified date and update its
  * rank in all discussion libraries
  */
-DiscussionsAPI.on(
-  DiscussionsConstants.events.CREATED_DISCUSSION_MESSAGE,
-  (ctx, message, discussion) => {
-    // Check to see if we are in a threshold to perform a discussion lastModified update. If not, we
-    // don't promote the discussion the library ranks
-    if (!_testDiscussionUpdateThreshold(discussion)) {
-      return;
+DiscussionsAPI.on(DiscussionsConstants.events.CREATED_DISCUSSION_MESSAGE, (ctx, message, discussion) => {
+  // Check to see if we are in a threshold to perform a discussion lastModified update. If not, we
+  // don't promote the discussion the library ranks
+  if (!_testDiscussionUpdateThreshold(discussion)) {
+    return;
+  }
+
+  // Try and get the principals whose libraries will be updated
+  _getAllMemberIds(discussion.id, (err, memberIds) => {
+    if (err) {
+      // If we can't get the members, don't so that we don't risk
+      return log().warn(
+        {
+          err,
+          discussionId: discussion.id,
+          memberIds
+        },
+        'Error fetching discussion members list to update library. Skipping updating libraries'
+      );
     }
 
-    // Try and get the principals whose libraries will be updated
-    _getAllMemberIds(discussion.id, (err, memberIds) => {
+    // Update the lastModified of the discussion
+    _touch(discussion, (err, updatedDiscussion) => {
       if (err) {
-        // If we can't get the members, don't so that we don't risk
+        // If we get an error touching the discussion, we simply won't update the libraries. Better luck next time.
         return log().warn(
           {
             err,
             discussionId: discussion.id,
             memberIds
           },
-          'Error fetching discussion members list to update library. Skipping updating libraries'
+          'Error touching discussion to update lastModified time. Skipping updating libraries'
         );
       }
 
-      // Update the lastModified of the discussion
-      _touch(discussion, (err, updatedDiscussion) => {
-        if (err) {
-          // If we get an error touching the discussion, we simply won't update the libraries. Better luck next time.
-          return log().warn(
-            {
-              err,
-              discussionId: discussion.id,
-              memberIds
-            },
-            'Error touching discussion to update lastModified time. Skipping updating libraries'
-          );
-        }
-
-        return _updateLibrary(memberIds, updatedDiscussion, discussion.lastModified);
-      });
+      return _updateLibrary(memberIds, updatedDiscussion, discussion.lastModified);
     });
-  }
-);
+  });
+});
 
 /**
  * Perform a "touch" on a discussion, which updates only the lastModified date of the discussion
@@ -309,10 +294,7 @@ const _touch = function(discussion, callback) {
  * @api private
  */
 const _testDiscussionUpdateThreshold = function(discussion) {
-  return (
-    !discussion.lastModified ||
-    Date.now() - discussion.lastModified > LIBRARY_UPDATE_THRESHOLD_SECONDS * 1000
-  );
+  return !discussion.lastModified || Date.now() - discussion.lastModified > LIBRARY_UPDATE_THRESHOLD_SECONDS * 1000;
 };
 
 /**
@@ -372,11 +354,7 @@ const _insertLibrary = function(principalIds, discussion, callback) {
     };
   });
 
-  LibraryAPI.Index.insert(
-    DiscussionsConstants.library.DISCUSSIONS_LIBRARY_INDEX_NAME,
-    entries,
-    callback
-  );
+  LibraryAPI.Index.insert(DiscussionsConstants.library.DISCUSSIONS_LIBRARY_INDEX_NAME, entries, callback);
 };
 
 /**
@@ -419,11 +397,7 @@ const _updateLibrary = function(principalIds, discussion, oldLastModified, callb
     };
   });
 
-  LibraryAPI.Index.update(
-    DiscussionsConstants.library.DISCUSSIONS_LIBRARY_INDEX_NAME,
-    entries,
-    callback
-  );
+  LibraryAPI.Index.update(DiscussionsConstants.library.DISCUSSIONS_LIBRARY_INDEX_NAME, entries, callback);
 };
 
 /**
@@ -463,9 +437,5 @@ const _removeLibrary = function(principalIds, discussion, callback) {
     };
   });
 
-  LibraryAPI.Index.remove(
-    DiscussionsConstants.library.DISCUSSIONS_LIBRARY_INDEX_NAME,
-    entries,
-    callback
-  );
+  LibraryAPI.Index.remove(DiscussionsConstants.library.DISCUSSIONS_LIBRARY_INDEX_NAME, entries, callback);
 };

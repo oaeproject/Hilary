@@ -13,17 +13,17 @@
  * permissions and limitations under the License.
  */
 
-var Fields = require('oae-config/lib/fields');
+import * as Fields from 'oae-config/lib/fields';
 
-module.exports = {
-    'title': 'OAE Principals Module',
-    'recaptcha': {
-        'name': 'reCaptcha Configuration',
-        'description': 'Define the reCaptcha settings.',
-        'elements': {
-            'enabled': new Fields.Bool('Enabled', 'Enable reCaptcha for user creation', true),
-            'publicKey': new Fields.Text('Public key', 'Public reCaptcha key', '6LcFWdYSAAAAAFRwq3uKrt134ujkWsIpWJX-HdoS'),
-            'privateKey': new Fields.Text('Private key', 'Private reCaptcha key', '6LcFWdYSAAAAANrHjt2Y5VJXoICHa95PFDarVcGs', {'suppress': true})
-        }
-    }
+export const title = 'OAE Principals Module';
+export const recaptcha = {
+  name: 'reCaptcha Configuration',
+  description: 'Define the reCaptcha settings.',
+  elements: {
+    enabled: new Fields.Bool('Enabled', 'Enable reCaptcha for user creation', true),
+    publicKey: new Fields.Text('Public key', 'Public reCaptcha key', '6LcFWdYSAAAAAFRwq3uKrt134ujkWsIpWJX-HdoS'),
+    privateKey: new Fields.Text('Private key', 'Private reCaptcha key', '6LcFWdYSAAAAANrHjt2Y5VJXoICHa95PFDarVcGs', {
+      suppress: true
+    })
+  }
 };

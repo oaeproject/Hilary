@@ -13,23 +13,20 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const util = require('util');
-const _ = require('underscore');
+import assert from 'assert';
+import util from 'util';
+import _ from 'underscore';
 
-const ConfigAPI = require('oae-config');
-const ConfigTestUtil = require('oae-config/lib/test/util');
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
-const PrincipalsTestUtil = require('oae-principals/lib/test/util');
-const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
-const ShibbolethAPI = require('oae-authentication/lib/strategies/shibboleth/api');
-const TestsUtil = require('oae-tests');
-
-const TenantsAPI = require('oae-tenants');
-const TenantsEmailDomainIndex = require('oae-tenants/lib/internal/emailDomainIndex');
-const TenantsUtil = require('oae-tenants/lib/util');
-const TenantsTestUtil = require('oae-tenants/lib/test/util');
+import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as ShibbolethAPI from 'oae-authentication/lib/strategies/shibboleth/api';
+import * as TestsUtil from 'oae-tests';
+import * as TenantsAPI from 'oae-tenants';
+import TenantsEmailDomainIndex from 'oae-tenants/lib/internal/emailDomainIndex';
+import * as TenantsUtil from 'oae-tenants/lib/util';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
 
 describe('Tenants', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user
@@ -103,12 +100,12 @@ describe('Tenants', () => {
     ];
 
     /*!
-         * Ensure that the `index.match` function works as expected assuming all the standard
-         * entries that are inserted using `_createIndex()`
-         *
-         * @param  {TenantEmailDomainIndex}     index   The index to test
-         * @throws {AssertionError}                     Thrown if any of the assertions fail
-         */
+     * Ensure that the `index.match` function works as expected assuming all the standard
+     * entries that are inserted using `_createIndex()`
+     *
+     * @param  {TenantEmailDomainIndex}     index   The index to test
+     * @throws {AssertionError}                     Thrown if any of the assertions fail
+     */
     const _assertAllStandardMatches = function(index) {
       // Domain prefixes to test. Tenant aliases are being set to ensure we don't wind up with
       // issues with tenant aliases being the string leaf keys of the index
@@ -179,12 +176,12 @@ describe('Tenants', () => {
     };
 
     /*!
-         * Ensure that the `index.conflict` function works as expected assuming all the standard
-         * entries that are inserted using `_createIndex()`
-         *
-         * @param  {TenantEmailDomainIndex}     index   The index to test
-         * @throws {AssertionError}                     Thrown if any of the assertions fail
-         */
+     * Ensure that the `index.conflict` function works as expected assuming all the standard
+     * entries that are inserted using `_createIndex()`
+     *
+     * @param  {TenantEmailDomainIndex}     index   The index to test
+     * @throws {AssertionError}                     Thrown if any of the assertions fail
+     */
     const _assertAllStandardConflicts = function(index) {
       // Domain prefixes to test. Tenant aliases are being set to ensure we don't wind up with
       // issues with tenant aliases being the string leaf keys of the index
@@ -237,10 +234,10 @@ describe('Tenants', () => {
     };
 
     /*!
-         * Create a test email domain index using the standard test entries
-         *
-         * @return {TenantEmailDomainIndex}     The email domain index
-         */
+     * Create a test email domain index using the standard test entries
+     *
+     * @return {TenantEmailDomainIndex}     The email domain index
+     */
     const _createIndex = function() {
       const index = new TenantsEmailDomainIndex();
 
@@ -359,28 +356,19 @@ describe('Tenants', () => {
 
           // Update the display name of the guest tenant
           const newDisplayName = TestsUtil.generateRandomText(1);
-          TenantsTestUtil.updateTenantAndWait(
-            globalAdminRestContext,
-            'guest',
-            { displayName: newDisplayName },
-            err => {
-              assert.ok(!err);
+          TenantsTestUtil.updateTenantAndWait(globalAdminRestContext, 'guest', { displayName: newDisplayName }, err => {
+            assert.ok(!err);
 
-              // Get the guest tenant again and ensure it has the updates
-              const expectedUpdatedGuestTenant = _.extend({}, guestTenant0, {
-                displayName: newDisplayName
-              });
-              RestAPI.Tenants.getTenant(
-                globalAdminRestContext,
-                'guest',
-                (err, updatedGuestTenant1) => {
-                  assert.ok(!err);
-                  assert.deepStrictEqual(updatedGuestTenant1, expectedUpdatedGuestTenant);
-                  return callback();
-                }
-              );
-            }
-          );
+            // Get the guest tenant again and ensure it has the updates
+            const expectedUpdatedGuestTenant = _.extend({}, guestTenant0, {
+              displayName: newDisplayName
+            });
+            RestAPI.Tenants.getTenant(globalAdminRestContext, 'guest', (err, updatedGuestTenant1) => {
+              assert.ok(!err);
+              assert.deepStrictEqual(updatedGuestTenant1, expectedUpdatedGuestTenant);
+              return callback();
+            });
+          });
         });
       });
     });
@@ -425,61 +413,32 @@ describe('Tenants', () => {
      */
     it('verify tenants can be looked up through an email address', callback => {
       // Create tenants with a configured email domain
-      TestsUtil.setupMultiTenantPrivacyEntities(
-        (publicTenant0, publicTenant1, privateTenant0, privateTenant1) => {
-          // Both tenants should be returned
-          let emails = [
-            publicTenant0.privateUser.user.email,
-            privateTenant1.privateUser.user.email
-          ];
-          RestAPI.Tenants.getTenantsByEmailAddress(
-            publicTenant0.publicUser.restContext,
-            emails,
-            (err, tenants) => {
+      TestsUtil.setupMultiTenantPrivacyEntities((publicTenant0, publicTenant1, privateTenant0, privateTenant1) => {
+        // Both tenants should be returned
+        let emails = [publicTenant0.privateUser.user.email, privateTenant1.privateUser.user.email];
+        RestAPI.Tenants.getTenantsByEmailAddress(publicTenant0.publicUser.restContext, emails, (err, tenants) => {
+          assert.ok(!err);
+          assert.strictEqual(tenants[publicTenant0.privateUser.user.email].alias, publicTenant0.tenant.alias);
+          assert.strictEqual(tenants[privateTenant1.privateUser.user.email].alias, privateTenant1.tenant.alias);
+
+          // An email that ends up on the guest tenant should
+          // return the guest tenancy
+          emails = ['an.email.ending.up@on.the.guest.tenancy'];
+          RestAPI.Tenants.getTenantsByEmailAddress(publicTenant0.publicUser.restContext, emails, (err, tenants) => {
+            assert.ok(!err);
+            assert.ok(tenants[emails[0]].isGuestTenant);
+
+            // A combination of both
+            emails = ['an.email.ending.up@on.the.guest.tenancy', publicTenant0.publicUser.user.email];
+            RestAPI.Tenants.getTenantsByEmailAddress(publicTenant0.publicUser.restContext, emails, (err, tenants) => {
               assert.ok(!err);
-              assert.strictEqual(
-                tenants[publicTenant0.privateUser.user.email].alias,
-                publicTenant0.tenant.alias
-              );
-              assert.strictEqual(
-                tenants[privateTenant1.privateUser.user.email].alias,
-                privateTenant1.tenant.alias
-              );
-
-              // An email that ends up on the guest tenant should
-              // return the guest tenancy
-              emails = ['an.email.ending.up@on.the.guest.tenancy'];
-              RestAPI.Tenants.getTenantsByEmailAddress(
-                publicTenant0.publicUser.restContext,
-                emails,
-                (err, tenants) => {
-                  assert.ok(!err);
-                  assert.ok(tenants[emails[0]].isGuestTenant);
-
-                  // A combination of both
-                  emails = [
-                    'an.email.ending.up@on.the.guest.tenancy',
-                    publicTenant0.publicUser.user.email
-                  ];
-                  RestAPI.Tenants.getTenantsByEmailAddress(
-                    publicTenant0.publicUser.restContext,
-                    emails,
-                    (err, tenants) => {
-                      assert.ok(!err);
-                      assert.ok(tenants[emails[0]].isGuestTenant);
-                      assert.strictEqual(
-                        tenants[publicTenant0.publicUser.user.email].alias,
-                        publicTenant0.tenant.alias
-                      );
-                      return callback();
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
+              assert.ok(tenants[emails[0]].isGuestTenant);
+              assert.strictEqual(tenants[publicTenant0.publicUser.user.email].alias, publicTenant0.tenant.alias);
+              return callback();
+            });
+          });
+        });
+      });
     });
   });
 
@@ -523,10 +482,7 @@ describe('Tenants', () => {
               assert.strictEqual(tenants.camtest.host, 'cambridge.oae.com');
               assert.ok(tenants[tenantAlias]);
               assert.strictEqual(tenants[tenantAlias].host, tenantHost.toLowerCase());
-              assert.strictEqual(
-                tenants[tenantAlias].emailDomains[0],
-                tenantEmailDomain.toLowerCase()
-              );
+              assert.strictEqual(tenants[tenantAlias].emailDomains[0], tenantEmailDomain.toLowerCase());
               assert.strictEqual(_.keys(tenants).length, numTenants + 1);
 
               // Verify that the global admin tenant is not included
@@ -580,10 +536,7 @@ describe('Tenants', () => {
               const tenantByEmailDomain = TenantsAPI.getTenantByEmail(tenantEmailDomain);
               assert.strictEqual(tenantByEmailDomain.alias, tenantAlias);
               assert.strictEqual(tenantByEmailDomain.host, tenantHost.toLowerCase());
-              assert.strictEqual(
-                tenantByEmailDomain.emailDomains[0],
-                tenantEmailDomain.toLowerCase()
-              );
+              assert.strictEqual(tenantByEmailDomain.emailDomains[0], tenantEmailDomain.toLowerCase());
 
               return callback();
             });
@@ -732,92 +685,56 @@ describe('Tenants', () => {
               assert.ok(gotTenant1);
               assert.strictEqual(gotTenant1.alias, tenant1Alias);
               assert.strictEqual(gotTenant1.host, tenant1Host.toLowerCase());
-              assert.strictEqual(
-                gotTenant1.emailDomains[0],
-                tenant1Opts.emailDomains[0].toLowerCase()
-              );
+              assert.strictEqual(gotTenant1.emailDomains[0], tenant1Opts.emailDomains[0].toLowerCase());
 
               // Ensure we can get tenant 1 with an email address by an exact match
-              gotTenant1 = TenantsAPI.getTenantByEmail(
-                util.format('mrvisser@%s', tenant1Opts.emailDomains)
-              );
+              gotTenant1 = TenantsAPI.getTenantByEmail(util.format('mrvisser@%s', tenant1Opts.emailDomains));
               assert.ok(gotTenant1);
               assert.strictEqual(gotTenant1.alias, tenant1Alias);
               assert.strictEqual(gotTenant1.host, tenant1Host.toLowerCase());
-              assert.strictEqual(
-                gotTenant1.emailDomains[0],
-                tenant1Opts.emailDomains[0].toLowerCase()
-              );
+              assert.strictEqual(gotTenant1.emailDomains[0], tenant1Opts.emailDomains[0].toLowerCase());
 
               // Ensure we can get tenant 1 by a valid host suffix
-              gotTenant1 = TenantsAPI.getTenantByEmail(
-                util.format('prefix.%s', tenant1Opts.emailDomains)
-              );
+              gotTenant1 = TenantsAPI.getTenantByEmail(util.format('prefix.%s', tenant1Opts.emailDomains));
               assert.ok(gotTenant1);
               assert.strictEqual(gotTenant1.alias, tenant1Alias);
               assert.strictEqual(gotTenant1.host, tenant1Host.toLowerCase());
-              assert.strictEqual(
-                gotTenant1.emailDomains[0],
-                tenant1Opts.emailDomains[0].toLowerCase()
-              );
+              assert.strictEqual(gotTenant1.emailDomains[0], tenant1Opts.emailDomains[0].toLowerCase());
 
               // Ensure we can get tenant 1 by a valid host suffix in an email address
-              gotTenant1 = TenantsAPI.getTenantByEmail(
-                util.format('mrvisser@prefix.%s', tenant1Opts.emailDomains)
-              );
+              gotTenant1 = TenantsAPI.getTenantByEmail(util.format('mrvisser@prefix.%s', tenant1Opts.emailDomains));
               assert.ok(gotTenant1);
               assert.strictEqual(gotTenant1.alias, tenant1Alias);
               assert.strictEqual(gotTenant1.host, tenant1Host.toLowerCase());
-              assert.strictEqual(
-                gotTenant1.emailDomains[0],
-                tenant1Opts.emailDomains[0].toLowerCase()
-              );
+              assert.strictEqual(gotTenant1.emailDomains[0], tenant1Opts.emailDomains[0].toLowerCase());
 
               // Ensure we can get tenant 2 by an exact match
               let gotTenant2 = TenantsAPI.getTenantByEmail(tenant2Opts.emailDomains[0]);
               assert.ok(tenant2);
               assert.strictEqual(gotTenant2.alias, tenant2Alias);
               assert.strictEqual(gotTenant2.host, tenant2Host.toLowerCase());
-              assert.strictEqual(
-                gotTenant2.emailDomains[0],
-                tenant2Opts.emailDomains[0].toLowerCase()
-              );
+              assert.strictEqual(gotTenant2.emailDomains[0], tenant2Opts.emailDomains[0].toLowerCase());
 
               // Ensure we can get tenant 2 by an email address domain exact match
-              gotTenant2 = TenantsAPI.getTenantByEmail(
-                util.format('mrvisser@%s', tenant2Opts.emailDomains[0])
-              );
+              gotTenant2 = TenantsAPI.getTenantByEmail(util.format('mrvisser@%s', tenant2Opts.emailDomains[0]));
               assert.ok(tenant2);
               assert.strictEqual(gotTenant2.alias, tenant2Alias);
               assert.strictEqual(gotTenant2.host, tenant2Host.toLowerCase());
-              assert.strictEqual(
-                gotTenant2.emailDomains[0],
-                tenant2Opts.emailDomains[0].toLowerCase()
-              );
+              assert.strictEqual(gotTenant2.emailDomains[0], tenant2Opts.emailDomains[0].toLowerCase());
 
               // Ensure we can get tenant 2 by a valid host suffix
-              gotTenant2 = TenantsAPI.getTenantByEmail(
-                util.format('prefix.%s', tenant2Opts.emailDomains[0])
-              );
+              gotTenant2 = TenantsAPI.getTenantByEmail(util.format('prefix.%s', tenant2Opts.emailDomains[0]));
               assert.ok(tenant2);
               assert.strictEqual(gotTenant2.alias, tenant2Alias);
               assert.strictEqual(gotTenant2.host, tenant2Host.toLowerCase());
-              assert.strictEqual(
-                gotTenant2.emailDomains[0],
-                tenant2Opts.emailDomains[0].toLowerCase()
-              );
+              assert.strictEqual(gotTenant2.emailDomains[0], tenant2Opts.emailDomains[0].toLowerCase());
 
               // Ensure we can get tenant 2 by an email address with a valid host suffix
-              gotTenant2 = TenantsAPI.getTenantByEmail(
-                util.format('mrvisser@prefix.%s', tenant2Opts.emailDomains[0])
-              );
+              gotTenant2 = TenantsAPI.getTenantByEmail(util.format('mrvisser@prefix.%s', tenant2Opts.emailDomains[0]));
               assert.ok(tenant2);
               assert.strictEqual(gotTenant2.alias, tenant2Alias);
               assert.strictEqual(gotTenant2.host, tenant2Host.toLowerCase());
-              assert.strictEqual(
-                gotTenant2.emailDomains[0],
-                tenant2Opts.emailDomains[0].toLowerCase()
-              );
+              assert.strictEqual(gotTenant2.emailDomains[0], tenant2Opts.emailDomains[0].toLowerCase());
 
               // Some subtle things that should fall back to the guest tenant:
               const shouldBeGuest = [
@@ -852,12 +769,7 @@ describe('Tenants', () => {
 
               // Some real-world cases with the cambridge tenant:
               const expectedTenantAlias = global.oaeTests.tenants.cam.alias;
-              const shouldMatchCambridge = [
-                'cam.ac.uk',
-                'admin.cam.ac.uk',
-                'sports.cam.ac.uk',
-                'uis.cam.ac.uk'
-              ];
+              const shouldMatchCambridge = ['cam.ac.uk', 'admin.cam.ac.uk', 'sports.cam.ac.uk', 'uis.cam.ac.uk'];
 
               const shouldMatchCambridgeEmailAddresses = _.map(shouldMatchCambridge, domain => {
                 return util.format('%s@%s', TestsUtil.generateTestUserId(), domain);
@@ -890,9 +802,7 @@ describe('Tenants', () => {
         assert.strictEqual(meObj.anon, true);
 
         // Get the me feed on a non-existing tenant
-        const anonymousNonExistingRestContext = TestsUtil.createTenantRestContext(
-          'harvard.oae.com'
-        );
+        const anonymousNonExistingRestContext = TestsUtil.createTenantRestContext('harvard.oae.com');
         RestAPI.User.getMe(anonymousNonExistingRestContext, (err, meObj) => {
           assert.ok(err);
           assert.strictEqual(err.code, 418);
@@ -913,10 +823,7 @@ describe('Tenants', () => {
       // global admin tenant
       _.each(TenantsAPI.getNonInteractingTenants(), tenant => {
         assert.ok(
-          tenant.isGlobalAdminServer ||
-            !tenant.active ||
-            tenant.deleted ||
-            TenantsUtil.isPrivate(tenant.alias)
+          tenant.isGlobalAdminServer || !tenant.active || tenant.deleted || TenantsUtil.isPrivate(tenant.alias)
         );
       });
 
@@ -936,14 +843,9 @@ describe('Tenants', () => {
 
           // Make the tenant private
           const makePrivateUpdate = { 'oae-tenants/tenantprivacy/tenantprivate': true };
-          ConfigTestUtil.updateConfigAndWait(
-            globalAdminRestContext,
-            tenantAlias,
-            makePrivateUpdate,
-            err => {
-              assert.ok(!err);
-            }
-          );
+          ConfigTestUtil.updateConfigAndWait(globalAdminRestContext, tenantAlias, makePrivateUpdate, err => {
+            assert.ok(!err);
+          });
 
           TenantsAPI.emitter.once('cached', () => {
             // After the tenants have been recached, ensure the tenant now appears in the
@@ -952,36 +854,25 @@ describe('Tenants', () => {
 
             // Make the tenant public again, ensure it gets removed from the list
             const makePublicUpdate = { 'oae-tenants/tenantprivacy/tenantprivate': false };
-            ConfigTestUtil.updateConfigAndWait(
-              globalAdminRestContext,
-              tenantAlias,
-              makePublicUpdate,
-              err => {
-                assert.ok(!err);
-              }
-            );
+            ConfigTestUtil.updateConfigAndWait(globalAdminRestContext, tenantAlias, makePublicUpdate, err => {
+              assert.ok(!err);
+            });
 
             TenantsAPI.emitter.once('cached', () => {
               // After the tenants have been recached, ensure the tenant no longer appears
               // in the private tenants list
-              assert.ok(
-                !_.findWhere(TenantsAPI.getNonInteractingTenants(), { alias: tenantAlias })
-              );
+              assert.ok(!_.findWhere(TenantsAPI.getNonInteractingTenants(), { alias: tenantAlias }));
 
               // Disable the tenant and ensure it goes into the list of non-interacting
               // tenants
               TenantsTestUtil.stopTenantAndWait(globalAdminRestContext, tenantAlias, err => {
                 assert.ok(!err);
-                assert.ok(
-                  _.findWhere(TenantsAPI.getNonInteractingTenants(), { alias: tenantAlias })
-                );
+                assert.ok(_.findWhere(TenantsAPI.getNonInteractingTenants(), { alias: tenantAlias }));
 
                 // Enable the tenant and ensure it comes back out of the list
                 TenantsTestUtil.startTenantAndWait(globalAdminRestContext, tenantAlias, err => {
                   assert.ok(!err);
-                  assert.ok(
-                    !_.findWhere(TenantsAPI.getNonInteractingTenants(), { alias: tenantAlias })
-                  );
+                  assert.ok(!_.findWhere(TenantsAPI.getNonInteractingTenants(), { alias: tenantAlias }));
                   return callback();
                 });
               });
@@ -1070,141 +961,117 @@ describe('Tenants', () => {
       const tenantHost = TenantsTestUtil.generateTestTenantHost();
 
       // Try creating a tenant with no alias
-      TenantsTestUtil.createTenantAndWait(
-        globalAdminRestContext,
-        null,
-        'AAR',
-        tenantHost,
-        null,
-        err => {
-          assert.ok(err);
-          assert.strictEqual(err.code, 400);
+      TenantsTestUtil.createTenantAndWait(globalAdminRestContext, null, 'AAR', tenantHost, null, err => {
+        assert.ok(err);
+        assert.strictEqual(err.code, 400);
 
-          // Try creating a tenant with an invalid alias, using spaces in the alias
-          TenantsTestUtil.createTenantAndWait(
-            globalAdminRestContext,
-            'American Academic of Religion',
-            'AAR',
-            tenantHost,
-            null,
-            err => {
+        // Try creating a tenant with an invalid alias, using spaces in the alias
+        TenantsTestUtil.createTenantAndWait(
+          globalAdminRestContext,
+          'American Academic of Religion',
+          'AAR',
+          tenantHost,
+          null,
+          err => {
+            assert.ok(err);
+            assert.strictEqual(err.code, 400);
+
+            // Try creating a tenant with an invalid alias, using a colon in the alias
+            TenantsTestUtil.createTenantAndWait(globalAdminRestContext, 'aar:test', 'AAR', tenantHost, null, err => {
               assert.ok(err);
               assert.strictEqual(err.code, 400);
 
-              // Try creating a tenant with an invalid alias, using a colon in the alias
+              // Try creating a tenant with an alias that's already taken
               TenantsTestUtil.createTenantAndWait(
                 globalAdminRestContext,
-                'aar:test',
-                'AAR',
+                'camtest',
+                'Cambridge University',
                 tenantHost,
                 null,
                 err => {
                   assert.ok(err);
                   assert.strictEqual(err.code, 400);
 
-                  // Try creating a tenant with an alias that's already taken
+                  // Try creating a tenant with no displayName
                   TenantsTestUtil.createTenantAndWait(
                     globalAdminRestContext,
-                    'camtest',
-                    'Cambridge University',
+                    tenantAlias,
+                    null,
                     tenantHost,
                     null,
                     err => {
                       assert.ok(err);
                       assert.strictEqual(err.code, 400);
 
-                      // Try creating a tenant with no displayName
+                      // Try creating a tenant with no base URL
                       TenantsTestUtil.createTenantAndWait(
                         globalAdminRestContext,
                         tenantAlias,
+                        'AAR',
                         null,
-                        tenantHost,
                         null,
                         err => {
                           assert.ok(err);
                           assert.strictEqual(err.code, 400);
 
-                          // Try creating a tenant with no base URL
+                          // Try creating a tenant with an invalid hostname
                           TenantsTestUtil.createTenantAndWait(
                             globalAdminRestContext,
                             tenantAlias,
-                            'AAR',
-                            null,
+                            'Cambridge University',
+                            'not a valid hostname',
                             null,
                             err => {
                               assert.ok(err);
                               assert.strictEqual(err.code, 400);
 
-                              // Try creating a tenant with an invalid hostname
+                              // Try creating a tenant with a host name that's already taken
                               TenantsTestUtil.createTenantAndWait(
                                 globalAdminRestContext,
                                 tenantAlias,
                                 'Cambridge University',
-                                'not a valid hostname',
+                                'cambridge.oae.com',
                                 null,
                                 err => {
                                   assert.ok(err);
                                   assert.strictEqual(err.code, 400);
 
-                                  // Try creating a tenant with a host name that's already taken
+                                  // Try creating a tenant with an invalid country code
                                   TenantsTestUtil.createTenantAndWait(
                                     globalAdminRestContext,
                                     tenantAlias,
                                     'Cambridge University',
-                                    'cambridge.oae.com',
-                                    null,
+                                    tenantHost,
+                                    { countryCode: 'ZZ' },
                                     err => {
                                       assert.ok(err);
                                       assert.strictEqual(err.code, 400);
 
-                                      // Try creating a tenant with an invalid country code
-                                      TenantsTestUtil.createTenantAndWait(
-                                        globalAdminRestContext,
-                                        tenantAlias,
-                                        'Cambridge University',
-                                        tenantHost,
-                                        { countryCode: 'ZZ' },
-                                        err => {
-                                          assert.ok(err);
-                                          assert.strictEqual(err.code, 400);
+                                      // Verify that the tenant does not exist
+                                      const tenantRestContext = TestsUtil.createTenantRestContext(tenantHost);
+                                      RestAPI.Tenants.getTenant(tenantRestContext, null, (err, tenant) => {
+                                        assert.ok(err);
+                                        assert.strictEqual(err.code, 418);
+                                        assert.ok(!tenant);
 
-                                          // Verify that the tenant does not exist
-                                          const tenantRestContext = TestsUtil.createTenantRestContext(
-                                            tenantHost
-                                          );
-                                          RestAPI.Tenants.getTenant(
-                                            tenantRestContext,
-                                            null,
-                                            (err, tenant) => {
-                                              assert.ok(err);
-                                              assert.strictEqual(err.code, 418);
-                                              assert.ok(!tenant);
+                                        // Sanity check creating the tenant with our generated values and ensure the tenant exists after
+                                        TenantsTestUtil.createTenantAndWait(
+                                          globalAdminRestContext,
+                                          tenantAlias,
+                                          'Cambridge University',
+                                          tenantHost,
+                                          { countryCode: 'CA' },
+                                          err => {
+                                            assert.ok(!err);
+                                            RestAPI.Tenants.getTenant(tenantRestContext, null, (err, tenant) => {
+                                              assert.ok(!err);
+                                              assert.ok(tenant);
 
-                                              // Sanity check creating the tenant with our generated values and ensure the tenant exists after
-                                              TenantsTestUtil.createTenantAndWait(
-                                                globalAdminRestContext,
-                                                tenantAlias,
-                                                'Cambridge University',
-                                                tenantHost,
-                                                { countryCode: 'CA' },
-                                                err => {
-                                                  assert.ok(!err);
-                                                  RestAPI.Tenants.getTenant(
-                                                    tenantRestContext,
-                                                    null,
-                                                    (err, tenant) => {
-                                                      assert.ok(!err);
-                                                      assert.ok(tenant);
-
-                                                      return callback();
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
+                                              return callback();
+                                            });
+                                          }
+                                        );
+                                      });
                                     }
                                   );
                                 }
@@ -1217,10 +1084,10 @@ describe('Tenants', () => {
                   );
                 }
               );
-            }
-          );
-        }
-      );
+            });
+          }
+        );
+      });
     });
 
     /**
@@ -1320,68 +1187,40 @@ describe('Tenants', () => {
       let opts = {
         emailDomains: [emailDomain1, emailDomain2, emailDomain3]
       };
-      TenantsTestUtil.createTenantAndWait(
-        globalAdminRestContext,
-        alias1,
-        alias1,
-        host1,
-        opts,
-        err => {
-          assert.ok(!err);
+      TenantsTestUtil.createTenantAndWait(globalAdminRestContext, alias1, alias1, host1, opts, err => {
+        assert.ok(!err);
 
-          // Creating a tenant where 1 email domain conflicts should fail
-          const alias2 = TenantsTestUtil.generateTestTenantAlias();
-          const host2 = TenantsTestUtil.generateTestTenantHost();
+        // Creating a tenant where 1 email domain conflicts should fail
+        const alias2 = TenantsTestUtil.generateTestTenantAlias();
+        const host2 = TenantsTestUtil.generateTestTenantHost();
+        opts = {
+          emailDomains: [emailDomain3, emailDomain4, emailDomain5]
+        };
+        TenantsTestUtil.createTenantAndWait(globalAdminRestContext, alias2, alias2, host2, opts, err => {
+          assert.ok(err);
+          assert.strictEqual(err.code, 400);
+
+          // Creating a tenant where multiple email domains conflict should fail
           opts = {
-            emailDomains: [emailDomain3, emailDomain4, emailDomain5]
+            emailDomains: [emailDomain2, emailDomain3, emailDomain5]
           };
-          TenantsTestUtil.createTenantAndWait(
-            globalAdminRestContext,
-            alias2,
-            alias2,
-            host2,
-            opts,
-            err => {
+          TenantsTestUtil.createTenantAndWait(globalAdminRestContext, alias2, alias2, host2, opts, err => {
+            assert.ok(err);
+            assert.strictEqual(err.code, 400);
+
+            // Creating a tenant where 1 email domain suffix conflicts should fail
+            opts = {
+              emailDomains: [emailDomain4, emailDomain5, commonTld]
+            };
+            TenantsTestUtil.createTenantAndWait(globalAdminRestContext, alias2, alias2, host2, opts, err => {
               assert.ok(err);
               assert.strictEqual(err.code, 400);
 
-              // Creating a tenant where multiple email domains conflict should fail
-              opts = {
-                emailDomains: [emailDomain2, emailDomain3, emailDomain5]
-              };
-              TenantsTestUtil.createTenantAndWait(
-                globalAdminRestContext,
-                alias2,
-                alias2,
-                host2,
-                opts,
-                err => {
-                  assert.ok(err);
-                  assert.strictEqual(err.code, 400);
-
-                  // Creating a tenant where 1 email domain suffix conflicts should fail
-                  opts = {
-                    emailDomains: [emailDomain4, emailDomain5, commonTld]
-                  };
-                  TenantsTestUtil.createTenantAndWait(
-                    globalAdminRestContext,
-                    alias2,
-                    alias2,
-                    host2,
-                    opts,
-                    err => {
-                      assert.ok(err);
-                      assert.strictEqual(err.code, 400);
-
-                      return callback();
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
+              return callback();
+            });
+          });
+        });
+      });
     });
 
     /**
@@ -1493,26 +1332,19 @@ describe('Tenants', () => {
      * Test that verifies that a tenant cannot be created with a duplicate alias
      */
     it('verify create tenant duplicate alias', callback => {
-      TenantsTestUtil.createTenantAndWait(
-        globalAdminRestContext,
-        'camtest',
-        'AAR',
-        'camtest.oae.com',
-        null,
-        err => {
-          assert.ok(err);
-          assert.strictEqual(err.code, 400);
+      TenantsTestUtil.createTenantAndWait(globalAdminRestContext, 'camtest', 'AAR', 'camtest.oae.com', null, err => {
+        assert.ok(err);
+        assert.strictEqual(err.code, 400);
 
-          // Verify that the existing tenant is still running
-          RestAPI.Tenants.getTenant(anonymousCamRestContext, null, (err, tenant) => {
-            assert.ok(!err);
-            assert.ok(tenant);
-            assert.strictEqual(tenant.alias, 'camtest');
-            assert.strictEqual(tenant.host, 'cambridge.oae.com');
-            callback();
-          });
-        }
-      );
+        // Verify that the existing tenant is still running
+        RestAPI.Tenants.getTenant(anonymousCamRestContext, null, (err, tenant) => {
+          assert.ok(!err);
+          assert.ok(tenant);
+          assert.strictEqual(tenant.alias, 'camtest');
+          assert.strictEqual(tenant.host, 'cambridge.oae.com');
+          callback();
+        });
+      });
     });
 
     /**
@@ -1546,29 +1378,22 @@ describe('Tenants', () => {
      */
     it('verify creating a tenant with the Shibboleth SP host as hostname is not allowed', callback => {
       const spHost = ShibbolethAPI.getSPHost();
-      TenantsTestUtil.createTenantAndWait(
-        globalAdminRestContext,
-        Math.random(),
-        'bladiebla',
-        spHost,
-        null,
-        err => {
-          assert.ok(err);
-          assert.strictEqual(err.code, 400);
-          TenantsTestUtil.createTenantAndWait(
-            globalAdminRestContext,
-            Math.random(),
-            'bladiebla',
-            spHost.toUpperCase(),
-            null,
-            err => {
-              assert.ok(err);
-              assert.strictEqual(err.code, 400);
-              return callback();
-            }
-          );
-        }
-      );
+      TenantsTestUtil.createTenantAndWait(globalAdminRestContext, Math.random(), 'bladiebla', spHost, null, err => {
+        assert.ok(err);
+        assert.strictEqual(err.code, 400);
+        TenantsTestUtil.createTenantAndWait(
+          globalAdminRestContext,
+          Math.random(),
+          'bladiebla',
+          spHost.toUpperCase(),
+          null,
+          err => {
+            assert.ok(err);
+            assert.strictEqual(err.code, 400);
+            return callback();
+          }
+        );
+      });
     });
 
     /**
@@ -1579,31 +1404,27 @@ describe('Tenants', () => {
     it('verify creating a tenant with a dash in the alias does not break authentication strategy', callback => {
       const tenantHost = TenantsTestUtil.generateTestTenantHost();
       const tenantAlias = 'test-with-dash';
-      TestsUtil.createTenantWithAdmin(
-        'alias-with-dash',
-        tenantHost,
-        (err, tenant, tenantAdminRestContext) => {
-          assert.ok(!err);
-          TestsUtil.generateTestUsers(tenantAdminRestContext, 1, (err, users, mrvisser) => {
-            // Ensure the tenant admin's me object properly represents the authentication
-            // strategy
-            RestAPI.User.getMe(tenantAdminRestContext, (err, me) => {
-              assert.ok(!err);
-              assert.strictEqual(me.isTenantAdmin, true);
-              assert.strictEqual(me.authenticationStrategy, 'local');
+      TestsUtil.createTenantWithAdmin('alias-with-dash', tenantHost, (err, tenant, tenantAdminRestContext) => {
+        assert.ok(!err);
+        TestsUtil.generateTestUsers(tenantAdminRestContext, 1, (err, users, mrvisser) => {
+          // Ensure the tenant admin's me object properly represents the authentication
+          // strategy
+          RestAPI.User.getMe(tenantAdminRestContext, (err, me) => {
+            assert.ok(!err);
+            assert.strictEqual(me.isTenantAdmin, true);
+            assert.strictEqual(me.authenticationStrategy, 'local');
 
-              // Ensure the regular user's me object properly represents the
-              // authentication strategy
-              RestAPI.User.getMe(mrvisser.restContext, (err, me) => {
-                assert.ok(!err);
-                assert.ok(!me.anon);
-                assert.strictEqual(me.authenticationStrategy, 'local');
-                return callback();
-              });
+            // Ensure the regular user's me object properly represents the
+            // authentication strategy
+            RestAPI.User.getMe(mrvisser.restContext, (err, me) => {
+              assert.ok(!err);
+              assert.ok(!me.anon);
+              assert.strictEqual(me.authenticationStrategy, 'local');
+              return callback();
             });
           });
-        }
-      );
+        });
+      });
     });
 
     /**
@@ -1613,80 +1434,72 @@ describe('Tenants', () => {
       // Create a new tenant
       const tenantHost = TenantsTestUtil.generateTestTenantHost();
       const tenantAlias = TenantsTestUtil.generateTestTenantAlias();
-      TestsUtil.createTenantWithAdmin(
-        tenantAlias,
-        tenantHost,
-        (err, testTenant, tenantAdminRestContext) => {
-          const restContext = TestsUtil.createTenantRestContext(testTenant.host);
+      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (err, testTenant, tenantAdminRestContext) => {
+        const restContext = TestsUtil.createTenantRestContext(testTenant.host);
 
-          // Verify that the tenant is running
-          RestAPI.Tenants.getTenant(restContext, null, (err, tenant) => {
+        // Verify that the tenant is running
+        RestAPI.Tenants.getTenant(restContext, null, (err, tenant) => {
+          assert.ok(!err);
+          assert.ok(tenant);
+          assert.strictEqual(tenant.alias, testTenant.alias);
+
+          // Verify it's in the list of running tenant aliases
+          assert.ok(TenantsAPI.getTenants(true)[testTenant.alias]);
+
+          // Create users so we can verify they get disabled too
+          TestsUtil.generateTestUsers(tenantAdminRestContext, 3, (err, users, user1, user2, user3) => {
             assert.ok(!err);
-            assert.ok(tenant);
-            assert.strictEqual(tenant.alias, testTenant.alias);
 
-            // Verify it's in the list of running tenant aliases
-            assert.ok(TenantsAPI.getTenants(true)[testTenant.alias]);
+            // Stop the tenant
+            TenantsTestUtil.stopTenantAndWait(globalAdminRestContext, testTenant.alias, err => {
+              assert.ok(!err);
 
-            // Create users so we can verify they get disabled too
-            TestsUtil.generateTestUsers(
-              tenantAdminRestContext,
-              3,
-              (err, users, user1, user2, user3) => {
-                assert.ok(!err);
+              // Verify that the tenant is no longer running
+              RestAPI.Tenants.getTenant(restContext, null, (err, tenant) => {
+                assert.ok(err);
+                assert.strictEqual(err.code, 503);
+                assert.ok(!tenant);
 
-                // Stop the tenant
-                TenantsTestUtil.stopTenantAndWait(globalAdminRestContext, testTenant.alias, err => {
+                // Verify it is no longer in the list of running tenant aliases
+                assert.ok(!TenantsAPI.getTenants(true)[testTenant.alias]);
+                // Verify it is in the list of disabled tenant aliases
+                assert.ok(TenantsAPI.getTenants()[testTenant.alias]);
+                assert.strictEqual(TenantsAPI.getTenants()[testTenant.alias].active, false);
+
+                // Verify that it's still part of the all tenants feed
+                RestAPI.Tenants.getTenants(globalAdminRestContext, (err, tenants) => {
                   assert.ok(!err);
+                  assert.ok(tenants);
+                  assert.ok(tenants[testTenant.alias]);
+                  assert.strictEqual(tenants[testTenant.alias].host, testTenant.host);
+                  assert.strictEqual(tenants[testTenant.alias].active, false);
 
-                  // Verify that the tenant is no longer running
-                  RestAPI.Tenants.getTenant(restContext, null, (err, tenant) => {
-                    assert.ok(err);
-                    assert.strictEqual(err.code, 503);
-                    assert.ok(!tenant);
+                  // Verify the users got disabled too
+                  PrincipalsDAO.getPrincipal(user1.user.id, (err, principal1) => {
+                    assert.ok(!err);
+                    assert.ok(!_.isUndefined(principal1.deleted));
+                    assert.ok(principal1.deleted > 0);
 
-                    // Verify it is no longer in the list of running tenant aliases
-                    assert.ok(!TenantsAPI.getTenants(true)[testTenant.alias]);
-                    // Verify it is in the list of disabled tenant aliases
-                    assert.ok(TenantsAPI.getTenants()[testTenant.alias]);
-                    assert.strictEqual(TenantsAPI.getTenants()[testTenant.alias].active, false);
-
-                    // Verify that it's still part of the all tenants feed
-                    RestAPI.Tenants.getTenants(globalAdminRestContext, (err, tenants) => {
+                    PrincipalsDAO.getPrincipal(user2.user.id, (err, principal2) => {
                       assert.ok(!err);
-                      assert.ok(tenants);
-                      assert.ok(tenants[testTenant.alias]);
-                      assert.strictEqual(tenants[testTenant.alias].host, testTenant.host);
-                      assert.strictEqual(tenants[testTenant.alias].active, false);
+                      assert.ok(!_.isUndefined(principal2.deleted));
+                      assert.ok(principal2.deleted > 0);
 
-                      // Verify the users got disabled too
-                      PrincipalsDAO.getPrincipal(user1.user.id, (err, principal1) => {
+                      PrincipalsDAO.getPrincipal(user3.user.id, (err, principal3) => {
                         assert.ok(!err);
-                        assert.ok(!_.isUndefined(principal1.deleted));
-                        assert.ok(principal1.deleted > 0);
+                        assert.ok(!_.isUndefined(principal3.deleted));
+                        assert.ok(principal3.deleted > 0);
 
-                        PrincipalsDAO.getPrincipal(user2.user.id, (err, principal2) => {
-                          assert.ok(!err);
-                          assert.ok(!_.isUndefined(principal2.deleted));
-                          assert.ok(principal2.deleted > 0);
-
-                          PrincipalsDAO.getPrincipal(user3.user.id, (err, principal3) => {
-                            assert.ok(!err);
-                            assert.ok(!_.isUndefined(principal3.deleted));
-                            assert.ok(principal3.deleted > 0);
-
-                            return callback();
-                          });
-                        });
+                        return callback();
                       });
                     });
                   });
                 });
-              }
-            );
+              });
+            });
           });
-        }
-      );
+        });
+      });
     });
 
     /**
@@ -1736,66 +1549,54 @@ describe('Tenants', () => {
       // TenantsTestUtil.generateTestTenants(globalAdminRestContext, 1, function(testTenant) {
       const tenantHost = TenantsTestUtil.generateTestTenantHost();
       const tenantAlias = TenantsTestUtil.generateTestTenantAlias();
-      TestsUtil.createTenantWithAdmin(
-        tenantAlias,
-        tenantHost,
-        (err, testTenant, tenantAdminRestContext) => {
-          // Create users so we can verify they get disabled and then re-enabled too
-          TestsUtil.generateTestUsers(
-            tenantAdminRestContext,
-            3,
-            (err, users, user1, user2, user3) => {
-              assert.ok(!err);
+      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (err, testTenant, tenantAdminRestContext) => {
+        // Create users so we can verify they get disabled and then re-enabled too
+        TestsUtil.generateTestUsers(tenantAdminRestContext, 3, (err, users, user1, user2, user3) => {
+          assert.ok(!err);
 
-              // Stop the tenant
-              TenantsTestUtil.stopTenantAndWait(globalAdminRestContext, testTenant.alias, err => {
+          // Stop the tenant
+          TenantsTestUtil.stopTenantAndWait(globalAdminRestContext, testTenant.alias, err => {
+            assert.ok(!err);
+
+            // Verify that the tenant has indeed stopped
+            const restContext = TestsUtil.createTenantRestContext(testTenant.host);
+            RestAPI.Tenants.getTenant(restContext, null, (err, tenant) => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 503);
+
+              // Now start the tenant
+              TenantsTestUtil.startTenantAndWait(globalAdminRestContext, testTenant.alias, err => {
                 assert.ok(!err);
 
-                // Verify that the tenant has indeed stopped
-                const restContext = TestsUtil.createTenantRestContext(testTenant.host);
+                // Verify that the tenant has indeed been started
                 RestAPI.Tenants.getTenant(restContext, null, (err, tenant) => {
-                  assert.ok(err);
-                  assert.strictEqual(err.code, 503);
+                  assert.ok(!err);
+                  assert.strictEqual(tenant.alias, testTenant.alias);
+                  assert.strictEqual(tenant.active, true);
 
-                  // Now start the tenant
-                  TenantsTestUtil.startTenantAndWait(
-                    globalAdminRestContext,
-                    testTenant.alias,
-                    err => {
+                  // Verify the users got re-enabled too
+                  PrincipalsDAO.getPrincipal(user1.user.id, (err, principal1) => {
+                    assert.ok(!err);
+                    assert.ok(_.isUndefined(principal1.deleted));
+
+                    PrincipalsDAO.getPrincipal(user2.user.id, (err, principal2) => {
                       assert.ok(!err);
+                      assert.ok(_.isUndefined(principal2.deleted));
 
-                      // Verify that the tenant has indeed been started
-                      RestAPI.Tenants.getTenant(restContext, null, (err, tenant) => {
+                      PrincipalsDAO.getPrincipal(user3.user.id, (err, principal3) => {
                         assert.ok(!err);
-                        assert.strictEqual(tenant.alias, testTenant.alias);
-                        assert.strictEqual(tenant.active, true);
+                        assert.ok(_.isUndefined(principal3.deleted));
 
-                        // Verify the users got re-enabled too
-                        PrincipalsDAO.getPrincipal(user1.user.id, (err, principal1) => {
-                          assert.ok(!err);
-                          assert.ok(_.isUndefined(principal1.deleted));
-
-                          PrincipalsDAO.getPrincipal(user2.user.id, (err, principal2) => {
-                            assert.ok(!err);
-                            assert.ok(_.isUndefined(principal2.deleted));
-
-                            PrincipalsDAO.getPrincipal(user3.user.id, (err, principal3) => {
-                              assert.ok(!err);
-                              assert.ok(_.isUndefined(principal3.deleted));
-
-                              return callback();
-                            });
-                          });
-                        });
+                        return callback();
                       });
-                    }
-                  );
+                    });
+                  });
                 });
               });
-            }
-          );
-        }
-      );
+            });
+          });
+        });
+      });
     });
 
     /**
@@ -1863,105 +1664,91 @@ describe('Tenants', () => {
           assert.strictEqual(err.code, 401);
 
           // Try to update the tenant's host as an anonymous user on the global admin tenant
-          RestAPI.Tenants.updateTenant(
-            anonymousGlobalRestContext,
-            'camtest',
-            { host: 'newcamtest.oae.com' },
-            err => {
-              assert.ok(err);
-              assert.strictEqual(err.code, 401);
+          RestAPI.Tenants.updateTenant(anonymousGlobalRestContext, 'camtest', { host: 'newcamtest.oae.com' }, err => {
+            assert.ok(err);
+            assert.strictEqual(err.code, 401);
 
-              // Try to update tenant's display name and host as an anonymous user on the global admin tenant
-              RestAPI.Tenants.updateTenant(
-                anonymousGlobalRestContext,
-                'camtest',
-                { displayName: 'Anglia Ruskin University', host: 'newcamtest.oae.com' },
-                err => {
-                  assert.ok(err);
-                  assert.strictEqual(err.code, 401);
+            // Try to update tenant's display name and host as an anonymous user on the global admin tenant
+            RestAPI.Tenants.updateTenant(
+              anonymousGlobalRestContext,
+              'camtest',
+              { displayName: 'Anglia Ruskin University', host: 'newcamtest.oae.com' },
+              err => {
+                assert.ok(err);
+                assert.strictEqual(err.code, 401);
 
-                  // Try to update the tenant's display name as an anonymous user on a user tenant
-                  RestAPI.Tenants.updateTenant(
-                    anonymousCamRestContext,
-                    null,
-                    { displayName: 'Anglia Ruskin University' },
-                    err => {
+                // Try to update the tenant's display name as an anonymous user on a user tenant
+                RestAPI.Tenants.updateTenant(
+                  anonymousCamRestContext,
+                  null,
+                  { displayName: 'Anglia Ruskin University' },
+                  err => {
+                    assert.ok(err);
+                    assert.strictEqual(err.code, 401);
+
+                    // Try to update the tenant's host as an anonymous user on a user tenant
+                    RestAPI.Tenants.updateTenant(anonymousCamRestContext, null, { host: 'newcamtest.oae.com' }, err => {
                       assert.ok(err);
                       assert.strictEqual(err.code, 401);
 
-                      // Try to update the tenant's host as an anonymous user on a user tenant
+                      // Try to update tenant's display name and host as an anonymous user on a user tenant
                       RestAPI.Tenants.updateTenant(
                         anonymousCamRestContext,
                         null,
-                        { host: 'newcamtest.oae.com' },
+                        { displayName: 'Anglia Ruskin University', host: 'newcamtest.oae.com' },
                         err => {
                           assert.ok(err);
                           assert.strictEqual(err.code, 401);
 
-                          // Try to update tenant's display name and host as an anonymous user on a user tenant
-                          RestAPI.Tenants.updateTenant(
-                            anonymousCamRestContext,
-                            null,
-                            { displayName: 'Anglia Ruskin University', host: 'newcamtest.oae.com' },
-                            err => {
-                              assert.ok(err);
-                              assert.strictEqual(err.code, 401);
+                          // Create a regular non-admin user
+                          TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, john) => {
+                            assert.ok(!err);
 
-                              // Create a regular non-admin user
-                              TestsUtil.generateTestUsers(
-                                camAdminRestContext,
-                                1,
-                                (err, users, john) => {
-                                  assert.ok(!err);
+                            // Try to update the tenant's display name as a non-admin user on a user tenant
+                            RestAPI.Tenants.updateTenant(
+                              john.restContext,
+                              null,
+                              { displayName: 'Anglia Ruskin University' },
+                              err => {
+                                assert.ok(err);
+                                assert.strictEqual(err.code, 401);
 
-                                  // Try to update the tenant's display name as a non-admin user on a user tenant
-                                  RestAPI.Tenants.updateTenant(
-                                    john.restContext,
-                                    null,
-                                    { displayName: 'Anglia Ruskin University' },
-                                    err => {
-                                      assert.ok(err);
-                                      assert.strictEqual(err.code, 401);
+                                // Try to update the tenant's host as a non-admin user on a user tenant
+                                RestAPI.Tenants.updateTenant(
+                                  john.restContext,
+                                  null,
+                                  { host: 'newcamtest.oae.com' },
+                                  err => {
+                                    assert.ok(err);
+                                    assert.strictEqual(err.code, 401);
 
-                                      // Try to update the tenant's host as a non-admin user on a user tenant
-                                      RestAPI.Tenants.updateTenant(
-                                        john.restContext,
-                                        null,
-                                        { host: 'newcamtest.oae.com' },
-                                        err => {
-                                          assert.ok(err);
-                                          assert.strictEqual(err.code, 401);
-
-                                          // Try to update tenant's display name and host as a non-admin user on a user tenant
-                                          RestAPI.Tenants.updateTenant(
-                                            john.restContext,
-                                            null,
-                                            {
-                                              displayName: 'Anglia Ruskin University',
-                                              host: 'newcamtest.oae.com'
-                                            },
-                                            err => {
-                                              assert.ok(err);
-                                              assert.strictEqual(err.code, 401);
-                                              return callback();
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
+                                    // Try to update tenant's display name and host as a non-admin user on a user tenant
+                                    RestAPI.Tenants.updateTenant(
+                                      john.restContext,
+                                      null,
+                                      {
+                                        displayName: 'Anglia Ruskin University',
+                                        host: 'newcamtest.oae.com'
+                                      },
+                                      err => {
+                                        assert.ok(err);
+                                        assert.strictEqual(err.code, 401);
+                                        return callback();
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          });
                         }
                       );
-                    }
-                  );
-                }
-              );
-            }
-          );
+                    });
+                  }
+                );
+              }
+            );
+          });
         }
       );
     });
@@ -1975,82 +1762,67 @@ describe('Tenants', () => {
         assert.ok(err);
         assert.strictEqual(err.code, 400);
         // Verify update with an invalid property
-        RestAPI.Tenants.updateTenant(
-          globalAdminRestContext,
-          'camtest',
-          { alias: 'foobar' },
-          err => {
+        RestAPI.Tenants.updateTenant(globalAdminRestContext, 'camtest', { alias: 'foobar' }, err => {
+          assert.ok(err);
+          assert.strictEqual(err.code, 400);
+
+          // Verify through a user tenant
+          RestAPI.Tenants.updateTenant(camAdminRestContext, null, null, err => {
             assert.ok(err);
             assert.strictEqual(err.code, 400);
-
-            // Verify through a user tenant
-            RestAPI.Tenants.updateTenant(camAdminRestContext, null, null, err => {
+            // Verify update with an invalid property
+            RestAPI.Tenants.updateTenant(camAdminRestContext, null, { alias: 'foobar' }, err => {
               assert.ok(err);
               assert.strictEqual(err.code, 400);
-              // Verify update with an invalid property
-              RestAPI.Tenants.updateTenant(camAdminRestContext, null, { alias: 'foobar' }, err => {
+
+              // Verify updating to host that's already used
+              RestAPI.Tenants.updateTenant(camAdminRestContext, null, { host: 'caMBriDGe.oae.com' }, err => {
                 assert.ok(err);
                 assert.strictEqual(err.code, 400);
 
-                // Verify updating to host that's already used
+                // Verify updating with an invalid host
                 RestAPI.Tenants.updateTenant(
-                  camAdminRestContext,
-                  null,
-                  { host: 'caMBriDGe.oae.com' },
+                  globalAdminRestContext,
+                  'camtest',
+                  { host: 'an invalid hostname' },
                   err => {
                     assert.ok(err);
                     assert.strictEqual(err.code, 400);
 
-                    // Verify updating with an invalid host
+                    // Verify updating with an invalid email domains
                     RestAPI.Tenants.updateTenant(
                       globalAdminRestContext,
                       'camtest',
-                      { host: 'an invalid hostname' },
+                      { emailDomains: ['an invalid email domain'] },
                       err => {
                         assert.ok(err);
                         assert.strictEqual(err.code, 400);
 
-                        // Verify updating with an invalid email domains
+                        // Verify updating with a set of badly serialized email domains
                         RestAPI.Tenants.updateTenant(
                           globalAdminRestContext,
                           'camtest',
-                          { emailDomains: ['an invalid email domain'] },
+                          { emailDomains: ['foo.test.com,bar.test.com'] },
                           err => {
                             assert.ok(err);
                             assert.strictEqual(err.code, 400);
 
-                            // Verify updating with a set of badly serialized email domains
+                            // Verify updating a non-existing tenant fails
                             RestAPI.Tenants.updateTenant(
                               globalAdminRestContext,
-                              'camtest',
-                              { emailDomains: ['foo.test.com,bar.test.com'] },
+                              TestsUtil.generateRandomText(),
+                              { displayName: "I'm totally legit..." },
                               err => {
                                 assert.ok(err);
-                                assert.strictEqual(err.code, 400);
+                                assert.strictEqual(err.code, 404);
 
-                                // Verify updating a non-existing tenant fails
-                                RestAPI.Tenants.updateTenant(
-                                  globalAdminRestContext,
-                                  TestsUtil.generateRandomText(),
-                                  { displayName: "I'm totally legit..." },
-                                  err => {
-                                    assert.ok(err);
-                                    assert.strictEqual(err.code, 404);
+                                // Verify updating country code to an invalid value
+                                RestAPI.Tenants.updateTenant(camAdminRestContext, null, { countryCode: 'ZZ' }, err => {
+                                  assert.ok(err);
+                                  assert.strictEqual(err.code, 400);
 
-                                    // Verify updating country code to an invalid value
-                                    RestAPI.Tenants.updateTenant(
-                                      camAdminRestContext,
-                                      null,
-                                      { countryCode: 'ZZ' },
-                                      err => {
-                                        assert.ok(err);
-                                        assert.strictEqual(err.code, 400);
-
-                                        return callback();
-                                      }
-                                    );
-                                  }
-                                );
+                                  return callback();
+                                });
                               }
                             );
                           }
@@ -2061,8 +1833,8 @@ describe('Tenants', () => {
                 );
               });
             });
-          }
-        );
+          });
+        });
       });
     });
 
@@ -2098,82 +1870,56 @@ describe('Tenants', () => {
             update = {
               emailDomains: [emailDomain1]
             };
-            TenantsTestUtil.updateTenantAndWait(
-              globalAdminRestContext,
-              tenant.alias,
-              update,
-              err => {
+            TenantsTestUtil.updateTenantAndWait(globalAdminRestContext, tenant.alias, update, err => {
+              assert.ok(!err);
+              RestAPI.Tenants.getTenant(globalAdminRestContext, tenant.alias, (err, tenant) => {
                 assert.ok(!err);
-                RestAPI.Tenants.getTenant(globalAdminRestContext, tenant.alias, (err, tenant) => {
-                  assert.ok(!err);
-                  assert.deepStrictEqual(tenant.emailDomains, update.emailDomains);
+                assert.deepStrictEqual(tenant.emailDomains, update.emailDomains);
 
-                  // Ensure the other email domains can now be used to create a second tenant
-                  const alias2 = TenantsTestUtil.generateTestTenantAlias();
-                  const host2 = TenantsTestUtil.generateTestTenantHost();
-                  const opts = {
-                    emailDomains: [emailDomain2, emailDomain3].sort()
-                  };
-                  TenantsTestUtil.createTenantAndWait(
-                    globalAdminRestContext,
-                    alias2,
-                    alias2,
-                    host2,
-                    opts,
-                    (err, secondTenant) => {
+                // Ensure the other email domains can now be used to create a second tenant
+                const alias2 = TenantsTestUtil.generateTestTenantAlias();
+                const host2 = TenantsTestUtil.generateTestTenantHost();
+                const opts = {
+                  emailDomains: [emailDomain2, emailDomain3].sort()
+                };
+                TenantsTestUtil.createTenantAndWait(
+                  globalAdminRestContext,
+                  alias2,
+                  alias2,
+                  host2,
+                  opts,
+                  (err, secondTenant) => {
+                    assert.ok(!err);
+                    assert.deepStrictEqual(secondTenant.emailDomains.sort(), opts.emailDomains);
+
+                    // Unset the email domains
+                    update = {
+                      emailDomains: ''
+                    };
+                    TenantsTestUtil.updateTenantAndWait(globalAdminRestContext, tenant.alias, update, err => {
                       assert.ok(!err);
-                      assert.deepStrictEqual(secondTenant.emailDomains.sort(), opts.emailDomains);
+                      RestAPI.Tenants.getTenant(globalAdminRestContext, tenant.alias, (err, tenant) => {
+                        assert.ok(!err);
+                        assert.strictEqual(tenant.emailDomains.length, 0);
 
-                      // Unset the email domains
-                      update = {
-                        emailDomains: ''
-                      };
-                      TenantsTestUtil.updateTenantAndWait(
-                        globalAdminRestContext,
-                        tenant.alias,
-                        update,
-                        err => {
+                        // The unset email domain can now be added to another tenant
+                        update = {
+                          emailDomains: [emailDomain1, emailDomain2, emailDomain3].sort()
+                        };
+                        TenantsTestUtil.updateTenantAndWait(globalAdminRestContext, secondTenant.alias, update, err => {
                           assert.ok(!err);
-                          RestAPI.Tenants.getTenant(
-                            globalAdminRestContext,
-                            tenant.alias,
-                            (err, tenant) => {
-                              assert.ok(!err);
-                              assert.strictEqual(tenant.emailDomains.length, 0);
-
-                              // The unset email domain can now be added to another tenant
-                              update = {
-                                emailDomains: [emailDomain1, emailDomain2, emailDomain3].sort()
-                              };
-                              TenantsTestUtil.updateTenantAndWait(
-                                globalAdminRestContext,
-                                secondTenant.alias,
-                                update,
-                                err => {
-                                  assert.ok(!err);
-                                  RestAPI.Tenants.getTenant(
-                                    globalAdminRestContext,
-                                    secondTenant.alias,
-                                    (err, secondTenant) => {
-                                      assert.ok(!err);
-                                      assert.deepStrictEqual(
-                                        secondTenant.emailDomains.sort(),
-                                        update.emailDomains
-                                      );
-                                      return callback();
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                });
-              }
-            );
+                          RestAPI.Tenants.getTenant(globalAdminRestContext, secondTenant.alias, (err, secondTenant) => {
+                            assert.ok(!err);
+                            assert.deepStrictEqual(secondTenant.emailDomains.sort(), update.emailDomains);
+                            return callback();
+                          });
+                        });
+                      });
+                    });
+                  }
+                );
+              });
+            });
           });
         });
       });
@@ -2214,118 +1960,109 @@ describe('Tenants', () => {
           const emailDomain2SuffixConflict2 = util.format('a.%s', emailDomain2);
 
           // Ensure only global admin can update email domain
-          RestAPI.Tenants.updateTenant(
-            tenantAdminRestContext,
-            null,
-            { emailDomains: [emailDomain1] },
-            err => {
-              assert.ok(err);
-              assert.strictEqual(err.code, 401);
-              TenantsTestUtil.updateTenantAndWait(
-                globalAdminRestContext,
-                alias1,
-                { emailDomains: [emailDomain1] },
-                err => {
-                  assert.ok(!err);
+          RestAPI.Tenants.updateTenant(tenantAdminRestContext, null, { emailDomains: [emailDomain1] }, err => {
+            assert.ok(err);
+            assert.strictEqual(err.code, 401);
+            TenantsTestUtil.updateTenantAndWait(
+              globalAdminRestContext,
+              alias1,
+              { emailDomains: [emailDomain1] },
+              err => {
+                assert.ok(!err);
 
-                  // Ensure we can't set an email domain for tenant 2 that conflicts with tenant1
-                  RestAPI.Tenants.updateTenant(
-                    globalAdminRestContext,
-                    alias2,
-                    { emailDomains: [emailDomain1ExactConflict] },
-                    err => {
-                      assert.ok(err);
-                      assert.strictEqual(err.code, 400);
-                      RestAPI.Tenants.updateTenant(
-                        globalAdminRestContext,
-                        alias2,
-                        { emailDomains: [emailDomain1SuffixConflict1] },
-                        err => {
-                          assert.ok(err);
-                          assert.strictEqual(err.code, 400);
-                          RestAPI.Tenants.updateTenant(
-                            globalAdminRestContext,
-                            alias2,
-                            { emailDomains: [emailDomain1SuffixConflict2] },
-                            err => {
-                              assert.ok(err);
-                              assert.strictEqual(err.code, 400);
+                // Ensure we can't set an email domain for tenant 2 that conflicts with tenant1
+                RestAPI.Tenants.updateTenant(
+                  globalAdminRestContext,
+                  alias2,
+                  { emailDomains: [emailDomain1ExactConflict] },
+                  err => {
+                    assert.ok(err);
+                    assert.strictEqual(err.code, 400);
+                    RestAPI.Tenants.updateTenant(
+                      globalAdminRestContext,
+                      alias2,
+                      { emailDomains: [emailDomain1SuffixConflict1] },
+                      err => {
+                        assert.ok(err);
+                        assert.strictEqual(err.code, 400);
+                        RestAPI.Tenants.updateTenant(
+                          globalAdminRestContext,
+                          alias2,
+                          { emailDomains: [emailDomain1SuffixConflict2] },
+                          err => {
+                            assert.ok(err);
+                            assert.strictEqual(err.code, 400);
 
-                              // Update tenant 2 to an email domain that doesn't conflict
-                              TenantsTestUtil.updateTenantAndWait(
-                                globalAdminRestContext,
-                                alias2,
-                                { emailDomains: [emailDomain2] },
-                                err => {
-                                  assert.ok(!err);
+                            // Update tenant 2 to an email domain that doesn't conflict
+                            TenantsTestUtil.updateTenantAndWait(
+                              globalAdminRestContext,
+                              alias2,
+                              { emailDomains: [emailDomain2] },
+                              err => {
+                                assert.ok(!err);
 
-                                  // Ensure we can update tenant 1's email domain to conflict with itself
-                                  TenantsTestUtil.updateTenantAndWait(
-                                    globalAdminRestContext,
-                                    alias1,
-                                    { emailDomains: [emailDomain1SuffixConflict1] },
-                                    err => {
-                                      assert.ok(!err);
+                                // Ensure we can update tenant 1's email domain to conflict with itself
+                                TenantsTestUtil.updateTenantAndWait(
+                                  globalAdminRestContext,
+                                  alias1,
+                                  { emailDomains: [emailDomain1SuffixConflict1] },
+                                  err => {
+                                    assert.ok(!err);
 
-                                      // Ensure we can't update tenant1's email domain to conflict with tenant 2's
-                                      RestAPI.Tenants.updateTenant(
-                                        globalAdminRestContext,
-                                        alias1,
-                                        { emailDomains: [emailDomain2SuffixConflict1] },
-                                        err => {
-                                          assert.ok(err);
-                                          assert.strictEqual(err.code, 400);
-                                          RestAPI.Tenants.updateTenant(
-                                            globalAdminRestContext,
-                                            alias1,
-                                            { emailDomains: [emailDomain2SuffixConflict2] },
-                                            err => {
-                                              assert.ok(err);
-                                              assert.strictEqual(err.code, 400);
+                                    // Ensure we can't update tenant1's email domain to conflict with tenant 2's
+                                    RestAPI.Tenants.updateTenant(
+                                      globalAdminRestContext,
+                                      alias1,
+                                      { emailDomains: [emailDomain2SuffixConflict1] },
+                                      err => {
+                                        assert.ok(err);
+                                        assert.strictEqual(err.code, 400);
+                                        RestAPI.Tenants.updateTenant(
+                                          globalAdminRestContext,
+                                          alias1,
+                                          { emailDomains: [emailDomain2SuffixConflict2] },
+                                          err => {
+                                            assert.ok(err);
+                                            assert.strictEqual(err.code, 400);
 
-                                              // Sanity check that the email domains are now set to what we would expect
+                                            // Sanity check that the email domains are now set to what we would expect
+                                            RestAPI.Tenants.getTenant(tenantAdminRestContext, null, (err, tenant) => {
+                                              assert.ok(!err);
+                                              assert.strictEqual(
+                                                tenant.emailDomains[0],
+                                                emailDomain1SuffixConflict1.toLowerCase()
+                                              );
                                               RestAPI.Tenants.getTenant(
-                                                tenantAdminRestContext,
-                                                null,
+                                                globalAdminRestContext,
+                                                alias2,
                                                 (err, tenant) => {
                                                   assert.ok(!err);
                                                   assert.strictEqual(
                                                     tenant.emailDomains[0],
-                                                    emailDomain1SuffixConflict1.toLowerCase()
+                                                    emailDomain2.toLowerCase()
                                                   );
-                                                  RestAPI.Tenants.getTenant(
-                                                    globalAdminRestContext,
-                                                    alias2,
-                                                    (err, tenant) => {
-                                                      assert.ok(!err);
-                                                      assert.strictEqual(
-                                                        tenant.emailDomains[0],
-                                                        emailDomain2.toLowerCase()
-                                                      );
 
-                                                      return callback();
-                                                    }
-                                                  );
+                                                  return callback();
                                                 }
                                               );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
+                                            });
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          });
         });
       });
     });
@@ -2358,261 +2095,195 @@ describe('Tenants', () => {
             assert.strictEqual(tenant.displayName, 'Anglia Ruskin University');
 
             // Update the tenant display name as the tenant admin
-            TenantsTestUtil.updateTenantAndWait(
-              camAdminRestContext,
-              null,
-              { displayName: 'Queens College' },
-              err => {
+            TenantsTestUtil.updateTenantAndWait(camAdminRestContext, null, { displayName: 'Queens College' }, err => {
+              assert.ok(!err);
+
+              // Check if the update was successful
+              RestAPI.Tenants.getTenant(camAdminRestContext, null, (err, tenant) => {
                 assert.ok(!err);
+                assert.ok(tenant);
+                assert.strictEqual(tenant.alias, 'camtest');
+                assert.strictEqual(tenant.host, 'cambridge.oae.com');
+                assert.strictEqual(tenant.displayName, 'Queens College');
 
-                // Check if the update was successful
-                RestAPI.Tenants.getTenant(camAdminRestContext, null, (err, tenant) => {
+                // Update the tenant host as the global admin
+                TenantsTestUtil.updateTenantAndWait(globalAdminRestContext, 'camtest', { host: tenant1Host }, err => {
                   assert.ok(!err);
-                  assert.ok(tenant);
-                  assert.strictEqual(tenant.alias, 'camtest');
-                  assert.strictEqual(tenant.host, 'cambridge.oae.com');
-                  assert.strictEqual(tenant.displayName, 'Queens College');
 
-                  // Update the tenant host as the global admin
-                  TenantsTestUtil.updateTenantAndWait(
-                    globalAdminRestContext,
-                    'camtest',
-                    { host: tenant1Host },
-                    err => {
+                  // Check if the update was successful.
+                  // The old host name should no longer be accepting requests
+                  RestAPI.Tenants.getTenant(camAdminRestContext, null, (err, tenant) => {
+                    assert.ok(err);
+                    assert.strictEqual(err.code, 418);
+
+                    // The new host name should now be responding to requests
+                    const tenant1AdminRestContext = TestsUtil.createTenantAdminRestContext(tenant1Host);
+                    RestAPI.Tenants.getTenant(tenant1AdminRestContext, null, (err, tenant) => {
                       assert.ok(!err);
+                      assert.ok(tenant);
+                      assert.strictEqual(tenant.alias, 'camtest');
+                      assert.strictEqual(tenant.host, tenant1Host.toLowerCase());
+                      assert.strictEqual(tenant.displayName, 'Queens College');
 
-                      // Check if the update was successful.
-                      // The old host name should no longer be accepting requests
-                      RestAPI.Tenants.getTenant(camAdminRestContext, null, (err, tenant) => {
-                        assert.ok(err);
-                        assert.strictEqual(err.code, 418);
-
-                        // The new host name should now be responding to requests
-                        const tenant1AdminRestContext = TestsUtil.createTenantAdminRestContext(
-                          tenant1Host
-                        );
-                        RestAPI.Tenants.getTenant(tenant1AdminRestContext, null, (err, tenant) => {
+                      // Update the tenant host to have uppercase characters
+                      TenantsTestUtil.updateTenantAndWait(
+                        globalAdminRestContext,
+                        'camtest',
+                        { host: tenant2Host.toUpperCase() },
+                        err => {
                           assert.ok(!err);
-                          assert.ok(tenant);
-                          assert.strictEqual(tenant.alias, 'camtest');
-                          assert.strictEqual(tenant.host, tenant1Host.toLowerCase());
-                          assert.strictEqual(tenant.displayName, 'Queens College');
 
-                          // Update the tenant host to have uppercase characters
-                          TenantsTestUtil.updateTenantAndWait(
-                            globalAdminRestContext,
-                            'camtest',
-                            { host: tenant2Host.toUpperCase() },
-                            err => {
-                              assert.ok(!err);
+                          // Check if the update was successful
+                          // The host name should come back changed but lowercased
+                          const tenant2UpperCaseAdminRestContext = TestsUtil.createTenantAdminRestContext(
+                            tenant2Host.toUpperCase()
+                          );
+                          RestAPI.Tenants.getTenant(tenant2UpperCaseAdminRestContext, null, (err, tenant) => {
+                            assert.ok(!err);
+                            assert.ok(tenant);
+                            assert.strictEqual(tenant.alias, 'camtest');
+                            assert.strictEqual(tenant.host, tenant2Host.toLowerCase());
+                            assert.strictEqual(tenant.displayName, 'Queens College');
 
-                              // Check if the update was successful
-                              // The host name should come back changed but lowercased
-                              const tenant2UpperCaseAdminRestContext = TestsUtil.createTenantAdminRestContext(
-                                tenant2Host.toUpperCase()
-                              );
-                              RestAPI.Tenants.getTenant(
-                                tenant2UpperCaseAdminRestContext,
-                                null,
-                                (err, tenant) => {
-                                  assert.ok(!err);
-                                  assert.ok(tenant);
-                                  assert.strictEqual(tenant.alias, 'camtest');
-                                  assert.strictEqual(tenant.host, tenant2Host.toLowerCase());
-                                  assert.strictEqual(tenant.displayName, 'Queens College');
+                            // Update the tenant host as the tenant admin
+                            TenantsTestUtil.updateTenantAndWait(
+                              tenant2UpperCaseAdminRestContext,
+                              null,
+                              { host: tenant3Host },
+                              err => {
+                                assert.ok(!err);
 
-                                  // Update the tenant host as the tenant admin
-                                  TenantsTestUtil.updateTenantAndWait(
-                                    tenant2UpperCaseAdminRestContext,
-                                    null,
-                                    { host: tenant3Host },
-                                    err => {
-                                      assert.ok(!err);
+                                // Check if the update was successful.
+                                // The old host name should no longer be accepting requests
+                                RestAPI.Tenants.getTenant(tenant2UpperCaseAdminRestContext, null, (err, tenant) => {
+                                  assert.ok(err);
+                                  assert.strictEqual(err.code, 418);
+                                  // The new host name should now be responding to requests
+                                  const tenant3AdminRestContext = TestsUtil.createTenantAdminRestContext(tenant3Host);
+                                  RestAPI.Tenants.getTenant(tenant3AdminRestContext, null, (err, tenant) => {
+                                    assert.ok(!err);
+                                    assert.ok(tenant);
+                                    assert.strictEqual(tenant.alias, 'camtest');
+                                    assert.strictEqual(tenant.host, tenant3Host.toLowerCase());
+                                    assert.strictEqual(tenant.displayName, 'Queens College');
 
-                                      // Check if the update was successful.
-                                      // The old host name should no longer be accepting requests
-                                      RestAPI.Tenants.getTenant(
-                                        tenant2UpperCaseAdminRestContext,
-                                        null,
-                                        (err, tenant) => {
+                                    // Update the tenant display name and host as the tenant admin
+                                    TenantsTestUtil.updateTenantAndWait(
+                                      tenant3AdminRestContext,
+                                      null,
+                                      {
+                                        displayName: tenant4Description,
+                                        host: tenant4Host
+                                      },
+                                      err => {
+                                        assert.ok(!err);
+
+                                        // Check if the update was successful.
+                                        // The old host name should no longer be accepting requests
+                                        RestAPI.Tenants.getTenant(tenant3AdminRestContext, null, (err, tenant) => {
                                           assert.ok(err);
                                           assert.strictEqual(err.code, 418);
                                           // The new host name should now be responding to requests
-                                          const tenant3AdminRestContext = TestsUtil.createTenantAdminRestContext(
-                                            tenant3Host
+                                          const tenant4AdminRestContext = TestsUtil.createTenantAdminRestContext(
+                                            tenant4Host
                                           );
-                                          RestAPI.Tenants.getTenant(
-                                            tenant3AdminRestContext,
-                                            null,
-                                            (err, tenant) => {
-                                              assert.ok(!err);
-                                              assert.ok(tenant);
-                                              assert.strictEqual(tenant.alias, 'camtest');
-                                              assert.strictEqual(
-                                                tenant.host,
-                                                tenant3Host.toLowerCase()
-                                              );
-                                              assert.strictEqual(
-                                                tenant.displayName,
-                                                'Queens College'
-                                              );
+                                          RestAPI.Tenants.getTenant(tenant4AdminRestContext, null, (err, tenant) => {
+                                            assert.ok(!err);
+                                            assert.ok(tenant);
+                                            assert.strictEqual(tenant.alias, 'camtest');
+                                            assert.strictEqual(tenant.host, tenant4Host.toLowerCase());
+                                            assert.strictEqual(tenant.displayName, tenant4Description);
 
-                                              // Update the tenant display name and host as the tenant admin
-                                              TenantsTestUtil.updateTenantAndWait(
-                                                tenant3AdminRestContext,
-                                                null,
-                                                {
-                                                  displayName: tenant4Description,
-                                                  host: tenant4Host
-                                                },
-                                                err => {
-                                                  assert.ok(!err);
+                                            // Update the tenant display name and host as the tenant admin
+                                            TenantsTestUtil.updateTenantAndWait(
+                                              tenant4AdminRestContext,
+                                              null,
+                                              {
+                                                displayName: 'Cambridge University Test',
+                                                host: 'cambridge.oae.com'
+                                              },
+                                              err => {
+                                                assert.ok(!err);
 
-                                                  // Check if the update was successful.
-                                                  // The old host name should no longer be accepting requests
-                                                  RestAPI.Tenants.getTenant(
-                                                    tenant3AdminRestContext,
-                                                    null,
-                                                    (err, tenant) => {
-                                                      assert.ok(err);
-                                                      assert.strictEqual(err.code, 418);
-                                                      // The new host name should now be responding to requests
-                                                      const tenant4AdminRestContext = TestsUtil.createTenantAdminRestContext(
-                                                        tenant4Host
-                                                      );
-                                                      RestAPI.Tenants.getTenant(
-                                                        tenant4AdminRestContext,
-                                                        null,
-                                                        (err, tenant) => {
-                                                          assert.ok(!err);
-                                                          assert.ok(tenant);
-                                                          assert.strictEqual(
-                                                            tenant.alias,
-                                                            'camtest'
-                                                          );
-                                                          assert.strictEqual(
-                                                            tenant.host,
-                                                            tenant4Host.toLowerCase()
-                                                          );
-                                                          assert.strictEqual(
-                                                            tenant.displayName,
-                                                            tenant4Description
-                                                          );
+                                                // Check if the update was successful
+                                                // The old host name should no longer be accepting requests
+                                                RestAPI.Tenants.getTenant(
+                                                  tenant4AdminRestContext,
+                                                  null,
+                                                  (err, tenant) => {
+                                                    assert.ok(err);
+                                                    assert.strictEqual(err.code, 418);
 
-                                                          // Update the tenant display name and host as the tenant admin
-                                                          TenantsTestUtil.updateTenantAndWait(
-                                                            tenant4AdminRestContext,
-                                                            null,
-                                                            {
-                                                              displayName:
-                                                                'Cambridge University Test',
-                                                              host: 'cambridge.oae.com'
-                                                            },
-                                                            err => {
-                                                              assert.ok(!err);
+                                                    // The new host name should now be responding to requests
+                                                    RestAPI.Tenants.getTenant(
+                                                      camAdminRestContext,
+                                                      null,
+                                                      (err, tenant) => {
+                                                        assert.ok(!err);
+                                                        assert.ok(tenant);
+                                                        assert.strictEqual(tenant.alias, 'camtest');
+                                                        assert.strictEqual(tenant.host, 'cambridge.oae.com');
+                                                        assert.strictEqual(
+                                                          tenant.displayName,
+                                                          'Cambridge University Test'
+                                                        );
 
-                                                              // Check if the update was successful
-                                                              // The old host name should no longer be accepting requests
-                                                              RestAPI.Tenants.getTenant(
-                                                                tenant4AdminRestContext,
-                                                                null,
-                                                                (err, tenant) => {
-                                                                  assert.ok(err);
-                                                                  assert.strictEqual(err.code, 418);
+                                                        // Update the country code, ensuring it changed
+                                                        TenantsTestUtil.updateTenantAndWait(
+                                                          camAdminRestContext,
+                                                          null,
+                                                          { countryCode: 'ca' },
+                                                          err => {
+                                                            RestAPI.Tenants.getTenant(
+                                                              camAdminRestContext,
+                                                              null,
+                                                              (err, tenant) => {
+                                                                assert.ok(!err);
+                                                                assert.strictEqual(tenant.countryCode, 'CA');
 
-                                                                  // The new host name should now be responding to requests
-                                                                  RestAPI.Tenants.getTenant(
-                                                                    camAdminRestContext,
-                                                                    null,
-                                                                    (err, tenant) => {
-                                                                      assert.ok(!err);
-                                                                      assert.ok(tenant);
-                                                                      assert.strictEqual(
-                                                                        tenant.alias,
-                                                                        'camtest'
-                                                                      );
-                                                                      assert.strictEqual(
-                                                                        tenant.host,
-                                                                        'cambridge.oae.com'
-                                                                      );
-                                                                      assert.strictEqual(
-                                                                        tenant.displayName,
-                                                                        'Cambridge University Test'
-                                                                      );
-
-                                                                      // Update the country code, ensuring it changed
-                                                                      TenantsTestUtil.updateTenantAndWait(
-                                                                        camAdminRestContext,
-                                                                        null,
-                                                                        { countryCode: 'ca' },
-                                                                        err => {
-                                                                          RestAPI.Tenants.getTenant(
-                                                                            camAdminRestContext,
-                                                                            null,
-                                                                            (err, tenant) => {
-                                                                              assert.ok(!err);
-                                                                              assert.strictEqual(
-                                                                                tenant.countryCode,
-                                                                                'CA'
-                                                                              );
-
-                                                                              // Unset the country code, ensuring it changed
-                                                                              TenantsTestUtil.updateTenantAndWait(
-                                                                                camAdminRestContext,
-                                                                                null,
-                                                                                { countryCode: '' },
-                                                                                err => {
-                                                                                  RestAPI.Tenants.getTenant(
-                                                                                    camAdminRestContext,
-                                                                                    null,
-                                                                                    (
-                                                                                      err,
-                                                                                      tenant
-                                                                                    ) => {
-                                                                                      assert.ok(
-                                                                                        !err
-                                                                                      );
-                                                                                      assert.ok(
-                                                                                        !tenant.countryCode
-                                                                                      );
-                                                                                      return callback();
-                                                                                    }
-                                                                                  );
-                                                                                }
-                                                                              );
-                                                                            }
-                                                                          );
-                                                                        }
-                                                                      );
-                                                                    }
-                                                                  );
-                                                                }
-                                                              );
-                                                            }
-                                                          );
-                                                        }
-                                                      );
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        });
-                      });
-                    }
-                  );
+                                                                // Unset the country code, ensuring it changed
+                                                                TenantsTestUtil.updateTenantAndWait(
+                                                                  camAdminRestContext,
+                                                                  null,
+                                                                  { countryCode: '' },
+                                                                  err => {
+                                                                    RestAPI.Tenants.getTenant(
+                                                                      camAdminRestContext,
+                                                                      null,
+                                                                      (err, tenant) => {
+                                                                        assert.ok(!err);
+                                                                        assert.ok(!tenant.countryCode);
+                                                                        return callback();
+                                                                      }
+                                                                    );
+                                                                  }
+                                                                );
+                                                              }
+                                                            );
+                                                          }
+                                                        );
+                                                      }
+                                                    );
+                                                  }
+                                                );
+                                              }
+                                            );
+                                          });
+                                        });
+                                      }
+                                    );
+                                  });
+                                });
+                              }
+                            );
+                          });
+                        }
+                      );
+                    });
+                  });
                 });
-              }
-            );
+              });
+            });
           });
         }
       );
@@ -2637,27 +2308,17 @@ describe('Tenants', () => {
 
           // Updating the hostname to the SP hostname should fail
           const spHost = ShibbolethAPI.getSPHost();
-          RestAPI.Tenants.updateTenant(
-            globalAdminRestContext,
-            tenantAlias,
-            { host: spHost },
-            err => {
+          RestAPI.Tenants.updateTenant(globalAdminRestContext, tenantAlias, { host: spHost }, err => {
+            assert.ok(err);
+            assert.strictEqual(err.code, 400);
+
+            // Updating the hostname to any case of the SP hostname should fail
+            RestAPI.Tenants.updateTenant(globalAdminRestContext, tenantAlias, { host: spHost.toUpperCase() }, err => {
               assert.ok(err);
               assert.strictEqual(err.code, 400);
-
-              // Updating the hostname to any case of the SP hostname should fail
-              RestAPI.Tenants.updateTenant(
-                globalAdminRestContext,
-                tenantAlias,
-                { host: spHost.toUpperCase() },
-                err => {
-                  assert.ok(err);
-                  assert.strictEqual(err.code, 400);
-                  return callback();
-                }
-              );
-            }
-          );
+              return callback();
+            });
+          });
         }
       );
     });

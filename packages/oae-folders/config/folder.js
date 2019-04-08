@@ -13,28 +13,26 @@
  * permissions and limitations under the License.
  */
 
-var Fields = require('oae-config/lib/fields');
+import * as Fields from 'oae-config/lib/fields';
 
-module.exports = {
-    'title': 'OAE Folders Module',
-    'visibility': {
-        'name': 'Default Visibility Values',
-        'description': 'Default visibility setting for new folders',
-        'elements': {
-            'folder': new Fields.List('Folder Visibility', 'Default visibility for a new folder', 'public', [
-                {
-                    'name': 'Public',
-                    'value': 'public'
-                },
-                {
-                    'name': 'Authenticated Users',
-                    'value': 'loggedin'
-                },
-                {
-                    'name': 'Private',
-                    'value': 'private'
-                }
-            ])
-        }
-    }
+export const title = 'OAE Folders Module';
+export const visibility = {
+  name: 'Default Visibility Values',
+  description: 'Default visibility setting for new folders',
+  elements: {
+    folder: new Fields.List('Folder Visibility', 'Default visibility for a new folder', 'public', [
+      {
+        name: 'Public',
+        value: 'public'
+      },
+      {
+        name: 'Authenticated Users',
+        value: 'loggedin'
+      },
+      {
+        name: 'Private',
+        value: 'private'
+      }
+    ])
+  }
 };

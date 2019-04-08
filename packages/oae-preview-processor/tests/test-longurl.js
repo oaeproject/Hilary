@@ -13,10 +13,11 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
+import assert from 'assert';
+import nock from 'nock';
 
-const RestAPI = require('oae-rest');
-const TestsUtil = require('oae-tests/lib/util');
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests/lib/util';
 
 describe('Long url', () => {
   let anonymousCamRestContext = null;
@@ -32,10 +33,6 @@ describe('Long url', () => {
    * @api private
    */
   const _mockRequests = function() {
-    // Require nock inline as it messes with the HTTP stack
-    // We only want this to happen in a controlled environment
-    const nock = require('nock');
-
     // Ensure we can still perform regular HTTP requests during our tests
     nock.enableNetConnect();
 
@@ -66,18 +63,11 @@ describe('Long url', () => {
     // Mock the HEAD requests
     _mockRequests();
 
-    RestAPI.Previews.expandUrl(
-      anonymousCamRestContext,
-      'http://youtu.be/FYWLiGOBy1k',
-      (err, data) => {
-        assert.ok(!err);
-        assert.ok(data);
-        assert.strictEqual(
-          data['long-url'],
-          'https://www.youtube.com/watch?v=FYWLiGOBy1k&feature=youtu.be'
-        );
-        return callback();
-      }
-    );
+    RestAPI.Previews.expandUrl(anonymousCamRestContext, 'http://youtu.be/FYWLiGOBy1k', (err, data) => {
+      assert.ok(!err);
+      assert.ok(data);
+      assert.strictEqual(data['long-url'], 'https://www.youtube.com/watch?v=FYWLiGOBy1k&feature=youtu.be');
+      return callback();
+    });
   });
 });

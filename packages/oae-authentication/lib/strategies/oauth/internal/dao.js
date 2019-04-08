@@ -13,10 +13,7 @@
  * permissions and limitations under the License.
  */
 
-const AccessTokens = require('./dao.accesstokens');
-const Clients = require('./dao.clients');
+import * as AccessTokens from './dao.accesstokens';
+import * as Clients from './dao.clients';
 
-module.exports = {
-  AccessTokens,
-  Clients
-};
+export { AccessTokens, Clients };

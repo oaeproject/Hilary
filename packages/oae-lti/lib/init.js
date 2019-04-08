@@ -13,10 +13,12 @@
  * permissions and limitations under the License.
  */
 
-const log = require('oae-logger').logger('oae-lti-init');
+import { logger } from 'oae-logger';
 
-module.exports = function(config, callback) {
+const log = logger('oae-lti-init');
+
+export function init(config, callback) {
   log().info('Initializing the oae-lti module');
 
   return callback();
-};
+}

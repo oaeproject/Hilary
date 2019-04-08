@@ -13,26 +13,27 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const fs = require('fs');
-const util = require('util');
-const _ = require('underscore');
+import assert from 'assert';
+import fs from 'fs';
+import util from 'util';
+import _ from 'underscore';
 
-const AuthenticationAPI = require('oae-authentication');
-const AuthzInvitationsDAO = require('oae-authz/lib/invitations/dao');
-const AuthzUtil = require('oae-authz/lib/util');
-const ConfigTestUtil = require('oae-config/lib/test/util');
-const { Context } = require('oae-context');
-const EmailTestUtil = require('oae-email/lib/test/util');
-const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
-const { Tenant } = require('oae-tenants/lib/model');
-const TenantsTestUtil = require('oae-tenants/lib/test/util');
-const TestsUtil = require('oae-tests');
-const TZ = require('oae-util/lib/tz');
+import * as AuthenticationAPI from 'oae-authentication';
+import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as EmailTestUtil from 'oae-email/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import * as TestsUtil from 'oae-tests';
+import * as TZ from 'oae-util/lib/tz';
+import * as PrincipalsAPI from 'oae-principals';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
 
-const PrincipalsAPI = require('oae-principals');
-const PrincipalsTestUtil = require('oae-principals/lib/test/util');
+import { RestContext } from 'oae-rest/lib/model';
+import { Tenant } from 'oae-tenants/lib/model';
+import { Context } from 'oae-context';
+
 
 describe('Users', () => {
   // Rest contexts that can be used to make requests as different types of users

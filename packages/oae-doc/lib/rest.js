@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const OAE = require('oae-util/lib/oae');
-const Swagger = require('oae-util/lib/swagger');
-const DocAPI = require('./api');
+import * as OAE from 'oae-util/lib/oae';
+import * as Swagger from 'oae-util/lib/swagger';
+import { getModuleDocumentation, getModules } from './api';
 
 /**
  * @REST getDocType
@@ -31,7 +31,7 @@ const DocAPI = require('./api');
  * @HttpResponse             400          Invalid or missing module type. Accepted values are "backend" and "frontend"
  */
 const _getDocModulesByType = function(req, res) {
-  DocAPI.getModules(req.params.type, function(err, modules) {
+  getModules(req.params.type, function(err, modules) {
     if (err) {
       return res.status(err.code).send(err.msg);
     }
@@ -60,7 +60,7 @@ OAE.globalAdminRouter.on('get', '/api/doc/:type', _getDocModulesByType);
  * @HttpResponse             404          No documentation for this module was found
  */
 const _getDocModule = function(req, res) {
-  DocAPI.getModuleDocumentation(req.params.module, req.params.type, function(err, docs) {
+  getModuleDocumentation(req.params.module, req.params.type, function(err, docs) {
     if (err) {
       return res.status(err.code).send(err.msg);
     }

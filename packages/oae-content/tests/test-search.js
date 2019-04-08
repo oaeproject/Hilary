@@ -12,25 +12,22 @@
  * or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-const assert = require('assert');
-const fs = require('fs');
-const path = require('path');
-const _ = require('underscore');
+import assert from 'assert';
+import fs from 'fs';
+import path from 'path';
+import _ from 'underscore';
 
-const Cassandra = require('oae-util/lib/cassandra');
-const ConfigTestUtil = require('oae-config/lib/test/util');
-const ElasticSearch = require('oae-search/lib/internal/elasticsearch');
-const MQ = require('oae-util/lib/mq');
-const MQTestUtil = require('oae-util/lib/test/mq-util');
-const PreviewAPI = require('oae-preview-processor/lib/api');
-const PreviewConstants = require('oae-preview-processor/lib/constants');
-const PreviewTestUtil = require('oae-preview-processor/lib/test/util');
-const RestAPI = require('oae-rest');
-const SearchAPI = require('oae-search');
-const { SearchConstants } = require('oae-search/lib/constants');
-const SearchTestsUtil = require('oae-search/lib/test/util');
-const TaskQueue = require('oae-util/lib/taskqueue');
-const TestsUtil = require('oae-tests');
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as ElasticSearch from 'oae-search/lib/internal/elasticsearch';
+import * as MQTestUtil from 'oae-util/lib/test/mq-util';
+import * as PreviewAPI from 'oae-preview-processor/lib/api';
+import PreviewConstants from 'oae-preview-processor/lib/constants';
+import * as PreviewTestUtil from 'oae-preview-processor/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as SearchAPI from 'oae-search';
+import * as SearchTestsUtil from 'oae-search/lib/test/util';
+import * as TestsUtil from 'oae-tests';
 
 describe('Search', () => {
   // REST contexts we can use to do REST requests
@@ -44,9 +41,7 @@ describe('Search', () => {
     anonymousRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
     camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     gtAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.gt.host);
-    signedAdminRestContext = TestsUtil.createTenantAdminRestContext(
-      global.oaeTests.tenants.localhost.host
-    );
+    signedAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.localhost.host);
     globalAdminRestContext = TestsUtil.createGlobalAdminRestContext();
     return callback();
   });
@@ -89,12 +84,12 @@ describe('Search', () => {
   };
 
   /*!
-     * Get the document with the specified id from the search results.
-     *
-     * @param  {SearchResult}  results     The search results object
-     * @param  {String}        docId       The id of the document to search
-     * @return {Object}                    The search document. `null` if it didn't exist
-     */
+   * Get the document with the specified id from the search results.
+   *
+   * @param  {SearchResult}  results     The search results object
+   * @param  {String}        docId       The id of the document to search
+   * @return {Object}                    The search document. `null` if it didn't exist
+   */
   const _getDocById = function(results, docId) {
     for (let i = 0; i < results.results.length; i++) {
       const doc = results.results[i];
@@ -102,15 +97,16 @@ describe('Search', () => {
         return doc;
       }
     }
+
     return null;
   };
 
   /*!
-     * Creates a file and waits till it has been preview processed.
-     *
-     * @param  {Stream}      stream     The stream that points to the file that should be uploaded.
-     * @param  {Function}    callback   Standard callback method that gets called when the file has previews associated to it.
-     */
+   * Creates a file and waits till it has been preview processed.
+   *
+   * @param  {Stream}      stream     The stream that points to the file that should be uploaded.
+   * @param  {Function}    callback   Standard callback method that gets called when the file has previews associated to it.
+   */
   const _createContentAndWait = function(stream, callback) {
     // When the queue is empty, we create a piece of content for which we can generate preview items.
     MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
@@ -132,18 +128,14 @@ describe('Search', () => {
             // Wait till the PP items have been generated
             MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
               // Ensure the preview items are there
-              RestAPI.Content.getContent(
-                creator.restContext,
-                contentObj.id,
-                (err, updatedContent) => {
-                  assert.ok(!err);
-                  assert.ok(updatedContent.previews);
-                  assert.strictEqual(updatedContent.previews.status, 'done');
-                  assert.strictEqual(updatedContent.previews.pageCount, 1);
+              RestAPI.Content.getContent(creator.restContext, contentObj.id, (err, updatedContent) => {
+                assert.ok(!err);
+                assert.ok(updatedContent.previews);
+                assert.strictEqual(updatedContent.previews.status, 'done');
+                assert.strictEqual(updatedContent.previews.pageCount, 1);
 
-                  return callback(creator, updatedContent);
-                }
-              );
+                return callback(creator, updatedContent);
+              });
             });
           }
         );
@@ -199,33 +191,28 @@ describe('Search', () => {
                       assert.ok(!contentDoc);
 
                       // Fire off an indexing task using just the content id
-                      SearchAPI.postIndexTask(
-                        'content',
-                        [{ id: link.id }],
-                        { resource: true },
-                        err => {
-                          assert.ok(!err);
+                      SearchAPI.postIndexTask('content', [{ id: link.id }], { resource: true }, err => {
+                        assert.ok(!err);
 
-                          // Ensure that the full content item is now back in the search index
-                          SearchTestsUtil.searchAll(
-                            doer.restContext,
-                            'general',
-                            null,
-                            { resourceTypes: 'content', q: 'index-without-full-content-item' },
-                            (err, results) => {
-                              assert.ok(!err);
-                              const contentDoc = _getDocById(results, link.id);
-                              assert.ok(contentDoc);
+                        // Ensure that the full content item is now back in the search index
+                        SearchTestsUtil.searchAll(
+                          doer.restContext,
+                          'general',
+                          null,
+                          { resourceTypes: 'content', q: 'index-without-full-content-item' },
+                          (err, results) => {
+                            assert.ok(!err);
+                            const contentDoc = _getDocById(results, link.id);
+                            assert.ok(contentDoc);
 
-                              // Ensure that the full tenant object is passed back.
-                              assert.ok(_.isObject(contentDoc.tenant));
-                              assert.ok(contentDoc.tenant.displayName);
-                              assert.ok(contentDoc.tenant.alias);
-                              return callback();
-                            }
-                          );
-                        }
-                      );
+                            // Ensure that the full tenant object is passed back.
+                            assert.ok(_.isObject(contentDoc.tenant));
+                            assert.ok(contentDoc.tenant.displayName);
+                            assert.ok(contentDoc.tenant.alias);
+                            return callback();
+                          }
+                        );
+                      });
                     }
                   );
                 });
@@ -327,6 +314,7 @@ describe('Search', () => {
             const pdfStream = function() {
               return fs.createReadStream(path.join(__dirname, '/data/test.pdf'));
             };
+
             _createContentAndWait(pdfStream, (creator, content) => {
               // Verify we can find the content from the PDF in general searches
               SearchTestsUtil.searchAll(
@@ -377,6 +365,7 @@ describe('Search', () => {
             const pdfStream = function() {
               return fs.createReadStream(path.join(__dirname, '/data/test.pdf'));
             };
+
             _createContentAndWait(pdfStream, (creator, content) => {
               // Verify we can find the content from the PDF in general searches
               SearchTestsUtil.searchAll(

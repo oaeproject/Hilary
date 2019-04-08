@@ -13,21 +13,24 @@
  * permissions and limitations under the License.
  */
 
-const fs = require('fs');
-const path = require('path');
-const url = require('url');
-const _ = require('underscore');
-const gm = require('gm');
-const rangeCheck = require('range_check');
-const request = require('request');
+import fs from 'fs';
+import path from 'path';
+import url from 'url';
+import PreviewConstants from 'oae-preview-processor/lib/constants';
+import _ from 'underscore';
+import gm from 'gm';
+import rangeCheck from 'range_check';
+import request from 'request';
 
-const log = require('oae-logger').logger('oae-preview-processor');
-const OaeUtil = require('oae-util/lib/util');
-const PrincipalsConfig = require('oae-config').config('oae-principals');
+import { logger } from 'oae-logger';
 
-const LinkProcessorUtil = require('oae-preview-processor/lib/processors/link/util');
-const PreviewConstants = require('oae-preview-processor/lib/constants');
-const puppeteerHelper = require('oae-preview-processor/lib/internal/puppeteer');
+import * as OaeUtil from 'oae-util/lib/util';
+import { setUpConfig } from 'oae-config';
+import * as LinkProcessorUtil from 'oae-preview-processor/lib/processors/link/util';
+import * as puppeteerHelper from 'oae-preview-processor/lib/internal/puppeteer';
+
+const log = logger('oae-preview-processor');
+const PrincipalsConfig = setUpConfig('oae-principals');
 
 const screenShottingOptions = {};
 
@@ -42,10 +45,7 @@ const screenShottingOptions = {};
 const init = function(_config, callback) {
   _config = _config || {};
 
-  screenShottingOptions.timeout = OaeUtil.getNumberParam(
-    _config.screenShotting.timeout,
-    screenShottingOptions.timeout
-  );
+  screenShottingOptions.timeout = OaeUtil.getNumberParam(_config.screenShotting.timeout, screenShottingOptions.timeout);
 
   const chromiumExecutable = _config.screenShotting.binary;
   if (chromiumExecutable) {
@@ -65,17 +65,13 @@ const test = function(ctx, contentObj, callback) {
     // Only allow HTTP(S) URLs
     if (/^http(s)?:\/\//.test(link)) {
       // Don't generate previews for internal IPs
-      if (
-        !rangeCheck.inRange(
-          link.slice(link.lastIndexOf('://') + 1),
-          PreviewConstants.FORBIDDEN.INTERNAL_IPS
-        )
-      ) {
+      if (!rangeCheck.inRange(link.slice(link.lastIndexOf('://') + 1), PreviewConstants.FORBIDDEN.INTERNAL_IPS)) {
         // Default to the lowest possible score
         return callback(null, 1);
       }
     }
   }
+
   return callback(null, -1);
 };
 
@@ -93,11 +89,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
       // Certain webservers will not send an `x-frame-options` header when no browser user agent is not specified
       'User-Agent':
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1700.77 Safari/537.36',
-      'Accept-Language': PrincipalsConfig.getValue(
-        contentObj.tenant.alias,
-        'user',
-        'defaultLanguage'
-      )
+      'Accept-Language': PrincipalsConfig.getValue(contentObj.tenant.alias, 'user', 'defaultLanguage')
     }
   };
 
@@ -114,8 +106,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
         response.headers['content-disposition'] &&
         response.headers['content-disposition'].split(';')[0] === 'attachment';
       // ..or it's type is 'application/octet-stream'
-      forcedDownload =
-        forcedDownload || response.headers['content-type'] === PreviewConstants.TYPES.DEFAULT;
+      forcedDownload = forcedDownload || response.headers['content-type'] === PreviewConstants.TYPES.DEFAULT;
 
       /*
        * See https://developer.mozilla.org/en-US/docs/HTTP/X-Frame-Options
@@ -157,11 +148,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
       } else {
         // Try to localize the screenshot of the link to the default tenant language
         screenShottingOptions.customHeaders = {
-          'Accept-Language': PrincipalsConfig.getValue(
-            contentObj.tenant.alias,
-            'user',
-            'defaultLanguage'
-          )
+          'Accept-Language': PrincipalsConfig.getValue(contentObj.tenant.alias, 'user', 'defaultLanguage')
         };
         puppeteerHelper.getImage(contentObj.link, imgPath, screenShottingOptions, err => {
           if (err) {
@@ -186,6 +173,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
                 log().info({ contentId: ctx.contentId }, 'Not attaching blank screenshot');
                 return callback();
               }
+
               return LinkProcessorUtil.generatePreviewsFromImage(ctx, imgPath, null, callback);
             }
           );
@@ -203,6 +191,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
 
       // Otherwise we need to do an extra request
     }
+
     urlParts.protocol = 'https:';
     const link = url.format(urlParts);
     _checkHttps(link, httpsAccessible => {
@@ -236,8 +225,4 @@ const _checkHttps = function(link, callback) {
   });
 };
 
-module.exports = {
-  init,
-  test,
-  generatePreviews
-};
+export { init, test, generatePreviews };

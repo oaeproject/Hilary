@@ -79,7 +79,4 @@ const TenantNetwork = function(id, displayName) {
   return that;
 };
 
-module.exports = {
-  Tenant,
-  TenantNetwork
-};
+export { Tenant, TenantNetwork };

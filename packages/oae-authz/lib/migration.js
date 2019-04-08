@@ -1,5 +1,3 @@
-const Cassandra = require('oae-util/lib/cassandra');
-
 /**
  * Four column families will be created:
  *
@@ -14,13 +12,17 @@ const Cassandra = require('oae-util/lib/cassandra');
  * - The column family AuthzMembershipsIndirectCache holds a cache of only groups that a principal
  * is strictly a member of indirectly. Meaning, if a user is a member both directly and indirectly,
  * the group will not be a part of indirect cache
- *
+ */
+
+import { createColumnFamilies } from 'oae-util/lib/cassandra';
+
+/**
  * @param  {Function}         callback       Standard callback function
  * @param  {Object}           callback.err   An error that occurred, if any
  * @api private
  */
 const ensureSchema = function(callback) {
-  Cassandra.createColumnFamilies(
+  createColumnFamilies(
     {
       // Deleted schema
       AuthzDeleted: 'CREATE TABLE "AuthzDeleted" ("resourceId" text PRIMARY KEY, "deleted" boolean)',
@@ -49,4 +51,4 @@ const ensureSchema = function(callback) {
   );
 };
 
-module.exports = { ensureSchema };
+export { ensureSchema };

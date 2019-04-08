@@ -40,7 +40,7 @@ const TenantsAPI = require('oae-tenants');
 const TenantsUtil = require('oae-tenants/lib/util');
 const Signature = require('oae-util/lib/signature');
 
-const PrincipalsConfig = ConfigAPI.config('oae-principals');
+const PrincipalsConfig = ConfigAPI.setUpConfig('oae-principals');
 const { PrincipalsConstants } = require('./constants');
 const PrincipalsDAO = require('./internal/dao');
 const PrincipalsEmitter = require('./internal/emitter');
@@ -68,10 +68,7 @@ const HTTPS_PROTOCOL = 'https';
 const registerFullUserProfileDecorator = function(namespace, decorator) {
   if (fullUserProfileDecorators[namespace]) {
     throw new Error(
-      util.format(
-        'Attempted to register duplicate full user profile decorator with namespace "%s"',
-        namespace
-      )
+      util.format('Attempted to register duplicate full user profile decorator with namespace "%s"', namespace)
     );
   } else if (!_.isFunction(decorator)) {
     throw new TypeError(
@@ -144,8 +141,7 @@ const createUser = function(ctx, tenantAlias, displayName, opts, callback) {
   opts.visibility = opts.visibility || PrincipalsConfig.getValue(tenantAlias, 'user', 'visibility');
   opts.publicAlias = opts.publicAlias || displayName;
   opts.acceptedTC = opts.acceptedTC || false;
-  opts.emailPreference =
-    opts.emailPreference || PrincipalsConfig.getValue(tenantAlias, 'user', 'emailPreference');
+  opts.emailPreference = opts.emailPreference || PrincipalsConfig.getValue(tenantAlias, 'user', 'emailPreference');
 
   const validator = new Validator();
   validator.check(displayName, { code: 400, msg: 'A display name must be provided' }).notEmpty();
@@ -160,17 +156,14 @@ const createUser = function(ctx, tenantAlias, displayName, opts, callback) {
     .isIn(_.values(PrincipalsConstants.emailPreferences));
 
   // If an administrator is creating an account, we consider the email address to be verified
-  opts.emailVerified =
-    opts.emailVerified || (ctx.user() && ctx.user().isAdmin(tenantAlias)) || false;
+  opts.emailVerified = opts.emailVerified || (ctx.user() && ctx.user().isAdmin(tenantAlias)) || false;
 
   // Because some SSO strategies do not release an email address, we allow user accounts to be
   // created without providing the email
   if (_.isString(opts.email)) {
     // E-mail addresses are always lower-cased as it makes them easier to deal with
     opts.email = opts.email.toLowerCase();
-    validator
-      .check(opts.email, { code: 400, msg: 'The specified email address is invalid' })
-      .isEmail();
+    validator.check(opts.email, { code: 400, msg: 'The specified email address is invalid' }).isEmail();
   } else {
     // Avoid setting a falsey email address
     delete opts.email;
@@ -268,14 +261,7 @@ const _createUser = function(ctx, user, email, callback) {
  * @param  {Function}       callback                Standard callback function
  * @param  {Object}         callback.err            An error that occurred, if any
  */
-const importUsers = function(
-  ctx,
-  tenantAlias,
-  userCSV,
-  authenticationStrategy,
-  forceProfileUpdate,
-  callback
-) {
+const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, forceProfileUpdate, callback) {
   tenantAlias = tenantAlias || ctx.user().tenant.alias;
   forceProfileUpdate = forceProfileUpdate || false;
   callback = callback || function() {};
@@ -291,9 +277,7 @@ const importUsers = function(
 
   // Parameter validation
   const validator = new Validator();
-  validator
-    .check(tenant, { code: 400, msg: 'An existing tenant alias must be provided' })
-    .notNull();
+  validator.check(tenant, { code: 400, msg: 'An existing tenant alias must be provided' }).notNull();
   validator.check(userCSV, { code: 400, msg: 'A CSV file must be provided' }).notNull();
   if (userCSV) {
     validator.check(userCSV.size, { code: 400, msg: 'Missing size on the CSV file' }).notEmpty();
@@ -301,6 +285,7 @@ const importUsers = function(
     validator.check(userCSV.size, { code: 400, msg: 'Invalid size on the CSV file' }).min(0);
     validator.check(userCSV.name, { code: 400, msg: 'Missing name on the CSV file' }).notEmpty();
   }
+
   validator
     .check(authenticationStrategy, {
       code: 400,
@@ -357,11 +342,11 @@ const importUsers = function(
         );
 
         /*!
-             * Process an invidual user from the CSV file and create a new user if no user exists for the provided
-             * external id - authentication strategy combination.
-             *
-             * @param  {Array.<Array.<String>>}     data        Parsed CSV file
-             */
+         * Process an invidual user from the CSV file and create a new user if no user exists for the provided
+         * external id - authentication strategy combination.
+         *
+         * @param  {Array.<Array.<String>>}     data        Parsed CSV file
+         */
         const processUser = function(data) {
           // Get the next user from the stack
           const user = data.pop();
@@ -385,10 +370,10 @@ const importUsers = function(
           };
 
           /*!
-                 * Gets called when the user has been created or updated
-                 *
-                 * @param  {Object}     err     An error object that can be returned by the updateUser call
-                 */
+           * Gets called when the user has been created or updated
+           *
+           * @param  {Object}     err     An error object that can be returned by the updateUser call
+           */
           const finishImportUser = function(err) {
             if (err) {
               log().error({ err, externalId }, 'Failed to import user');
@@ -407,6 +392,7 @@ const importUsers = function(
               return PrincipalsEmitter.emit('postCSVUserImport');
               // Add a progress log statement every 25 imported users
             }
+
             if (data.length % 25 === 0) {
               log(ctx).info(
                 {
@@ -416,6 +402,7 @@ const importUsers = function(
                 'Importing users from CSV. ' + data.length + ' users left to import'
               );
             }
+
             // Process the next user
             processUser(data);
           };
@@ -437,6 +424,7 @@ const importUsers = function(
 
                 // If the user already existed it's possible that we need to update it
               }
+
               if (created) {
                 finishImportUser();
                 // If the user was created, we can move on to the next one
@@ -448,9 +436,11 @@ const importUsers = function(
                   if (user.displayName !== displayName) {
                     update.displayName = displayName;
                   }
+
                   if (user.publicAlias !== displayName) {
                     update.publicAlias = displayName;
                   }
+
                   if (user.email !== opts.email) {
                     update.email = opts.email;
                   }
@@ -459,6 +449,7 @@ const importUsers = function(
                   if (user.displayName === externalId) {
                     update.displayName = displayName;
                   }
+
                   if (!user.publicAlias || user.publicAlias === externalId) {
                     update.publicAlias = displayName;
                   }
@@ -512,6 +503,7 @@ const _cleanUpCSVFile = function(userCSV, callback) {
           if (err) {
             log().warn({ err, file: userCSV }, 'Could not remove the user import CSV file');
           }
+
           callback();
         });
       } else {
@@ -553,24 +545,13 @@ const updateUser = function(ctx, userId, profileFields, callback) {
     .min(1);
 
   // Verify that restricted properties aren't set here
-  const validKeys = [
-    'displayName',
-    'visibility',
-    'email',
-    'emailPreference',
-    'publicAlias',
-    'locale'
-  ];
+  const validKeys = ['displayName', 'visibility', 'email', 'emailPreference', 'publicAlias', 'locale'];
   const invalidKeys = _.difference(profileFieldKeys, validKeys);
-  validator
-    .check(invalidKeys.length, { code: 400, msg: 'Restricted property was attempted to be set.' })
-    .max(0);
+  validator.check(invalidKeys.length, { code: 400, msg: 'Restricted property was attempted to be set.' }).max(0);
 
   // Apply special restrictions on some profile fields
   if (!_.isUndefined(profileFields.displayName)) {
-    validator
-      .check(profileFields.displayName, { code: 400, msg: 'A display name cannot be empty' })
-      .notEmpty();
+    validator.check(profileFields.displayName, { code: 400, msg: 'A display name cannot be empty' }).notEmpty();
     validator
       .check(profileFields.displayName, {
         code: 400,
@@ -578,6 +559,7 @@ const updateUser = function(ctx, userId, profileFields, callback) {
       })
       .isShortString();
   }
+
   if (!_.isUndefined(profileFields.visibility)) {
     validator
       .check(profileFields.visibility, {
@@ -586,6 +568,7 @@ const updateUser = function(ctx, userId, profileFields, callback) {
       })
       .isIn(_.values(AuthzConstants.visibility));
   }
+
   if (!_.isUndefined(profileFields.emailPreference)) {
     validator
       .check(profileFields.emailPreference, {
@@ -598,17 +581,13 @@ const updateUser = function(ctx, userId, profileFields, callback) {
   if (_.isString(profileFields.email)) {
     // E-mail addresses are always lower-cased as it makes them easier to deal with
     profileFields.email = profileFields.email.toLowerCase();
-    validator
-      .check(profileFields.email, { code: 400, msg: 'The specified email address is invalid' })
-      .isEmail();
+    validator.check(profileFields.email, { code: 400, msg: 'The specified email address is invalid' }).isEmail();
   } else {
     // Ensure we never set a false-y email
     delete profileFields.email;
   }
 
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to update a user' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'You have to be logged in to be able to update a user' }).isLoggedInUser(ctx);
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -624,6 +603,7 @@ const updateUser = function(ctx, userId, profileFields, callback) {
     if (err) {
       return callback(err);
     }
+
     if (oldUser.deleted) {
       return callback({ code: 404, msg: util.format("Couldn't find principal: ", oldUser.id) });
     }
@@ -635,8 +615,7 @@ const updateUser = function(ctx, userId, profileFields, callback) {
     // We will make that change once they have verified they own it. We will persist the
     // desired email address in a separate column family
     let newEmailAddress = null;
-    const isEmailChange =
-      !_.isUndefined(profileFields.email) && profileFields.email !== oldUser.email;
+    const isEmailChange = !_.isUndefined(profileFields.email) && profileFields.email !== oldUser.email;
     if (isEmailChange) {
       newEmailAddress = profileFields.email;
       delete profileFields.email;
@@ -648,21 +627,13 @@ const updateUser = function(ctx, userId, profileFields, callback) {
       }
 
       // If the email address changed but isn't verified, we have to send a verification email
-      OaeUtil.invokeIfNecessary(
-        isEmailChange,
-        _sendEmailToken,
-        ctx,
-        newUser,
-        newEmailAddress,
-        null,
-        err => {
-          if (err) {
-            return callback(err);
-          }
-
-          return getUser(ctx, userId, callback);
+      OaeUtil.invokeIfNecessary(isEmailChange, _sendEmailToken, ctx, newUser, newEmailAddress, null, err => {
+        if (err) {
+          return callback(err);
         }
-      );
+
+        return getUser(ctx, userId, callback);
+      });
     });
   });
 };
@@ -713,6 +684,7 @@ const deleteUser = function(ctx, userId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!canDelete) {
       return callback({ code: 401, msg: 'You are not authorized to delete this user' });
     }
@@ -752,6 +724,7 @@ const deleteOrRestoreUsersByTenancy = function(ctx, tenantAlias, disableUsers, c
         if (err) {
           callback(err);
         }
+
         callback(null, users);
       });
     } else {
@@ -759,6 +732,7 @@ const deleteOrRestoreUsersByTenancy = function(ctx, tenantAlias, disableUsers, c
         if (err) {
           callback(err);
         }
+
         callback(null, users);
       });
     }
@@ -802,6 +776,7 @@ const getAllUsersForTenant = function(ctx, tenantAlias, callback) {
         .uniq()
         .value();
     }
+
     return callback(null, users);
   });
 };
@@ -874,6 +849,7 @@ const restoreUser = function(ctx, userId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!canRestore) {
       return callback({ code: 401, msg: 'You are not authorized to restore this user' });
     }
@@ -909,6 +885,7 @@ const canDeleteUser = function(ctx, userId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (ctx.user().id !== userId && !ctx.user().isAdmin(user.tenant.alias)) {
       // Only an admin or the user themself can delete a user
       return callback(null, false);
@@ -937,6 +914,7 @@ const canRestoreUser = function(ctx, userId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!ctx.user().isAdmin(user.tenant.alias)) {
       // Only an admin can restore a user
       return callback(null, false);
@@ -987,6 +965,7 @@ const getFullUserProfile = function(ctx, userId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (user.deleted) {
       return callback({ code: 404, msg: util.format("Couldn't find principal: ", userId) });
     }
@@ -1007,8 +986,8 @@ const getFullUserProfile = function(ctx, userId, callback) {
     const decorations = {};
 
     /*!
-         * Complete one iteration of the decorators loop. Will invoke the method callback when all decorations have completed
-         */
+     * Complete one iteration of the decorators loop. Will invoke the method callback when all decorations have completed
+     */
     const _finishDecorator = function() {
       numDecorators--;
       if (numDecorators === 0) {
@@ -1034,6 +1013,7 @@ const getFullUserProfile = function(ctx, userId, callback) {
           log().warn({ err }, 'Skipping decorator because of an error in the decoration method');
           return _finishDecorator();
         }
+
         if (decoration === undefined) {
           // If the decoration wasn't specified, do not apply it to the decorations. However null is a valid
           // value
@@ -1159,6 +1139,7 @@ const setGlobalAdmin = function(ctx, userId, isAdmin, callback) {
   if (ctx.user() && _.isFunction(ctx.user().isGlobalAdmin) && ctx.user().isGlobalAdmin()) {
     return _setAdmin(ctx, 'admin:global', isAdmin, userId, callback);
   }
+
   return callback({ code: 401, msg: 'You do not have sufficient rights to make someone an admin' });
 };
 
@@ -1184,6 +1165,7 @@ const _setAdmin = function(ctx, adminType, isAdmin, principalId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (user.deleted) {
       return callback({ code: 404, msg: util.format("Couldn't find principal: ", principalId) });
     }
@@ -1226,8 +1208,7 @@ const _sendEmailToken = function(ctx, user, email, token, callback) {
     const userToEmail = _.extend({}, user, { email });
 
     const tenant = TenantsAPI.getTenant(user.tenant.alias);
-    const verificationUrl =
-      TenantsUtil.getBaseUrl(tenant) + '/?verifyEmail=' + encodeURIComponent(token);
+    const verificationUrl = TenantsUtil.getBaseUrl(tenant) + '/?verifyEmail=' + encodeURIComponent(token);
 
     // Send an email to the specified e-mail address
     const data = {
@@ -1305,9 +1286,7 @@ const verifyEmail = function(ctx, userId, token, callback) {
   const validator = new Validator();
   validator.check(userId, { code: 400, msg: 'A valid user id must be provided' }).isUserId();
   validator.check(token, { code: 400, msg: 'A token must be provided' }).notEmpty();
-  validator
-    .check(token, { code: 400, msg: 'An invalid token was provided' })
-    .regex(/^[a-zA-Z0-9-_]{7,14}$/);
+  validator.check(token, { code: 400, msg: 'An invalid token was provided' }).regex(/^[a-zA-Z0-9-_]{7,14}$/);
   validator
     .check(null, {
       code: 401,
@@ -1337,6 +1316,7 @@ const verifyEmail = function(ctx, userId, token, callback) {
       if (err) {
         return callback(err);
       }
+
       if (persistedToken !== token) {
         return callback({ code: 401, msg: 'Wrong token' });
       }
@@ -1508,10 +1488,7 @@ const exportData = function(ctx, userId, exportType, callback) {
           // Convert an object to a zip file
           _objectToZipFile(personalData, (err, zipFile) => {
             if (err) {
-              log().error(
-                { err, displayName: principal.displayName },
-                'An error occurred while creating the zip file'
-              );
+              log().error({ err, displayName: principal.displayName }, 'An error occurred while creating the zip file');
               return callback(err);
             }
 
@@ -1536,6 +1513,7 @@ const _extractProfilePicture = function(ctx, principal, callback) {
   if (_.isEmpty(principal.picture)) {
     return callback();
   }
+
   const path = ContentUtil.getStorageBackend(ctx, principal.picture.largeUri).getRootDirectory();
 
   const pathLargePicture = principal.picture.largeUri.split(':');
@@ -1587,6 +1565,7 @@ const _assemblePersonalData = function(personalDetails, profilePicture, data, ca
             personalData.discussion = data.discussionData;
           }
         }
+
         callback();
       }
     ],
@@ -1666,38 +1645,32 @@ const exportContentData = function(ctx, userId, exportType, callback) {
               }
 
               // Get discussions library
-              DiscussionsAPI.Discussions.getDiscussionsLibrary(
-                ctx,
-                userId,
-                null,
-                null,
-                (err, discussions) => {
+              DiscussionsAPI.Discussions.getDiscussionsLibrary(ctx, userId, null, null, (err, discussions) => {
+                if (err) {
+                  return callback(err);
+                }
+
+                if (exportType === PrincipalsConstants.exportType.CONTENT_DATA) {
+                  discussions = _.reject(discussions, discussion => {
+                    return discussion.createdBy !== userId;
+                  });
+                }
+
+                // Convert meetings into txt file
+                _discussionToTxt(ctx, discussions, (err, discussionData) => {
                   if (err) {
                     return callback(err);
                   }
 
-                  if (exportType === PrincipalsConstants.exportType.CONTENT_DATA) {
-                    discussions = _.reject(discussions, discussion => {
-                      return discussion.createdBy !== userId;
-                    });
-                  }
-
-                  // Convert meetings into txt file
-                  _discussionToTxt(ctx, discussions, (err, discussionData) => {
-                    if (err) {
-                      return callback(err);
-                    }
-
-                    return callback(null, {
-                      uploadData,
-                      linkData,
-                      collabdocData,
-                      meetingData,
-                      discussionData
-                    });
+                  return callback(null, {
+                    uploadData,
+                    linkData,
+                    collabdocData,
+                    meetingData,
+                    discussionData
                   });
-                }
-              );
+                });
+              });
             });
           });
         });
@@ -1817,6 +1790,7 @@ const _collabdocToTxt = function(ctx, collabdocs, callback) {
       if (err) {
         return callback(err);
       }
+
       return callback(null, collabdocData);
     }
   );
@@ -1880,6 +1854,7 @@ const _linkToTxt = function(ctx, links, callback) {
       if (err) {
         return callback(err);
       }
+
       return callback(null, linkData);
     }
   );
@@ -1944,6 +1919,7 @@ const _meetingToTxt = function(ctx, meetings, callback) {
       if (err) {
         return callback(err);
       }
+
       return callback(null, meetingData);
     }
   );
@@ -2008,6 +1984,7 @@ const _discussionToTxt = function(ctx, discussions, callback) {
       if (err) {
         return callback(err);
       }
+
       return callback(null, discussionData);
     }
   );
@@ -2087,6 +2064,7 @@ const _objectToZipFile = function(personalData, callback) {
       zipFile.file('personal_data.txt', personalData.personalDetails);
       return callback();
     }
+
     return callback();
   };
 
@@ -2096,6 +2074,7 @@ const _objectToZipFile = function(personalData, callback) {
         if (err) {
           return callback(err);
         }
+
         zipFile.file(personalData.profilePicture.imageName, data, { base64: false, binary: true });
         return callback();
       });
@@ -2115,6 +2094,7 @@ const _objectToZipFile = function(personalData, callback) {
             if (err) {
               return callback(err);
             }
+
             const fileExt = uploadedFile.title.split('.').pop();
             const text = uploadedFile.title.split('.');
             const fileName = text.slice(0, text.length - 1).join('.');
@@ -2128,6 +2108,7 @@ const _objectToZipFile = function(personalData, callback) {
           if (err) {
             return callback(err);
           }
+
           return callback();
         }
       );
@@ -2151,6 +2132,7 @@ const _objectToZipFile = function(personalData, callback) {
 
       return callback();
     }
+
     return callback();
   };
 
@@ -2169,6 +2151,7 @@ const _objectToZipFile = function(personalData, callback) {
 
       return callback();
     }
+
     return callback();
   };
 
@@ -2187,6 +2170,7 @@ const _objectToZipFile = function(personalData, callback) {
 
       return callback();
     }
+
     return callback();
   };
 
@@ -2205,6 +2189,7 @@ const _objectToZipFile = function(personalData, callback) {
 
       return callback();
     }
+
     return callback();
   };
 
@@ -2222,6 +2207,7 @@ const _objectToZipFile = function(personalData, callback) {
       if (err) {
         return callback(err);
       }
+
       return callback(null, zipFile);
     }
   );
@@ -2254,6 +2240,7 @@ const _getNewFileName = function(fileExt, fileName, folder) {
       if (index !== 0) {
         return fileName + '(' + index + ').' + fileExt;
       }
+
       return fileName + '.' + fileExt;
     }
   }

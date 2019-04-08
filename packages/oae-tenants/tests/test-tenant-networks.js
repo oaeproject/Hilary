@@ -12,18 +12,16 @@
  * or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const Cassandra = require('oae-util/lib/cassandra');
-const Pubsub = require('oae-util/lib/pubsub');
-const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
-const TestsUtil = require('oae-tests');
-
-const TenantNetworksAPI = require('oae-tenants/lib/api.networks');
-const TenantNetworksDAO = require('oae-tenants/lib/internal/dao.networks');
-const TenantsTestUtil = require('oae-tenants/lib/test/util');
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as Pubsub from 'oae-util/lib/pubsub';
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
+import * as TenantNetworksAPI from 'oae-tenants/lib/api.networks';
+import * as TenantNetworksDAO from 'oae-tenants/lib/internal/dao.networks';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
 
 describe('Tenant Networks', () => {
   // Standard REST contexts to use to execute requests as different types of users
@@ -165,10 +163,7 @@ describe('Tenant Networks', () => {
           'verifies create tenant network validation',
           (err, tenantNetwork) => {
             assert.ok(!err);
-            assert.strictEqual(
-              tenantNetwork.displayName,
-              'verifies create tenant network validation'
-            );
+            assert.strictEqual(tenantNetwork.displayName, 'verifies create tenant network validation');
             return callback();
           }
         );
@@ -226,10 +221,7 @@ describe('Tenant Networks', () => {
                         (err, tenantNetwork) => {
                           assert.ok(!err);
                           assert.ok(_.isObject(tenantNetwork));
-                          assert.strictEqual(
-                            tenantNetwork.displayName,
-                            'verifies create tenant network authorization'
-                          );
+                          assert.strictEqual(tenantNetwork.displayName, 'verifies create tenant network authorization');
                           return callback();
                         }
                       );
@@ -300,48 +292,42 @@ describe('Tenant Networks', () => {
                           assert.ok(!tenantNetwork);
 
                           // Ensure the tenant network displayName hasn't been updated somehow
-                          RestAPI.Tenants.getTenantNetworks(
-                            globalAdminRestContext,
-                            (err, tenantNetworks) => {
-                              assert.ok(!err);
-                              assert.ok(tenantNetworks[originalTenantNetwork.id]);
-                              assert.strictEqual(
-                                tenantNetworks[originalTenantNetwork.id].displayName,
-                                originalTenantNetwork.displayName
-                              );
+                          RestAPI.Tenants.getTenantNetworks(globalAdminRestContext, (err, tenantNetworks) => {
+                            assert.ok(!err);
+                            assert.ok(tenantNetworks[originalTenantNetwork.id]);
+                            assert.strictEqual(
+                              tenantNetworks[originalTenantNetwork.id].displayName,
+                              originalTenantNetwork.displayName
+                            );
 
-                              // Sanity check updating the tenant network's display name
-                              RestAPI.Tenants.updateTenantNetwork(
-                                globalAdminRestContext,
-                                originalTenantNetwork.id,
-                                'verifies update tenant network validation',
-                                (err, tenantNetwork) => {
+                            // Sanity check updating the tenant network's display name
+                            RestAPI.Tenants.updateTenantNetwork(
+                              globalAdminRestContext,
+                              originalTenantNetwork.id,
+                              'verifies update tenant network validation',
+                              (err, tenantNetwork) => {
+                                assert.ok(!err);
+                                assert.ok(tenantNetwork);
+                                assert.strictEqual(tenantNetwork.id, originalTenantNetwork.id);
+                                assert.strictEqual(
+                                  tenantNetwork.displayName,
+                                  'verifies update tenant network validation'
+                                );
+
+                                // Ensure the displayName has changed when fetching
+                                RestAPI.Tenants.getTenantNetworks(globalAdminRestContext, (err, tenantNetworks) => {
                                   assert.ok(!err);
-                                  assert.ok(tenantNetwork);
-                                  assert.strictEqual(tenantNetwork.id, originalTenantNetwork.id);
+                                  assert.ok(tenantNetworks[tenantNetwork.id]);
                                   assert.strictEqual(
-                                    tenantNetwork.displayName,
+                                    tenantNetworks[tenantNetwork.id].displayName,
                                     'verifies update tenant network validation'
                                   );
 
-                                  // Ensure the displayName has changed when fetching
-                                  RestAPI.Tenants.getTenantNetworks(
-                                    globalAdminRestContext,
-                                    (err, tenantNetworks) => {
-                                      assert.ok(!err);
-                                      assert.ok(tenantNetworks[tenantNetwork.id]);
-                                      assert.strictEqual(
-                                        tenantNetworks[tenantNetwork.id].displayName,
-                                        'verifies update tenant network validation'
-                                      );
-
-                                      return callback();
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
+                                  return callback();
+                                });
+                              }
+                            );
+                          });
                         }
                       );
                     }
@@ -404,34 +390,31 @@ describe('Tenant Networks', () => {
                         assert.ok(!tenantNetwork);
 
                         // Ensure the tenant network displayName has not changed
-                        RestAPI.Tenants.getTenantNetworks(
-                          globalAdminRestContext,
-                          (err, tenantNetworks) => {
-                            assert.ok(!err);
-                            assert.ok(tenantNetworks);
-                            assert.ok(tenantNetworks[originalTenantNetwork.id]);
-                            assert.strictEqual(
-                              tenantNetworks[originalTenantNetwork.id].displayName,
-                              originalTenantNetwork.displayName
-                            );
+                        RestAPI.Tenants.getTenantNetworks(globalAdminRestContext, (err, tenantNetworks) => {
+                          assert.ok(!err);
+                          assert.ok(tenantNetworks);
+                          assert.ok(tenantNetworks[originalTenantNetwork.id]);
+                          assert.strictEqual(
+                            tenantNetworks[originalTenantNetwork.id].displayName,
+                            originalTenantNetwork.displayName
+                          );
 
-                            // Sanity check that updating as global admin user succeeds
-                            RestAPI.Tenants.updateTenantNetwork(
-                              globalAdminRestContext,
-                              originalTenantNetwork.id,
-                              'verifies update tenant network authorization',
-                              (err, tenantNetwork) => {
-                                assert.ok(!err);
-                                assert.ok(_.isObject(tenantNetwork));
-                                assert.strictEqual(
-                                  tenantNetwork.displayName,
-                                  'verifies update tenant network authorization'
-                                );
-                                return callback();
-                              }
-                            );
-                          }
-                        );
+                          // Sanity check that updating as global admin user succeeds
+                          RestAPI.Tenants.updateTenantNetwork(
+                            globalAdminRestContext,
+                            originalTenantNetwork.id,
+                            'verifies update tenant network authorization',
+                            (err, tenantNetwork) => {
+                              assert.ok(!err);
+                              assert.ok(_.isObject(tenantNetwork));
+                              assert.strictEqual(
+                                tenantNetwork.displayName,
+                                'verifies update tenant network authorization'
+                              );
+                              return callback();
+                            }
+                          );
+                        });
                       }
                     );
                   }
@@ -465,45 +448,34 @@ describe('Tenant Networks', () => {
             assert.strictEqual(err.code, 400);
 
             // Ensure deleting a non-existing tenant network results in a 404
-            RestAPI.Tenants.deleteTenantNetwork(
-              globalAdminRestContext,
-              'non-existing-tenant-network-id',
-              err => {
-                assert.ok(err);
-                assert.ok(err.code, 404);
+            RestAPI.Tenants.deleteTenantNetwork(globalAdminRestContext, 'non-existing-tenant-network-id', err => {
+              assert.ok(err);
+              assert.ok(err.code, 404);
 
-                // Ensure the tenant network still exists
-                RestAPI.Tenants.getTenantNetworks(globalAdminRestContext, (err, tenantNetworks) => {
+              // Ensure the tenant network still exists
+              RestAPI.Tenants.getTenantNetworks(globalAdminRestContext, (err, tenantNetworks) => {
+                assert.ok(!err);
+                assert.ok(tenantNetworks);
+                assert.ok(tenantNetworks[originalTenantNetwork.id]);
+                assert.strictEqual(
+                  tenantNetworks[originalTenantNetwork.id].displayName,
+                  originalTenantNetwork.displayName
+                );
+
+                // Sanity check a true tenant network delete
+                RestAPI.Tenants.deleteTenantNetwork(globalAdminRestContext, originalTenantNetwork.id, err => {
                   assert.ok(!err);
-                  assert.ok(tenantNetworks);
-                  assert.ok(tenantNetworks[originalTenantNetwork.id]);
-                  assert.strictEqual(
-                    tenantNetworks[originalTenantNetwork.id].displayName,
-                    originalTenantNetwork.displayName
-                  );
 
-                  // Sanity check a true tenant network delete
-                  RestAPI.Tenants.deleteTenantNetwork(
-                    globalAdminRestContext,
-                    originalTenantNetwork.id,
-                    err => {
-                      assert.ok(!err);
-
-                      // Ensure the tenant network no longer exists
-                      RestAPI.Tenants.getTenantNetworks(
-                        globalAdminRestContext,
-                        (err, tenantNetworks) => {
-                          assert.ok(!err);
-                          assert.ok(tenantNetworks);
-                          assert.ok(!tenantNetworks[originalTenantNetwork.id]);
-                          return callback();
-                        }
-                      );
-                    }
-                  );
+                  // Ensure the tenant network no longer exists
+                  RestAPI.Tenants.getTenantNetworks(globalAdminRestContext, (err, tenantNetworks) => {
+                    assert.ok(!err);
+                    assert.ok(tenantNetworks);
+                    assert.ok(!tenantNetworks[originalTenantNetwork.id]);
+                    return callback();
+                  });
                 });
-              }
-            );
+              });
+            });
           });
         });
       });
@@ -519,78 +491,52 @@ describe('Tenant Networks', () => {
         assert.ok(!err);
 
         // Ensure deleting as anonymous user-tenant user results in a 404 (because the endpoint is not bound to the user tenant server)
-        RestAPI.Tenants.deleteTenantNetwork(
-          anonymousCamRestContext,
-          originalTenantNetwork.id,
-          err => {
+        RestAPI.Tenants.deleteTenantNetwork(anonymousCamRestContext, originalTenantNetwork.id, err => {
+          assert.ok(err);
+          assert.strictEqual(err.code, 404);
+
+          // Ensure deleting as loggedin user-tenant user results in a 404 (because the endpoint is not bound to the user tenant server)
+          RestAPI.Tenants.deleteTenantNetwork(mrvisser.restContext, originalTenantNetwork.id, err => {
             assert.ok(err);
             assert.strictEqual(err.code, 404);
 
-            // Ensure deleting as loggedin user-tenant user results in a 404 (because the endpoint is not bound to the user tenant server)
-            RestAPI.Tenants.deleteTenantNetwork(
-              mrvisser.restContext,
-              originalTenantNetwork.id,
-              err => {
+            // Ensure deleting as tenant administrator user results in a 404 (because the endpoint is not bound to the user tenant server)
+            RestAPI.Tenants.deleteTenantNetwork(camAdminRestContext, originalTenantNetwork.id, err => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 404);
+
+              // Ensure deleting as anonymous global-admin user results in a 401
+              RestAPI.Tenants.deleteTenantNetwork(anonymousGlobalRestContext, originalTenantNetwork.id, err => {
                 assert.ok(err);
-                assert.strictEqual(err.code, 404);
+                assert.strictEqual(err.code, 401);
 
-                // Ensure deleting as tenant administrator user results in a 404 (because the endpoint is not bound to the user tenant server)
-                RestAPI.Tenants.deleteTenantNetwork(
-                  camAdminRestContext,
-                  originalTenantNetwork.id,
-                  err => {
-                    assert.ok(err);
-                    assert.strictEqual(err.code, 404);
+                // Ensure the tenant network is still there
+                RestAPI.Tenants.getTenantNetworks(globalAdminRestContext, (err, tenantNetworks) => {
+                  assert.ok(!err);
+                  assert.ok(tenantNetworks);
+                  assert.ok(tenantNetworks[originalTenantNetwork.id]);
+                  assert.strictEqual(
+                    tenantNetworks[originalTenantNetwork.id].displayName,
+                    originalTenantNetwork.displayName
+                  );
 
-                    // Ensure deleting as anonymous global-admin user results in a 401
-                    RestAPI.Tenants.deleteTenantNetwork(
-                      anonymousGlobalRestContext,
-                      originalTenantNetwork.id,
-                      err => {
-                        assert.ok(err);
-                        assert.strictEqual(err.code, 401);
+                  // Sanity check that deleting as global admin user succeeds
+                  RestAPI.Tenants.deleteTenantNetwork(globalAdminRestContext, originalTenantNetwork.id, err => {
+                    assert.ok(!err);
 
-                        // Ensure the tenant network is still there
-                        RestAPI.Tenants.getTenantNetworks(
-                          globalAdminRestContext,
-                          (err, tenantNetworks) => {
-                            assert.ok(!err);
-                            assert.ok(tenantNetworks);
-                            assert.ok(tenantNetworks[originalTenantNetwork.id]);
-                            assert.strictEqual(
-                              tenantNetworks[originalTenantNetwork.id].displayName,
-                              originalTenantNetwork.displayName
-                            );
-
-                            // Sanity check that deleting as global admin user succeeds
-                            RestAPI.Tenants.deleteTenantNetwork(
-                              globalAdminRestContext,
-                              originalTenantNetwork.id,
-                              err => {
-                                assert.ok(!err);
-
-                                // Ensure the tenant network is gone
-                                RestAPI.Tenants.getTenantNetworks(
-                                  globalAdminRestContext,
-                                  (err, tenantNetworks) => {
-                                    assert.ok(!err);
-                                    assert.ok(tenantNetworks);
-                                    assert.ok(!tenantNetworks[originalTenantNetwork.id]);
-                                    return callback();
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
+                    // Ensure the tenant network is gone
+                    RestAPI.Tenants.getTenantNetworks(globalAdminRestContext, (err, tenantNetworks) => {
+                      assert.ok(!err);
+                      assert.ok(tenantNetworks);
+                      assert.ok(!tenantNetworks[originalTenantNetwork.id]);
+                      return callback();
+                    });
+                  });
+                });
+              });
+            });
+          });
+        });
       });
     });
   });
@@ -644,126 +590,96 @@ describe('Tenant Networks', () => {
   it('verify add tenant alias validation', callback => {
     TenantsTestUtil.generateTestTenantNetworks(globalAdminRestContext, 1, tenantNetwork => {
       // Ensure a tenant network id is required when adding a tenant to a tenant network (we test a 404 because the id is part of the resource path)
-      RestAPI.Tenants.addTenantAliases(
-        globalAdminRestContext,
-        null,
-        [global.oaeTests.tenants.cam.alias],
-        err => {
-          assert.ok(err);
-          assert.ok(err.code, 404);
+      RestAPI.Tenants.addTenantAliases(globalAdminRestContext, null, [global.oaeTests.tenants.cam.alias], err => {
+        assert.ok(err);
+        assert.ok(err.code, 404);
 
-          // Ensure a tenant network id is required when adding a tenant to a tenant network directly against the API
-          TenantNetworksAPI.addTenantAliases(
-            TestsUtil.createGlobalAdminContext(),
-            null,
-            [global.oaeTests.tenants.cam.alias],
-            err => {
-              assert.ok(err);
-              assert.strictEqual(err.code, 400);
+        // Ensure a tenant network id is required when adding a tenant to a tenant network directly against the API
+        TenantNetworksAPI.addTenantAliases(
+          TestsUtil.createGlobalAdminContext(),
+          null,
+          [global.oaeTests.tenants.cam.alias],
+          err => {
+            assert.ok(err);
+            assert.strictEqual(err.code, 400);
 
-              // Ensure a tenant network id cannot be all whitespace when adding a tenant to a tenant network
-              RestAPI.Tenants.addTenantAliases(
-                globalAdminRestContext,
-                '   ',
-                [global.oaeTests.tenants.cam.alias],
-                err => {
-                  assert.ok(err);
-                  assert.strictEqual(err.code, 400);
+            // Ensure a tenant network id cannot be all whitespace when adding a tenant to a tenant network
+            RestAPI.Tenants.addTenantAliases(
+              globalAdminRestContext,
+              '   ',
+              [global.oaeTests.tenants.cam.alias],
+              err => {
+                assert.ok(err);
+                assert.strictEqual(err.code, 400);
 
-                  // Ensure adding tenants to a non-existing tenant network results in a 404
-                  RestAPI.Tenants.addTenantAliases(
-                    globalAdminRestContext,
-                    'non-existing-tenant-network-id',
-                    [global.oaeTests.tenants.cam.alias],
-                    err => {
+                // Ensure adding tenants to a non-existing tenant network results in a 404
+                RestAPI.Tenants.addTenantAliases(
+                  globalAdminRestContext,
+                  'non-existing-tenant-network-id',
+                  [global.oaeTests.tenants.cam.alias],
+                  err => {
+                    assert.ok(err);
+                    assert.ok(err.code, 404);
+
+                    // Ensure a list of tenant aliases is required when adding tenants to a tenant network
+                    RestAPI.Tenants.addTenantAliases(globalAdminRestContext, tenantNetwork.id, null, err => {
                       assert.ok(err);
-                      assert.ok(err.code, 404);
+                      assert.ok(err.code, 400);
 
-                      // Ensure a list of tenant aliases is required when adding tenants to a tenant network
-                      RestAPI.Tenants.addTenantAliases(
-                        globalAdminRestContext,
-                        tenantNetwork.id,
-                        null,
-                        err => {
-                          assert.ok(err);
-                          assert.ok(err.code, 400);
+                      // Ensure at least one tenant alias must be specified when adding tenants to a tenant network
+                      RestAPI.Tenants.addTenantAliases(globalAdminRestContext, tenantNetwork.id, [], err => {
+                        assert.ok(err);
+                        assert.ok(err.code, 400);
 
-                          // Ensure at least one tenant alias must be specified when adding tenants to a tenant network
-                          RestAPI.Tenants.addTenantAliases(
-                            globalAdminRestContext,
-                            tenantNetwork.id,
-                            [],
-                            err => {
-                              assert.ok(err);
-                              assert.ok(err.code, 400);
+                        // Ensure all tenants must exist when adding tenants to a tenant network
+                        RestAPI.Tenants.addTenantAliases(
+                          globalAdminRestContext,
+                          tenantNetwork.id,
+                          ['non-existing-tenant-alias', global.oaeTests.tenants.cam.alias],
+                          err => {
+                            assert.ok(err);
+                            assert.ok(err.code, 400);
 
-                              // Ensure all tenants must exist when adding tenants to a tenant network
+                            // Ensure no tenants have been added to the tenant network
+                            RestAPI.Tenants.getTenantNetworks(globalAdminRestContext, (err, tenantNetworks) => {
+                              assert.ok(!err);
+                              assert.ok(tenantNetworks);
+                              assert.ok(tenantNetworks[tenantNetwork.id]);
+                              assert.ok(_.isArray(tenantNetworks[tenantNetwork.id].tenants));
+                              assert.ok(_.isEmpty(tenantNetworks[tenantNetwork.id].tenants));
+
+                              // Sanity check adding a valid tenant alias to the tenant network
                               RestAPI.Tenants.addTenantAliases(
                                 globalAdminRestContext,
                                 tenantNetwork.id,
-                                ['non-existing-tenant-alias', global.oaeTests.tenants.cam.alias],
+                                [global.oaeTests.tenants.cam.alias],
                                 err => {
-                                  assert.ok(err);
-                                  assert.ok(err.code, 400);
+                                  assert.ok(!err);
 
-                                  // Ensure no tenants have been added to the tenant network
-                                  RestAPI.Tenants.getTenantNetworks(
-                                    globalAdminRestContext,
-                                    (err, tenantNetworks) => {
-                                      assert.ok(!err);
-                                      assert.ok(tenantNetworks);
-                                      assert.ok(tenantNetworks[tenantNetwork.id]);
-                                      assert.ok(
-                                        _.isArray(tenantNetworks[tenantNetwork.id].tenants)
-                                      );
-                                      assert.ok(
-                                        _.isEmpty(tenantNetworks[tenantNetwork.id].tenants)
-                                      );
+                                  // Ensure the tenant is now found in the tenant network response
+                                  RestAPI.Tenants.getTenantNetworks(globalAdminRestContext, (err, tenantNetworks) => {
+                                    assert.ok(!err);
+                                    assert.ok(tenantNetworks);
+                                    assert.ok(tenantNetworks[tenantNetwork.id]);
+                                    assert.ok(_.isArray(tenantNetworks[tenantNetwork.id].tenants));
+                                    assert.strictEqual(tenantNetworks[tenantNetwork.id].tenants.length, 1);
 
-                                      // Sanity check adding a valid tenant alias to the tenant network
-                                      RestAPI.Tenants.addTenantAliases(
-                                        globalAdminRestContext,
-                                        tenantNetwork.id,
-                                        [global.oaeTests.tenants.cam.alias],
-                                        err => {
-                                          assert.ok(!err);
-
-                                          // Ensure the tenant is now found in the tenant network response
-                                          RestAPI.Tenants.getTenantNetworks(
-                                            globalAdminRestContext,
-                                            (err, tenantNetworks) => {
-                                              assert.ok(!err);
-                                              assert.ok(tenantNetworks);
-                                              assert.ok(tenantNetworks[tenantNetwork.id]);
-                                              assert.ok(
-                                                _.isArray(tenantNetworks[tenantNetwork.id].tenants)
-                                              );
-                                              assert.strictEqual(
-                                                tenantNetworks[tenantNetwork.id].tenants.length,
-                                                1
-                                              );
-
-                                              return callback();
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
+                                    return callback();
+                                  });
                                 }
                               );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
+                            });
+                          }
+                        );
+                      });
+                    });
+                  }
+                );
+              }
+            );
+          }
+        );
+      });
     });
   });
 
@@ -812,44 +728,33 @@ describe('Tenant Networks', () => {
                         assert.strictEqual(err.code, 401);
 
                         // Ensure the tenant network still has no tenants associated to it
-                        RestAPI.Tenants.getTenantNetworks(
-                          globalAdminRestContext,
-                          (err, tenantNetworks) => {
-                            assert.ok(!err);
-                            assert.ok(tenantNetworks);
-                            assert.ok(tenantNetworks[originalTenantNetwork.id]);
-                            assert.ok(_.isArray(tenantNetworks[originalTenantNetwork.id].tenants));
-                            assert.ok(_.isEmpty(tenantNetworks[originalTenantNetwork.id].tenants));
+                        RestAPI.Tenants.getTenantNetworks(globalAdminRestContext, (err, tenantNetworks) => {
+                          assert.ok(!err);
+                          assert.ok(tenantNetworks);
+                          assert.ok(tenantNetworks[originalTenantNetwork.id]);
+                          assert.ok(_.isArray(tenantNetworks[originalTenantNetwork.id].tenants));
+                          assert.ok(_.isEmpty(tenantNetworks[originalTenantNetwork.id].tenants));
 
-                            // Sanity check that adding a tenant as global admin user succeeds
-                            RestAPI.Tenants.addTenantAliases(
-                              globalAdminRestContext,
-                              originalTenantNetwork.id,
-                              [global.oaeTests.tenants.cam.alias],
-                              err => {
+                          // Sanity check that adding a tenant as global admin user succeeds
+                          RestAPI.Tenants.addTenantAliases(
+                            globalAdminRestContext,
+                            originalTenantNetwork.id,
+                            [global.oaeTests.tenants.cam.alias],
+                            err => {
+                              assert.ok(!err);
+
+                              // Ensure the tenant network is gone
+                              RestAPI.Tenants.getTenantNetworks(globalAdminRestContext, (err, tenantNetworks) => {
                                 assert.ok(!err);
-
-                                // Ensure the tenant network is gone
-                                RestAPI.Tenants.getTenantNetworks(
-                                  globalAdminRestContext,
-                                  (err, tenantNetworks) => {
-                                    assert.ok(!err);
-                                    assert.ok(tenantNetworks);
-                                    assert.ok(tenantNetworks[originalTenantNetwork.id]);
-                                    assert.ok(
-                                      _.isArray(tenantNetworks[originalTenantNetwork.id].tenants)
-                                    );
-                                    assert.strictEqual(
-                                      tenantNetworks[originalTenantNetwork.id].tenants.length,
-                                      1
-                                    );
-                                    return callback();
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
+                                assert.ok(tenantNetworks);
+                                assert.ok(tenantNetworks[originalTenantNetwork.id]);
+                                assert.ok(_.isArray(tenantNetworks[originalTenantNetwork.id].tenants));
+                                assert.strictEqual(tenantNetworks[originalTenantNetwork.id].tenants.length, 1);
+                                return callback();
+                              });
+                            }
+                          );
+                        });
                       }
                     );
                   }
@@ -911,74 +816,46 @@ describe('Tenant Networks', () => {
                           assert.ok(err.code, 404);
 
                           // Ensure a list of tenant aliases is required when removing tenants from a tenant network
-                          RestAPI.Tenants.removeTenantAliases(
-                            globalAdminRestContext,
-                            tenantNetwork.id,
-                            null,
-                            err => {
+                          RestAPI.Tenants.removeTenantAliases(globalAdminRestContext, tenantNetwork.id, null, err => {
+                            assert.ok(err);
+                            assert.ok(err.code, 400);
+
+                            // Ensure at least one tenant alias must be specified when removing tenants from a tenant network
+                            RestAPI.Tenants.removeTenantAliases(globalAdminRestContext, tenantNetwork.id, [], err => {
                               assert.ok(err);
                               assert.ok(err.code, 400);
 
-                              // Ensure at least one tenant alias must be specified when removing tenants from a tenant network
-                              RestAPI.Tenants.removeTenantAliases(
-                                globalAdminRestContext,
-                                tenantNetwork.id,
-                                [],
-                                err => {
-                                  assert.ok(err);
-                                  assert.ok(err.code, 400);
+                              // Ensure no tenants have been removed from the tenant network
+                              RestAPI.Tenants.getTenantNetworks(globalAdminRestContext, (err, tenantNetworks) => {
+                                assert.ok(!err);
+                                assert.ok(tenantNetworks);
+                                assert.ok(tenantNetworks[tenantNetwork.id]);
+                                assert.ok(_.isArray(tenantNetworks[tenantNetwork.id].tenants));
+                                assert.strictEqual(tenantNetworks[tenantNetwork.id].tenants.length, 1);
 
-                                  // Ensure no tenants have been removed from the tenant network
-                                  RestAPI.Tenants.getTenantNetworks(
-                                    globalAdminRestContext,
-                                    (err, tenantNetworks) => {
+                                // Sanity check removing a valid tenant alias from the tenant network, also non-existing tenants in the array do not result in a validation error
+                                RestAPI.Tenants.removeTenantAliases(
+                                  globalAdminRestContext,
+                                  tenantNetwork.id,
+                                  ['non-existing-tenant-alias', global.oaeTests.tenants.cam.alias],
+                                  err => {
+                                    assert.ok(!err);
+
+                                    // Ensure the tenant is no longer found in the tenant network response
+                                    RestAPI.Tenants.getTenantNetworks(globalAdminRestContext, (err, tenantNetworks) => {
                                       assert.ok(!err);
                                       assert.ok(tenantNetworks);
                                       assert.ok(tenantNetworks[tenantNetwork.id]);
-                                      assert.ok(
-                                        _.isArray(tenantNetworks[tenantNetwork.id].tenants)
-                                      );
-                                      assert.strictEqual(
-                                        tenantNetworks[tenantNetwork.id].tenants.length,
-                                        1
-                                      );
+                                      assert.ok(_.isArray(tenantNetworks[tenantNetwork.id].tenants));
+                                      assert.ok(_.isEmpty(tenantNetworks[tenantNetwork.id].tenants));
 
-                                      // Sanity check removing a valid tenant alias from the tenant network, also non-existing tenants in the array do not result in a validation error
-                                      RestAPI.Tenants.removeTenantAliases(
-                                        globalAdminRestContext,
-                                        tenantNetwork.id,
-                                        [
-                                          'non-existing-tenant-alias',
-                                          global.oaeTests.tenants.cam.alias
-                                        ],
-                                        err => {
-                                          assert.ok(!err);
-
-                                          // Ensure the tenant is no longer found in the tenant network response
-                                          RestAPI.Tenants.getTenantNetworks(
-                                            globalAdminRestContext,
-                                            (err, tenantNetworks) => {
-                                              assert.ok(!err);
-                                              assert.ok(tenantNetworks);
-                                              assert.ok(tenantNetworks[tenantNetwork.id]);
-                                              assert.ok(
-                                                _.isArray(tenantNetworks[tenantNetwork.id].tenants)
-                                              );
-                                              assert.ok(
-                                                _.isEmpty(tenantNetworks[tenantNetwork.id].tenants)
-                                              );
-
-                                              return callback();
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
+                                      return callback();
+                                    });
+                                  }
+                                );
+                              });
+                            });
+                          });
                         }
                       );
                     }
@@ -1045,47 +922,34 @@ describe('Tenant Networks', () => {
                             assert.strictEqual(err.code, 401);
 
                             // Ensure the tenant network still has the tenant associated to it
-                            RestAPI.Tenants.getTenantNetworks(
-                              globalAdminRestContext,
-                              (err, tenantNetworks) => {
-                                assert.ok(!err);
-                                assert.ok(tenantNetworks);
-                                assert.ok(tenantNetworks[tenantNetwork.id]);
-                                assert.ok(_.isArray(tenantNetworks[tenantNetwork.id].tenants));
-                                assert.strictEqual(
-                                  tenantNetworks[tenantNetwork.id].tenants.length,
-                                  1
-                                );
+                            RestAPI.Tenants.getTenantNetworks(globalAdminRestContext, (err, tenantNetworks) => {
+                              assert.ok(!err);
+                              assert.ok(tenantNetworks);
+                              assert.ok(tenantNetworks[tenantNetwork.id]);
+                              assert.ok(_.isArray(tenantNetworks[tenantNetwork.id].tenants));
+                              assert.strictEqual(tenantNetworks[tenantNetwork.id].tenants.length, 1);
 
-                                // Sanity check that removing a tenant as global admin user succeeds
-                                RestAPI.Tenants.removeTenantAliases(
-                                  globalAdminRestContext,
-                                  tenantNetwork.id,
-                                  [global.oaeTests.tenants.cam.alias],
-                                  err => {
+                              // Sanity check that removing a tenant as global admin user succeeds
+                              RestAPI.Tenants.removeTenantAliases(
+                                globalAdminRestContext,
+                                tenantNetwork.id,
+                                [global.oaeTests.tenants.cam.alias],
+                                err => {
+                                  assert.ok(!err);
+
+                                  // Ensure the tenant network is gone
+                                  RestAPI.Tenants.getTenantNetworks(globalAdminRestContext, (err, tenantNetworks) => {
                                     assert.ok(!err);
+                                    assert.ok(tenantNetworks);
+                                    assert.ok(tenantNetworks[tenantNetwork.id]);
+                                    assert.ok(_.isArray(tenantNetworks[tenantNetwork.id].tenants));
+                                    assert.ok(_.isEmpty(tenantNetworks[tenantNetwork.id].tenants));
 
-                                    // Ensure the tenant network is gone
-                                    RestAPI.Tenants.getTenantNetworks(
-                                      globalAdminRestContext,
-                                      (err, tenantNetworks) => {
-                                        assert.ok(!err);
-                                        assert.ok(tenantNetworks);
-                                        assert.ok(tenantNetworks[tenantNetwork.id]);
-                                        assert.ok(
-                                          _.isArray(tenantNetworks[tenantNetwork.id].tenants)
-                                        );
-                                        assert.ok(
-                                          _.isEmpty(tenantNetworks[tenantNetwork.id].tenants)
-                                        );
-
-                                        return callback();
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
+                                    return callback();
+                                  });
+                                }
+                              );
+                            });
                           }
                         );
                       }
@@ -1105,18 +969,18 @@ describe('Tenant Networks', () => {
    */
   it('verify tenant network mutation operations all result in cluster cache invalidation event', callback => {
     /*!
-         * Convenience method that invokes a method and then waits for a pubsub oae-tenant-networks invalidation event. The
-         * callback is only invoked once both the method request and the invalidation event has been fired. This method will
-         * hang if one of the cases never happen.
-         *
-         * When complete, the callback at the end of the arguments list will be invoked with the callback parameters of the provided
-         * method that was completed.
-         *
-         * @param  {Function}       method      The method to invoke
-         * @param  {Arguments...}   arguments   The arguments with which to invoke the method. The last argument should be a callback
-         */
+     * Convenience method that invokes a method and then waits for a pubsub oae-tenant-networks invalidation event. The
+     * callback is only invoked once both the method request and the invalidation event has been fired. This method will
+     * hang if one of the cases never happen.
+     *
+     * When complete, the callback at the end of the arguments list will be invoked with the callback parameters of the provided
+     * method that was completed.
+     *
+     * @param  {Function}       method      The method to invoke
+     * @param  {Arguments...}   arguments   The arguments with which to invoke the method. The last argument should be a callback
+     */
     const _invokeAndWaitForInvalidate = function(...args) {
-      let method = _.first(args);
+      const method = _.first(args);
       let callbackReturned = false;
       let invalidateOccurred = false;
       let callbackArguments = null;

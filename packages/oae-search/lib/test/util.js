@@ -13,15 +13,15 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const MqTestsUtil = require('oae-util/lib/test/mq-util');
-const RestAPI = require('oae-rest');
+import * as MqTestsUtil from 'oae-util/lib/test/mq-util';
+import * as RestAPI from 'oae-rest';
 
-const SearchAPI = require('oae-search');
-const ElasticSearch = require('oae-search/lib/internal/elasticsearch');
-const { SearchConstants } = require('oae-search/lib/constants');
+import * as SearchAPI from 'oae-search';
+import * as ElasticSearch from 'oae-search/lib/internal/elasticsearch';
+import { SearchConstants } from 'oae-search/lib/constants';
 
 /**
  * Completely empty out the search index
@@ -109,14 +109,7 @@ const assertSearchContains = function(restCtx, searchType, params, opts, contain
  * @param  {Object}         callback.response   All search documents that were found with the search
  * @throws {AssertionError}                     Thrown if the search fails or any ids are found in the results
  */
-const assertSearchNotContains = function(
-  restCtx,
-  searchType,
-  params,
-  opts,
-  notContainIds,
-  callback
-) {
+const assertSearchNotContains = function(restCtx, searchType, params, opts, notContainIds, callback) {
   searchAll(restCtx, searchType, params, opts, (err, response) => {
     assert.ok(!err);
     assert.ok(
@@ -191,6 +184,7 @@ const searchAll = function(restCtx, searchType, params, opts, callback) {
       if (err) {
         return callback(err);
       }
+
       if (result.total === 0) {
         // We got 0 documents, just return the result as-is
         return callback(null, result);
@@ -207,6 +201,7 @@ const searchAll = function(restCtx, searchType, params, opts, callback) {
           if (err) {
             return callback(err);
           }
+
           if (_.isEmpty(data.results)) {
             // There are no more new results coming back which means we've got them all
             return callback(null, allData);
@@ -257,7 +252,7 @@ const searchRefreshed = function(restCtx, searchType, params, opts, callback) {
   });
 };
 
-module.exports = {
+export {
   deleteAll,
   reindexAll,
   assertSearchSucceeds,

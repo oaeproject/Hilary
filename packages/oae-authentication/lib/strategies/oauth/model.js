@@ -45,7 +45,4 @@ const Client = function(id, displayName, secret, userId) {
   return that;
 };
 
-module.exports = {
-  AccessToken,
-  Client
-};
+export { AccessToken, Client };

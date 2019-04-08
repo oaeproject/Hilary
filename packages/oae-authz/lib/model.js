@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
 /**
  * A Principal object that represents a principal in the roles system.
@@ -243,7 +243,7 @@ EmailChangeInfo.fromIdChangeInfo = function(idChangeInfo) {
   return new EmailChangeInfo(idChangeInfo.changes, idChangeInfo.roles, idChangeInfo.ids);
 };
 
-module.exports = {
+export {
   Principal,
   Resource,
   ShareTarget,

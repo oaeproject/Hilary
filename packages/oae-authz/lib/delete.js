@@ -13,10 +13,12 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const Cassandra = require('oae-util/lib/cassandra');
-const log = require('oae-logger').logger('authz-delete');
+import { logger } from 'oae-logger';
+import * as Cassandra from 'oae-util/lib/cassandra';
+
+const log = logger('authz-delete');
 
 /**
  * Indicate that the provided `resourceId` has been deleted
@@ -30,10 +32,7 @@ const setDeleted = function(resourceId, callback) {
     callback ||
     function(err) {
       if (err) {
-        return log().error(
-          { err, resourceId },
-          'An error occurred while trying to set a resource as deleted'
-        );
+        return log().error({ err, resourceId }, 'An error occurred while trying to set a resource as deleted');
       }
     };
 
@@ -56,18 +55,11 @@ const unsetDeleted = function(resourceId, callback) {
     callback ||
     function(err) {
       if (err) {
-        return log().error(
-          { err, resourceId },
-          'An error occurred while trying to unset a resource as deleted'
-        );
+        return log().error({ err, resourceId }, 'An error occurred while trying to unset a resource as deleted');
       }
     };
 
-  return Cassandra.runQuery(
-    'DELETE FROM "AuthzDeleted" WHERE "resourceId" = ?',
-    [resourceId],
-    callback
-  );
+  return Cassandra.runQuery('DELETE FROM "AuthzDeleted" WHERE "resourceId" = ?', [resourceId], callback);
 };
 
 /**
@@ -107,8 +99,4 @@ const isDeleted = function(resourceIds, callback) {
   );
 };
 
-module.exports = {
-  setDeleted,
-  unsetDeleted,
-  isDeleted
-};
+export { setDeleted, unsetDeleted, isDeleted };

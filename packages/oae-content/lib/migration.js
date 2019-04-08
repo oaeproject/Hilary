@@ -1,5 +1,5 @@
-const async = require('async');
-const Cassandra = require('oae-util/lib/cassandra');
+import async from 'async';
+import { createColumnFamilies, runQuery } from 'oae-util/lib/cassandra';
 
 /**
  * Ensure that the all of the content-related schemas are created. If they already exist, this method will not do anything
@@ -9,7 +9,7 @@ const Cassandra = require('oae-util/lib/cassandra');
  * @api private
  */
 const ensureSchema = function(callback) {
-  Cassandra.createColumnFamilies(
+  createColumnFamilies(
     {
       Content:
         'CREATE TABLE "Content" ("contentId" text PRIMARY KEY, "tenantAlias" text, "visibility" text, "displayName" text, "description" text, "resourceSubType" text, "createdBy" text, "created" text, "lastModified" text, "latestRevisionId" text, "uri" text, "previews" text, "status" text, "largeUri" text, "mediumUri" text, "smallUri" text, "thumbnailUri" text, "wideUri" text, "etherpadGroupId" text, "etherpadPadId" text, "filename" text, "link" text, "mime" text, "size" text)',
@@ -29,7 +29,7 @@ const ensureSchema = function(callback) {
       async.eachSeries(
         queries,
         (eachQuery, done) => {
-          Cassandra.runQuery(eachQuery.cql, eachQuery.parameters, done);
+          runQuery(eachQuery.cql, eachQuery.parameters, done);
         },
         () => {
           callback();
@@ -39,4 +39,4 @@ const ensureSchema = function(callback) {
   );
 };
 
-module.exports = { ensureSchema };
+export { ensureSchema };

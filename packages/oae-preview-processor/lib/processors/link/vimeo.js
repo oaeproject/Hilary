@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const path = require('path');
-const _ = require('underscore');
-const request = require('request');
+import util from 'util';
+import path from 'path';
+import _ from 'underscore';
+import request from 'request';
 
-const LinkProcessorUtil = require('oae-preview-processor/lib/processors/link/util');
-const PreviewUtil = require('oae-preview-processor/lib/util');
+import * as LinkProcessorUtil from 'oae-preview-processor/lib/processors/link/util';
+import * as PreviewUtil from 'oae-preview-processor/lib/util';
 
 const VIMEO_REGEX = /^http(s)?:\/\/(www\.)?vimeo\.com\/(\d+)(\/.*)?$/;
 
@@ -36,6 +36,7 @@ const test = function(ctx, contentObj, callback) {
   if (VIMEO_REGEX.test(contentObj.link)) {
     return callback(null, 10);
   }
+
   return callback(null, -1);
 };
 
@@ -91,10 +92,8 @@ const _getId = function(url) {
   if (match) {
     return match[3];
   }
+
   return null;
 };
 
-module.exports = {
-  test,
-  generatePreviews
-};
+export { test, generatePreviews };

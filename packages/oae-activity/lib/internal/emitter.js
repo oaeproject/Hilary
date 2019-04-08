@@ -13,7 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const EmitterAPI = require('oae-emitter');
+import * as EmitterAPI from 'oae-emitter';
 
 // A singleton emitter for activities, so all internal APIs may produce and consume events
-module.exports = new EmitterAPI.EventEmitter();
+const emitter = new EmitterAPI.EventEmitter();
+
+export default emitter;

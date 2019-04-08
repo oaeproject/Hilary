@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const TenantsAPI = require('oae-tenants');
+import * as TenantsAPI from 'oae-tenants';
 
-module.exports = function(config, callback) {
+export function init(config, callback) {
   // Initialize the middleware that will add the tenant onto the request
   TenantsAPI.init(config.servers, callback);
-};
+}

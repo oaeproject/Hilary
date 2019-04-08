@@ -13,9 +13,8 @@
  * permissions and limitations under the License.
  */
 
-const OAE = require('oae-util/lib/oae');
-
-const LtiApi = require('./api');
+import * as OAE from 'oae-util/lib/oae';
+import * as LtiApi from './api';
 
 /**
  * @REST getLtiTool

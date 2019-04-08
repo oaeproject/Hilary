@@ -13,17 +13,20 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
-const clone = require('clone');
-const ShortId = require('shortid');
+import util from 'util';
+import _ from 'underscore';
+import clone from 'clone';
+import ShortId from 'shortid';
 
-const log = require('oae-logger').logger('oae-tenants');
-const Cassandra = require('oae-util/lib/cassandra');
-const EmitterAPI = require('oae-emitter');
-const Pubsub = require('oae-util/lib/pubsub');
+import { logger } from 'oae-logger';
 
-const { TenantNetwork } = require('../model');
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as EmitterAPI from 'oae-emitter';
+import * as Pubsub from 'oae-util/lib/pubsub';
+
+import { TenantNetwork } from '../model';
+
+const log = logger('oae-tenants');
 
 // A cache that holds all tenant networks keyed by tenantNetworkId
 let _cacheTenantNetworks = null;
@@ -129,6 +132,7 @@ const getTenantNetwork = function(id, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!_cacheTenantNetworks[id]) {
       return callback({
         code: 404,
@@ -227,6 +231,7 @@ const addTenantAliases = function(tenantNetworkId, tenantAliases, callback) {
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(tenantAliases)) {
       return callback();
     }
@@ -284,6 +289,7 @@ const removeTenantAliases = function(tenantNetworkId, tenantAliases, callback) {
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(tenantAliases)) {
       return callback();
     }
@@ -291,8 +297,7 @@ const removeTenantAliases = function(tenantNetworkId, tenantAliases, callback) {
     // Create and execute the delete queries
     const queries = _.map(tenantAliases, tenantAlias => {
       return {
-        query:
-          'DELETE FROM "TenantNetworkTenants" WHERE "tenantNetworkId" = ? AND "tenantAlias" = ?',
+        query: 'DELETE FROM "TenantNetworkTenants" WHERE "tenantNetworkId" = ? AND "tenantAlias" = ?',
         parameters: [tenantNetworkId, tenantAlias]
       };
     });
@@ -358,8 +363,7 @@ const _getAllTenantNetworkTenantAliasesFromCassandra = function(tenantNetworkIds
       _.chain(rows)
         .map(Cassandra.rowToHash)
         .each(rowHash => {
-          tenantNetworkAliases[rowHash.tenantNetworkId] =
-            tenantNetworkAliases[rowHash.tenantNetworkId] || [];
+          tenantNetworkAliases[rowHash.tenantNetworkId] = tenantNetworkAliases[rowHash.tenantNetworkId] || [];
           tenantNetworkAliases[rowHash.tenantNetworkId].push(rowHash.tenantAlias);
         });
 
@@ -403,31 +407,27 @@ const _ensureCache = function(callback) {
     }
 
     // Load all known tenant network tenant associations from Cassandra
-    _getAllTenantNetworkTenantAliasesFromCassandra(
-      _.keys(tenantNetworks),
-      (err, tenantNetworkTenantAliases) => {
-        if (err) {
-          return callback(err);
-        }
-
-        // Reset the caches
-        _cacheTenantNetworks = tenantNetworks;
-        _cacheTenantAliasesByTenantNetworkId = tenantNetworkTenantAliases;
-        _cacheTenantNetworkIdsByTenantAlias = {};
-
-        // Build the inverted TenantAlias->TenantNetworkIds cache
-        _.each(_cacheTenantAliasesByTenantNetworkId, (tenantAliases, tenantNetworkId) => {
-          _.each(tenantAliases, tenantAlias => {
-            _cacheTenantNetworkIdsByTenantAlias[tenantAlias] =
-              _cacheTenantNetworkIdsByTenantAlias[tenantAlias] || [];
-            _cacheTenantNetworkIdsByTenantAlias[tenantAlias].push(tenantNetworkId);
-          });
-        });
-
-        emitter.emit('revalidate');
-        return callback();
+    _getAllTenantNetworkTenantAliasesFromCassandra(_.keys(tenantNetworks), (err, tenantNetworkTenantAliases) => {
+      if (err) {
+        return callback(err);
       }
-    );
+
+      // Reset the caches
+      _cacheTenantNetworks = tenantNetworks;
+      _cacheTenantAliasesByTenantNetworkId = tenantNetworkTenantAliases;
+      _cacheTenantNetworkIdsByTenantAlias = {};
+
+      // Build the inverted TenantAlias->TenantNetworkIds cache
+      _.each(_cacheTenantAliasesByTenantNetworkId, (tenantAliases, tenantNetworkId) => {
+        _.each(tenantAliases, tenantAlias => {
+          _cacheTenantNetworkIdsByTenantAlias[tenantAlias] = _cacheTenantNetworkIdsByTenantAlias[tenantAlias] || [];
+          _cacheTenantNetworkIdsByTenantAlias[tenantAlias].push(tenantNetworkId);
+        });
+      });
+
+      emitter.emit('revalidate');
+      return callback();
+    });
   });
 };
 
@@ -454,7 +454,7 @@ const _invalidateLocalCache = function() {
   emitter.emit('invalidate');
 };
 
-module.exports = {
+export {
   emitter,
   init,
   createTenantNetwork,

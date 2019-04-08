@@ -13,19 +13,18 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
-const Chance = require('chance');
+import assert from 'assert';
+import _ from 'underscore';
+import Chance from 'chance';
 
-const AuthzTestUtil = require('oae-authz/lib/test/util');
-const Cassandra = require('oae-util/lib/cassandra');
-const ContentTestUtil = require('oae-content/lib/test/util');
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
-const Redis = require('oae-util/lib/redis');
-const RestAPI = require('oae-rest');
-const SearchTestUtil = require('oae-search/lib/test/util');
-const TestsUtil = require('oae-tests');
-const LowerCaseEmailsMigrator = require('../../../etc/migration/12.3-to-12.4/lib/lower-case-emails');
+import * as AuthzTestUtil from 'oae-authz/lib/test/util';
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as ContentTestUtil from 'oae-content/lib/test/util';
+import * as Redis from 'oae-util/lib/redis';
+import * as RestAPI from 'oae-rest';
+import * as SearchTestUtil from 'oae-search/lib/test/util';
+import * as TestsUtil from 'oae-tests';
+import * as LowerCaseEmailsMigrator from '../../../etc/migration/12.3-to-12.4/lib/lower-case-emails';
 
 const chance = new Chance();
 
@@ -40,30 +39,31 @@ describe('Principals Migration', () => {
   });
 
   /*!
-     * Randomly mix the case of the given string
-     *
-     * @param  {String}     toMix   The string whose case to mix
-     * @return {String}             The string with its case mixed
-     */
+   * Randomly mix the case of the given string
+   *
+   * @param  {String}     toMix   The string whose case to mix
+   * @return {String}             The string with its case mixed
+   */
   const _mixCase = function(toMix) {
     return _.map(toMix, c => {
       if (chance.bool()) {
         return c.toUpperCase();
       }
+
       return c.toLowerCase();
     }).join('');
   };
 
   /*!
-     * Search for the email using email search, ensuring either their
-     * presence or absense, depending on the `shouldContain` option
-     *
-     * @param  {String[]}       emails              The email addresses for which to search
-     * @param  {Object}         opts                Execution options
-     * @param  {Boolean}        opts.shouldContain  Whether or not the search results should contain an associated user
-     * @param  {Function}       callback            Invoked when assertions are complete
-     * @throws {AssertionError}                     Thrown if the assertions fail
-     */
+   * Search for the email using email search, ensuring either their
+   * presence or absense, depending on the `shouldContain` option
+   *
+   * @param  {String[]}       emails              The email addresses for which to search
+   * @param  {Object}         opts                Execution options
+   * @param  {Boolean}        opts.shouldContain  Whether or not the search results should contain an associated user
+   * @param  {Function}       callback            Invoked when assertions are complete
+   * @throws {AssertionError}                     Thrown if the assertions fail
+   */
   const _assertAllEmailsSearch = function(emails, opts, callback) {
     emails = emails.slice();
     if (_.isEmpty(emails)) {
@@ -71,35 +71,30 @@ describe('Principals Migration', () => {
     }
 
     const email = emails.shift();
-    SearchTestUtil.assertSearchSucceeds(
-      camAdminRestContext,
-      'email',
-      null,
-      { q: email },
-      result => {
-        if (opts.shouldContain) {
-          assert.strictEqual(result.results.length, 1);
-          assert.strictEqual(result.results[0].email, email.toLowerCase());
-        } else {
-          assert.strictEqual(result.results.length, 0);
-        }
-        return _assertAllEmailsSearch(emails, opts, callback);
+    SearchTestUtil.assertSearchSucceeds(camAdminRestContext, 'email', null, { q: email }, result => {
+      if (opts.shouldContain) {
+        assert.strictEqual(result.results.length, 1);
+        assert.strictEqual(result.results[0].email, email.toLowerCase());
+      } else {
+        assert.strictEqual(result.results.length, 0);
       }
-    );
+
+      return _assertAllEmailsSearch(emails, opts, callback);
+    });
   };
 
   /*!
-     * Add the given emails to a content item, ensuring they are either added as
-     * invitations or members, depending on if we expect the emails to be
-     * found in the PrincipalsByEmail index.
-     *
-     * @param  {RestContext}    restContext         The REST context with which to share
-     * @param  {String[]}       emails              The email addresses with which to share
-     * @param  {Object}         opts                Execution options
-     * @param  {Boolean}        opts.shouldInvite   Whether we should expect the share to result in email invitations
-     * @param  {Function}       callback            Standard callback function
-     * @throws {AssertionError}                     Thrown if the assertions fail
-     */
+   * Add the given emails to a content item, ensuring they are either added as
+   * invitations or members, depending on if we expect the emails to be
+   * found in the PrincipalsByEmail index.
+   *
+   * @param  {RestContext}    restContext         The REST context with which to share
+   * @param  {String[]}       emails              The email addresses with which to share
+   * @param  {Object}         opts                Execution options
+   * @param  {Boolean}        opts.shouldInvite   Whether we should expect the share to result in email invitations
+   * @param  {Function}       callback            Standard callback function
+   * @throws {AssertionError}                     Thrown if the assertions fail
+   */
   const _assertAllEmailsInvite = function(restContext, emails, opts, callback) {
     ContentTestUtil.assertCreateLinkSucceeds(
       restContext,
@@ -117,39 +112,31 @@ describe('Principals Migration', () => {
         // principal and this operation would fail
         RestAPI.Content.shareContent(restContext, link.id, emails, err => {
           assert.ok(!err);
-          AuthzTestUtil.assertGetInvitationsSucceeds(
-            restContext,
-            'content',
-            link.id,
-            invitations => {
-              ContentTestUtil.getAllContentMembers(restContext, link.id, null, members => {
-                // Since invitations will be lower-cased, to compare
-                // the arrays we should lower case our mixed-case local
-                // copy
-                const lowerCased = _.map(emails, email => {
-                  return email.toLowerCase();
-                });
-
-                if (opts.shouldInvite) {
-                  // If we expected to invite them, ensure they are
-                  // all present in the invitations list
-                  assert.deepStrictEqual(
-                    _.pluck(invitations.results, 'email').sort(),
-                    lowerCased.sort()
-                  );
-                  assert.strictEqual(members.length, 1);
-                } else {
-                  // If we expected to add them (i.e., their emails
-                  // were found in the system), then verify they exist
-                  // as members
-                  assert.strictEqual(invitations.results.length, 0);
-                  assert.strictEqual(members.length, emails.length + 1);
-                }
-
-                return callback();
+          AuthzTestUtil.assertGetInvitationsSucceeds(restContext, 'content', link.id, invitations => {
+            ContentTestUtil.getAllContentMembers(restContext, link.id, null, members => {
+              // Since invitations will be lower-cased, to compare
+              // the arrays we should lower case our mixed-case local
+              // copy
+              const lowerCased = _.map(emails, email => {
+                return email.toLowerCase();
               });
-            }
-          );
+
+              if (opts.shouldInvite) {
+                // If we expected to invite them, ensure they are
+                // all present in the invitations list
+                assert.deepStrictEqual(_.pluck(invitations.results, 'email').sort(), lowerCased.sort());
+                assert.strictEqual(members.length, 1);
+              } else {
+                // If we expected to add them (i.e., their emails
+                // were found in the system), then verify they exist
+                // as members
+                assert.strictEqual(invitations.results.length, 0);
+                assert.strictEqual(members.length, emails.length + 1);
+              }
+
+              return callback();
+            });
+          });
         });
       }
     );
@@ -246,39 +233,30 @@ describe('Principals Migration', () => {
                 // Ensure that none of the emails can be searched for or linked to when sharing a content
                 // item. This is the basis for the migration
                 _assertAllEmailsSearch(emailsWithUpperCase, { shouldContain: false }, () => {
-                  _assertAllEmailsInvite(
-                    actor.restContext,
-                    emailsWithUpperCase,
-                    { shouldInvite: true },
-                    () => {
-                      // Run the migration
-                      LowerCaseEmailsMigrator.doMigration((err, stats) => {
-                        assert.ok(!err);
-                        assert.strictEqual(stats.nUpdated, emailsWithUpperCase.length);
-                        assert.strictEqual(stats.nFailed, 0);
+                  _assertAllEmailsInvite(actor.restContext, emailsWithUpperCase, { shouldInvite: true }, () => {
+                    // Run the migration
+                    LowerCaseEmailsMigrator.doMigration((err, stats) => {
+                      assert.ok(!err);
+                      assert.strictEqual(stats.nUpdated, emailsWithUpperCase.length);
+                      assert.strictEqual(stats.nFailed, 0);
 
-                        // Refresh the search index
-                        SearchTestUtil.reindexAll(globalAdminRestContext, () => {
-                          // Ensure the emails are now all searchable and can be matched
-                          // when sharing
-                          _assertAllEmailsSearch(
+                      // Refresh the search index
+                      SearchTestUtil.reindexAll(globalAdminRestContext, () => {
+                        // Ensure the emails are now all searchable and can be matched
+                        // when sharing
+                        _assertAllEmailsSearch(emailsWithUpperCase, { shouldContain: true }, () => {
+                          _assertAllEmailsInvite(
+                            actor.restContext,
                             emailsWithUpperCase,
-                            { shouldContain: true },
+                            { shouldInvite: false },
                             () => {
-                              _assertAllEmailsInvite(
-                                actor.restContext,
-                                emailsWithUpperCase,
-                                { shouldInvite: false },
-                                () => {
-                                  return callback();
-                                }
-                              );
+                              return callback();
                             }
                           );
                         });
                       });
-                    }
-                  );
+                    });
+                  });
                 });
               });
             });

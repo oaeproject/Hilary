@@ -13,10 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
-
-const EmitterAPI = require('oae-emitter');
+import assert from 'assert';
+import _ from 'underscore';
+import * as EmitterAPI from 'oae-emitter';
 
 const { EventEmitter } = EmitterAPI;
 

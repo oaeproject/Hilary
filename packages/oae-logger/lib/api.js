@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
-const bunyan = require('bunyan');
+import util from 'util';
+import _ from 'underscore';
+import bunyan from 'bunyan';
 
 // The logger to use when no logger is specified
 const SYSTEM_LOGGER_NAME = 'system';
@@ -143,4 +143,4 @@ const _wrapErrorFunction = function(loggerName, errorFunction) {
   return wrapperErrorFunction;
 };
 
-module.exports = { refreshLogConfiguration, logger };
+export { refreshLogConfiguration, logger };

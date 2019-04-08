@@ -39,7 +39,4 @@ const test = function(ctx, contentObj, callback) {};
  */
 const generatePreviews = function(ctx, contentObj, callback) {};
 
-module.exports = {
-  generatePreviews,
-  test
-};
+export { generatePreviews, test };

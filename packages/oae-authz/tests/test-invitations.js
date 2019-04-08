@@ -13,30 +13,31 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const fs = require('fs');
-const url = require('url');
-const util = require('util');
-const clone = require('clone');
+import * as assert from 'assert';
+import fs from 'fs';
+import url from 'url';
+import util from 'util';
+
+import * as ActivityTestUtil from 'oae-activity/lib/test/util';
+import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as ContentTestUtil from 'oae-content/lib/test/util';
+import * as DiscussionsTestUtil from 'oae-discussions/lib/test/util';
+import * as EmailTestUtil from 'oae-email/lib/test/util';
+import * as FoldersTestUtil from 'oae-folders/lib/test/util';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as Sanitization from 'oae-util/lib/sanitization';
+import * as SearchTestUtil from 'oae-search/lib/test/util';
+import * as TenantsAPI from 'oae-tenants';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import * as TestsUtil from 'oae-tests';
+import * as UIAPI from 'oae-ui';
+
+import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
+import * as AuthzTestUtil from 'oae-authz/lib/test/util';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import clone from 'clone';
+
 const _ = require('underscore');
-
-const ActivityTestUtil = require('oae-activity/lib/test/util');
-const ConfigTestUtil = require('oae-config/lib/test/util');
-const ContentTestUtil = require('oae-content/lib/test/util');
-const DiscussionsTestUtil = require('oae-discussions/lib/test/util');
-const EmailTestUtil = require('oae-email/lib/test/util');
-const FoldersTestUtil = require('oae-folders/lib/test/util');
-const PrincipalsTestUtil = require('oae-principals/lib/test/util');
-const Sanitization = require('oae-util/lib/sanitization');
-const SearchTestUtil = require('oae-search/lib/test/util');
-const TenantsAPI = require('oae-tenants');
-const TenantsTestUtil = require('oae-tenants/lib/test/util');
-const TestsUtil = require('oae-tests');
-const UIAPI = require('oae-ui');
-
-const AuthzInvitationsDAO = require('oae-authz/lib/invitations/dao');
-const AuthzTestUtil = require('oae-authz/lib/test/util');
-const AuthzUtil = require('oae-authz/lib/util');
 
 describe('Invitations', () => {
   // Initialize some rest contexts for anonymous and admin users
@@ -49,13 +50,13 @@ describe('Invitations', () => {
   };
 
   /*!
-     * This is a wrapper of `_.partial` that allows you to specify an argless function as a
-     * parameter that will be invoked to derive the argument value on each invokation
-     *
-     * @param  {Function}   fn      The function to curry
-     * @param  {...Object}  args    The variable number of arguments to partially apply the function with
-     * @return {Function}           The partially applied function, just like `_.partial`, except any partial arguments that were functions are invoked on-the-fly for each invocation
-     */
+   * This is a wrapper of `_.partial` that allows you to specify an argless function as a
+   * parameter that will be invoked to derive the argument value on each invokation
+   *
+   * @param  {Function}   fn      The function to curry
+   * @param  {...Object}  args    The variable number of arguments to partially apply the function with
+   * @return {Function}           The partially applied function, just like `_.partial`, except any partial arguments that were functions are invoked on-the-fly for each invocation
+   */
   const _partialWithFns = function(firstFn, ...args) {
     const firstArgs = args;
 
@@ -84,8 +85,8 @@ describe('Invitations', () => {
   };
 
   /*!
-     * Build a library of common functions across different known resource types
-     */
+   * Build a library of common functions across different known resource types
+   */
   const resourceFns = {
     content: {
       createSucceeds: _partialWithFns(
@@ -118,13 +119,7 @@ describe('Invitations', () => {
       setRolesSucceeds: ContentTestUtil.assertUpdateContentMembersSucceeds,
       setRolesFails: ContentTestUtil.assertUpdateContentMembersFails,
       getMembersSucceeds: _partialWithFns(ContentTestUtil.getAllContentMembers, _, _, null, _),
-      getLibrarySucceeds: _partialWithFns(
-        ContentTestUtil.assertGetAllContentLibrarySucceeds,
-        _,
-        _,
-        null,
-        _
-      ),
+      getLibrarySucceeds: _partialWithFns(ContentTestUtil.assertGetAllContentLibrarySucceeds, _, _, null, _),
       deleteSucceeds(adminRestContext, deleterRestContext, contentId, callback) {
         ContentTestUtil.assertDeleteContentSucceeds(deleterRestContext, contentId, callback);
       }
@@ -155,26 +150,10 @@ describe('Invitations', () => {
       shareFails: DiscussionsTestUtil.assertShareDiscussionFails,
       setRolesSucceeds: DiscussionsTestUtil.assertUpdateDiscussionMembersSucceeds,
       setRolesFails: DiscussionsTestUtil.assertUpdateDiscussionMembersFails,
-      getMembersSucceeds: _partialWithFns(
-        DiscussionsTestUtil.getAllDiscussionMembers,
-        _,
-        _,
-        null,
-        _
-      ),
-      getLibrarySucceeds: _partialWithFns(
-        DiscussionsTestUtil.assertGetAllDiscussionsLibrarySucceeds,
-        _,
-        _,
-        null,
-        _
-      ),
+      getMembersSucceeds: _partialWithFns(DiscussionsTestUtil.getAllDiscussionMembers, _, _, null, _),
+      getLibrarySucceeds: _partialWithFns(DiscussionsTestUtil.assertGetAllDiscussionsLibrarySucceeds, _, _, null, _),
       deleteSucceeds(adminRestContext, deleterRestContext, discussionId, callback) {
-        DiscussionsTestUtil.assertDeleteDiscussionSucceeds(
-          deleterRestContext,
-          discussionId,
-          callback
-        );
+        DiscussionsTestUtil.assertDeleteDiscussionSucceeds(deleterRestContext, discussionId, callback);
       }
     },
     folder: {
@@ -203,20 +182,8 @@ describe('Invitations', () => {
       shareFails: FoldersTestUtil.assertShareFolderFails,
       setRolesSucceeds: FoldersTestUtil.assertUpdateFolderMembersSucceeds,
       setRolesFails: FoldersTestUtil.assertUpdateFolderMembersFails,
-      getMembersSucceeds: _partialWithFns(
-        FoldersTestUtil.assertGetAllFolderMembersSucceeds,
-        _,
-        _,
-        null,
-        _
-      ),
-      getLibrarySucceeds: _partialWithFns(
-        FoldersTestUtil.assertGetAllFoldersLibrarySucceeds,
-        _,
-        _,
-        null,
-        _
-      ),
+      getMembersSucceeds: _partialWithFns(FoldersTestUtil.assertGetAllFolderMembersSucceeds, _, _, null, _),
+      getLibrarySucceeds: _partialWithFns(FoldersTestUtil.assertGetAllFoldersLibrarySucceeds, _, _, null, _),
       deleteSucceeds(adminRestContext, deleterRestContext, folderId, callback) {
         FoldersTestUtil.assertDeleteFolderSucceeds(deleterRestContext, folderId, true, callback);
       }
@@ -247,29 +214,17 @@ describe('Invitations', () => {
       ),
       setRolesSucceeds: PrincipalsTestUtil.assertSetGroupMembersSucceeds,
       setRolesFails: PrincipalsTestUtil.assertSetGroupMembersFails,
-      getMembersSucceeds: _partialWithFns(
-        PrincipalsTestUtil.assertGetAllMembersLibrarySucceeds,
-        _,
-        _,
-        null,
-        _
-      ),
-      getLibrarySucceeds: _partialWithFns(
-        PrincipalsTestUtil.assertGetAllMembershipsLibrarySucceeds,
-        _,
-        _,
-        null,
-        _
-      ),
+      getMembersSucceeds: _partialWithFns(PrincipalsTestUtil.assertGetAllMembersLibrarySucceeds, _, _, null, _),
+      getLibrarySucceeds: _partialWithFns(PrincipalsTestUtil.assertGetAllMembershipsLibrarySucceeds, _, _, null, _),
       deleteSucceeds: PrincipalsTestUtil.assertDeleteGroupSucceeds,
       restoreSucceeds: PrincipalsTestUtil.assertRestoreGroupSucceeds
     }
   };
 
   /*!
-     * Build a library of the "member" role for all known resources types. "manager" is common for
-     * all resources
-     */
+   * Build a library of the "member" role for all known resources types. "manager" is common for
+   * all resources
+   */
   const resourceMemberRoles = {
     content: 'viewer',
     discussion: 'member',
@@ -278,9 +233,9 @@ describe('Invitations', () => {
   };
 
   /*!
-     * Build a library of expected activity information after an invitation is accepted for each
-     * resource type
-     */
+   * Build a library of expected activity information after an invitation is accepted for each
+   * resource type
+   */
   const resourceAcceptActivityInfo = {
     content: {
       activityType: 'content-share',
@@ -301,8 +256,8 @@ describe('Invitations', () => {
   };
 
   /*!
-     * Define the library names for each respective resource type
-     */
+   * Define the library names for each respective resource type
+   */
   const resourceLibraryInfo = {
     content: 'content-library',
     discussion: 'discussion-library',
@@ -714,52 +669,42 @@ describe('Invitations', () => {
      * Test that verifies the invitation email can be resent
      */
     it('verify it resends an aggregated email for each resource type', callback => {
-      TestsUtil.generateTestUsers(
-        camAdminRestContext,
-        2,
-        (err, users, creatingUser, acceptingUser) => {
-          assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, creatingUser, acceptingUser) => {
+        assert.ok(!err);
 
-          // Create one of each resource type with the creating user
-          const email = _emailForTenant(global.oaeTests.tenants.cam);
-          _createOneOfEachResourceType(creatingUser, 'public', [email], [], resources => {
-            // Collect all the invitations, we're going to resend them instead
-            EmailTestUtil.collectAndFetchAllEmails(messages => {
-              assert.strictEqual(messages.length, 1);
+        // Create one of each resource type with the creating user
+        const email = _emailForTenant(global.oaeTests.tenants.cam);
+        _createOneOfEachResourceType(creatingUser, 'public', [email], [], resources => {
+          // Collect all the invitations, we're going to resend them instead
+          EmailTestUtil.collectAndFetchAllEmails(messages => {
+            assert.strictEqual(messages.length, 1);
 
-              // Once all invitations are resent, then accept them
-              const _done = _.chain(resources)
-                .size()
-                .after(() => {
-                  const assertions = { role: 'manager', membersSize: 2, librarySize: 1 };
-                  _assertAcceptEmailInvitation(
-                    creatingUser,
-                    acceptingUser,
-                    resources,
-                    assertions,
-                    () => {
-                      return callback();
-                    }
-                  );
-                })
-                .value();
+            // Once all invitations are resent, then accept them
+            const _done = _.chain(resources)
+              .size()
+              .after(() => {
+                const assertions = { role: 'manager', membersSize: 2, librarySize: 1 };
+                _assertAcceptEmailInvitation(creatingUser, acceptingUser, resources, assertions, () => {
+                  return callback();
+                });
+              })
+              .value();
 
-              // Resend all invitations
-              _.each(resources, resource => {
-                AuthzTestUtil.assertResendInvitationSucceeds(
-                  creatingUser.restContext,
-                  resource.resourceType,
-                  resource.id,
-                  email,
-                  () => {
-                    return _done();
-                  }
-                );
-              });
+            // Resend all invitations
+            _.each(resources, resource => {
+              AuthzTestUtil.assertResendInvitationSucceeds(
+                creatingUser.restContext,
+                resource.resourceType,
+                resource.id,
+                email,
+                () => {
+                  return _done();
+                }
+              );
             });
           });
-        }
-      );
+        });
+      });
     });
   });
 
@@ -789,9 +734,7 @@ describe('Invitations', () => {
             });
 
             // Grab the invitation link from the messages
-            const cambridgeInvitationUrl = AuthzTestUtil.parseInvitationUrlFromMessage(
-              cambridgeMessage
-            );
+            const cambridgeInvitationUrl = AuthzTestUtil.parseInvitationUrlFromMessage(cambridgeMessage);
             const guestInvitationUrl = AuthzTestUtil.parseInvitationUrlFromMessage(guestMessage);
 
             // Ensure the links are to the proper tenancy
@@ -812,61 +755,53 @@ describe('Invitations', () => {
       const fns = resourceFns.content;
       const tenantAlias = TenantsTestUtil.generateTestTenantAlias();
       const tenantHost = TenantsTestUtil.generateTestTenantHost();
-      TestsUtil.createTenantWithAdmin(
-        tenantAlias,
-        tenantHost,
-        (err, tenant, tenantAdminRestContext) => {
+      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (err, tenant, tenantAdminRestContext) => {
+        assert.ok(!err);
+        TestsUtil.generateTestUsers(tenantAdminRestContext, 1, (err, users, user) => {
           assert.ok(!err);
-          TestsUtil.generateTestUsers(tenantAdminRestContext, 1, (err, users, user) => {
-            assert.ok(!err);
 
-            // Use an email that differs from the tenant email domain
-            // only by case
-            const matchingEmailDomain = tenantHost.toUpperCase();
-            const matchingEmail = _emailForDomain(matchingEmailDomain);
-            // eslint-disable-next-line no-unused-vars
-            fns.createSucceeds(user.restContext, 'public', [matchingEmail], [], resource => {
-              EmailTestUtil.collectAndFetchAllEmails(messages => {
-                assert.strictEqual(messages.length, 1);
+          // Use an email that differs from the tenant email domain
+          // only by case
+          const matchingEmailDomain = tenantHost.toUpperCase();
+          const matchingEmail = _emailForDomain(matchingEmailDomain);
+          // eslint-disable-next-line no-unused-vars
+          fns.createSucceeds(user.restContext, 'public', [matchingEmail], [], resource => {
+            EmailTestUtil.collectAndFetchAllEmails(messages => {
+              assert.strictEqual(messages.length, 1);
 
-                const message = _.first(messages);
-                const toEmail = message.headers.to;
-                const invitationUrl = AuthzTestUtil.parseInvitationUrlFromMessage(message);
+              const message = _.first(messages);
+              const toEmail = message.headers.to;
+              const invitationUrl = AuthzTestUtil.parseInvitationUrlFromMessage(message);
 
-                assert.strictEqual(toEmail, matchingEmail.toLowerCase());
-                assert.strictEqual(invitationUrl.host, tenant.host);
+              assert.strictEqual(toEmail, matchingEmail.toLowerCase());
+              assert.strictEqual(invitationUrl.host, tenant.host);
 
-                return callback();
-              });
+              return callback();
             });
           });
-        }
-      );
+        });
+      });
     });
 
     /**
      * Test that verifies it sends an aggregated email for all resource types
      */
     it('verify it sends an aggregated email for each resource type', callback => {
-      TestsUtil.generateTestUsers(
-        camAdminRestContext,
-        2,
-        (err, users, creatingUser, acceptingUser) => {
-          assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, creatingUser, acceptingUser) => {
+        assert.ok(!err);
 
-          // Generate the email to invite and ensure we start with an empty email queue
-          const email = _emailForTenant(global.oaeTests.tenants.cam);
-          // Create one of each resource type with the creating user
-          _createOneOfEachResourceType(creatingUser, 'public', [email], [], resources => {
-            // Ensure when the invitation is accepted from the email, all resources are
-            // added to the user's respective libraries
-            const assertions = { role: 'manager', membersSize: 2, librarySize: 1 };
-            _assertAcceptEmailInvitation(creatingUser, acceptingUser, resources, assertions, () => {
-              return callback();
-            });
+        // Generate the email to invite and ensure we start with an empty email queue
+        const email = _emailForTenant(global.oaeTests.tenants.cam);
+        // Create one of each resource type with the creating user
+        _createOneOfEachResourceType(creatingUser, 'public', [email], [], resources => {
+          // Ensure when the invitation is accepted from the email, all resources are
+          // added to the user's respective libraries
+          const assertions = { role: 'manager', membersSize: 2, librarySize: 1 };
+          _assertAcceptEmailInvitation(creatingUser, acceptingUser, resources, assertions, () => {
+            return callback();
           });
-        }
-      );
+        });
+      });
     });
 
     describe('Content', () => {
@@ -1177,120 +1112,80 @@ describe('Invitations', () => {
           resources.push(resource1);
 
           let emailAssertions = { role: 'manager', membersSize: 2, librarySize: 1 };
-          _assertAcceptEmailInvitation(
-            inviterUserInfo,
-            invitedUserInfo,
-            [resource1],
-            emailAssertions,
-            () => {
-              _assertAdaptedActivities(
-                inviterUserInfo,
-                invitedUserInfo,
-                otherUserInfo,
-                resources,
-                assertions,
-                () => {
-                  // Share a 2nd of this resource and accept the invitation, while asserting the "accept invitation" for the 2 items in the aggregated feed
-                  fns.createSucceeds(
-                    inviterUserInfo.restContext,
-                    'private',
-                    [email],
-                    [],
-                    resource2 => {
-                      resources.push(resource2);
+          _assertAcceptEmailInvitation(inviterUserInfo, invitedUserInfo, [resource1], emailAssertions, () => {
+            _assertAdaptedActivities(inviterUserInfo, invitedUserInfo, otherUserInfo, resources, assertions, () => {
+              // Share a 2nd of this resource and accept the invitation, while asserting the "accept invitation" for the 2 items in the aggregated feed
+              fns.createSucceeds(inviterUserInfo.restContext, 'private', [email], [], resource2 => {
+                resources.push(resource2);
 
-                      emailAssertions = { role: 'manager', membersSize: 2, librarySize: 2 };
-                      _assertAcceptEmailInvitation(
-                        inviterUserInfo,
-                        invitedUserInfo,
-                        [resource2],
-                        emailAssertions,
-                        () => {
-                          _assertAdaptedActivities(
-                            inviterUserInfo,
-                            invitedUserInfo,
-                            otherUserInfo,
-                            resources,
-                            assertions,
-                            () => {
-                              // Share a 3rd of this resource and accept the invitation, while asserting the "accept invitation" for the 3 items in the aggregated feed
-                              fns.createSucceeds(
-                                inviterUserInfo.restContext,
-                                'private',
-                                [email],
-                                [],
-                                resource3 => {
-                                  resources.push(resource3);
+                emailAssertions = { role: 'manager', membersSize: 2, librarySize: 2 };
+                _assertAcceptEmailInvitation(inviterUserInfo, invitedUserInfo, [resource2], emailAssertions, () => {
+                  _assertAdaptedActivities(
+                    inviterUserInfo,
+                    invitedUserInfo,
+                    otherUserInfo,
+                    resources,
+                    assertions,
+                    () => {
+                      // Share a 3rd of this resource and accept the invitation, while asserting the "accept invitation" for the 3 items in the aggregated feed
+                      fns.createSucceeds(inviterUserInfo.restContext, 'private', [email], [], resource3 => {
+                        resources.push(resource3);
 
-                                  emailAssertions = {
-                                    role: 'manager',
-                                    membersSize: 2,
-                                    librarySize: 3
-                                  };
-                                  _assertAcceptEmailInvitation(
-                                    inviterUserInfo,
-                                    invitedUserInfo,
-                                    [resource3],
-                                    emailAssertions,
-                                    () => {
-                                      _assertAdaptedActivities(
-                                        inviterUserInfo,
-                                        invitedUserInfo,
-                                        otherUserInfo,
-                                        resources,
-                                        assertions,
-                                        () => {
-                                          // If we don't want to check that the resource received activities, then we're done
-                                          if (!assertions.resourceActivity) {
-                                            return callback();
-                                          }
-
-                                          // Ensure the resource received an activity as well
-                                          ActivityTestUtil.collectAndGetActivityStream(
-                                            inviterUserInfo.restContext,
-                                            resource1.id,
-                                            null,
-                                            (err, result) => {
-                                              assert.ok(!err);
-                                              assert.ok(result);
-                                              assert.ok(_.isArray(result.items));
-
-                                              // Has a create activity and an invitation accept activity
-                                              assert.strictEqual(result.items.length, 2);
-
-                                              const activity = result.items[0];
-                                              assert.strictEqual(
-                                                activity.actor['oae:id'],
-                                                invitedUserInfo.user.id
-                                              );
-                                              assert.strictEqual(
-                                                activity.object['oae:id'],
-                                                inviterUserInfo.user.id
-                                              );
-                                              assert.strictEqual(
-                                                activity.target['oae:id'],
-                                                resource1.id
-                                              );
-
-                                              return callback();
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
+                        emailAssertions = {
+                          role: 'manager',
+                          membersSize: 2,
+                          librarySize: 3
+                        };
+                        _assertAcceptEmailInvitation(
+                          inviterUserInfo,
+                          invitedUserInfo,
+                          [resource3],
+                          emailAssertions,
+                          () => {
+                            _assertAdaptedActivities(
+                              inviterUserInfo,
+                              invitedUserInfo,
+                              otherUserInfo,
+                              resources,
+                              assertions,
+                              () => {
+                                // If we don't want to check that the resource received activities, then we're done
+                                if (!assertions.resourceActivity) {
+                                  return callback();
                                 }
-                              );
-                            }
-                          );
-                        }
-                      );
+
+                                // Ensure the resource received an activity as well
+                                ActivityTestUtil.collectAndGetActivityStream(
+                                  inviterUserInfo.restContext,
+                                  resource1.id,
+                                  null,
+                                  (err, result) => {
+                                    assert.ok(!err);
+                                    assert.ok(result);
+                                    assert.ok(_.isArray(result.items));
+
+                                    // Has a create activity and an invitation accept activity
+                                    assert.strictEqual(result.items.length, 2);
+
+                                    const activity = result.items[0];
+                                    assert.strictEqual(activity.actor['oae:id'], invitedUserInfo.user.id);
+                                    assert.strictEqual(activity.object['oae:id'], inviterUserInfo.user.id);
+                                    assert.strictEqual(activity.target['oae:id'], resource1.id);
+
+                                    return callback();
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      });
                     }
                   );
-                }
-              );
-            }
-          );
+                });
+              });
+            });
+          });
         });
       }
     );
@@ -1298,163 +1193,100 @@ describe('Invitations', () => {
 
   const _testInvitationAcceptEmailSummary = function(resourceType, assertions, callback) {
     const fns = resourceFns[resourceType];
-    TestsUtil.generateTestUsers(
-      camAdminRestContext,
-      2,
-      (err, users, sharingUserInfo, acceptingUserInfo) => {
-        assert.ok(!err);
-        const email = _emailForTenant(global.oaeTests.tenants.cam);
+    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, sharingUserInfo, acceptingUserInfo) => {
+      assert.ok(!err);
+      const email = _emailForTenant(global.oaeTests.tenants.cam);
 
-        // Share 1 of this resource and accept the invitation, while getting the
-        // "accept invitation" activity email sent to the sharer
-        fns.createSucceeds(sharingUserInfo.restContext, 'private', [email], [], resourceA => {
-          let emailAssertions = { role: 'manager', membersSize: 2, librarySize: 1 };
-          _assertAcceptEmailInvitation(
-            sharingUserInfo,
-            acceptingUserInfo,
-            [resourceA],
-            emailAssertions,
-            message => {
-              const activities = ActivityTestUtil.parseActivityHtml(message.html);
-              assert.strictEqual(activities.length, 1);
+      // Share 1 of this resource and accept the invitation, while getting the
+      // "accept invitation" activity email sent to the sharer
+      fns.createSucceeds(sharingUserInfo.restContext, 'private', [email], [], resourceA => {
+        let emailAssertions = { role: 'manager', membersSize: 2, librarySize: 1 };
+        _assertAcceptEmailInvitation(sharingUserInfo, acceptingUserInfo, [resourceA], emailAssertions, message => {
+          const activities = ActivityTestUtil.parseActivityHtml(message.html);
+          assert.strictEqual(activities.length, 1);
 
-              _assertAcceptInvitationContainsResourceHtml(activities[0].summary.html, resourceA);
-              _.each(assertions.oneResourceSummaryMatch, oneResourceSummaryMatch => {
-                _assertContains(activities[0].summary.html, oneResourceSummaryMatch);
-              });
+          _assertAcceptInvitationContainsResourceHtml(activities[0].summary.html, resourceA);
+          _.each(assertions.oneResourceSummaryMatch, oneResourceSummaryMatch => {
+            _assertContains(activities[0].summary.html, oneResourceSummaryMatch);
+          });
 
-              // Share 2 of this resource and accept the invitation, while getting the
-              // "accept invitation" activity email sent to the sharer
-              fns.createSucceeds(
-                sharingUserInfo.restContext,
-                'private',
-                [email],
-                [],
-                resourceB1 => {
-                  fns.createSucceeds(
-                    sharingUserInfo.restContext,
-                    'private',
-                    [email],
-                    [],
-                    resourceB2 => {
-                      emailAssertions = { role: 'manager', membersSize: 2, librarySize: 3 };
-                      _assertAcceptEmailInvitation(
-                        sharingUserInfo,
-                        acceptingUserInfo,
-                        [resourceB1, resourceB2],
-                        emailAssertions,
-                        message => {
-                          const activities = ActivityTestUtil.parseActivityHtml(message.html);
-                          assert.strictEqual(activities.length, 1);
+          // Share 2 of this resource and accept the invitation, while getting the
+          // "accept invitation" activity email sent to the sharer
+          fns.createSucceeds(sharingUserInfo.restContext, 'private', [email], [], resourceB1 => {
+            fns.createSucceeds(sharingUserInfo.restContext, 'private', [email], [], resourceB2 => {
+              emailAssertions = { role: 'manager', membersSize: 2, librarySize: 3 };
+              _assertAcceptEmailInvitation(
+                sharingUserInfo,
+                acceptingUserInfo,
+                [resourceB1, resourceB2],
+                emailAssertions,
+                message => {
+                  const activities = ActivityTestUtil.parseActivityHtml(message.html);
+                  assert.strictEqual(activities.length, 1);
 
-                          _assertAcceptInvitationContainsResourceHtml(
-                            activities[0].summary.html,
-                            resourceB1
-                          );
-                          _assertAcceptInvitationContainsResourceHtml(
-                            activities[0].summary.html,
-                            resourceB2
-                          );
-                          _.each(assertions.twoResourceSummaryMatch, twoResourceSummaryMatch => {
-                            _assertContains(activities[0].summary.html, twoResourceSummaryMatch);
-                          });
+                  _assertAcceptInvitationContainsResourceHtml(activities[0].summary.html, resourceB1);
+                  _assertAcceptInvitationContainsResourceHtml(activities[0].summary.html, resourceB2);
+                  _.each(assertions.twoResourceSummaryMatch, twoResourceSummaryMatch => {
+                    _assertContains(activities[0].summary.html, twoResourceSummaryMatch);
+                  });
 
-                          // Share 3 of this resource and accept the invitation, while getting the
-                          // "accept invitation" activity email sent to the sharer
-                          fns.createSucceeds(
-                            sharingUserInfo.restContext,
-                            'private',
-                            [email],
-                            [],
-                            resourceC1 => {
-                              fns.createSucceeds(
-                                sharingUserInfo.restContext,
-                                'private',
-                                [email],
-                                [],
-                                resourceC2 => {
-                                  fns.createSucceeds(
-                                    sharingUserInfo.restContext,
-                                    'private',
-                                    [email],
-                                    [],
-                                    resourceC3 => {
-                                      const resourceCs = [resourceC1, resourceC2, resourceC3];
-                                      emailAssertions = {
-                                        role: 'manager',
-                                        membersSize: 2,
-                                        librarySize: 6
-                                      };
-                                      _assertAcceptEmailInvitation(
-                                        sharingUserInfo,
-                                        acceptingUserInfo,
-                                        resourceCs,
-                                        emailAssertions,
-                                        message => {
-                                          const activities = ActivityTestUtil.parseActivityHtml(
-                                            message.html
-                                          );
-                                          assert.strictEqual(activities.length, 1);
+                  // Share 3 of this resource and accept the invitation, while getting the
+                  // "accept invitation" activity email sent to the sharer
+                  fns.createSucceeds(sharingUserInfo.restContext, 'private', [email], [], resourceC1 => {
+                    fns.createSucceeds(sharingUserInfo.restContext, 'private', [email], [], resourceC2 => {
+                      fns.createSucceeds(sharingUserInfo.restContext, 'private', [email], [], resourceC3 => {
+                        const resourceCs = [resourceC1, resourceC2, resourceC3];
+                        emailAssertions = {
+                          role: 'manager',
+                          membersSize: 2,
+                          librarySize: 6
+                        };
+                        _assertAcceptEmailInvitation(
+                          sharingUserInfo,
+                          acceptingUserInfo,
+                          resourceCs,
+                          emailAssertions,
+                          message => {
+                            const activities = ActivityTestUtil.parseActivityHtml(message.html);
+                            assert.strictEqual(activities.length, 1);
 
-                                          // Ensure the summary has at exactly one of the resources
-                                          const numMatchesDisplayName = _.chain(resourceCs)
-                                            .pluck('displayName')
-                                            .filter(displayName => {
-                                              return (
-                                                activities[0].summary.html.indexOf(displayName) !==
-                                                -1
-                                              );
-                                            })
-                                            .size()
-                                            .value();
-                                          const numMatchesProfilePath = _.chain(resourceCs)
-                                            .pluck('profilePath')
-                                            .filter(profilePath => {
-                                              return (
-                                                activities[0].summary.html.indexOf(profilePath) !==
-                                                -1
-                                              );
-                                            })
-                                            .size()
-                                            .value();
+                            // Ensure the summary has at exactly one of the resources
+                            const numMatchesDisplayName = _.chain(resourceCs)
+                              .pluck('displayName')
+                              .filter(displayName => {
+                                return activities[0].summary.html.indexOf(displayName) !== -1;
+                              })
+                              .size()
+                              .value();
+                            const numMatchesProfilePath = _.chain(resourceCs)
+                              .pluck('profilePath')
+                              .filter(profilePath => {
+                                return activities[0].summary.html.indexOf(profilePath) !== -1;
+                              })
+                              .size()
+                              .value();
 
-                                          assert.strictEqual(numMatchesDisplayName, 1);
-                                          assert.strictEqual(numMatchesProfilePath, 1);
+                            assert.strictEqual(numMatchesDisplayName, 1);
+                            assert.strictEqual(numMatchesProfilePath, 1);
 
-                                          _.each(
-                                            assertions.threeResourceSummaryMatch,
-                                            threeResourceSummaryMatch => {
-                                              _assertContains(
-                                                activities[0].summary.html,
-                                                threeResourceSummaryMatch
-                                              );
-                                            }
-                                          );
-                                          _assertContains(
-                                            activities[0].summary.html,
-                                            'and 2 others'
-                                          );
+                            _.each(assertions.threeResourceSummaryMatch, threeResourceSummaryMatch => {
+                              _assertContains(activities[0].summary.html, threeResourceSummaryMatch);
+                            });
+                            _assertContains(activities[0].summary.html, 'and 2 others');
 
-                                          return callback();
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
+                            return callback();
+                          }
+                        );
+                      });
+                    });
+                  });
                 }
               );
-            }
-          );
+            });
+          });
         });
-      }
-    );
+      });
+    });
   };
 
   const _testInvitationEmailHtmlTargets = function(resourceType, assertions, callback) {
@@ -1491,54 +1323,37 @@ describe('Invitations', () => {
                 // 3 content items summary
                 fns.createSucceeds(sharingUser.restContext, 'public', [email], [], resourceC1 => {
                   fns.createSucceeds(sharingUser.restContext, 'public', [email], [], resourceC2 => {
-                    fns.createSucceeds(
-                      sharingUser.restContext,
-                      'public',
-                      [email],
-                      [],
-                      resourceC3 => {
-                        EmailTestUtil.collectAndFetchAllEmails(messages => {
-                          assert.strictEqual(messages.length, 1);
+                    fns.createSucceeds(sharingUser.restContext, 'public', [email], [], resourceC3 => {
+                      EmailTestUtil.collectAndFetchAllEmails(messages => {
+                        assert.strictEqual(messages.length, 1);
 
-                          const activities = ActivityTestUtil.parseActivityHtml(messages[0].html);
-                          assert.strictEqual(activities.length, 1);
+                        const activities = ActivityTestUtil.parseActivityHtml(messages[0].html);
+                        assert.strictEqual(activities.length, 1);
 
-                          // Ensure the summary has at exactly one of the resources
-                          const numMatchesDisplayName = _.chain([
-                            resourceC1,
-                            resourceC2,
-                            resourceC3
-                          ])
-                            .pluck('displayName')
-                            .filter(displayName => {
-                              return activities[0].summary.html.indexOf(displayName) !== -1;
-                            })
-                            .size()
-                            .value();
-                          const numMatchesProfilePath = _.chain([
-                            resourceC1,
-                            resourceC2,
-                            resourceC3
-                          ])
-                            .pluck('profilePath')
-                            .filter(profilePath => {
-                              return activities[0].summary.html.indexOf(profilePath) !== -1;
-                            })
-                            .size()
-                            .value();
+                        // Ensure the summary has at exactly one of the resources
+                        const numMatchesDisplayName = _.chain([resourceC1, resourceC2, resourceC3])
+                          .pluck('displayName')
+                          .filter(displayName => {
+                            return activities[0].summary.html.indexOf(displayName) !== -1;
+                          })
+                          .size()
+                          .value();
+                        const numMatchesProfilePath = _.chain([resourceC1, resourceC2, resourceC3])
+                          .pluck('profilePath')
+                          .filter(profilePath => {
+                            return activities[0].summary.html.indexOf(profilePath) !== -1;
+                          })
+                          .size()
+                          .value();
 
-                          assert.strictEqual(numMatchesDisplayName, 1);
-                          assert.strictEqual(numMatchesProfilePath, 0);
-                          _assertContains(
-                            activities[0].summary.html,
-                            assertions.threeResourceSummaryMatch
-                          );
-                          _assertContains(activities[0].summary.html, 'and 2 others');
+                        assert.strictEqual(numMatchesDisplayName, 1);
+                        assert.strictEqual(numMatchesProfilePath, 0);
+                        _assertContains(activities[0].summary.html, assertions.threeResourceSummaryMatch);
+                        _assertContains(activities[0].summary.html, 'and 2 others');
 
-                          return callback();
-                        });
-                      }
-                    );
+                        return callback();
+                      });
+                    });
                   });
                 });
               });
@@ -1586,10 +1401,7 @@ describe('Invitations', () => {
                     const { subject } = message.headers;
                     assert.strictEqual(
                       subject,
-                      util.format(
-                        '%s has invited you to collaborate',
-                        sharingUser1.user.displayName
-                      )
+                      util.format('%s has invited you to collaborate', sharingUser1.user.displayName)
                     );
 
                     // Verify that with 2 activities and 2 actors, the
@@ -1613,14 +1425,8 @@ describe('Invitations', () => {
 
                               const message = messages[0];
                               const { subject } = message.headers;
-                              assert.notStrictEqual(
-                                subject.indexOf(sharingUser1.user.displayName),
-                                -1
-                              );
-                              assert.notStrictEqual(
-                                subject.indexOf(sharingUser2.user.displayName),
-                                -1
-                              );
+                              assert.notStrictEqual(subject.indexOf(sharingUser1.user.displayName), -1);
+                              assert.notStrictEqual(subject.indexOf(sharingUser2.user.displayName), -1);
 
                               // Verify that with 3 activities and 3 actors, the
                               // subject shows 1 of the actors and indicates there
@@ -1652,11 +1458,7 @@ describe('Invitations', () => {
                                             const message = messages[0];
                                             const { subject } = message.headers;
 
-                                            const numMatches = _.chain([
-                                              sharingUser1,
-                                              sharingUser2,
-                                              sharingUser3
-                                            ])
+                                            const numMatches = _.chain([sharingUser1, sharingUser2, sharingUser3])
                                               .pluck('user')
                                               .pluck('displayName')
                                               .filter(displayName => {
@@ -1665,10 +1467,7 @@ describe('Invitations', () => {
                                               .size()
                                               .value();
                                             assert.strictEqual(numMatches, 1);
-                                            assert.notStrictEqual(
-                                              subject.indexOf('and 2 others'),
-                                              -1
-                                            );
+                                            assert.notStrictEqual(subject.indexOf('and 2 others'), -1);
                                             return callback();
                                           });
                                         }
@@ -1693,17 +1492,17 @@ describe('Invitations', () => {
   };
 
   /*!
-     * Ensure that when a resource is soft deleted (i.e., it's delete functionality is that of a
-     * "mark" as deleted which can be restored), an invitation that is accepted for it doesn't
-     * result in the resource being added to the user's library.
-     *
-     * Furthermore, ensure that when the resource is restored, the user who accepted the resource
-     * then gets it in their resource library.
-     *
-     * @param  {String}         resourceType    The resource type for which to execute the test
-     * @param  {Function}       callback        Invoked when the test is complete
-     * @throws {AssertionError}                 Thrown if any of the assertions fail
-     */
+   * Ensure that when a resource is soft deleted (i.e., it's delete functionality is that of a
+   * "mark" as deleted which can be restored), an invitation that is accepted for it doesn't
+   * result in the resource being added to the user's library.
+   *
+   * Furthermore, ensure that when the resource is restored, the user who accepted the resource
+   * then gets it in their resource library.
+   *
+   * @param  {String}         resourceType    The resource type for which to execute the test
+   * @param  {Function}       callback        Invoked when the test is complete
+   * @throws {AssertionError}                 Thrown if any of the assertions fail
+   */
   const _testSoftDeleteForAccept = function(resourceType, callback) {
     const fns = resourceFns[resourceType];
     _testHardDeleteForAccept(resourceType, (creatingUserInfo, acceptingUserInfo, resource) => {
@@ -1718,626 +1517,474 @@ describe('Invitations', () => {
   };
 
   /*!
-     * Ensure that when a resource is hard deleted (i.e., it is deleted from the database and
-     * cannot be restored), an invitation that is accepted for it doesn't result in the resource
-     * being added to the user's library
-     *
-     * @param  {String}         resourceType    The resource type for which to execute the test
-     * @param  {Function}       callback        Invoked when the test is complete
-     * @throws {AssertionError}                 Thrown if any of the assertions fail
-     */
+   * Ensure that when a resource is hard deleted (i.e., it is deleted from the database and
+   * cannot be restored), an invitation that is accepted for it doesn't result in the resource
+   * being added to the user's library
+   *
+   * @param  {String}         resourceType    The resource type for which to execute the test
+   * @param  {Function}       callback        Invoked when the test is complete
+   * @throws {AssertionError}                 Thrown if any of the assertions fail
+   */
   const _testHardDeleteForAccept = function(resourceType, callback) {
     const fns = resourceFns[resourceType];
 
     // Create a resource with an email invited into it
     let email = _emailForTenant(global.oaeTests.tenants.cam);
-    TestsUtil.generateTestUsers(
-      camAdminRestContext,
-      2,
-      (err, users, creatingUserInfo, acceptingUserInfo) => {
-        assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, creatingUserInfo, acceptingUserInfo) => {
+      assert.ok(!err);
 
-        // Create the resource, sending an invite to the target user
-        fns.createSucceeds(creatingUserInfo.restContext, 'public', [email], [], resource => {
-          email = email.toLowerCase();
+      // Create the resource, sending an invite to the target user
+      fns.createSucceeds(creatingUserInfo.restContext, 'public', [email], [], resource => {
+        email = email.toLowerCase();
 
-          EmailTestUtil.collectAndFetchAllEmails(messages => {
-            assert.strictEqual(messages.length, 1);
+        EmailTestUtil.collectAndFetchAllEmails(messages => {
+          assert.strictEqual(messages.length, 1);
 
-            const message = _.first(messages);
-            const token = url.parse(
-              AuthzTestUtil.parseInvitationUrlFromMessage(message).query.url,
-              true
-            ).query.invitationToken;
+          const message = _.first(messages);
+          const token = url.parse(AuthzTestUtil.parseInvitationUrlFromMessage(message).query.url, true).query
+            .invitationToken;
 
-            // Delete the resource before we have a chance to accept
-            fns.deleteSucceeds(
-              camAdminRestContext,
-              creatingUserInfo.restContext,
-              resource.id,
+          // Delete the resource before we have a chance to accept
+          fns.deleteSucceeds(camAdminRestContext, creatingUserInfo.restContext, resource.id, () => {
+            // Now accept the invitation, ensuring no resources are reported as being
+            // added
+            AuthzTestUtil.assertAcceptInvitationSucceeds(acceptingUserInfo.restContext, token, result => {
+              assert.strictEqual(result.email, email);
+              assert.strictEqual(result.resources.length, 0);
+
+              // Ensure nothing went into the user's library
+              fns.getLibrarySucceeds(acceptingUserInfo.restContext, acceptingUserInfo.user.id, libraryItems => {
+                assert.strictEqual(libraryItems.length, 0);
+                return callback(creatingUserInfo, acceptingUserInfo, resource);
+              });
+            });
+          });
+        });
+      });
+    });
+  };
+
+  /*!
+   * Ensure that the appropriate activity is sent to a user when they accept an invitation for
+   * any resource type. The resources that are created will be of the specified visibility, to
+   * make it simple to create multiple variations of this test for different resource
+   * visibilities
+   *
+   * @param  {String}         visibility      The visibility to use on the created resources
+   * @param  {Function}       callback        Invoked when the test is complete
+   * @throws {AssertionError}                 Thrown if any of the assertions fail
+   */
+  const _testActivityVisibilityForAccept = function(visibility, callback) {
+    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, creatingUserInfo, acceptingUserInfo) => {
+      assert.ok(!err);
+
+      const email = _emailForTenant(global.oaeTests.tenants.cam);
+      _createOneOfEachResourceType(creatingUserInfo, visibility, [email], [], resources => {
+        const assertions = { role: 'manager', membersSize: 2, librarySize: 1 };
+        _assertAcceptEmailInvitation(creatingUserInfo, acceptingUserInfo, resources, assertions, () => {
+          ActivityTestUtil.collectAndGetActivityStream(
+            acceptingUserInfo.restContext,
+            acceptingUserInfo.user.id,
+            null,
+            (err, result) => {
+              assert.ok(!err);
+
+              const activities = result.items;
+
+              // Ensure we have one accept activity for each resource
+              assert.strictEqual(activities.length, _.size(resourceAcceptActivityInfo));
+              _.each(resources, resource => {
+                // eslint-disable-next-line no-unused-expressions
+                resourceAcceptActivityInfo[resource.resourceType];
+                const matchingActivities = _.filter(activities, activity => {
+                  return (
+                    activity['oae:activityType'] === 'invitation-accept' &&
+                    activity.verb === 'accept' &&
+                    activity.actor['oae:id'] === acceptingUserInfo.user.id &&
+                    activity.object['oae:id'] === creatingUserInfo.user.id &&
+                    activity.target['oae:id'] === resource.id
+                  );
+                });
+
+                assert.ok(matchingActivities);
+                assert.strictEqual(matchingActivities.length, 1);
+              });
+
+              return callback();
+            }
+          );
+        });
+      });
+    });
+  };
+
+  /*!
+   * Ensure that an email is sent for the specified resource type regardless of its visibility
+   * when invited VIA a "create" action. This test will ensure that resources of the specified
+   * type will send an invitation email to the email that was invited, and that the information in
+   * the "accept" link can be used to accept the invitation and gain access to the resources
+   *
+   * @param  {String}         resourceType    The resource type for which to execute the test
+   * @param  {Function}       callback        Invoked when the test is complete
+   * @throws {AssertionError}                 Thrown if any of the assertions fail
+   */
+  const _testInvitationEmailVisibilityForCreate = function(resourceType, callback) {
+    const fns = resourceFns[resourceType];
+    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, creatingUser, acceptingUser) => {
+      assert.ok(!err);
+
+      const email = _emailForTenant(global.oaeTests.tenants.cam);
+      fns.createSucceeds(creatingUser.restContext, 'public', [email], [], resource1 => {
+        fns.createSucceeds(creatingUser.restContext, 'loggedin', [email], [], resource2 => {
+          fns.createSucceeds(creatingUser.restContext, 'private', [email], [], resource3 => {
+            const assertions = { role: 'manager', membersSize: 2, librarySize: 3 };
+            _assertAcceptEmailInvitation(
+              creatingUser,
+              acceptingUser,
+              [resource1, resource2, resource3],
+              assertions,
               () => {
-                // Now accept the invitation, ensuring no resources are reported as being
-                // added
-                AuthzTestUtil.assertAcceptInvitationSucceeds(
-                  acceptingUserInfo.restContext,
-                  token,
-                  result => {
-                    assert.strictEqual(result.email, email);
-                    assert.strictEqual(result.resources.length, 0);
-
-                    // Ensure nothing went into the user's library
-                    fns.getLibrarySucceeds(
-                      acceptingUserInfo.restContext,
-                      acceptingUserInfo.user.id,
-                      libraryItems => {
-                        assert.strictEqual(libraryItems.length, 0);
-                        return callback(creatingUserInfo, acceptingUserInfo, resource);
-                      }
-                    );
-                  }
-                );
+                return callback();
               }
             );
           });
         });
-      }
-    );
+      });
+    });
   };
 
   /*!
-     * Ensure that the appropriate activity is sent to a user when they accept an invitation for
-     * any resource type. The resources that are created will be of the specified visibility, to
-     * make it simple to create multiple variations of this test for different resource
-     * visibilities
-     *
-     * @param  {String}         visibility      The visibility to use on the created resources
-     * @param  {Function}       callback        Invoked when the test is complete
-     * @throws {AssertionError}                 Thrown if any of the assertions fail
-     */
-  const _testActivityVisibilityForAccept = function(visibility, callback) {
-    TestsUtil.generateTestUsers(
-      camAdminRestContext,
-      2,
-      (err, users, creatingUserInfo, acceptingUserInfo) => {
-        assert.ok(!err);
-
-        const email = _emailForTenant(global.oaeTests.tenants.cam);
-        _createOneOfEachResourceType(creatingUserInfo, visibility, [email], [], resources => {
-          const assertions = { role: 'manager', membersSize: 2, librarySize: 1 };
-          _assertAcceptEmailInvitation(
-            creatingUserInfo,
-            acceptingUserInfo,
-            resources,
-            assertions,
-            () => {
-              ActivityTestUtil.collectAndGetActivityStream(
-                acceptingUserInfo.restContext,
-                acceptingUserInfo.user.id,
-                null,
-                (err, result) => {
-                  assert.ok(!err);
-
-                  const activities = result.items;
-
-                  // Ensure we have one accept activity for each resource
-                  assert.strictEqual(activities.length, _.size(resourceAcceptActivityInfo));
-                  _.each(resources, resource => {
-                    // eslint-disable-next-line no-unused-expressions
-                    resourceAcceptActivityInfo[resource.resourceType];
-                    const matchingActivities = _.filter(activities, activity => {
-                      return (
-                        activity['oae:activityType'] === 'invitation-accept' &&
-                        activity.verb === 'accept' &&
-                        activity.actor['oae:id'] === acceptingUserInfo.user.id &&
-                        activity.object['oae:id'] === creatingUserInfo.user.id &&
-                        activity.target['oae:id'] === resource.id
-                      );
-                    });
-
-                    assert.ok(matchingActivities);
-                    assert.strictEqual(matchingActivities.length, 1);
-                  });
-
-                  return callback();
-                }
-              );
-            }
-          );
-        });
-      }
-    );
-  };
-
-  /*!
-     * Ensure that an email is sent for the specified resource type regardless of its visibility
-     * when invited VIA a "create" action. This test will ensure that resources of the specified
-     * type will send an invitation email to the email that was invited, and that the information in
-     * the "accept" link can be used to accept the invitation and gain access to the resources
-     *
-     * @param  {String}         resourceType    The resource type for which to execute the test
-     * @param  {Function}       callback        Invoked when the test is complete
-     * @throws {AssertionError}                 Thrown if any of the assertions fail
-     */
-  const _testInvitationEmailVisibilityForCreate = function(resourceType, callback) {
-    const fns = resourceFns[resourceType];
-    TestsUtil.generateTestUsers(
-      camAdminRestContext,
-      2,
-      (err, users, creatingUser, acceptingUser) => {
-        assert.ok(!err);
-
-        const email = _emailForTenant(global.oaeTests.tenants.cam);
-        fns.createSucceeds(creatingUser.restContext, 'public', [email], [], resource1 => {
-          fns.createSucceeds(creatingUser.restContext, 'loggedin', [email], [], resource2 => {
-            fns.createSucceeds(creatingUser.restContext, 'private', [email], [], resource3 => {
-              const assertions = { role: 'manager', membersSize: 2, librarySize: 3 };
-              _assertAcceptEmailInvitation(
-                creatingUser,
-                acceptingUser,
-                [resource1, resource2, resource3],
-                assertions,
-                () => {
-                  return callback();
-                }
-              );
-            });
-          });
-        });
-      }
-    );
-  };
-
-  /*!
-     * Ensure that an email is sent for the specified resource type regardless of its visibility
-     * when invited VIA a "set roles" action. This test will ensure that resources of the specified
-     * type will send an invitation email to the email that was invited, and that the information in
-     * the "accept" link can be used to accept the invitation and gain access to the resources
-     *
-     * @param  {String}         resourceType    The resource type for which to execute the test
-     * @param  {Function}       callback        Invoked when the test is complete
-     * @throws {AssertionError}                 Thrown if any of the assertions fail
-     */
+   * Ensure that an email is sent for the specified resource type regardless of its visibility
+   * when invited VIA a "set roles" action. This test will ensure that resources of the specified
+   * type will send an invitation email to the email that was invited, and that the information in
+   * the "accept" link can be used to accept the invitation and gain access to the resources
+   *
+   * @param  {String}         resourceType    The resource type for which to execute the test
+   * @param  {Function}       callback        Invoked when the test is complete
+   * @throws {AssertionError}                 Thrown if any of the assertions fail
+   */
   const _testInvitationEmailVisibilityForSetRoles = function(resourceType, callback) {
     const fns = resourceFns[resourceType];
-    TestsUtil.generateTestUsers(
-      camAdminRestContext,
-      2,
-      (err, users, creatingUser, acceptingUser) => {
-        assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, creatingUser, acceptingUser) => {
+      assert.ok(!err);
 
-        const email = _emailForTenant(global.oaeTests.tenants.cam);
+      const email = _emailForTenant(global.oaeTests.tenants.cam);
 
-        // Create a resource of each visibility
-        fns.createSucceeds(creatingUser.restContext, 'public', [], [], resource1 => {
-          fns.createSucceeds(creatingUser.restContext, 'loggedin', [], [], resource2 => {
-            fns.createSucceeds(creatingUser.restContext, 'private', [], [], resource3 => {
-              const roleChange = _.object([[email, 'manager']]);
+      // Create a resource of each visibility
+      fns.createSucceeds(creatingUser.restContext, 'public', [], [], resource1 => {
+        fns.createSucceeds(creatingUser.restContext, 'loggedin', [], [], resource2 => {
+          fns.createSucceeds(creatingUser.restContext, 'private', [], [], resource3 => {
+            const roleChange = _.object([[email, 'manager']]);
 
-              // Set the accepting user as a manager on all 3 using set roles
-              fns.setRolesSucceeds(
-                creatingUser.restContext,
-                creatingUser.restContext,
-                resource1.id,
-                roleChange,
-                () => {
-                  fns.setRolesSucceeds(
-                    creatingUser.restContext,
-                    creatingUser.restContext,
-                    resource2.id,
-                    roleChange,
-                    () => {
-                      fns.setRolesSucceeds(
-                        creatingUser.restContext,
-                        creatingUser.restContext,
-                        resource3.id,
-                        roleChange,
-                        () => {
-                          // Ensure the user can accept the email invitation
-                          const assertions = { role: 'manager', membersSize: 2, librarySize: 3 };
-                          _assertAcceptEmailInvitation(
-                            creatingUser,
-                            acceptingUser,
-                            [resource1, resource2, resource3],
-                            assertions,
-                            () => {
-                              return callback();
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
+            // Set the accepting user as a manager on all 3 using set roles
+            fns.setRolesSucceeds(creatingUser.restContext, creatingUser.restContext, resource1.id, roleChange, () => {
+              fns.setRolesSucceeds(creatingUser.restContext, creatingUser.restContext, resource2.id, roleChange, () => {
+                fns.setRolesSucceeds(
+                  creatingUser.restContext,
+                  creatingUser.restContext,
+                  resource3.id,
+                  roleChange,
+                  () => {
+                    // Ensure the user can accept the email invitation
+                    const assertions = { role: 'manager', membersSize: 2, librarySize: 3 };
+                    _assertAcceptEmailInvitation(
+                      creatingUser,
+                      acceptingUser,
+                      [resource1, resource2, resource3],
+                      assertions,
+                      () => {
+                        return callback();
+                      }
+                    );
+                  }
+                );
+              });
             });
           });
         });
-      }
-    );
+      });
+    });
   };
 
   /*!
-     * Ensure that an email is sent for the specified resource type regardless of its visibility
-     * when invited VIA a "share" action. This test will ensure that resources of the specified
-     * type will send an invitation email to the email that was invited, and that the information in
-     * the "accept" link can be used to accept the invitation and gain access to the resources
-     *
-     * @param  {String}         resourceType    The resource type for which to execute the test
-     * @param  {Function}       callback        Invoked when the test is complete
-     * @throws {AssertionError}                 Thrown if any of the assertions fail
-     */
+   * Ensure that an email is sent for the specified resource type regardless of its visibility
+   * when invited VIA a "share" action. This test will ensure that resources of the specified
+   * type will send an invitation email to the email that was invited, and that the information in
+   * the "accept" link can be used to accept the invitation and gain access to the resources
+   *
+   * @param  {String}         resourceType    The resource type for which to execute the test
+   * @param  {Function}       callback        Invoked when the test is complete
+   * @throws {AssertionError}                 Thrown if any of the assertions fail
+   */
   const _testInvitationEmailVisibilityForShare = function(resourceType, callback) {
     const fns = resourceFns[resourceType];
     const memberRole = resourceMemberRoles[resourceType];
 
-    TestsUtil.generateTestUsers(
-      camAdminRestContext,
-      2,
-      (err, users, creatingUser, acceptingUser) => {
-        assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, creatingUser, acceptingUser) => {
+      assert.ok(!err);
 
-        const email = _emailForTenant(global.oaeTests.tenants.cam);
+      const email = _emailForTenant(global.oaeTests.tenants.cam);
 
-        // Create a resource of each visibility
-        fns.createSucceeds(creatingUser.restContext, 'public', [], [], resource1 => {
-          fns.createSucceeds(creatingUser.restContext, 'loggedin', [], [], resource2 => {
-            fns.createSucceeds(creatingUser.restContext, 'private', [], [], resource3 => {
-              // Share with each resource
-              fns.shareSucceeds(
-                creatingUser.restContext,
-                creatingUser.restContext,
-                resource1.id,
-                [email],
-                () => {
-                  fns.shareSucceeds(
-                    creatingUser.restContext,
-                    creatingUser.restContext,
-                    resource2.id,
-                    [email],
+      // Create a resource of each visibility
+      fns.createSucceeds(creatingUser.restContext, 'public', [], [], resource1 => {
+        fns.createSucceeds(creatingUser.restContext, 'loggedin', [], [], resource2 => {
+          fns.createSucceeds(creatingUser.restContext, 'private', [], [], resource3 => {
+            // Share with each resource
+            fns.shareSucceeds(creatingUser.restContext, creatingUser.restContext, resource1.id, [email], () => {
+              fns.shareSucceeds(creatingUser.restContext, creatingUser.restContext, resource2.id, [email], () => {
+                fns.shareSucceeds(creatingUser.restContext, creatingUser.restContext, resource3.id, [email], () => {
+                  // Ensure the user can accept the email invitation
+                  const assertions = { role: memberRole, membersSize: 2, librarySize: 3 };
+                  _assertAcceptEmailInvitation(
+                    creatingUser,
+                    acceptingUser,
+                    [resource1, resource2, resource3],
+                    assertions,
                     () => {
-                      fns.shareSucceeds(
-                        creatingUser.restContext,
-                        creatingUser.restContext,
-                        resource3.id,
-                        [email],
-                        () => {
-                          // Ensure the user can accept the email invitation
-                          const assertions = { role: memberRole, membersSize: 2, librarySize: 3 };
-                          _assertAcceptEmailInvitation(
-                            creatingUser,
-                            acceptingUser,
-                            [resource1, resource2, resource3],
-                            assertions,
-                            () => {
-                              return callback();
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            });
-          });
-        });
-      }
-    );
-  };
-
-  /*!
-     * Ensure that when an invitation is accepted, the response and side-effects (i.e., gaining
-     * access to the invited resources) work as expected
-     *
-     * @param  {String}         resourceType    The resource type for which to execute the test
-     * @param  {Function}       callback        Invoked when the test is complete
-     * @throws {AssertionError}                 Thrown if any of the assertions fail
-     */
-  const _testInvitationAccept = function(resourceType, callback) {
-    const fns = resourceFns[resourceType];
-    const memberRole = resourceMemberRoles[resourceType];
-
-    TestsUtil.generateTestUsers(
-      camAdminRestContext,
-      3,
-      (err, users, user0, userManager, userViewer) => {
-        assert.ok(!err);
-
-        const managerEmail = _emailForTenant(global.oaeTests.tenants.cam);
-        const viewerEmail = _emailForTenant(global.oaeTests.tenants.cam);
-
-        // Create a resource. 2 separate invitations will go out
-        fns.createSucceeds(user0.restContext, 'public', [managerEmail], [viewerEmail], resource => {
-          const resourceAuthzId = AuthzUtil.getAuthzId(resource);
-
-          // Accept the manager invitation and ensure they show up in the members
-          AuthzTestUtil.assertAcceptInvitationForEmailSucceeds(
-            userManager.restContext,
-            managerEmail,
-            (result, invitations) => {
-              assert.strictEqual(invitations.length, 1);
-
-              const invitation = _.first(invitations);
-              assert.strictEqual(invitation.resourceId, resourceAuthzId);
-              assert.strictEqual(invitation.email, managerEmail.toLowerCase());
-              assert.strictEqual(invitation.inviterUserId, user0.user.id);
-              assert.strictEqual(invitation.role, 'manager');
-
-              let assertions = { role: 'manager', membersSize: 2, librarySize: 1 };
-              _assertRole(user0, userManager, resource, assertions, () => {
-                // Accept the viewer invitation and ensure they show up in the members
-                AuthzTestUtil.assertAcceptInvitationForEmailSucceeds(
-                  userViewer.restContext,
-                  viewerEmail,
-                  (result, invitations) => {
-                    assert.strictEqual(invitations.length, 1);
-
-                    const invitation = _.first(invitations);
-                    assert.strictEqual(invitation.resourceId, resourceAuthzId);
-                    assert.strictEqual(invitation.email, viewerEmail.toLowerCase());
-                    assert.strictEqual(invitation.inviterUserId, user0.user.id);
-                    assert.strictEqual(invitation.role, memberRole);
-
-                    assertions = { role: memberRole, membersSize: 3, librarySize: 1 };
-                    _assertRole(user0, userViewer, resource, assertions, () => {
                       return callback();
-                    });
-                  }
-                );
-              });
-            }
-          );
-        });
-      }
-    );
-  };
-
-  /*!
-     * Ensure authorization of accepting an invitation that contains a particular resource type.
-     *
-     * This also includes authorization revolving around the changed state of the inviting user. For
-     * example, if the user who invited another has since been deleted, or is demoted/removed from
-     * the resource, the invitation should still be successful.
-     *
-     * @param  {String}         resourceType    The resource type for which to execute the test
-     * @param  {Function}       callback        Invoked when the test is complete
-     * @throws {AssertionError}                 Thrown if any of the assertions fail
-     */
-  const _testInvitationAcceptAuthorization = function(resourceType, callback) {
-    const fns = resourceFns[resourceType];
-    const memberRole = resourceMemberRoles[resourceType];
-
-    TestsUtil.generateTestUsers(
-      camAdminRestContext,
-      6,
-      (err, users, user0, user1, user2, user3, user4, user5) => {
-        assert.ok(!err);
-
-        const email1 = _emailForTenant(global.oaeTests.tenants.cam);
-        const email2 = _emailForTenant(global.oaeTests.tenants.cam);
-        const email3 = _emailForTenant(global.oaeTests.tenants.cam);
-        const email4 = _emailForTenant(global.oaeTests.tenants.cam);
-        const email5 = _emailForTenant(global.oaeTests.tenants.cam);
-
-        fns.createSucceeds(user0.restContext, 'private', [email1], [], resource => {
-          // Accept as user1
-          AuthzTestUtil.assertAcceptInvitationForEmailSucceeds(user1.restContext, email1, () => {
-            // Ensure user1 can now set roles since they should be manager
-            let roles = {};
-            roles[email2] = 'manager';
-            roles[email3] = memberRole;
-            roles[email4] = memberRole;
-            roles[email5] = memberRole;
-            fns.setRolesSucceeds(user0.restContext, user1.restContext, resource.id, roles, () => {
-              // Remove the user who invited email2 and ensure email2 invitation can still be accepted
-              roles = {};
-              roles[user1.user.id] = false;
-              fns.setRolesSucceeds(user0.restContext, user0.restContext, resource.id, roles, () => {
-                // Ensure email2 can still be accepted and makes user2 a manager
-                AuthzTestUtil.assertAcceptInvitationForEmailSucceeds(
-                  user2.restContext,
-                  email2,
-                  () => {
-                    _assertRole(user0, user2, resource, { role: 'manager' }, () => {
-                      // Accept the "member" role invitation for email3 as user2, ensuring their role
-                      // on the resource does not get demoted to the "member" role
-                      AuthzTestUtil.assertAcceptInvitationForEmailSucceeds(
-                        user2.restContext,
-                        email3,
-                        () => {
-                          _assertRole(user0, user2, resource, { role: 'manager' }, () => {
-                            // Delete user1 from the system, and ensure the user they
-                            // invited can still accept their invitation
-                            PrincipalsTestUtil.assertDeleteUserSucceeds(
-                              camAdminRestContext,
-                              camAdminRestContext,
-                              user1.user.id,
-                              () => {
-                                // Accept the invitation for email4 and ensure it succeeds despite the fact that
-                                // the user that invited them was deleted
-                                AuthzTestUtil.assertAcceptInvitationForEmailSucceeds(
-                                  user4.restContext,
-                                  email4,
-                                  () => {
-                                    _assertRole(
-                                      user0,
-                                      user4,
-                                      resource,
-                                      { role: memberRole },
-                                      () => {
-                                        // Remove the invitation for email5, ensuring an invitation for email5 can still
-                                        // be accepted, but it doesn't grant any access to the resource
-                                        roles = {};
-                                        roles[email5] = false;
-                                        fns.setRolesSucceeds(
-                                          user0.restContext,
-                                          user0.restContext,
-                                          resource.id,
-                                          roles,
-                                          () => {
-                                            AuthzTestUtil.assertAcceptInvitationForEmailSucceeds(
-                                              user5.restContext,
-                                              email5,
-                                              () => {
-                                                _assertRole(
-                                                  user0,
-                                                  user5,
-                                                  resource,
-                                                  { role: false },
-                                                  () => {
-                                                    return callback();
-                                                  }
-                                                );
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          });
-                        }
-                      );
-                    });
-                  }
-                );
-              });
-            });
-          });
-        });
-      }
-    );
-  };
-
-  /*!
-     * Ensure parameter validation for accepting an invitation
-     *
-     * @param  {String}         resourceType    The resource type for which to execute the test
-     * @param  {Function}       callback        Invoked when the test is complete
-     * @throws {AssertionError}                 Thrown if any of the assertions fail
-     */
-  const _testInvitationAcceptValidation = function(resourceType, callback) {
-    const fns = resourceFns[resourceType];
-    TestsUtil.generateTestUsers(
-      camAdminRestContext,
-      3,
-      (err, users, user0, acceptingUser, sneakyUser) => {
-        assert.ok(!err);
-
-        let email = _emailForTenant(global.oaeTests.tenants.cam);
-
-        // Token is required
-        AuthzTestUtil.assertAcceptInvitationFails(sneakyUser.restContext, null, 400, () => {
-          // Token must exist
-          AuthzTestUtil.assertAcceptInvitationFails(
-            sneakyUser.restContext,
-            'nonexistingtoken',
-            404,
-            () => {
-              // Create a resource with an invitation
-              fns.createSucceeds(user0.restContext, 'public', [email], [], resource => {
-                // Lower-case the email now so we can work with the data layer, where the
-                // email should have been lower-cased
-                email = email.toLowerCase();
-
-                AuthzInvitationsDAO.getTokensByEmails([email], (err, tokensByEmail) => {
-                  assert.ok(!err);
-
-                  const token = tokensByEmail[email];
-
-                  // User must be logged in to accept
-                  AuthzTestUtil.assertAcceptInvitationFails(
-                    anonymousRestContext,
-                    token,
-                    401,
-                    () => {
-                      // Sanity check we can accept with this token as authenticated user
-                      AuthzTestUtil.assertAcceptInvitationSucceeds(
-                        acceptingUser.restContext,
-                        token,
-                        () => {
-                          // Ensure re-accepting this token as a sneaky user that intercepted it fails
-                          AuthzTestUtil.assertAcceptInvitationFails(
-                            sneakyUser.restContext,
-                            token,
-                            404,
-                            () => {
-                              // Ensure the accepting user became a manager of the resource
-                              _assertRole(
-                                user0,
-                                acceptingUser,
-                                resource,
-                                { role: 'manager' },
-                                () => {
-                                  // Ensure the sneaky user does not have the resource
-                                  _assertRole(
-                                    user0,
-                                    sneakyUser,
-                                    resource,
-                                    { role: false, membersSize: 2 },
-                                    () => {
-                                      return callback();
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
                     }
                   );
                 });
               });
-            }
-          );
+            });
+          });
         });
-      }
-    );
+      });
+    });
   };
 
   /*!
-     * Ensure that the invitations list is persisted appropriately with the expected roles when
-     * an invitation occurrs in the resource "create" request
-     *
-     * @param  {String}         resourceType    The resource type for which to execute the test
-     * @param  {Function}       callback        Invoked when the test is complete
-     * @throws {AssertionError}                 Thrown if any of the assertions fail
-     */
-  const _testInvitationsForCreate = function(resourceType, callback) {
+   * Ensure that when an invitation is accepted, the response and side-effects (i.e., gaining
+   * access to the invited resources) work as expected
+   *
+   * @param  {String}         resourceType    The resource type for which to execute the test
+   * @param  {Function}       callback        Invoked when the test is complete
+   * @throws {AssertionError}                 Thrown if any of the assertions fail
+   */
+  const _testInvitationAccept = function(resourceType, callback) {
     const fns = resourceFns[resourceType];
-    TestsUtil.generateTestUsers(
-      camAdminRestContext,
-      3,
-      (err, users, user0, userManager, userViewer) => {
-        assert.ok(!err);
+    const memberRole = resourceMemberRoles[resourceType];
 
-        // Ensure a simple create mixed with a couple member users succeeds
-        fns.createSucceeds(
-          user0.restContext,
-          'public',
-          ['manager@oae.local', userManager.user.id],
-          [userViewer.user.id, 'viewer@oae.local'],
-          // eslint-disable-next-line no-unused-vars
-          resource => {
-            return callback();
+    TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, user0, userManager, userViewer) => {
+      assert.ok(!err);
+
+      const managerEmail = _emailForTenant(global.oaeTests.tenants.cam);
+      const viewerEmail = _emailForTenant(global.oaeTests.tenants.cam);
+
+      // Create a resource. 2 separate invitations will go out
+      fns.createSucceeds(user0.restContext, 'public', [managerEmail], [viewerEmail], resource => {
+        const resourceAuthzId = AuthzUtil.getAuthzId(resource);
+
+        // Accept the manager invitation and ensure they show up in the members
+        AuthzTestUtil.assertAcceptInvitationForEmailSucceeds(
+          userManager.restContext,
+          managerEmail,
+          (result, invitations) => {
+            assert.strictEqual(invitations.length, 1);
+
+            const invitation = _.first(invitations);
+            assert.strictEqual(invitation.resourceId, resourceAuthzId);
+            assert.strictEqual(invitation.email, managerEmail.toLowerCase());
+            assert.strictEqual(invitation.inviterUserId, user0.user.id);
+            assert.strictEqual(invitation.role, 'manager');
+
+            let assertions = { role: 'manager', membersSize: 2, librarySize: 1 };
+            _assertRole(user0, userManager, resource, assertions, () => {
+              // Accept the viewer invitation and ensure they show up in the members
+              AuthzTestUtil.assertAcceptInvitationForEmailSucceeds(
+                userViewer.restContext,
+                viewerEmail,
+                (result, invitations) => {
+                  assert.strictEqual(invitations.length, 1);
+
+                  const invitation = _.first(invitations);
+                  assert.strictEqual(invitation.resourceId, resourceAuthzId);
+                  assert.strictEqual(invitation.email, viewerEmail.toLowerCase());
+                  assert.strictEqual(invitation.inviterUserId, user0.user.id);
+                  assert.strictEqual(invitation.role, memberRole);
+
+                  assertions = { role: memberRole, membersSize: 3, librarySize: 1 };
+                  _assertRole(user0, userViewer, resource, assertions, () => {
+                    return callback();
+                  });
+                }
+              );
+            });
           }
         );
-      }
-    );
+      });
+    });
   };
 
   /*!
-     * Ensure parameter validation of inviting "email-like" strings when an invitation is attempted
-     * in the resource "create" request
-     *
-     * @param  {String}         resourceType    The resource type for which to execute the test
-     * @param  {Function}       callback        Invoked when the test is complete
-     * @throws {AssertionError}                 Thrown if any of the assertions fail
-     */
+   * Ensure authorization of accepting an invitation that contains a particular resource type.
+   *
+   * This also includes authorization revolving around the changed state of the inviting user. For
+   * example, if the user who invited another has since been deleted, or is demoted/removed from
+   * the resource, the invitation should still be successful.
+   *
+   * @param  {String}         resourceType    The resource type for which to execute the test
+   * @param  {Function}       callback        Invoked when the test is complete
+   * @throws {AssertionError}                 Thrown if any of the assertions fail
+   */
+  const _testInvitationAcceptAuthorization = function(resourceType, callback) {
+    const fns = resourceFns[resourceType];
+    const memberRole = resourceMemberRoles[resourceType];
+
+    TestsUtil.generateTestUsers(camAdminRestContext, 6, (err, users, user0, user1, user2, user3, user4, user5) => {
+      assert.ok(!err);
+
+      const email1 = _emailForTenant(global.oaeTests.tenants.cam);
+      const email2 = _emailForTenant(global.oaeTests.tenants.cam);
+      const email3 = _emailForTenant(global.oaeTests.tenants.cam);
+      const email4 = _emailForTenant(global.oaeTests.tenants.cam);
+      const email5 = _emailForTenant(global.oaeTests.tenants.cam);
+
+      fns.createSucceeds(user0.restContext, 'private', [email1], [], resource => {
+        // Accept as user1
+        AuthzTestUtil.assertAcceptInvitationForEmailSucceeds(user1.restContext, email1, () => {
+          // Ensure user1 can now set roles since they should be manager
+          let roles = {};
+          roles[email2] = 'manager';
+          roles[email3] = memberRole;
+          roles[email4] = memberRole;
+          roles[email5] = memberRole;
+          fns.setRolesSucceeds(user0.restContext, user1.restContext, resource.id, roles, () => {
+            // Remove the user who invited email2 and ensure email2 invitation can still be accepted
+            roles = {};
+            roles[user1.user.id] = false;
+            fns.setRolesSucceeds(user0.restContext, user0.restContext, resource.id, roles, () => {
+              // Ensure email2 can still be accepted and makes user2 a manager
+              AuthzTestUtil.assertAcceptInvitationForEmailSucceeds(user2.restContext, email2, () => {
+                _assertRole(user0, user2, resource, { role: 'manager' }, () => {
+                  // Accept the "member" role invitation for email3 as user2, ensuring their role
+                  // on the resource does not get demoted to the "member" role
+                  AuthzTestUtil.assertAcceptInvitationForEmailSucceeds(user2.restContext, email3, () => {
+                    _assertRole(user0, user2, resource, { role: 'manager' }, () => {
+                      // Delete user1 from the system, and ensure the user they
+                      // invited can still accept their invitation
+                      PrincipalsTestUtil.assertDeleteUserSucceeds(
+                        camAdminRestContext,
+                        camAdminRestContext,
+                        user1.user.id,
+                        () => {
+                          // Accept the invitation for email4 and ensure it succeeds despite the fact that
+                          // the user that invited them was deleted
+                          AuthzTestUtil.assertAcceptInvitationForEmailSucceeds(user4.restContext, email4, () => {
+                            _assertRole(user0, user4, resource, { role: memberRole }, () => {
+                              // Remove the invitation for email5, ensuring an invitation for email5 can still
+                              // be accepted, but it doesn't grant any access to the resource
+                              roles = {};
+                              roles[email5] = false;
+                              fns.setRolesSucceeds(user0.restContext, user0.restContext, resource.id, roles, () => {
+                                AuthzTestUtil.assertAcceptInvitationForEmailSucceeds(user5.restContext, email5, () => {
+                                  _assertRole(user0, user5, resource, { role: false }, () => {
+                                    return callback();
+                                  });
+                                });
+                              });
+                            });
+                          });
+                        }
+                      );
+                    });
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+  };
+
+  /*!
+   * Ensure parameter validation for accepting an invitation
+   *
+   * @param  {String}         resourceType    The resource type for which to execute the test
+   * @param  {Function}       callback        Invoked when the test is complete
+   * @throws {AssertionError}                 Thrown if any of the assertions fail
+   */
+  const _testInvitationAcceptValidation = function(resourceType, callback) {
+    const fns = resourceFns[resourceType];
+    TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, user0, acceptingUser, sneakyUser) => {
+      assert.ok(!err);
+
+      let email = _emailForTenant(global.oaeTests.tenants.cam);
+
+      // Token is required
+      AuthzTestUtil.assertAcceptInvitationFails(sneakyUser.restContext, null, 400, () => {
+        // Token must exist
+        AuthzTestUtil.assertAcceptInvitationFails(sneakyUser.restContext, 'nonexistingtoken', 404, () => {
+          // Create a resource with an invitation
+          fns.createSucceeds(user0.restContext, 'public', [email], [], resource => {
+            // Lower-case the email now so we can work with the data layer, where the
+            // email should have been lower-cased
+            email = email.toLowerCase();
+
+            AuthzInvitationsDAO.getTokensByEmails([email], (err, tokensByEmail) => {
+              assert.ok(!err);
+
+              const token = tokensByEmail[email];
+
+              // User must be logged in to accept
+              AuthzTestUtil.assertAcceptInvitationFails(anonymousRestContext, token, 401, () => {
+                // Sanity check we can accept with this token as authenticated user
+                AuthzTestUtil.assertAcceptInvitationSucceeds(acceptingUser.restContext, token, () => {
+                  // Ensure re-accepting this token as a sneaky user that intercepted it fails
+                  AuthzTestUtil.assertAcceptInvitationFails(sneakyUser.restContext, token, 404, () => {
+                    // Ensure the accepting user became a manager of the resource
+                    _assertRole(user0, acceptingUser, resource, { role: 'manager' }, () => {
+                      // Ensure the sneaky user does not have the resource
+                      _assertRole(user0, sneakyUser, resource, { role: false, membersSize: 2 }, () => {
+                        return callback();
+                      });
+                    });
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+  };
+
+  /*!
+   * Ensure that the invitations list is persisted appropriately with the expected roles when
+   * an invitation occurrs in the resource "create" request
+   *
+   * @param  {String}         resourceType    The resource type for which to execute the test
+   * @param  {Function}       callback        Invoked when the test is complete
+   * @throws {AssertionError}                 Thrown if any of the assertions fail
+   */
+  const _testInvitationsForCreate = function(resourceType, callback) {
+    const fns = resourceFns[resourceType];
+    TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, user0, userManager, userViewer) => {
+      assert.ok(!err);
+
+      // Ensure a simple create mixed with a couple member users succeeds
+      fns.createSucceeds(
+        user0.restContext,
+        'public',
+        ['manager@oae.local', userManager.user.id],
+        [userViewer.user.id, 'viewer@oae.local'],
+        // eslint-disable-next-line no-unused-vars
+        resource => {
+          return callback();
+        }
+      );
+    });
+  };
+
+  /*!
+   * Ensure parameter validation of inviting "email-like" strings when an invitation is attempted
+   * in the resource "create" request
+   *
+   * @param  {String}         resourceType    The resource type for which to execute the test
+   * @param  {Function}       callback        Invoked when the test is complete
+   * @throws {AssertionError}                 Thrown if any of the assertions fail
+   */
   const _testInvitationsValidationForCreate = function(resourceType, callback) {
     const fns = resourceFns[resourceType];
     TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, user0) => {
@@ -2356,13 +2003,13 @@ describe('Invitations', () => {
   };
 
   /*!
-     * Ensure authorization of inviting users from a variety of different types of tenants when
-     * inviting through the resource "create" action
-     *
-     * @param  {String}         resourceType    The resource type for which to execute the test
-     * @param  {Function}       callback        Invoked when the test is complete
-     * @throws {AssertionError}                 Thrown if any of the assertions fail
-     */
+   * Ensure authorization of inviting users from a variety of different types of tenants when
+   * inviting through the resource "create" action
+   *
+   * @param  {String}         resourceType    The resource type for which to execute the test
+   * @param  {Function}       callback        Invoked when the test is complete
+   * @throws {AssertionError}                 Thrown if any of the assertions fail
+   */
   const _testInvitationsAuthorizationForCreate = function(resourceType, callback) {
     const fns = resourceFns[resourceType];
     TestsUtil.setupMultiTenantPrivacyEntities((publicTenant0, publicTenant1, privateTenant0) => {
@@ -2473,13 +2120,13 @@ describe('Invitations', () => {
   };
 
   /*!
-     * Ensure that the invitations list is persisted appropriately with the expected roles when
-     * an invitation occurrs in the resource "share" request
-     *
-     * @param  {String}         resourceType    The resource type for which to execute the test
-     * @param  {Function}       callback        Invoked when the test is complete
-     * @throws {AssertionError}                 Thrown if any of the assertions fail
-     */
+   * Ensure that the invitations list is persisted appropriately with the expected roles when
+   * an invitation occurrs in the resource "share" request
+   *
+   * @param  {String}         resourceType    The resource type for which to execute the test
+   * @param  {Function}       callback        Invoked when the test is complete
+   * @throws {AssertionError}                 Thrown if any of the assertions fail
+   */
   const _testInvitationsForShare = function(resourceType, callback) {
     const fns = resourceFns[resourceType];
     TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, userSharer, user0, user1) => {
@@ -2501,98 +2148,61 @@ describe('Invitations', () => {
   };
 
   /*!
-     * Ensure parameter validation of inviting "email-like" strings when an invitation is attempted
-     * in the resource "share" request
-     *
-     * @param  {String}         resourceType    The resource type for which to execute the test
-     * @param  {Function}       callback        Invoked when the test is complete
-     * @throws {AssertionError}                 Thrown if any of the assertions fail
-     */
+   * Ensure parameter validation of inviting "email-like" strings when an invitation is attempted
+   * in the resource "share" request
+   *
+   * @param  {String}         resourceType    The resource type for which to execute the test
+   * @param  {Function}       callback        Invoked when the test is complete
+   * @throws {AssertionError}                 Thrown if any of the assertions fail
+   */
   const _testInvitationsValidationForShare = function(resourceType, callback) {
     const fns = resourceFns[resourceType];
     TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, user0) => {
       assert.ok(!err);
       fns.createSucceeds(user0.restContext, 'public', [], [], resource => {
         // Ensure cannot share with a variation of an email address
-        fns.shareFails(
-          user0.restContext,
-          user0.restContext,
-          resource.id,
-          ['email1@oae'],
-          400,
-          () => {
-            // Sanity check share succeeds
-            fns.shareSucceeds(
-              user0.restContext,
-              user0.restContext,
-              resource.id,
-              ['email1@oae.local'],
-              () => {
-                return callback();
-              }
-            );
-          }
-        );
+        fns.shareFails(user0.restContext, user0.restContext, resource.id, ['email1@oae'], 400, () => {
+          // Sanity check share succeeds
+          fns.shareSucceeds(user0.restContext, user0.restContext, resource.id, ['email1@oae.local'], () => {
+            return callback();
+          });
+        });
       });
     });
   };
 
   /*!
-     * Ensure authorization of inviting users from a variety of different types of tenants and
-     * resource visibilities when inviting through the resource "share" action
-     *
-     * @param  {String}         resourceType    The resource type for which to execute the test
-     * @param  {Function}       callback        Invoked when the test is complete
-     * @throws {AssertionError}                 Thrown if any of the assertions fail
-     */
+   * Ensure authorization of inviting users from a variety of different types of tenants and
+   * resource visibilities when inviting through the resource "share" action
+   *
+   * @param  {String}         resourceType    The resource type for which to execute the test
+   * @param  {Function}       callback        Invoked when the test is complete
+   * @throws {AssertionError}                 Thrown if any of the assertions fail
+   */
   const _testInvitationsAuthorizationForShare = function(resourceType, callback) {
     const fns = resourceFns[resourceType];
     TestsUtil.setupMultiTenantPrivacyEntities((publicTenant0, publicTenant1, privateTenant0) => {
-      _testInvitationsAuthorizationForPublicShare(
-        fns,
-        publicTenant0,
-        publicTenant1,
-        privateTenant0,
-        () => {
-          _testInvitationsAuthorizationForLoggedinShare(
-            fns,
-            publicTenant0,
-            publicTenant1,
-            privateTenant0,
-            () => {
-              _testInvitationsAuthorizationForPrivateShare(
-                fns,
-                publicTenant0,
-                publicTenant1,
-                privateTenant0,
-                () => {
-                  _testInvitationsAuthorizationForNoGuestsShare(
-                    fns,
-                    publicTenant0,
-                    publicTenant1,
-                    privateTenant0,
-                    callback
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
+      _testInvitationsAuthorizationForPublicShare(fns, publicTenant0, publicTenant1, privateTenant0, () => {
+        _testInvitationsAuthorizationForLoggedinShare(fns, publicTenant0, publicTenant1, privateTenant0, () => {
+          _testInvitationsAuthorizationForPrivateShare(fns, publicTenant0, publicTenant1, privateTenant0, () => {
+            _testInvitationsAuthorizationForNoGuestsShare(fns, publicTenant0, publicTenant1, privateTenant0, callback);
+          });
+        });
+      });
     });
   };
 
   /*!
-     * Ensure the authorization constraints of sharing a resource with emails from a variety
-     * of different types of tenants are as expected
-     *
-     * @param  {Object}         fns             The functions specification for the resource type to test, as given in `resourceFns`
-     * @param  {Object}         publicTenant0   The tenant info of a public tenant
-     * @param  {Object}         publicTenant1   The tenant info of another public tenant
-     * @param  {Object}         privateTenant0  The tenant info of a private tenant
-     * @param  {Function}       callback        Invoked when the test is complete
-     * @throws {AssertionError}                 Thrown if any of the assertions fail
-     */
+   * Ensure the authorization constraints of sharing a resource with emails from a variety
+   * of different types of tenants are as expected
+   *
+   * @param  {Object}         fns             The functions specification for the resource type to test, as given in `resourceFns`
+   * @param  {Object}         publicTenant0   The tenant info of a public tenant
+   * @param  {Object}         publicTenant1   The tenant info of another public tenant
+   * @param  {Object}         privateTenant0  The tenant info of a private tenant
+   * @param  {Function}       callback        Invoked when the test is complete
+   * @throws {AssertionError}                 Thrown if any of the assertions fail
+   */
   const _testInvitationsAuthorizationForPublicShare = function(
     fns,
     publicTenant0,
@@ -2677,16 +2287,16 @@ describe('Invitations', () => {
   };
 
   /*!
-     * Ensure the authorization constraints of sharing a loggedin resource with emails from a variety
-     * of different types of tenants are as expected
-     *
-     * @param  {Object}         fns             The functions specification for the resource type to test, as given in `resourceFns`
-     * @param  {Object}         publicTenant0   The tenant info of a public tenant
-     * @param  {Object}         publicTenant1   The tenant info of another public tenant
-     * @param  {Object}         privateTenant0  The tenant info of a private tenant
-     * @param  {Function}       callback        Invoked when the test is complete
-     * @throws {AssertionError}                 Thrown if any of the assertions fail
-     */
+   * Ensure the authorization constraints of sharing a loggedin resource with emails from a variety
+   * of different types of tenants are as expected
+   *
+   * @param  {Object}         fns             The functions specification for the resource type to test, as given in `resourceFns`
+   * @param  {Object}         publicTenant0   The tenant info of a public tenant
+   * @param  {Object}         publicTenant1   The tenant info of another public tenant
+   * @param  {Object}         privateTenant0  The tenant info of a private tenant
+   * @param  {Function}       callback        Invoked when the test is complete
+   * @throws {AssertionError}                 Thrown if any of the assertions fail
+   */
   const _testInvitationsAuthorizationForLoggedinShare = function(
     fns,
     publicTenant0,
@@ -2773,16 +2383,16 @@ describe('Invitations', () => {
   };
 
   /*!
-     * Ensure the authorization constraints of sharing a private resource with emails from a variety
-     * of different types of tenants are as expected
-     *
-     * @param  {Object}         fns             The functions specification for the resource type to test, as given in `resourceFns`
-     * @param  {Object}         publicTenant0   The tenant info of a public tenant
-     * @param  {Object}         publicTenant1   The tenant info of another public tenant
-     * @param  {Object}         privateTenant0  The tenant info of a private tenant
-     * @param  {Function}       callback        Invoked when the test is complete
-     * @throws {AssertionError}                 Thrown if any of the assertions fail
-     */
+   * Ensure the authorization constraints of sharing a private resource with emails from a variety
+   * of different types of tenants are as expected
+   *
+   * @param  {Object}         fns             The functions specification for the resource type to test, as given in `resourceFns`
+   * @param  {Object}         publicTenant0   The tenant info of a public tenant
+   * @param  {Object}         publicTenant1   The tenant info of another public tenant
+   * @param  {Object}         privateTenant0  The tenant info of a private tenant
+   * @param  {Function}       callback        Invoked when the test is complete
+   * @throws {AssertionError}                 Thrown if any of the assertions fail
+   */
   const _testInvitationsAuthorizationForPrivateShare = function(
     fns,
     publicTenant0,
@@ -2870,16 +2480,16 @@ describe('Invitations', () => {
   };
 
   /*!
-     * Ensure the authorization constraints of sharing a resource with guests on
-     * a tenant that has disabled inviting guests
-     *
-     * @param  {Object}         fns             The functions specification for the resource type to test, as given in `resourceFns`
-     * @param  {Object}         publicTenant0   The tenant info of a public tenant
-     * @param  {Object}         publicTenant1   The tenant info of another public tenant
-     * @param  {Object}         privateTenant0  The tenant info of a private tenant
-     * @param  {Function}       callback        Invoked when the test is complete
-     * @throws {AssertionError}                 Thrown if any of the assertions fail
-     */
+   * Ensure the authorization constraints of sharing a resource with guests on
+   * a tenant that has disabled inviting guests
+   *
+   * @param  {Object}         fns             The functions specification for the resource type to test, as given in `resourceFns`
+   * @param  {Object}         publicTenant0   The tenant info of a public tenant
+   * @param  {Object}         publicTenant1   The tenant info of another public tenant
+   * @param  {Object}         privateTenant0  The tenant info of a private tenant
+   * @param  {Function}       callback        Invoked when the test is complete
+   * @throws {AssertionError}                 Thrown if any of the assertions fail
+   */
   const _testInvitationsAuthorizationForNoGuestsShare = function(
     fns,
     publicTenant0,
@@ -2968,71 +2578,49 @@ describe('Invitations', () => {
   };
 
   /*!
-     * Ensure that the invitations list is persisted appropriately with the expected roles when
-     * an invitation occurrs in the resource "set roles" request
-     *
-     * @param  {String}         resourceType    The resource type for which to execute the test
-     * @param  {Function}       callback        Invoked when the test is complete
-     * @throws {AssertionError}                 Thrown if any of the assertions fail
-     */
+   * Ensure that the invitations list is persisted appropriately with the expected roles when
+   * an invitation occurrs in the resource "set roles" request
+   *
+   * @param  {String}         resourceType    The resource type for which to execute the test
+   * @param  {Function}       callback        Invoked when the test is complete
+   * @throws {AssertionError}                 Thrown if any of the assertions fail
+   */
   const _testInvitationsForSetRoles = function(resourceType, callback) {
     const fns = resourceFns[resourceType];
     const memberRole = resourceMemberRoles[resourceType];
 
-    TestsUtil.generateTestUsers(
-      camAdminRestContext,
-      3,
-      (err, users, userSetRoles, user0, user1) => {
-        assert.ok(!err);
-        fns.createSucceeds(
-          userSetRoles.restContext,
-          'public',
-          ['email1@oae.local'],
-          [],
-          resource => {
-            // Ensure a simple set roles works as expected. email1 should be demoted to the
-            // member role, and email2 should be added as a manager
-            const roles = {};
-            roles[user0.user.id] = 'manager';
-            roles[user1.user.id] = memberRole;
-            roles['email1@oae.local'] = memberRole;
-            roles['email2@oae.local'] = 'manager';
+    TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, userSetRoles, user0, user1) => {
+      assert.ok(!err);
+      fns.createSucceeds(userSetRoles.restContext, 'public', ['email1@oae.local'], [], resource => {
+        // Ensure a simple set roles works as expected. email1 should be demoted to the
+        // member role, and email2 should be added as a manager
+        const roles = {};
+        roles[user0.user.id] = 'manager';
+        roles[user1.user.id] = memberRole;
+        roles['email1@oae.local'] = memberRole;
+        roles['email2@oae.local'] = 'manager';
 
-            // Set the roles for both members and invitations
-            fns.setRolesSucceeds(
-              userSetRoles.restContext,
-              userSetRoles.restContext,
-              resource.id,
-              roles,
-              () => {
-                // Now remove them all, ensuring the states are updated appropriately
-                const rolesRemove = AuthzTestUtil.createRoleChange(_.keys(roles), false);
-                fns.setRolesSucceeds(
-                  userSetRoles.restContext,
-                  userSetRoles.restContext,
-                  resource.id,
-                  rolesRemove,
-                  () => {
-                    return callback();
-                  }
-                );
-              }
-            );
-          }
-        );
-      }
-    );
+        // Set the roles for both members and invitations
+        fns.setRolesSucceeds(userSetRoles.restContext, userSetRoles.restContext, resource.id, roles, () => {
+          // Now remove them all, ensuring the states are updated appropriately
+          const rolesRemove = AuthzTestUtil.createRoleChange(_.keys(roles), false);
+          fns.setRolesSucceeds(userSetRoles.restContext, userSetRoles.restContext, resource.id, rolesRemove, () => {
+            return callback();
+          });
+        });
+      });
+    });
   };
 
   /*!
-     * Ensure that when an email that has multiple resource invitations has one
-     * resource removed, the other resources are still accepted when the
-     * invitation is accepted
-     *
-     * @param  {String}         resourceType    The resource type for which to execute the test
-     * @param  {Function}       callback        Invoked when the test is complete
-     * @throws {AssertionError}                 Thrown if any of the assertions fail
-     */
+   * Ensure that when an email that has multiple resource invitations has one
+   * resource removed, the other resources are still accepted when the
+   * invitation is accepted
+   *
+   * @param  {String}         resourceType    The resource type for which to execute the test
+   * @param  {Function}       callback        Invoked when the test is complete
+   * @throws {AssertionError}                 Thrown if any of the assertions fail
+   */
   const _testInvitationsPartialRemoveRoles = function(resourceType, callback) {
     const fns = resourceFns[resourceType];
     const memberRole = resourceMemberRoles[resourceType];
@@ -3047,20 +2635,48 @@ describe('Invitations', () => {
         fns.createSucceeds(userSetRoles.restContext, 'public', [], [email], resource2 => {
           // Remove the email from one of the resources
           const roles = _.oaeObj(email, false);
-          fns.setRolesSucceeds(
-            userSetRoles.restContext,
-            userSetRoles.restContext,
-            resource1.id,
-            roles,
+          fns.setRolesSucceeds(userSetRoles.restContext, userSetRoles.restContext, resource1.id, roles, () => {
+            // Accept the email invitation as the invited email user, ensuring they get access
+            // to just the one resource (resource2)
+            const assertions = { role: memberRole, membersSize: 2, librarySize: 1 };
+            _assertAcceptEmailInvitation(userSetRoles, userAccept, [resource2], assertions, () => {
+              return callback();
+            });
+          });
+        });
+      });
+    });
+  };
+
+  /*!
+   * Ensure parameter validation of inviting "email-like" strings when an invitation is attempted
+   * in the resource "set roles" request
+   *
+   * @param  {String}         resourceType    The resource type for which to execute the test
+   * @param  {Function}       callback        Invoked when the test is complete
+   * @throws {AssertionError}                 Thrown if any of the assertions fail
+   */
+  const _testInvitationsValidationForSetRoles = function(resourceType, callback) {
+    const fns = resourceFns[resourceType];
+    TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, user0) => {
+      assert.ok(!err);
+      fns.createSucceeds(user0.restContext, 'public', [], [], resource => {
+        // Ensure invalid email is rejected
+        fns.setRolesFails(user0.restContext, user0.restContext, resource.id, { 'email1@oae': 'manager' }, 400, () => {
+          // Ensure invalid role for email is rejected
+          fns.setRolesFails(
+            user0.restContext,
+            user0.restContext,
+            resource.id,
+            { 'email1@oae.local': 'invalidrole' },
+            400,
             () => {
-              // Accept the email invitation as the invited email user, ensuring they get access
-              // to just the one resource (resource2)
-              const assertions = { role: memberRole, membersSize: 2, librarySize: 1 };
-              _assertAcceptEmailInvitation(
-                userSetRoles,
-                userAccept,
-                [resource2],
-                assertions,
+              // Sanity check we can set roles with a valid role
+              fns.setRolesSucceeds(
+                user0.restContext,
+                user0.restContext,
+                resource.id,
+                { 'email1@oae.local': 'manager' },
                 () => {
                   return callback();
                 }
@@ -3073,60 +2689,13 @@ describe('Invitations', () => {
   };
 
   /*!
-     * Ensure parameter validation of inviting "email-like" strings when an invitation is attempted
-     * in the resource "set roles" request
-     *
-     * @param  {String}         resourceType    The resource type for which to execute the test
-     * @param  {Function}       callback        Invoked when the test is complete
-     * @throws {AssertionError}                 Thrown if any of the assertions fail
-     */
-  const _testInvitationsValidationForSetRoles = function(resourceType, callback) {
-    const fns = resourceFns[resourceType];
-    TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, user0) => {
-      assert.ok(!err);
-      fns.createSucceeds(user0.restContext, 'public', [], [], resource => {
-        // Ensure invalid email is rejected
-        fns.setRolesFails(
-          user0.restContext,
-          user0.restContext,
-          resource.id,
-          { 'email1@oae': 'manager' },
-          400,
-          () => {
-            // Ensure invalid role for email is rejected
-            fns.setRolesFails(
-              user0.restContext,
-              user0.restContext,
-              resource.id,
-              { 'email1@oae.local': 'invalidrole' },
-              400,
-              () => {
-                // Sanity check we can set roles with a valid role
-                fns.setRolesSucceeds(
-                  user0.restContext,
-                  user0.restContext,
-                  resource.id,
-                  { 'email1@oae.local': 'manager' },
-                  () => {
-                    return callback();
-                  }
-                );
-              }
-            );
-          }
-        );
-      });
-    });
-  };
-
-  /*!
-     * Ensure authorization of inviting users from a variety of different types of tenants when
-     * inviting through the resource "set roles" action
-     *
-     * @param  {String}         resourceType    The resource type for which to execute the test
-     * @param  {Function}       callback        Invoked when the test is complete
-     * @throws {AssertionError}                 Thrown if any of the assertions fail
-     */
+   * Ensure authorization of inviting users from a variety of different types of tenants when
+   * inviting through the resource "set roles" action
+   *
+   * @param  {String}         resourceType    The resource type for which to execute the test
+   * @param  {Function}       callback        Invoked when the test is complete
+   * @throws {AssertionError}                 Thrown if any of the assertions fail
+   */
   const _testInvitationsAuthorizationForSetRoles = function(resourceType, callback) {
     const fns = resourceFns[resourceType];
     const memberRole = resourceMemberRoles[resourceType];
@@ -3155,78 +2724,72 @@ describe('Invitations', () => {
             rolesExternalPrivateTenant[_emailForTenantInfo(privateTenant0)] = memberRole;
 
             // Ensure manager can set invitation roles for all emails they can interact with
-            fns.setRolesSucceeds(
-              managerUser.restContext,
-              managerUser.restContext,
-              resource.id,
-              rolesSameTenant,
-              () => {
-                fns.setRolesSucceeds(
-                  managerUser.restContext,
-                  managerUser.restContext,
-                  resource.id,
-                  rolesExternalPublicTenant,
-                  () => {
-                    fns.setRolesSucceeds(
-                      managerUser.restContext,
-                      managerUser.restContext,
-                      resource.id,
-                      rolesGuestTenant,
-                      () => {
-                        fns.setRolesFails(
-                          managerUser.restContext,
-                          managerUser.restContext,
-                          resource.id,
-                          rolesExternalPrivateTenant,
-                          401,
-                          () => {
-                            // Ensure a user on a tenant that has disabled inviting guests
-                            // cannot invite guests that end up on the guest tenant
-                            _disableInvitingGuests(publicTenant0.tenant.alias, () => {
-                              fns.setRolesSucceeds(
-                                managerUser.restContext,
-                                managerUser.restContext,
-                                resource.id,
-                                rolesSameTenant,
-                                () => {
-                                  fns.setRolesSucceeds(
-                                    managerUser.restContext,
-                                    managerUser.restContext,
-                                    resource.id,
-                                    rolesExternalPublicTenant,
-                                    () => {
-                                      fns.setRolesFails(
-                                        managerUser.restContext,
-                                        managerUser.restContext,
-                                        resource.id,
-                                        rolesGuestTenant,
-                                        401,
-                                        () => {
-                                          fns.setRolesFails(
-                                            managerUser.restContext,
-                                            managerUser.restContext,
-                                            resource.id,
-                                            rolesExternalPrivateTenant,
-                                            401,
-                                            () => {
-                                              return callback();
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            });
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
+            fns.setRolesSucceeds(managerUser.restContext, managerUser.restContext, resource.id, rolesSameTenant, () => {
+              fns.setRolesSucceeds(
+                managerUser.restContext,
+                managerUser.restContext,
+                resource.id,
+                rolesExternalPublicTenant,
+                () => {
+                  fns.setRolesSucceeds(
+                    managerUser.restContext,
+                    managerUser.restContext,
+                    resource.id,
+                    rolesGuestTenant,
+                    () => {
+                      fns.setRolesFails(
+                        managerUser.restContext,
+                        managerUser.restContext,
+                        resource.id,
+                        rolesExternalPrivateTenant,
+                        401,
+                        () => {
+                          // Ensure a user on a tenant that has disabled inviting guests
+                          // cannot invite guests that end up on the guest tenant
+                          _disableInvitingGuests(publicTenant0.tenant.alias, () => {
+                            fns.setRolesSucceeds(
+                              managerUser.restContext,
+                              managerUser.restContext,
+                              resource.id,
+                              rolesSameTenant,
+                              () => {
+                                fns.setRolesSucceeds(
+                                  managerUser.restContext,
+                                  managerUser.restContext,
+                                  resource.id,
+                                  rolesExternalPublicTenant,
+                                  () => {
+                                    fns.setRolesFails(
+                                      managerUser.restContext,
+                                      managerUser.restContext,
+                                      resource.id,
+                                      rolesGuestTenant,
+                                      401,
+                                      () => {
+                                        fns.setRolesFails(
+                                          managerUser.restContext,
+                                          managerUser.restContext,
+                                          resource.id,
+                                          rolesExternalPrivateTenant,
+                                          401,
+                                          () => {
+                                            return callback();
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          });
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            });
           }
         );
       });
@@ -3234,12 +2797,12 @@ describe('Invitations', () => {
   };
 
   /*!
-     * Disable inviting guests for a given tenant
-     *
-     * @param  {String}         tenantAlias     The alias of the tenant to disable the inviting guests feature for
-     * @param  {Function}       callback        Invoked when the configuration has been updated
-     * @throws {AssertionError}                 Thrown if any of the assertions fail
-     */
+   * Disable inviting guests for a given tenant
+   *
+   * @param  {String}         tenantAlias     The alias of the tenant to disable the inviting guests feature for
+   * @param  {Function}       callback        Invoked when the configuration has been updated
+   * @throws {AssertionError}                 Thrown if any of the assertions fail
+   */
   const _disableInvitingGuests = function(tenantAlias, callback) {
     ConfigTestUtil.updateConfigAndWait(
       globalAdminRestContext,
@@ -3278,12 +2841,7 @@ describe('Invitations', () => {
           contextId: _.first(resources).id
         });
 
-        _assertStandardInvitationAcceptSummaries(
-          inviterUserInfo,
-          invitedUserInfo,
-          otherUserInfo,
-          resources
-        );
+        _assertStandardInvitationAcceptSummaries(inviterUserInfo, invitedUserInfo, otherUserInfo, resources);
 
         // Check the resource-specific summary match against this number of resources
         const match = assertions.matches[resources.length - 1];
@@ -3382,35 +2940,29 @@ describe('Invitations', () => {
   };
 
   /*!
-     * Collect pending emails, ensure the following:
-     *
-     *  * Email Contents:   Ensure the contents of the email contains each of the specified
-     *                      resources
-     *  * Invitation Link:  Ensure the invitation link is present and contains a token that allows
-     *                      the email recipient to accept the invitation, gaining access to the
-     *                      specified resources
-     *  * Accepting:        Ensure that when the email recipient accepts the invitation, they are
-     *                      given all the specified resources in their respective libraries feeds
-     *                      and searches. Also, it ensures that the members feed of the accepted
-     *                      resource contains the user who accepted the invitation
-     *
-     * @param  {Object}         invitingUserInfo        The user info of the user who performed the invitation
-     * @param  {Object}         acceptingUserInfo       The user info of the user who should accept the invitation
-     * @param  {Resource[]}     resources               The resources we expect to be accepted in this email invitation
-     * @param  {Object}         assertions              The assertion data according to the context o the data setup
-     * @param  {String}         assertions.role         The role, if any, we expect the user to have on each resource after accepting
-     * @param  {Number}         assertions.membersSize  The expected size of the resource members libraries after accepting
-     * @param  {Number}         assertions.librarySize  The expected size of the respective resource library after accepting
-     * @param  {Function}       callback                Invoked when the test is complete
-     * @throws {AssertionError}                         Thrown if any of the assertions fail
-     */
-  const _assertAcceptEmailInvitation = function(
-    invitingUserInfo,
-    acceptingUserInfo,
-    resources,
-    assertions,
-    callback
-  ) {
+   * Collect pending emails, ensure the following:
+   *
+   *  * Email Contents:   Ensure the contents of the email contains each of the specified
+   *                      resources
+   *  * Invitation Link:  Ensure the invitation link is present and contains a token that allows
+   *                      the email recipient to accept the invitation, gaining access to the
+   *                      specified resources
+   *  * Accepting:        Ensure that when the email recipient accepts the invitation, they are
+   *                      given all the specified resources in their respective libraries feeds
+   *                      and searches. Also, it ensures that the members feed of the accepted
+   *                      resource contains the user who accepted the invitation
+   *
+   * @param  {Object}         invitingUserInfo        The user info of the user who performed the invitation
+   * @param  {Object}         acceptingUserInfo       The user info of the user who should accept the invitation
+   * @param  {Resource[]}     resources               The resources we expect to be accepted in this email invitation
+   * @param  {Object}         assertions              The assertion data according to the context o the data setup
+   * @param  {String}         assertions.role         The role, if any, we expect the user to have on each resource after accepting
+   * @param  {Number}         assertions.membersSize  The expected size of the resource members libraries after accepting
+   * @param  {Number}         assertions.librarySize  The expected size of the respective resource library after accepting
+   * @param  {Function}       callback                Invoked when the test is complete
+   * @throws {AssertionError}                         Thrown if any of the assertions fail
+   */
+  const _assertAcceptEmailInvitation = function(invitingUserInfo, acceptingUserInfo, resources, assertions, callback) {
     // Receive the email invitation, ensuring we only have 1
     EmailTestUtil.collectAndFetchAllEmails(messages => {
       assert.strictEqual(_.size(messages), 1);
@@ -3432,8 +2984,8 @@ describe('Invitations', () => {
       assert.ok(hasOne);
 
       // Ensure the token in the email is functional
-      const token = url.parse(AuthzTestUtil.parseInvitationUrlFromMessage(message).query.url, true)
-        .query.invitationToken;
+      const token = url.parse(AuthzTestUtil.parseInvitationUrlFromMessage(message).query.url, true).query
+        .invitationToken;
       AuthzTestUtil.assertAcceptInvitationSucceeds(acceptingUserInfo.restContext, token, () => {
         // Ensure the user has the specified role on all the resources
         // eslint-disable-next-line no-unused-vars
@@ -3453,28 +3005,29 @@ describe('Invitations', () => {
   };
 
   /*!
-     * Ensure the potential member user has the given role (if any) on all the specified resources
-     * including:
-     *
-     *  * Members Feed:     Ensure the members feed of the resource contains the resource
-     *  * Library Feed:     Ensure the respective library feed of the user contains each resource
-     *  * Library Search:   Ensure the respective library search of the user contains each resource
-     *
-     * @param  {Object}         managerUserInfo         The user info of a user who manages each resource
-     * @param  {Object}         memberUserInfo          The user info of the user we are going to test for membership
-     * @param  {Resource[]}     resources               The resources we are checking against for membership
-     * @param  {Object}         assertions              The assertion data according to the context o the data setup
-     * @param  {String}         assertions.role         The role, if any, we expect the user to have on each resource
-     * @param  {Number}         assertions.membersSize  The expected size of the resource members libraries
-     * @param  {Number}         assertions.librarySize  The expected size of the respective resource library
-     * @param  {Function}       callback                Invoked when the test is complete
-     * @throws {AssertionError}                         Thrown if any of the assertions fail
-     */
+   * Ensure the potential member user has the given role (if any) on all the specified resources
+   * including:
+   *
+   *  * Members Feed:     Ensure the members feed of the resource contains the resource
+   *  * Library Feed:     Ensure the respective library feed of the user contains each resource
+   *  * Library Search:   Ensure the respective library search of the user contains each resource
+   *
+   * @param  {Object}         managerUserInfo         The user info of a user who manages each resource
+   * @param  {Object}         memberUserInfo          The user info of the user we are going to test for membership
+   * @param  {Resource[]}     resources               The resources we are checking against for membership
+   * @param  {Object}         assertions              The assertion data according to the context o the data setup
+   * @param  {String}         assertions.role         The role, if any, we expect the user to have on each resource
+   * @param  {Number}         assertions.membersSize  The expected size of the resource members libraries
+   * @param  {Number}         assertions.librarySize  The expected size of the respective resource library
+   * @param  {Function}       callback                Invoked when the test is complete
+   * @throws {AssertionError}                         Thrown if any of the assertions fail
+   */
   const _assertRole = function(managerUserInfo, memberUserInfo, resources, assertions, callback) {
     assertions = assertions || {};
     if (!_.isArray(resources)) {
       return _assertRole(managerUserInfo, memberUserInfo, [resources], assertions, callback);
     }
+
     if (_.isEmpty(resources)) {
       return callback();
     }
@@ -3521,53 +3074,46 @@ describe('Invitations', () => {
           : SearchTestUtil.assertSearchNotContains;
 
         const libraryName = resourceLibraryInfo[resource.resourceType];
-        searchAssertFn(
-          memberUserInfo.restContext,
-          libraryName,
-          [memberUserInfo.user.id],
-          null,
-          [resource.id],
-          () => {
-            return _assertRole(managerUserInfo, memberUserInfo, resources, assertions, callback);
-          }
-        );
+        searchAssertFn(memberUserInfo.restContext, libraryName, [memberUserInfo.user.id], null, [resource.id], () => {
+          return _assertRole(managerUserInfo, memberUserInfo, resources, assertions, callback);
+        });
       });
     });
   };
 
   /*!
-     * Ensure that the specified invitation email HTML indicates the specified resource without its
-     * profile path. It should not have its profile path because it is not a link.
-     *
-     * @param  {String}         html        The html content to check
-     * @param  {Resource}       resource    The resource to ensure is present in the html content
-     * @throws {AssertionError}             Thrown if the conditions are not met
-     */
+   * Ensure that the specified invitation email HTML indicates the specified resource without its
+   * profile path. It should not have its profile path because it is not a link.
+   *
+   * @param  {String}         html        The html content to check
+   * @param  {Resource}       resource    The resource to ensure is present in the html content
+   * @throws {AssertionError}             Thrown if the conditions are not met
+   */
   const _assertInvitationContainsResourceHtml = function(html, resource) {
     _assertContains(html, resource.displayName);
     _assertNotContains(html, resource.profilePath);
   };
 
   /*!
-     * Ensure that the specified accepted invitation activity email HTML indicates the specified
-     * resource
-     *
-     * @param  {String}         html        The html content to check
-     * @param  {Resource}       resource    The resource to ensure is present in the html content
-     * @throws {AssertionError}             Thrown if the conditions are not met
-     */
+   * Ensure that the specified accepted invitation activity email HTML indicates the specified
+   * resource
+   *
+   * @param  {String}         html        The html content to check
+   * @param  {Resource}       resource    The resource to ensure is present in the html content
+   * @throws {AssertionError}             Thrown if the conditions are not met
+   */
   const _assertAcceptInvitationContainsResourceHtml = function(html, resource) {
     _assertContains(html, resource.displayName);
     _assertContains(html, resource.profilePath);
   };
 
   /*!
-     * Ensure the source string contains the match string
-     *
-     * @param  {String}         sourceStr   The source string to match
-     * @param  {String}         matchStr    The string to ensure is present in the source string
-     * @throws {AssertionError}             Thrown if the conditions are not met
-     */
+   * Ensure the source string contains the match string
+   *
+   * @param  {String}         sourceStr   The source string to match
+   * @param  {String}         matchStr    The string to ensure is present in the source string
+   * @throws {AssertionError}             Thrown if the conditions are not met
+   */
   const _assertContains = function(sourceStr, matchStr) {
     if (!matchStr) {
       assert.fail('Cannot assert against a falsey string');
@@ -3577,12 +3123,12 @@ describe('Invitations', () => {
   };
 
   /*!
-     * Ensure the source string does not contain the match string
-     *
-     * @param  {String}         sourceStr   The source string to match
-     * @param  {String}         matchStr    The string to ensure is not present in the source string
-     * @throws {AssertionError}             Thrown if the conditions are not met
-     */
+   * Ensure the source string does not contain the match string
+   *
+   * @param  {String}         sourceStr   The source string to match
+   * @param  {String}         matchStr    The string to ensure is not present in the source string
+   * @throws {AssertionError}             Thrown if the conditions are not met
+   */
   const _assertNotContains = function(sourceStr, matchStr) {
     if (!matchStr) {
       assert.fail('Cannot assert against a falsey string');
@@ -3592,23 +3138,17 @@ describe('Invitations', () => {
   };
 
   /*!
-     * Convenience function to create one of each type of resource with the specified access
-     *
-     * @param  {Object}         creatingUserInfo    The user info to use to create each resource
-     * @param  {String}         visibility          The visibility to apply to each resource
-     * @param  {String[]}       managerIds          The managers of the resource
-     * @param  {String[]}       memberIds           The members of the resource
-     * @param  {Function}       callback            Invoked when the test is complete
-     * @param  {Resource[]}     callback.resources  The created resources
-     * @throws {AssertionError}                     Thrown if any of the assertions fail
-     */
-  const _createOneOfEachResourceType = function(
-    creatingUserInfo,
-    visibility,
-    managerIds,
-    memberIds,
-    callback
-  ) {
+   * Convenience function to create one of each type of resource with the specified access
+   *
+   * @param  {Object}         creatingUserInfo    The user info to use to create each resource
+   * @param  {String}         visibility          The visibility to apply to each resource
+   * @param  {String[]}       managerIds          The managers of the resource
+   * @param  {String[]}       memberIds           The members of the resource
+   * @param  {Function}       callback            Invoked when the test is complete
+   * @param  {Resource[]}     callback.resources  The created resources
+   * @throws {AssertionError}                     Thrown if any of the assertions fail
+   */
+  const _createOneOfEachResourceType = function(creatingUserInfo, visibility, managerIds, memberIds, callback) {
     // Create a resource of each known type, aggregating them into the `createResults`
     // object
     const resources = [];
@@ -3624,30 +3164,24 @@ describe('Invitations', () => {
     // eslint-disable-next-line no-unused-vars
     PrincipalsTestUtil.assertGetMeSucceeds(creatingUserInfo.restContext, me => {
       _.each(resourceFns, fns => {
-        fns.createSucceeds(
-          creatingUserInfo.restContext,
-          visibility,
-          managerIds,
-          memberIds,
-          resource => {
-            resources.push(resource);
-            return _done();
-          }
-        );
+        fns.createSucceeds(creatingUserInfo.restContext, visibility, managerIds, memberIds, resource => {
+          resources.push(resource);
+          return _done();
+        });
       });
     });
   };
 
   /*!
-     * Convenience function to extend the specified user info with the adapted preview items and
-     * summary of the specified activity
-     *
-     * @param  {Object}     userInfo            The user info to extend
-     * @param  {Activity}   activity            The activity whose adapted info to overlay
-     * @param  {Object}     [opts]              Optional arguments
-     * @param  {String}     [opts.contextId]    The context id for the adapted activity. Defaults to the user id of the user info
-     * @return {Object}                         The user info with the adapted activity preview items and summary applied
-     */
+   * Convenience function to extend the specified user info with the adapted preview items and
+   * summary of the specified activity
+   *
+   * @param  {Object}     userInfo            The user info to extend
+   * @param  {Activity}   activity            The activity whose adapted info to overlay
+   * @param  {Object}     [opts]              Optional arguments
+   * @param  {String}     [opts.contextId]    The context id for the adapted activity. Defaults to the user id of the user info
+   * @return {Object}                         The user info with the adapted activity preview items and summary applied
+   */
   const _withAdaptedInfo = function(userInfo, activity, opts) {
     opts = opts || {};
     opts.contextId = opts.contextId || userInfo.user.id;
@@ -3673,34 +3207,34 @@ describe('Invitations', () => {
   };
 
   /*!
-     * Create an email whose domain matches that of the specified tenant info
-     *
-     * @param  {Object}     tenantInfo  The tenant info object
-     * @param  {String}     [username]  The username of the email. One will be randomly generated if unspecified
-     * @return {String}                 The created email
-     */
+   * Create an email whose domain matches that of the specified tenant info
+   *
+   * @param  {Object}     tenantInfo  The tenant info object
+   * @param  {String}     [username]  The username of the email. One will be randomly generated if unspecified
+   * @return {String}                 The created email
+   */
   const _emailForTenantInfo = function(tenantInfo, username) {
     return _emailForTenant(tenantInfo.tenant, username);
   };
 
   /*!
-     * Create an email whose domain matches that of the specified tenant
-     *
-     * @param  {Tenant}     tenant      The tenant
-     * @param  {String}     [username]  The username of the email. One will be randomly generated if unspecified
-     * @return {String}                 The created email
-     */
+   * Create an email whose domain matches that of the specified tenant
+   *
+   * @param  {Tenant}     tenant      The tenant
+   * @param  {String}     [username]  The username of the email. One will be randomly generated if unspecified
+   * @return {String}                 The created email
+   */
   const _emailForTenant = function(tenant, username) {
     return _emailForDomain(tenant.emailDomains[0], username);
   };
 
   /*!
-     * Create an email with the specified host and username
-     *
-     * @param  {String}     host        The host
-     * @param  {String}     [username]  The username of the email. One will be randomly generated if unspecified
-     * @return {String}                 The created email
-     */
+   * Create an email with the specified host and username
+   *
+   * @param  {String}     host        The host
+   * @param  {String}     [username]  The username of the email. One will be randomly generated if unspecified
+   * @return {String}                 The created email
+   */
   const _emailForDomain = function(host, username) {
     return util.format('%s@%s', username || TestsUtil.generateTestUserId(), host);
   };

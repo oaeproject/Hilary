@@ -25,7 +25,7 @@ const { Validator } = require('oae-authz/lib/validator');
 const _ = require('underscore');
 
 const { Group } = require('oae-principals/lib/model');
-const PrincipalsConfig = require('oae-config').config('oae-principals');
+const PrincipalsConfig = require('oae-config').setUpConfig('oae-principals');
 const { User } = require('oae-principals/lib/model');
 const { PrincipalsConstants } = require('../constants');
 
@@ -178,6 +178,7 @@ const getExistingPrincipals = function(principalIds, fields, callback) {
     if (err) {
       return callback(err);
     }
+
     if (_.keys(principalsById).length !== principalIds.length) {
       return callback({ code: 400, msg: 'One or more provided principals did not exist' });
     }
@@ -209,6 +210,7 @@ const getPrincipals = function(principalIds, fields, callback) {
         // even if it is just a listing of 1 principal (e.g., a library of 1 item)
         return callback(null, {});
       }
+
       if (err) {
         return callback(err);
       }
@@ -423,6 +425,7 @@ const getEmailToken = function(userId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(rows)) {
       return callback({ code: 404, msg: 'No email token found for the given user id' });
     }
@@ -723,6 +726,7 @@ const _isEmailAddressUpdate = function(principalId, profileFields, callback) {
     if (err) {
       return callback(err);
     }
+
     if (user.email !== profileFields.email) {
       return callback(null, true, user.email);
     }
@@ -745,6 +749,7 @@ const _getPrincipalFromCassandra = function(principalId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(rows)) {
       return callback({ code: 404, msg: "Couldn't find principal: " + principalId });
     }
@@ -817,6 +822,7 @@ const _getUserFromRedis = function(userId, callback) {
       // Since we also push updates into redis, use the user id as a slug to ensure that the user doesn't exist in
       // cache by virtue of an upsert
     }
+
     if (!hash || !hash.principalId) {
       return callback({ code: 404, msg: 'Principal not found in redis' });
     }
@@ -974,6 +980,7 @@ const getVisitedGroups = function(userId, callback) {
   if (isUser(userId)) {
     return _getVisitedGroupsFromCassandra(userId, callback);
   }
+
   return callback({ code: 404, msg: "Couldn't find user: " + userId });
 };
 
@@ -991,6 +998,7 @@ const _getVisitedGroupsFromCassandra = function(userId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(rows)) {
       return callback(null, []);
     }
@@ -1020,6 +1028,7 @@ const getAllUsersForTenant = function(tenantAlias, callback) {
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(rows)) {
       return callback(null, []);
     }
@@ -1102,6 +1111,7 @@ const getJoinGroupRequest = function(groupId, principalId, callback) {
       if (err) {
         return callback(err);
       }
+
       if (_.isEmpty(row)) {
         return callback();
       }
@@ -1124,6 +1134,7 @@ const getJoinGroupRequests = function(groupId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(rows)) {
       return callback();
     }

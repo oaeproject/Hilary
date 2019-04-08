@@ -1,12 +1,12 @@
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const ActivityTestsUtil = require('oae-activity/lib/test/util');
-const RestAPI = require('oae-rest');
-const TestsUtil = require('oae-tests');
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
 
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const { MeetingsConstants } = require('oae-jitsi/lib/constants');
+import { ActivityConstants } from 'oae-activity/lib/constants';
+import { MeetingsConstants } from 'oae-jitsi/lib/constants';
 
 describe('Meeting Push', () => {
   let localAdminRestContext = null;
@@ -15,9 +15,7 @@ describe('Meeting Push', () => {
    * Function that will fill up the tenant admin and anymous rest contexts
    */
   before(callback => {
-    localAdminRestContext = TestsUtil.createTenantAdminRestContext(
-      global.oaeTests.tenants.localhost.host
-    );
+    localAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.localhost.host);
     return callback();
   });
 
@@ -105,17 +103,11 @@ describe('Meeting Push', () => {
                                           assert.strictEqual(err.code, 401);
 
                                           // Sanity check that a valid signature works
-                                          client.subscribe(
-                                            meeting.id,
-                                            'activity',
-                                            meeting.signature,
-                                            null,
-                                            err => {
-                                              assert.ok(!err);
+                                          client.subscribe(meeting.id, 'activity', meeting.signature, null, err => {
+                                            assert.ok(!err);
 
-                                              return callback();
-                                            }
-                                          );
+                                            return callback();
+                                          });
                                         }
                                       );
                                     }

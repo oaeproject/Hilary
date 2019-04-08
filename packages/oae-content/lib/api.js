@@ -13,40 +13,42 @@
  * permissions and limitations under the License.
  */
 
+import fs from 'fs';
+import path from 'path';
+import util from 'util';
+import * as ContentUtils from 'oae-content/lib/backends/util';
+import _ from 'underscore';
+import mime from 'mime';
+import ShortId from 'shortid';
 
-const fs = require('fs');
-const path = require('path');
-const util = require('util');
-const ContentUtils = require('oae-content/lib/backends/util');
-const _ = require('underscore');
-const mime = require('mime');
-const ShortId = require('shortid');
+import * as AuthzAPI from 'oae-authz';
+import * as AuthzInvitations from 'oae-authz/lib/invitations';
+import * as AuthzPermissions from 'oae-authz/lib/permissions';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import { setUpConfig } from 'oae-config';
+import * as EmitterAPI from 'oae-emitter';
+import * as LibraryAPI from 'oae-library';
+import { logger } from 'oae-logger';
 
-const AuthzAPI = require('oae-authz');
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const AuthzInvitations = require('oae-authz/lib/invitations');
-const AuthzPermissions = require('oae-authz/lib/permissions');
-const AuthzUtil = require('oae-authz/lib/util');
-const Config = require('oae-config').config('oae-content');
-const { Context } = require('oae-context');
-const EmitterAPI = require('oae-emitter');
-const LibraryAPI = require('oae-library');
-const log = require('oae-logger').logger('oae-content');
-const MessageBoxAPI = require('oae-messagebox');
-const { MessageBoxConstants } = require('oae-messagebox/lib/constants');
-const OaeUtil = require('oae-util/lib/util');
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
-const PrincipalsUtil = require('oae-principals/lib/util');
-const ResourceActions = require('oae-resource/lib/actions');
-const Signature = require('oae-util/lib/signature');
-const { Validator } = require('oae-util/lib/validator');
+import * as MessageBoxAPI from 'oae-messagebox';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as PrincipalsUtil from 'oae-principals/lib/util';
+import * as ResourceActions from 'oae-resource/lib/actions';
+import * as Signature from 'oae-util/lib/signature';
+import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
+import { Context } from 'oae-context';
+import { Validator } from 'oae-util/lib/validator';
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import { ContentConstants } from './constants';
+import * as ContentDAO from './internal/dao';
+import * as ContentMembersLibrary from './internal/membersLibrary';
+import * as ContentUtil from './internal/util';
+import * as Ethercalc from './internal/ethercalc';
+import * as Etherpad from './internal/etherpad';
 
-const { ContentConstants } = require('./constants');
-const ContentDAO = require('./internal/dao');
-const ContentMembersLibrary = require('./internal/membersLibrary');
-const ContentUtil = require('./internal/util');
-const Ethercalc = require('./internal/ethercalc');
-const Etherpad = require('./internal/etherpad');
+const Config = setUpConfig('oae-content');
+const log = logger('oae-content');
 
 const COLLABDOC = 'collabdoc';
 const COLLABSHEET = 'collabsheet';
@@ -2892,7 +2894,7 @@ const _generateRevisionId = function(contentId) {
   return AuthzUtil.toId('rev', tenantAlias, ShortId.generate());
 };
 
-module.exports = {
+export {
   getContent,
   getFullContentProfile,
   createLink,

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { isResourceACollabDoc, isResourceACollabSheet } from 'oae-content/lib/backends/util';
+const { isResourceACollabDoc, isResourceACollabSheet } = require('oae-content/lib/backends/util');
 
 const fs = require('fs');
 const Path = require('path');

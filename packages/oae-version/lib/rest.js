@@ -13,8 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import * as VersionAPI from './api';
-
+const VersionAPI = require('./api');
 const OAE = require('oae-util/lib/oae');
 
 const _getVersion = async function(req, res) {

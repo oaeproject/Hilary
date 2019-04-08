@@ -2,7 +2,7 @@
   "apps": [
     {
       "name": "Hilary",
-      "script": "index.js",
+      "script": "app.js",
       "cwd": "/opt/current",
       "watch": true,
       "node_args": "-r esm",

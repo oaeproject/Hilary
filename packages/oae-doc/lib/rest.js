@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-import * as OAE from 'oae-util/lib/oae';
-import Swagger from 'oae-util/lib/swagger';
-import * as DocAPI from './api';
+const OAE = require('oae-util/lib/oae');
+const Swagger = require('oae-util/lib/swagger');
+const DocAPI = require('./api');
 
 /**
  * @REST getDocType

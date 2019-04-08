@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+const { logger } = require('oae-logger');
+
 const util = require('util');
 const _ = require('underscore');
 const async = require('async');
@@ -20,7 +22,6 @@ const async = require('async');
 const Cassandra = require('oae-util/lib/cassandra');
 const ConfigAPI = require('oae-config');
 const EmitterAPI = require('oae-emitter');
-const log = require('oae-logger').logger('oae-tenants');
 const OAE = require('oae-util/lib/oae');
 const OaeUtil = require('oae-util/lib/util');
 const Pubsub = require('oae-util/lib/pubsub');
@@ -31,6 +32,7 @@ const TenantEmailDomainIndex = require('./internal/emailDomainIndex');
 const TenantIndex = require('./internal/tenantIndex');
 const TenantNetworksDAO = require('./internal/dao.networks');
 const TenantsUtil = require('./util');
+const log = logger('oae-tenants');
 
 // Caches the server configuration as specified in the config.js file
 let serverConfig = null;
@@ -119,14 +121,9 @@ const init = function(_serverConfig, callback) {
   // This middleware adds the tenant to each request on the user tenant server
   OAE.tenantServer.use((req, res, next) => {
     if (serverConfig.shibbolethSPHost && req.headers.host === serverConfig.shibbolethSPHost) {
-      req.tenant = new Tenant(
-        'shib-sp',
-        'Shibboleth SP hardcoded host',
-        serverConfig.shibbolethSPHost,
-        {
-          active: true
-        }
-      );
+      req.tenant = new Tenant('shib-sp', 'Shibboleth SP hardcoded host', serverConfig.shibbolethSPHost, {
+        active: true
+      });
     } else {
       req.tenant = getTenantByHost(req.headers.host);
     }
@@ -358,12 +355,9 @@ const _cacheTenants = function(callback) {
     tenantEmailDomainIndex = new TenantEmailDomainIndex();
 
     // Create a dummy tenant object that can serve as the global admin tenant object
-    globalTenant = new Tenant(
-      serverConfig.globalAdminAlias,
-      'Global admin server',
-      serverConfig.globalAdminHost,
-      { isGlobalAdminServer: true }
-    );
+    globalTenant = new Tenant(serverConfig.globalAdminAlias, 'Global admin server', serverConfig.globalAdminHost, {
+      isGlobalAdminServer: true
+    });
 
     // Cache it as part of the available tenants
     tenants[globalTenant.alias] = globalTenant;
@@ -469,12 +463,7 @@ const _updateCachedTenant = function(tenantAlias, callback) {
 
     // Synchronize the cache of all tenants that are private and disabled so we know which ones
     // cannot be interacted with
-    if (
-      tenant.isGlobalAdminServer ||
-      !tenant.active ||
-      tenant.deleted ||
-      TenantsUtil.isPrivate(tenant.alias)
-    ) {
+    if (tenant.isGlobalAdminServer || !tenant.active || tenant.deleted || TenantsUtil.isPrivate(tenant.alias)) {
       tenantsNotInteractable[tenant.alias] = tenant;
     } else {
       delete tenantsNotInteractable[tenant.alias];
@@ -552,12 +541,8 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
 
   const validator = new Validator();
   validator.check(alias, { code: 400, msg: 'Missing alias' }).notEmpty();
-  validator
-    .check(alias, { code: 400, msg: 'The tenant alias should not contain a space' })
-    .notContains(' ');
-  validator
-    .check(alias, { code: 400, msg: 'The tenant alias should not contain a colon' })
-    .notContains(':');
+  validator.check(alias, { code: 400, msg: 'The tenant alias should not contain a space' }).notContains(' ');
+  validator.check(alias, { code: 400, msg: 'The tenant alias should not contain a colon' }).notContains(':');
   validator.check(displayName, { code: 400, msg: 'Missing tenant displayName' }).notEmpty();
   validator.check(host, { code: 400, msg: 'Missing tenant host' }).notEmpty();
   validator.check(host, { code: 400, msg: 'Invalid hostname' }).isHost();
@@ -570,9 +555,7 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
   host = host.toLowerCase();
 
   // Ensure there are no conflicts
-  validator
-    .check(host, { code: 400, msg: 'This hostname is reserved' })
-    .not(serverConfig.shibbolethSPHost);
+  validator.check(host, { code: 400, msg: 'This hostname is reserved' }).not(serverConfig.shibbolethSPHost);
   validator
     .check(getTenant(alias), {
       code: 400,
@@ -794,10 +777,7 @@ const disableTenants = function(ctx, aliases, disabled, callback) {
     validator
       .check(getTenant(alias), {
         code: 404,
-        msg: util.format(
-          'Tenant with alias "%s" does not exist and cannot be enabled or disabled',
-          alias
-        )
+        msg: util.format('Tenant with alias "%s" does not exist and cannot be enabled or disabled', alias)
       })
       .notNull();
   });

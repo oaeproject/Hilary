@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import TestsUtil from 'oae-tests/lib/util';
-import { logger } from 'oae-logger';
+const TestsUtil = require('oae-tests/lib/util');
+const { logger } = require('oae-logger');
 
 const log = logger('before-tests');
 

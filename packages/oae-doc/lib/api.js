@@ -13,16 +13,17 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
-import { logger } from 'oae-logger';
+const fs = require('fs');
 
-import _ from 'underscore';
-import dox from 'dox';
+const _ = require('underscore');
+const dox = require('dox');
+const { logger } = require('oae-logger');
 
-import IO from 'oae-util/lib/io';
-import modules from 'oae-util/lib/modules';
-import OaeUtil from 'oae-util/lib/util';
-import { Validator } from 'oae-util/lib/validator';
+const IO = require('oae-util/lib/io');
+const modules = require('oae-util/lib/modules');
+const OaeUtil = require('oae-util/lib/util');
+
+const { Validator } = require('oae-util/lib/validator');
 
 const log = logger('oae-doc');
 
@@ -245,4 +246,4 @@ const getModuleDocumentation = function(moduleId, type, callback) {
   return callback({ code: 404, msg: 'No documentation for this module was found' });
 };
 
-export { getModules, initializeDocs, getModuleDocumentation };
+module.exports = { getModules, initializeDocs, getModuleDocumentation };

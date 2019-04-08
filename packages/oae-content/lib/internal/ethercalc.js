@@ -16,6 +16,7 @@
 import EthercalcClient from 'ethercalc-client';
 
 const url = require('url');
+
 const _ = require('underscore');
 const cheerio = require('cheerio');
 

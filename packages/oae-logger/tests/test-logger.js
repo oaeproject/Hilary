@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
-import { strict as assert } from 'assert';
+const util = require('util');
 
-import util from 'util';
-import { logger } from 'oae-logger';
-import * as RestAPI from 'oae-rest';
-import * as TelemetryAPI from 'oae-telemetry';
-import * as TestsUtil from 'oae-tests/lib/util';
+const assert = require('assert');
+const { logger } = require('oae-logger');
+const RestAPI = require('oae-rest');
+const TelemetryAPI = require('oae-telemetry');
+const TestsUtil = require('oae-tests/lib/util');
 
 describe('Logger', () => {
   // Rest context that can be used every time we need to make a request as a global admin

@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
-import { fromJS } from 'immutable';
+const _ = require('underscore');
 
-import _ from 'underscore';
+const assert = require('assert');
+const { fromJS } = require('immutable');
 
-import * as RestAPI from 'oae-rest';
-import * as TestsUtil from 'oae-tests';
+const RestAPI = require('oae-rest');
+const TestsUtil = require('oae-tests');
 
 describe('Git information', function() {
   /**

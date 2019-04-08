@@ -158,8 +158,8 @@
     "node": ">=10.13.0"
   },
   "scripts": {
-    "test": "mocha -r esm 'node_modules/oae-tests/runner/init.js' 'node_modules/oae-*/tests/**/*.js'",
-    "test-module": "func() { mocha -r esm 'node_modules/oae-tests/runner/init.js' 'node_modules/'$1'/tests/**/*.js'; }; func",
+    "test": "mocha -r esm 'node_modules/oae-tests/runner/before-tests.js' 'node_modules/oae-*/tests/**/*.js'",
+    "test-module": "func() { mocha -r esm 'node_modules/oae-tests/runner/before-tests.js' 'node_modules/'$1'/tests/**/*.js'; }; func",
     "migrate": "func() { node -r esm 'migrate.js' '--keyspace' $1 ; }; func",
     "start": "node -r esm app.js | npx bunyan",
     "dev-server": "nodemon app.js | npx bunyan",

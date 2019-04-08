@@ -15,14 +15,14 @@
  * permissions and limitations under the License.
  */
 
-import path from 'path';
-import repl from 'repl';
-import PrettyStream from 'bunyan-prettystream';
-import optimist from 'optimist';
-import _ from 'underscore';
+const path = require('path');
+const repl = require('repl');
+const PrettyStream = require('bunyan-prettystream');
+const optimist = require('optimist');
+const _ = require('underscore');
 
-import * as OAE from 'oae-util/lib/oae';
-import { logger } from 'oae-logger';
+const OAE = require('oae-util/lib/oae');
+const { logger } = require('oae-logger');
 
 const log = logger();
 

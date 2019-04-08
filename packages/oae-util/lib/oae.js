@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { logger } from 'oae-logger';
+const { logger } = require('oae-logger');
 
 const log = logger();
 const Modules = require('./modules');
@@ -74,9 +74,13 @@ const init = function(config, callback) {
 
   // Start up the global and tenant servers
   globalAdminServer = Server.setupServer(config.servers.globalAdminPort, config);
+  module.exports.globalAdminServer = globalAdminServer;
   tenantServer = Server.setupServer(config.servers.tenantPort, config);
+  module.exports.tenantServer = tenantServer;
   tenantRouter = Server.setupRouter(tenantServer);
+  module.exports.tenantRouter = tenantRouter;
   globalAdminRouter = Server.setupRouter(globalAdminServer);
+  module.exports.globalAdminRouter = globalAdminRouter;
 
   // Initialize the modules and their CFs, as well as registering the Rest endpoints
   Modules.bootstrapModules(config, err => {
@@ -111,4 +115,4 @@ const registerPreShutdownHandler = function(name, maxTimeMillis, handler) {
   Shutdown.registerPreShutdownHandler(name, maxTimeMillis, handler);
 };
 
-export { globalAdminServer, tenantServer, tenantRouter, globalAdminRouter, init, registerPreShutdownHandler };
+module.exports = { globalAdminServer, tenantServer, tenantRouter, globalAdminRouter, init, registerPreShutdownHandler };

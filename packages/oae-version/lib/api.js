@@ -14,11 +14,11 @@
  * permissions and limitations under the License.
  */
 
-import path from 'path';
-import { Map } from 'immutable';
-import git from 'nodegit';
+const path = require('path');
+const { Map } = require('immutable');
+const git = require('nodegit');
 
-import _ from 'underscore';
+const _ = require('underscore');
 
 // A variable that will hold the path to the UI directory
 const hilaryDirectory = path.resolve(__dirname, '..', '..', '..');
@@ -78,4 +78,4 @@ const getVersion = async function(repoPath = hilaryDirectory, repoInformation = 
   return repoInformation;
 };
 
-export { getVersion, getVersionCB };
+module.exports = { getVersion, getVersionCB };

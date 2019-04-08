@@ -14,10 +14,10 @@
  * permissions and limitations under the License.
  */
 
-import optimist from 'optimist';
+const optimist = require('optimist');
 
-import { runMigrations } from './etc/migration/migration-runner';
-import { config } from './config';
+const { runMigrations } = require('./etc/migration/migration-runner');
+const { config } = require('./config');
 
 const dbConfig = config.cassandra;
 

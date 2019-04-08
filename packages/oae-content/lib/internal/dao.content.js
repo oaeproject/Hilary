@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
-import {
+const {
   isResourceACollabDoc,
   isResourceACollabSheet,
   isResourceALink,
   isResourceAFile
-} from 'oae-content/lib/backends/util';
+} = require('oae-content/lib/backends/util');
 
 const util = require('util');
 const _ = require('underscore');

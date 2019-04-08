@@ -13,20 +13,22 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
-import path from 'path';
-import { promisify } from 'util';
-import { logger, refreshLogConfiguration } from 'oae-logger';
-import PrettyStream from 'bunyan-prettystream';
-import { eachSeries } from 'async';
 import { config } from '../../config';
+
+const fs = require('fs');
+const path = require('path');
+const { promisify } = require('util');
+const PrettyStream = require('bunyan-prettystream');
+const { eachSeries } = require('async');
+
+const LogAPI = require('oae-logger');
 
 const _createLogger = function(config) {
   const prettyLog = new PrettyStream();
   prettyLog.pipe(process.stdout);
   config.log.streams[0].stream = prettyLog;
-  refreshLogConfiguration(config.log);
-  return logger();
+  LogAPI.refreshLogConfiguration(config.log);
+  return LogAPI.logger();
 };
 
 const log = _createLogger(config);
@@ -60,7 +62,7 @@ const lookForMigrations = async function(allModules) {
   return migrationsToRun;
 };
 
-export const runMigrations = async function(dbConfig, callback) {
+const runMigrations = async function(dbConfig, callback) {
   log().info('Running migrations for keyspace ' + dbConfig.keyspace + '...');
   const data = {};
 
@@ -98,3 +100,5 @@ export const runMigrations = async function(dbConfig, callback) {
     callback(error);
   }
 };
+
+module.exports = { runMigrations };

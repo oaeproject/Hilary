@@ -5,7 +5,10 @@ Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject
 [![Discord](https://img.shields.io/badge/chat-on_discord-green.svg)](https://discord.gg/RShTcdq)
 
 ## Build status
-
+ 
+ 
+ 
+ 
 <!-- current project status -->
 [![CircleCI](https://circleci.com/gh/oaeproject/Hilary/tree/master.svg?style=shield)](https://circleci.com/gh/oaeproject/Hilary/tree/master)
 [![Code Climate](https://codeclimate.com/github/oaeproject/Hilary/badges/gpa.svg)](https://codeclimate.com/github/oaeproject/Hilary)

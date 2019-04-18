@@ -29,7 +29,7 @@ import * as LibraryAPI from 'oae-library';
 
 import * as MessageBoxAPI from 'oae-messagebox';
 import * as OaeUtil from 'oae-util/lib/util';
-import * as PrincipalsAPI from 'oae-principals';
+import PrincipalsAPI from 'oae-principals';
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as PrincipalsUtil from 'oae-principals/lib/util';
 import * as ResourceActions from 'oae-resource/lib/actions';

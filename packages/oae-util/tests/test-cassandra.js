@@ -15,14 +15,16 @@
 
 /* eslint-disable no-unused-vars */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const Cassandra = require('oae-util/lib/cassandra');
-const OaeUtil = require('oae-util/lib/util');
-const TestsUtil = require('oae-tests/lib/util');
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as TestsUtil from 'oae-tests/lib/util';
 
-const cassandraLog = require('oae-logger').logger('oae-cassandra');
+import { logger } from 'oae-logger';
+
+const cassandraLog = logger('oae-cassandra');
 
 describe('Utilities', () => {
   describe('Cassandra', () => {
@@ -312,8 +314,8 @@ describe('Utilities', () => {
             let numInvoked = 0;
 
             /*!
-                     * Verifies that the onEach is invoked only once and that only one row is returned
-                     */
+             * Verifies that the onEach is invoked only once and that only one row is returned
+             */
             const _onEach = function(rows, done) {
               assert.strictEqual(++numInvoked, 1, 'Expected onEach to only be invoked once');
               assert.ok(rows, 'Expected there to be rows provided to the onEach');
@@ -334,9 +336,9 @@ describe('Utilities', () => {
               numInvoked = 0;
 
               /*!
-                         * Verifies that the onEach is invoked only once, that only one row is returned and it only contains
-                         * the colOne column
-                         */
+               * Verifies that the onEach is invoked only once, that only one row is returned and it only contains
+               * the colOne column
+               */
               const _onEach = function(rows, done) {
                 assert.strictEqual(++numInvoked, 1, 'Expected onEach to only be invoked once');
                 assert.ok(rows, 'Expected a rows object to be specified');
@@ -390,9 +392,9 @@ describe('Utilities', () => {
             let allRows = {};
 
             /*!
-                     * Verifies that we receive exactly one row at a time, and aggregates them so we can inspect their
-                     * data when finished.
-                     */
+             * Verifies that we receive exactly one row at a time, and aggregates them so we can inspect their
+             * data when finished.
+             */
             const _onEach = function(rows, done) {
               numInvoked++;
               // Store the row so we can verify them all later
@@ -422,9 +424,9 @@ describe('Utilities', () => {
               allRows = {};
 
               /*!
-                         * Verifies that the onEach is invoked with 5 rows at a time, and aggregates them so we can
-                         * inspect their data when finished.
-                         */
+               * Verifies that the onEach is invoked with 5 rows at a time, and aggregates them so we can
+               * inspect their data when finished.
+               */
               const _onEach = function(rows, done) {
                 numInvoked++;
                 // Record the rows so we can verify their contents at the end
@@ -454,9 +456,9 @@ describe('Utilities', () => {
                 allRows = {};
 
                 /*!
-                             * Verifies that the onEach is called once with 7 rows, and then once with 3 rows, and aggregates
-                             * them so we can inspect their data when finished.
-                             */
+                 * Verifies that the onEach is called once with 7 rows, and then once with 3 rows, and aggregates
+                 * them so we can inspect their data when finished.
+                 */
                 const _onEach = function(rows, done) {
                   numInvoked++;
                   if (numInvoked === 1) {

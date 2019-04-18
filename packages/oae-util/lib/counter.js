@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-const EmitterAPI = require('oae-emitter');
+import * as EmitterAPI from 'oae-emitter';
 
 /**
  * A utility structure that allows one to increment and decrement a count, firing bound handlers
@@ -87,4 +87,4 @@ const Counter = function() {
   return that;
 };
 
-module.exports = Counter;
+export default Counter;

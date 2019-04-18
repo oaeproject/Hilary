@@ -13,18 +13,21 @@
  * permissions and limitations under the License.
  */
 
-const fs = require('fs');
-const util = require('util');
-const _ = require('underscore');
-const clone = require('clone');
-const readdirp = require('readdirp');
-const restjsdoc = require('restjsdoc');
+import fs from 'fs';
+import util from 'util';
+import OaeEmitter from 'oae-util/lib/emitter';
 
-const log = require('oae-logger').logger('oae-swagger');
-const OaeEmitter = require('oae-util/lib/emitter');
-const TenantsUtil = require('oae-tenants/lib/util');
-const { Validator } = require('oae-util/lib/validator');
-const SwaggerParamTypes = require('./swaggerParamTypes');
+import { logger } from 'oae-logger';
+
+import _ from 'underscore';
+import clone from 'clone';
+import readdirp from 'readdirp';
+import * as restjsdoc from 'restjsdoc';
+import * as TenantsUtil from 'oae-tenants/lib/util';
+import { Validator } from 'oae-util/lib/validator';
+import * as SwaggerParamTypes from './swaggerParamTypes';
+
+const log = logger('oae-swagger');
 
 const Constants = {
   apiVersion: '0.1',
@@ -505,11 +508,4 @@ const _unwrapSwaggerType = function(type) {
   return type.replace(/^List\[/, '').replace(/\]/, '');
 };
 
-module.exports = {
-  Constants,
-  addModelsToResources,
-  documentModule,
-  register,
-  getResources,
-  getApi
-};
+export { Constants, addModelsToResources, documentModule, register, getResources, getApi };

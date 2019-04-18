@@ -13,16 +13,22 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const cassandra = require('cassandra-driver');
-const { Row, dataTypes } = require('cassandra-driver').types;
-const _ = require('underscore');
-// eslint-disable-next-line no-unused-vars
-const OAE = require('oae-util/lib/oae');
+import util from 'util';
 
-const log = require('oae-logger').logger('oae-cassandra');
-const OaeUtil = require('oae-util/lib/util');
-const Telemetry = require('oae-telemetry').telemetry('cassandra');
+import * as cassandra from 'cassandra-driver';
+// eslint-disable-next-line no-unused-vars
+import * as OAE from 'oae-util/lib/oae';
+
+import { logger } from 'oae-logger';
+import { telemetry } from 'oae-telemetry';
+import * as OaeUtil from 'oae-util/lib/util';
+
+const { Row, dataTypes } = cassandra.types;
+const _ = require('underscore');
+
+const log = logger('oae-cassandra');
+
+const Telemetry = telemetry('cassandra');
 
 const DEFAULT_ITERATEALL_BATCH_SIZE = 100;
 let CONFIG = null;
@@ -994,7 +1000,7 @@ const _truncateString = function(str, ifOverSize) {
   return str;
 };
 
-module.exports = {
+export {
   init,
   close,
   createKeyspace,

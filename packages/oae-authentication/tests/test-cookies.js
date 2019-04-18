@@ -16,7 +16,7 @@
 import assert from 'assert';
 import _ from 'underscore';
 
-import RestAPI from 'oae-rest';
+import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 
 describe('Authentication', () => {

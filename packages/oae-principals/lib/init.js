@@ -13,15 +13,16 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
+import util from 'util';
 
-const AuthenticationAPI = require('oae-authentication');
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const { Context } = require('oae-context');
-const TenantsAPI = require('oae-tenants');
-const { User } = require('oae-principals/lib/model');
+import * as AuthenticationAPI from 'oae-authentication';
+import * as TenantsAPI from 'oae-tenants';
 
-module.exports = function(config, callback) {
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import { Context } from 'oae-context';
+import { User } from 'oae-principals/lib/model';
+
+export function init(config, callback) {
   // Initialize activity capabilities
   require('oae-principals/lib/activity'); // eslint-disable-line import/no-unassigned-import
 
@@ -38,7 +39,7 @@ module.exports = function(config, callback) {
   require('oae-principals/lib/delete'); // eslint-disable-line import/no-unassigned-import
 
   return _ensureGlobalAdmin(config, callback);
-};
+}
 
 /**
  * Ensure that the default global administrative user exists with username "administrator", and create

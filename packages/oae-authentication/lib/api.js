@@ -27,7 +27,7 @@ import * as Locking from 'oae-util/lib/locking';
 import * as EmailAPI from 'oae-email';
 import OaeEmitter from 'oae-util/lib/emitter';
 import * as OaeUtil from 'oae-util/lib/util';
-import * as PrincipalsAPI from 'oae-principals';
+import PrincipalsAPI from 'oae-principals';
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as TenantsAPI from 'oae-tenants';
 import * as TenantsUtil from 'oae-tenants/lib/util';

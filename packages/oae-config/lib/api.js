@@ -18,9 +18,9 @@ import _ from 'underscore';
 import clone from 'clone';
 
 import * as EmitterAPI from 'oae-emitter';
-import IO from 'oae-util/lib/io';
-import OaeUtil from 'oae-util/lib/util';
-import Pubsub from 'oae-util/lib/pubsub';
+import * as IO from 'oae-util/lib/io';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as Pubsub from 'oae-util/lib/pubsub';
 import { Validator } from 'oae-util/lib/validator';
 import { logger } from 'oae-logger';
 

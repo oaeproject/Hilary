@@ -18,7 +18,7 @@ import passport from 'passport';
 
 import * as ConfigAPI from 'oae-config';
 import { Context } from 'oae-context';
-import * as PrincipalsAPI from 'oae-principals';
+import PrincipalsAPI from 'oae-principals';
 import { User } from 'oae-principals/lib/model';
 
 import * as AuthenticationAPI from 'oae-authentication';

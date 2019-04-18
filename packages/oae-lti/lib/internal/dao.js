@@ -15,7 +15,7 @@
 
 import _ from 'underscore';
 
-import Cassandra from 'oae-util/lib/cassandra';
+import * as Cassandra from 'oae-util/lib/cassandra';
 import { LtiTool } from 'oae-lti/lib/model';
 
 /**

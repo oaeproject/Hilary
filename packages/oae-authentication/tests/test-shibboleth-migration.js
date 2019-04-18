@@ -19,8 +19,8 @@ import _ from 'underscore';
 import csv from 'csv';
 import temp from 'temp';
 
-import Cassandra from 'oae-util/lib/cassandra';
-import RestAPI from 'oae-rest';
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 import { logger } from 'oae-logger';
 import ShibbolethMigrator from '../../../etc/migration/shibboleth_migration/migrate-users-to-shibboleth.js';
@@ -141,7 +141,8 @@ describe('Shibboleth Migration', () => {
       .map(googleLoginId => {
         return [
           {
-            query: 'INSERT INTO "AuthenticationUserLoginId" ("loginId", "userId", "value") VALUES (?, ?, ?)',
+            query:
+              'INSERT INTO "AuthenticationUserLoginId" ("loginId", "userId", "value") VALUES (?, ?, ?)',
             parameters: [googleLoginId.loginId, googleLoginId.userId, '1']
           },
           {

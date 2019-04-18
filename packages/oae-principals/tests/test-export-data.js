@@ -24,7 +24,7 @@ import * as ContentsTestUtil from 'oae-content/lib/test/util';
 import * as Etherpad from 'oae-content/lib/internal/etherpad';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
-import * as PrincipalsAPI from 'oae-principals';
+import PrincipalsAPI from 'oae-principals';
 
 describe('Export data', () => {
   // Rest contexts that can be used to make requests as different types of users

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import * as PrincipalsAPI from 'oae-principals';
+import PrincipalsAPI from 'oae-principals';
 import * as FollowingAuthz from 'oae-following/lib/authz';
 import * as FollowingDAO from 'oae-following/lib/internal/dao';
 

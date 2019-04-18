@@ -20,7 +20,7 @@ import _ from 'underscore';
 import { logger } from 'oae-logger';
 import * as OaeUtil from 'oae-util/lib/util';
 import * as IO from './io';
-import Swagger from './swagger';
+import * as Swagger from './swagger';
 
 const log = logger('oae-modules');
 
@@ -51,7 +51,9 @@ const ES6Modules = [
   'oae-tincanapi',
   'oae-preview-processor',
   'oae-search',
-  'oae-tenants'
+  'oae-tenants',
+  'oae-util',
+  'oae-principals'
 ];
 
 /// ///////////////////////

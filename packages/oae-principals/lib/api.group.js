@@ -13,29 +13,33 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
-const ShortId = require('shortid');
+import util from 'util';
+import _ from 'underscore';
+import ShortId from 'shortid';
 
-const AuthzAPI = require('oae-authz');
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const AuthzInvitations = require('oae-authz/lib/invitations');
-const AuthzPermissions = require('oae-authz/lib/permissions');
-const AuthzUtil = require('oae-authz/lib/util');
-const Config = require('oae-config/lib/api').setUpConfig('oae-principals');
-const LibraryAPI = require('oae-library');
-const log = require('oae-logger').logger('oae-principals');
-const MessageBoxAPI = require('oae-messagebox');
-const OaeUtil = require('oae-util/lib/util');
-const ResourceActions = require('oae-resource/lib/actions');
-const Signature = require('oae-util/lib/signature');
-const { Validator } = require('oae-authz/lib/validator');
+import { logger } from 'oae-logger';
+import { setUpConfig } from 'oae-config';
 
-const { PrincipalsConstants } = require('./constants');
-const PrincipalsDAO = require('./internal/dao');
-const PrincipalsMembersLibrary = require('./libraries/members');
-const PrincipalsEmitter = require('./internal/emitter');
-const PrincipalsUtil = require('./util');
+import * as AuthzAPI from 'oae-authz';
+import * as AuthzInvitations from 'oae-authz/lib/invitations';
+import * as AuthzPermissions from 'oae-authz/lib/permissions';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as LibraryAPI from 'oae-library';
+import * as MessageBoxAPI from 'oae-messagebox';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as ResourceActions from 'oae-resource/lib/actions';
+import * as Signature from 'oae-util/lib/signature';
+import { Validator } from 'oae-authz/lib/validator';
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import * as PrincipalsDAO from './internal/dao';
+import * as PrincipalsMembersLibrary from './libraries/members';
+import PrincipalsEmitter from './internal/emitter';
+import * as PrincipalsUtil from './util';
+
+import { PrincipalsConstants } from './constants';
+
+const log = logger('oae-principals');
+const Config = setUpConfig('oae-principals');
 
 /**
  * Get the basic profile for a group.
@@ -1327,7 +1331,7 @@ const notifyOfJoinRequestDecision = function(ctx, joinRequest, callback) {
   });
 };
 
-module.exports = {
+export {
   getGroup,
   getFullGroupProfile,
   getMembersLibrary,

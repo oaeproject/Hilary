@@ -19,7 +19,7 @@ import _ from 'underscore';
 
 import * as Locking from 'oae-util/lib/locking';
 import { logger } from 'oae-logger';
-import OAE from 'oae-util/lib/oae';
+import * as OAE from 'oae-util/lib/oae';
 import * as TelemetryAPI from 'oae-telemetry';
 
 const log = logger('oae-activity-buckets');

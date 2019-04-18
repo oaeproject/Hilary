@@ -13,21 +13,25 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const { sanitize } = require('validator');
-const AuthzDelete = require('oae-authz/lib/delete');
-const AuthzUtil = require('oae-authz/lib/util');
-const Cassandra = require('oae-util/lib/cassandra');
-const log = require('oae-logger').logger('principals-dao');
-const OaeUtil = require('oae-util/lib/util');
-const Redis = require('oae-util/lib/redis');
-const { Validator } = require('oae-authz/lib/validator');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
+import { logger } from 'oae-logger';
+import { setUpConfig } from 'oae-config';
 
-const { Group } = require('oae-principals/lib/model');
-const PrincipalsConfig = require('oae-config').setUpConfig('oae-principals');
-const { User } = require('oae-principals/lib/model');
-const { PrincipalsConstants } = require('../constants');
+import * as AuthzDelete from 'oae-authz/lib/delete';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as Redis from 'oae-util/lib/redis';
+
+import { sanitize } from 'validator';
+import { Group } from 'oae-principals/lib/model';
+import { Validator } from 'oae-authz/lib/validator';
+import { User } from 'oae-principals/lib/model';
+import { PrincipalsConstants } from '../constants';
+
+const log = logger('principals-dao');
+const PrincipalsConfig = setUpConfig('oae-principals');
 
 const RESTRICTED_FIELDS = ['acceptedTC', 'admin:tenant', 'admin:global', 'deleted'];
 
@@ -1147,7 +1151,7 @@ const getJoinGroupRequests = function(groupId, callback) {
   });
 };
 
-module.exports = {
+export {
   createUser,
   createGroup,
   getPrincipal,

@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const fs = require('fs');
-const Path = require('path');
-const gm = require('gm');
+import assert from 'assert';
+import fs from 'fs';
+import Path from 'path';
+import gm from 'gm';
 
-const ImageUtil = require('oae-util/lib/image');
+import * as ImageUtil from 'oae-util/lib/image';
 
 /**
  * Most of the tests in this suite don't actually crop or resize anything.
@@ -157,115 +157,98 @@ describe('Image', () => {
      * Simple validation checks.
      */
     it('verify parameter validation', callback => {
-      ImageUtil.cropAndResize(
-        undefined,
-        generateArea(0, 0, 200, 200),
-        [generateSize(100, 100)],
-        (err, files) => {
+      ImageUtil.cropAndResize(undefined, generateArea(0, 0, 200, 200), [generateSize(100, 100)], (err, files) => {
+        assert.strictEqual(err.code, 400);
+        assert.ok(!files);
+        ImageUtil.cropAndResize('some/path', null, [generateSize(100, 100)], (err, files) => {
           assert.strictEqual(err.code, 400);
           assert.ok(!files);
-          ImageUtil.cropAndResize('some/path', null, [generateSize(100, 100)], (err, files) => {
-            assert.strictEqual(err.code, 400);
-            assert.ok(!files);
-            ImageUtil.cropAndResize(
-              'some/path',
-              generateArea(-10, 0, 200, 200),
-              [generateSize(100, 100)],
-              (err, files) => {
-                assert.strictEqual(err.code, 400);
-                assert.ok(!files);
-                ImageUtil.cropAndResize(
-                  'some/path',
-                  generateArea(0, -10, 200, 200),
-                  [generateSize(100, 100)],
-                  (err, files) => {
-                    assert.strictEqual(err.code, 400);
-                    assert.ok(!files);
-                    ImageUtil.cropAndResize(
-                      'some/path',
-                      generateArea(0, 0, -10, 200),
-                      [generateSize(100, 100)],
-                      (err, files) => {
-                        assert.strictEqual(err.code, 400);
-                        assert.ok(!files);
-                        ImageUtil.cropAndResize(
-                          'some/path',
-                          generateArea(-10, 0, 200, 200),
-                          [generateSize(100, 100)],
-                          (err, files) => {
+          ImageUtil.cropAndResize(
+            'some/path',
+            generateArea(-10, 0, 200, 200),
+            [generateSize(100, 100)],
+            (err, files) => {
+              assert.strictEqual(err.code, 400);
+              assert.ok(!files);
+              ImageUtil.cropAndResize(
+                'some/path',
+                generateArea(0, -10, 200, 200),
+                [generateSize(100, 100)],
+                (err, files) => {
+                  assert.strictEqual(err.code, 400);
+                  assert.ok(!files);
+                  ImageUtil.cropAndResize(
+                    'some/path',
+                    generateArea(0, 0, -10, 200),
+                    [generateSize(100, 100)],
+                    (err, files) => {
+                      assert.strictEqual(err.code, 400);
+                      assert.ok(!files);
+                      ImageUtil.cropAndResize(
+                        'some/path',
+                        generateArea(-10, 0, 200, 200),
+                        [generateSize(100, 100)],
+                        (err, files) => {
+                          assert.strictEqual(err.code, 400);
+                          assert.ok(!files);
+                          ImageUtil.cropAndResize('some/path', generateArea(10, 0, 200, 200), null, (err, files) => {
                             assert.strictEqual(err.code, 400);
                             assert.ok(!files);
-                            ImageUtil.cropAndResize(
-                              'some/path',
-                              generateArea(10, 0, 200, 200),
-                              null,
-                              (err, files) => {
-                                assert.strictEqual(err.code, 400);
-                                assert.ok(!files);
-                                ImageUtil.cropAndResize(
-                                  'some/path',
-                                  generateArea(10, 0, 200, 200),
-                                  [],
-                                  (err, files) => {
-                                    assert.strictEqual(err.code, 400);
-                                    assert.ok(!files);
-                                    ImageUtil.cropAndResize(
-                                      'some/path',
-                                      generateArea(10, 0, 200, 200),
-                                      [generateSize(-10, 10)],
-                                      (err, files) => {
-                                        assert.strictEqual(err.code, 400);
-                                        assert.ok(!files);
-                                        ImageUtil.cropAndResize(
-                                          'some/path',
-                                          generateArea(10, 0, 200, 200),
-                                          [generateSize(10, -10)],
-                                          (err, files) => {
-                                            assert.strictEqual(err.code, 400);
-                                            assert.ok(!files);
-                                            // Sanity check.
-                                            const path = Path.resolve(
-                                              Path.join(__dirname, '/data/right.jpg')
-                                            );
-                                            ImageUtil.cropAndResize(
-                                              path,
-                                              generateArea(10, 0, 10, 10),
-                                              [generateSize(20, 20)],
-                                              (err, files) => {
-                                                assert.ok(!err);
-                                                assert.ok(files);
-                                                assert.ok(files['20x20']);
-                                                assert.ok(files['20x20'].path);
-                                                assert.ok(fs.existsSync(files['20x20'].path));
-                                                assert.ok(files['20x20'].name);
-                                                assert.ok(files['20x20'].size > 0);
-                                                gm(files['20x20'].path).size((err, size) => {
-                                                  assert.ok(!err);
-                                                  assert.strictEqual(size.width, 20);
-                                                  assert.strictEqual(size.height, 20);
-                                                  callback();
-                                                });
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          });
-        }
-      );
+                            ImageUtil.cropAndResize('some/path', generateArea(10, 0, 200, 200), [], (err, files) => {
+                              assert.strictEqual(err.code, 400);
+                              assert.ok(!files);
+                              ImageUtil.cropAndResize(
+                                'some/path',
+                                generateArea(10, 0, 200, 200),
+                                [generateSize(-10, 10)],
+                                (err, files) => {
+                                  assert.strictEqual(err.code, 400);
+                                  assert.ok(!files);
+                                  ImageUtil.cropAndResize(
+                                    'some/path',
+                                    generateArea(10, 0, 200, 200),
+                                    [generateSize(10, -10)],
+                                    (err, files) => {
+                                      assert.strictEqual(err.code, 400);
+                                      assert.ok(!files);
+                                      // Sanity check.
+                                      const path = Path.resolve(Path.join(__dirname, '/data/right.jpg'));
+                                      ImageUtil.cropAndResize(
+                                        path,
+                                        generateArea(10, 0, 10, 10),
+                                        [generateSize(20, 20)],
+                                        (err, files) => {
+                                          assert.ok(!err);
+                                          assert.ok(files);
+                                          assert.ok(files['20x20']);
+                                          assert.ok(files['20x20'].path);
+                                          assert.ok(fs.existsSync(files['20x20'].path));
+                                          assert.ok(files['20x20'].name);
+                                          assert.ok(files['20x20'].size > 0);
+                                          gm(files['20x20'].path).size((err, size) => {
+                                            assert.ok(!err);
+                                            assert.strictEqual(size.width, 20);
+                                            assert.strictEqual(size.height, 20);
+                                            callback();
+                                          });
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            });
+                          });
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        });
+      });
     });
   });
 
@@ -296,9 +279,7 @@ describe('Image', () => {
      * Test that verifies that images get properly converted to JPG
      */
     it('verify images get properly converted to JPG', callback => {
-      const path = Path.resolve(
-        Path.join(__dirname, '/../../oae-preview-processor/tests/data/image.gif')
-      );
+      const path = Path.resolve(Path.join(__dirname, '/../../oae-preview-processor/tests/data/image.gif'));
       ImageUtil.convertToJPG(path, (err, file) => {
         assert.ok(!err);
         assert.ok(file);

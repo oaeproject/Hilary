@@ -17,7 +17,7 @@ import assert from 'assert';
 import OAuth from 'oauth';
 
 import * as ConfigTestUtil from 'oae-config/lib/test/util';
-import RestAPI from 'oae-rest';
+import * as RestAPI from 'oae-rest';
 import { RestContext } from 'oae-rest/lib/model';
 import * as TestsUtil from 'oae-tests';
 

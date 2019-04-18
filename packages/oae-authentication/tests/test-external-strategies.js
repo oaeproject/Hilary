@@ -23,8 +23,8 @@ import request from 'request';
 
 import * as ConfigTestUtil from 'oae-config/lib/test/util';
 import { Cookie } from 'tough-cookie';
-import PrincipalsTestUtil from 'oae-principals/lib/test/util';
-import RestAPI from 'oae-rest';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as RestAPI from 'oae-rest';
 import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
 import * as TestsUtil from 'oae-tests';
 

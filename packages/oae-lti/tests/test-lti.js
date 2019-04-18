@@ -20,7 +20,7 @@ import _ from 'underscore';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 
-import * as PrincipalsAPI from 'oae-principals';
+import PrincipalsAPI from 'oae-principals';
 import { User } from 'oae-principals/lib/model.user';
 
 describe('LTI tools', () => {

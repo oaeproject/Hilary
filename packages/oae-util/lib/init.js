@@ -13,19 +13,21 @@
  * permissions and limitations under the License.
  */
 
-const log = require('oae-logger').logger('oae-cassandra');
+import { logger } from 'oae-logger';
 
-const Cassandra = require('./cassandra');
-const Cleaner = require('./cleaner');
-const Locking = require('./locking');
-const MQ = require('./mq');
-const Pubsub = require('./pubsub');
-const Redis = require('./redis');
-const Signature = require('./signature');
-const TaskQueue = require('./taskqueue');
-const Tempfile = require('./tempfile');
+import * as Cassandra from './cassandra';
+import * as Cleaner from './cleaner';
+import * as Locking from './locking';
+import * as MQ from './mq';
+import * as Pubsub from './pubsub';
+import * as Redis from './redis';
+import * as Signature from './signature';
+import * as TaskQueue from './taskqueue';
+import * as Tempfile from './tempfile';
 
-const init = function(config, callback) {
+const log = logger('oae-cassandra');
+
+export const init = function(config, callback) {
   // Create Cassandra database.
   // TODO: Move Cassandra into its own oae-cassandra module with a high priority. All of the init(..) stuff then goes in its init.js
   bootCassandra(config, () => {
@@ -46,8 +48,10 @@ const bootCassandra = (config, callback) => {
       log().error('Error connecting to cassandra, retrying in ' + timeout + 's...');
       return setTimeout(Cassandra.init, timeout * 1000, config.cassandra, retryCallback);
     }
+
     return callback();
   };
+
   Cassandra.init(config.cassandra, retryCallback);
 };
 
@@ -58,6 +62,7 @@ const bootRedis = (config, callback) => {
     if (err) {
       return callback(err);
     }
+
     // Initialize the Redis based locking
     Locking.init();
 
@@ -100,5 +105,3 @@ const bootRabbitMQ = (config, callback) => {
     TaskQueue.init(callback);
   });
 };
-
-module.exports = init;

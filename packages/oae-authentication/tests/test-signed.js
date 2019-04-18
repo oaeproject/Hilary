@@ -18,7 +18,7 @@ import url from 'url';
 import util from 'util';
 import _ from 'underscore';
 
-import RestAPI from 'oae-rest';
+import * as RestAPI from 'oae-rest';
 import { RestContext } from 'oae-rest/lib/model';
 import * as TestsUtil from 'oae-tests';
 

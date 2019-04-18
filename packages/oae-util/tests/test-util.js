@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
+import assert from 'assert';
 
-const OaeUtil = require('oae-util/lib/util');
+import * as OaeUtil from 'oae-util/lib/util';
 
 describe('OAE Util', () => {
   describe('#getNumberParam', () => {
@@ -78,12 +78,12 @@ describe('OAE Util', () => {
 
   describe('#invokeIfNecessary', () => {
     /*!
-         * The function to use as the invokeIfNecessary method so we can determine whether
-         * or not it was invoked
-         *
-         * @param  {Object}     toReturn    The value to return in the callback
-         * @param  {Function}   callback    Standard callback function
-         */
+     * The function to use as the invokeIfNecessary method so we can determine whether
+     * or not it was invoked
+     *
+     * @param  {Object}     toReturn    The value to return in the callback
+     * @param  {Function}   callback    Standard callback function
+     */
     const _toInvoke = function(toReturn, callback) {
       return callback(toReturn);
     };

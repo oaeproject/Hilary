@@ -13,17 +13,19 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const { Recaptcha } = require('recaptcha');
+import util from 'util';
+import { setUpConfig } from 'oae-config';
 
-const AuthenticationAPI = require('oae-authentication');
-const { AuthenticationConstants } = require('oae-authentication/lib/constants');
-const { LoginId } = require('oae-authentication/lib/model');
-const OAE = require('oae-util/lib/oae');
-const OaeUtil = require('oae-util/lib/util');
+import * as AuthenticationAPI from 'oae-authentication';
+import * as OAE from 'oae-util/lib/oae';
+import * as OaeUtil from 'oae-util/lib/util';
 
-const PrincipalsConfig = require('oae-config').setUpConfig('oae-principals');
-const PrincipalsAPI = require('./api');
+import { Recaptcha } from 'recaptcha';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants';
+import { LoginId } from 'oae-authentication/lib/model';
+import PrincipalsAPI from './api';
+
+const PrincipalsConfig = setUpConfig('oae-principals');
 
 /**
  * @REST getUserTermsAndConditions
@@ -107,10 +109,9 @@ OAE.globalAdminRouter.on('post', '/api/user/createGlobalAdminUser', (req, res) =
       if (err) {
         return res.status(err.code).send(err.msg);
       }
+
       if (!created) {
-        return res
-          .status(400)
-          .send(util.format('A user with username "%s" already exists', req.body.username));
+        return res.status(400).send(util.format('A user with username "%s" already exists', req.body.username));
       }
 
       return res.status(201).send(user);
@@ -174,12 +175,9 @@ OAE.globalAdminRouter.on('post', '/api/user/createGlobalAdminUser', (req, res) =
 const _handleCreateTenantAdminUser = function(req, res) {
   const { ctx } = req;
   const tenantAlias = req.params.tenantAlias || ctx.tenant().alias;
-  const loginId = new LoginId(
-    tenantAlias,
-    AuthenticationConstants.providers.LOCAL,
-    req.body.username,
-    { password: req.body.password }
-  );
+  const loginId = new LoginId(tenantAlias, AuthenticationConstants.providers.LOCAL, req.body.username, {
+    password: req.body.password
+  });
   const opts = _getOptionalProfileParameters(req.body);
 
   // Create the user as a tenant administrator
@@ -192,11 +190,7 @@ const _handleCreateTenantAdminUser = function(req, res) {
   });
 };
 
-OAE.globalAdminRouter.on(
-  'post',
-  '/api/user/:tenantAlias/createTenantAdminUser',
-  _handleCreateTenantAdminUser
-);
+OAE.globalAdminRouter.on('post', '/api/user/:tenantAlias/createTenantAdminUser', _handleCreateTenantAdminUser);
 OAE.tenantRouter.on('post', '/api/user/createTenantAdminUser', _handleCreateTenantAdminUser);
 
 /**
@@ -228,12 +222,9 @@ OAE.tenantRouter.on('post', '/api/user/createTenantAdminUser', _handleCreateTena
  * @HttpResponse                404                     A non-existing tenant was specified as the target for this user
  */
 OAE.globalAdminRouter.on('post', '/api/user/:tenantAlias/create', (req, res) => {
-  const loginId = new LoginId(
-    req.params.tenantAlias,
-    AuthenticationConstants.providers.LOCAL,
-    req.body.username,
-    { password: req.body.password }
-  );
+  const loginId = new LoginId(req.params.tenantAlias, AuthenticationConstants.providers.LOCAL, req.body.username, {
+    password: req.body.password
+  });
   const opts = {
     visibility: req.body.visibility,
     email: req.body.email,
@@ -295,8 +286,8 @@ OAE.tenantRouter.on('post', '/api/user/create', (req, res) => {
   opts.invitationToken = req.body.invitationToken;
 
   /*!
-     * Create a local user account
-     */
+   * Create a local user account
+   */
   const createUser = function() {
     AuthenticationAPI.getOrCreateUser(
       ctx,
@@ -309,6 +300,7 @@ OAE.tenantRouter.on('post', '/api/user/create', (req, res) => {
         if (err) {
           return res.status(err.code).send(err.msg);
         }
+
         if (!created) {
           return res
             .status(400)
@@ -326,9 +318,11 @@ OAE.tenantRouter.on('post', '/api/user/create', (req, res) => {
       // If the current user is an admin, the reCaptcha verification can be skipped
       return createUser();
     }
+
     // Non-admin users cannot create accounts
     return res.status(401).end();
   }
+
   if (opts.invitationToken) {
     // Bypass recaptcha if an invitation token is provided. The process of creating a user will
     // fail if the invitation token is not valid
@@ -336,11 +330,7 @@ OAE.tenantRouter.on('post', '/api/user/create', (req, res) => {
   }
 
   // Check if the Terms and Conditions has been agreed to (if applicable)
-  const needsTermsAndConditionsAgreement = PrincipalsConfig.getValue(
-    tenant.alias,
-    'termsAndConditions',
-    'enabled'
-  );
+  const needsTermsAndConditionsAgreement = PrincipalsConfig.getValue(tenant.alias, 'termsAndConditions', 'enabled');
   if (needsTermsAndConditionsAgreement && opts.acceptedTC !== true) {
     return res.status(400).send('You need to accept the Terms and Conditions');
   }
@@ -365,6 +355,7 @@ OAE.tenantRouter.on('post', '/api/user/create', (req, res) => {
     if (success) {
       return createUser();
     }
+
     return res.status(400).send('Invalid reCaptcha token');
   });
 });
@@ -750,6 +741,7 @@ const _getEmailToken = function(req, res) {
     if (err && err.code !== 404) {
       return res.status(err.code).send(err.msg);
     }
+
     if (err) {
       email = null;
     }
@@ -882,10 +874,8 @@ OAE.tenantRouter.on('get', '/api/user/:userId/export/:exportType', (req, res) =>
     res.setHeader('Content-Type', 'application/zip');
     res.writeHead(200);
 
-    zipFile
-      .generateAsync({ type: 'nodebuffer', platform: process.platform, streamFiles: true })
-      .then(nodebuffer => {
-        res.end(nodebuffer);
-      });
+    zipFile.generateAsync({ type: 'nodebuffer', platform: process.platform, streamFiles: true }).then(nodebuffer => {
+      res.end(nodebuffer);
+    });
   });
 });

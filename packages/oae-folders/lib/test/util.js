@@ -26,7 +26,7 @@ import * as LibraryAPI from 'oae-library';
 import * as LibraryTestUtil from 'oae-library/lib/test/util';
 import * as MQTestUtil from 'oae-util/lib/test/mq-util';
 import PreviewConstants from 'oae-preview-processor/lib/constants';
-import * as PrincipalsAPI from 'oae-principals';
+import PrincipalsAPI from 'oae-principals';
 import * as RestAPI from 'oae-rest';
 import * as SearchTestUtil from 'oae-search/lib/test/util';
 import * as FoldersLibrary from 'oae-folders/lib/library';

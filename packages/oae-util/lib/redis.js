@@ -13,8 +13,10 @@
  * permissions and limitations under the License.
  */
 
-const redis = require('redis');
-const log = require('oae-logger').logger('oae-redis');
+import redis from 'redis';
+import { logger } from 'oae-logger';
+
+const log = logger('oae-redis');
 
 let client = null;
 let isDown = false;
@@ -133,9 +135,4 @@ const flush = function(callback) {
   }
 };
 
-module.exports = {
-  createClient,
-  getClient,
-  flush,
-  init
-};
+export { createClient, getClient, flush, init };

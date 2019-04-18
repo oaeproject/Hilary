@@ -26,7 +26,7 @@ import * as RestAPI from 'oae-rest';
 import * as RestUtil from 'oae-rest/lib/util';
 import * as TestsUtil from 'oae-tests';
 
-const PrincipalsTestUtil = require('oae-principals/lib/test/util');
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
 
 describe('Principals Activity', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user

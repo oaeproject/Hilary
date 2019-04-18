@@ -41,7 +41,7 @@ import * as OAE from 'oae-util/lib/oae';
 import * as OaeUtil from 'oae-util/lib/util';
 import * as PreviewAPI from 'oae-preview-processor/lib/api';
 import PreviewConstants from 'oae-preview-processor/lib/constants';
-import * as PrincipalsAPI from 'oae-principals';
+import PrincipalsAPI from 'oae-principals';
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as Redis from 'oae-util/lib/redis';
 import * as RestAPI from 'oae-rest';

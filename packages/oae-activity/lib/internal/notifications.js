@@ -18,16 +18,16 @@ import _ from 'underscore';
 import Counter from 'oae-util/lib/counter';
 import { logger } from 'oae-logger';
 import { PrincipalsConstants } from 'oae-principals/lib/constants';
-import PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 
 import { ActivityConstants } from 'oae-activity/lib/constants';
 import * as ActivityUtil from 'oae-activity/lib/util';
 import ActivityEmitter from './emitter';
 
-import * as ActivityDAO from './dao'
-import * as ActivityAggregator from './aggregator'
+import * as ActivityDAO from './dao';
+import * as ActivityAggregator from './aggregator';
 
-const log = logger('oae-activity-notifications');;
+const log = logger('oae-activity-notifications');
 
 // Tracks the handling of notifications for synchronization to determine when there are no
 // notifications being processed

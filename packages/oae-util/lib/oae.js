@@ -13,14 +13,14 @@
  * permissions and limitations under the License.
  */
 
-const { logger } = require('oae-logger');
+import { logger } from 'oae-logger';
+import * as Modules from './modules';
+import OaeEmitter from './emitter';
+import * as Server from './server';
+
+import * as Shutdown from './internal/shutdown';
 
 const log = logger();
-const Modules = require('./modules');
-const OaeEmitter = require('./emitter');
-const Server = require('./server');
-
-const Shutdown = require('./internal/shutdown');
 
 const SHUTDOWN_GRACE_TIME_MILLIS = 60000;
 const PRESHUTDOWN_DEFAULT_TIMEOUT_MILLIS = 15000;
@@ -115,4 +115,4 @@ const registerPreShutdownHandler = function(name, maxTimeMillis, handler) {
   Shutdown.registerPreShutdownHandler(name, maxTimeMillis, handler);
 };
 
-module.exports = { globalAdminServer, tenantServer, tenantRouter, globalAdminRouter, init, registerPreShutdownHandler };
+export { globalAdminServer, tenantServer, tenantRouter, globalAdminRouter, init, registerPreShutdownHandler };

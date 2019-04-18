@@ -15,11 +15,11 @@
 
 import assert from 'assert';
 
-import Cassandra from 'oae-util/lib/cassandra';
+import * as Cassandra from 'oae-util/lib/cassandra';
 import * as ConfigTestUtil from 'oae-config/lib/test/util';
 import { Context } from 'oae-context';
 import PrincipalsAPI from 'oae-principals';
-import RestAPI from 'oae-rest';
+import * as RestAPI from 'oae-rest';
 import { RestContext } from 'oae-rest/lib/model';
 import * as TestsUtil from 'oae-tests';
 

@@ -13,8 +13,10 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
-const log = require('oae-logger').logger('oae-util-shutdown');
+import _ from 'underscore';
+import { logger } from 'oae-logger';
+
+const log = logger('oae-util-shutdown');
 
 // Variables that track the shutdown status of the system
 const preShutdownHandlers = {};
@@ -89,10 +91,7 @@ const _preShutdown = function(defaultTimeoutMillis, callback) {
     };
 
     // Set a timeout and invoke the handler. Whichever finishes first will tell _monitorPreShutdown they have finished.
-    timeoutHandle = setTimeout(
-      _monitorPreShutdown,
-      handlerInfo.maxTimeMillis || defaultTimeoutMillis
-    );
+    timeoutHandle = setTimeout(_monitorPreShutdown, handlerInfo.maxTimeMillis || defaultTimeoutMillis);
     handlerInfo.handler(_monitorPreShutdown);
   });
 };
@@ -106,7 +105,4 @@ const _exit = function() {
   process.exit();
 };
 
-module.exports = {
-  registerPreShutdownHandler,
-  shutdown
-};
+export { registerPreShutdownHandler, shutdown };

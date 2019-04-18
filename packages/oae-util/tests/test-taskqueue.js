@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
+import assert from 'assert';
 
-const TaskQueue = require('oae-util/lib/taskqueue');
+import * as TaskQueue from 'oae-util/lib/taskqueue';
 
 describe('TaskQueue', () => {
   describe('#bind()', () => {

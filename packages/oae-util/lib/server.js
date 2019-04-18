@@ -13,18 +13,21 @@
  * permissions and limitations under the License.
  */
 
-const http = require('http');
-const util = require('util');
-const _ = require('underscore');
-const bodyParser = require('body-parser');
-const express = require('express');
+import http from 'http';
+import util from 'util';
+import _ from 'underscore';
+import bodyParser from 'body-parser';
+import express from 'express';
 
-const log = require('oae-logger').logger('oae-server');
-const TelemetryAPI = require('oae-telemetry');
-const OaeEmitter = require('./emitter');
+import { logger } from 'oae-logger';
 
-const multipart = require('./middleware/multipart');
-const Shutdown = require('./internal/shutdown');
+import * as TelemetryAPI from 'oae-telemetry';
+import OaeEmitter from './emitter';
+
+import multipart from './middleware/multipart';
+import * as Shutdown from './internal/shutdown';
+
+const log = logger('oae-server');
 
 // The main OAE config
 let config = null;
@@ -360,10 +363,4 @@ const _isSameOrigin = function(req) {
   return true;
 };
 
-module.exports = {
-  setupServer,
-  setupRouter,
-  addSafePathPrefix,
-  postInitializeServer,
-  useHttps
-};
+export { setupServer, setupRouter, addSafePathPrefix, postInitializeServer, useHttps };

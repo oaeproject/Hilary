@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
+import assert from 'assert';
 
-const Pubsub = require('oae-util/lib/pubsub');
+import * as Pubsub from 'oae-util/lib/pubsub';
 
 describe('Pubsub', () => {
   describe('#publish()', callback => {

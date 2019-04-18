@@ -13,40 +13,43 @@
  * permissions and limitations under the License.
  */
 
-const fs = require('fs');
-const util = require('util');
-const _ = require('underscore');
-const async = require('async');
-const clone = require('clone');
-const csv = require('csv');
-const dateFormat = require('dateformat');
-const jszip = require('jszip');
-const ShortId = require('shortid');
+import fs from 'fs';
+import util from 'util';
+import _ from 'underscore';
+import async from 'async';
+import clone from 'clone';
+import csv from 'csv';
+import dateFormat from 'dateformat';
+import jszip from 'jszip';
+import ShortId from 'shortid';
 
-const { AuthenticationConstants } = require('oae-authentication/lib/constants');
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const AuthzUtil = require('oae-authz/lib/util');
-const ConfigAPI = require('oae-config');
-const ContentAPI = require('oae-content');
-const ContentUtil = require('oae-content/lib/internal/util');
-const { Context } = require('oae-context');
-const DiscussionsAPI = require('oae-discussions');
-const EmailAPI = require('oae-email');
-const log = require('oae-logger').logger('oae-principals');
-const MeetingsAPI = require('oae-jitsi');
-const OaeUtil = require('oae-util/lib/util');
-const { Validator } = require('oae-util/lib/validator');
-const TenantsAPI = require('oae-tenants');
-const TenantsUtil = require('oae-tenants/lib/util');
-const Signature = require('oae-util/lib/signature');
+import { getTenantSkinVariables } from 'oae-ui';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as ContentAPI from 'oae-content';
+import * as ContentUtil from 'oae-content/lib/internal/util';
+import * as DiscussionsAPI from 'oae-discussions';
+import * as EmailAPI from 'oae-email';
+import { logger } from 'oae-logger';
+import * as MeetingsAPI from 'oae-jitsi';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as TenantsAPI from 'oae-tenants';
+import * as TenantsUtil from 'oae-tenants/lib/util';
+import * as Signature from 'oae-util/lib/signature';
+import { setUpConfig } from 'oae-config';
+import { Context } from 'oae-context';
+import { Validator } from 'oae-util/lib/validator';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants';
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import * as PrincipalsDAO from './internal/dao';
+import PrincipalsEmitter from './internal/emitter';
+import * as PrincipalsTermsAndConditionsAPI from './api.termsAndConditions';
+import * as PrincipalsUtil from './util';
 
-const PrincipalsConfig = ConfigAPI.setUpConfig('oae-principals');
-const { PrincipalsConstants } = require('./constants');
-const PrincipalsDAO = require('./internal/dao');
-const PrincipalsEmitter = require('./internal/emitter');
-const PrincipalsTermsAndConditionsAPI = require('./api.termsAndConditions');
-const PrincipalsUtil = require('./util');
-const { User } = require('./model');
+import { PrincipalsConstants } from './constants';
+import { User } from './model';
+
+const log = logger('oae-principals');
+const PrincipalsConfig = setUpConfig('oae-principals');
 
 const fullUserProfileDecorators = {};
 
@@ -1216,7 +1219,7 @@ const _sendEmailToken = function(ctx, user, email, token, callback) {
       tenant: ctx.tenant(),
       user: userToEmail,
       baseUrl: TenantsUtil.getBaseUrl(ctx.tenant()),
-      skinVariables: require('oae-ui').getTenantSkinVariables(ctx.tenant().alias),
+      skinVariables: getTenantSkinVariables(ctx.tenant().alias),
       token,
       verificationUrl
     };
@@ -2246,7 +2249,7 @@ const _getNewFileName = function(fileExt, fileName, folder) {
   }
 };
 
-module.exports = {
+export {
   registerFullUserProfileDecorator,
   createUser,
   importUsers,

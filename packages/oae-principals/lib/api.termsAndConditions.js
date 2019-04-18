@@ -14,13 +14,14 @@
  */
 
 /* eslint-disable unicorn/filename-case */
-const AuthzUtil = require('oae-authz/lib/util');
-const ConfigAPI = require('oae-config');
-const { Validator } = require('oae-util/lib/validator');
+import { Validator } from 'oae-util/lib/validator';
+import { setUpConfig } from 'oae-config';
 
-const PrincipalsConfig = ConfigAPI.setUpConfig('oae-principals');
-const PrincipalsDAO = require('./internal/dao');
-const PrincipalsUtil = require('./util');
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as PrincipalsDAO from './internal/dao';
+import * as PrincipalsUtil from './util';
+
+const PrincipalsConfig = setUpConfig('oae-principals');
 
 /**
  * Get the Terms and Conditions text for a tenant.
@@ -125,8 +126,4 @@ const needsToAcceptTermsAndConditions = function(ctx) {
   return ctx.user().acceptedTC < lastUpdated.getTime();
 };
 
-module.exports = {
-  getTermsAndConditions,
-  acceptTermsAndConditions,
-  needsToAcceptTermsAndConditions
-};
+export { getTermsAndConditions, acceptTermsAndConditions, needsToAcceptTermsAndConditions };

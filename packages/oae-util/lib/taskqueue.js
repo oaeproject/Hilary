@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const MQ = require('./mq');
+import * as MQ from './mq';
 
 /**
  * ## The Task Queue API.
@@ -59,11 +59,7 @@ const Constants = {
  * @param  {Function}   callback    Standard callback function
  */
 const init = function(callback) {
-  MQ.declareExchange(
-    Constants.DEFAULT_TASK_EXCHANGE_NAME,
-    Constants.DEFAULT_TASK_EXCHANGE_OPTS,
-    callback
-  );
+  MQ.declareExchange(Constants.DEFAULT_TASK_EXCHANGE_NAME, Constants.DEFAULT_TASK_EXCHANGE_OPTS, callback);
 };
 
 /**
@@ -94,20 +90,17 @@ const bind = function(taskQueueId, listener, options, callback) {
     }
 
     /*
-         * 2. Bind queue to the default exchange
-         *
-         * We use the `taskQueueId` for both the name as the queue and the routing key.
-         */
+     * 2. Bind queue to the default exchange
+     *
+     * We use the `taskQueueId` for both the name as the queue and the routing key.
+     */
     MQ.bindQueueToExchange(taskQueueId, Constants.DEFAULT_TASK_EXCHANGE_NAME, taskQueueId, err => {
       if (err) {
         return callback(err);
       }
 
       // 3. Subscribe to the queue
-      const subscribeOptions = _.defaults(
-        options.subscribe,
-        Constants.DEFAULT_TASK_QUEUE_SUBSCRIBE_OPTS
-      );
+      const subscribeOptions = _.defaults(options.subscribe, Constants.DEFAULT_TASK_QUEUE_SUBSCRIBE_OPTS);
       MQ.subscribeQueue(taskQueueId, subscribeOptions, listener, callback);
     });
   });
@@ -122,6 +115,7 @@ const _declareQueue = function(taskQueueId, queueOptions, callback) {
   if (MQ.isQueueDeclared(taskQueueId)) {
     return callback();
   }
+
   MQ.declareQueue(taskQueueId, queueOptions, callback);
 };
 
@@ -147,10 +141,4 @@ const submit = function(taskQueueId, taskData, callback) {
   MQ.submit(Constants.DEFAULT_TASK_EXCHANGE_NAME, taskQueueId, taskData, null, callback);
 };
 
-module.exports = {
-  Constants,
-  init,
-  bind,
-  unbind,
-  submit
-};
+export { Constants, init, bind, unbind, submit };

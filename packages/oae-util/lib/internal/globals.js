@@ -15,4 +15,4 @@
 
 // Global Underscore.js mixins
 // eslint-disable-next-line import/no-unassigned-import
-require('./globals/underscore');
+import * as _ from './globals/underscore';

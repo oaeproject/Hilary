@@ -27,7 +27,7 @@ import * as RestAPI from 'oae-rest';
 import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
 import * as TestsUtil from 'oae-tests';
 import * as TZ from 'oae-util/lib/tz';
-import * as PrincipalsAPI from 'oae-principals';
+import PrincipalsAPI from 'oae-principals';
 import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
 
 import { RestContext } from 'oae-rest/lib/model';

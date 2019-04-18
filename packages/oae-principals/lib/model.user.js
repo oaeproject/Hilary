@@ -13,11 +13,11 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
 
-const AuthzUtil = require('oae-authz/lib/util');
-const TenantsAPI = require('oae-tenants');
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as TenantsAPI from 'oae-tenants';
 
 /**
  * The User model.
@@ -42,7 +42,7 @@ const TenantsAPI = require('oae-tenants');
  * @param  {Boolean}    [opts.isGlobalAdmin]            Whether or not the user is a global admin
  * @param  {Boolean}    [opts.isTenantAdmin]            Whether or not the user is a tenant admin
  */
-module.exports.User = function(tenantAlias, id, displayName, email, opts) {
+export const User = function(tenantAlias, id, displayName, email, opts) {
   opts = opts || {};
 
   // Explicit checks on true for admin.

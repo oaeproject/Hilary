@@ -15,16 +15,16 @@
 
 import * as FoldersSearch from './search';
 
-export function init(config, callback) {
-  // Register activity, library, previews and search functionality
-  // eslint-disable-next-line no-unused-vars
-  const activity = require('./activity');
-  // eslint-disable-next-line no-unused-vars
-  const library = require('./library');
-  // eslint-disable-next-line no-unused-vars
-  const previews = require('./previews');
-  // eslint-disable-next-line no-unused-vars
-  const invitations = require('./invitations');
+// Register activity, library, previews and search functionality
+// eslint-disable-next-line no-unused-vars
+import * as activity from './activity';
+// eslint-disable-next-line no-unused-vars
+import * as library from './library';
+// eslint-disable-next-line no-unused-vars
+import * as previews from './previews';
+// eslint-disable-next-line no-unused-vars
+import * as invitations from './invitations';
 
+export function init(config, callback) {
   return FoldersSearch.init(callback);
 }

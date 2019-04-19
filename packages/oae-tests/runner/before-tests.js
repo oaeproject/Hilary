@@ -15,6 +15,7 @@
 
 import * as TestsUtil from 'oae-tests/lib/util';
 import { logger } from 'oae-logger';
+import nock from 'nock';
 
 const log = logger('before-tests');
 
@@ -52,8 +53,6 @@ beforeEach(function(callback) {
 });
 
 afterEach(function(callback) {
-  const nock = require('nock');
-
   // Ensure we don't mess with the HTTP stack by accident
   nock.enableNetConnect();
 

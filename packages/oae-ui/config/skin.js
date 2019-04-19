@@ -15,18 +15,16 @@
 
 import { Text } from 'oae-config/lib/fields';
 
-module.exports = {
-  title: 'OAE UI Module',
-  skin: {
-    name: 'Skin settings',
-    description: 'Define the skin settings',
-    elements: {
-      variables: new Text(
-        'JSON Variables',
-        'A JSON dictionary that holds the less variables. Each key is a less variable',
-        {},
-        { tenantOverride: true, suppress: true, globalAdminOnly: false }
-      )
-    }
+export const title = 'OAE UI Module';
+export const skin = {
+  name: 'Skin settings',
+  description: 'Define the skin settings',
+  elements: {
+    variables: new Text(
+      'JSON Variables',
+      'A JSON dictionary that holds the less variables. Each key is a less variable',
+      {},
+      { tenantOverride: true, suppress: true, globalAdminOnly: false }
+    )
   }
 };

@@ -41,10 +41,7 @@ import * as UserAPI from './api.user';
 import PrincipalsAPI from './internal/emitter';
 
 const allExports = {};
-export default _.extend(allExports, GroupAPI, PictureAPI, TermsAndConditionsAPI, UserAPI);
-
-export { PrincipalsAPI as emitter };
-
 // This file would become unmaintainable if all the logic would be placed here.
 // That's why we split them up in a couple of files of which the api logic gets exported.
-// _.extend(module.exports, GroupAPI, PictureAPI, TermsAndConditionsAPI, UserAPI);
+export default _.extend(allExports, GroupAPI, PictureAPI, TermsAndConditionsAPI, UserAPI);
+export { PrincipalsAPI as emitter };

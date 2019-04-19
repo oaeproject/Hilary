@@ -21,6 +21,7 @@ import util from 'util';
 import async from 'async';
 import _ from 'underscore';
 
+import { config } from '../../../config';
 import bodyParser from 'body-parser';
 import clone from 'clone';
 import express from 'express';
@@ -1132,7 +1133,6 @@ const _ensureAuthenticated = function(restCtx, callback) {
 const createInitialTestConfig = function() {
   // Require the configuration file, from here on the configuration should be
   // passed around instead of required
-  let { config } = require('../../../config');
   const envConfig = require('../../../' + (process.env.NODE_ENV || 'local')).config;
   config = _.extend({}, config, envConfig);
 

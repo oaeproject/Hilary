@@ -30,6 +30,7 @@ import * as EmitterAPI from 'oae-emitter';
 import * as LibraryAPI from 'oae-library';
 import { logger } from 'oae-logger';
 
+import { getFoldersByIds } from 'oae-folders/lib/internal/dao';
 import * as MessageBoxAPI from 'oae-messagebox';
 import * as OaeUtil from 'oae-util/lib/util';
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
@@ -781,9 +782,7 @@ const canManageFolders = function(ctx, folderIds, callback) {
     return callback(validator.getFirstError());
   }
 
-  // Ensure that all the folders exist. We have to require the FoldersDAO
-  // inline as we'd get a dependency cycle otherwise
-  require('oae-folders/lib/internal/dao').getFoldersByIds(folderIds, (err, folders) => {
+  getFoldersByIds(folderIds, (err, folders) => {
     if (err) {
       return callback(err);
     }

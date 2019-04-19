@@ -24,7 +24,7 @@ import * as Cassandra from 'oae-util/lib/cassandra';
 import * as MqTestsUtil from 'oae-util/lib/test/mq-util';
 import * as EmailAPI from 'oae-email';
 
-const { ActivityConstants } = require('oae-activity/lib/constants');
+import { ActivityConstants } from 'oae-activity/lib/constants';
 
 /**
  * Send and return a single email message. This helper utility will ensure that the activity / notifications queue

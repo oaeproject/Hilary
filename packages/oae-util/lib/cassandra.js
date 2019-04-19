@@ -26,9 +26,8 @@ import * as OaeUtil from 'oae-util/lib/util';
 const { Row, dataTypes } = cassandra.types;
 const _ = require('underscore');
 
-const log = logger('oae-cassandra');
-
-const Telemetry = telemetry('cassandra');
+let log = null;
+let Telemetry = null;
 
 const DEFAULT_ITERATEALL_BATCH_SIZE = 100;
 let CONFIG = null;
@@ -45,6 +44,9 @@ const init = function(config, callback) {
   callback = callback || function() {};
   CONFIG = config;
 
+  log = logger('oae-cassandra');
+
+  Telemetry = telemetry('cassandra');
   const { keyspace } = CONFIG;
   CONFIG.keyspace = 'system';
   client = _createNewClient(CONFIG.hosts, CONFIG.keyspace);

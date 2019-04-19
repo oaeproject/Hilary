@@ -54,7 +54,7 @@
  *         {String}     schema.created          Id of the user who created the item. This is used to limit to items created by current user only.
  */
 /* eslint-disable unicorn/filename-case, camelcase */
-module.exports = {
+const schema = {
   id: {
     type: 'string',
     store: 'yes',
@@ -149,3 +149,23 @@ module.exports = {
     index: 'not_analyzed'
   }
 };
+export let {
+  id,
+  tenantAlias,
+  resourceType,
+  resourceSubType,
+  thumbnailUrl,
+  displayName,
+  description,
+  email,
+  _extra,
+  visibility,
+  joinable,
+  deleted,
+  q_high,
+  q_low,
+  sort,
+  dateCreated,
+  lastModified,
+  createdBy
+} = schema;

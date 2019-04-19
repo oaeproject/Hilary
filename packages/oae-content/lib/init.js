@@ -26,25 +26,25 @@ import * as ContentAPI from './api';
 import { ContentConstants } from './constants';
 import * as ContentSearch from './search';
 
+// Initialize the content library capabilities
+// eslint-disable-next-line no-unused-vars
+import * as library from './library';
+
+// Initialize activity capabilities
+// eslint-disable-next-line no-unused-vars
+import * as activity from './activity';
+
+// Ensure that the preview listeners get registered
+// eslint-disable-next-line no-unused-vars
+import * as previews from './previews';
+
+// Initialize invitations listeners
+// eslint-disable-next-line no-unused-vars
+import * as invitations from './invitations';
+
 const log = logger('oae-content');
 
 export function init(config, callback) {
-  // Initialize the content library capabilities
-  // eslint-disable-next-line import/no-unassigned-import
-  require('./library');
-
-  // Initialize activity capabilities
-  // eslint-disable-next-line import/no-unassigned-import
-  require('./activity');
-
-  // Ensure that the preview listeners get registered
-  // eslint-disable-next-line import/no-unassigned-import
-  require('./previews');
-
-  // Initialize invitations listeners
-  // eslint-disable-next-line import/no-unassigned-import
-  require('./invitations');
-
   // Initialize the etherpad client.
   Etherpad.refreshConfiguration(config.etherpad);
 

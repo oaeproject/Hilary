@@ -38,13 +38,13 @@ import * as UIAPI from 'oae-ui';
 import { htmlToText } from 'nodemailer-html-to-text';
 import { MailParser } from 'mailparser';
 import { Validator } from 'oae-util/lib/validator';
+import * as TenantsAPI from 'oae-tenants';
 
 const EmailConfig = setUpConfig('oae-email');
 
 const log = logger('oae-email');
 
 const Telemetry = telemetry('oae-email');
-const TenantsAPI = require('oae-tenants');
 
 const TenantsConfig = setUpConfig('oae-tenants');
 

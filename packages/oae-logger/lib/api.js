@@ -127,7 +127,6 @@ const _wrapErrorFunction = function(loggerName, errorFunction) {
    * Keep track of the error count with the telemetry API before handing control back to Bunyan
    */
   const wrapperErrorFunction = function(...args) {
-    // The telemetry API needs to be required inline as there would otherwise be a cyclical dependency
     const Telemetry = require('oae-telemetry').telemetry('logger');
 
     // Increase the general error count that keeps track of the number of errors throughout the application

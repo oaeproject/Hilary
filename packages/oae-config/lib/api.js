@@ -17,6 +17,8 @@ import util from 'util';
 import _ from 'underscore';
 import clone from 'clone';
 
+import * as Modules from 'oae-util/lib/modules';
+import * as Cassandra from 'oae-util/lib/cassandra';
 import * as EmitterAPI from 'oae-emitter';
 import * as IO from 'oae-util/lib/io';
 import * as OaeUtil from 'oae-util/lib/util';
@@ -307,8 +309,6 @@ const updateTenantConfig = function(tenantAlias, callback) {
  */
 const _cacheSchema = function(callback) {
   // Get the available module
-  // This is bad but not my fault
-  const Modules = require('oae-util/lib/modules');
   const modules = Modules.getAvailableModules();
   const toDo = modules.length;
   let done = 0;
@@ -411,7 +411,6 @@ const _cacheAllTenantConfigs = function(callback) {
  * @param  {Object}     callback.tenantConfigs  An object keyed by tenant alias, whose value is a key value pair of `configKey->value` for each stored configuration value for the tenant
  */
 const _getAllPersistentTenantConfigs = function(callback) {
-  const Cassandra = require('oae-util/lib/cassandra');
   Cassandra.runAutoPagedQuery(
     'SELECT "tenantAlias", "configKey", "value", WRITETIME("value") FROM "Config"',
     null,
@@ -435,7 +434,6 @@ const _getAllPersistentTenantConfigs = function(callback) {
  * @param  {Object}     callback.tenantConfig   An object keyed by configKey whose value is the value set for the tenant
  */
 const _getPersistentTenantConfig = function(alias, callback) {
-  const Cassandra = require('oae-util/lib/cassandra');
   Cassandra.runQuery(
     'SELECT "tenantAlias", "configKey", "value", WRITETIME("value") FROM "Config" WHERE "tenantAlias" = ?',
     [alias],
@@ -461,7 +459,6 @@ const _rowsToConfig = function(rows) {
   const persistentConfig = {};
 
   _.each(rows, row => {
-    const Cassandra = require('oae-util/lib/cassandra');
     const hash = Cassandra.rowToHash(row);
     const key = hash.configKey;
     let { value } = hash;
@@ -669,8 +666,6 @@ const updateConfig = function(ctx, tenantAlias, configValues, callback) {
   // Indicate that configuration is about to be updated
   eventEmitter.emit('preUpdate', tenantAlias);
 
-  // TODO this is crazy bad
-  const Cassandra = require('oae-util/lib/cassandra');
   // Perform all the config field updates
   Cassandra.runBatchQuery(queries, err => {
     if (err) {
@@ -792,8 +787,6 @@ const clearConfig = function(ctx, tenantAlias, configFields, callback) {
   // Indicate that config values are about to be cleared
   eventEmitter.emit('preClear', tenantAlias);
 
-  // TODO this is crazy bad
-  const Cassandra = require('oae-util/lib/cassandra');
   Cassandra.runBatchQuery(queries, err => {
     if (err) {
       return callback(err);

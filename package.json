@@ -147,7 +147,7 @@
     "nyc": "latest",
     "oauth": "^0.9.15",
     "prettier": "latest",
-    "puppeteer": "1.4.0",
+    "puppeteer": "1.11.0",
     "repl-promised": "^0.1.0",
     "shelljs": "^0.8.3",
     "sockjs-client-ws": "^0.1.0",

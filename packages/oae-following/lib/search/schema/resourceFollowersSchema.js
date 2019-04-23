@@ -24,10 +24,8 @@
  */
 
 /* eslint-disable unicorn/filename-case */
-module.exports = {
-  followers: {
-    type: 'string',
-    store: 'no',
-    index: 'not_analyzed'
-  }
+export const followers = {
+  type: 'string',
+  store: 'no',
+  index: 'not_analyzed'
 };

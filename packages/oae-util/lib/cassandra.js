@@ -13,16 +13,21 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const cassandra = require('cassandra-driver');
-const { Row, dataTypes } = require('cassandra-driver').types;
-const _ = require('underscore');
-// eslint-disable-next-line no-unused-vars
-const OAE = require('oae-util/lib/oae');
+import util from 'util';
 
-const log = require('oae-logger').logger('oae-cassandra');
-const OaeUtil = require('oae-util/lib/util');
-const Telemetry = require('oae-telemetry').telemetry('cassandra');
+import * as cassandra from 'cassandra-driver';
+// eslint-disable-next-line no-unused-vars
+import * as OAE from 'oae-util/lib/oae';
+
+import { logger } from 'oae-logger';
+import { telemetry } from 'oae-telemetry';
+import * as OaeUtil from 'oae-util/lib/util';
+
+const { Row, dataTypes } = cassandra.types;
+const _ = require('underscore');
+
+let log = null;
+let Telemetry = null;
 
 const DEFAULT_ITERATEALL_BATCH_SIZE = 100;
 let CONFIG = null;
@@ -39,6 +44,9 @@ const init = function(config, callback) {
   callback = callback || function() {};
   CONFIG = config;
 
+  log = logger('oae-cassandra');
+
+  Telemetry = telemetry('cassandra');
   const { keyspace } = CONFIG;
   CONFIG.keyspace = 'system';
   client = _createNewClient(CONFIG.hosts, CONFIG.keyspace);
@@ -58,6 +66,7 @@ const init = function(config, callback) {
           callback(err);
         });
       }
+
       client = _createNewClient(CONFIG.hosts, keyspace);
       callback();
     });
@@ -164,10 +173,12 @@ const keyspaceExists = function(name, callback) {
     if (results.rowLength === 0) {
       return callback(null, false);
     }
+
     if (err) {
       log().error({ err, name }, 'Error while describing cassandra keyspace');
       callback({ code: 500, msg: 'Error while describing cassandra keyspace' });
     }
+
     return callback(null, true);
   });
 };
@@ -204,6 +215,7 @@ const dropColumnFamily = function(name, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!exists) {
       return callback({
         code: 400,
@@ -254,6 +266,7 @@ const _dropColumnFamilies = function(families, callback) {
     if (err) {
       return callback(err);
     }
+
     _dropColumnFamilies(families, callback);
   });
 };
@@ -324,6 +337,7 @@ const _createColumnFamilies = function(keys, families, callback) {
     if (err) {
       return callback(err);
     }
+
     _createColumnFamilies(keys, families, callback);
   });
 };
@@ -404,6 +418,7 @@ const runBatchQuery = function(queries, callback) {
     if (err) {
       return callback(err);
     }
+
     return callback(null, result.rows);
   });
 };
@@ -472,6 +487,7 @@ const runPagedQuery = function(
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(rows)) {
       return callback(null, [], null, false);
     }
@@ -658,6 +674,7 @@ const _iterateAll = function(
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(rows)) {
       // Notify the caller that we've finished
       return callback();
@@ -688,6 +705,7 @@ const _iterateAll = function(
           row[eachNewRowContent.key] = eachNewRowContent.value;
         });
       }
+
       requestedRowColumns.push(row);
     });
     rows = requestedRowColumns;
@@ -737,6 +755,7 @@ const _buildIterateAllQuery = function(columnNames, columnFamily, keyColumnName,
 
         // Return as-is
       }
+
       return columnName;
     }).join(', ');
   }
@@ -794,6 +813,7 @@ const constructUpsertCQL = function(cf, rowKey, rowValue, values, ttl) {
   if (!cf || !rowKey || !rowValue || !_.isObject(values) || _.isEmpty(values)) {
     return false;
   }
+
   if (_.isArray(rowKey)) {
     // If the row key is an array, the row value should be an array of the same length
     if (!_.isArray(rowValue) || rowKey.length !== rowValue.length) {
@@ -982,7 +1002,7 @@ const _truncateString = function(str, ifOverSize) {
   return str;
 };
 
-module.exports = {
+export {
   init,
   close,
   createKeyspace,

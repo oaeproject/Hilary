@@ -1,25 +1,28 @@
-const _ = require('underscore');
+import _ from 'underscore';
 
-const AuthzAPI = require('oae-authz');
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const AuthzInvitations = require('oae-authz/lib/invitations');
-const AuthzPermissions = require('oae-authz/lib/permissions');
-const LibraryAPI = require('oae-library');
-const log = require('oae-logger').logger('meetings-jitsi-api');
-const MessageBoxAPI = require('oae-messagebox');
-const { MessageBoxConstants } = require('oae-messagebox/lib/constants');
-const OaeUtil = require('oae-util/lib/util');
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
-const PrincipalsUtil = require('oae-principals/lib/util');
-const ResourceActions = require('oae-resource/lib/actions');
-const Signature = require('oae-util/lib/signature');
-const { Validator } = require('oae-authz/lib/validator');
+import * as AuthzAPI from 'oae-authz';
+import * as AuthzInvitations from 'oae-authz/lib/invitations';
+import * as AuthzPermissions from 'oae-authz/lib/permissions';
+import * as LibraryAPI from 'oae-library';
+import * as MessageBoxAPI from 'oae-messagebox';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as PrincipalsUtil from 'oae-principals/lib/util';
+import * as ResourceActions from 'oae-resource/lib/actions';
+import * as Signature from 'oae-util/lib/signature';
+import { setUpConfig } from 'oae-config';
+import * as MeetingsAPI from 'oae-jitsi';
+import { logger } from 'oae-logger';
 
-const Config = require('oae-config/lib/api').config('oae-jitsi');
-const MeetingsAPI = require('oae-jitsi');
-const { MeetingsConstants } = require('./constants');
-const MeetingsDAO = require('./internal/dao');
+import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
+import { Validator } from 'oae-authz/lib/validator';
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import { MeetingsConstants } from './constants';
+import * as MeetingsDAO from './internal/dao';
 
+const Config = setUpConfig('oae-jitsi');
+
+const log = logger('meetings-jitsi-api');
 /**
  * PUBLIC FUNCTIONS
  */
@@ -59,27 +62,22 @@ const createMeeting = function(
   if (chat) {
     chat = String(chat) === 'true';
   }
+
   if (contactList) {
     contactList = String(contactList) === 'true';
   }
 
   // Verify basic properties
   const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'Anonymous users cannot create a meeting' })
-    .isLoggedInUser(ctx);
-  validator
-    .check(displayName, { code: 400, msg: 'Must provide a display name for the meeting' })
-    .notEmpty();
+  validator.check(null, { code: 401, msg: 'Anonymous users cannot create a meeting' }).isLoggedInUser(ctx);
+  validator.check(displayName, { code: 400, msg: 'Must provide a display name for the meeting' }).notEmpty();
   validator
     .check(displayName, { code: 400, msg: 'A display name can be at most 1000 characters long' })
     .isShortString();
   validator
     .check(visibility, {
       code: 400,
-      msg:
-        'An invalid meeting visibility option has been provided. Must be one of: ' +
-        allVisibilities.join(', ')
+      msg: 'An invalid meeting visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
     })
     .isIn(allVisibilities);
   if (description && description.length > 0) {
@@ -120,19 +118,13 @@ const createMeeting = function(
       return callback(err);
     }
 
-    MeetingsAPI.emitter.emit(
-      MeetingsConstants.events.CREATED_MEETING,
-      ctx,
-      meeting,
-      memberChangeInfo,
-      errs => {
-        if (errs) {
-          return callback(_.first(errs));
-        }
-
-        return callback(null, meeting);
+    MeetingsAPI.emitter.emit(MeetingsConstants.events.CREATED_MEETING, ctx, meeting, memberChangeInfo, errs => {
+      if (errs) {
+        return callback(_.first(errs));
       }
-    );
+
+      return callback(null, meeting);
+    });
   });
 };
 
@@ -147,9 +139,7 @@ const createMeeting = function(
  */
 const getFullMeetingProfile = function(ctx, meetingId, callback) {
   const validator = new Validator();
-  validator
-    .check(meetingId, { code: 400, msg: 'meetingId must be a valid resource id' })
-    .isResourceId();
+  validator.check(meetingId, { code: 400, msg: 'meetingId must be a valid resource id' }).isResourceId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -164,6 +154,7 @@ const getFullMeetingProfile = function(ctx, meetingId, callback) {
       if (err) {
         return callback(err);
       }
+
       if (!permissions.canView) {
         // The user has no effective role, which means they are not allowed to view (this has already taken into
         // consideration implicit privacy rules, such as whether or not the meeting is public).
@@ -212,9 +203,7 @@ const getFullMeetingProfile = function(ctx, meetingId, callback) {
  */
 const getMeeting = function(ctx, meetingId, callback) {
   const validator = new Validator();
-  validator
-    .check(meetingId, { code: 400, msg: 'A valid resource id must be specified' })
-    .isResourceId();
+  validator.check(meetingId, { code: 400, msg: 'A valid resource id must be specified' }).isResourceId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -243,9 +232,7 @@ const getMeeting = function(ctx, meetingId, callback) {
  */
 const getMeetingInvitations = function(ctx, meetingId, callback) {
   const validator = new Validator();
-  validator
-    .check(meetingId, { code: 400, msg: 'A valid resource id must be specified' })
-    .isResourceId();
+  validator.check(meetingId, { code: 400, msg: 'A valid resource id must be specified' }).isResourceId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -270,9 +257,7 @@ const getMeetingMembers = function(ctx, meetingId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   const validator = new Validator();
-  validator
-    .check(meetingId, { code: 400, msg: 'A valid resource id must be specified' })
-    .isResourceId();
+  validator.check(meetingId, { code: 400, msg: 'A valid resource id must be specified' }).isResourceId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -329,6 +314,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
       profileFields.chat = false;
     }
   }
+
   if (profileFields.contactList) {
     if (profileFields.contactList === 'true') {
       profileFields.contactList = true;
@@ -338,12 +324,8 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
   }
 
   const validator = new Validator();
-  validator
-    .check(meetingId, { code: 400, msg: 'A valid resource id must be specified' })
-    .isResourceId();
-  validator
-    .check(null, { code: 401, msg: 'You must be authenticated to update a meeting' })
-    .isLoggedInUser(ctx);
+  validator.check(meetingId, { code: 400, msg: 'A valid resource id must be specified' }).isResourceId();
+  validator.check(null, { code: 401, msg: 'You must be authenticated to update a meeting' }).isLoggedInUser(ctx);
   validator
     .check(_.keys(profileFields).length, {
       code: 400,
@@ -355,10 +337,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
       .check(field, {
         code: 400,
         msg:
-          "The field '" +
-          field +
-          "' is not a valid field. Must be one of: " +
-          MeetingsConstants.updateFields.join(', ')
+          "The field '" + field + "' is not a valid field. Must be one of: " + MeetingsConstants.updateFields.join(', ')
       })
       .isIn(MeetingsConstants.updateFields);
     if (field === 'visibility') {
@@ -370,13 +349,9 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
         .isIn(allVisibilities);
     } else if (field === 'displayName') {
       validator.check(value, { code: 400, msg: 'A display name cannot be empty' }).notEmpty();
-      validator
-        .check(value, { code: 400, msg: 'A display name can be at most 1000 characters long' })
-        .isShortString();
+      validator.check(value, { code: 400, msg: 'A display name can be at most 1000 characters long' }).isShortString();
     } else if (field === 'description' && value.length > 0) {
-      validator
-        .check(value, { code: 400, msg: 'A description can be at most 10000 characters long' })
-        .isMediumString();
+      validator.check(value, { code: 400, msg: 'A description can be at most 10000 characters long' }).isMediumString();
     } else if (field === 'chat') {
       validator
         .check(null, { code: 400, msg: 'An invalid chat value was specified, must be boolean' })
@@ -415,19 +390,13 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
         updatedMeeting.canPost = true;
         updatedMeeting.canShare = true;
 
-        MeetingsAPI.emitter.emit(
-          MeetingsConstants.events.UPDATED_MEETING,
-          ctx,
-          updatedMeeting,
-          meeting,
-          errs => {
-            if (errs) {
-              return callback(_.first(errs));
-            }
-
-            return callback(null, updatedMeeting);
+        MeetingsAPI.emitter.emit(MeetingsConstants.events.UPDATED_MEETING, ctx, updatedMeeting, meeting, errs => {
+          if (errs) {
+            return callback(_.first(errs));
           }
-        );
+
+          return callback(null, updatedMeeting);
+        });
       });
     });
   });
@@ -443,12 +412,8 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
  */
 const deleteMeeting = function(ctx, meetingId, callback) {
   const validator = new Validator();
-  validator
-    .check(meetingId, { code: 400, msg: 'A valid resource id must be specified' })
-    .isResourceId();
-  validator
-    .check(null, { code: 401, msg: 'You must be authenticated to delete a meeting' })
-    .isLoggedInUser(ctx);
+  validator.check(meetingId, { code: 400, msg: 'A valid resource id must be specified' }).isResourceId();
+  validator.check(null, { code: 401, msg: 'You must be authenticated to delete a meeting' }).isLoggedInUser(ctx);
 
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
@@ -487,19 +452,13 @@ const deleteMeeting = function(ctx, meetingId, callback) {
               return callback(err);
             }
 
-            MeetingsAPI.emitter.emit(
-              MeetingsConstants.events.DELETED_MEETING,
-              ctx,
-              meeting,
-              memberIds,
-              errs => {
-                if (errs) {
-                  return callback(_.first(errs));
-                }
-
-                return callback();
+            MeetingsAPI.emitter.emit(MeetingsConstants.events.DELETED_MEETING, ctx, meeting, memberIds, errs => {
+              if (errs) {
+                return callback(_.first(errs));
               }
-            );
+
+              return callback();
+            });
           });
         });
       });
@@ -518,19 +477,14 @@ const deleteMeeting = function(ctx, meetingId, callback) {
  */
 const setMeetingMembers = function(ctx, meetingId, changes, callback) {
   const validator = new Validator();
-  validator
-    .check(meetingId, { code: 400, msg: 'A valid resource id must be specified' })
-    .isResourceId();
-  validator
-    .check(null, { code: 401, msg: 'You must be authenticated to update meeting members' })
-    .isLoggedInUser(ctx);
+  validator.check(meetingId, { code: 400, msg: 'A valid resource id must be specified' }).isResourceId();
+  validator.check(null, { code: 401, msg: 'You must be authenticated to update meeting members' }).isLoggedInUser(ctx);
   // eslint-disable-next-line no-unused-vars
   _.each(changes, (role, principalId) => {
     validator
       .check(role, {
         code: 400,
-        msg:
-          'The role change : ' + role + ' is not a valid value. Must either be a string, or false'
+        msg: 'The role change : ' + role + ' is not a valid value. Must either be a string, or false'
       })
       .isValidRoleChange();
     if (role) {
@@ -610,40 +564,34 @@ const getMessages = function(ctx, meetingId, start, limit, callback) {
     }
 
     // Fetch the messages from the message box
-    MessageBoxAPI.getMessagesFromMessageBox(
-      meetingId,
-      start,
-      limit,
-      null,
-      (err, messages, nextToken) => {
+    MessageBoxAPI.getMessagesFromMessageBox(meetingId, start, limit, null, (err, messages, nextToken) => {
+      if (err) {
+        return callback(err);
+      }
+
+      let userIds = _.map(messages, message => {
+        return message.createdBy;
+      });
+
+      // Remove falsey and duplicate userIds
+      userIds = _.uniq(_.compact(userIds));
+
+      // Get the basic principal profiles of the messagers to add to the messages as `createdBy`.
+      PrincipalsUtil.getPrincipals(ctx, userIds, (err, users) => {
         if (err) {
           return callback(err);
         }
 
-        let userIds = _.map(messages, message => {
-          return message.createdBy;
-        });
-
-        // Remove falsey and duplicate userIds
-        userIds = _.uniq(_.compact(userIds));
-
-        // Get the basic principal profiles of the messagers to add to the messages as `createdBy`.
-        PrincipalsUtil.getPrincipals(ctx, userIds, (err, users) => {
-          if (err) {
-            return callback(err);
+        // Attach the user profiles to the message objects
+        _.each(messages, message => {
+          if (users[message.createdBy]) {
+            message.createdBy = users[message.createdBy];
           }
-
-          // Attach the user profiles to the message objects
-          _.each(messages, message => {
-            if (users[message.createdBy]) {
-              message.createdBy = users[message.createdBy];
-            }
-          });
-
-          return callback(err, messages, nextToken);
         });
-      }
-    );
+
+        return callback(err, messages, nextToken);
+      });
+    });
   });
 };
 
@@ -661,18 +609,12 @@ const getMessages = function(ctx, meetingId, start, limit, callback) {
  */
 const createMessage = function(ctx, meetingId, body, replyToCreatedTimestamp, callback) {
   const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'Only authenticated users can post on meetings' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'Only authenticated users can post on meetings' }).isLoggedInUser(ctx);
   validator.check(meetingId, { code: 400, msg: 'Invalid meeting id provided' }).isResourceId();
   validator.check(body, { code: 400, msg: 'A message body must be provided' }).notEmpty();
-  validator
-    .check(body, { code: 400, msg: 'A message body can only be 100000 characters long' })
-    .isLongString();
+  validator.check(body, { code: 400, msg: 'A message body can only be 100000 characters long' }).isLongString();
   if (replyToCreatedTimestamp) {
-    validator
-      .check(replyToCreatedTimestamp, { code: 400, msg: 'Invalid reply-to timestamp provided' })
-      .isInt();
+    validator.check(replyToCreatedTimestamp, { code: 400, msg: 'Invalid reply-to timestamp provided' }).isInt();
   }
 
   if (validator.hasErrors()) {
@@ -711,19 +653,13 @@ const createMessage = function(ctx, meetingId, body, replyToCreatedTimestamp, ca
             message.createdBy = createdBy;
 
             // The message has been created in the database so we can emit the `created-message` event
-            MeetingsAPI.emitter.emit(
-              MeetingsConstants.events.CREATED_MEETING_MESSAGE,
-              ctx,
-              message,
-              meeting,
-              errs => {
-                if (errs) {
-                  return callback(_.first(errs));
-                }
-
-                return callback(null, message);
+            MeetingsAPI.emitter.emit(MeetingsConstants.events.CREATED_MEETING_MESSAGE, ctx, message, meeting, errs => {
+              if (errs) {
+                return callback(_.first(errs));
               }
-            );
+
+              return callback(null, message);
+            });
           });
         }
       );
@@ -744,9 +680,7 @@ const createMessage = function(ctx, meetingId, body, replyToCreatedTimestamp, ca
  */
 const deleteMessage = function(ctx, meetingId, messageCreatedDate, callback) {
   const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'Only authenticated users can delete messages' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'Only authenticated users can delete messages' }).isLoggedInUser(ctx);
   validator.check(meetingId, { code: 400, msg: 'A meeting id must be provided' }).isResourceId();
   validator
     .check(messageCreatedDate, {
@@ -765,54 +699,51 @@ const deleteMessage = function(ctx, meetingId, messageCreatedDate, callback) {
     }
 
     // Ensure that the message exists. We also need it so we can make sure we have access to delete it
-    MessageBoxAPI.getMessages(
-      meetingId,
-      [messageCreatedDate],
-      { scrubDeleted: false },
-      (err, messages) => {
+    MessageBoxAPI.getMessages(meetingId, [messageCreatedDate], { scrubDeleted: false }, (err, messages) => {
+      if (err) {
+        return callback(err);
+      }
+
+      if (!messages[0]) {
+        return callback({ code: 404, msg: 'The specified message does not exist' });
+      }
+
+      const message = messages[0];
+
+      // Determine if we have access to delete the meeting message
+      AuthzPermissions.canManageMessage(ctx, meeting, message, err => {
         if (err) {
           return callback(err);
         }
-        if (!messages[0]) {
-          return callback({ code: 404, msg: 'The specified message does not exist' });
-        }
 
-        const message = messages[0];
-
-        // Determine if we have access to delete the meeting message
-        AuthzPermissions.canManageMessage(ctx, meeting, message, err => {
-          if (err) {
-            return callback(err);
-          }
-
-          // Delete the message using the "leaf" method, which will SOFT delete if the message has replies, or HARD delete if it does not
-          MessageBoxAPI.deleteMessage(
-            meetingId,
-            messageCreatedDate,
-            { deleteType: MessageBoxConstants.deleteTypes.LEAF },
-            (err, deleteType, deletedMessage) => {
-              if (err) {
-                return callback(err);
-              }
-
-              MeetingsAPI.emitter.emit(
-                MeetingsConstants.events.DELETED_MEETING_MESSAGE,
-                ctx,
-                message,
-                meeting,
-                deleteType
-              );
-
-              // If a soft-delete occurred, we want to inform the consumer of the soft-delete message model
-              if (deleteType === MessageBoxConstants.deleteTypes.SOFT) {
-                return callback(null, deletedMessage);
-              }
-              return callback();
+        // Delete the message using the "leaf" method, which will SOFT delete if the message has replies, or HARD delete if it does not
+        MessageBoxAPI.deleteMessage(
+          meetingId,
+          messageCreatedDate,
+          { deleteType: MessageBoxConstants.deleteTypes.LEAF },
+          (err, deleteType, deletedMessage) => {
+            if (err) {
+              return callback(err);
             }
-          );
-        });
-      }
-    );
+
+            MeetingsAPI.emitter.emit(
+              MeetingsConstants.events.DELETED_MEETING_MESSAGE,
+              ctx,
+              message,
+              meeting,
+              deleteType
+            );
+
+            // If a soft-delete occurred, we want to inform the consumer of the soft-delete message model
+            if (deleteType === MessageBoxConstants.deleteTypes.SOFT) {
+              return callback(null, deletedMessage);
+            }
+
+            return callback();
+          }
+        );
+      });
+    });
   });
 };
 
@@ -833,9 +764,7 @@ const getMeetingsLibrary = function(ctx, principalId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   const validator = new Validator();
-  validator
-    .check(principalId, { code: 400, msg: 'A user or group id must be provided' })
-    .isPrincipalId();
+  validator.check(principalId, { code: 400, msg: 'A user or group id must be provided' }).isPrincipalId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -847,53 +776,49 @@ const getMeetingsLibrary = function(ctx, principalId, start, limit, callback) {
     }
 
     // Determine which library visibility the current user should receive
-    LibraryAPI.Authz.resolveTargetLibraryAccess(
-      ctx,
-      principal.id,
-      principal,
-      (err, hasAccess, visibility) => {
-        if (err) {
-          return callback(err);
-        }
-        if (!hasAccess) {
-          return callback({ code: 401, msg: 'You do not have have access to this library' });
-        }
+    LibraryAPI.Authz.resolveTargetLibraryAccess(ctx, principal.id, principal, (err, hasAccess, visibility) => {
+      if (err) {
+        return callback(err);
+      }
 
-        // Get the meeting ids from the library index
-        LibraryAPI.Index.list(
-          MeetingsConstants.library.MEETINGS_LIBRARY_INDEX_NAME,
-          principalId,
-          visibility,
-          { start, limit },
-          (err, entries, nextToken) => {
+      if (!hasAccess) {
+        return callback({ code: 401, msg: 'You do not have have access to this library' });
+      }
+
+      // Get the meeting ids from the library index
+      LibraryAPI.Index.list(
+        MeetingsConstants.library.MEETINGS_LIBRARY_INDEX_NAME,
+        principalId,
+        visibility,
+        { start, limit },
+        (err, entries, nextToken) => {
+          if (err) {
+            return callback(err);
+          }
+
+          // Get the meeting objects from the meeting ids
+          const meetingIds = _.pluck(entries, 'resourceId');
+          MeetingsDAO.getMeetingsById(meetingIds, (err, meetings) => {
             if (err) {
               return callback(err);
             }
 
-            // Get the meeting objects from the meeting ids
-            const meetingIds = _.pluck(entries, 'resourceId');
-            MeetingsDAO.getMeetingsById(meetingIds, (err, meetings) => {
-              if (err) {
-                return callback(err);
-              }
+            // Emit an event indicating that the meeting library has been retrieved
+            MeetingsAPI.emitter.emit(
+              MeetingsConstants.events.GET_MEETING_LIBRARY,
+              ctx,
+              principalId,
+              visibility,
+              start,
+              limit,
+              meetings
+            );
 
-              // Emit an event indicating that the meeting library has been retrieved
-              MeetingsAPI.emitter.emit(
-                MeetingsConstants.events.GET_MEETING_LIBRARY,
-                ctx,
-                principalId,
-                visibility,
-                start,
-                limit,
-                meetings
-              );
-
-              return callback(null, meetings, nextToken);
-            });
-          }
-        );
-      }
-    );
+            return callback(null, meetings, nextToken);
+          });
+        }
+      );
+    });
   });
 };
 
@@ -914,9 +839,7 @@ const removeMeetingFromLibrary = function(ctx, libraryOwnerId, meetingId, callba
   validator
     .check(null, { code: 401, msg: 'You must be authenticated to remove a meeting from a library' })
     .isLoggedInUser(ctx);
-  validator
-    .check(libraryOwnerId, { code: 400, msg: 'An user or group id must be provided' })
-    .isPrincipalId();
+  validator.check(libraryOwnerId, { code: 400, msg: 'An user or group id must be provided' }).isPrincipalId();
   validator
     .check(meetingId, { code: 400, msg: 'An invalid meeting id "' + meetingId + '" was provided' })
     .isResourceId();
@@ -984,6 +907,7 @@ const _getMeeting = function(meetingId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!meeting) {
       return callback({ code: 404, msg: 'Could not find meeting : ' + meetingId });
     }
@@ -992,7 +916,7 @@ const _getMeeting = function(meetingId, callback) {
   });
 };
 
-module.exports = {
+export {
   createMeeting,
   getFullMeetingProfile,
   getMeetingInvitations,

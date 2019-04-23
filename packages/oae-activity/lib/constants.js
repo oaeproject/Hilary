@@ -82,4 +82,4 @@ ActivityConstants.streams = {
   EMAIL: 'email'
 };
 
-module.exports = { ActivityConstants };
+export { ActivityConstants };

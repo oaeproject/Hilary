@@ -13,20 +13,18 @@
  * permissions and limitations under the License.
  */
 
-const Fields = require('oae-config/lib/fields');
+import { Bool } from 'oae-config/lib/fields';
 
-module.exports = {
-  title: 'OAE Activity Module',
-  activity: {
-    name: 'Activity Configuration',
-    description: 'Core Configuration',
-    elements: {
-      enabled: new Fields.Bool(
-        'Activity Posting Enabled',
-        'When disabled, no actions originating from the tenant will trigger an activity',
-        true,
-        { tenantOverride: false, suppress: true }
-      )
-    }
+export const title = 'OAE Activity Module';
+export const activity = {
+  name: 'Activity Configuration',
+  description: 'Core Configuration',
+  elements: {
+    enabled: new Bool(
+      'Activity Posting Enabled',
+      'When disabled, no actions originating from the tenant will trigger an activity',
+      true,
+      { tenantOverride: false, suppress: true }
+    )
   }
 };

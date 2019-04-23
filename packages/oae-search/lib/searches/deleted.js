@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const OaeUtil = require('oae-util/lib/util');
+import * as OaeUtil from 'oae-util/lib/util';
 
-const { SearchConstants } = require('oae-search/lib/constants');
-const SearchUtil = require('oae-search/lib/util');
+import { SearchConstants } from 'oae-search/lib/constants';
+import * as SearchUtil from 'oae-search/lib/util';
 
 /**
  * Search that searches through deleted resources
@@ -34,7 +34,7 @@ const SearchUtil = require('oae-search/lib/util');
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {SearchResult}   callback.results        An object that represents the results of the query
  */
-module.exports = function(ctx, opts, callback) {
+export default function(ctx, opts, callback) {
   // Sanitize custom search options
   opts = opts || {};
   opts.limit = OaeUtil.getNumberParam(opts.limit, 10, 1, 25);
@@ -53,10 +53,7 @@ module.exports = function(ctx, opts, callback) {
 
   // The query and filter objects for the Query DSL
   const query = SearchUtil.createQueryStringQuery(opts.q);
-  const filterResources = SearchUtil.filterResources(
-    opts.resourceTypes,
-    SearchConstants.deleted.ONLY
-  );
+  const filterResources = SearchUtil.filterResources(opts.resourceTypes, SearchConstants.deleted.ONLY);
 
   // Apply the scope and access filters for the deleted search
   SearchUtil.filterScopeAndAccess(ctx, opts.scope, false, (err, filterScopeAndAccess) => {
@@ -67,7 +64,7 @@ module.exports = function(ctx, opts, callback) {
     const filter = SearchUtil.filterAnd(filterResources, filterScopeAndAccess);
     return callback(null, SearchUtil.createQuery(query, filter, opts));
   });
-};
+}
 
 /**
  * Resolve the scope for the search based on who is performing it and how they specified the scope
@@ -82,5 +79,6 @@ const _resolveScope = function(ctx, scope) {
   if (user.isGlobalAdmin()) {
     return scope || SearchConstants.general.SCOPE_ALL;
   }
+
   return user.tenant.alias;
 };

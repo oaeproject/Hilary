@@ -13,34 +13,36 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const AuthzUtil = require('oae-authz/lib/util');
-const ContentDAO = require('oae-content/lib/internal/dao');
-const EmitterAPI = require('oae-emitter');
-const log = require('oae-logger').logger('oae-preview-processor');
-const RestUtil = require('oae-rest/lib/util');
-const TaskQueue = require('oae-util/lib/taskqueue');
-const Telemetry = require('oae-telemetry').telemetry('preview-processor');
-const { Validator } = require('oae-util/lib/validator');
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as ContentDAO from 'oae-content/lib/internal/dao';
+import * as EmitterAPI from 'oae-emitter';
+import * as RestUtil from 'oae-rest/lib/util';
+import * as TaskQueue from 'oae-util/lib/taskqueue';
+
+import { telemetry } from 'oae-telemetry';
 
 // OAE Processors
-const ImagesProcessor = require('oae-preview-processor/lib/processors/file/images');
-const OfficeProcessor = require('oae-preview-processor/lib/processors/file/office');
-const PDFProcessor = require('oae-preview-processor/lib/processors/file/pdf');
+import * as ImagesProcessor from 'oae-preview-processor/lib/processors/file/images';
+import * as OfficeProcessor from 'oae-preview-processor/lib/processors/file/office';
+import * as PDFProcessor from 'oae-preview-processor/lib/processors/file/pdf';
+import * as DefaultLinkProcessor from 'oae-preview-processor/lib/processors/link/default';
+import * as FlickrLinkProcessor from 'oae-preview-processor/lib/processors/link/flickr';
+import * as SlideShareLinkProcessor from 'oae-preview-processor/lib/processors/link/slideshare';
+import * as VimeoLinkProcessor from 'oae-preview-processor/lib/processors/link/vimeo';
+import * as YoutubeLinkProcessor from 'oae-preview-processor/lib/processors/link/youtube';
+import * as CollabDocProcessor from 'oae-preview-processor/lib/processors/collabdoc/collabdoc';
+import * as FolderProcessor from 'oae-preview-processor/lib/processors/folder';
 
-const DefaultLinkProcessor = require('oae-preview-processor/lib/processors/link/default');
-const FlickrLinkProcessor = require('oae-preview-processor/lib/processors/link/flickr');
-const SlideShareLinkProcessor = require('oae-preview-processor/lib/processors/link/slideshare');
-const VimeoLinkProcessor = require('oae-preview-processor/lib/processors/link/vimeo');
-const YoutubeLinkProcessor = require('oae-preview-processor/lib/processors/link/youtube');
+import { logger } from 'oae-logger';
+import { Validator } from 'oae-util/lib/validator';
+import PreviewConstants from './constants';
+import { FilterGenerator } from './filters';
+import { PreviewContext } from './model';
 
-const CollabDocProcessor = require('oae-preview-processor/lib/processors/collabdoc/collabdoc');
-
-const FolderProcessor = require('oae-preview-processor/lib/processors/folder');
-const { FilterGenerator } = require('./filters');
-const { PreviewContext } = require('./model');
-const PreviewConstants = require('./constants');
+const log = logger('oae-preview-processor');
+const Telemetry = telemetry('preview-processor');
 
 let config = null;
 
@@ -80,48 +82,38 @@ const enable = function(callback) {
   // Bind an error listener to the REST methods
   RestUtil.emitter.on('error', _restErrorLister);
 
-  TaskQueue.bind(
-    PreviewConstants.MQ.TASK_GENERATE_PREVIEWS,
-    _handleGeneratePreviewsTask,
-    options,
-    err => {
-      if (err) {
-        log().error({ err }, 'Could not bind to the generate previews queue');
-        return callback(err);
-      }
+  TaskQueue.bind(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, _handleGeneratePreviewsTask, options, err => {
+    if (err) {
+      log().error({ err }, 'Could not bind to the generate previews queue');
+      return callback(err);
+    }
 
-      log().info('Bound the preview processor to the generate previews task queue');
+    log().info('Bound the preview processor to the generate previews task queue');
 
-      TaskQueue.bind(
-        PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS,
-        _handleGenerateFolderPreviewsTask,
-        options,
-        err => {
+    TaskQueue.bind(
+      PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS,
+      _handleGenerateFolderPreviewsTask,
+      options,
+      err => {
+        if (err) {
+          log().error({ err }, 'Could not bind to the generate folder previews queue');
+          return callback(err);
+        }
+
+        log().info('Bound the preview processor to the generate folder previews task queue');
+
+        TaskQueue.bind(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, _handleRegeneratePreviewsTask, null, err => {
           if (err) {
-            log().error({ err }, 'Could not bind to the generate folder previews queue');
+            log().error({ err }, 'Could not bind to the regenerate previews queue');
             return callback(err);
           }
 
-          log().info('Bound the preview processor to the generate folder previews task queue');
-
-          TaskQueue.bind(
-            PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS,
-            _handleRegeneratePreviewsTask,
-            null,
-            err => {
-              if (err) {
-                log().error({ err }, 'Could not bind to the regenerate previews queue');
-                return callback(err);
-              }
-
-              log().info('Bound the preview processor to the regenerate previews task queue');
-              return callback();
-            }
-          );
-        }
-      );
-    }
-  );
+          log().info('Bound the preview processor to the regenerate previews task queue');
+          return callback();
+        });
+      }
+    );
+  });
 };
 
 /**
@@ -253,13 +245,13 @@ const registerProcessor = function(processorId, processor) {
   if (processorId) {
     validator.check(_processors[processorId], 'This processor is already registerd').isNull();
   }
+
   validator.check(null, 'Missing processor').isObject(processor);
   if (processor) {
     validator.check(processor.test, 'The processor has no test method').notNull();
-    validator
-      .check(processor.generatePreviews, 'The processor has no generatePreviews method')
-      .notNull();
+    validator.check(processor.generatePreviews, 'The processor has no generatePreviews method').notNull();
   }
+
   if (validator.hasErrors()) {
     throw new Error(validator.getFirstError());
   }
@@ -309,9 +301,11 @@ const getProcessor = function(ctx, contentObj, callback) {
           if (a.score < b.score) {
             return 1;
           }
+
           if (a.score > b.score) {
             return -1;
           }
+
           return 0;
         });
 
@@ -382,14 +376,11 @@ const reprocessPreviews = function(ctx, filters, callback) {
   validator
     .check(null, { code: 401, msg: 'Must be global administrator to reprocess previews' })
     .isGlobalAdministratorUser(ctx);
-  validator
-    .check(null, { code: 400, msg: 'At least one filter must be specified' })
-    .isObject(filters);
+  validator.check(null, { code: 400, msg: 'At least one filter must be specified' }).isObject(filters);
   if (_.isObject(filters)) {
-    validator
-      .check(_.keys(filters).length, { code: 400, msg: 'At least one filter must be specified' })
-      .min(1);
+    validator.check(_.keys(filters).length, { code: 400, msg: 'At least one filter must be specified' }).min(1);
   }
+
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -413,9 +404,7 @@ const reprocessPreview = function(ctx, contentId, revisionId, callback) {
   const validator = new Validator();
   validator.check(contentId, { code: 400, msg: 'A content id must be provided' }).isResourceId();
   validator.check(revisionId, { code: 400, msg: 'A revision id must be provided' }).isResourceId();
-  validator
-    .check(null, { code: 401, msg: 'Must be logged in to reprocess previews' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'Must be logged in to reprocess previews' }).isLoggedInUser(ctx);
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -458,8 +447,7 @@ const _handleGenerateFolderPreviewsTask = function(data, callback) {
     );
     return callback({
       code: 400,
-      msg:
-        'An invalid generate folder previews task was submitted to the generate folder previews task queue'
+      msg: 'An invalid generate folder previews task was submitted to the generate folder previews task queue'
     });
   }
 
@@ -470,6 +458,7 @@ const _handleGenerateFolderPreviewsTask = function(data, callback) {
       Telemetry.incr('error.count');
       return callback(err);
     }
+
     // We're done.
     log().info({ folderId: data.folderId }, 'Folder preview processing done');
     Telemetry.incr('ok.count');
@@ -498,10 +487,7 @@ const _handleGeneratePreviewsTask = function(data, callback) {
     };
 
   if (!data.contentId) {
-    log().error(
-      { data },
-      'An invalid generate previews task was submitted to the generate previews task queue'
-    );
+    log().error({ data }, 'An invalid generate previews task was submitted to the generate previews task queue');
     return callback({
       code: 400,
       msg: 'An invalid generate previews task was submitted to the generate previews task queue'
@@ -533,17 +519,13 @@ const _handleGeneratePreviewsTask = function(data, callback) {
       _generatePreviews(ctx, err => {
         ctx.cleanup();
         Telemetry.appendDuration('process.time', start);
-        PreviewProcessorAPI.emit(
-          PreviewConstants.EVENTS.PREVIEWS_FINISHED,
-          ctx.content,
-          ctx.revision,
-          ctx.getStatus()
-        );
+        PreviewProcessorAPI.emit(PreviewConstants.EVENTS.PREVIEWS_FINISHED, ctx.content, ctx.revision, ctx.getStatus());
         if (err) {
           log().error({ err, contentId: data.contentId }, 'Error when trying to process this file');
           Telemetry.incr('error.count');
           return callback(err);
         }
+
         // We're done.
         log().info({ contentId: data.contentId }, 'Preview processing done');
         Telemetry.incr('ok.count');
@@ -567,6 +549,7 @@ const _generatePreviews = function(ctx, callback) {
     if (err) {
       return callback(err);
     }
+
     if (processor) {
       processor.generatePreviews(ctx, ctx.content, (err, ignored) => {
         if (err) {
@@ -606,10 +589,7 @@ const _handleRegeneratePreviewsTask = function(data, callback) {
     };
 
   if (!data.filters) {
-    log().error(
-      { data },
-      'An invalid regenerate previews task was submitted to the regenerate previews task queue'
-    );
+    log().error({ data }, 'An invalid regenerate previews task was submitted to the regenerate previews task queue');
     return callback({
       code: 400,
       msg: 'An invalid regenerate previews task was submitted to the regenerate previews task queue'
@@ -645,10 +625,7 @@ const _handleRegeneratePreviewsTask = function(data, callback) {
    * @api private
    */
   const _onEach = function(contentRows, done) {
-    log().info(
-      'Scanning %d content items to see if previews need to be reprocessed',
-      contentRows.length
-    );
+    log().info('Scanning %d content items to see if previews need to be reprocessed', contentRows.length);
     totalScanned += contentRows.length;
 
     // Get those rows we can use to filter upon
@@ -659,10 +636,7 @@ const _handleRegeneratePreviewsTask = function(data, callback) {
           return true;
         } catch (error) {
           // If the preview is invalid JSON, something bad happened. Lets try and reprocess it so the processor can better set the preview data
-          log().warn(
-            { contentRow },
-            'Found invalid JSON for content item. Forcing regeneration of previews'
-          );
+          log().warn({ contentRow }, 'Found invalid JSON for content item. Forcing regeneration of previews');
         }
       } else {
         // If there is no previews object, something is wrong. Try and reprocess it and reset it
@@ -691,6 +665,7 @@ const _handleRegeneratePreviewsTask = function(data, callback) {
       });
       return done();
     }
+
     // We need to filter by revisions
     const contentIds = _.map(filteredContent, contentObj => {
       return contentObj.contentId;
@@ -795,8 +770,8 @@ const _registerDefaultProcessors = function() {
   registerProcessor('oae-collabdoc', CollabDocProcessor);
 };
 
-module.exports = {
-  emitter: PreviewProcessorAPI,
+export {
+  PreviewProcessorAPI as emitter,
   enable,
   disable,
   refreshPreviewConfiguration,

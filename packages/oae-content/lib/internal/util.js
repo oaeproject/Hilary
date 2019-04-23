@@ -13,20 +13,23 @@
  * permissions and limitations under the License.
  */
 
-const querystring = require('querystring');
-const util = require('util');
-const _ = require('underscore');
+import querystring from 'querystring';
+import util from 'util';
+import { setUpConfig } from 'oae-config';
+import _ from 'underscore';
+import { ContentConstants } from 'oae-content/lib/constants';
 
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const ActivityModel = require('oae-activity/lib/model');
-const PreviewConstants = require('oae-preview-processor/lib/constants');
-const Signature = require('oae-util/lib/signature');
-const TenantsUtil = require('oae-tenants/lib/util');
+import { logger } from 'oae-logger';
 
-const ContentConfig = require('oae-config').config('oae-content');
-const { ContentConstants } = require('oae-content/lib/constants');
+import { ActivityConstants } from 'oae-activity/lib/constants';
+import * as ActivityModel from 'oae-activity/lib/model';
+import PreviewConstants from 'oae-preview-processor/lib/constants';
+import * as Signature from 'oae-util/lib/signature';
+import * as TenantsUtil from 'oae-tenants/lib/util';
 
-const log = require('oae-logger').logger('oae-content-util');
+const ContentConfig = setUpConfig('oae-content');
+
+const log = logger('oae-content-util');
 
 const TIME_1_WEEK_IN_SECONDS = 7 * 24 * 60 * 60;
 
@@ -78,52 +81,27 @@ const augmentContent = function(ctx, content, duration, offset) {
   // Replace all the different sizes of back-end image URIs to signed URLs the consumer can use
   if (content.previews) {
     if (content.previews.thumbnailUri) {
-      content.previews.thumbnailUrl = getSignedDownloadUrl(
-        ctx,
-        content.previews.thumbnailUri,
-        duration,
-        offset
-      );
+      content.previews.thumbnailUrl = getSignedDownloadUrl(ctx, content.previews.thumbnailUri, duration, offset);
       delete content.previews.thumbnailUri;
     }
 
     if (content.previews.smallUri) {
-      content.previews.smallUrl = getSignedDownloadUrl(
-        ctx,
-        content.previews.smallUri,
-        duration,
-        offset
-      );
+      content.previews.smallUrl = getSignedDownloadUrl(ctx, content.previews.smallUri, duration, offset);
       delete content.previews.smallUri;
     }
 
     if (content.previews.mediumUri) {
-      content.previews.mediumUrl = getSignedDownloadUrl(
-        ctx,
-        content.previews.mediumUri,
-        duration,
-        offset
-      );
+      content.previews.mediumUrl = getSignedDownloadUrl(ctx, content.previews.mediumUri, duration, offset);
       delete content.previews.mediumUri;
     }
 
     if (content.previews.largeUri) {
-      content.previews.largeUrl = getSignedDownloadUrl(
-        ctx,
-        content.previews.largeUri,
-        duration,
-        offset
-      );
+      content.previews.largeUrl = getSignedDownloadUrl(ctx, content.previews.largeUri, duration, offset);
       delete content.previews.largeUri;
     }
 
     if (content.previews.wideUri) {
-      content.previews.wideUrl = getSignedDownloadUrl(
-        ctx,
-        content.previews.wideUri,
-        duration,
-        offset
-      );
+      content.previews.wideUrl = getSignedDownloadUrl(ctx, content.previews.wideUri, duration, offset);
       delete content.previews.wideUri;
     }
   }
@@ -155,9 +133,7 @@ const getSignedDownloadUrl = function(ctx, uri, duration, offset) {
   // All we sign for the download url is the URI
   const data = { uri };
   const signatureData =
-    duration === -1
-      ? { signature: Signature.sign(data) }
-      : Signature.createExpiringSignature(data, duration, offset);
+    duration === -1 ? { signature: Signature.sign(data) } : Signature.createExpiringSignature(data, duration, offset);
 
   // Attach the signature and expiry time to the final data object
   _.extend(data, signatureData);
@@ -177,10 +153,9 @@ const getSignedDownloadUrl = function(ctx, uri, duration, offset) {
  */
 const verifySignedDownloadQueryString = function(qs) {
   if (qs.expires) {
-    return Signature.verifyExpiringSignature({ uri: qs.uri }, qs.expires, qs.signature)
-      ? qs.uri
-      : null;
+    return Signature.verifyExpiringSignature({ uri: qs.uri }, qs.expires, qs.signature) ? qs.uri : null;
   }
+
   return Signature.verify({ uri: qs.uri }, qs.signature) ? qs.uri : null;
 };
 
@@ -271,7 +246,7 @@ const transformPersistentContentActivityEntityToInternal = function(ctx, entity,
   return content;
 };
 
-module.exports = {
+export {
   getStorageBackend,
   augmentContent,
   getSignedDownloadUrl,

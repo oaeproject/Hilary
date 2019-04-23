@@ -13,17 +13,18 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const util = require('util');
-const _ = require('underscore');
+import assert from 'assert';
+import util from 'util';
+import _ from 'underscore';
 
-const ConfigTestUtil = require('oae-config/lib/test/util');
-const { Cookie } = require('tough-cookie');
-const RestAPI = require('oae-rest');
-const TestsUtil = require('oae-tests/lib/util');
+import nock from 'nock';
+import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import { Cookie } from 'tough-cookie';
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests/lib/util';
 
-const AuthenticationAPI = require('oae-authentication');
-const { AuthenticationConstants } = require('oae-authentication/lib/constants');
+import * as AuthenticationAPI from 'oae-authentication';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants';
 
 /**
  * Assert that the authentication config can be updated and the authentication strategies get refreshed
@@ -225,10 +226,6 @@ const assertFacebookLoginFails = function(tenantHost, email, reason, callback) {
  * @api private
  */
 const _nock = function() {
-  // Require nock in-line as it messes with the HTTP stack. We only want it
-  // required when the container is actively running the unit tests
-  const nock = require('nock');
-
   // Ensure we can still perform regular HTTP requests
   nock.enableNetConnect();
 
@@ -298,8 +295,7 @@ const _mockGoogleResponse = function(email) {
     },
     url: 'https://plus.google.com/' + _.random(10000000),
     image: {
-      url:
-        'https://lh5.googleusercontent.com/-wfVubfsOBV0/AAAAAAAAAAI/AAAAAAAAAGQ/rEb5FmsQuiA/photo.jpg?sz=50',
+      url: 'https://lh5.googleusercontent.com/-wfVubfsOBV0/AAAAAAAAAAI/AAAAAAAAAGQ/rEb5FmsQuiA/photo.jpg?sz=50',
       isDefault: false
     },
     isPlusUser: true,
@@ -309,12 +305,13 @@ const _mockGoogleResponse = function(email) {
   if (email) {
     mockedResponse.emails.push({ value: email, type: 'account' });
   }
+
   nock('https://www.googleapis.com')
     .get('/plus/v1/people/me?access_token=' + accessToken)
     .reply(200, mockedResponse);
 };
 
-module.exports = {
+export {
   assertUpdateAuthConfigSucceeds,
   assertLocalLoginSucceeds,
   assertGoogleLoginSucceeds,

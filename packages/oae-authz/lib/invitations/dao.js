@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
-const Chance = require('chance');
+import util from 'util';
+import _ from 'underscore';
+import Chance from 'chance';
 
-const Cassandra = require('oae-util/lib/cassandra');
+import * as Cassandra from 'oae-util/lib/cassandra';
 
-const { Validator } = require('oae-authz/lib/validator');
+import { Validator } from 'oae-authz/lib/validator';
 
 const chance = new Chance();
 
@@ -85,24 +85,20 @@ const getOrCreateTokensByEmails = function(emails, callback) {
  */
 const getTokensByEmails = function(emails, callback) {
   // Get all existing tokens for emails
-  Cassandra.runQuery(
-    'SELECT * FROM "AuthzInvitationsTokenByEmail" WHERE "email" IN ?',
-    [emails],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
-      }
-
-      const emailTokens = _.chain(rows)
-        .map(Cassandra.rowToHash)
-        .indexBy('email')
-        .mapObject(hash => {
-          return hash.token;
-        })
-        .value();
-      return callback(null, emailTokens);
+  Cassandra.runQuery('SELECT * FROM "AuthzInvitationsTokenByEmail" WHERE "email" IN ?', [emails], (err, rows) => {
+    if (err) {
+      return callback(err);
     }
-  );
+
+    const emailTokens = _.chain(rows)
+      .map(Cassandra.rowToHash)
+      .indexBy('email')
+      .mapObject(hash => {
+        return hash.token;
+      })
+      .value();
+    return callback(null, emailTokens);
+  });
 };
 
 /**
@@ -114,29 +110,26 @@ const getTokensByEmails = function(emails, callback) {
  * @param  {String}     callback.email  The email that was associated to the token
  */
 const getEmailByToken = function(token, callback) {
-  Cassandra.runQuery(
-    'SELECT * FROM "AuthzInvitationsEmailByToken" WHERE "token" = ?',
-    [token],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
-      }
-      if (_.isEmpty(rows)) {
-        return callback({
-          code: 404,
-          msg: util.format('There is no email associated to the email token "%s"', token)
-        });
-      }
-
-      const email = _.chain(rows)
-        .map(Cassandra.rowToHash)
-        .pluck('email')
-        .first()
-        .value();
-
-      return callback(null, email);
+  Cassandra.runQuery('SELECT * FROM "AuthzInvitationsEmailByToken" WHERE "token" = ?', [token], (err, rows) => {
+    if (err) {
+      return callback(err);
     }
-  );
+
+    if (_.isEmpty(rows)) {
+      return callback({
+        code: 404,
+        msg: util.format('There is no email associated to the email token "%s"', token)
+      });
+    }
+
+    const email = _.chain(rows)
+      .map(Cassandra.rowToHash)
+      .pluck('email')
+      .first()
+      .value();
+
+    return callback(null, email);
+  });
 };
 
 /**
@@ -175,6 +168,7 @@ const getAllInvitationsByResourceId = function(resourceId, callback, _invitation
       if (err) {
         return callback(err);
       }
+
       if (_.isEmpty(rows)) {
         return callback(null, _invitations);
       }
@@ -207,6 +201,7 @@ const getInvitation = function(resourceId, email, callback) {
       if (err) {
         return callback(err);
       }
+
       if (_.isEmpty(rows)) {
         return callback({
           code: 404,
@@ -232,16 +227,10 @@ const getInvitation = function(resourceId, email, callback) {
  */
 const createInvitations = function(resourceId, emailRoles, inviterUserId, callback) {
   const validator = new Validator();
-  validator
-    .check(resourceId, { code: 400, msg: 'Specified resource must have a valid resource id' })
-    .isResourceId();
+  validator.check(resourceId, { code: 400, msg: 'Specified resource must have a valid resource id' }).isResourceId();
   _.each(emailRoles, (role, email) => {
-    validator
-      .check(email, { code: 400, msg: 'A valid email must be supplied to invite' })
-      .isEmail();
-    validator
-      .check(role, { code: 400, msg: 'A valid role must be supplied to give the invited user' })
-      .isValidRole();
+    validator.check(email, { code: 400, msg: 'A valid email must be supplied to invite' }).isEmail();
+    validator.check(role, { code: 400, msg: 'A valid role must be supplied to give the invited user' }).isValidRole();
   });
   validator
     .check(inviterUserId, {
@@ -279,8 +268,7 @@ const createInvitations = function(resourceId, emailRoles, inviterUserId, callba
             parameters: [hash.inviterUserId, hash.role, hash.resourceId, hash.email]
           },
           {
-            query:
-              'INSERT INTO "AuthzInvitationsResourceIdByEmail" ("resourceId", "email") VALUES (?, ?)',
+            query: 'INSERT INTO "AuthzInvitationsResourceIdByEmail" ("resourceId", "email") VALUES (?, ?)',
             parameters: [hash.resourceId, hash.email]
           }
         ];
@@ -307,20 +295,14 @@ const createInvitations = function(resourceId, emailRoles, inviterUserId, callba
  */
 const updateInvitationRoles = function(resourceId, emailRoles, callback) {
   const validator = new Validator();
-  validator
-    .check(resourceId, { code: 400, msg: 'Specified resource must have a valid resource id' })
-    .isResourceId();
+  validator.check(resourceId, { code: 400, msg: 'Specified resource must have a valid resource id' }).isResourceId();
   _.each(emailRoles, (role, email) => {
-    validator
-      .check(email, { code: 400, msg: util.format('Invalid email "%s" specified', email) })
-      .isEmail();
+    validator.check(email, { code: 400, msg: util.format('Invalid email "%s" specified', email) }).isEmail();
     validator
       .check(role, { code: 400, msg: util.format('Invalid role change "%s" specified', role) })
       .isValidRoleChange();
     if (role !== false) {
-      validator
-        .check(null, { code: 400, msg: util.format('Invalid role "%s" specified', role) })
-        .isString(role);
+      validator.check(null, { code: 400, msg: util.format('Invalid role "%s" specified', role) }).isString(role);
     }
   });
   if (validator.hasErrors()) {
@@ -341,8 +323,7 @@ const updateInvitationRoles = function(resourceId, emailRoles, callback) {
           parameters: [resourceId, email]
         },
         {
-          query:
-            'DELETE FROM "AuthzInvitationsResourceIdByEmail" WHERE "email" = ? AND "resourceId" = ?',
+          query: 'DELETE FROM "AuthzInvitationsResourceIdByEmail" WHERE "email" = ? AND "resourceId" = ?',
           parameters: [email, resourceId]
         }
       );
@@ -459,6 +440,7 @@ const _getAllInvitationResourceIdsByEmail = function(email, callback, _resourceI
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(rows)) {
       return callback(null, _resourceIds);
     }
@@ -502,7 +484,7 @@ const _getInvitations = function(resourceIds, email, callback) {
   );
 };
 
-module.exports = {
+export {
   getOrCreateTokensByEmails,
   getTokensByEmails,
   getEmailByToken,

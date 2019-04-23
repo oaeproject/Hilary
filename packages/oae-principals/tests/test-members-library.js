@@ -13,19 +13,12 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const AuthzUtil = require('oae-authz/lib/util');
-const Cassandra = require('oae-util/lib/cassandra');
-const LibraryAPI = require('oae-library');
-const RestAPI = require('oae-rest');
-const { SearchConstants } = require('oae-search/lib/constants');
-const SearchTestsUtil = require('oae-search/lib/test/util');
-const TestsUtil = require('oae-tests');
-
-const { PrincipalsConstants } = require('oae-principals/lib/constants');
-const PrincipalsTestUtil = require('oae-principals/lib/test/util');
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
 
 describe('Members Library', () => {
   // REST contexts we can use to do REST requests

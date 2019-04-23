@@ -13,15 +13,18 @@
  * permissions and limitations under the License.
  */
 
-const fs = require('fs');
-const _ = require('underscore');
-const dox = require('dox');
+import { stat as doesFileExist, readFile } from 'fs';
+import _ from 'underscore';
+import dox from 'dox';
 
-const IO = require('oae-util/lib/io');
-const Modules = require('oae-util/lib/modules');
-const OaeUtil = require('oae-util/lib/util');
-const { Validator } = require('oae-util/lib/validator');
-const log = require('oae-logger').logger('oae-doc');
+import { getFileListForFolder } from 'oae-util/lib/io';
+import * as modules from 'oae-util/lib/modules';
+import * as OaeUtil from 'oae-util/lib/util';
+import { Validator } from 'oae-util/lib/validator';
+
+import { logger } from 'oae-logger';
+
+const log = logger('oae-doc');
 
 // Variable that will be used to cache the back-end and front-end documentation
 const cachedDocs = {
@@ -44,7 +47,7 @@ const initializeDocs = function(uiConfig, callback) {
     }
 
     // Initialize the back-end documentation
-    _initializeBackendDocs(Modules.getAvailableModules(), callback);
+    _initializeBackendDocs(modules.getAvailableModules(), callback);
   });
 };
 
@@ -65,7 +68,7 @@ const _initializeFrontendDocs = function(uiConfig, callback) {
   // for generating documentation. If the `original` folder does not exist, we assume that we are not running on an
   // optimized build and use the source files in the provided base UI directory.
   const originalDir = baseDir + '/../original';
-  fs.stat(originalDir, (err, exists) => {
+  doesFileExist(originalDir, (err, exists) => {
     baseDir = exists ? originalDir : baseDir;
 
     // Only parse the API files. We don't parse any other UI files yet.
@@ -125,7 +128,7 @@ const _initializeBackendDocs = function(modules, callback) {
  */
 const _parseDocs = function(dir, exclude, callback) {
   // Get all of the files in the provided base directory
-  IO.getFileListForFolder(dir, (err, fileNames) => {
+  getFileListForFolder(dir, (err, fileNames) => {
     if (err) {
       log().warn({ err, dir }, 'Failed getting file list to parse dox documentation.');
       return callback({ code: 404, msg: 'No documentation for this module was found' });
@@ -140,7 +143,7 @@ const _parseDocs = function(dir, exclude, callback) {
     _.each(fileNames, fileName => {
       (function(fileName) {
         // Read each of the files in the provided directory
-        fs.readFile(dir + '/' + fileName, 'utf8', (err, data) => {
+        readFile(dir + '/' + fileName, 'utf8', (err, data) => {
           done++;
           if (err) {
             log().error({ err }, 'Failed reading ' + dir + '/' + fileName);
@@ -187,6 +190,7 @@ const _filterFiles = function(fileNames, exclude) {
     if (fileName.indexOf('.js') !== -1 && _.indexOf(exclude, fileName) === -1) {
       return true;
     }
+
     return false;
   });
 };
@@ -237,11 +241,8 @@ const getModuleDocumentation = function(moduleId, type, callback) {
   if (cachedDocs[type] && cachedDocs[type][moduleId]) {
     return callback(null, cachedDocs[type][moduleId]);
   }
+
   return callback({ code: 404, msg: 'No documentation for this module was found' });
 };
 
-module.exports = {
-  getModules,
-  initializeDocs,
-  getModuleDocumentation
-};
+export { getModules, initializeDocs, getModuleDocumentation };

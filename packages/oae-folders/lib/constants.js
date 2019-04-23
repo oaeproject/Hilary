@@ -59,6 +59,4 @@ FoldersConstants.search = {
   MAPPING_FOLDER_MESSAGE: 'folder_message'
 };
 
-module.exports = {
-  FoldersConstants
-};
+export { FoldersConstants };

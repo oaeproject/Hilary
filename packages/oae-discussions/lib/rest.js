@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import * as DiscussionsAPI from 'oae-discussions';
 
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const OAE = require('oae-util/lib/oae');
-const OaeUtil = require('oae-util/lib/util');
+import _ from 'underscore';
 
-const DiscussionsAPI = require('oae-discussions');
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import * as OAE from 'oae-util/lib/oae';
+import * as OaeUtil from 'oae-util/lib/util';
 
 /**
  * @REST postDiscussionCreate
@@ -102,18 +102,13 @@ OAE.tenantRouter.on('post', '/api/discussion/create', (req, res) => {
  * @HttpResponse                    404                 Could not find the specified discussion
  */
 OAE.tenantRouter.on('post', '/api/discussion/:discussionId', (req, res) => {
-  DiscussionsAPI.Discussions.updateDiscussion(
-    req.ctx,
-    req.params.discussionId,
-    req.body,
-    (err, discussion) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-
-      res.status(200).send(discussion);
+  DiscussionsAPI.Discussions.updateDiscussion(req.ctx, req.params.discussionId, req.body, (err, discussion) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    res.status(200).send(discussion);
+  });
 });
 
 /**
@@ -222,17 +217,13 @@ OAE.tenantRouter.on('delete', '/api/discussion/library/:principalId/:discussionI
  * @HttpResponse                        404                 Could not find the specified discussion
  */
 OAE.tenantRouter.on('get', '/api/discussion/:discussionId', (req, res) => {
-  DiscussionsAPI.Discussions.getFullDiscussionProfile(
-    req.ctx,
-    req.params.discussionId,
-    (err, discussion) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-
-      res.status(200).send(discussion);
+  DiscussionsAPI.Discussions.getFullDiscussionProfile(req.ctx, req.params.discussionId, (err, discussion) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    res.status(200).send(discussion);
+  });
 });
 
 /**
@@ -264,6 +255,7 @@ OAE.tenantRouter.on('post', '/api/discussion/:discussionId/share', (req, res) =>
     if (err) {
       return res.status(err.code).send(err.msg);
     }
+
     res.status(200).end();
   });
 });
@@ -297,17 +289,13 @@ OAE.tenantRouter.on('post', '/api/discussion/:discussionId/members', (req, res) 
     permissionUpdates[key] = OaeUtil.castToBoolean(value);
   });
 
-  DiscussionsAPI.Discussions.setDiscussionPermissions(
-    req.ctx,
-    req.params.discussionId,
-    permissionUpdates,
-    err => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-      res.status(200).end();
+  DiscussionsAPI.Discussions.setDiscussionPermissions(req.ctx, req.params.discussionId, permissionUpdates, err => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    res.status(200).end();
+  });
 });
 
 /**
@@ -360,17 +348,13 @@ OAE.tenantRouter.on('get', '/api/discussion/:discussionId/members', (req, res) =
  * @HttpResponse                        404                 Discussion not available
  */
 OAE.tenantRouter.on('get', '/api/discussion/:discussionId/invitations', (req, res) => {
-  DiscussionsAPI.Discussions.getDiscussionInvitations(
-    req.ctx,
-    req.params.discussionId,
-    (err, invitations) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-
-      return res.status(200).send({ results: invitations });
+  DiscussionsAPI.Discussions.getDiscussionInvitations(req.ctx, req.params.discussionId, (err, invitations) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    return res.status(200).send({ results: invitations });
+  });
 });
 
 /**
@@ -391,24 +375,15 @@ OAE.tenantRouter.on('get', '/api/discussion/:discussionId/invitations', (req, re
  * @HttpResponse                        404                 Discussion not available
  * @HttpResponse                        404                 No invitation for the specified email exists for the discussion
  */
-OAE.tenantRouter.on(
-  'post',
-  '/api/discussion/:discussionId/invitations/:email/resend',
-  (req, res) => {
-    DiscussionsAPI.Discussions.resendDiscussionInvitation(
-      req.ctx,
-      req.params.discussionId,
-      req.params.email,
-      err => {
-        if (err) {
-          return res.status(err.code).send(err.msg);
-        }
+OAE.tenantRouter.on('post', '/api/discussion/:discussionId/invitations/:email/resend', (req, res) => {
+  DiscussionsAPI.Discussions.resendDiscussionInvitation(req.ctx, req.params.discussionId, req.params.email, err => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
+    }
 
-        return res.status(200).end();
-      }
-    );
-  }
-);
+    return res.status(200).end();
+  });
+});
 
 /**
  * @REST getDiscussionDiscussionIdMessages
@@ -507,16 +482,11 @@ OAE.tenantRouter.on('post', '/api/discussion/:discussionId/messages', (req, res)
  * @HttpResponse                        404                 Could not find the specified message
  */
 OAE.tenantRouter.on('delete', '/api/discussion/:discussionId/messages/:created', (req, res) => {
-  DiscussionsAPI.Discussions.deleteMessage(
-    req.ctx,
-    req.params.discussionId,
-    req.params.created,
-    (err, message) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-
-      res.status(200).send(message);
+  DiscussionsAPI.Discussions.deleteMessage(req.ctx, req.params.discussionId, req.params.created, (err, message) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    res.status(200).send(message);
+  });
 });

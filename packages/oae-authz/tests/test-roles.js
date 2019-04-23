@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
-const AuthzAPI = require('oae-authz');
-const AuthzUtil = require('oae-authz/lib/util');
+import assert from 'assert';
+import _ from 'underscore';
+import * as AuthzAPI from 'oae-authz';
+import * as AuthzUtil from 'oae-authz/lib/util';
 
 describe('Authz-Roles', () => {
   const PrincipalTypes = { USER: 'u', GROUP: 'g' };
@@ -32,37 +32,20 @@ describe('Authz-Roles', () => {
    * @param  {String}      role                The role to assign to the principal on the generated content
    * @param  {Function()}  callback            The function invoked when the process is complete
    */
-  const loadContentRoles = function(
-    principalId,
-    baseContentId,
-    resourceType,
-    numContentItems,
-    role,
-    callback
-  ) {
+  const loadContentRoles = function(principalId, baseContentId, resourceType, numContentItems, role, callback) {
     if (numContentItems === 0) {
       callback();
       return;
     }
 
     const { tenantAlias } = AuthzUtil.getPrincipalFromId(principalId);
-    const resourceId = AuthzUtil.toId(
-      resourceType,
-      tenantAlias,
-      baseContentId + '-' + numContentItems
-    );
+    const resourceId = AuthzUtil.toId(resourceType, tenantAlias, baseContentId + '-' + numContentItems);
     AuthzAPI.updateRoles(resourceId, makeChange(principalId, role), err => {
       if (err) {
         throw err;
       }
-      loadContentRoles(
-        principalId,
-        baseContentId,
-        resourceType,
-        numContentItems - 1,
-        role,
-        callback
-      );
+
+      loadContentRoles(principalId, baseContentId, resourceType, numContentItems - 1, role, callback);
     });
   };
 
@@ -240,11 +223,7 @@ describe('Authz-Roles', () => {
     it('verify role separation between tenants', callback => {
       const principalIdA = AuthzUtil.toId(PrincipalTypes.USER, 'testTenantSeparationA', 'mrvisser');
       const principalIdB = AuthzUtil.toId(PrincipalTypes.USER, 'testTenantSeparationB', 'mrvisser');
-      const resourceId = AuthzUtil.toId(
-        ResourceTypes.CONTENT,
-        'cam',
-        'testTenantSeparationContent'
-      );
+      const resourceId = AuthzUtil.toId(ResourceTypes.CONTENT, 'cam', 'testTenantSeparationContent');
 
       AuthzAPI.updateRoles(resourceId, makeChange(principalIdA, 'manager'), err => {
         assert.ok(!err);
@@ -359,21 +338,9 @@ describe('Authz-Roles', () => {
       const principalId2 = AuthzUtil.toId(PrincipalTypes.USER, 'testHasRole', 'nm417');
       const principalId3 = AuthzUtil.toId(PrincipalTypes.USER, 'testHasRole', 'simong');
       const principalId4 = AuthzUtil.toId(PrincipalTypes.USER, 'testHasRole', 'PhysX');
-      const resourceId1 = AuthzUtil.toId(
-        ResourceTypes.CONTENT,
-        'testHasRole',
-        'testHasRoleContent1'
-      );
-      const resourceId2 = AuthzUtil.toId(
-        ResourceTypes.CONTENT,
-        'testHasRole',
-        'testHasRoleContent2'
-      );
-      const resourceId3 = AuthzUtil.toId(
-        ResourceTypes.CONTENT,
-        'testHasRole',
-        'testHasRoleContent3'
-      );
+      const resourceId1 = AuthzUtil.toId(ResourceTypes.CONTENT, 'testHasRole', 'testHasRoleContent1');
+      const resourceId2 = AuthzUtil.toId(ResourceTypes.CONTENT, 'testHasRole', 'testHasRoleContent2');
+      const resourceId3 = AuthzUtil.toId(ResourceTypes.CONTENT, 'testHasRole', 'testHasRoleContent3');
 
       // Make 1 user a manager
       let roles = {};
@@ -425,61 +392,36 @@ describe('Authz-Roles', () => {
                             roles[principalId3] = false;
                             AuthzAPI.updateRoles(resourceId3, roles, err => {
                               assert.ok(!err);
-                              AuthzAPI.hasRole(
-                                principalId1,
-                                resourceId3,
-                                'manager',
-                                (err, hasRole) => {
+                              AuthzAPI.hasRole(principalId1, resourceId3, 'manager', (err, hasRole) => {
+                                assert.ok(!err);
+                                assert.ok(hasRole);
+                                AuthzAPI.hasRole(principalId3, resourceId3, 'member', (err, hasRole) => {
                                   assert.ok(!err);
-                                  assert.ok(hasRole);
-                                  AuthzAPI.hasRole(
-                                    principalId3,
-                                    resourceId3,
-                                    'member',
-                                    (err, hasRole) => {
+                                  assert.ok(!hasRole);
+
+                                  // Try to remove 2 roles and add 1 at the same time
+                                  roles = {};
+                                  roles[principalId1] = false;
+                                  roles[principalId2] = false;
+                                  roles[principalId3] = 'manager';
+                                  AuthzAPI.updateRoles(resourceId3, roles, err => {
+                                    assert.ok(!err);
+                                    AuthzAPI.hasRole(principalId1, resourceId3, 'manager', (err, hasRole) => {
                                       assert.ok(!err);
                                       assert.ok(!hasRole);
-
-                                      // Try to remove 2 roles and add 1 at the same time
-                                      roles = {};
-                                      roles[principalId1] = false;
-                                      roles[principalId2] = false;
-                                      roles[principalId3] = 'manager';
-                                      AuthzAPI.updateRoles(resourceId3, roles, err => {
+                                      AuthzAPI.hasRole(principalId2, resourceId3, 'member', (err, hasRole) => {
                                         assert.ok(!err);
-                                        AuthzAPI.hasRole(
-                                          principalId1,
-                                          resourceId3,
-                                          'manager',
-                                          (err, hasRole) => {
-                                            assert.ok(!err);
-                                            assert.ok(!hasRole);
-                                            AuthzAPI.hasRole(
-                                              principalId2,
-                                              resourceId3,
-                                              'member',
-                                              (err, hasRole) => {
-                                                assert.ok(!err);
-                                                assert.ok(!hasRole);
-                                                AuthzAPI.hasRole(
-                                                  principalId3,
-                                                  resourceId3,
-                                                  'manager',
-                                                  (err, hasRole) => {
-                                                    assert.ok(!err);
-                                                    assert.ok(hasRole);
-                                                    callback();
-                                                  }
-                                                );
-                                              }
-                                            );
-                                          }
-                                        );
+                                        assert.ok(!hasRole);
+                                        AuthzAPI.hasRole(principalId3, resourceId3, 'manager', (err, hasRole) => {
+                                          assert.ok(!err);
+                                          assert.ok(hasRole);
+                                          callback();
+                                        });
                                       });
-                                    }
-                                  );
-                                }
-                              );
+                                    });
+                                  });
+                                });
+                              });
                             });
                           });
                         });
@@ -497,11 +439,7 @@ describe('Authz-Roles', () => {
     it('verify validation', callback => {
       const principalId1 = AuthzUtil.toId(PrincipalTypes.USER, 'testHasRole', 'mrvisser');
       const principalId2 = AuthzUtil.toId(PrincipalTypes.USER, 'testHasRole', 'nm417');
-      const resourceId1 = AuthzUtil.toId(
-        ResourceTypes.CONTENT,
-        'testHasRole',
-        'testHasRoleContent1'
-      );
+      const resourceId1 = AuthzUtil.toId(ResourceTypes.CONTENT, 'testHasRole', 'testHasRoleContent1');
 
       const roles = {};
       roles[principalId1] = 'manager';
@@ -522,122 +460,77 @@ describe('Authz-Roles', () => {
     it('verify general functionality', callback => {
       const baseViewerContentId = 'contentIView';
       const baseManagerContentId = 'contentIManage';
-      const principalId1 = AuthzUtil.toId(
-        PrincipalTypes.USER,
-        'testGetRolesForPrincipalsAndResourceType',
-        'mrvisser'
-      );
-      const principalId2 = AuthzUtil.toId(
-        PrincipalTypes.GROUP,
-        'testGetRolesForPrincipalsAndResourceType',
-        'simong'
-      );
+      const principalId1 = AuthzUtil.toId(PrincipalTypes.USER, 'testGetRolesForPrincipalsAndResourceType', 'mrvisser');
+      const principalId2 = AuthzUtil.toId(PrincipalTypes.GROUP, 'testGetRolesForPrincipalsAndResourceType', 'simong');
 
       // Mrvisser has 'viewer' role on a bunch of groups
-      loadContentRoles(
-        principalId1,
-        baseViewerContentId,
-        ResourceTypes.CONTENT,
-        300,
-        'viewer',
-        () => {
-          // Simong has 'manager' role on some of the groups that mrvisser has 'viewer' on. this is to test aggregation of roles
-          loadContentRoles(
-            principalId2,
-            baseViewerContentId,
-            ResourceTypes.CONTENT,
-            50,
-            'manager',
-            () => {
-              // Simong has 'manager' role on a bunch of groups
-              loadContentRoles(
-                principalId2,
-                baseManagerContentId,
-                ResourceTypes.CONTENT,
-                300,
-                'manager',
-                () => {
-                  // Make sure they work together
+      loadContentRoles(principalId1, baseViewerContentId, ResourceTypes.CONTENT, 300, 'viewer', () => {
+        // Simong has 'manager' role on some of the groups that mrvisser has 'viewer' on. this is to test aggregation of roles
+        loadContentRoles(principalId2, baseViewerContentId, ResourceTypes.CONTENT, 50, 'manager', () => {
+          // Simong has 'manager' role on a bunch of groups
+          loadContentRoles(principalId2, baseManagerContentId, ResourceTypes.CONTENT, 300, 'manager', () => {
+            // Make sure they work together
+            AuthzAPI.getRolesForPrincipalsAndResourceType(
+              [principalId1, principalId2],
+              ResourceTypes.CONTENT,
+              (err, entries) => {
+                assert.ok(!err);
+
+                // Simong is a member of 350, mrvisser is a member of 300, but 50 of those overlap, so should be 600 unique entries
+                assert.strictEqual(_.keys(entries).length, 2);
+                assert.strictEqual(_.keys(entries[principalId1]).length, 300);
+                assert.strictEqual(_.keys(entries[principalId2]).length, 350);
+
+                // Verify that mrvisser is a viewer of all items, and that simong is a
+                // manager of all items
+                // eslint-disable-next-line no-unused-vars
+                _.each(entries[principalId1], (role, resourceId) => {
+                  assert.strictEqual(role, 'viewer');
+                });
+
+                // eslint-disable-next-line no-unused-vars
+                _.each(entries[principalId2], (role, resourceId) => {
+                  assert.strictEqual(role, 'manager');
+                });
+
+                // Make sure they work individually
+                AuthzAPI.getRolesForPrincipalsAndResourceType([principalId1], ResourceTypes.CONTENT, (err, entries) => {
+                  assert.ok(!err);
+                  assert.strictEqual(_.keys(entries).length, 1);
+                  assert.strictEqual(_.keys(entries[principalId1]).length, 300);
+
                   AuthzAPI.getRolesForPrincipalsAndResourceType(
-                    [principalId1, principalId2],
+                    [principalId2],
                     ResourceTypes.CONTENT,
                     (err, entries) => {
                       assert.ok(!err);
-
-                      // Simong is a member of 350, mrvisser is a member of 300, but 50 of those overlap, so should be 600 unique entries
-                      assert.strictEqual(_.keys(entries).length, 2);
-                      assert.strictEqual(_.keys(entries[principalId1]).length, 300);
+                      assert.strictEqual(_.keys(entries).length, 1);
                       assert.strictEqual(_.keys(entries[principalId2]).length, 350);
 
-                      // Verify that mrvisser is a viewer of all items, and that simong is a
-                      // manager of all items
-                      // eslint-disable-next-line no-unused-vars
-                      _.each(entries[principalId1], (role, resourceId) => {
-                        assert.strictEqual(role, 'viewer');
-                      });
-
-                      // eslint-disable-next-line no-unused-vars
-                      _.each(entries[principalId2], (role, resourceId) => {
-                        assert.strictEqual(role, 'manager');
-                      });
-
-                      // Make sure they work individually
-                      AuthzAPI.getRolesForPrincipalsAndResourceType(
-                        [principalId1],
-                        ResourceTypes.CONTENT,
-                        (err, entries) => {
-                          assert.ok(!err);
-                          assert.strictEqual(_.keys(entries).length, 1);
-                          assert.strictEqual(_.keys(entries[principalId1]).length, 300);
-
-                          AuthzAPI.getRolesForPrincipalsAndResourceType(
-                            [principalId2],
-                            ResourceTypes.CONTENT,
-                            (err, entries) => {
-                              assert.ok(!err);
-                              assert.strictEqual(_.keys(entries).length, 1);
-                              assert.strictEqual(_.keys(entries[principalId2]).length, 350);
-
-                              return callback();
-                            }
-                          );
-                        }
-                      );
+                      return callback();
                     }
                   );
-                }
-              );
-            }
-          );
-        }
-      );
+                });
+              }
+            );
+          });
+        });
+      });
     });
 
     it('verify validation', callback => {
-      const principalId1 = AuthzUtil.toId(
-        PrincipalTypes.USER,
-        'testGetRolesForPrincipalsAndResourceType',
-        'mrvisser'
-      );
+      const principalId1 = AuthzUtil.toId(PrincipalTypes.USER, 'testGetRolesForPrincipalsAndResourceType', 'mrvisser');
       // Try it with no provided principals
-      AuthzAPI.getRolesForPrincipalsAndResourceType(
-        undefined,
-        ResourceTypes.CONTENT,
-        (err, entries) => {
+      AuthzAPI.getRolesForPrincipalsAndResourceType(undefined, ResourceTypes.CONTENT, (err, entries) => {
+        assert.ok(err);
+        assert.ok(!entries);
+        // Try it with no resource type
+        AuthzAPI.getRolesForPrincipalsAndResourceType([principalId1], undefined, (err, entries) => {
           assert.ok(err);
           assert.ok(!entries);
-          // Try it with no resource type
-          AuthzAPI.getRolesForPrincipalsAndResourceType(
-            [principalId1],
-            undefined,
-            (err, entries) => {
-              assert.ok(err);
-              assert.ok(!entries);
-              callback();
-            }
-          );
-        }
-      );
+          callback();
+        });
+      });
     });
   });
 });

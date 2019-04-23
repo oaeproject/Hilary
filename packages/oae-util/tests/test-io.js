@@ -13,11 +13,11 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const fs = require('fs');
-const path = require('path');
+import assert from 'assert';
+import fs from 'fs';
+import path from 'path';
 
-const IO = require('oae-util/lib/io');
+import * as IO from 'oae-util/lib/io';
 
 const datadir = path.join(__dirname, '/data/');
 

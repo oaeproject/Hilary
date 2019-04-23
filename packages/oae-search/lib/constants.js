@@ -85,4 +85,4 @@ SearchConstants.events = {
   SEARCH: 'search'
 };
 
-module.exports = { SearchConstants };
+export { SearchConstants };

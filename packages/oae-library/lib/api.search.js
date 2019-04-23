@@ -13,18 +13,18 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const { ContentConstants } = require('oae-content/lib/constants');
-const { DiscussionsConstants } = require('oae-discussions/lib/constants');
-const OaeUtil = require('oae-util/lib/util');
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
-const { SearchConstants } = require('oae-search/lib/constants');
-const SearchAPI = require('oae-search');
-const SearchUtil = require('oae-search/lib/util');
-const { Validator } = require('oae-util/lib/validator');
+import _ from 'underscore';
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import { ContentConstants } from 'oae-content/lib/constants';
+import { DiscussionsConstants } from 'oae-discussions/lib/constants';
+import { SearchConstants } from 'oae-search/lib/constants';
+import { Validator } from 'oae-util/lib/validator';
 
-const LibraryAPI = require('oae-library');
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as SearchAPI from 'oae-search';
+import * as SearchUtil from 'oae-search/lib/util';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as LibraryAPI from 'oae-library';
 
 /**
  * Register a search that searches through a user or group library.
@@ -51,7 +51,7 @@ const LibraryAPI = require('oae-library');
  * @param  {Function}   [options.searches.loggedin]                         The function to use to derive the filter for the loggedin library bucket. See `options.searches.public` parameter for function parameters
  * @param  {Function}   [options.searches.private]                          The function to use to derive the filter for the private library bucket. See `options.searches.public` parameter for function parameters
  */
-module.exports.registerLibrarySearch = function(searchName, resourceTypes, options) {
+export const registerLibrarySearch = function(searchName, resourceTypes, options) {
   options = options || {};
   options.searches = options.searches || {};
   options.getLibraryOwner = options.getLibraryOwner || PrincipalsDAO.getPrincipal;
@@ -74,6 +74,7 @@ module.exports.registerLibrarySearch = function(searchName, resourceTypes, optio
       if (err) {
         return callback(err);
       }
+
       if (libraryOwner.deleted) {
         return callback({ code: 404, msg: 'The library was not found' });
       }
@@ -88,6 +89,7 @@ module.exports.registerLibrarySearch = function(searchName, resourceTypes, optio
           if (err) {
             return callback(err);
           }
+
           if (!canAccess) {
             return callback({
               code: 401,
@@ -194,10 +196,7 @@ const _defaultLibraryFilter = function(resourceTypes, visibility, association) {
         )
       );
     } else {
-      filter = SearchUtil.filterAnd(
-        baseFilter,
-        SearchUtil.filterTerm('visibility', AuthzConstants.visibility.PUBLIC)
-      );
+      filter = SearchUtil.filterAnd(baseFilter, SearchUtil.filterTerm('visibility', AuthzConstants.visibility.PUBLIC));
     }
 
     return callback(null, filter);

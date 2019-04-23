@@ -13,18 +13,17 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const ActivityAPI = require('oae-activity');
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const ActivityModel = require('oae-activity/lib/model');
-const ActivityUtil = require('oae-activity/lib/util');
+import * as ActivityAPI from 'oae-activity';
+import * as ActivityModel from 'oae-activity/lib/model';
+import * as ActivityUtil from 'oae-activity/lib/util';
+import { emitter } from 'oae-principals';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as PrincipalsUtil from 'oae-principals/lib/util';
 
-const PrincipalsAPI = require('oae-principals');
-const { PrincipalsConstants } = require('oae-principals/lib/constants');
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
-const PrincipalsUtil = require('oae-principals/lib/util');
-
+import { ActivityConstants } from 'oae-activity/lib/constants';
+import { PrincipalsConstants } from 'oae-principals/lib/constants';
 /// ///////////////
 // GROUP-CREATE //
 /// ///////////////
@@ -32,7 +31,7 @@ const PrincipalsUtil = require('oae-principals/lib/util');
 /*!
  * Fire the 'group-create' activity when a new group is created.
  */
-PrincipalsAPI.emitter.on(
+emitter.on(
   PrincipalsConstants.events.CREATED_GROUP,
   // eslint-disable-next-line no-unused-vars
   (ctx, group, memberChangeInfo) => {
@@ -81,7 +80,7 @@ ActivityAPI.registerActivityType(PrincipalsConstants.activity.ACTIVITY_GROUP_CRE
 /*!
  * Fire the 'group-update' or 'group-update-visibility' activity when a group is updated.
  */
-PrincipalsAPI.emitter.on(PrincipalsConstants.events.UPDATED_GROUP, (ctx, newGroup, oldGroup) => {
+emitter.on(PrincipalsConstants.events.UPDATED_GROUP, (ctx, newGroup, oldGroup) => {
   const millis = Date.now();
   const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
     user: ctx.user()
@@ -232,60 +231,57 @@ ActivityAPI.registerActivityType(PrincipalsConstants.activity.ACTIVITY_REQUEST_T
 /*!
  * Fire the group-add-member or group-update-member-role activity when someone adds members to a group or updates user roles
  */
-PrincipalsAPI.emitter.on(
-  PrincipalsConstants.events.UPDATED_GROUP_MEMBERS,
-  (ctx, group, oldGroup, memberChangeInfo, opts) => {
-    if (opts.invitation) {
-      // If this member update came from an invitation, we bypass adding activity as there is a
-      // dedicated activity for that
-      return;
-    }
-
-    const addedMemberIds = _.pluck(memberChangeInfo.members.added, 'id');
-    const updatedMemberIds = _.pluck(memberChangeInfo.members.updated, 'id');
-
-    const millis = Date.now();
-    const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
-      user: ctx.user()
-    });
-    const targetResource = new ActivityModel.ActivitySeedResource('group', group.id, { group });
-
-    // Post "Add Member" activities for each new member
-    _.each(addedMemberIds, memberId => {
-      const objectResourceType = PrincipalsUtil.isGroup(memberId) ? 'group' : 'user';
-      const objectResource = new ActivityModel.ActivitySeedResource(objectResourceType, memberId);
-      const activitySeed = new ActivityModel.ActivitySeed(
-        PrincipalsConstants.activity.ACTIVITY_GROUP_ADD_MEMBER,
-        millis,
-        ActivityConstants.verbs.ADD,
-        actorResource,
-        objectResource,
-        targetResource
-      );
-      ActivityAPI.postActivity(ctx, activitySeed);
-    });
-
-    // Post "Update member role" activities for each membership update
-    _.each(updatedMemberIds, memberId => {
-      const objectResourceType = PrincipalsUtil.isGroup(memberId) ? 'group' : 'user';
-      const objectResource = new ActivityModel.ActivitySeedResource(objectResourceType, memberId);
-      const activitySeed = new ActivityModel.ActivitySeed(
-        PrincipalsConstants.activity.ACTIVITY_GROUP_UPDATE_MEMBER_ROLE,
-        millis,
-        ActivityConstants.verbs.UPDATE,
-        actorResource,
-        objectResource,
-        targetResource
-      );
-      ActivityAPI.postActivity(ctx, activitySeed);
-    });
+emitter.on(PrincipalsConstants.events.UPDATED_GROUP_MEMBERS, (ctx, group, oldGroup, memberChangeInfo, opts) => {
+  if (opts.invitation) {
+    // If this member update came from an invitation, we bypass adding activity as there is a
+    // dedicated activity for that
+    return;
   }
-);
+
+  const addedMemberIds = _.pluck(memberChangeInfo.members.added, 'id');
+  const updatedMemberIds = _.pluck(memberChangeInfo.members.updated, 'id');
+
+  const millis = Date.now();
+  const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
+    user: ctx.user()
+  });
+  const targetResource = new ActivityModel.ActivitySeedResource('group', group.id, { group });
+
+  // Post "Add Member" activities for each new member
+  _.each(addedMemberIds, memberId => {
+    const objectResourceType = PrincipalsUtil.isGroup(memberId) ? 'group' : 'user';
+    const objectResource = new ActivityModel.ActivitySeedResource(objectResourceType, memberId);
+    const activitySeed = new ActivityModel.ActivitySeed(
+      PrincipalsConstants.activity.ACTIVITY_GROUP_ADD_MEMBER,
+      millis,
+      ActivityConstants.verbs.ADD,
+      actorResource,
+      objectResource,
+      targetResource
+    );
+    ActivityAPI.postActivity(ctx, activitySeed);
+  });
+
+  // Post "Update member role" activities for each membership update
+  _.each(updatedMemberIds, memberId => {
+    const objectResourceType = PrincipalsUtil.isGroup(memberId) ? 'group' : 'user';
+    const objectResource = new ActivityModel.ActivitySeedResource(objectResourceType, memberId);
+    const activitySeed = new ActivityModel.ActivitySeed(
+      PrincipalsConstants.activity.ACTIVITY_GROUP_UPDATE_MEMBER_ROLE,
+      millis,
+      ActivityConstants.verbs.UPDATE,
+      actorResource,
+      objectResource,
+      targetResource
+    );
+    ActivityAPI.postActivity(ctx, activitySeed);
+  });
+});
 
 /*!
  * Fire the group-join activity when someone joins a group
  */
-PrincipalsAPI.emitter.on(
+emitter.on(
   PrincipalsConstants.events.JOINED_GROUP,
   // eslint-disable-next-line no-unused-vars
   (ctx, group, oldGroup, memberChangeInfo) => {
@@ -311,12 +307,7 @@ PrincipalsAPI.emitter.on(
  * Fire the request-group-join activity when someone wants to join a group
  */
 // eslint-disable-next-line no-unused-vars
-PrincipalsAPI.emitter.on(PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP, function(
-  ctx,
-  group,
-  oldGroup,
-  memberChangeInfo
-) {
+emitter.on(PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP, function(ctx, group, oldGroup, memberChangeInfo) {
   const millis = Date.now();
   const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, { user: ctx.user() });
   const objectResource = new ActivityModel.ActivitySeedResource('group', group.id, { group });
@@ -335,7 +326,7 @@ PrincipalsAPI.emitter.on(PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP, funct
 /*!
  * Fire the request-group-join activity when someone has been rejected to join a group
  */
-PrincipalsAPI.emitter.on(
+emitter.on(
   PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP_REJECTED,
   // eslint-disable-next-line no-unused-vars
   (ctx, group, requester) => {

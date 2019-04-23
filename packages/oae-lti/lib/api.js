@@ -13,20 +13,22 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const oauth = require('oauth-sign');
-const ShortId = require('shortid');
+import util from 'util';
+import * as VersionAPI from 'oae-version';
 
-const AuthzPermissions = require('oae-authz/lib/permissions');
-const AuthzUtil = require('oae-authz/lib/util');
-const log = require('oae-logger').logger('oae-lti');
-const PrincipalsApi = require('oae-principals');
-const { Validator } = require('oae-authz/lib/validator');
-const VersionAPI = require('oae-version');
+import oauth from 'oauth-sign';
+import ShortId from 'shortid';
 
-const LtiDAO = require('./internal/dao');
-const { LtiToolLaunchParams } = require('./model');
-const { LtiLaunchParams } = require('./model');
+import * as AuthzPermissions from 'oae-authz/lib/permissions';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import { logger } from 'oae-logger';
+import PrincipalsApi from 'oae-principals';
+import { Validator } from 'oae-authz/lib/validator';
+
+import * as LtiDAO from './internal/dao';
+import { LtiToolLaunchParams, LtiLaunchParams } from './model';
+
+const log = logger('oae-lti');
 
 /**
  * Get the parameters required to launch an LTI tool
@@ -43,22 +45,25 @@ const getLtiTool = function(ctx, id, groupId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!group.isManager && !group.isMember) {
       return callback({ code: 401, msg: 'The current user does not have access to this LTI tool' });
     }
+
     PrincipalsApi.getMe(ctx, (err, principal) => {
       if (err) {
         return callback(err);
       }
-      VersionAPI.getVersion((err, version) => {
+
+      VersionAPI.getVersionCB((err, gitRepoInformation) => {
         if (err) {
           log().warn('Failed to fetch OAE version');
-          version = {
-            hilary: {
-              version: ''
-            }
-          };
+          version = '';
         }
+
+        const hilaryRepoInfo = gitRepoInformation.get('Hilary');
+        let version = hilaryRepoInfo.latestTag;
+
         LtiDAO.getLtiTool(id, groupId, (err, tool) => {
           if (err) {
             log().error(
@@ -74,7 +79,7 @@ const getLtiTool = function(ctx, id, groupId, callback) {
 
           const launchParams = new LtiLaunchParams(
             tool,
-            version.hilary.version,
+            version,
             group.tenant.alias,
             group.displayName,
             group.isManager,
@@ -83,13 +88,7 @@ const getLtiTool = function(ctx, id, groupId, callback) {
           );
 
           // eslint-disable-next-line camelcase
-          launchParams.oauth_signature = oauth.hmacsign(
-            'POST',
-            tool.launchUrl,
-            launchParams,
-            tool.secret,
-            ''
-          );
+          launchParams.oauth_signature = oauth.hmacsign('POST', tool.launchUrl, launchParams, tool.secret, '');
 
           // Scrub out OAUTH parameters from tool
           delete tool.secret;
@@ -126,13 +125,16 @@ const addLtiTool = function(ctx, groupId, launchUrl, secret, consumerKey, opts, 
     if (err) {
       return callback(err);
     }
+
     if (group.deleted) {
       return callback({ code: 404, msg: util.format("Couldn't find group: %s", groupId) });
     }
+
     PrincipalsApi.getMe(ctx, (err, me) => {
       if (err) {
         return callback(err);
       }
+
       if (!me.isTenantAdmin && !me.isGlobalAdmin) {
         return callback({
           code: 401,
@@ -148,9 +150,7 @@ const addLtiTool = function(ctx, groupId, launchUrl, secret, consumerKey, opts, 
 
         // Parameter validation
         const validator = new Validator();
-        validator
-          .check(groupId, { code: 400, msg: 'A valid group id must be provided' })
-          .isGroupId();
+        validator.check(groupId, { code: 400, msg: 'A valid group id must be provided' }).isGroupId();
         validator
           .check(launchUrl, {
             code: 400,
@@ -202,6 +202,7 @@ const addLtiTool = function(ctx, groupId, launchUrl, secret, consumerKey, opts, 
               );
               return callback(err);
             }
+
             return callback(null, tool);
           }
         );
@@ -225,9 +226,11 @@ const getLtiTools = function(ctx, groupId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (group.deleted) {
       return callback({ code: 404, msg: util.format("Couldn't find group: %s", groupId) });
     }
+
     LtiDAO.getLtiToolsByGroupId(groupId, (err, tools) => {
       if (err) {
         log().error(
@@ -238,6 +241,7 @@ const getLtiTools = function(ctx, groupId, callback) {
         );
         return callback(err);
       }
+
       return callback(null, tools);
     });
   });
@@ -258,9 +262,11 @@ const deleteLtiTool = function(ctx, id, groupId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (group.deleted) {
       return callback({ code: 404, msg: util.format("Couldn't find group: %s", groupId) });
     }
+
     // Check if we can delete tools in this group
     AuthzPermissions.canManage(ctx, group, err => {
       if (err) {
@@ -277,15 +283,11 @@ const deleteLtiTool = function(ctx, id, groupId, callback) {
           );
           return callback(err);
         }
+
         return callback();
       });
     });
   });
 };
 
-module.exports = {
-  getLtiTool,
-  addLtiTool,
-  getLtiTools,
-  deleteLtiTool
-};
+export { getLtiTool, addLtiTool, getLtiTools, deleteLtiTool };

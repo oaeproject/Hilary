@@ -13,14 +13,16 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
-const amqp = require('amqp-connection-manager');
+import util from 'util';
+import _ from 'underscore';
+import amqp from 'amqp-connection-manager';
 
-const EmitterAPI = require('oae-emitter');
-const log = require('oae-logger').logger('mq');
-const OAE = require('./oae');
-const OaeEmitter = require('./emitter');
+import { logger } from 'oae-logger';
+import * as EmitterAPI from 'oae-emitter';
+import OaeEmitter from './emitter';
+import * as OAE from './oae';
+
+const log = logger('mq');
 
 const MqConstants = {
   REDELIVER_EXCHANGE_NAME: 'oae-util-mq-redeliverexchange',
@@ -81,7 +83,6 @@ const NUM_MESSAGES_TO_DUMP = 10;
  *  * `storedRedelivery(queueName, data, headers, deliveryInfo)`    - Invoked when a redelivered message has been aborted and stored in the redelivery queue to be manually intervened
  */
 const MQ = new EmitterAPI.EventEmitter();
-module.exports.emitter = MQ;
 
 const deferredTaskHandlers = {};
 // Let ready = false;
@@ -102,6 +103,7 @@ OaeEmitter.on('ready', () => {
       // Do nothing, we've called back
       return;
     }
+
     if (err) {
       MQ.emit('ready', err);
       returned = true;
@@ -154,6 +156,7 @@ const init = function(mqConfig, callback) {
     log().warn('Attempted to initialize an existing RabbitMQ connector. Ignoring');
     return _createRedeliveryQueue(callback);
   }
+
   log().info('Initializing RabbitMQ connector');
 
   const arrayOfHostsToConnectTo = _.map(mqConfig.connection.host, eachHost => {
@@ -246,6 +249,7 @@ const declareExchange = function(exchangeName, exchangeOptions, callback) {
       msg: 'Tried to declare an exchange without providing an exchange name'
     });
   }
+
   if (exchanges[exchangeName]) {
     log().error({ exchangeName, err: new Error('Tried to declare an exchange twice') });
     return callback({ code: 400, msg: 'Tried to declare an exchange twice' });
@@ -278,6 +282,7 @@ const declareQueue = function(queueName, queueOptions, callback) {
     });
     return callback({ code: 400, msg: 'Tried to declare a queue without providing a name' });
   }
+
   if (queues[queueName]) {
     log().error({ queueName, queueOptions, err: new Error('Tried to declare a queue twice') });
     return callback({ code: 400, msg: 'Tried to declare a queue twice' });
@@ -389,37 +394,33 @@ const bindQueueToExchange = function(queueName, exchangeName, routingKey, callba
       queueName,
       exchangeName,
       routingKey,
-      err: new Error(
-        'Tried to bind a non existing queue to an exchange, have you declared it first?'
-      )
+      err: new Error('Tried to bind a non existing queue to an exchange, have you declared it first?')
     });
     return callback({
       code: 400,
       msg: 'Tried to bind a non existing queue to an exchange, have you declared it first?'
     });
   }
+
   if (!exchanges[exchangeName]) {
     log().error({
       queueName,
       exchangeName,
       routingKey,
-      err: new Error(
-        'Tried to bind a queue to a non-existing exchange, have you declared it first?'
-      )
+      err: new Error('Tried to bind a queue to a non-existing exchange, have you declared it first?')
     });
     return callback({
       code: 400,
       msg: 'Tried to bind a queue to a non-existing exchange, have you declared it first?'
     });
   }
+
   if (!routingKey) {
     log().error({
       queueName,
       exchangeName,
       routingKey,
-      err: new Error(
-        'Tried to bind a queue to an existing exchange without specifying a routing key'
-      )
+      err: new Error('Tried to bind a queue to an existing exchange without specifying a routing key')
     });
     return callback({ code: 400, msg: 'Missing routing key' });
   }
@@ -450,29 +451,27 @@ const unbindQueueFromExchange = function(queueName, exchangeName, routingKey, ca
       queueName,
       exchangeName,
       routingKey,
-      err: new Error(
-        'Tried to unbind a non existing queue from an exchange, have you declared it first?'
-      )
+      err: new Error('Tried to unbind a non existing queue from an exchange, have you declared it first?')
     });
     return callback({
       code: 400,
       msg: 'Tried to unbind a non existing queue from an exchange, have you declared it first?'
     });
   }
+
   if (!exchanges[exchangeName]) {
     log().error({
       queueName,
       exchangeName,
       routingKey,
-      err: new Error(
-        'Tried to unbind a queue from a non-existing exchange, have you declared it first?'
-      )
+      err: new Error('Tried to unbind a queue from a non-existing exchange, have you declared it first?')
     });
     return callback({
       code: 400,
       msg: 'Tried to unbind a queue from a non-existing exchange, have you declared it first?'
     });
   }
+
   if (!routingKey) {
     log().error({
       queueName,
@@ -506,10 +505,7 @@ const subscribeQueue = function(queueName, subscribeOptions, listener, callback)
     callback ||
     function(err) {
       if (err) {
-        log().warn(
-          { err, queueName, subscribeOptions },
-          'An error occurred while subscribing to a queue'
-        );
+        log().warn({ err, queueName, subscribeOptions }, 'An error occurred while subscribing to a queue');
       }
     };
 
@@ -559,10 +555,7 @@ const subscribeQueue = function(queueName, subscribeOptions, listener, callback)
             MqConstants.REDELIVER_SUBMIT_OPTIONS,
             err => {
               if (err) {
-                log().warn(
-                  { err },
-                  'An error occurred delivering a redelivered message to the redelivery queue'
-                );
+                log().warn({ err }, 'An error occurred delivering a redelivered message to the redelivery queue');
               }
 
               MQ.emit('storedRedelivery', queueName, data, headers, deliveryInfo, msg);
@@ -664,6 +657,7 @@ const unsubscribeQueue = function(queueName, callback) {
     });
     return callback();
   }
+
   const { consumerTag } = queue;
   queue = queue.queue;
 
@@ -735,6 +729,7 @@ const submit = function(exchangeName, routingKey, data, options, callback) {
     });
     return callback({ code: 400, msg: 'Tried to submit a message to an unknown exchange' });
   }
+
   if (!routingKey) {
     log().error({
       exchangeName,
@@ -751,10 +746,7 @@ const submit = function(exchangeName, routingKey, data, options, callback) {
 
   channelWrapper.publish(exchangeName, routingKey, data, options, err => {
     if (err) {
-      log().error(
-        { exchangeName, routingKey, data, options },
-        'Failed to submit a message to an exchange'
-      );
+      log().error({ exchangeName, routingKey, data, options }, 'Failed to submit a message to an exchange');
       return callback(err);
     }
 
@@ -795,9 +787,7 @@ const _waitUntilIdle = function(maxWaitMillis, callback) {
    * output a certain amount of them to the logs for inspection.
    */
   const forceContinueHandle = setTimeout(() => {
-    _dumpProcessingMessages(
-      'Timed out ' + maxWaitMillis + 'ms while waiting for tasks to complete.'
-    );
+    _dumpProcessingMessages('Timed out ' + maxWaitMillis + 'ms while waiting for tasks to complete.');
     MQ.removeListener('idle', callback);
     return callback();
   }, maxWaitMillis);
@@ -880,6 +870,7 @@ const purgeAll = function(callback) {
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(toPurge)) {
       return callback();
     }
@@ -907,28 +898,24 @@ const _createRedeliveryQueue = function(callback) {
   // Declare an exchange with a queue whose sole purpose is to hold on to messages that were "redelivered". Such
   // situations include errors while processing or some kind of client error that resulted in the message not
   // being acknowledged
-  declareExchange(
-    MqConstants.REDELIVER_EXCHANGE_NAME,
-    MqConstants.REDELIVER_EXCHANGE_OPTIONS,
-    err => {
+  declareExchange(MqConstants.REDELIVER_EXCHANGE_NAME, MqConstants.REDELIVER_EXCHANGE_OPTIONS, err => {
+    if (err) {
+      return callback(err);
+    }
+
+    declareQueue(MqConstants.REDELIVER_QUEUE_NAME, MqConstants.REDELIVER_QUEUE_OPTIONS, err => {
       if (err) {
         return callback(err);
       }
 
-      declareQueue(MqConstants.REDELIVER_QUEUE_NAME, MqConstants.REDELIVER_QUEUE_OPTIONS, err => {
-        if (err) {
-          return callback(err);
-        }
-
-        return bindQueueToExchange(
-          MqConstants.REDELIVER_QUEUE_NAME,
-          MqConstants.REDELIVER_EXCHANGE_NAME,
-          MqConstants.REDELIVER_QUEUE_NAME,
-          callback
-        );
-      });
-    }
-  );
+      return bindQueueToExchange(
+        MqConstants.REDELIVER_QUEUE_NAME,
+        MqConstants.REDELIVER_EXCHANGE_NAME,
+        MqConstants.REDELIVER_QUEUE_NAME,
+        callback
+      );
+    });
+  });
 };
 
 /**
@@ -987,14 +974,11 @@ const _decrementProcessingTask = function(deliveryKey) {
  * @api private
  */
 const _dumpProcessingMessages = function(logMessage) {
-  log().warn(
-    { messages: _.values(messagesInProcessing).slice(0, NUM_MESSAGES_TO_DUMP) },
-    logMessage
-  );
+  log().warn({ messages: _.values(messagesInProcessing).slice(0, NUM_MESSAGES_TO_DUMP) }, logMessage);
 };
 
-module.exports = {
-  emitter: MQ,
+export {
+  MQ as emitter,
   rejectMessage,
   init,
   declareExchange,

@@ -13,17 +13,19 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
-const ShortId = require('shortid');
+import util from 'util';
+import _ from 'underscore';
+import ShortId from 'shortid';
 
-const AuthzUtil = require('oae-authz/lib/util');
-const Cassandra = require('oae-util/lib/cassandra');
-const log = require('oae-logger').logger('discussions-dao');
-const OaeUtil = require('oae-util/lib/util');
-const TenantsAPI = require('oae-tenants');
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as Cassandra from 'oae-util/lib/cassandra';
+import { logger } from 'oae-logger';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as TenantsAPI from 'oae-tenants';
 
-const { Discussion } = require('oae-discussions/lib/model');
+import { Discussion } from 'oae-discussions/lib/model';
+
+const log = logger('discussions-dao');
 
 /**
  * Create a new discussion.
@@ -196,10 +198,10 @@ const iterateAll = function(properties, batchSize, onEach, callback) {
   }
 
   /*!
-     * Handles each batch from the cassandra iterateAll method
-     *
-     * @see Cassandra#iterateAll
-     */
+   * Handles each batch from the cassandra iterateAll method
+   *
+   * @see Cassandra#iterateAll
+   */
   const _iterateAllOnEach = function(rows, done) {
     // Convert the rows to a hash and delegate action to the caller onEach method
     return onEach(_.map(rows, Cassandra.rowToHash), done);
@@ -261,11 +263,4 @@ const _createDiscussionId = function(tenantAlias) {
   return AuthzUtil.toId('d', tenantAlias, ShortId.generate());
 };
 
-module.exports = {
-  createDiscussion,
-  updateDiscussion,
-  getDiscussion,
-  deleteDiscussion,
-  getDiscussionsById,
-  iterateAll
-};
+export { createDiscussion, updateDiscussion, getDiscussion, deleteDiscussion, getDiscussionsById, iterateAll };

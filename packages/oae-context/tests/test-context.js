@@ -13,31 +13,20 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const { Locale } = require('locale');
+import assert from 'assert';
+import { Locale } from 'locale';
 
-const { User } = require('oae-principals/lib/model');
-const { Tenant } = require('oae-tenants/lib/model');
+import { User } from 'oae-principals/lib/model';
 
-const { Context } = require('oae-context');
+import { Context } from 'oae-context';
 
 describe('Context', () => {
   /**
    * Test that verifies a simple context
    */
   it('verify simple context', callback => {
-    const user = new User(
-      global.oaeTests.tenants.cam.alias,
-      'u:camtest:physx',
-      'physx',
-      'bert@apereo.org'
-    );
-    const imposter = new User(
-      global.oaeTests.tenants.cam.alias,
-      'u:camtest:simong',
-      'simong',
-      'simon@apereo.org'
-    );
+    const user = new User(global.oaeTests.tenants.cam.alias, 'u:camtest:physx', 'physx', 'bert@apereo.org');
+    const imposter = new User(global.oaeTests.tenants.cam.alias, 'u:camtest:simong', 'simong', 'simon@apereo.org');
     const ctx = new Context(global.oaeTests.tenants.cam, user, 'twitter', null, imposter);
     assert.deepStrictEqual(ctx.tenant(), global.oaeTests.tenants.cam);
     assert.deepStrictEqual(ctx.user(), user);
@@ -51,12 +40,7 @@ describe('Context', () => {
    * Test that verifies the locale setter can handle defaulted locales
    */
   it('verify the locale setter can handle defaulted locales', callback => {
-    const user = new User(
-      global.oaeTests.tenants.cam.alias,
-      'u:camtest:physx',
-      'physx',
-      'bert@apereo.org'
-    );
+    const user = new User(global.oaeTests.tenants.cam.alias, 'u:camtest:physx', 'physx', 'bert@apereo.org');
     const ctx = new Context(global.oaeTests.tenants.cam, user, 'twitter', 'en_UK');
     assert.deepStrictEqual(ctx.tenant(), global.oaeTests.tenants.cam);
     assert.deepStrictEqual(ctx.user(), user);

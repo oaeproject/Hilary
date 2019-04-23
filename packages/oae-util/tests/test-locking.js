@@ -13,9 +13,8 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-
-const Locking = require('oae-util/lib/locking');
+import assert from 'assert';
+import * as Locking from 'oae-util/lib/locking';
 
 describe('Locking', () => {
   /**

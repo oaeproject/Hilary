@@ -13,17 +13,21 @@
  * permissions and limitations under the License.
  */
 
-const { BasicStrategy } = require('passport-http');
-const ClientPasswordStrategy = require('passport-oauth2-client-password').Strategy;
-const oauth2orize = require('oauth2orize');
-const passport = require('passport');
+import { BasicStrategy } from 'passport-http';
+import OAuthPassport from 'passport-oauth2-client-password';
+import oauth2orize from 'oauth2orize';
+import passport from 'passport';
 
-const log = require('oae-logger').logger('oae-authentication');
-const OAE = require('oae-util/lib/oae');
-const OaeServer = require('oae-util/lib/server');
+import { logger } from 'oae-logger';
 
-const OAuthDAO = require('./internal/dao');
-const OAuthAPI = require('./api');
+import * as OAE from 'oae-util/lib/oae';
+import * as OaeServer from 'oae-util/lib/server';
+
+import * as OAuthDAO from './internal/dao';
+import * as OAuthAPI from './api';
+
+const ClientPasswordStrategy = OAuthPassport.Strategy;
+const log = logger('oae-authentication');
 
 /// //////////////
 // OAuth setup //
@@ -55,42 +59,36 @@ const server = oauth2orize.createServer();
  * @param  {AccessToken}    callback.token      An access token that can be used to interact with the OAE apis as a user
  */
 server.exchange(
-  oauth2orize.exchange.clientCredentials(
-    { userProperty: 'oaeAuthInfo' },
-    (client, scope, callback) => {
-      // In theory, each client should cache their access token, but that's probably a pipedream
-      // We should check if this client has a token already so we don't generate a new one each time
-      OAuthDAO.AccessTokens.getAccessTokenForUserAndClient(
-        client.userId,
-        client.id,
-        (err, accessToken) => {
-          if (err) {
-            return callback(err);
+  oauth2orize.exchange.clientCredentials({ userProperty: 'oaeAuthInfo' }, (client, scope, callback) => {
+    // In theory, each client should cache their access token, but that's probably a pipedream
+    // We should check if this client has a token already so we don't generate a new one each time
+    OAuthDAO.AccessTokens.getAccessTokenForUserAndClient(client.userId, client.id, (err, accessToken) => {
+      if (err) {
+        return callback(err);
 
-            // This client has a token, return it
-          }
-          if (accessToken) {
-            return callback(null, accessToken.token);
-          }
+        // This client has a token, return it
+      }
 
-          // This is the first time this client is requesting a token, we'll need to generate one
-          const token = OAuthAPI.generateToken(256);
-          OAuthDAO.AccessTokens.createAccessToken(token, client.userId, client.id, err => {
-            if (err) {
-              return callback(err);
-            }
+      if (accessToken) {
+        return callback(null, accessToken.token);
+      }
 
-            // Return an access token to the client
-            log().info(
-              { client: client.id, user: client.userId },
-              'An access token has been handed out via Client Credentials'
-            );
-            return callback(null, token);
-          });
+      // This is the first time this client is requesting a token, we'll need to generate one
+      const token = OAuthAPI.generateToken(256);
+      OAuthDAO.AccessTokens.createAccessToken(token, client.userId, client.id, err => {
+        if (err) {
+          return callback(err);
         }
-      );
-    }
-  )
+
+        // Return an access token to the client
+        log().info(
+          { client: client.id, user: client.userId },
+          'An access token has been handed out via Client Credentials'
+        );
+        return callback(null, token);
+      });
+    });
+  })
 );
 
 /// ///////////////
@@ -112,9 +110,11 @@ const verifyClientAuthentication = function(clientId, clientSecret, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!client) {
       return callback(null, false);
     }
+
     if (client.secret !== clientSecret) {
       log().warn({ client: client.id }, 'A client attempted to authenticate with the wrong secret');
       return callback(null, false);
@@ -241,19 +241,13 @@ OAE.tenantRouter.on('get', '/api/auth/oauth/clients/:userId', (req, res) => {
  * @HttpResponse                    401             Unauthorized
  */
 OAE.tenantRouter.on('post', '/api/auth/oauth/clients/:userId/:clientId', (req, res) => {
-  OAuthAPI.Clients.updateClient(
-    req.ctx,
-    req.params.clientId,
-    req.body.displayName,
-    req.body.secret,
-    (err, client) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-
-      res.status(200).send(client);
+  OAuthAPI.Clients.updateClient(req.ctx, req.params.clientId, req.body.displayName, req.body.secret, (err, client) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    res.status(200).send(client);
+  });
 });
 
 /**
@@ -279,3 +273,5 @@ OAE.tenantRouter.on('delete', '/api/auth/oauth/clients/:userId/:clientId', (req,
     res.sendStatus(200);
   });
 });
+
+export default OAE;

@@ -26,15 +26,7 @@
  * @return {QueryParameter}                 A swagger QueryParameter
  */
 /* eslint-disable unicorn/filename-case */
-const query = function(
-  name,
-  description,
-  dataType,
-  required,
-  allowMultiple,
-  allowableValues,
-  defaultValue
-) {
+const query = function(name, description, dataType, required, allowMultiple, allowableValues, defaultValue) {
   return {
     paramType: 'query',
     name,
@@ -135,10 +127,4 @@ const header = function(name, description, dataType, required) {
   };
 };
 
-module.exports = {
-  query,
-  path,
-  body,
-  form,
-  header
-};
+export { query, path, body, form, header };

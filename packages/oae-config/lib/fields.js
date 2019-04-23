@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-const OaeUtil = require('oae-util/lib/util');
+import * as OaeUtil from 'oae-util/lib/util';
 
 /**
  * A basic field object that contains all the field properties and
@@ -71,9 +71,9 @@ const Bool = function(name, description, defaultValue, options) {
   const field = new BaseField('boolean', name, description, defaultValue, options);
 
   /*!
-     * @return {Boolean}    Convert the given Cassandra column value to a boolean
-     * @see BaseField#deserialize
-     */
+   * @return {Boolean}    Convert the given Cassandra column value to a boolean
+   * @see BaseField#deserialize
+   */
   field.deserialize = function(columnValue) {
     return OaeUtil.castToBoolean(columnValue);
   };
@@ -155,10 +155,4 @@ const List = function(name, description, defaultValue, list, options) {
   return field;
 };
 
-module.exports = {
-  Bool,
-  Text,
-  InternationalizableText,
-  Radio,
-  List
-};
+export { Bool, Text, InternationalizableText, Radio, List };

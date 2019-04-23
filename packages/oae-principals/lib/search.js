@@ -14,24 +14,26 @@
  */
 
 /* eslint-disable camelcase */
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
+import { logger } from 'oae-logger';
 
-const AuthzSearch = require('oae-authz/lib/search');
-const AuthzUtil = require('oae-authz/lib/util');
-const ContentUtil = require('oae-content/lib/internal/util');
-const log = require('oae-logger').logger('principals-search');
-const OaeUtil = require('oae-util/lib/util');
-const SearchAPI = require('oae-search');
-const TenantsAPI = require('oae-tenants');
+import * as AuthzSearch from 'oae-authz/lib/search';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as ContentUtil from 'oae-content/lib/internal/util';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as SearchAPI from 'oae-search';
+import * as TenantsAPI from 'oae-tenants';
 
-const PrincipalsAPI = require('oae-principals');
-const { PrincipalsConstants } = require('oae-principals/lib/constants');
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
-const PrincipalsDelete = require('oae-principals/lib/delete');
-const PrincipalsUtil = require('oae-principals/lib/util');
+import { emitter } from 'oae-principals';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as PrincipalsDelete from 'oae-principals/lib/delete';
+import * as PrincipalsUtil from 'oae-principals/lib/util';
 
-const { User } = require('oae-principals/lib/model');
+import { PrincipalsConstants } from 'oae-principals/lib/constants';
+import { User } from 'oae-principals/lib/model';
+
+const log = logger('principals-search');
 
 /// /////////////////
 // INDEXING TASKS //
@@ -40,7 +42,7 @@ const { User } = require('oae-principals/lib/model');
 /*!
  * When a user is created, we must index the user resource document
  */
-PrincipalsAPI.emitter.on(PrincipalsConstants.events.CREATED_USER, (ctx, user) => {
+emitter.on(PrincipalsConstants.events.CREATED_USER, (ctx, user) => {
   SearchAPI.postIndexTask('user', [{ id: user.id }], {
     resource: true
   });
@@ -49,7 +51,7 @@ PrincipalsAPI.emitter.on(PrincipalsConstants.events.CREATED_USER, (ctx, user) =>
 /*!
  * When a user is updated, we must reindex the user resource document
  */
-PrincipalsAPI.emitter.on(PrincipalsConstants.events.UPDATED_USER, (ctx, user) => {
+emitter.on(PrincipalsConstants.events.UPDATED_USER, (ctx, user) => {
   SearchAPI.postIndexTask('user', [{ id: user.id }], {
     resource: true
   });
@@ -58,7 +60,7 @@ PrincipalsAPI.emitter.on(PrincipalsConstants.events.UPDATED_USER, (ctx, user) =>
 /*!
  * When a user is deleted, we must reindex the user resource document
  */
-PrincipalsAPI.emitter.on(PrincipalsConstants.events.DELETED_USER, (ctx, user) => {
+emitter.on(PrincipalsConstants.events.DELETED_USER, (ctx, user) => {
   SearchAPI.postIndexTask('user', [{ id: user.id }], {
     resource: true
   });
@@ -67,7 +69,7 @@ PrincipalsAPI.emitter.on(PrincipalsConstants.events.DELETED_USER, (ctx, user) =>
 /*!
  * When a user is restored, we must reindex the user resource document
  */
-PrincipalsAPI.emitter.on(PrincipalsConstants.events.RESTORED_USER, (ctx, user) => {
+emitter.on(PrincipalsConstants.events.RESTORED_USER, (ctx, user) => {
   SearchAPI.postIndexTask('user', [{ id: user.id }], {
     resource: true
   });
@@ -76,7 +78,7 @@ PrincipalsAPI.emitter.on(PrincipalsConstants.events.RESTORED_USER, (ctx, user) =
 /*!
  * When a user's email is verified, we must reindex the user resource document
  */
-PrincipalsAPI.emitter.on(PrincipalsConstants.events.VERIFIED_EMAIL, (ctx, user) => {
+emitter.on(PrincipalsConstants.events.VERIFIED_EMAIL, (ctx, user) => {
   SearchAPI.postIndexTask('user', [{ id: user.id }], {
     resource: true
   });
@@ -85,7 +87,7 @@ PrincipalsAPI.emitter.on(PrincipalsConstants.events.VERIFIED_EMAIL, (ctx, user) 
 /*!
  * When a group is created, we must index the group resource document and its members child document
  */
-PrincipalsAPI.emitter.on(PrincipalsConstants.events.CREATED_GROUP, (ctx, group, memberChangeInfo) => {
+emitter.on(PrincipalsConstants.events.CREATED_GROUP, (ctx, group, memberChangeInfo) => {
   SearchAPI.postIndexTask('group', [{ id: group.id }], {
     resource: true,
     children: {
@@ -100,7 +102,7 @@ PrincipalsAPI.emitter.on(PrincipalsConstants.events.CREATED_GROUP, (ctx, group, 
 /*!
  * When a group is updated, we must reindex the user resource document
  */
-PrincipalsAPI.emitter.on(PrincipalsConstants.events.UPDATED_GROUP, (ctx, group) => {
+emitter.on(PrincipalsConstants.events.UPDATED_GROUP, (ctx, group) => {
   SearchAPI.postIndexTask('group', [{ id: group.id }], {
     resource: true
   });
@@ -110,7 +112,7 @@ PrincipalsAPI.emitter.on(PrincipalsConstants.events.UPDATED_GROUP, (ctx, group) 
  * When group members have been updated, we must both the group's members child document and all the
  * principals' child memberships documents
  */
-PrincipalsAPI.emitter.on(
+emitter.on(
   PrincipalsConstants.events.UPDATED_GROUP_MEMBERS,
   // eslint-disable-next-line no-unused-vars
   (ctx, group, oldGroup, memberChangeInfo, opts) => {
@@ -122,7 +124,7 @@ PrincipalsAPI.emitter.on(
  * When someone joins a group, we must both the group's members child document and the user's child
  * memberships documents
  */
-PrincipalsAPI.emitter.on(PrincipalsConstants.events.JOINED_GROUP, (ctx, group, oldGroup, memberChangeInfo) => {
+emitter.on(PrincipalsConstants.events.JOINED_GROUP, (ctx, group, oldGroup, memberChangeInfo) => {
   _handleUpdateGroupMembers(ctx, group, _.keys(memberChangeInfo.changes));
 });
 
@@ -130,7 +132,7 @@ PrincipalsAPI.emitter.on(PrincipalsConstants.events.JOINED_GROUP, (ctx, group, o
  * When someone leaves a group, we must both the group's members child document and the user's child
  * memberships documents
  */
-PrincipalsAPI.emitter.on(PrincipalsConstants.events.LEFT_GROUP, (ctx, group, memberChangeInfo) => {
+emitter.on(PrincipalsConstants.events.LEFT_GROUP, (ctx, group, memberChangeInfo) => {
   _handleUpdateGroupMembers(ctx, group, _.keys(memberChangeInfo.changes));
 });
 

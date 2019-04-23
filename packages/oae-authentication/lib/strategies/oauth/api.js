@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const AuthzUtil = require('oae-authz/lib/util');
-const { Validator } = require('oae-util/lib/validator');
+import * as AuthzUtil from 'oae-authz/lib/util';
+import { Validator } from 'oae-util/lib/validator';
 
-const OAuthDAO = require('./internal/dao');
+import * as OAuthDAO from './internal/dao';
 
 /// //////////
 // Clients //
@@ -35,9 +35,7 @@ const OAuthDAO = require('./internal/dao');
  */
 const getClients = function(ctx, userId, callback) {
   const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'Anonymous users do not have clients' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'Anonymous users do not have clients' }).isLoggedInUser(ctx);
   validator.check(userId, { code: 400, msg: 'An invalid userId was passed in' }).isUserId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
@@ -71,9 +69,7 @@ const getClients = function(ctx, userId, callback) {
  */
 const createClient = function(ctx, userId, displayName, callback) {
   const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'Anonymous users cannot create a client' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'Anonymous users cannot create a client' }).isLoggedInUser(ctx);
   validator.check(userId, { code: 400, msg: 'A client must be bound to a user' }).isUserId();
   validator.check(displayName, { code: 400, msg: 'Missing client displayName' }).notEmpty();
   if (validator.hasErrors()) {
@@ -105,13 +101,12 @@ const createClient = function(ctx, userId, displayName, callback) {
  */
 const updateClient = function(ctx, clientId, displayName, secret, callback) {
   const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'Anonymous users cannot create a client' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'Anonymous users cannot create a client' }).isLoggedInUser(ctx);
   validator.check(clientId, { code: 400, msg: 'Missing client id' }).notEmpty();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
+
   if (!displayName && !secret) {
     return callback({ code: 400, msg: 'A displayName and/or secret has to be provided' });
   }
@@ -121,6 +116,7 @@ const updateClient = function(ctx, clientId, displayName, secret, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!client) {
       return callback({ code: 404, msg: 'No client with that id was found' });
     }
@@ -154,9 +150,7 @@ const updateClient = function(ctx, clientId, displayName, secret, callback) {
  */
 const deleteClient = function(ctx, clientId, callback) {
   const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'Anonymous users cannot delete a client' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'Anonymous users cannot delete a client' }).isLoggedInUser(ctx);
   validator.check(clientId, { code: 400, msg: 'Missing client id' }).notEmpty();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
@@ -167,6 +161,7 @@ const deleteClient = function(ctx, clientId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!client) {
       return callback({ code: 404, msg: 'No client with that id was found' });
     }
@@ -196,15 +191,14 @@ const generateToken = function(length) {
   for (let i = 0; i < length; i++) {
     randomString += chars[_.random(0, chars.length - 1)];
   }
+
   return randomString;
 };
 
-module.exports = {
-  Clients: {
-    getClients,
-    createClient,
-    updateClient,
-    deleteClient
-  },
-  generateToken
+const Clients = {
+  getClients,
+  createClient,
+  updateClient,
+  deleteClient
 };
+export { Clients, generateToken };

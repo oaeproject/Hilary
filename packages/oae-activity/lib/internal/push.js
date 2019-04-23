@@ -13,25 +13,30 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
-const clone = require('clone');
-const selectn = require('selectn');
-const ShortId = require('shortid');
+import ActivityEmitter from 'oae-activity/lib/internal/emitter';
 
-const { Context } = require('oae-context');
-const log = require('oae-logger').logger('oae-activity-push');
-const MQ = require('oae-util/lib/mq');
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
-const Signature = require('oae-util/lib/signature');
-const Telemetry = require('oae-telemetry').telemetry('push');
-const TenantsAPI = require('oae-tenants');
-const { Validator } = require('oae-authz/lib/validator');
+import _ from 'underscore';
+import clone from 'clone';
+import selectn from 'selectn';
+import ShortId from 'shortid';
 
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const ActivityEmitter = require('oae-activity/lib/internal/emitter');
-const ActivityRegistry = require('oae-activity/lib/internal/registry');
-const ActivityTransformer = require('oae-activity/lib/internal/transformer');
-const ActivityUtil = require('oae-activity/lib/util');
+import { Context } from 'oae-context';
+import { logger } from 'oae-logger';
+import * as MQ from 'oae-util/lib/mq';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as Signature from 'oae-util/lib/signature';
+import { telemetry } from 'oae-telemetry';
+import * as TenantsAPI from 'oae-tenants';
+import { Validator } from 'oae-authz/lib/validator';
+
+import { ActivityConstants } from 'oae-activity/lib/constants';
+
+import * as ActivityRegistry from 'oae-activity/lib/internal/registry';
+import * as ActivityTransformer from 'oae-activity/lib/internal/transformer';
+import * as ActivityUtil from 'oae-activity/lib/util';
+
+const log = logger('oae-activity-push');
+const Telemetry = telemetry('push');
 
 /// ///////////////////
 // MODULE VARIABLES //
@@ -184,12 +189,7 @@ const init = function(callback) {
       }
 
       // Subscribe to our queue for new events
-      return MQ.subscribeQueue(
-        queueName,
-        QueueConstants.subscribe.OPTIONS,
-        _handlePushActivity,
-        callback
-      );
+      return MQ.subscribeQueue(queueName, QueueConstants.subscribe.OPTIONS, _handlePushActivity, callback);
     });
   });
 };
@@ -214,10 +214,10 @@ const registerConnection = function(socket) {
   Telemetry.incr('connection.count');
 
   /*!
-     * The client has a 5 second window to authenticate itself, at which time this timeout will be
-     * cleared and the close function will not get executed. If the client does not authenticate,
-     * the connection is closed
-     */
+   * The client has a 5 second window to authenticate itself, at which time this timeout will be
+   * cleared and the close function will not get executed. If the client does not authenticate,
+   * the connection is closed
+   */
   connectionInfo.authenticationTimeout = setTimeout(() => {
     if (connectionInfo.ctx) {
       log().trace(
@@ -238,10 +238,10 @@ const registerConnection = function(socket) {
   }, AUTHENTICATION_TIMEOUT);
 
   /*!
-     * A new message is pushed to us by the client
-     *
-     * @param  {Object}     msg     The message the client sent us
-     */
+   * A new message is pushed to us by the client
+   *
+   * @param  {Object}     msg     The message the client sent us
+   */
   socket.on('data', msg => {
     let message = null;
     try {
@@ -284,12 +284,12 @@ const registerConnection = function(socket) {
   });
 
   /*!
-     * A client disconnected. We need to do some clean-up.
-     *
-     * 1/ Unbind our RabbitMQ queue from the exchange for all the streams that user was interested in (but nobody else).
-     *
-     * 2/ Clear all local references to this socket, so we're not leaking memory.
-     */
+   * A client disconnected. We need to do some clean-up.
+   *
+   * 1/ Unbind our RabbitMQ queue from the exchange for all the streams that user was interested in (but nobody else).
+   *
+   * 2/ Clear all local references to this socket, so we're not leaking memory.
+   */
   socket.on('close', () => {
     log().trace({ sid: socket.id, streams: connectionInfo.streams }, 'Closing socket');
     // Measure how long the clients stay connected
@@ -380,9 +380,7 @@ const _authenticate = function(connectionInfo, message) {
   const validator = new Validator();
   validator.check(data.tenantAlias, { code: 400, msg: 'A tenant needs to be provided' }).notEmpty();
   validator.check(data.userId, { code: 400, msg: 'A userId needs to be provided' }).isUserId();
-  validator
-    .check(null, { code: 400, msg: 'A signature object needs to be provided' })
-    .isObject(data.signature);
+  validator.check(null, { code: 400, msg: 'A signature object needs to be provided' }).isObject(data.signature);
   if (validator.hasErrors()) {
     _writeResponse(connectionInfo, message.id, validator.getFirstError());
     log().error({ err: validator.getFirstError() }, 'Invalid auth frame');
@@ -412,10 +410,7 @@ const _authenticate = function(connectionInfo, message) {
   PrincipalsDAO.getPrincipal(data.userId, (err, user) => {
     if (err) {
       _writeResponse(connectionInfo, message.id, err);
-      log().error(
-        { err, userId: data.userId, sid: socket.id },
-        'Error trying to get the principal object'
-      );
+      log().error({ err, userId: data.userId, sid: socket.id }, 'Error trying to get the principal object');
       return socket.close();
     }
 
@@ -432,10 +427,7 @@ const _authenticate = function(connectionInfo, message) {
       )
     ) {
       _writeResponse(connectionInfo, message.id, { code: 401, msg: 'Invalid signature' });
-      log().error(
-        { userId: data.userId, sid: socket.id },
-        'Incoming authentication signature was invalid'
-      );
+      log().error({ userId: data.userId, sid: socket.id }, 'Incoming authentication signature was invalid');
       return socket.close();
     }
 
@@ -496,28 +488,21 @@ const _subscribe = function(connectionInfo, message) {
       return _writeResponse(connectionInfo, message.id, err);
     }
 
-    const activityStreamId = ActivityUtil.createActivityStreamId(
-      data.stream.resourceId,
-      data.stream.streamType
-    );
+    const activityStreamId = ActivityUtil.createActivityStreamId(data.stream.resourceId, data.stream.streamType);
     log().trace({ sid: socket.id, activityStreamId }, 'Registering socket for stream');
 
     /*!
-         * Finishes up the subscription process and  writes a response to the client
-         */
+     * Finishes up the subscription process and  writes a response to the client
+     */
     const finish = function() {
       // Remember the desired transformer for this stream on this socket
       const transformerType = data.format || ActivityConstants.transformerTypes.INTERNAL;
       connectionInfo.transformerTypes = connectionInfo.transformerTypes || {};
-      connectionInfo.transformerTypes[activityStreamId] =
-        connectionInfo.transformerTypes[activityStreamId] || [];
+      connectionInfo.transformerTypes[activityStreamId] = connectionInfo.transformerTypes[activityStreamId] || [];
       connectionInfo.transformerTypes[activityStreamId].push(transformerType);
 
       // Acknowledge a succesful subscription
-      log().trace(
-        { sid: socket.id, activityStreamId, format: transformerType },
-        'Registered a client for a stream'
-      );
+      log().trace({ sid: socket.id, activityStreamId, format: transformerType }, 'Registered a client for a stream');
       return _writeResponse(connectionInfo, message.id);
     };
 
@@ -526,16 +511,14 @@ const _subscribe = function(connectionInfo, message) {
       // No need to bind, we're already bound
       return finish();
     }
+
     // Remember this stream on the socket
     connectionInfo.streams.push(activityStreamId);
 
     // Bind our app queue to the exchange
     _bindQueue(activityStreamId, err => {
       if (err) {
-        log().error(
-          { sid: socket.id, err, activityStreamId },
-          'Could not bind our queue to the exchange'
-        );
+        log().error({ sid: socket.id, err, activityStreamId }, 'Could not bind our queue to the exchange');
         return _writeResponse(connectionInfo, message.id, err);
       }
 
@@ -563,6 +546,7 @@ const _bindQueue = function(activityStreamId, callback) {
   if (connectionInfosPerStream[activityStreamId]) {
     return callback();
   }
+
   MQ.bindQueueToExchange(queueName, QueueConstants.exchange.NAME, activityStreamId, callback);
 
   // If we've seen this stream before, we're already listening for events for that stream
@@ -581,6 +565,7 @@ const _getAuthorizationHandler = function(activityStreamId) {
   if (!streamOptions || !streamOptions.authorizationHandler) {
     return null;
   }
+
   return streamOptions.authorizationHandler;
 };
 
@@ -630,12 +615,7 @@ const _writeResponse = function(connectionInfo, id, error) {
  * @api private
  */
 const _push = function(activityStreamId, routedActivity) {
-  MQ.submit(
-    QueueConstants.exchange.NAME,
-    activityStreamId,
-    routedActivity,
-    QueueConstants.publish.OPTIONS
-  );
+  MQ.submit(QueueConstants.exchange.NAME, activityStreamId, routedActivity, QueueConstants.publish.OPTIONS);
 };
 
 /**
@@ -658,32 +638,27 @@ const _handlePushActivity = function(data, callback) {
       todo++;
       // Because we're sending these activities to possible multiple sockets/users we'll need to clone and transform it for each socket
       const activities = clone(data.activities);
-      ActivityTransformer.transformActivities(
-        connectionInfo.ctx,
-        activities,
-        transformerType,
-        err => {
-          if (err) {
-            return log().error({ err }, 'Could not transform event');
-          }
-
-          const msgData = {
-            resourceId: data.resourceId,
-            streamType: data.streamType,
-            activities,
-            format: transformerType,
-            numNewActivities: data.numNewActivities
-          };
-          log().trace({ data: msgData, sid: socket.id }, 'Pushing message to socket');
-          const msg = JSON.stringify(msgData);
-          socket.write(msg);
-
-          todo--;
-          if (todo === 0) {
-            callback();
-          }
+      ActivityTransformer.transformActivities(connectionInfo.ctx, activities, transformerType, err => {
+        if (err) {
+          return log().error({ err }, 'Could not transform event');
         }
-      );
+
+        const msgData = {
+          resourceId: data.resourceId,
+          streamType: data.streamType,
+          activities,
+          format: transformerType,
+          numNewActivities: data.numNewActivities
+        };
+        log().trace({ data: msgData, sid: socket.id }, 'Pushing message to socket');
+        const msg = JSON.stringify(msgData);
+        socket.write(msg);
+
+        todo--;
+        if (todo === 0) {
+          callback();
+        }
+      });
     });
   });
 };
@@ -741,7 +716,4 @@ ActivityEmitter.on(ActivityConstants.events.DELIVERED_ACTIVITIES, deliveredActiv
   });
 });
 
-module.exports = {
-  init,
-  registerConnection
-};
+export { init, registerConnection };

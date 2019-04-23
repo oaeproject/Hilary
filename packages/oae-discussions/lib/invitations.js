@@ -13,20 +13,24 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import DiscussionsAPI from 'oae-discussions';
 
-const AuthzInvitationsDAO = require('oae-authz/lib/invitations/dao');
-const AuthzUtil = require('oae-authz/lib/util');
-const { Context } = require('oae-context');
-const { Invitation } = require('oae-authz/lib/invitations/model');
-const ResourceActions = require('oae-resource/lib/actions');
-const { ResourceConstants } = require('oae-resource/lib/constants');
+import _ from 'underscore';
 
-const DiscussionsAPI = require('oae-discussions');
-const { DiscussionsConstants } = require('oae-discussions/lib/constants');
-const DiscussionsDAO = require('oae-discussions/lib/internal/dao');
+import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as ResourceActions from 'oae-resource/lib/actions';
+import * as DiscussionsDAO from 'oae-discussions/lib/internal/dao';
 
-const log = require('oae-logger').logger('oae-discussions-invitations');
+import { Context } from 'oae-context';
+import { Invitation } from 'oae-authz/lib/invitations/model';
+import { ResourceConstants } from 'oae-resource/lib/constants';
+
+import { DiscussionsConstants } from 'oae-discussions/lib/constants';
+
+import { logger } from 'oae-logger';
+
+const log = logger('oae-discussions-invitations');
 
 /*!
  * When an invitation is accepted, pass on the events to update discussion members and then feed
@@ -84,24 +88,21 @@ ResourceActions.emitter.when(
 /*!
  * When a discussion is deleted, we delete all invitations associated to it
  */
-DiscussionsAPI.when(
-  DiscussionsConstants.events.DELETED_DISCUSSION,
-  (ctx, discussion, memberIds, callback) => {
-    AuthzInvitationsDAO.deleteInvitationsByResourceId(discussion.id, err => {
-      if (err) {
-        log().warn(
-          {
-            err,
-            discussionId: discussion.id
-          },
-          'An error occurred while removing invitations after a discussion was deleted'
-        );
-      }
+DiscussionsAPI.when(DiscussionsConstants.events.DELETED_DISCUSSION, (ctx, discussion, memberIds, callback) => {
+  AuthzInvitationsDAO.deleteInvitationsByResourceId(discussion.id, err => {
+    if (err) {
+      log().warn(
+        {
+          err,
+          discussionId: discussion.id
+        },
+        'An error occurred while removing invitations after a discussion was deleted'
+      );
+    }
 
-      return callback();
-    });
-  }
-);
+    return callback();
+  });
+});
 
 /**
  * Determine if the given id is a discussion id

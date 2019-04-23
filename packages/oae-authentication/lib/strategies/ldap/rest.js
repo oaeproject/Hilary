@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
-const passport = require('passport');
+import passport from 'passport';
 
-const OAE = require('oae-util/lib/oae');
+import * as OAE from 'oae-util/lib/oae';
 
-const { AuthenticationConstants } = require('oae-authentication/lib/constants');
-const AuthenticationUtil = require('oae-authentication/lib/util');
+import { AuthenticationConstants } from 'oae-authentication/lib/constants';
+import * as AuthenticationUtil from 'oae-authentication/lib/util';
 
 /**
  * Log in using LDAP
@@ -28,10 +28,7 @@ const AuthenticationUtil = require('oae-authentication/lib/util');
  * @api private
  */
 const _handleLDAPAuthentication = function(req, res, next) {
-  const strategyId = AuthenticationUtil.getStrategyId(
-    req.tenant,
-    AuthenticationConstants.providers.LDAP
-  );
+  const strategyId = AuthenticationUtil.getStrategyId(req.tenant, AuthenticationConstants.providers.LDAP);
   const errorHandler = AuthenticationUtil.handlePassportError(req, res, next);
   passport.authenticate(strategyId)(req, res, errorHandler);
 };
@@ -52,3 +49,5 @@ OAE.tenantRouter.on('post', '/api/auth/ldap', _handleLDAPAuthentication, (req, r
   // This callback only gets called when we log in succesfully.
   return res.status(200).send(req.ctx.user());
 });
+
+export default OAE;

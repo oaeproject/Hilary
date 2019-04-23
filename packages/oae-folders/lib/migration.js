@@ -1,4 +1,4 @@
-const Cassandra = require('oae-util/lib/cassandra');
+import * as Cassandra from 'oae-util/lib/cassandra';
 
 /**
  * Ensure that the all of the folders schemas are created. If they already exist, this method will not do anything
@@ -18,4 +18,4 @@ const ensureSchema = function(callback) {
   );
 };
 
-module.exports = { ensureSchema };
+export { ensureSchema };

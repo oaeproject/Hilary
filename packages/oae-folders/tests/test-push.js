@@ -13,18 +13,16 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const fs = require('fs');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const ActivityTestsUtil = require('oae-activity/lib/test/util');
-const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
-const TestsUtil = require('oae-tests');
+import { ActivityConstants } from 'oae-activity/lib/constants';
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
 
-const { FoldersConstants } = require('oae-folders/lib/constants');
-const FoldersTestUtil = require('oae-folders/lib/test/util');
+import { FoldersConstants } from 'oae-folders/lib/constants';
+import * as FoldersTestUtil from 'oae-folders/lib/test/util';
 
 describe('Folders - Push', () => {
   // Rest contexts that can be used performing rest requests
@@ -34,9 +32,7 @@ describe('Folders - Push', () => {
    * Function that will fill up the tenant admin and anymous rest contexts
    */
   before(callback => {
-    localAdminRestContext = TestsUtil.createTenantAdminRestContext(
-      global.oaeTests.tenants.localhost.host
-    );
+    localAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.localhost.host);
     callback();
   });
 
@@ -80,64 +76,40 @@ describe('Folders - Push', () => {
                       assert.strictEqual(err.code, 400);
 
                       // Ensure we get a 400 error with an invalid token
-                      client.subscribe(
-                        folder.id,
-                        'activity',
-                        { signature: folder.signature.signature },
-                        null,
-                        err => {
+                      client.subscribe(folder.id, 'activity', { signature: folder.signature.signature }, null, err => {
+                        assert.strictEqual(err.code, 401);
+                        client.subscribe(folder.id, 'activity', { expires: folder.signature.expires }, null, err => {
                           assert.strictEqual(err.code, 401);
+
+                          // Ensure we get a 401 error with an incorrect signature
                           client.subscribe(
                             folder.id,
                             'activity',
-                            { expires: folder.signature.expires },
+                            { expires: Date.now() + 10000, signature: 'foo' },
                             null,
                             err => {
                               assert.strictEqual(err.code, 401);
 
-                              // Ensure we get a 401 error with an incorrect signature
-                              client.subscribe(
+                              // Simon should not be able to use a signature that was generated for Branden
+                              FoldersTestUtil.assertGetFolderSucceeds(
+                                branden.restContext,
                                 folder.id,
-                                'activity',
-                                { expires: Date.now() + 10000, signature: 'foo' },
-                                null,
-                                err => {
-                                  assert.strictEqual(err.code, 401);
+                                folderForBranden => {
+                                  client.subscribe(folder.id, 'activity', folderForBranden.signature, null, err => {
+                                    assert.strictEqual(err.code, 401);
 
-                                  // Simon should not be able to use a signature that was generated for Branden
-                                  FoldersTestUtil.assertGetFolderSucceeds(
-                                    branden.restContext,
-                                    folder.id,
-                                    folderForBranden => {
-                                      client.subscribe(
-                                        folder.id,
-                                        'activity',
-                                        folderForBranden.signature,
-                                        null,
-                                        err => {
-                                          assert.strictEqual(err.code, 401);
-
-                                          // Sanity check that a valid signature works
-                                          client.subscribe(
-                                            folder.id,
-                                            'activity',
-                                            folder.signature,
-                                            null,
-                                            err => {
-                                              assert.ok(!err);
-                                              return callback();
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
+                                    // Sanity check that a valid signature works
+                                    client.subscribe(folder.id, 'activity', folder.signature, null, err => {
+                                      assert.ok(!err);
+                                      return callback();
+                                    });
+                                  });
                                 }
                               );
                             }
                           );
-                        }
-                      );
+                        });
+                      });
                     });
                   });
                 });
@@ -259,19 +231,15 @@ describe('Folders - Push', () => {
     it('verify visibility updates trigger a push notification', callback => {
       setupFixture((contexts, folder, client) => {
         // Trigger an update
-        RestAPI.Folders.updateFolder(
-          contexts.branden.restContext,
-          folder.id,
-          { visibility: 'loggedin' },
-          err => {
-            assert.ok(!err);
-          }
-        );
+        RestAPI.Folders.updateFolder(contexts.branden.restContext, folder.id, { visibility: 'loggedin' }, err => {
+          assert.ok(!err);
+        });
 
         client.on('message', message => {
           if (isMessageFromFolderCreation(message)) {
             return;
           }
+
           ActivityTestsUtil.assertActivity(
             message.activities[0],
             FoldersConstants.activity.ACTIVITY_FOLDER_UPDATE_VISIBILITY,
@@ -312,6 +280,7 @@ describe('Folders - Push', () => {
           if (isMessageFromFolderCreation(message)) {
             return;
           }
+
           if (seenFirstComment) {
             // This should be the reply message. Because comments are delivered to websockets
             // on routing, this message will not aggregate with the previous activity. It should

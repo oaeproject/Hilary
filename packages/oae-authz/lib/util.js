@@ -13,11 +13,11 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const AuthzDelete = require('oae-authz/lib/delete');
-const AuthzModel = require('oae-authz/lib/model');
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import * as AuthzDelete from 'oae-authz/lib/delete';
+import * as AuthzModel from 'oae-authz/lib/model';
 
 /**
  * Construct a resource based on the given id.
@@ -116,6 +116,7 @@ const parseShareTarget = function(shareTargetStr) {
     if (shareTargetSplit.length === 1) {
       return { email };
     }
+
     const userId = shareTargetSplit.slice(1).join(':');
     if (isUserId(userId)) {
       return { email, principalId: userId };
@@ -311,7 +312,7 @@ const getAuthzId = function(resource) {
   return resource.groupId || resource.id;
 };
 
-module.exports = {
+export {
   getResourceFromId,
   getPrincipalFromId,
   toId,

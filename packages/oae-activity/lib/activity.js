@@ -13,17 +13,17 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const AuthzAPI = require('oae-authz');
-const AuthzUtil = require('oae-authz/lib/util');
-const ContentAPI = require('oae-content');
-const DiscussionsAPI = require('oae-discussions');
-const FoldersAPI = require('oae-folders');
-const Signature = require('oae-util/lib/signature');
-const MeetingsAPI = require('oae-jitsi');
+import * as AuthzAPI from 'oae-authz';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as ContentAPI from 'oae-content';
+import * as DiscussionsAPI from 'oae-discussions';
+import * as FoldersAPI from 'oae-folders';
+import * as Signature from 'oae-util/lib/signature';
+import * as MeetingsAPI from 'oae-jitsi';
 
-const ActivityAPI = require('./api');
+import * as ActivityAPI from './api';
 
 ActivityAPI.registerActivityStreamType('activity', {
   transient: false,
@@ -36,36 +36,43 @@ ActivityAPI.registerActivityStreamType('activity', {
 
       // User streams
     }
+
     if (AuthzUtil.isUserId(resourceId)) {
       return _authorizeUserActivityStream(ctx, resourceId, token, callback);
 
       // Group streams
     }
+
     if (AuthzUtil.isGroupId(resourceId)) {
       return _authorizeGroupActivityStream(ctx, resourceId, token, callback);
 
       // Content streams
     }
+
     if (resource.resourceType === 'c') {
       return _authorizeContentActivityStream(ctx, resourceId, token, callback);
 
       // Discussion streams
     }
+
     if (resource.resourceType === 'd') {
       return _authorizeDiscussionActivityStream(ctx, resourceId, token, callback);
 
       // Folder streams
     }
+
     if (resource.resourceType === 'f') {
       return _authorizeFolderActivityStream(ctx, resourceId, token, callback);
 
       // Jitsi streams
     }
+
     if (resource.resourceType === 'm') {
       return _authorizeJitsiActivityStream(ctx, resourceId, token, callback);
 
       // Unknown type of resource
     }
+
     return callback({ code: 404, msg: 'Unknown type of resource' });
   }
 });
@@ -80,26 +87,31 @@ ActivityAPI.registerActivityStreamType('message', {
 
       // Content streams
     }
+
     if (resourceId[0] === 'c') {
       return _authorizeContentActivityStream(ctx, resourceId, token, callback);
 
       // Discussion streams
     }
+
     if (resourceId[0] === 'd') {
       return _authorizeDiscussionActivityStream(ctx, resourceId, token, callback);
 
       // Folder streams
     }
+
     if (resourceId[0] === 'f') {
       return _authorizeFolderActivityStream(ctx, resourceId, token, callback);
 
       // Meeting streams
     }
+
     if (resourceId[0] === 'm') {
       return _authorizeJitsiActivityStream(ctx, resourceId, token, callback);
 
       // Unknown type of resource
     }
+
     return callback({ code: 404, msg: 'Unknown type of resource' });
   }
 });
@@ -122,6 +134,7 @@ ActivityAPI.registerActivityStreamType('notification', {
         msg: 'Only authenticated users can retrieve a notification stream'
       });
     }
+
     if (ctx.user().id !== resourceId) {
       return callback({ code: 401, msg: 'You can only request your own notification stream' });
     }
@@ -147,6 +160,7 @@ const _authorizeUserActivityStream = function(ctx, userId, token, callback) {
       msg: "Only authenticated users can retrieve a user's activity stream"
     });
   }
+
   if (ctx.user().id !== userId) {
     return callback({ code: 401, msg: 'You can only request your own notification stream' });
   }
@@ -164,6 +178,7 @@ const _authorizeGroupActivityStream = function(ctx, groupId, token, callback) {
   if (!ctx.user()) {
     return callback({ code: 401, msg: 'Must be a member of a group to see its activity stream' });
   }
+
   if (_.isObject(token)) {
     if (!Signature.verifyExpiringResourceSignature(ctx, groupId, token.expires, token.signature)) {
       return callback({ code: 401, msg: 'Invalid signature' });
@@ -171,10 +186,12 @@ const _authorizeGroupActivityStream = function(ctx, groupId, token, callback) {
 
     return callback();
   }
+
   AuthzAPI.hasAnyRole(ctx.user().id, groupId, (err, hasAnyRole) => {
     if (err) {
       return callback(err);
     }
+
     if (!hasAnyRole) {
       return callback({ code: 401, msg: 'Must be a member of a group to see its activity stream' });
     }
@@ -191,14 +208,13 @@ const _authorizeGroupActivityStream = function(ctx, groupId, token, callback) {
  */
 const _authorizeContentActivityStream = function(ctx, contentId, token, callback) {
   if (_.isObject(token)) {
-    if (
-      !Signature.verifyExpiringResourceSignature(ctx, contentId, token.expires, token.signature)
-    ) {
+    if (!Signature.verifyExpiringResourceSignature(ctx, contentId, token.expires, token.signature)) {
       return callback({ code: 401, msg: 'Invalid signature' });
     }
 
     return callback();
   }
+
   ContentAPI.getContent(ctx, contentId, err => {
     if (err) {
       return callback(err);
@@ -216,14 +232,13 @@ const _authorizeContentActivityStream = function(ctx, contentId, token, callback
  */
 const _authorizeDiscussionActivityStream = function(ctx, discussionId, token, callback) {
   if (_.isObject(token)) {
-    if (
-      !Signature.verifyExpiringResourceSignature(ctx, discussionId, token.expires, token.signature)
-    ) {
+    if (!Signature.verifyExpiringResourceSignature(ctx, discussionId, token.expires, token.signature)) {
       return callback({ code: 401, msg: 'Invalid signature' });
     }
 
     return callback();
   }
+
   DiscussionsAPI.Discussions.getDiscussion(ctx, discussionId, err => {
     if (err) {
       return callback(err);
@@ -247,6 +262,7 @@ const _authorizeFolderActivityStream = function(ctx, folderId, token, callback) 
 
     return callback();
   }
+
   FoldersAPI.getFolder(ctx, folderId, err => {
     if (err) {
       return callback(err);
@@ -264,14 +280,13 @@ const _authorizeFolderActivityStream = function(ctx, folderId, token, callback) 
  */
 const _authorizeJitsiActivityStream = function(ctx, meetingId, token, callback) {
   if (_.isObject(token)) {
-    if (
-      !Signature.verifyExpiringResourceSignature(ctx, meetingId, token.expires, token.signature)
-    ) {
+    if (!Signature.verifyExpiringResourceSignature(ctx, meetingId, token.expires, token.signature)) {
       return callback({ code: 401, msg: 'Invalid signature' });
     }
 
     return callback();
   }
+
   MeetingsAPI.getMeeting(ctx, meetingId, err => {
     if (err) {
       return callback(err);

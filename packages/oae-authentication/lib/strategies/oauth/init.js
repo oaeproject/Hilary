@@ -13,32 +13,36 @@
  * permissions and limitations under the License.
  */
 
-const BearerStrategy = require('passport-http-bearer').Strategy;
-const passport = require('passport');
+import passportBearer from 'passport-http-bearer';
+import passport from 'passport';
 
-const { AuthenticationConstants } = require('oae-authentication/lib/constants');
-const AuthenticationUtil = require('oae-authentication/lib/util');
-const OAE = require('oae-util/lib/oae');
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
-const Telemetry = require('oae-telemetry').telemetry('oauth');
+import { AuthenticationConstants } from 'oae-authentication/lib/constants';
+import * as AuthenticationUtil from 'oae-authentication/lib/util';
+import * as OAE from 'oae-util/lib/oae';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import { telemetry } from 'oae-telemetry';
 
-const OAuthDAO = require('./internal/dao');
+import * as OAuthDAO from './internal/dao';
+
+const BearerStrategy = passportBearer.Strategy;
+const Telemetry = telemetry('oauth');
 
 // Used to check if the authorization header starts with "Bearer "
 const BEARER_REGEX = /^Bearer /i;
 
-module.exports = function() {
+export default function() {
   /*!
-     * This strategy is used to authenticate users based on an access token (aka a bearer token).
-     *
-     * @see http://tools.ietf.org/html/rfc6750
-     */
+   * This strategy is used to authenticate users based on an access token (aka a bearer token).
+   *
+   * @see http://tools.ietf.org/html/rfc6750
+   */
   passport.use(
     new BearerStrategy((accessToken, callback) => {
       OAuthDAO.AccessTokens.getAccessToken(accessToken, (err, token) => {
         if (err) {
           return callback(err);
         }
+
         if (!token) {
           return callback(null, false);
         }
@@ -48,6 +52,7 @@ module.exports = function() {
           if (err && err.code === 404) {
             return callback(null, false);
           }
+
           if (err) {
             return callback(err);
           }
@@ -60,10 +65,10 @@ module.exports = function() {
   );
 
   /*!
-     * This middleware will apply "OAuth: Bearer Token" authentication if it detects
-     * that there is a token in the request. This needs to run before any other middleware that does something with
-     * the user, as this middleware will put the `user` object on the request.
-     */
+   * This middleware will apply "OAuth: Bearer Token" authentication if it detects
+   * that there is a token in the request. This needs to run before any other middleware that does something with
+   * the user, as this middleware will put the `user` object on the request.
+   */
   OAE.tenantServer.use((req, res, next) => {
     if (!_hasAccessToken(req)) {
       // Don't invoke the OAuth workflow if there is no OAuth access token
@@ -90,7 +95,7 @@ module.exports = function() {
       return next();
     });
   });
-};
+}
 
 /**
  * Find an OAuth access token in the HTTP request.

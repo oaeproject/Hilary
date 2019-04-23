@@ -13,29 +13,29 @@
  * permissions and limitations under the License.
  */
 
-const TwitterStrategy = require('passport-twitter').Strategy;
+import twitterPassport from 'passport-twitter';
 
-const ConfigAPI = require('oae-config');
-const log = require('oae-logger').logger('oae-authentication');
+import * as ConfigAPI from 'oae-config';
+import { logger } from 'oae-logger';
 
-const AuthenticationAPI = require('oae-authentication');
+import * as AuthenticationAPI from 'oae-authentication';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants';
+import * as AuthenticationUtil from 'oae-authentication/lib/util';
 
-const AuthenticationConfig = ConfigAPI.config('oae-authentication');
-const { AuthenticationConstants } = require('oae-authentication/lib/constants');
-const AuthenticationUtil = require('oae-authentication/lib/util');
+const TwitterStrategy = twitterPassport.Strategy;
 
-module.exports = function() {
+const log = logger('oae-authentication');
+
+const AuthenticationConfig = ConfigAPI.setUpConfig('oae-authentication');
+
+export default function() {
   const strategy = {};
 
   /**
    * @see oae-authentication/lib/strategy#shouldBeEnabled
    */
   strategy.shouldBeEnabled = function(tenantAlias) {
-    return AuthenticationConfig.getValue(
-      tenantAlias,
-      AuthenticationConstants.providers.TWITTER,
-      'enabled'
-    );
+    return AuthenticationConfig.getValue(tenantAlias, AuthenticationConstants.providers.TWITTER, 'enabled');
   };
 
   /**
@@ -43,11 +43,7 @@ module.exports = function() {
    */
   strategy.getPassportStrategy = function(tenant) {
     // We fetch the config values *in* the getPassportStrategy so it can be re-configured at run-time.
-    const consumerKey = AuthenticationConfig.getValue(
-      tenant.alias,
-      AuthenticationConstants.providers.TWITTER,
-      'key'
-    );
+    const consumerKey = AuthenticationConfig.getValue(tenant.alias, AuthenticationConstants.providers.TWITTER, 'key');
     const consumerSecret = AuthenticationConfig.getValue(
       tenant.alias,
       AuthenticationConstants.providers.TWITTER,
@@ -58,10 +54,7 @@ module.exports = function() {
       {
         consumerKey,
         consumerSecret,
-        callbackURL: AuthenticationUtil.constructCallbackUrl(
-          tenant,
-          AuthenticationConstants.providers.TWITTER
-        ),
+        callbackURL: AuthenticationUtil.constructCallbackUrl(tenant, AuthenticationConstants.providers.TWITTER),
         passReqToCallback: true
       },
       (req, token, tokenSecret, profile, done) => {
@@ -103,4 +96,4 @@ module.exports = function() {
 
   // Register our strategy.
   AuthenticationAPI.registerStrategy(AuthenticationConstants.providers.TWITTER, strategy);
-};
+}

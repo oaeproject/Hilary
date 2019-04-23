@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const LibraryAPI = require('oae-library');
+import * as LibraryAPI from 'oae-library';
 
 /**
  * Purge a library, ensuring that before it is purged that it was "fresh" (i.e., not stale). Useful
@@ -88,7 +88,4 @@ const _assertPurgeFreshLibraries = function(indexName, libraryIds, callback) {
   });
 };
 
-module.exports = {
-  assertPurgeFreshLibraries,
-  assertNotStale
-};
+export { assertPurgeFreshLibraries, assertNotStale };

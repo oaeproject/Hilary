@@ -13,7 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const encoder = require('node-esapi').encoder();
+import esapi from 'node-esapi';
+
+const encoder = esapi.encoder();
 
 /**
  * Encode the `value` parameter such that it is safe to be embedded into an HTML page.
@@ -57,8 +59,4 @@ const encodeForURL = function(value) {
   return encoder.encodeForURL(value);
 };
 
-module.exports = {
-  encodeForHTML,
-  encodeForHTMLAttribute,
-  encodeForURL
-};
+export { encodeForHTML, encodeForHTMLAttribute, encodeForURL };

@@ -13,12 +13,11 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
+import assert from 'assert';
+import PreviewConstants from 'oae-preview-processor/lib/constants';
 
-const MQ = require('oae-util/lib/mq');
-const TaskQueue = require('oae-util/lib/taskqueue');
-
-const PreviewConstants = require('oae-preview-processor/lib/constants');
+import * as MQ from 'oae-util/lib/mq';
+import * as TaskQueue from 'oae-util/lib/taskqueue';
 
 /**
  * Purges all the events out of the previews queue
@@ -31,26 +30,21 @@ const purgePreviewsQueue = function(callback) {
   TaskQueue.unbind(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, err => {
     assert.ok(!err);
 
-    TaskQueue.bind(
-      PreviewConstants.MQ.TASK_GENERATE_PREVIEWS,
-      () => {},
-      { subscribe: { subscribe: false } },
-      err => {
+    TaskQueue.bind(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {}, { subscribe: { subscribe: false } }, err => {
+      assert.ok(!err);
+
+      // Purge anything that is in the queue
+      MQ.purge(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, err => {
         assert.ok(!err);
 
-        // Purge anything that is in the queue
-        MQ.purge(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, err => {
+        // Unbind our dummy-handler from the queue
+        TaskQueue.unbind(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, err => {
           assert.ok(!err);
 
-          // Unbind our dummy-handler from the queue
-          TaskQueue.unbind(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, err => {
-            assert.ok(!err);
-
-            return callback();
-          });
+          return callback();
         });
-      }
-    );
+      });
+    });
   });
 };
 
@@ -65,26 +59,21 @@ const purgeRegeneratePreviewsQueue = function(callback) {
   TaskQueue.unbind(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
     assert.ok(!err);
 
-    TaskQueue.bind(
-      PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS,
-      () => {},
-      { subscribe: { subscribe: false } },
-      err => {
+    TaskQueue.bind(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, () => {}, { subscribe: { subscribe: false } }, err => {
+      assert.ok(!err);
+
+      // Purge anything that is in the queue
+      MQ.purge(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
         assert.ok(!err);
 
-        // Purge anything that is in the queue
-        MQ.purge(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
+        // Unbind our dummy-handler from the queue
+        TaskQueue.unbind(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
           assert.ok(!err);
 
-          // Unbind our dummy-handler from the queue
-          TaskQueue.unbind(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
-            assert.ok(!err);
-
-            return callback();
-          });
+          return callback();
         });
-      }
-    );
+      });
+    });
   });
 };
 
@@ -122,8 +111,4 @@ const purgeFoldersPreviewsQueue = function(callback) {
   });
 };
 
-module.exports = {
-  purgePreviewsQueue,
-  purgeRegeneratePreviewsQueue,
-  purgeFoldersPreviewsQueue
-};
+export { purgePreviewsQueue, purgeRegeneratePreviewsQueue, purgeFoldersPreviewsQueue };

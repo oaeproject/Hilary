@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-const EmitterAPI = require('oae-emitter');
+import * as EmitterAPI from 'oae-emitter';
 
 /**
  * ### Events
@@ -21,4 +21,4 @@ const EmitterAPI = require('oae-emitter');
  * * `ready` - Emitted when server start-up has completed and the application is ready to start accepting requests
  */
 const emitter = new EmitterAPI.EventEmitter();
-module.exports = emitter;
+export default emitter;

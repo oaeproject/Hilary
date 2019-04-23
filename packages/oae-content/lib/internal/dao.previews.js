@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const Cassandra = require('oae-util/lib/cassandra');
-const { Validator } = require('oae-util/lib/validator');
+import * as Cassandra from 'oae-util/lib/cassandra';
+import { Validator } from 'oae-util/lib/validator';
 
 /// ////////////
 // Retrieval //
@@ -31,27 +31,23 @@ const { Validator } = require('oae-util/lib/validator');
  * @param  {Object[]}   callback.previews   The preview objects.
  */
 const getContentPreviews = function(revisionId, callback) {
-  Cassandra.runQuery(
-    'SELECT "name", "value" FROM "PreviewItems" WHERE "revisionId" = ?',
-    [revisionId],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
-      }
-
-      const previews = _.map(rows, row => {
-        row = Cassandra.rowToHash(row);
-        row.value = row.value.split('#');
-        return {
-          size: row.value[0],
-          uri: row.value[1],
-          filename: row.name
-        };
-      });
-
-      return callback(null, previews);
+  Cassandra.runQuery('SELECT "name", "value" FROM "PreviewItems" WHERE "revisionId" = ?', [revisionId], (err, rows) => {
+    if (err) {
+      return callback(err);
     }
-  );
+
+    const previews = _.map(rows, row => {
+      row = Cassandra.rowToHash(row);
+      row.value = row.value.split('#');
+      return {
+        size: row.value[0],
+        uri: row.value[1],
+        filename: row.name
+      };
+    });
+
+    return callback(null, previews);
+  });
 };
 
 /**
@@ -71,6 +67,7 @@ const getContentPreview = function(revisionId, previewItem, callback) {
       if (err) {
         return callback(err);
       }
+
       if (_.isEmpty(rows)) {
         return callback({
           code: 404,
@@ -254,29 +251,26 @@ const copyPreviewItems = function(fromRevisionId, toRevisionId, callback) {
   }
 
   // Select all the rows from the source revision preview items, then insert them into the destination revision preview items
-  Cassandra.runQuery(
-    'SELECT * FROM "PreviewItems" WHERE "revisionId" = ?',
-    [fromRevisionId],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
-      }
-      if (_.isEmpty(rows)) {
-        return callback();
-      }
-
-      // Copy the content over to the target revision id
-      const queries = _.map(rows, row => {
-        row = Cassandra.rowToHash(row);
-        return {
-          query: 'INSERT INTO "PreviewItems" ("revisionId", "name", "value") VALUES (?, ?, ?)',
-          parameters: [toRevisionId, row.name, row.value]
-        };
-      });
-
-      return Cassandra.runBatchQuery(queries, callback);
+  Cassandra.runQuery('SELECT * FROM "PreviewItems" WHERE "revisionId" = ?', [fromRevisionId], (err, rows) => {
+    if (err) {
+      return callback(err);
     }
-  );
+
+    if (_.isEmpty(rows)) {
+      return callback();
+    }
+
+    // Copy the content over to the target revision id
+    const queries = _.map(rows, row => {
+      row = Cassandra.rowToHash(row);
+      return {
+        query: 'INSERT INTO "PreviewItems" ("revisionId", "name", "value") VALUES (?, ?, ?)',
+        parameters: [toRevisionId, row.name, row.value]
+      };
+    });
+
+    return Cassandra.runBatchQuery(queries, callback);
+  });
 };
 
 /**
@@ -320,13 +314,8 @@ const _getUriInFileData = function(fileData, size) {
       .slice(1)
       .join('#');
   }
+
   return null;
 };
 
-module.exports = {
-  getContentPreviews,
-  getContentPreview,
-  getPreviewUris,
-  storeMetadata,
-  copyPreviewItems
-};
+export { getContentPreviews, getContentPreview, getPreviewUris, storeMetadata, copyPreviewItems };

@@ -13,24 +13,22 @@
  * permissions and limitations under the License.
  */
 
-let _ = require('underscore');
-let util = require('util');
+import util from 'util';
+import _ from 'underscore';
 
-var activityStreams = {};
-let activityTypes = {};
-let activityEntityTypes = {};
-let activityEntityAssociations = {};
+const activityStreams = {};
+const activityTypes = {};
+const activityEntityTypes = {};
+const activityEntityAssociations = {};
 
 /**
  * Register an activity stream
  *
  * @see ActivityAPI#registerActivityStreamType
  */
-let registerActivityStreamType = function(activityStreamType, options) {
+const registerActivityStreamType = function(activityStreamType, options) {
   if (activityStreams[activityStreamType]) {
-    throw new Error(
-      util.format('Attempted to register duplicate activity stream type "%s"', activityStreamType)
-    );
+    throw new Error(util.format('Attempted to register duplicate activity stream type "%s"', activityStreamType));
   }
 
   activityStreams[activityStreamType] = options;
@@ -41,7 +39,7 @@ let registerActivityStreamType = function(activityStreamType, options) {
  *
  * @see ActivityAPI#getRegisteredActivityStreamType
  */
-let getRegisteredActivityStreamType = function(activityStreamType) {
+const getRegisteredActivityStreamType = function(activityStreamType) {
   return activityStreams[activityStreamType];
 };
 
@@ -50,11 +48,9 @@ let getRegisteredActivityStreamType = function(activityStreamType) {
  *
  * @see ActivityAPI#registerActivityType
  */
-let registerActivityType = function(activityType, options) {
+const registerActivityType = function(activityType, options) {
   if (activityTypes[activityType]) {
-    throw new Error(
-      util.format('Attempted to register duplicate activity type of type "%s"', activityType)
-    );
+    throw new Error(util.format('Attempted to register duplicate activity type of type "%s"', activityType));
   }
 
   if (_.isEmpty(options.streams)) {
@@ -72,11 +68,7 @@ let registerActivityType = function(activityType, options) {
     _.each(options.streams[streamName].router, function(assocations, entityName) {
       if (_.isEmpty(assocations)) {
         throw new Error(
-          util.format(
-            'Missing or empty associations for stream "%s" and entity "%s"',
-            streamName,
-            entityName
-          )
+          util.format('Missing or empty associations for stream "%s" and entity "%s"', streamName, entityName)
         );
       }
     });
@@ -91,7 +83,7 @@ let registerActivityType = function(activityType, options) {
  * @return {Object}     All the registered activity types in the system
  * @see #registerActivityType
  */
-let getRegisteredActivityTypes = function() {
+const getRegisteredActivityTypes = function() {
   return activityTypes;
 };
 
@@ -100,13 +92,10 @@ let getRegisteredActivityTypes = function() {
  *
  * @see ActivityAPI#registerActivityEntity
  */
-let registerActivityEntityType = function(activityEntityType, options) {
+const registerActivityEntityType = function(activityEntityType, options) {
   if (activityEntityTypes[activityEntityType]) {
     throw new Error(
-      util.format(
-        'Attempted to register duplicate activity entity type of type "%s"',
-        activityEntityType
-      )
+      util.format('Attempted to register duplicate activity entity type of type "%s"', activityEntityType)
     );
   }
 
@@ -118,7 +107,7 @@ let registerActivityEntityType = function(activityEntityType, options) {
  *
  * @return {Object}     All the registered activity types in the system
  */
-let getRegisteredActivityEntityTypes = function() {
+const getRegisteredActivityEntityTypes = function() {
   return activityEntityTypes;
 };
 
@@ -127,11 +116,7 @@ let getRegisteredActivityEntityTypes = function() {
  *
  * @see ActivityAPI#registerActivityEntityAssociation
  */
-let registerActivityEntityAssociation = function(
-  activityEntityType,
-  associationName,
-  associationFunction
-) {
+const registerActivityEntityAssociation = function(activityEntityType, associationName, associationFunction) {
   if (
     activityEntityAssociations[activityEntityType] &&
     activityEntityAssociations[activityEntityType][associationName]
@@ -145,8 +130,7 @@ let registerActivityEntityAssociation = function(
     );
   }
 
-  activityEntityAssociations[activityEntityType] =
-    activityEntityAssociations[activityEntityType] || {};
+  activityEntityAssociations[activityEntityType] = activityEntityAssociations[activityEntityType] || {};
   activityEntityAssociations[activityEntityType][associationName] = associationFunction;
 };
 
@@ -155,11 +139,11 @@ let registerActivityEntityAssociation = function(
  *
  * @return {Object}     All the registered activity entity associations in the system
  */
-let getRegisteredActivityEntityAssociations = function() {
+const getRegisteredActivityEntityAssociations = function() {
   return activityEntityAssociations;
 };
 
-module.exports = {
+export {
   registerActivityStreamType,
   getRegisteredActivityStreamType,
   registerActivityType,

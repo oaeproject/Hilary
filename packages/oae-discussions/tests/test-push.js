@@ -14,17 +14,15 @@
  */
 
 /* esling-disable no-unused-vars */
-const assert = require('assert');
-const fs = require('fs');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const ActivityTestsUtil = require('oae-activity/lib/test/util');
-const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
-const TestsUtil = require('oae-tests');
+import { ActivityConstants } from 'oae-activity/lib/constants';
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
 
-const { DiscussionsConstants } = require('oae-discussions/lib/constants');
+import { DiscussionsConstants } from 'oae-discussions/lib/constants';
 
 describe('Discussion Push', () => {
   // Rest contexts that can be used performing rest requests
@@ -34,9 +32,7 @@ describe('Discussion Push', () => {
    * Function that will fill up the tenant admin and anymous rest contexts
    */
   before(callback => {
-    localAdminRestContext = TestsUtil.createTenantAdminRestContext(
-      global.oaeTests.tenants.localhost.host
-    );
+    localAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.localhost.host);
     callback();
   });
 
@@ -71,84 +67,80 @@ describe('Discussion Push', () => {
               null,
               (err, discussion) => {
                 assert.ok(!err);
-                RestAPI.Discussions.getDiscussion(
-                  simong.restContext,
-                  discussion.id,
-                  (err, discussion) => {
-                    assert.ok(!err);
+                RestAPI.Discussions.getDiscussion(simong.restContext, discussion.id, (err, discussion) => {
+                  assert.ok(!err);
 
-                    // Ensure we get a 400 error with an invalid activity stream id
-                    client.subscribe(discussion.id, null, discussion.signature, null, err => {
+                  // Ensure we get a 400 error with an invalid activity stream id
+                  client.subscribe(discussion.id, null, discussion.signature, null, err => {
+                    assert.strictEqual(err.code, 400);
+
+                    // Ensure we get a 400 error with a missing resource id
+                    client.subscribe(null, 'activity', discussion.signature, null, err => {
                       assert.strictEqual(err.code, 400);
 
-                      // Ensure we get a 400 error with a missing resource id
-                      client.subscribe(null, 'activity', discussion.signature, null, err => {
-                        assert.strictEqual(err.code, 400);
+                      // Ensure we get a 400 error with an invalid token
+                      client.subscribe(
+                        discussion.id,
+                        'activity',
+                        { signature: discussion.signature.signature },
+                        null,
+                        err => {
+                          assert.strictEqual(err.code, 401);
+                          client.subscribe(
+                            discussion.id,
+                            'activity',
+                            { expires: discussion.signature.expires },
+                            null,
+                            err => {
+                              assert.strictEqual(err.code, 401);
 
-                        // Ensure we get a 400 error with an invalid token
-                        client.subscribe(
-                          discussion.id,
-                          'activity',
-                          { signature: discussion.signature.signature },
-                          null,
-                          err => {
-                            assert.strictEqual(err.code, 401);
-                            client.subscribe(
-                              discussion.id,
-                              'activity',
-                              { expires: discussion.signature.expires },
-                              null,
-                              err => {
-                                assert.strictEqual(err.code, 401);
+                              // Ensure we get a 401 error with an incorrect signature
+                              client.subscribe(
+                                discussion.id,
+                                'activity',
+                                { expires: Date.now() + 10000, signature: 'foo' },
+                                null,
+                                err => {
+                                  assert.strictEqual(err.code, 401);
 
-                                // Ensure we get a 401 error with an incorrect signature
-                                client.subscribe(
-                                  discussion.id,
-                                  'activity',
-                                  { expires: Date.now() + 10000, signature: 'foo' },
-                                  null,
-                                  err => {
-                                    assert.strictEqual(err.code, 401);
+                                  // Simon should not be able to use a signature that was generated for Branden
+                                  RestAPI.Discussions.getDiscussion(
+                                    branden.restContext,
+                                    discussion.id,
+                                    (err, discussionForBranden) => {
+                                      assert.ok(!err);
+                                      client.subscribe(
+                                        discussion.id,
+                                        'activity',
+                                        discussionForBranden.signature,
+                                        null,
+                                        err => {
+                                          assert.strictEqual(err.code, 401);
 
-                                    // Simon should not be able to use a signature that was generated for Branden
-                                    RestAPI.Discussions.getDiscussion(
-                                      branden.restContext,
-                                      discussion.id,
-                                      (err, discussionForBranden) => {
-                                        assert.ok(!err);
-                                        client.subscribe(
-                                          discussion.id,
-                                          'activity',
-                                          discussionForBranden.signature,
-                                          null,
-                                          err => {
-                                            assert.strictEqual(err.code, 401);
-
-                                            // Sanity check that a valid signature works
-                                            client.subscribe(
-                                              discussion.id,
-                                              'activity',
-                                              discussion.signature,
-                                              null,
-                                              err => {
-                                                assert.ok(!err);
-                                                return callback();
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      });
+                                          // Sanity check that a valid signature works
+                                          client.subscribe(
+                                            discussion.id,
+                                            'activity',
+                                            discussion.signature,
+                                            null,
+                                            err => {
+                                              assert.ok(!err);
+                                              return callback();
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
                     });
-                  }
-                );
+                  });
+                });
               }
             );
           });
@@ -191,46 +183,37 @@ describe('Discussion Push', () => {
             [],
             (err, discussion) => {
               assert.ok(!err);
-              RestAPI.Discussions.getDiscussion(
-                contexts.simon.restContext,
-                discussion.id,
-                (err, discussion) => {
-                  assert.ok(!err);
+              RestAPI.Discussions.getDiscussion(contexts.simon.restContext, discussion.id, (err, discussion) => {
+                assert.ok(!err);
 
-                  // Route and deliver activities
-                  ActivityTestsUtil.collectAndGetActivityStream(
-                    contexts.simon.restContext,
-                    null,
-                    null,
-                    () => {
-                      // Register for some streams
-                      const data = {
-                        authentication: {
-                          userId: contexts.simon.user.id,
-                          tenantAlias: simonFull.tenant.alias,
-                          signature: simonFull.signature
-                        },
-                        streams: [
-                          {
-                            resourceId: discussion.id,
-                            streamType: 'activity',
-                            token: discussion.signature
-                          },
-                          {
-                            resourceId: discussion.id,
-                            streamType: 'message',
-                            token: discussion.signature
-                          }
-                        ]
-                      };
+                // Route and deliver activities
+                ActivityTestsUtil.collectAndGetActivityStream(contexts.simon.restContext, null, null, () => {
+                  // Register for some streams
+                  const data = {
+                    authentication: {
+                      userId: contexts.simon.user.id,
+                      tenantAlias: simonFull.tenant.alias,
+                      signature: simonFull.signature
+                    },
+                    streams: [
+                      {
+                        resourceId: discussion.id,
+                        streamType: 'activity',
+                        token: discussion.signature
+                      },
+                      {
+                        resourceId: discussion.id,
+                        streamType: 'message',
+                        token: discussion.signature
+                      }
+                    ]
+                  };
 
-                      ActivityTestsUtil.getFullySetupPushClient(data, client => {
-                        callback(contexts, discussion, client);
-                      });
-                    }
-                  );
-                }
-              );
+                  ActivityTestsUtil.getFullySetupPushClient(data, client => {
+                    callback(contexts, discussion, client);
+                  });
+                });
+              });
             }
           );
         });

@@ -13,11 +13,13 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
-const tz = require('oae-util/lib/tz');
+import _ from 'underscore';
+import * as tz from 'oae-util/lib/tz';
+import * as OAEUI from 'oae-ui';
 
-const { Validator } = require('validator');
-module.exports.Validator = Validator;
+import { Validator } from 'validator';
+
+export { Validator };
 
 const HOST_REGEX = /^(?=.{1,255}$)[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?(?:\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?)*\.?(:\d+)?$/i;
 
@@ -50,6 +52,7 @@ Validator.prototype.getErrors = function() {
   if (this._errors && this._errors.length > 0) {
     return this._errors;
   }
+
   return null;
 };
 
@@ -61,6 +64,7 @@ Validator.prototype.getErrorCount = function() {
   if (this._errors) {
     return this._errors.length;
   }
+
   return 0;
 };
 
@@ -80,6 +84,7 @@ Validator.prototype.getFirstError = function() {
   if (this._errors && this._errors.length > 0) {
     return this._errors[0];
   }
+
   return null;
 };
 
@@ -125,6 +130,7 @@ Validator.prototype.isLoggedInUser = function(ctx, tenantAlias) {
   } else if (tenantAlias && ctx.tenant().alias !== tenantAlias) {
     this.error(this.msg || 'The context is associated to an invalid tenant');
   }
+
   return this;
 };
 
@@ -170,6 +176,7 @@ Validator.prototype.isObject = function(obj) {
   if (!_.isObject(obj)) {
     this.error(this.msg || 'A non-object has been passed in');
   }
+
   return this;
 };
 
@@ -188,6 +195,7 @@ Validator.prototype.isArray = function(arr) {
   if (!_.isArray(arr)) {
     this.error(this.msg || 'A non-array has been passed in');
   }
+
   return this;
 };
 
@@ -207,6 +215,7 @@ Validator.prototype.isBoolean = function(val) {
   if (!isBoolean) {
     this.error(this.msg || 'A non-boolean has been passed in');
   }
+
   return this;
 };
 
@@ -228,6 +237,7 @@ Validator.prototype.isDefined = function(val) {
   if (!isDefined) {
     this.error(this.msg || 'An undefined value has been passed in');
   }
+
   return this;
 };
 
@@ -244,6 +254,7 @@ Validator.prototype.isString = function(val) {
   if (!_.isString(val)) {
     this.error(this.msg || 'A non-string has been passed in');
   }
+
   return this;
 };
 
@@ -261,6 +272,7 @@ Validator.prototype.isValidTimeZone = function() {
   if (!tz.timezone.timezone.zones[this.str] || this.str.indexOf('/') === -1) {
     this.error(this.msg || 'Invalid timezone');
   }
+
   return this;
 };
 
@@ -357,7 +369,7 @@ const _hasCountryCode = function(code) {
   if (!countriesByCode) {
     // Lazy initialize the country code array so as to not form an cross-
     // dependency on `oae-ui`
-    countriesByCode = _.chain(require('oae-ui').getIso3166CountryInfo().countries)
+    countriesByCode = _.chain(OAEUI.getIso3166CountryInfo().countries)
       .indexBy('code')
       .mapObject(() => {
         return true;

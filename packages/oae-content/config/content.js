@@ -13,61 +13,82 @@
  * permissions and limitations under the License.
  */
 
-const Fields = require('oae-config/lib/fields');
+import * as Fields from 'oae-config/lib/fields';
 
-module.exports = {
-  title: 'OAE Content Module',
-  visibility: {
-    name: 'Default Visibility Values',
-    description: 'Default visibility settings for new content',
-    elements: {
-      files: new Fields.List('Files Visibility', 'Default visibility for new files', 'public', [
+const PUBLIC = 'public';
+const PRIVATE = 'private';
+const LOGGEDIN = 'loggedin';
+
+export const title = 'OAE Content Module';
+export const visibility = {
+  name: 'Default Visibility Values',
+  description: 'Default visibility settings for new content',
+  elements: {
+    files: new Fields.List('Files Visibility', 'Default visibility for new files', PUBLIC, [
+      {
+        name: 'Public',
+        value: PUBLIC
+      },
+      {
+        name: 'Logged in users',
+        value: LOGGEDIN
+      },
+      {
+        name: 'Private',
+        value: PRIVATE
+      }
+    ]),
+    collabdocs: new Fields.List(
+      'Collaborative Document Visibility',
+      'Default visibility for new Collaborative Documents',
+      PRIVATE,
+      [
         {
           name: 'Public',
-          value: 'public'
+          value: PUBLIC
         },
         {
           name: 'Logged in users',
-          value: 'loggedin'
+          value: LOGGEDIN
         },
         {
           name: 'Private',
-          value: 'private'
+          value: PRIVATE
         }
-      ]),
-      collabdocs: new Fields.List(
-        'Collaborative Document Visibility',
-        'Default visibility for new Collaborative Documents',
-        'private',
-        [
-          {
-            name: 'Public',
-            value: 'public'
-          },
-          {
-            name: 'Logged in users',
-            value: 'loggedin'
-          },
-          {
-            name: 'Private',
-            value: 'private'
-          }
-        ]
-      ),
-      links: new Fields.List('Links Visibility', 'Default visibility for new links', 'public', [
+      ]
+    ),
+    collabsheets: new Fields.List(
+      'Collaborative Spreadsheet Visibility',
+      'Default visibility for new Collaborative Spreadsheets',
+      PRIVATE,
+      [
         {
           name: 'Public',
-          value: 'public'
+          value: PUBLIC
         },
         {
           name: 'Logged in users',
-          value: 'loggedin'
+          value: LOGGEDIN
         },
         {
           name: 'Private',
-          value: 'private'
+          value: PRIVATE
         }
-      ])
-    }
+      ]
+    ),
+    links: new Fields.List('Links Visibility', 'Default visibility for new links', PUBLIC, [
+      {
+        name: 'Public',
+        value: PUBLIC
+      },
+      {
+        name: 'Logged in users',
+        value: LOGGEDIN
+      },
+      {
+        name: 'Private',
+        value: PRIVATE
+      }
+    ])
   }
 };

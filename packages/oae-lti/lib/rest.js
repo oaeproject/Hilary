@@ -13,9 +13,8 @@
  * permissions and limitations under the License.
  */
 
-const OAE = require('oae-util/lib/oae');
-
-const LtiApi = require('./api');
+import * as OAE from 'oae-util/lib/oae';
+import * as LtiApi from './api';
 
 /**
  * @REST getLtiTool
@@ -70,21 +69,13 @@ OAE.tenantRouter.on('post', '/api/lti/:groupId/create', (req, res) => {
     displayName: req.body.displayName,
     description: req.body.description
   };
-  LtiApi.addLtiTool(
-    req.ctx,
-    req.params.groupId,
-    req.body.url,
-    req.body.secret,
-    req.body.key,
-    opts,
-    (err, tool) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-
-      return res.status(201).send(tool);
+  LtiApi.addLtiTool(req.ctx, req.params.groupId, req.body.url, req.body.secret, req.body.key, opts, (err, tool) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    return res.status(201).send(tool);
+  });
 });
 
 /**

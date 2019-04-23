@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
-const OAE = require('oae-util/lib/oae');
+import * as OAE from 'oae-util/lib/oae';
 
-const { AuthenticationConstants } = require('oae-authentication/lib/constants');
-const AuthenticationUtil = require('oae-authentication/lib/util');
+import { AuthenticationConstants } from 'oae-authentication/lib/constants';
+import * as AuthenticationUtil from 'oae-authentication/lib/util';
 
 /**
  * @REST postAuthTwitter
@@ -32,10 +32,7 @@ const AuthenticationUtil = require('oae-authentication/lib/util');
  */
 OAE.tenantRouter.on('post', '/api/auth/twitter', (req, res, next) => {
   // Get the ID under which we registered this strategy for this tenant
-  const strategyId = AuthenticationUtil.getStrategyId(
-    req.tenant,
-    AuthenticationConstants.providers.TWITTER
-  );
+  const strategyId = AuthenticationUtil.getStrategyId(req.tenant, AuthenticationConstants.providers.TWITTER);
 
   // Perform the initial authentication step
   AuthenticationUtil.handleExternalSetup(strategyId, null, req, res, next);
@@ -54,11 +51,10 @@ OAE.tenantRouter.on('post', '/api/auth/twitter', (req, res, next) => {
  */
 OAE.tenantRouter.on('get', '/api/auth/twitter/callback', (req, res, next) => {
   // Get the ID under which we registered this strategy for this tenant
-  const strategyId = AuthenticationUtil.getStrategyId(
-    req.tenant,
-    AuthenticationConstants.providers.TWITTER
-  );
+  const strategyId = AuthenticationUtil.getStrategyId(req.tenant, AuthenticationConstants.providers.TWITTER);
 
   // Log the user in
   AuthenticationUtil.handleExternalCallback(strategyId, req, res, next);
 });
+
+export default OAE;

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-const $ = require('cheerio');
+import $ from 'cheerio';
 
 /**
  * Ensure that a link is an absolute URL. If a relative link is
@@ -31,11 +31,13 @@ const ensureAbsoluteLink = function(link, baseUrl) {
 
     // If the link already has `http` in it (e.g., twitter profile pics) we return as-is
   }
+
   if (link.indexOf('http') === 0) {
     return link;
 
     // Otherwise we prefix it with the base url
   }
+
   return baseUrl + link;
 };
 
@@ -57,7 +59,4 @@ const ensureAbsoluteLinks = function(str, baseUrl) {
   return html.html();
 };
 
-module.exports = {
-  ensureAbsoluteLink,
-  ensureAbsoluteLinks
-};
+export { ensureAbsoluteLink, ensureAbsoluteLinks };

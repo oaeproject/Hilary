@@ -13,20 +13,22 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const AuthzInvitationsDAO = require('oae-authz/lib/invitations/dao');
-const AuthzUtil = require('oae-authz/lib/util');
-const { Context } = require('oae-context');
-const { Invitation} = require('oae-authz/lib/invitations/model');
-const ResourceActions = require('oae-resource/lib/actions');
-const { ResourceConstants}  = require('oae-resource/lib/constants');
+import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import { Context } from 'oae-context';
+import { Invitation } from 'oae-authz/lib/invitations/model';
+import * as ResourceActions from 'oae-resource/lib/actions';
+import { ResourceConstants } from 'oae-resource/lib/constants';
 
-const ContentAPI = require('oae-content');
-const { ContentConstants}  = require('oae-content/lib/constants');
-const ContentDAO = require('oae-content/lib/internal/dao');
+import * as ContentAPI from 'oae-content';
+import { ContentConstants } from 'oae-content/lib/constants';
+import * as ContentDAO from 'oae-content/lib/internal/dao';
 
-const log = require('oae-logger').logger('oae-content-invitations');
+import { logger } from 'oae-logger';
+
+const log = logger('oae-content-invitations');
 
 /*!
  * When an invitation is accepted, pass on the events to update content members and then feed back
@@ -84,24 +86,21 @@ ResourceActions.emitter.when(
 /*!
  * When content is deleted, delete all its invitations as well
  */
-ContentAPI.emitter.when(
-  ContentConstants.events.DELETED_CONTENT,
-  (ctx, content, members, callback) => {
-    AuthzInvitationsDAO.deleteInvitationsByResourceId(content.id, err => {
-      if (err) {
-        log().warn(
-          {
-            err,
-            contentId: content.id
-          },
-          'An error occurred while removing invitations after a content item was deleted'
-        );
-      }
+ContentAPI.emitter.when(ContentConstants.events.DELETED_CONTENT, (ctx, content, members, callback) => {
+  AuthzInvitationsDAO.deleteInvitationsByResourceId(content.id, err => {
+    if (err) {
+      log().warn(
+        {
+          err,
+          contentId: content.id
+        },
+        'An error occurred while removing invitations after a content item was deleted'
+      );
+    }
 
-      return callback();
-    });
-  }
-);
+    return callback();
+  });
+});
 
 /**
  * Determine if the given id is a content id

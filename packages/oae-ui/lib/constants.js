@@ -27,4 +27,4 @@ UIConstants.paths = {
   BASE_SKIN: '/shared/oae/css/oae.skin.less'
 };
 
-module.exports = { UIConstants };
+export { UIConstants };

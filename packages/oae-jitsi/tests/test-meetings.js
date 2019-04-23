@@ -1,11 +1,10 @@
-const assert = require('assert');
-const _ = require('underscore');
-const async = require('async');
+import assert from 'assert';
+import _ from 'underscore';
+import async from 'async';
 
-const RestAPI = require('oae-rest');
-const TestsUtil = require('oae-tests');
-
-const MeetingsDAO = require('oae-jitsi/lib/internal/dao');
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
+import * as MeetingsDAO from 'oae-jitsi/lib/internal/dao';
 
 describe('Meeting Jitsi', () => {
   let camAnonymousRestCtx = null;
@@ -70,56 +69,50 @@ describe('Meeting Jitsi', () => {
                 assert.strictEqual(meeting.resourceType, 'meeting-jitsi');
 
                 // Check the meeting members and their roles
-                RestAPI.MeetingsJitsi.getMembers(
-                  loulou.restContext,
-                  meeting.id,
-                  null,
-                  1000,
-                  (err, members) => {
-                    assert.ok(!err);
+                RestAPI.MeetingsJitsi.getMembers(loulou.restContext, meeting.id, null, 1000, (err, members) => {
+                  assert.ok(!err);
 
-                    const memberIds = _.pluck(_.pluck(members.results, 'profile'), 'id');
+                  const memberIds = _.pluck(_.pluck(members.results, 'profile'), 'id');
 
-                    assert.strictEqual(memberIds.length, 3);
-                    assert.strictEqual(_.contains(memberIds, riri.user.id), true);
-                    assert.strictEqual(_.contains(memberIds, fifi.user.id), true);
-                    assert.strictEqual(_.contains(memberIds, loulou.user.id), true);
+                  assert.strictEqual(memberIds.length, 3);
+                  assert.strictEqual(_.contains(memberIds, riri.user.id), true);
+                  assert.strictEqual(_.contains(memberIds, fifi.user.id), true);
+                  assert.strictEqual(_.contains(memberIds, loulou.user.id), true);
 
-                    const roles = _.pluck(members.results, 'role');
+                  const roles = _.pluck(members.results, 'role');
 
-                    assert.strictEqual(roles.length, 3);
-                    assert.strictEqual(_.contains(roles, 'manager'), true);
-                    assert.strictEqual(_.contains(roles, 'member'), true);
+                  assert.strictEqual(roles.length, 3);
+                  assert.strictEqual(_.contains(roles, 'manager'), true);
+                  assert.strictEqual(_.contains(roles, 'member'), true);
 
-                    // Ensure the new number of meetings in db is numMeetingsOrig + 1
-                    let numMeetingAfter = 0;
-                    let hasNewMeeting = false;
+                  // Ensure the new number of meetings in db is numMeetingsOrig + 1
+                  let numMeetingAfter = 0;
+                  let hasNewMeeting = false;
 
-                    MeetingsDAO.iterateAll(
-                      null,
-                      1000,
-                      (meetingRows, done) => {
-                        if (meetingRows) {
-                          numMeetingAfter += meetingRows.length;
-                          _.each(meetingRows, meetingRow => {
-                            if (meetingRow.id === meeting.id) {
-                              hasNewMeeting = true;
-                            }
-                          });
-                        }
-
-                        return done();
-                      },
-                      err => {
-                        assert.ok(!err);
-                        assert.strictEqual(numMeetingsOrig + 1, numMeetingAfter);
-                        assert.ok(hasNewMeeting);
-
-                        return callback();
+                  MeetingsDAO.iterateAll(
+                    null,
+                    1000,
+                    (meetingRows, done) => {
+                      if (meetingRows) {
+                        numMeetingAfter += meetingRows.length;
+                        _.each(meetingRows, meetingRow => {
+                          if (meetingRow.id === meeting.id) {
+                            hasNewMeeting = true;
+                          }
+                        });
                       }
-                    );
-                  }
-                );
+
+                      return done();
+                    },
+                    err => {
+                      assert.ok(!err);
+                      assert.strictEqual(numMeetingsOrig + 1, numMeetingAfter);
+                      assert.ok(hasNewMeeting);
+
+                      return callback();
+                    }
+                  );
+                });
               }
             );
           }
@@ -159,45 +152,33 @@ describe('Meeting Jitsi', () => {
               [
                 /* eslint-disable-next-line func-names */
                 function checkRiri(done) {
-                  RestAPI.MeetingsJitsi.getMeetingsLibrary(
-                    riri.restContext,
-                    riri.user.id,
-                    (err, meetings) => {
-                      assert.ok(!err);
-                      assert.strictEqual(meetings.results.length, 1);
-                      assert.strictEqual(meetings.results[0].id, meeting.id);
+                  RestAPI.MeetingsJitsi.getMeetingsLibrary(riri.restContext, riri.user.id, (err, meetings) => {
+                    assert.ok(!err);
+                    assert.strictEqual(meetings.results.length, 1);
+                    assert.strictEqual(meetings.results[0].id, meeting.id);
 
-                      return done();
-                    }
-                  );
+                    return done();
+                  });
                 },
                 /* eslint-disable-next-line func-names */
                 function checkFifi(done) {
-                  RestAPI.MeetingsJitsi.getMeetingsLibrary(
-                    riri.restContext,
-                    riri.user.id,
-                    (err, meetings) => {
-                      assert.ok(!err);
-                      assert.strictEqual(meetings.results.length, 1);
-                      assert.strictEqual(meetings.results[0].id, meeting.id);
+                  RestAPI.MeetingsJitsi.getMeetingsLibrary(riri.restContext, riri.user.id, (err, meetings) => {
+                    assert.ok(!err);
+                    assert.strictEqual(meetings.results.length, 1);
+                    assert.strictEqual(meetings.results[0].id, meeting.id);
 
-                      return done();
-                    }
-                  );
+                    return done();
+                  });
                 },
                 /* eslint-disable-next-line func-names */
                 function checkLoulou(done) {
-                  RestAPI.MeetingsJitsi.getMeetingsLibrary(
-                    riri.restContext,
-                    riri.user.id,
-                    (err, meetings) => {
-                      assert.ok(!err);
-                      assert.strictEqual(meetings.results.length, 1);
-                      assert.strictEqual(meetings.results[0].id, meeting.id);
+                  RestAPI.MeetingsJitsi.getMeetingsLibrary(riri.restContext, riri.user.id, (err, meetings) => {
+                    assert.ok(!err);
+                    assert.strictEqual(meetings.results.length, 1);
+                    assert.strictEqual(meetings.results[0].id, meeting.id);
 
-                      return done();
-                    }
-                  );
+                    return done();
+                  });
                 }
               ],
               callback
@@ -531,18 +512,13 @@ describe('Meeting Jitsi', () => {
               contactList: true
             };
 
-            RestAPI.MeetingsJitsi.updateMeeting(
-              riri.restContext,
-              meeting.id,
-              updates,
-              (err, meeting) => {
-                assert.ok(!err);
-                assert.strictEqual(meeting.displayName, updates.displayName);
-                assert.strictEqual(meeting.description, updates.description);
+            RestAPI.MeetingsJitsi.updateMeeting(riri.restContext, meeting.id, updates, (err, meeting) => {
+              assert.ok(!err);
+              assert.strictEqual(meeting.displayName, updates.displayName);
+              assert.strictEqual(meeting.description, updates.description);
 
-                return callback();
-              }
-            );
+              return callback();
+            });
           }
         );
       });
@@ -576,17 +552,12 @@ describe('Meeting Jitsi', () => {
               description: 'new-description'
             };
 
-            RestAPI.MeetingsJitsi.updateMeeting(
-              riri.restContext,
-              meeting.id,
-              updates,
-              (err, meeting) => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 400);
+            RestAPI.MeetingsJitsi.updateMeeting(riri.restContext, meeting.id, updates, (err, meeting) => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 400);
 
-                return callback();
-              }
-            );
+              return callback();
+            });
           }
         );
       });
@@ -620,17 +591,12 @@ describe('Meeting Jitsi', () => {
               description: 'new-description'
             };
 
-            RestAPI.MeetingsJitsi.updateMeeting(
-              riri.restContext,
-              meeting.id,
-              updates,
-              (err, meeting) => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 400);
+            RestAPI.MeetingsJitsi.updateMeeting(riri.restContext, meeting.id, updates, (err, meeting) => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 400);
 
-                return callback();
-              }
-            );
+              return callback();
+            });
           }
         );
       });
@@ -664,17 +630,12 @@ describe('Meeting Jitsi', () => {
               description: TestsUtil.generateRandomText(1000)
             };
 
-            RestAPI.MeetingsJitsi.updateMeeting(
-              riri.restContext,
-              meeting.id,
-              updates,
-              (err, meeting) => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 400);
+            RestAPI.MeetingsJitsi.updateMeeting(riri.restContext, meeting.id, updates, (err, meeting) => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 400);
 
-                return callback();
-              }
-            );
+              return callback();
+            });
           }
         );
       });
@@ -705,17 +666,12 @@ describe('Meeting Jitsi', () => {
 
             const updates = {};
 
-            RestAPI.MeetingsJitsi.updateMeeting(
-              riri.restContext,
-              meeting.id,
-              updates,
-              (err, meeting) => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 400);
+            RestAPI.MeetingsJitsi.updateMeeting(riri.restContext, meeting.id, updates, (err, meeting) => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 400);
 
-                return callback();
-              }
-            );
+              return callback();
+            });
           }
         );
       });
@@ -749,17 +705,12 @@ describe('Meeting Jitsi', () => {
               chat: 'not-an-valid-value'
             };
 
-            RestAPI.MeetingsJitsi.updateMeeting(
-              riri.restContext,
-              meeting.id,
-              updates,
-              (err, meeting) => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 400);
+            RestAPI.MeetingsJitsi.updateMeeting(riri.restContext, meeting.id, updates, (err, meeting) => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 400);
 
-                return callback();
-              }
-            );
+              return callback();
+            });
           }
         );
       });
@@ -793,17 +744,12 @@ describe('Meeting Jitsi', () => {
               contactList: 'not-an-valid-value'
             };
 
-            RestAPI.MeetingsJitsi.updateMeeting(
-              riri.restContext,
-              meeting.id,
-              updates,
-              (err, meeting) => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 400);
+            RestAPI.MeetingsJitsi.updateMeeting(riri.restContext, meeting.id, updates, (err, meeting) => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 400);
 
-                return callback();
-              }
-            );
+              return callback();
+            });
           }
         );
       });
@@ -837,17 +783,12 @@ describe('Meeting Jitsi', () => {
               description: 'new-description'
             };
 
-            RestAPI.MeetingsJitsi.updateMeeting(
-              riri.restContext,
-              'not-an-id',
-              updates,
-              (err, meeting) => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 400);
+            RestAPI.MeetingsJitsi.updateMeeting(riri.restContext, 'not-an-id', updates, (err, meeting) => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 400);
 
-                return callback();
-              }
-            );
+              return callback();
+            });
           }
         );
       });
@@ -882,17 +823,12 @@ describe('Meeting Jitsi', () => {
               'not-an-valid-field-name': 'test'
             };
 
-            RestAPI.MeetingsJitsi.updateMeeting(
-              riri.restContext,
-              meeting.id,
-              updates,
-              (err, meeting) => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 400);
+            RestAPI.MeetingsJitsi.updateMeeting(riri.restContext, meeting.id, updates, (err, meeting) => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 400);
 
-                return callback();
-              }
-            );
+              return callback();
+            });
           }
         );
       });
@@ -926,17 +862,12 @@ describe('Meeting Jitsi', () => {
               description: 'new-description'
             };
 
-            RestAPI.MeetingsJitsi.updateMeeting(
-              camAnonymousRestCtx,
-              meeting.id,
-              updates,
-              (err, meeting) => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 401);
+            RestAPI.MeetingsJitsi.updateMeeting(camAnonymousRestCtx, meeting.id, updates, (err, meeting) => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 401);
 
-                return callback();
-              }
-            );
+              return callback();
+            });
           }
         );
       });
@@ -972,17 +903,12 @@ describe('Meeting Jitsi', () => {
               description: 'new-description'
             };
 
-            RestAPI.MeetingsJitsi.updateMeeting(
-              fifi.restContext,
-              meeting.id,
-              updates,
-              (err, meeting) => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 401);
+            RestAPI.MeetingsJitsi.updateMeeting(fifi.restContext, meeting.id, updates, (err, meeting) => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 401);
 
-                return callback();
-              }
-            );
+              return callback();
+            });
           }
         );
       });
@@ -1019,17 +945,12 @@ describe('Meeting Jitsi', () => {
               description: 'new-description'
             };
 
-            RestAPI.MeetingsJitsi.updateMeeting(
-              fifi.restContext,
-              meeting.id,
-              updates,
-              (err, meeting) => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 401);
+            RestAPI.MeetingsJitsi.updateMeeting(fifi.restContext, meeting.id, updates, (err, meeting) => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 401);
 
-                return callback();
-              }
-            );
+              return callback();
+            });
           }
         );
       });
@@ -1159,31 +1080,23 @@ describe('Meeting Jitsi', () => {
                     [
                       /* eslint-disable-next-line func-names */
                       function ririCheck(done) {
-                        RestAPI.MeetingsJitsi.getMeetingsLibrary(
-                          riri.restContext,
-                          riri.user.id,
-                          (err, meetings) => {
-                            assert.ok(!err);
-                            assert.strictEqual(meetings.results.length, 1);
-                            assert.strictEqual(meetings.results[0].id, meeting2.id);
+                        RestAPI.MeetingsJitsi.getMeetingsLibrary(riri.restContext, riri.user.id, (err, meetings) => {
+                          assert.ok(!err);
+                          assert.strictEqual(meetings.results.length, 1);
+                          assert.strictEqual(meetings.results[0].id, meeting2.id);
 
-                            return done();
-                          }
-                        );
+                          return done();
+                        });
                       },
                       /* eslint-disable-next-line func-names */
                       function fifiCheck(done) {
-                        RestAPI.MeetingsJitsi.getMeetingsLibrary(
-                          fifi.restContext,
-                          fifi.user.id,
-                          (err, meetings) => {
-                            assert.ok(!err);
-                            assert.strictEqual(meetings.results.length, 1);
-                            assert.strictEqual(meetings.results[0].id, meeting2.id);
+                        RestAPI.MeetingsJitsi.getMeetingsLibrary(fifi.restContext, fifi.user.id, (err, meetings) => {
+                          assert.ok(!err);
+                          assert.strictEqual(meetings.results.length, 1);
+                          assert.strictEqual(meetings.results[0].id, meeting2.id);
 
-                            return done();
-                          }
-                        );
+                          return done();
+                        });
                       },
                       /* eslint-disable-next-line func-names */
                       function loulouCheck(done) {
@@ -1356,17 +1269,12 @@ describe('Meeting Jitsi', () => {
             const updates = {};
             updates[fifi.user.id] = 'member';
 
-            RestAPI.MeetingsJitsi.updateMembers(
-              riri.restContext,
-              'not-a-valid-id',
-              updates,
-              err => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 400);
+            RestAPI.MeetingsJitsi.updateMembers(riri.restContext, 'not-a-valid-id', updates, err => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 400);
 
-                return callback();
-              }
-            );
+              return callback();
+            });
           }
         );
       });
@@ -1564,23 +1472,17 @@ describe('Meeting Jitsi', () => {
             const body = 'Hello world';
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(
-              riri.restContext,
-              meeting.id,
-              body,
-              replyTo,
-              (err, comment) => {
-                assert.ok(!err);
-                assert.strictEqual(comment.createdBy.id, riri.user.id);
-                assert.strictEqual(comment.level, 0);
-                assert.strictEqual(comment.body, body);
-                assert.strictEqual(comment.messageBoxId, meeting.id);
-                assert.ok(comment.id);
-                assert.ok(comment.created);
+            RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (err, comment) => {
+              assert.ok(!err);
+              assert.strictEqual(comment.createdBy.id, riri.user.id);
+              assert.strictEqual(comment.level, 0);
+              assert.strictEqual(comment.body, body);
+              assert.strictEqual(comment.messageBoxId, meeting.id);
+              assert.ok(comment.id);
+              assert.ok(comment.created);
 
-                return callback();
-              }
-            );
+              return callback();
+            });
           }
         );
       });
@@ -1617,28 +1519,22 @@ describe('Meeting Jitsi', () => {
             const body = 'Hello world';
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(
-              riri.restContext,
-              meeting.id,
-              body,
-              replyTo,
-              (err, comment) => {
-                assert.ok(!err);
+            RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (err, comment) => {
+              assert.ok(!err);
 
-                // Add a response to the previous comment
-                RestAPI.MeetingsJitsi.createComment(
-                  fifi.restContext,
-                  meeting.id,
-                  'Hello riri',
-                  comment.created,
-                  (err, comment) => {
-                    assert.ok(!err);
+              // Add a response to the previous comment
+              RestAPI.MeetingsJitsi.createComment(
+                fifi.restContext,
+                meeting.id,
+                'Hello riri',
+                comment.created,
+                (err, comment) => {
+                  assert.ok(!err);
 
-                    return callback();
-                  }
-                );
-              }
-            );
+                  return callback();
+                }
+              );
+            });
           }
         );
       });
@@ -1717,18 +1613,12 @@ describe('Meeting Jitsi', () => {
             const body = '';
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(
-              riri.restContext,
-              meeting.id,
-              body,
-              replyTo,
-              (err, comment) => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 400);
+            RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (err, comment) => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 400);
 
-                return callback();
-              }
-            );
+              return callback();
+            });
           }
         );
       });
@@ -1762,18 +1652,12 @@ describe('Meeting Jitsi', () => {
             const body = 'Hello World';
             const replyTo = 'not-an-existing-reply-to-timestamp';
 
-            RestAPI.MeetingsJitsi.createComment(
-              riri.restContext,
-              meeting.id,
-              body,
-              replyTo,
-              (err, comment) => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 400);
+            RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (err, comment) => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 400);
 
-                return callback();
-              }
-            );
+              return callback();
+            });
           }
         );
       });
@@ -1807,18 +1691,12 @@ describe('Meeting Jitsi', () => {
             const body = TestsUtil.generateRandomText(10000);
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(
-              riri.restContext,
-              meeting.id,
-              body,
-              replyTo,
-              (err, comment) => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 400);
+            RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (err, comment) => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 400);
 
-                return callback();
-              }
-            );
+              return callback();
+            });
           }
         );
       });
@@ -1852,18 +1730,12 @@ describe('Meeting Jitsi', () => {
             const body = 'Hello world';
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(
-              camAnonymousRestCtx,
-              meeting.id,
-              body,
-              replyTo,
-              (err, comment) => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 401);
+            RestAPI.MeetingsJitsi.createComment(camAnonymousRestCtx, meeting.id, body, replyTo, (err, comment) => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 401);
 
-                return callback();
-              }
-            );
+              return callback();
+            });
           }
         );
       });
@@ -1899,18 +1771,12 @@ describe('Meeting Jitsi', () => {
             const body = 'Hello world';
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(
-              fifi.restContext,
-              meeting.id,
-              body,
-              replyTo,
-              (err, comment) => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 401);
+            RestAPI.MeetingsJitsi.createComment(fifi.restContext, meeting.id, body, replyTo, (err, comment) => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 401);
 
-                return callback();
-              }
-            );
+              return callback();
+            });
           }
         );
       });
@@ -1946,17 +1812,11 @@ describe('Meeting Jitsi', () => {
             const body = 'Hello world';
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(
-              fifi.restContext,
-              meeting.id,
-              body,
-              replyTo,
-              (err, comment) => {
-                assert.ok(!err);
+            RestAPI.MeetingsJitsi.createComment(fifi.restContext, meeting.id, body, replyTo, (err, comment) => {
+              assert.ok(!err);
 
-                return callback();
-              }
-            );
+              return callback();
+            });
           }
         );
       });
@@ -1992,17 +1852,11 @@ describe('Meeting Jitsi', () => {
             const body = 'Hello world';
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(
-              fifi.restContext,
-              meeting.id,
-              body,
-              replyTo,
-              (err, comment) => {
-                assert.ok(!err);
+            RestAPI.MeetingsJitsi.createComment(fifi.restContext, meeting.id, body, replyTo, (err, comment) => {
+              assert.ok(!err);
 
-                return callback();
-              }
-            );
+              return callback();
+            });
           }
         );
       });
@@ -2038,26 +1892,15 @@ describe('Meeting Jitsi', () => {
             const body = 'Hello world';
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(
-              riri.restContext,
-              meeting.id,
-              body,
-              replyTo,
-              (err, comment) => {
+            RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (err, comment) => {
+              assert.ok(!err);
+
+              RestAPI.MeetingsJitsi.deleteComment(riri.restContext, meeting.id, comment.created, (err, softDeleted) => {
                 assert.ok(!err);
 
-                RestAPI.MeetingsJitsi.deleteComment(
-                  riri.restContext,
-                  meeting.id,
-                  comment.created,
-                  (err, softDeleted) => {
-                    assert.ok(!err);
-
-                    return callback();
-                  }
-                );
-              }
-            );
+                return callback();
+              });
+            });
           }
         );
       });
@@ -2091,38 +1934,32 @@ describe('Meeting Jitsi', () => {
             const body = 'Hello world';
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(
-              riri.restContext,
-              meeting.id,
-              body,
-              replyTo,
-              (err, comment1) => {
-                assert.ok(!err);
+            RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (err, comment1) => {
+              assert.ok(!err);
 
-                RestAPI.MeetingsJitsi.createComment(
-                  riri.restContext,
-                  meeting.id,
-                  'Hello Riri',
-                  comment1.created,
-                  (err, comment2) => {
-                    assert.ok(!err);
+              RestAPI.MeetingsJitsi.createComment(
+                riri.restContext,
+                meeting.id,
+                'Hello Riri',
+                comment1.created,
+                (err, comment2) => {
+                  assert.ok(!err);
 
-                    RestAPI.MeetingsJitsi.deleteComment(
-                      riri.restContext,
-                      meeting.id,
-                      comment1.created,
-                      (err, softDeleted) => {
-                        assert.ok(!err);
-                        assert.ok(softDeleted.deleted);
-                        assert.ok(!softDeleted.body);
+                  RestAPI.MeetingsJitsi.deleteComment(
+                    riri.restContext,
+                    meeting.id,
+                    comment1.created,
+                    (err, softDeleted) => {
+                      assert.ok(!err);
+                      assert.ok(softDeleted.deleted);
+                      assert.ok(!softDeleted.body);
 
-                        return callback();
-                      }
-                    );
-                  }
-                );
-              }
-            );
+                      return callback();
+                    }
+                  );
+                }
+              );
+            });
           }
         );
       });
@@ -2156,27 +1993,21 @@ describe('Meeting Jitsi', () => {
             const body = 'Hello world';
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(
-              riri.restContext,
-              meeting.id,
-              body,
-              replyTo,
-              (err, comment) => {
-                assert.ok(!err);
+            RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (err, comment) => {
+              assert.ok(!err);
 
-                RestAPI.MeetingsJitsi.deleteComment(
-                  riri.restContext,
-                  'not-a-valid-meeting-id',
-                  comment.created,
-                  (err, softDeleted) => {
-                    assert.ok(err);
-                    assert.strictEqual(err.code, 400);
+              RestAPI.MeetingsJitsi.deleteComment(
+                riri.restContext,
+                'not-a-valid-meeting-id',
+                comment.created,
+                (err, softDeleted) => {
+                  assert.ok(err);
+                  assert.strictEqual(err.code, 400);
 
-                    return callback();
-                  }
-                );
-              }
-            );
+                  return callback();
+                }
+              );
+            });
           }
         );
       });
@@ -2210,27 +2041,21 @@ describe('Meeting Jitsi', () => {
             const body = 'Hello world';
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(
-              riri.restContext,
-              meeting.id,
-              body,
-              replyTo,
-              (err, comment) => {
-                assert.ok(!err);
+            RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (err, comment) => {
+              assert.ok(!err);
 
-                RestAPI.MeetingsJitsi.deleteComment(
-                  riri.restContext,
-                  meeting.id,
-                  'not-a-valid-comment-timestamp',
-                  (err, softDeleted) => {
-                    assert.ok(err);
-                    assert.strictEqual(err.code, 400);
+              RestAPI.MeetingsJitsi.deleteComment(
+                riri.restContext,
+                meeting.id,
+                'not-a-valid-comment-timestamp',
+                (err, softDeleted) => {
+                  assert.ok(err);
+                  assert.strictEqual(err.code, 400);
 
-                    return callback();
-                  }
-                );
-              }
-            );
+                  return callback();
+                }
+              );
+            });
           }
         );
       });

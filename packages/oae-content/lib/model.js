@@ -13,11 +13,11 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
 
-const AuthzUtil = require('oae-authz/lib/util');
-const TenantsAPI = require('oae-tenants');
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as TenantsAPI from 'oae-tenants';
 
 /// ////////
 // Model //
@@ -31,7 +31,7 @@ const TenantsAPI = require('oae-tenants');
  * @param  {String}     visibility          The visibility of the content item. One of `public`, `loggedin`, `private`
  * @param  {String}     displayName         The display name of the content item
  * @param  {String}     description         A longer description for the content item
- * @param  {String}     resourceSubType     The content item type. One of `file`, `collabdoc`, `link`
+ * @param  {String}     resourceSubType     The content item type. One of `file`, `collabdoc`, `collabsheet`, `link`
  * @param  {String}     createdBy           The id of the user who created the content item
  * @param  {Number}     created             The timestamp (millis since epoch) at which the content item was created
  * @param  {Number}     lastModified        The timestamp (millis since epoch) at which the content item was last modified
@@ -52,7 +52,7 @@ const Content = function(
   previews
 ) {
   const that = {};
-  const {resourceId} = AuthzUtil.getResourceFromId(id);
+  const { resourceId } = AuthzUtil.getResourceFromId(id);
 
   that.tenant = TenantsAPI.getTenant(tenantAlias).compact();
   that.id = id;
@@ -140,8 +140,4 @@ const _getDownloadPath = function(contentId, revisionId) {
   return util.format('/api/content/%s/download/%s', contentId, revisionId);
 };
 
-module.exports = {
-  Content,
-  Revision,
-  DownloadStrategy
-};
+export { Content, Revision, DownloadStrategy };

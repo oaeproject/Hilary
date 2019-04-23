@@ -13,21 +13,23 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const AuthzUtil = require('oae-authz/lib/util');
-const ContentAPI = require('oae-content');
-const { ContentConstants } = require('oae-content/lib/constants');
-const Counter = require('oae-util/lib/counter');
-const MQTestUtil = require('oae-util/lib/test/mq-util');
-const PreviewProcessorAPI = require('oae-preview-processor');
-const PreviewConstants = require('oae-preview-processor/lib/constants');
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as ContentAPI from 'oae-content';
+import Counter from 'oae-util/lib/counter';
+import * as MQTestUtil from 'oae-util/lib/test/mq-util';
+import * as PreviewProcessorAPI from 'oae-preview-processor';
+import PreviewConstants from 'oae-preview-processor/lib/constants';
 
-const FoldersAPI = require('oae-folders');
-const FoldersAuthz = require('oae-folders/lib/authz');
-const { FoldersConstants } = require('oae-folders/lib/constants');
-const FoldersDAO = require('oae-folders/lib/internal/dao');
-const log = require('oae-logger').logger('oae-folders-previews');
+import * as FoldersAPI from 'oae-folders';
+import * as FoldersAuthz from 'oae-folders/lib/authz';
+import * as FoldersDAO from 'oae-folders/lib/internal/dao';
+import { ContentConstants } from 'oae-content/lib/constants';
+import { FoldersConstants } from 'oae-folders/lib/constants';
+import { logger } from 'oae-logger';
+
+const log = logger('oae-folders-previews');
 
 const previewCounter = new Counter();
 
@@ -71,12 +73,9 @@ const _handleContentChange = function(ctx, folder, contentItems) {
 /*!
  * If a content item gets added to a folder we need to generate previews for the folder
  */
-FoldersAPI.emitter.on(
-  FoldersConstants.events.ADDED_CONTENT_ITEMS,
-  (ctx, actionContext, folder, contentItems) => {
-    return _handleContentChange(ctx, folder, contentItems);
-  }
-);
+FoldersAPI.emitter.on(FoldersConstants.events.ADDED_CONTENT_ITEMS, (ctx, actionContext, folder, contentItems) => {
+  return _handleContentChange(ctx, folder, contentItems);
+});
 
 /*!
  * If a content item gets removed from a folder, we need to regenerate the previews for the folder
@@ -127,14 +126,11 @@ ContentAPI.emitter.on(ContentConstants.events.DELETED_CONTENT, (ctx, contentObj,
 /*!
  * If a content item's visibility setting changes we need to regenerate the preview items for those folders that contain the content item
  */
-ContentAPI.emitter.on(
-  ContentConstants.events.UPDATED_CONTENT,
-  (ctx, newContentObj, oldContentObj) => {
-    if (newContentObj.visibility !== oldContentObj.visibility) {
-      _reprocessFoldersThatContainContent(newContentObj.id);
-    }
+ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT, (ctx, newContentObj, oldContentObj) => {
+  if (newContentObj.visibility !== oldContentObj.visibility) {
+    _reprocessFoldersThatContainContent(newContentObj.id);
   }
-);
+});
 
 /**
  * Reprocess the folders that contain a given content item
@@ -162,6 +158,4 @@ const _reprocessFoldersThatContainContent = function(contentId) {
   });
 };
 
-module.exports = {
-  whenPreviewsComplete
-};
+export { whenPreviewsComplete };

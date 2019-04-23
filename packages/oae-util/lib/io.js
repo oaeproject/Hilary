@@ -13,9 +13,11 @@
  * permissions and limitations under the License.
  */
 
-const fs = require('fs');
+import fs from 'fs';
 
-const log = require('oae-logger').logger('IO');
+import { logger } from 'oae-logger';
+
+const log = logger('IO');
 
 /**
  * Get a list of all of the files and folders inside of a folder. Hidden files and folder (starting with
@@ -31,6 +33,7 @@ const getFileListForFolder = function(foldername, callback) {
     if (err) {
       return callback(null, []);
     }
+
     if (!stat.isDirectory()) {
       return callback(null, []);
     }
@@ -101,10 +104,12 @@ const moveFile = function(source, dest, callback) {
         log().error({ err }, "Wasn't able to rename the file  %s to %s.", source, dest);
         return callback({ code: 500, msg: err });
       }
+
       copyFile(source, dest, err => {
         if (err) {
           return callback({ code: 500, msg: err });
         }
+
         fs.unlink(source, callback);
       });
     } else {
@@ -141,6 +146,7 @@ const exists = function(path, callback) {
       if (err.code === 'ENOENT') {
         return callback(null, false);
       }
+
       log().error(
         {
           err,
@@ -150,14 +156,9 @@ const exists = function(path, callback) {
       );
       return callback({ code: 500, msg: 'Could not check whether a file or folder exists' });
     }
+
     return callback(null, true);
   });
 };
 
-module.exports = {
-  getFileListForFolder,
-  copyFile,
-  moveFile,
-  destroyStream,
-  exists
-};
+export { getFileListForFolder, copyFile, moveFile, destroyStream, exists };

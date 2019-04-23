@@ -13,11 +13,11 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
+import util from 'util';
 
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const AuthzUtil = require('oae-authz/lib/util');
-const { Validator } = require('oae-util/lib/validator');
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import { Validator } from 'oae-util/lib/validator';
 
 /**
  * Checks whether or not the string in context is a valid principal id
@@ -120,10 +120,7 @@ Validator.prototype.isResource = function(resource) {
  */
 Validator.prototype.isValidRole = function() {
   if (!AuthzUtil.isRole(this.str)) {
-    this.error(
-      this.msg ||
-        util.format('A role must be one of: %s', AuthzConstants.role.ALL_PRIORITY.join(', '))
-    );
+    this.error(this.msg || util.format('A role must be one of: %s', AuthzConstants.role.ALL_PRIORITY.join(', ')));
   }
 };
 
@@ -142,10 +139,7 @@ Validator.prototype.isValidRoleChange = function() {
   if (this.str !== false && !AuthzUtil.isRole(this.str)) {
     this.error(
       this.msg ||
-        util.format(
-          'A role change must either be false, or one of: %s',
-          AuthzConstants.role.ALL_PRIORITY.join(', ')
-        )
+        util.format('A role change must either be false, or one of: %s', AuthzConstants.role.ALL_PRIORITY.join(', '))
     );
   }
 };
@@ -170,4 +164,4 @@ Validator.prototype.isValidShareTarget = function() {
   }
 };
 
-module.exports = { Validator };
+export { Validator };

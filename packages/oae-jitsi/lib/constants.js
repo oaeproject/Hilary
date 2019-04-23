@@ -45,13 +45,7 @@ MeetingsConstants.activity = {
   ACTIVITY_MEETING_MESSAGE: 'meeting-jitsi-message'
 };
 
-MeetingsConstants.updateFields = [
-  'displayName',
-  'description',
-  'chat',
-  'contactList',
-  'visibility'
-];
+MeetingsConstants.updateFields = ['displayName', 'description', 'chat', 'contactList', 'visibility'];
 
 MeetingsConstants.library = {
   MEETINGS_LIBRARY_INDEX_NAME: 'meetings-jitsi:meetings-jitsi'
@@ -61,4 +55,4 @@ MeetingsConstants.search = {
   MAPPING_MEETING_MESSAGE: 'meeting-jitsi_message'
 };
 
-module.exports = { MeetingsConstants };
+export { MeetingsConstants };

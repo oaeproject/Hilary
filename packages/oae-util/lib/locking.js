@@ -13,11 +13,14 @@
  * permissions and limitations under the License.
  */
 
-const redback = require('redback');
+import redback from 'redback';
 
-const log = require('oae-logger').logger('oae-util-locking');
-const Redis = require('./redis');
-const { Validator } = require('./validator');
+import { logger } from 'oae-logger';
+
+import * as Redis from './redis';
+import { Validator } from './validator';
+
+const log = logger('oae-util-locking');
 
 let lock = null;
 
@@ -89,8 +92,7 @@ const release = function(lockKey, token, callback) {
   validator
     .check(token, {
       code: 400,
-      msg:
-        'The identifier of the lock that was given when the lock was acquired needs to be specified'
+      msg: 'The identifier of the lock that was given when the lock was acquired needs to be specified'
     })
     .notNull();
   if (validator.hasErrors()) {
@@ -100,8 +102,4 @@ const release = function(lockKey, token, callback) {
   lock.release(lockKey, token, callback);
 };
 
-module.exports = {
-  init,
-  acquire,
-  release
-};
+export { init, acquire, release };

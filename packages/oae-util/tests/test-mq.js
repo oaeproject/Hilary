@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const util = require('util');
-const _ = require('underscore');
-const ShortId = require('shortid');
+import assert from 'assert';
+import util from 'util';
+import _ from 'underscore';
+import ShortId from 'shortid';
 
-const MQ = require('oae-util/lib/mq');
-const TaskQueue = require('oae-util/lib/taskqueue');
+import * as MQ from 'oae-util/lib/mq';
+import * as TaskQueue from 'oae-util/lib/taskqueue';
 
 describe('MQ', () => {
   /**
@@ -265,6 +265,7 @@ describe('MQ', () => {
               return callback();
             });
           };
+
           MQ.subscribeQueue(queueName, {}, listener, err => {
             assert.ok(!err);
 
@@ -382,6 +383,7 @@ describe('MQ', () => {
             // Verify the message we receive is correct
             assert.strictEqual(msg.text, data.text);
           };
+
           MQ.subscribeQueue(queueName, {}, listener, err => {
             assert.ok(!err);
 
@@ -395,7 +397,7 @@ describe('MQ', () => {
 
                   // Submit one more message. If it ends up at our listener the test will fail
                   MQ.submit(exchangeName, routingKey, data, () => {
-                    return;
+                    
                   });
                 });
               });
@@ -458,23 +460,19 @@ describe('MQ', () => {
 
           // Declare an exchange that acknowledges the message
           exchangeName = util.format('testExchange-%s', ShortId.generate());
-          MQ.declareExchange(
-            exchangeName,
-            { durable: false, autoDelete: true, confirm: true },
-            err => {
+          MQ.declareExchange(exchangeName, { durable: false, autoDelete: true, confirm: true }, err => {
+            assert.ok(!err);
+
+            let confirmCalled = 0;
+            MQ.submit(exchangeName, routingKey, data, null, err => {
               assert.ok(!err);
 
-              let confirmCalled = 0;
-              MQ.submit(exchangeName, routingKey, data, null, err => {
-                assert.ok(!err);
-
-                // This should only be executed once
-                confirmCalled++;
-                assert.strictEqual(confirmCalled, 1);
-                return callback();
-              });
-            }
-          );
+              // This should only be executed once
+              confirmCalled++;
+              assert.strictEqual(confirmCalled, 1);
+              return callback();
+            });
+          });
         });
       });
     });
@@ -522,47 +520,44 @@ describe('MQ', () => {
                 });
 
                 // When the raw message comes in, reject it so it gets redelivered
-                _bindPreHandleOnce(
-                  queueName,
-                  (_queueName, data, headers, deliveryInfo, message) => {
-                    // Reject the message, indicating that we want it requeued and redelivered
-                    MQ.rejectMessage(message, true, () => {
-                      // Ensure that rabbitmq intercepts the redelivery of the rejected message and stuffs it in the redelivery queue
-                      // for manual intervention
-                      MQ.emitter.once('storedRedelivery', _queueName => {
-                        // Here we make sure that the listener received the message the first time. But this does not
-                        // ensure it doesn't receive it the second time. That is what the `assert.fail` is for in the
-                        // listener
-                        assert.strictEqual(handledMessages, 1);
-                        assert.strictEqual(queueName, _queueName);
+                _bindPreHandleOnce(queueName, (_queueName, data, headers, deliveryInfo, message) => {
+                  // Reject the message, indicating that we want it requeued and redelivered
+                  MQ.rejectMessage(message, true, () => {
+                    // Ensure that rabbitmq intercepts the redelivery of the rejected message and stuffs it in the redelivery queue
+                    // for manual intervention
+                    MQ.emitter.once('storedRedelivery', _queueName => {
+                      // Here we make sure that the listener received the message the first time. But this does not
+                      // ensure it doesn't receive it the second time. That is what the `assert.fail` is for in the
+                      // listener
+                      assert.strictEqual(handledMessages, 1);
+                      assert.strictEqual(queueName, _queueName);
 
-                        // Make sure we can take the item off the redelivery queue
-                        MQ.subscribeQueue(
-                          'oae-util-mq-redeliverqueue',
-                          { prefetchCount: 1 },
-                          (data, listenerCallback) => {
-                            assert.ok(data);
-                            assert.ok(data.headers);
-                            assert.strictEqual(data.deliveryInfo.queue, queueName);
-                            assert.strictEqual(data.deliveryInfo.exchange, exchangeName);
-                            assert.strictEqual(data.deliveryInfo.routingKey, routingKey);
-                            assert.strictEqual(data.data.data, 'test');
+                      // Make sure we can take the item off the redelivery queue
+                      MQ.subscribeQueue(
+                        'oae-util-mq-redeliverqueue',
+                        { prefetchCount: 1 },
+                        (data, listenerCallback) => {
+                          assert.ok(data);
+                          assert.ok(data.headers);
+                          assert.strictEqual(data.deliveryInfo.queue, queueName);
+                          assert.strictEqual(data.deliveryInfo.exchange, exchangeName);
+                          assert.strictEqual(data.deliveryInfo.routingKey, routingKey);
+                          assert.strictEqual(data.data.data, 'test');
 
-                            // Don't accept any more messages on this queue
-                            MQ.unsubscribeQueue('oae-util-mq-redeliverqueue', err => {
-                              assert.ok(!err);
+                          // Don't accept any more messages on this queue
+                          MQ.unsubscribeQueue('oae-util-mq-redeliverqueue', err => {
+                            assert.ok(!err);
 
-                              // Acknowledge the redelivered message so it doesn't go in an infinite redelivery loop
-                              listenerCallback();
+                            // Acknowledge the redelivered message so it doesn't go in an infinite redelivery loop
+                            listenerCallback();
 
-                              return callback();
-                            });
-                          }
-                        );
-                      });
+                            return callback();
+                          });
+                        }
+                      );
                     });
-                  }
-                );
+                  });
+                });
               });
             });
           });
@@ -582,10 +577,10 @@ describe('MQ', () => {
  */
 const _bindPreHandleOnce = function(handlingQueueName, handler) {
   /*!
-     * Filters tasks by those on the expected queue, and immediately unbinds the
-     * handler so it only gets invoked once. The parameters are the MQ preHandle
-     * event parameters.
-     */
+   * Filters tasks by those on the expected queue, and immediately unbinds the
+   * handler so it only gets invoked once. The parameters are the MQ preHandle
+   * event parameters.
+   */
   const _handler = function(queueName, data, headers, deliveryInfo, message) {
     if (queueName !== handlingQueueName) {
       return;

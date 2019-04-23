@@ -13,25 +13,25 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const ActivityAPI = require('oae-activity');
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const ActivityModel = require('oae-activity/lib/model');
-const ActivityUtil = require('oae-activity/lib/util');
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const AuthzUtil = require('oae-authz/lib/util');
-const { ContentConstants } = require('oae-content/lib/constants');
-const ContentUtil = require('oae-content/lib/internal/util');
-const MessageBoxAPI = require('oae-messagebox');
-const MessageBoxUtil = require('oae-messagebox/lib/util');
-const PreviewConstants = require('oae-preview-processor/lib/constants');
-const PrincipalsUtil = require('oae-principals/lib/util');
-const TenantsUtil = require('oae-tenants/lib/util');
+import * as ActivityAPI from 'oae-activity';
+import * as ActivityModel from 'oae-activity/lib/model';
+import * as ActivityUtil from 'oae-activity/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as ContentUtil from 'oae-content/lib/internal/util';
+import * as MessageBoxAPI from 'oae-messagebox';
+import * as MessageBoxUtil from 'oae-messagebox/lib/util';
+import PreviewConstants from 'oae-preview-processor/lib/constants';
+import * as PrincipalsUtil from 'oae-principals/lib/util';
+import * as TenantsUtil from 'oae-tenants/lib/util';
+import * as FoldersAPI from 'oae-folders';
+import * as FoldersDAO from 'oae-folders/lib/internal/dao';
 
-const FoldersAPI = require('oae-folders');
-const { FoldersConstants } = require('oae-folders/lib/constants');
-const FoldersDAO = require('oae-folders/lib/internal/dao');
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import { ActivityConstants } from 'oae-activity/lib/constants';
+import { ContentConstants } from 'oae-content/lib/constants';
+import { FoldersConstants } from 'oae-folders/lib/constants';
 
 /// ////////////////
 // FOLDER-CREATE //
@@ -126,35 +126,32 @@ ActivityAPI.registerActivityType(FoldersConstants.activity.ACTIVITY_FOLDER_ADD_T
 /*!
  * Post a folder-add-to-folder activity when a user adds content items to a folder
  */
-FoldersAPI.emitter.on(
-  FoldersConstants.events.ADDED_CONTENT_ITEMS,
-  (ctx, actionContext, folder, contentItems) => {
-    // Ignore activities triggered by content-create
-    if (actionContext !== 'content-create') {
-      const millis = Date.now();
-      const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
-        user: ctx.user()
+FoldersAPI.emitter.on(FoldersConstants.events.ADDED_CONTENT_ITEMS, (ctx, actionContext, folder, contentItems) => {
+  // Ignore activities triggered by content-create
+  if (actionContext !== 'content-create') {
+    const millis = Date.now();
+    const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
+      user: ctx.user()
+    });
+    const targetResource = new ActivityModel.ActivitySeedResource('folder', folder.id, {
+      folder
+    });
+    _.each(contentItems, content => {
+      const objectResource = new ActivityModel.ActivitySeedResource('content', content.id, {
+        content
       });
-      const targetResource = new ActivityModel.ActivitySeedResource('folder', folder.id, {
-        folder
-      });
-      _.each(contentItems, content => {
-        const objectResource = new ActivityModel.ActivitySeedResource('content', content.id, {
-          content
-        });
-        const activitySeed = new ActivityModel.ActivitySeed(
-          FoldersConstants.activity.ACTIVITY_FOLDER_ADD_TO_FOLDER,
-          millis,
-          ActivityConstants.verbs.ADD,
-          actorResource,
-          objectResource,
-          targetResource
-        );
-        ActivityAPI.postActivity(ctx, activitySeed);
-      });
-    }
+      const activitySeed = new ActivityModel.ActivitySeed(
+        FoldersConstants.activity.ACTIVITY_FOLDER_ADD_TO_FOLDER,
+        millis,
+        ActivityConstants.verbs.ADD,
+        actorResource,
+        objectResource,
+        targetResource
+      );
+      ActivityAPI.postActivity(ctx, activitySeed);
+    });
   }
-);
+});
 
 /// ////////////////////////////////////////////
 // FOLDER-UPDATE and FOLDER-UPDATE-VISIBILITY//
@@ -222,6 +219,7 @@ FoldersAPI.emitter.on(FoldersConstants.events.UPDATED_FOLDER, (ctx, oldFolder, u
   } else {
     activityType = FoldersConstants.activity.ACTIVITY_FOLDER_UPDATE_VISIBILITY;
   }
+
   const activitySeed = new ActivityModel.ActivitySeed(
     activityType,
     millis,
@@ -348,81 +346,72 @@ ActivityAPI.registerActivityType(FoldersConstants.activity.ACTIVITY_FOLDER_UPDAT
   }
 });
 
-FoldersAPI.emitter.on(
-  FoldersConstants.events.UPDATED_FOLDER_MEMBERS,
-  (ctx, folder, memberChangeInfo, opts) => {
-    if (opts.invitation) {
-      // If this member update came from an invitation, we bypass adding activity as there is a
-      // dedicated activity for that
-      return;
-    }
+FoldersAPI.emitter.on(FoldersConstants.events.UPDATED_FOLDER_MEMBERS, (ctx, folder, memberChangeInfo, opts) => {
+  if (opts.invitation) {
+    // If this member update came from an invitation, we bypass adding activity as there is a
+    // dedicated activity for that
+    return;
+  }
 
-    const addedMemberIds = _.pluck(memberChangeInfo.members.added, 'id');
-    const updatedMemberIds = _.pluck(memberChangeInfo.members.updated, 'id');
+  const addedMemberIds = _.pluck(memberChangeInfo.members.added, 'id');
+  const updatedMemberIds = _.pluck(memberChangeInfo.members.updated, 'id');
 
-    const millis = Date.now();
-    const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
-      user: ctx.user()
-    });
-    const folderResource = new ActivityModel.ActivitySeedResource('folder', folder.id, { folder });
+  const millis = Date.now();
+  const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
+    user: ctx.user()
+  });
+  const folderResource = new ActivityModel.ActivitySeedResource('folder', folder.id, { folder });
 
-    // When a user is added, it is considered either a folder-share or a folder-add-to-library
-    // activity, depending on whether the added user is the current user in context
-    _.each(addedMemberIds, memberId => {
-      if (memberId === ctx.user().id) {
-        // Users can't "share" with themselves, they actually "add it to their library"
-        ActivityAPI.postActivity(
-          ctx,
-          new ActivityModel.ActivitySeed(
-            FoldersConstants.activity.ACTIVITY_FOLDER_ADD_TO_LIBRARY,
-            millis,
-            ActivityConstants.verbs.ADD,
-            actorResource,
-            folderResource
-          )
-        );
-      } else {
-        // A user shared a folder with some other user, fire the folder share activity
-        const principalResourceType = PrincipalsUtil.isGroup(memberId) ? 'group' : 'user';
-        const principalResource = new ActivityModel.ActivitySeedResource(
-          principalResourceType,
-          memberId
-        );
-        ActivityAPI.postActivity(
-          ctx,
-          new ActivityModel.ActivitySeed(
-            FoldersConstants.activity.ACTIVITY_FOLDER_SHARE,
-            millis,
-            ActivityConstants.verbs.SHARE,
-            actorResource,
-            folderResource,
-            principalResource
-          )
-        );
-      }
-    });
-
-    // When a user's role is updated, we fire a "folder-update-member-role" activity
-    _.each(updatedMemberIds, memberId => {
-      const principalResourceType = PrincipalsUtil.isGroup(memberId) ? 'group' : 'user';
-      const principalResource = new ActivityModel.ActivitySeedResource(
-        principalResourceType,
-        memberId
-      );
+  // When a user is added, it is considered either a folder-share or a folder-add-to-library
+  // activity, depending on whether the added user is the current user in context
+  _.each(addedMemberIds, memberId => {
+    if (memberId === ctx.user().id) {
+      // Users can't "share" with themselves, they actually "add it to their library"
       ActivityAPI.postActivity(
         ctx,
         new ActivityModel.ActivitySeed(
-          FoldersConstants.activity.ACTIVITY_FOLDER_UPDATE_MEMBER_ROLE,
+          FoldersConstants.activity.ACTIVITY_FOLDER_ADD_TO_LIBRARY,
           millis,
-          ActivityConstants.verbs.UPDATE,
+          ActivityConstants.verbs.ADD,
           actorResource,
-          principalResource,
           folderResource
         )
       );
-    });
-  }
-);
+    } else {
+      // A user shared a folder with some other user, fire the folder share activity
+      const principalResourceType = PrincipalsUtil.isGroup(memberId) ? 'group' : 'user';
+      const principalResource = new ActivityModel.ActivitySeedResource(principalResourceType, memberId);
+      ActivityAPI.postActivity(
+        ctx,
+        new ActivityModel.ActivitySeed(
+          FoldersConstants.activity.ACTIVITY_FOLDER_SHARE,
+          millis,
+          ActivityConstants.verbs.SHARE,
+          actorResource,
+          folderResource,
+          principalResource
+        )
+      );
+    }
+  });
+
+  // When a user's role is updated, we fire a "folder-update-member-role" activity
+  _.each(updatedMemberIds, memberId => {
+    const principalResourceType = PrincipalsUtil.isGroup(memberId) ? 'group' : 'user';
+    const principalResource = new ActivityModel.ActivitySeedResource(principalResourceType, memberId);
+    ActivityAPI.postActivity(
+      ctx,
+      new ActivityModel.ActivitySeed(
+        FoldersConstants.activity.ACTIVITY_FOLDER_UPDATE_MEMBER_ROLE,
+        millis,
+        ActivityConstants.verbs.UPDATE,
+        actorResource,
+        principalResource,
+        folderResource
+      )
+    );
+  });
+});
 
 /// ////////////////////////
 // ACTIVITY ENTITY TYPES //
@@ -433,8 +422,7 @@ FoldersAPI.emitter.on(
  * @see ActivityAPI#registerActivityEntityType
  */
 const _folderProducer = function(resource, callback) {
-  const folder =
-    resource.resourceData && resource.resourceData.folder ? resource.resourceData.folder : null;
+  const folder = resource.resourceData && resource.resourceData.folder ? resource.resourceData.folder : null;
 
   // If the folder was fired with the resource, use it instead of fetching
   if (folder) {
@@ -477,9 +465,11 @@ const _folderTransformer = function(ctx, activityEntities, callback) {
     _.each(activityEntities, (entitiesPerActivity, activityId) => {
       transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
       _.each(entitiesPerActivity, (entity, entityId) => {
-        transformedActivityEntities[activityId][
-          entityId
-        ] = _transformPersistentFolderActivityEntity(ctx, entity, foldersById);
+        transformedActivityEntities[activityId][entityId] = _transformPersistentFolderActivityEntity(
+          ctx,
+          entity,
+          foldersById
+        );
       });
     });
 
@@ -526,9 +516,7 @@ const _folderCommentTransformer = function(ctx, activityEntities, callback) {
       const resource = AuthzUtil.getResourceFromId(folderId);
       const profilePath = '/folder/' + resource.tenantAlias + '/' + resource.resourceId;
       const urlFormat = '/api/folder/' + folderId + '/messages/%s';
-      transformedActivityEntities[activityId][
-        entityId
-      ] = MessageBoxUtil.transformPersistentMessageActivityEntity(
+      transformedActivityEntities[activityId][entityId] = MessageBoxUtil.transformPersistentMessageActivityEntity(
         ctx,
         entity,
         profilePath,
@@ -564,11 +552,7 @@ ActivityAPI.registerActivityEntityType('folder', {
     internal: _folderTransformer
   },
   propagation(associationsCtx, entity, callback) {
-    ActivityUtil.getStandardResourcePropagation(
-      entity.folder.visibility,
-      AuthzConstants.joinable.NO,
-      callback
-    );
+    ActivityUtil.getStandardResourcePropagation(entity.folder.visibility, AuthzConstants.joinable.NO, callback);
   }
 });
 
@@ -590,88 +574,56 @@ ActivityAPI.registerActivityEntityType('folder-comment', {
 /*!
  * Register an association that presents the folder
  */
-ActivityAPI.registerActivityEntityAssociation(
-  'folder',
-  'self',
-  (associationsCtx, entity, callback) => {
-    return callback(null, [entity[ActivityConstants.properties.OAE_ID]]);
-  }
-);
+ActivityAPI.registerActivityEntityAssociation('folder', 'self', (associationsCtx, entity, callback) => {
+  return callback(null, [entity[ActivityConstants.properties.OAE_ID]]);
+});
 
 /*!
  * Register an association that presents the members of a folder categorized by role
  */
-ActivityAPI.registerActivityEntityAssociation(
-  'folder',
-  'members-by-role',
-  (associationsCtx, entity, callback) => {
-    ActivityUtil.getAllAuthzMembersByRole(
-      entity[FoldersConstants.activity.PROP_OAE_GROUP_ID],
-      callback
-    );
-  }
-);
+ActivityAPI.registerActivityEntityAssociation('folder', 'members-by-role', (associationsCtx, entity, callback) => {
+  ActivityUtil.getAllAuthzMembersByRole(entity[FoldersConstants.activity.PROP_OAE_GROUP_ID], callback);
+});
 
 /*!
  * Register an association that presents all the indirect members of a folder
  */
-ActivityAPI.registerActivityEntityAssociation(
-  'folder',
-  'members',
-  (associationsCtx, entity, callback) => {
-    associationsCtx.get('members-by-role', (err, membersByRole) => {
-      if (err) {
-        return callback(err);
-      }
+ActivityAPI.registerActivityEntityAssociation('folder', 'members', (associationsCtx, entity, callback) => {
+  associationsCtx.get('members-by-role', (err, membersByRole) => {
+    if (err) {
+      return callback(err);
+    }
 
-      return callback(null, _.flatten(_.values(membersByRole)));
-    });
-  }
-);
+    return callback(null, _.flatten(_.values(membersByRole)));
+  });
+});
 
 /*!
  * Register an association that presents all the managers of a content item
  */
-ActivityAPI.registerActivityEntityAssociation(
-  'folder',
-  'managers',
-  (associationsCtx, entity, callback) => {
-    associationsCtx.get('members-by-role', (err, membersByRole) => {
-      if (err) {
-        return callback(err);
-      }
+ActivityAPI.registerActivityEntityAssociation('folder', 'managers', (associationsCtx, entity, callback) => {
+  associationsCtx.get('members-by-role', (err, membersByRole) => {
+    if (err) {
+      return callback(err);
+    }
 
-      return callback(null, membersByRole[AuthzConstants.role.MANAGER]);
-    });
-  }
-);
+    return callback(null, membersByRole[AuthzConstants.role.MANAGER]);
+  });
+});
 
 /*!
  * Register an assocation that presents all the commenting contributors of a folder
  */
-ActivityAPI.registerActivityEntityAssociation(
-  'folder',
-  'message-contributors',
-  (associationsCtx, entity, callback) => {
-    MessageBoxAPI.getRecentContributions(
-      entity[ActivityConstants.properties.OAE_ID],
-      null,
-      100,
-      callback
-    );
-  }
-);
+ActivityAPI.registerActivityEntityAssociation('folder', 'message-contributors', (associationsCtx, entity, callback) => {
+  MessageBoxAPI.getRecentContributions(entity[ActivityConstants.properties.OAE_ID], null, 100, callback);
+});
 
 /*!
  * Register an association that presents the folder for a folder-comment entity
  */
-ActivityAPI.registerActivityEntityAssociation(
-  'folder-comment',
-  'self',
-  (associationsCtx, entity, callback) => {
-    return callback(null, [entity.folderId]);
-  }
-);
+ActivityAPI.registerActivityEntityAssociation('folder-comment', 'self', (associationsCtx, entity, callback) => {
+  return callback(null, [entity.folderId]);
+});
 
 /**
  * Create the persistent folder entity that can be transformed into an activity entity for the UI.
@@ -724,6 +676,7 @@ const _transformPersistentFolderActivityEntity = function(ctx, entity, foldersBy
       PreviewConstants.SIZES.IMAGE.THUMBNAIL
     );
   }
+
   if (folder.previews && folder.previews.wideUri) {
     const wideUrl = ContentUtil.getSignedDownloadUrl(ctx, folder.previews.wideUri, -1);
     opts.ext[ContentConstants.activity.PROP_OAE_WIDE_IMAGE] = new ActivityModel.ActivityMediaLink(

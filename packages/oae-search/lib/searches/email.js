@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const OaeUtil = require('oae-util/lib/util');
+import * as OaeUtil from 'oae-util/lib/util';
+import * as SearchUtil from 'oae-search/lib/util';
+import * as TenantsAPI from 'oae-tenants/lib/api';
 
-const SearchUtil = require('oae-search/lib/util');
-const TenantsAPI = require('oae-tenants/lib/api');
-const { Validator } = require('oae-util/lib/validator');
+import { Validator } from 'oae-util/lib/validator';
 
 /**
  * A search that searches on an exact "email" match, scoping its results by the specified scope and
@@ -36,18 +36,14 @@ const { Validator } = require('oae-util/lib/validator');
  * @param  {Object}         callback.err        An error that occurred, if any
  * @param  {SearchResult}   callback.results    An object that represents the results of the query
  */
-module.exports.queryBuilder = function(ctx, opts, callback) {
+const queryBuilder = function(ctx, opts, callback) {
   // Sanitize custom search options
   opts = opts || {};
   opts.limit = OaeUtil.getNumberParam(opts.limit, 10, 1, 25);
 
   const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'Only authenticated users can use email search' })
-    .isLoggedInUser(ctx);
-  validator
-    .check(opts.q, { code: 400, msg: 'An invalid email address has been specified' })
-    .isEmail();
+  validator.check(null, { code: 401, msg: 'Only authenticated users can use email search' }).isLoggedInUser(ctx);
+  validator.check(opts.q, { code: 400, msg: 'An invalid email address has been specified' }).isEmail();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -82,7 +78,9 @@ module.exports.queryBuilder = function(ctx, opts, callback) {
  * @param  {Object}         callback.err        An error that occurred, if any
  * @param  {Object}         callback.results    An object that represents the results of the query
  */
-module.exports.postProcessor = function(ctx, opts, results, callback) {
+const postProcessor = function(ctx, opts, results, callback) {
   results.tenant = TenantsAPI.getTenantByEmail(opts.q);
   return callback(null, results);
 };
+
+export { queryBuilder, postProcessor };

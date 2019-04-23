@@ -13,18 +13,25 @@
  * permissions and limitations under the License.
  */
 
-var Fields = require('oae-config/lib/fields');
+import * as Fields from 'oae-config/lib/fields';
 
-module.exports = {
-    'title': 'OAE TinCan Module',
-    'lrs': {
-        'name': 'Learning Record Store configuration',
-        'description': 'Learning Record Store configuration',
-        'elements': {
-            'enabled': new Fields.Bool('LRS enabled', 'Learning Record Store integration enabled for tenant', false, {'suppress': true}),
-            'username': new Fields.Text('LRS username', 'The LRS username', '3HQ4Q12B57', {'suppress': true}),
-            'password': new Fields.Text('LRS password', 'The LRS password', 'Wzoy9WJEqTYpf2E3pAjJTYAzZSmvpT3WO3iF4g3d', {'suppress': true}),
-            'endpoint': new Fields.Text('LRS URL', 'The TinCan API REST endpoint', 'https://cloud.scorm.com/tc/3HQ4Q12B57/statements', {'suppress': true})
-        }
-    }
+export const title = 'OAE TinCan Module';
+export const lrs = {
+  name: 'Learning Record Store configuration',
+  description: 'Learning Record Store configuration',
+  elements: {
+    enabled: new Fields.Bool('LRS enabled', 'Learning Record Store integration enabled for tenant', false, {
+      suppress: true
+    }),
+    username: new Fields.Text('LRS username', 'The LRS username', '3HQ4Q12B57', { suppress: true }),
+    password: new Fields.Text('LRS password', 'The LRS password', 'Wzoy9WJEqTYpf2E3pAjJTYAzZSmvpT3WO3iF4g3d', {
+      suppress: true
+    }),
+    endpoint: new Fields.Text(
+      'LRS URL',
+      'The TinCan API REST endpoint',
+      'https://cloud.scorm.com/tc/3HQ4Q12B57/statements',
+      { suppress: true }
+    )
+  }
 };

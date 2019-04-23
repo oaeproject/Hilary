@@ -13,18 +13,17 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const fs = require('fs');
-const path = require('path');
-const _ = require('underscore');
+import assert from 'assert';
+import fs from 'fs';
+import path from 'path';
+import _ from 'underscore';
 
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const ActivityTestsUtil = require('oae-activity/lib/test/util');
-const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
-const TestsUtil = require('oae-tests');
+import { ActivityConstants } from 'oae-activity/lib/constants';
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
 
-const { ContentConstants } = require('oae-content/lib/constants');
+import { ContentConstants } from 'oae-content/lib/constants';
 
 describe('Content Push', () => {
   // Rest contexts that can be used performing rest requests
@@ -34,9 +33,7 @@ describe('Content Push', () => {
    * Function that will fill up the tenant admin and anymous rest contexts
    */
   before(callback => {
-    localAdminRestContext = TestsUtil.createTenantAdminRestContext(
-      global.oaeTests.tenants.localhost.host
-    );
+    localAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.localhost.host);
     callback();
   });
 
@@ -84,65 +81,47 @@ describe('Content Push', () => {
                       assert.strictEqual(err.code, 400);
 
                       // Ensure we get a 400 error with an invalid token
-                      client.subscribe(
-                        contentObj.id,
-                        'activity',
-                        { signature: 'foo' },
-                        null,
-                        err => {
+                      client.subscribe(contentObj.id, 'activity', { signature: 'foo' }, null, err => {
+                        assert.strictEqual(err.code, 401);
+                        client.subscribe(contentObj.id, 'activity', { expires: Date.now() + 10000 }, null, err => {
                           assert.strictEqual(err.code, 401);
+
+                          // Ensure we get a 401 error with an incorrect signature
                           client.subscribe(
                             contentObj.id,
                             'activity',
-                            { expires: Date.now() + 10000 },
+                            { expires: Date.now() + 10000, signature: 'foo' },
                             null,
                             err => {
                               assert.strictEqual(err.code, 401);
 
-                              // Ensure we get a 401 error with an incorrect signature
-                              client.subscribe(
+                              // Simon should not be able to use a signature that was generated for Branden
+                              RestAPI.Content.getContent(
+                                branden.restContext,
                                 contentObj.id,
-                                'activity',
-                                { expires: Date.now() + 10000, signature: 'foo' },
-                                null,
-                                err => {
-                                  assert.strictEqual(err.code, 401);
-
-                                  // Simon should not be able to use a signature that was generated for Branden
-                                  RestAPI.Content.getContent(
-                                    branden.restContext,
+                                (err, contentObjForBranden) => {
+                                  assert.ok(!err);
+                                  client.subscribe(
                                     contentObj.id,
-                                    (err, contentObjForBranden) => {
-                                      assert.ok(!err);
-                                      client.subscribe(
-                                        contentObj.id,
-                                        'activity',
-                                        contentObjForBranden.signature,
-                                        null,
-                                        err => {
-                                          assert.strictEqual(err.code, 401);
+                                    'activity',
+                                    contentObjForBranden.signature,
+                                    null,
+                                    err => {
+                                      assert.strictEqual(err.code, 401);
 
-                                          // Sanity check a valid signature works
-                                          client.subscribe(
-                                            contentObj.id,
-                                            'activity',
-                                            contentObj.signature,
-                                            null,
-                                            err => {
-                                              assert.ok(!err);
-                                              return callback();
-                                            }
-                                          );
-                                        }
-                                      );
+                                      // Sanity check a valid signature works
+                                      client.subscribe(contentObj.id, 'activity', contentObj.signature, null, err => {
+                                        assert.ok(!err);
+                                        return callback();
+                                      });
                                     }
                                   );
                                 }
                               );
                             }
                           );
-                        }
-                      );
+                        });
+                      });
                     });
                   });
                 });
@@ -200,48 +179,44 @@ describe('Content Push', () => {
             [],
             (err, contentObj) => {
               assert.ok(!err);
-              RestAPI.Content.getContent(
-                contexts.simon.restContext,
-                contentObj.id,
-                (err, contentObj) => {
-                  assert.ok(!err);
+              RestAPI.Content.getContent(contexts.simon.restContext, contentObj.id, (err, contentObj) => {
+                assert.ok(!err);
 
-                  // Route and deliver activities
-                  ActivityTestsUtil.collectAndGetActivityStream(
-                    contexts.simon.restContext,
-                    null,
-                    null,
-                    (err, activities) => {
-                      assert.ok(!err);
+                // Route and deliver activities
+                ActivityTestsUtil.collectAndGetActivityStream(
+                  contexts.simon.restContext,
+                  null,
+                  null,
+                  (err, activities) => {
+                    assert.ok(!err);
 
-                      // Register for some streams
-                      const data = {
-                        authentication: {
-                          userId: contexts.simon.user.id,
-                          tenantAlias: simonFull.tenant.alias,
-                          signature: simonFull.signature
+                    // Register for some streams
+                    const data = {
+                      authentication: {
+                        userId: contexts.simon.user.id,
+                        tenantAlias: simonFull.tenant.alias,
+                        signature: simonFull.signature
+                      },
+                      streams: [
+                        {
+                          resourceId: contentObj.id,
+                          streamType: 'activity',
+                          token: contentObj.signature
                         },
-                        streams: [
-                          {
-                            resourceId: contentObj.id,
-                            streamType: 'activity',
-                            token: contentObj.signature
-                          },
-                          {
-                            resourceId: contentObj.id,
-                            streamType: 'message',
-                            token: contentObj.signature
-                          }
-                        ]
-                      };
+                        {
+                          resourceId: contentObj.id,
+                          streamType: 'message',
+                          token: contentObj.signature
+                        }
+                      ]
+                    };
 
-                      ActivityTestsUtil.getFullySetupPushClient(data, client => {
-                        callback(contexts, contentObj, client);
-                      });
-                    }
-                  );
-                }
-              );
+                    ActivityTestsUtil.getFullySetupPushClient(data, client => {
+                      callback(contexts, contentObj, client);
+                    });
+                  }
+                );
+              });
             }
           );
         });
@@ -285,14 +260,9 @@ describe('Content Push', () => {
     it('verify content visibility updates trigger a push notification', callback => {
       setupFixture((contexts, contentObj, client) => {
         // Trigger an update
-        RestAPI.Content.updateContent(
-          contexts.branden.restContext,
-          contentObj.id,
-          { visibility: 'loggedin' },
-          err => {
-            assert.ok(!err);
-          }
-        );
+        RestAPI.Content.updateContent(contexts.branden.restContext, contentObj.id, { visibility: 'loggedin' }, err => {
+          assert.ok(!err);
+        });
 
         ActivityTestsUtil.waitForPushActivity(
           client,
@@ -316,14 +286,9 @@ describe('Content Push', () => {
     it('verify a new revision triggers a push notification', callback => {
       setupFixture((contexts, contentObj, client) => {
         // Upload a new revision
-        RestAPI.Content.updateFileBody(
-          contexts.branden.restContext,
-          contentObj.id,
-          getFileStream,
-          err => {
-            assert.ok(!err);
-          }
-        );
+        RestAPI.Content.updateFileBody(contexts.branden.restContext, contentObj.id, getFileStream, err => {
+          assert.ok(!err);
+        });
 
         ActivityTestsUtil.waitForPushActivity(
           client,
@@ -334,15 +299,11 @@ describe('Content Push', () => {
           null,
           activity => {
             // Verify we have the latest revision id available for reloading of any links/images
-            RestAPI.Content.getContent(
-              contexts.branden.restContext,
-              contentObj.id,
-              (err, contentObj) => {
-                assert.ok(!err);
-                assert.strictEqual(activity.object.latestRevisionId, contentObj.latestRevisionId);
-                return client.close(callback);
-              }
-            );
+            RestAPI.Content.getContent(contexts.branden.restContext, contentObj.id, (err, contentObj) => {
+              assert.ok(!err);
+              assert.strictEqual(activity.object.latestRevisionId, contentObj.latestRevisionId);
+              return client.close(callback);
+            });
           }
         );
       });
@@ -356,48 +317,36 @@ describe('Content Push', () => {
         const initialRevisionId = contentObj.latestRevisionId;
 
         // Upload a new revision
-        RestAPI.Content.updateFileBody(
-          contexts.branden.restContext,
-          contentObj.id,
-          getFileStream,
-          err => {
-            assert.ok(!err);
+        RestAPI.Content.updateFileBody(contexts.branden.restContext, contentObj.id, getFileStream, err => {
+          assert.ok(!err);
 
-            // Restore the previous revision
-            RestAPI.Content.restoreRevision(
-              contexts.branden.restContext,
-              contentObj.id,
-              initialRevisionId,
-              (err, revisionObj) => {
+          // Restore the previous revision
+          RestAPI.Content.restoreRevision(
+            contexts.branden.restContext,
+            contentObj.id,
+            initialRevisionId,
+            (err, revisionObj) => {
+              assert.ok(!err);
+            }
+          );
+
+          ActivityTestsUtil.waitForPushActivity(
+            client,
+            ContentConstants.activity.ACTIVITY_CONTENT_RESTORED_REVISION,
+            ActivityConstants.verbs.UPDATE,
+            contexts.branden.user.id,
+            contentObj.id,
+            null,
+            activity => {
+              // Verify we have the latest revision id available for reloading of any links/images
+              RestAPI.Content.getContent(contexts.branden.restContext, contentObj.id, (err, contentObj) => {
                 assert.ok(!err);
-              }
-            );
-
-            ActivityTestsUtil.waitForPushActivity(
-              client,
-              ContentConstants.activity.ACTIVITY_CONTENT_RESTORED_REVISION,
-              ActivityConstants.verbs.UPDATE,
-              contexts.branden.user.id,
-              contentObj.id,
-              null,
-              activity => {
-                // Verify we have the latest revision id available for reloading of any links/images
-                RestAPI.Content.getContent(
-                  contexts.branden.restContext,
-                  contentObj.id,
-                  (err, contentObj) => {
-                    assert.ok(!err);
-                    assert.strictEqual(
-                      activity.object.latestRevisionId,
-                      contentObj.latestRevisionId
-                    );
-                    return client.close(callback);
-                  }
-                );
-              }
-            );
-          }
-        );
+                assert.strictEqual(activity.object.latestRevisionId, contentObj.latestRevisionId);
+                return client.close(callback);
+              });
+            }
+          );
+        });
       });
     });
 
@@ -410,8 +359,8 @@ describe('Content Push', () => {
         let activity = null;
 
         /*!
-                 * Perform the assertions between the activity and comment and finish the test
-                 */
+         * Perform the assertions between the activity and comment and finish the test
+         */
         const _assertAndCallback = _.after(2, () => {
           // Verify that we have access to the message body and createdBy property
           assert.strictEqual(activity.object[ActivityConstants.properties.OAE_ID], comment.id);
@@ -464,8 +413,8 @@ describe('Content Push', () => {
             let activity = null;
 
             /*!
-                     * Perform the assertions between the activity and comment and finish the test
-                     */
+             * Perform the assertions between the activity and comment and finish the test
+             */
             const _assertAndCallback = _.after(2, () => {
               // Verify that we have access to the message body and createdBy property
               assert.strictEqual(activity.object[ActivityConstants.properties.OAE_ID], comment.id);

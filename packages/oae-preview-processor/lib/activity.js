@@ -13,40 +13,37 @@
  * permissions and limitations under the License.
  */
 
-const ActivityAPI = require('oae-activity');
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const ActivityModel = require('oae-activity/lib/model');
-const { Context } = require('oae-context');
+import * as ActivityAPI from 'oae-activity';
+import * as ActivityModel from 'oae-activity/lib/model';
+import * as PreviewProcessorAPI from 'oae-preview-processor';
 
-const PreviewProcessorAPI = require('oae-preview-processor');
-const PreviewConstants = require('./constants');
+import { Context } from 'oae-context';
+import { ActivityConstants } from 'oae-activity/lib/constants';
+import PreviewConstants from './constants';
 
-PreviewProcessorAPI.emitter.on(
-  PreviewConstants.EVENTS.PREVIEWS_FINISHED,
-  (content, revision, status) => {
-    // Add the previews status.
-    // The actual images will be added by the content activity entity transformer
-    content.previews = content.previews || {};
-    content.previews.status = status;
+PreviewProcessorAPI.emitter.on(PreviewConstants.EVENTS.PREVIEWS_FINISHED, (content, revision, status) => {
+  // Add the previews status.
+  // The actual images will be added by the content activity entity transformer
+  content.previews = content.previews || {};
+  content.previews.status = status;
 
-    const millis = Date.now();
-    const actorResource = new ActivityModel.ActivitySeedResource('system', 'system', null);
-    const objectResource = new ActivityModel.ActivitySeedResource('content', content.id, {
-      content
-    });
-    const activitySeed = new ActivityModel.ActivitySeed(
-      PreviewConstants.EVENTS.PREVIEWS_FINISHED,
-      millis,
-      ActivityConstants.verbs.CREATE,
-      actorResource,
-      objectResource
-    );
+  const millis = Date.now();
+  const actorResource = new ActivityModel.ActivitySeedResource('system', 'system', null);
+  const objectResource = new ActivityModel.ActivitySeedResource('content', content.id, {
+    content
+  });
+  const activitySeed = new ActivityModel.ActivitySeed(
+    PreviewConstants.EVENTS.PREVIEWS_FINISHED,
+    millis,
+    ActivityConstants.verbs.CREATE,
+    actorResource,
+    objectResource
+  );
 
-    // Fake a request context
-    const ctx = new Context(content.tenant);
-    ActivityAPI.postActivity(ctx, activitySeed);
-  }
-);
+  // Fake a request context
+  const ctx = new Context(content.tenant);
+  ActivityAPI.postActivity(ctx, activitySeed);
+});
 
 ActivityAPI.registerActivityType(PreviewConstants.EVENTS.PREVIEWS_FINISHED, {
   groupBy: [{ actor: true }],

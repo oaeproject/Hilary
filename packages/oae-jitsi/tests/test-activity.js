@@ -1,10 +1,10 @@
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const RestAPI = require('oae-rest');
-const TestsUtil = require('oae-tests');
-const EmailTestsUtil = require('oae-email/lib/test/util');
-const ActivityTestsUtil = require('oae-activity/lib/test/util');
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
+import * as EmailTestsUtil from 'oae-email/lib/test/util';
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
 
 describe('Meeting Activity', () => {
   // Rest contexts that can be used performing rest requests
@@ -204,10 +204,7 @@ describe('Meeting Activity', () => {
                   // Verify the meeting-jitsi-share activity
                   const activity = activityStream.items[0];
                   assert.ok(activity);
-                  assert.strictEqual(
-                    activity['oae:activityType'],
-                    'meeting-jitsi-update-member-role'
-                  );
+                  assert.strictEqual(activity['oae:activityType'], 'meeting-jitsi-update-member-role');
                   assert.strictEqual(activity.actor['oae:id'], simon.user.id);
                   assert.strictEqual(activity.object['oae:id'], nico.user.id);
                   assert.strictEqual(activity.target['oae:id'], meeting.id);
@@ -263,10 +260,7 @@ describe('Meeting Activity', () => {
                     assert.ok(activity);
                     assert.strictEqual(activity['oae:activityType'], 'meeting-jitsi-message');
                     assert.strictEqual(activity.actor['oae:id'], simon.user.id);
-                    assert.strictEqual(
-                      activity.object['oae:id'],
-                      meeting.id + '#' + activity.object.published
-                    );
+                    assert.strictEqual(activity.object['oae:id'], meeting.id + '#' + activity.object.published);
 
                     return callback();
                   }
@@ -383,44 +377,36 @@ describe('Meeting Activity', () => {
               // Share the meeting
               const updates = {};
               updates[publicUser.user.id] = 'member';
-              RestAPI.MeetingsJitsi.updateMembers(
-                privateUser.restContext,
-                meeting.id,
-                updates,
-                err => {
-                  assert.ok(!err);
+              RestAPI.MeetingsJitsi.updateMembers(privateUser.restContext, meeting.id, updates, err => {
+                assert.ok(!err);
 
-                  // Collect a second time the email queue
-                  EmailTestsUtil.collectAndFetchAllEmails(emails => {
-                    // There should be exactly one email
-                    assert.strictEqual(emails.length, 1);
+                // Collect a second time the email queue
+                EmailTestsUtil.collectAndFetchAllEmails(emails => {
+                  // There should be exactly one email
+                  assert.strictEqual(emails.length, 1);
 
-                    const stringEmail = JSON.stringify(emails[0]);
-                    const email = emails[0];
+                  const stringEmail = JSON.stringify(emails[0]);
+                  const email = emails[0];
 
-                    // Sanity check that the email is to the shared target
-                    assert.strictEqual(email.to[0].address, publicUser.user.email);
+                  // Sanity check that the email is to the shared target
+                  assert.strictEqual(email.to[0].address, publicUser.user.email);
 
-                    // Ensure some data expected to be in the email is there
-                    assert.notStrictEqual(
-                      stringEmail.indexOf(privateUser.restContext.hostHeader),
-                      -1
-                    );
-                    assert.notStrictEqual(stringEmail.indexOf(meeting.profilePath), -1);
-                    assert.notStrictEqual(stringEmail.indexOf(meeting.displayName), -1);
+                  // Ensure some data expected to be in the email is there
+                  assert.notStrictEqual(stringEmail.indexOf(privateUser.restContext.hostHeader), -1);
+                  assert.notStrictEqual(stringEmail.indexOf(meeting.profilePath), -1);
+                  assert.notStrictEqual(stringEmail.indexOf(meeting.displayName), -1);
 
-                    // Ensure private data is nowhere to be found
-                    assert.strictEqual(stringEmail.indexOf(privateUser.user.displayName), -1);
-                    assert.strictEqual(stringEmail.indexOf(privateUser.user.email), -1);
-                    assert.strictEqual(stringEmail.indexOf(privateUser.user.locale), -1);
+                  // Ensure private data is nowhere to be found
+                  assert.strictEqual(stringEmail.indexOf(privateUser.user.displayName), -1);
+                  assert.strictEqual(stringEmail.indexOf(privateUser.user.email), -1);
+                  assert.strictEqual(stringEmail.indexOf(privateUser.user.locale), -1);
 
-                    // Ensure the public alias of the private user is present
-                    assert.notStrictEqual(stringEmail.indexOf('swappedFromPublicAlias'), -1);
+                  // Ensure the public alias of the private user is present
+                  assert.notStrictEqual(stringEmail.indexOf('swappedFromPublicAlias'), -1);
 
-                    return callback();
-                  });
-                }
-              );
+                  return callback();
+                });
+              });
             });
           }
         );
@@ -450,44 +436,36 @@ describe('Meeting Activity', () => {
               EmailTestsUtil.collectAndFetchAllEmails(emails => {
                 // Update the meeting's metadata
                 const updates = { displayName: 'new-display-name' };
-                RestAPI.MeetingsJitsi.updateMeeting(
-                  privateUser.restContext,
-                  meeting.id,
-                  updates,
-                  (err, meeting) => {
-                    assert.ok(!err);
+                RestAPI.MeetingsJitsi.updateMeeting(privateUser.restContext, meeting.id, updates, (err, meeting) => {
+                  assert.ok(!err);
 
-                    // Collect a second time the email queue
-                    EmailTestsUtil.collectAndFetchAllEmails(emails => {
-                      // There should be exactly one email
-                      assert.strictEqual(emails.length, 1);
+                  // Collect a second time the email queue
+                  EmailTestsUtil.collectAndFetchAllEmails(emails => {
+                    // There should be exactly one email
+                    assert.strictEqual(emails.length, 1);
 
-                      const stringEmail = JSON.stringify(emails[0]);
-                      const email = emails[0];
+                    const stringEmail = JSON.stringify(emails[0]);
+                    const email = emails[0];
 
-                      // Sanity check that the email is to the shared target
-                      assert.strictEqual(email.to[0].address, publicUser.user.email);
+                    // Sanity check that the email is to the shared target
+                    assert.strictEqual(email.to[0].address, publicUser.user.email);
 
-                      // Ensure some data expected to be in the email is there
-                      assert.notStrictEqual(
-                        stringEmail.indexOf(privateUser.restContext.hostHeader),
-                        -1
-                      );
-                      assert.notStrictEqual(stringEmail.indexOf(meeting.profilePath), -1);
-                      assert.notStrictEqual(stringEmail.indexOf(meeting.displayName), -1);
+                    // Ensure some data expected to be in the email is there
+                    assert.notStrictEqual(stringEmail.indexOf(privateUser.restContext.hostHeader), -1);
+                    assert.notStrictEqual(stringEmail.indexOf(meeting.profilePath), -1);
+                    assert.notStrictEqual(stringEmail.indexOf(meeting.displayName), -1);
 
-                      // Ensure private data is nowhere to be found
-                      assert.strictEqual(stringEmail.indexOf(privateUser.user.displayName), -1);
-                      assert.strictEqual(stringEmail.indexOf(privateUser.user.email), -1);
-                      assert.strictEqual(stringEmail.indexOf(privateUser.user.locale), -1);
+                    // Ensure private data is nowhere to be found
+                    assert.strictEqual(stringEmail.indexOf(privateUser.user.displayName), -1);
+                    assert.strictEqual(stringEmail.indexOf(privateUser.user.email), -1);
+                    assert.strictEqual(stringEmail.indexOf(privateUser.user.locale), -1);
 
-                      // Ensure the public alias of the private user is present
-                      assert.notStrictEqual(stringEmail.indexOf('swappedFromPublicAlias'), -1);
+                    // Ensure the public alias of the private user is present
+                    assert.notStrictEqual(stringEmail.indexOf('swappedFromPublicAlias'), -1);
 
-                      return callback();
-                    });
-                  }
-                );
+                    return callback();
+                  });
+                });
               });
             }
           );
@@ -514,45 +492,36 @@ describe('Meeting Activity', () => {
             // Collect a first time the email queue to empty it
             EmailTestsUtil.collectAndFetchAllEmails(emails => {
               // Post a comment
-              RestAPI.MeetingsJitsi.createComment(
-                privateUser.restContext,
-                meeting.id,
-                'Hello world !',
-                null,
-                err => {
-                  assert.ok(!err);
+              RestAPI.MeetingsJitsi.createComment(privateUser.restContext, meeting.id, 'Hello world !', null, err => {
+                assert.ok(!err);
 
-                  // Collect a second time the email queue
-                  EmailTestsUtil.collectAndFetchAllEmails(emails => {
-                    // There should be exactly one email
-                    assert.strictEqual(emails.length, 1);
+                // Collect a second time the email queue
+                EmailTestsUtil.collectAndFetchAllEmails(emails => {
+                  // There should be exactly one email
+                  assert.strictEqual(emails.length, 1);
 
-                    const stringEmail = JSON.stringify(emails[0]);
-                    const email = emails[0];
+                  const stringEmail = JSON.stringify(emails[0]);
+                  const email = emails[0];
 
-                    // Sanity check that the email is to the shared target
-                    assert.strictEqual(email.to[0].address, publicUser.user.email);
+                  // Sanity check that the email is to the shared target
+                  assert.strictEqual(email.to[0].address, publicUser.user.email);
 
-                    // Ensure some data expected to be in the email is there
-                    assert.notStrictEqual(
-                      stringEmail.indexOf(privateUser.restContext.hostHeader),
-                      -1
-                    );
-                    assert.notStrictEqual(stringEmail.indexOf(meeting.profilePath), -1);
-                    assert.notStrictEqual(stringEmail.indexOf(meeting.displayName), -1);
+                  // Ensure some data expected to be in the email is there
+                  assert.notStrictEqual(stringEmail.indexOf(privateUser.restContext.hostHeader), -1);
+                  assert.notStrictEqual(stringEmail.indexOf(meeting.profilePath), -1);
+                  assert.notStrictEqual(stringEmail.indexOf(meeting.displayName), -1);
 
-                    // Ensure private data is nowhere to be found
-                    assert.strictEqual(stringEmail.indexOf(privateUser.user.displayName), -1);
-                    assert.strictEqual(stringEmail.indexOf(privateUser.user.email), -1);
-                    assert.strictEqual(stringEmail.indexOf(privateUser.user.locale), -1);
+                  // Ensure private data is nowhere to be found
+                  assert.strictEqual(stringEmail.indexOf(privateUser.user.displayName), -1);
+                  assert.strictEqual(stringEmail.indexOf(privateUser.user.email), -1);
+                  assert.strictEqual(stringEmail.indexOf(privateUser.user.locale), -1);
 
-                    // Ensure the public alias of the private user is present
-                    assert.notStrictEqual(stringEmail.indexOf('swappedFromPublicAlias'), -1);
+                  // Ensure the public alias of the private user is present
+                  assert.notStrictEqual(stringEmail.indexOf('swappedFromPublicAlias'), -1);
 
-                    return callback();
-                  });
-                }
-              );
+                  return callback();
+                });
+              });
             });
           }
         );

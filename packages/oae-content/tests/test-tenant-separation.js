@@ -13,17 +13,17 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const util = require('util');
-const _ = require('underscore');
+import assert from 'assert';
+import util from 'util';
+import _ from 'underscore';
 
-const AuthzUtil = require('oae-authz/lib/util');
-const ConfigTestUtil = require('oae-config/lib/test/util');
-const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
-const TestsUtil = require('oae-tests');
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
+import * as ContentTestUtil from 'oae-content/lib/test/util';
 
-const ContentTestUtil = require('oae-content/lib/test/util');
+import { RestContext } from 'oae-rest/lib/model';
 
 describe('Content', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user

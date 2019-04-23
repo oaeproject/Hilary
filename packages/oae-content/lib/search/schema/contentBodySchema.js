@@ -22,11 +22,9 @@
  *         {String}     schema.body     A free-text string representing the body of the content
  */
 /* eslint-disable unicorn/filename-case */
-module.exports = {
-  body: {
-    type: 'string',
-    store: 'no',
-    index: 'analyzed',
-    analyzer: 'text_content'
-  }
+export const body = {
+  type: 'string',
+  store: 'no',
+  index: 'analyzed',
+  analyzer: 'text_content'
 };

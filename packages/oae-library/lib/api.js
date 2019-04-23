@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
-module.exports.Index = require('./api.index');
-module.exports.Authz = require('./api.authz');
-module.exports.Search = require('./api.search');
+import * as Index from './api.index';
+import * as Authz from './api.authz';
+import * as Search from './api.search';
+
+export { Index, Authz, Search };

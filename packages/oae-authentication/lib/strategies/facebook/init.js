@@ -13,29 +13,28 @@
  * permissions and limitations under the License.
  */
 
-const FacebookStrategy = require('passport-facebook').Strategy;
+import passport from 'passport-facebook';
 
-const ConfigAPI = require('oae-config');
-const log = require('oae-logger').logger('oae-authentication');
+import * as ConfigAPI from 'oae-config';
+import { logger } from 'oae-logger';
 
-const AuthenticationAPI = require('oae-authentication');
+import * as AuthenticationAPI from 'oae-authentication';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants';
+import * as AuthenticationUtil from 'oae-authentication/lib/util';
 
-const AuthenticationConfig = ConfigAPI.config('oae-authentication');
-const { AuthenticationConstants } = require('oae-authentication/lib/constants');
-const AuthenticationUtil = require('oae-authentication/lib/util');
+const FacebookStrategy = passport.Strategy;
+const log = logger('oae-authentication');
 
-module.exports = function() {
+const AuthenticationConfig = ConfigAPI.setUpConfig('oae-authentication');
+
+export default function() {
   const strategy = {};
 
   /**
    * @see oae-authentication/lib/strategy#shouldBeEnabled
    */
   strategy.shouldBeEnabled = function(tenantAlias) {
-    return AuthenticationConfig.getValue(
-      tenantAlias,
-      AuthenticationConstants.providers.FACEBOOK,
-      'enabled'
-    );
+    return AuthenticationConfig.getValue(tenantAlias, AuthenticationConstants.providers.FACEBOOK, 'enabled');
   };
 
   /**
@@ -43,11 +42,7 @@ module.exports = function() {
    */
   strategy.getPassportStrategy = function(tenant) {
     // We fetch the config values *in* the getPassportStrategy so it can be re-configured at run-time.
-    const clientID = AuthenticationConfig.getValue(
-      tenant.alias,
-      AuthenticationConstants.providers.FACEBOOK,
-      'appid'
-    );
+    const clientID = AuthenticationConfig.getValue(tenant.alias, AuthenticationConstants.providers.FACEBOOK, 'appid');
     const clientSecret = AuthenticationConfig.getValue(
       tenant.alias,
       AuthenticationConstants.providers.FACEBOOK,
@@ -60,10 +55,7 @@ module.exports = function() {
         clientSecret,
         passReqToCallback: true,
         profileFields: ['id', 'displayName', 'photos', 'emails'],
-        callbackURL: AuthenticationUtil.constructCallbackUrl(
-          tenant,
-          AuthenticationConstants.providers.FACEBOOK
-        )
+        callbackURL: AuthenticationUtil.constructCallbackUrl(tenant, AuthenticationConstants.providers.FACEBOOK)
       },
       (req, accessToken, refreshToken, profile, done) => {
         log().trace({ tenant, profile }, 'Received Facebook authentication callback');
@@ -98,4 +90,4 @@ module.exports = function() {
 
   // Register our strategy.
   AuthenticationAPI.registerStrategy(AuthenticationConstants.providers.FACEBOOK, strategy);
-};
+}

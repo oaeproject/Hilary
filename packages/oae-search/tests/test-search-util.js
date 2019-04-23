@@ -13,14 +13,14 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const { Context } = require('oae-context');
-const TestsUtil = require('oae-tests/lib/util');
+import { Context } from 'oae-context';
+import { SearchConstants } from 'oae-search/lib/constants';
 
-const { SearchConstants } = require('oae-search/lib/constants');
-const SearchUtil = require('oae-search/lib/util');
+import * as TestsUtil from 'oae-tests/lib/util';
+import * as SearchUtil from 'oae-search/lib/util';
 
 describe('Search Util', () => {
   describe('#getSearchParams', () => {
@@ -300,18 +300,12 @@ describe('Search Util', () => {
       assert.strictEqual(filterOneResource.and[1].terms.resourceType[0], 'content');
       assert.strictEqual(filterOneResource.and[2].not.exists.field, 'deleted');
 
-      const filterAllDeletedResources = SearchUtil.filterResources(
-        null,
-        SearchConstants.deleted.ONLY
-      );
+      const filterAllDeletedResources = SearchUtil.filterResources(null, SearchConstants.deleted.ONLY);
       assert.strictEqual(filterAllDeletedResources.and.length, 2);
       assert.strictEqual(filterAllDeletedResources.and[0].term._type, 'resource');
       assert.strictEqual(filterAllDeletedResources.and[1].exists.field, 'deleted');
 
-      const filterAllDeletedAndExistingResources = SearchUtil.filterResources(
-        null,
-        SearchConstants.deleted.BOTH
-      );
+      const filterAllDeletedAndExistingResources = SearchUtil.filterResources(null, SearchConstants.deleted.BOTH);
       assert.strictEqual(filterAllDeletedAndExistingResources.term._type, 'resource');
 
       return callback();
@@ -398,16 +392,10 @@ describe('Search Util', () => {
       assert.strictEqual(SearchUtil.getSortDirParam(validType, validType2), validType);
       assert.strictEqual(SearchUtil.getSortDirParam(validType), validType);
       assert.strictEqual(SearchUtil.getSortDirParam('not-valid', validType), validType);
-      assert.strictEqual(
-        SearchUtil.getSortDirParam('not-valid', 'not-valid'),
-        SearchConstants.sort.direction.ASC
-      );
+      assert.strictEqual(SearchUtil.getSortDirParam('not-valid', 'not-valid'), SearchConstants.sort.direction.ASC);
       assert.strictEqual(SearchUtil.getSortDirParam(validType), validType);
       assert.strictEqual(SearchUtil.getSortDirParam(null, validType), validType);
-      assert.strictEqual(
-        SearchUtil.getSortDirParam(null, null),
-        SearchConstants.sort.direction.ASC
-      );
+      assert.strictEqual(SearchUtil.getSortDirParam(null, null), SearchConstants.sort.direction.ASC);
       assert.strictEqual(SearchUtil.getSortDirParam(validType), validType);
       assert.strictEqual(SearchUtil.getSortDirParam(undefined, validType), validType);
       assert.strictEqual(SearchUtil.getSortDirParam(), SearchConstants.sort.direction.ASC);
@@ -422,16 +410,10 @@ describe('Search Util', () => {
       const tenantAlias = global.oaeTests.tenants.cam.alias;
       assert.strictEqual(SearchUtil.getScopeParam(), SearchConstants.general.SCOPE_ALL);
       assert.strictEqual(SearchUtil.getScopeParam('invalid'), SearchConstants.general.SCOPE_ALL);
-      assert.strictEqual(
-        SearchUtil.getScopeParam('invalid', 'invalid'),
-        SearchConstants.general.SCOPE_ALL
-      );
+      assert.strictEqual(SearchUtil.getScopeParam('invalid', 'invalid'), SearchConstants.general.SCOPE_ALL);
       assert.strictEqual(SearchUtil.getScopeParam('invalid', tenantAlias), tenantAlias);
       assert.strictEqual(SearchUtil.getScopeParam(tenantAlias), tenantAlias);
-      assert.strictEqual(
-        SearchUtil.getScopeParam(tenantAlias, SearchConstants.general.SCOPE_ALL),
-        tenantAlias
-      );
+      assert.strictEqual(SearchUtil.getScopeParam(tenantAlias, SearchConstants.general.SCOPE_ALL), tenantAlias);
       assert.strictEqual(
         SearchUtil.getScopeParam(SearchConstants.general.SCOPE_ALL, tenantAlias),
         SearchConstants.general.SCOPE_ALL

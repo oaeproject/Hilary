@@ -13,22 +13,22 @@
  * permissions and limitations under the License.
  */
 
-const ActivityAPI = require('oae-activity');
-const ActivityPush = require('./internal/push');
+import * as ActivityAPI from 'oae-activity';
+import * as ActivityPush from './internal/push';
 
 // Register some of the default streams
 // eslint-disable-next-line import/no-unassigned-import
-require('./activity');
+import * as Activity from './activity';
 
 // Bind the notification event listeners
 // eslint-disable-next-line import/no-unassigned-import
-require('./internal/notifications');
+import * as Notifications from './internal/notifications';
 
 // Bind the email event listeners
 // eslint-disable-next-line import/no-unassigned-import
-require('./internal/email');
+import * as Email from './internal/email';
 
-module.exports = function(config, callback) {
+export function init(config, callback) {
   ActivityAPI.refreshConfiguration(config.activity, err => {
     if (err) {
       return callback(err);
@@ -37,4 +37,4 @@ module.exports = function(config, callback) {
     // Configure the push notifications
     ActivityPush.init(callback);
   });
-};
+}

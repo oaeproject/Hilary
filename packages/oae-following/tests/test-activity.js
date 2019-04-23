@@ -13,22 +13,20 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const ActivityTestsUtil = require('oae-activity/lib/test/util');
-const { ContentConstants } = require('oae-content/lib/constants');
-const { DiscussionsConstants } = require('oae-discussions/lib/constants');
-const EmailTestsUtil = require('oae-email/lib/test/util');
-const { PrincipalsConstants } = require('oae-principals/lib/constants');
-const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
-const RestUtil = require('oae-rest/lib/util');
-const TestsUtil = require('oae-tests/lib/util');
+import { ActivityConstants } from 'oae-activity/lib/constants';
+import { PrincipalsConstants } from 'oae-principals/lib/constants';
+import { ContentConstants } from 'oae-content/lib/constants';
+import { DiscussionsConstants } from 'oae-discussions/lib/constants';
+import { FollowingConstants } from 'oae-following/lib/constants';
 
-const { FollowingConstants } = require('oae-following/lib/constants');
-const FollowingTestsUtil = require('oae-following/lib/test/util');
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
+import * as EmailTestsUtil from 'oae-email/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests/lib/util';
+import * as FollowingTestsUtil from 'oae-following/lib/test/util';
 
 describe('Following Activity', () => {
   let camAdminRestContext = null;
@@ -44,17 +42,17 @@ describe('Following Activity', () => {
   });
 
   /*!
-     * Clear any pending/collected emails so they don't impact the following tests
-     */
+   * Clear any pending/collected emails so they don't impact the following tests
+   */
   beforeEach(EmailTestsUtil.clearEmailCollections);
 
   /*!
-     * Verify the contents of the follow activity
-     *
-     * @param  {Activity}   followActivity      The activity whose content to verify
-     * @param  {String}     actorUserId         The id of the user that should be the actor
-     * @param  {String}     objectUserId        The id of the user that should be the object
-     */
+   * Verify the contents of the follow activity
+   *
+   * @param  {Activity}   followActivity      The activity whose content to verify
+   * @param  {String}     actorUserId         The id of the user that should be the actor
+   * @param  {String}     objectUserId        The id of the user that should be the object
+   */
   const _assertFollowActivity = function(followActivity, actorUserId, objectUserId) {
     ActivityTestsUtil.assertActivity(
       followActivity,
@@ -72,27 +70,17 @@ describe('Following Activity', () => {
     // Create 2 users, one following the other
     FollowingTestsUtil.createFollowerAndFollowed(camAdminRestContext, (follower, followed) => {
       // Get the follower's activity stream and ensure the activity is there
-      ActivityTestsUtil.collectAndGetActivityStream(
-        follower.restContext,
-        follower.user.id,
-        null,
-        (err, response) => {
+      ActivityTestsUtil.collectAndGetActivityStream(follower.restContext, follower.user.id, null, (err, response) => {
+        assert.ok(!err);
+        _assertFollowActivity(response.items[0], follower.user.id, followed.user.id);
+
+        // Get the followed user's activity stream and ensure the activity is there
+        ActivityTestsUtil.collectAndGetActivityStream(followed.restContext, followed.user.id, null, (err, response) => {
           assert.ok(!err);
           _assertFollowActivity(response.items[0], follower.user.id, followed.user.id);
-
-          // Get the followed user's activity stream and ensure the activity is there
-          ActivityTestsUtil.collectAndGetActivityStream(
-            followed.restContext,
-            followed.user.id,
-            null,
-            (err, response) => {
-              assert.ok(!err);
-              _assertFollowActivity(response.items[0], follower.user.id, followed.user.id);
-              return callback();
-            }
-          );
-        }
-      );
+          return callback();
+        });
+      });
     });
   });
 
@@ -349,160 +337,143 @@ describe('Following Activity', () => {
                                 // Followed user adds nico to the first group
                                 let updateMembers = {};
                                 updateMembers[nico.user.id] = 'member';
-                                RestAPI.Group.setGroupMembers(
-                                  followed.restContext,
-                                  group0.id,
-                                  updateMembers,
-                                  err => {
-                                    assert.ok(!err);
+                                RestAPI.Group.setGroupMembers(followed.restContext, group0.id, updateMembers, err => {
+                                  assert.ok(!err);
 
-                                    // Ensure the following user **does not** get this activity. To do this, we ensure the latest activity is still the discussion they created earlier
-                                    ActivityTestsUtil.collectAndGetActivityStream(
-                                      follower.restContext,
-                                      follower.user.id,
-                                      null,
-                                      (err, response) => {
+                                  // Ensure the following user **does not** get this activity. To do this, we ensure the latest activity is still the discussion they created earlier
+                                  ActivityTestsUtil.collectAndGetActivityStream(
+                                    follower.restContext,
+                                    follower.user.id,
+                                    null,
+                                    (err, response) => {
+                                      assert.ok(!err);
+                                      ActivityTestsUtil.assertActivity(
+                                        response.items[0],
+                                        DiscussionsConstants.activity.ACTIVITY_DISCUSSION_CREATE,
+                                        ActivityConstants.verbs.CREATE,
+                                        followed.user.id,
+                                        discussion0.id
+                                      );
+
+                                      // Nico adds the followed user to the second group
+                                      updateMembers = {};
+                                      updateMembers[followed.user.id] = 'member';
+                                      RestAPI.Group.setGroupMembers(nico.restContext, group1.id, updateMembers, err => {
                                         assert.ok(!err);
-                                        ActivityTestsUtil.assertActivity(
-                                          response.items[0],
-                                          DiscussionsConstants.activity.ACTIVITY_DISCUSSION_CREATE,
-                                          ActivityConstants.verbs.CREATE,
-                                          followed.user.id,
-                                          discussion0.id
-                                        );
 
-                                        // Nico adds the followed user to the second group
-                                        updateMembers = {};
-                                        updateMembers[followed.user.id] = 'member';
-                                        RestAPI.Group.setGroupMembers(
-                                          nico.restContext,
-                                          group1.id,
-                                          updateMembers,
-                                          err => {
+                                        // Ensure the following user got this activity
+                                        ActivityTestsUtil.collectAndGetActivityStream(
+                                          follower.restContext,
+                                          follower.user.id,
+                                          null,
+                                          (err, response) => {
                                             assert.ok(!err);
+                                            ActivityTestsUtil.assertActivity(
+                                              response.items[0],
+                                              PrincipalsConstants.activity.ACTIVITY_GROUP_ADD_MEMBER,
+                                              ActivityConstants.verbs.ADD,
+                                              nico.user.id,
+                                              followed.user.id,
+                                              group1.id
+                                            );
 
-                                            // Ensure the following user got this activity
-                                            ActivityTestsUtil.collectAndGetActivityStream(
-                                              follower.restContext,
-                                              follower.user.id,
-                                              null,
-                                              (err, response) => {
+                                            // Followed user shares the first link with nico
+                                            RestAPI.Content.shareContent(
+                                              followed.restContext,
+                                              link0.id,
+                                              [nico.user.id],
+                                              err => {
                                                 assert.ok(!err);
-                                                ActivityTestsUtil.assertActivity(
-                                                  response.items[0],
-                                                  PrincipalsConstants.activity
-                                                    .ACTIVITY_GROUP_ADD_MEMBER,
-                                                  ActivityConstants.verbs.ADD,
-                                                  nico.user.id,
-                                                  followed.user.id,
-                                                  group1.id
-                                                );
 
-                                                // Followed user shares the first link with nico
-                                                RestAPI.Content.shareContent(
-                                                  followed.restContext,
-                                                  link0.id,
-                                                  [nico.user.id],
-                                                  err => {
+                                                // Ensure the follower **does not** get this activity in their feed. To do this, we ensure the latest activity is still the add group member activity from before
+                                                ActivityTestsUtil.collectAndGetActivityStream(
+                                                  follower.restContext,
+                                                  follower.user.id,
+                                                  null,
+                                                  (err, response) => {
                                                     assert.ok(!err);
+                                                    ActivityTestsUtil.assertActivity(
+                                                      response.items[0],
+                                                      PrincipalsConstants.activity.ACTIVITY_GROUP_ADD_MEMBER,
+                                                      ActivityConstants.verbs.ADD,
+                                                      nico.user.id,
+                                                      followed.user.id,
+                                                      group1.id
+                                                    );
 
-                                                    // Ensure the follower **does not** get this activity in their feed. To do this, we ensure the latest activity is still the add group member activity from before
-                                                    ActivityTestsUtil.collectAndGetActivityStream(
-                                                      follower.restContext,
-                                                      follower.user.id,
-                                                      null,
-                                                      (err, response) => {
+                                                    // Nico shares the second link with the followed user
+                                                    RestAPI.Content.shareContent(
+                                                      nico.restContext,
+                                                      link1.id,
+                                                      [followed.user.id],
+                                                      err => {
                                                         assert.ok(!err);
-                                                        ActivityTestsUtil.assertActivity(
-                                                          response.items[0],
-                                                          PrincipalsConstants.activity
-                                                            .ACTIVITY_GROUP_ADD_MEMBER,
-                                                          ActivityConstants.verbs.ADD,
-                                                          nico.user.id,
-                                                          followed.user.id,
-                                                          group1.id
-                                                        );
 
-                                                        // Nico shares the second link with the followed user
-                                                        RestAPI.Content.shareContent(
-                                                          nico.restContext,
-                                                          link1.id,
-                                                          [followed.user.id],
-                                                          err => {
+                                                        // Ensure the follower gets this activity in their feed
+                                                        ActivityTestsUtil.collectAndGetActivityStream(
+                                                          follower.restContext,
+                                                          follower.user.id,
+                                                          null,
+                                                          (err, response) => {
                                                             assert.ok(!err);
+                                                            ActivityTestsUtil.assertActivity(
+                                                              response.items[0],
+                                                              ContentConstants.activity.ACTIVITY_CONTENT_SHARE,
+                                                              ActivityConstants.verbs.SHARE,
+                                                              nico.user.id,
+                                                              link1.id,
+                                                              followed.user.id
+                                                            );
 
-                                                            // Ensure the follower gets this activity in their feed
-                                                            ActivityTestsUtil.collectAndGetActivityStream(
-                                                              follower.restContext,
-                                                              follower.user.id,
-                                                              null,
-                                                              (err, response) => {
+                                                            // Followed user shares the first discussion with nico
+                                                            RestAPI.Discussions.shareDiscussion(
+                                                              followed.restContext,
+                                                              discussion0.id,
+                                                              [nico.user.id],
+                                                              err => {
                                                                 assert.ok(!err);
-                                                                ActivityTestsUtil.assertActivity(
-                                                                  response.items[0],
-                                                                  ContentConstants.activity
-                                                                    .ACTIVITY_CONTENT_SHARE,
-                                                                  ActivityConstants.verbs.SHARE,
-                                                                  nico.user.id,
-                                                                  link1.id,
-                                                                  followed.user.id
-                                                                );
 
-                                                                // Followed user shares the first discussion with nico
-                                                                RestAPI.Discussions.shareDiscussion(
-                                                                  followed.restContext,
-                                                                  discussion0.id,
-                                                                  [nico.user.id],
-                                                                  err => {
+                                                                // Ensure the follower **does not** get this activity in their feed. To do this, we ensure the latest activity is still the content share activity from before
+                                                                ActivityTestsUtil.collectAndGetActivityStream(
+                                                                  follower.restContext,
+                                                                  follower.user.id,
+                                                                  null,
+                                                                  (err, response) => {
                                                                     assert.ok(!err);
+                                                                    ActivityTestsUtil.assertActivity(
+                                                                      response.items[0],
+                                                                      ContentConstants.activity.ACTIVITY_CONTENT_SHARE,
+                                                                      ActivityConstants.verbs.SHARE,
+                                                                      nico.user.id,
+                                                                      link1.id,
+                                                                      followed.user.id
+                                                                    );
 
-                                                                    // Ensure the follower **does not** get this activity in their feed. To do this, we ensure the latest activity is still the content share activity from before
-                                                                    ActivityTestsUtil.collectAndGetActivityStream(
-                                                                      follower.restContext,
-                                                                      follower.user.id,
-                                                                      null,
-                                                                      (err, response) => {
+                                                                    // Nico shares the second discussion with the followed user
+                                                                    RestAPI.Discussions.shareDiscussion(
+                                                                      nico.restContext,
+                                                                      discussion1.id,
+                                                                      [followed.user.id],
+                                                                      err => {
                                                                         assert.ok(!err);
-                                                                        ActivityTestsUtil.assertActivity(
-                                                                          response.items[0],
-                                                                          ContentConstants.activity
-                                                                            .ACTIVITY_CONTENT_SHARE,
-                                                                          ActivityConstants.verbs
-                                                                            .SHARE,
-                                                                          nico.user.id,
-                                                                          link1.id,
-                                                                          followed.user.id
-                                                                        );
 
-                                                                        // Nico shares the second discussion with the followed user
-                                                                        RestAPI.Discussions.shareDiscussion(
-                                                                          nico.restContext,
-                                                                          discussion1.id,
-                                                                          [followed.user.id],
-                                                                          err => {
+                                                                        // Ensure the follower gets this activity in their feed
+                                                                        ActivityTestsUtil.collectAndGetActivityStream(
+                                                                          follower.restContext,
+                                                                          follower.user.id,
+                                                                          null,
+                                                                          (err, response) => {
                                                                             assert.ok(!err);
-
-                                                                            // Ensure the follower gets this activity in their feed
-                                                                            ActivityTestsUtil.collectAndGetActivityStream(
-                                                                              follower.restContext,
-                                                                              follower.user.id,
-                                                                              null,
-                                                                              (err, response) => {
-                                                                                assert.ok(!err);
-                                                                                ActivityTestsUtil.assertActivity(
-                                                                                  response.items[0],
-                                                                                  DiscussionsConstants
-                                                                                    .activity
-                                                                                    .ACTIVITY_DISCUSSION_SHARE,
-                                                                                  ActivityConstants
-                                                                                    .verbs.SHARE,
-                                                                                  nico.user.id,
-                                                                                  discussion1.id,
-                                                                                  followed.user.id
-                                                                                );
-                                                                                return callback();
-                                                                              }
+                                                                            ActivityTestsUtil.assertActivity(
+                                                                              response.items[0],
+                                                                              DiscussionsConstants.activity
+                                                                                .ACTIVITY_DISCUSSION_SHARE,
+                                                                              ActivityConstants.verbs.SHARE,
+                                                                              nico.user.id,
+                                                                              discussion1.id,
+                                                                              followed.user.id
                                                                             );
+                                                                            return callback();
                                                                           }
                                                                         );
                                                                       }
@@ -521,10 +492,10 @@ describe('Following Activity', () => {
                                             );
                                           }
                                         );
-                                      }
-                                    );
-                                  }
-                                );
+                                      });
+                                    }
+                                  );
+                                });
                               }
                             );
                           }
@@ -558,50 +529,40 @@ describe('Following Activity', () => {
           assert.ok(!err);
 
           // Afterward, Cam user sets their visibility to loggedin
-          RestAPI.User.updateUser(
-            camUser.restContext,
-            camUser.user.id,
-            { visibility: 'loggedin' },
-            err => {
-              assert.ok(!err);
+          RestAPI.User.updateUser(camUser.restContext, camUser.user.id, { visibility: 'loggedin' }, err => {
+            assert.ok(!err);
 
-              // Then, Cam user creates a content item, which will create an activity that would have been sent to GT user if their privacy wasn't
-              // changed to loggedin
-              RestAPI.Content.createLink(
-                camUser.restContext,
-                'Google',
-                'Google',
-                'public',
-                'http://www.google.ca',
-                [],
-                [],
-                [],
-                (err, link) => {
+            // Then, Cam user creates a content item, which will create an activity that would have been sent to GT user if their privacy wasn't
+            // changed to loggedin
+            RestAPI.Content.createLink(
+              camUser.restContext,
+              'Google',
+              'Google',
+              'public',
+              'http://www.google.ca',
+              [],
+              [],
+              [],
+              (err, link) => {
+                assert.ok(!err);
+
+                // Verify that GT user did not receive the content creation activity
+                ActivityTestsUtil.collectAndGetActivityStream(gtUser.restContext, null, null, (err, response) => {
                   assert.ok(!err);
 
-                  // Verify that GT user did not receive the content creation activity
-                  ActivityTestsUtil.collectAndGetActivityStream(
-                    gtUser.restContext,
-                    null,
-                    null,
-                    (err, response) => {
-                      assert.ok(!err);
-
-                      // Ensure the GT user did not get the activity by ensuring their latest activity is the follow activity they performed
-                      ActivityTestsUtil.assertActivity(
-                        response.items[0],
-                        FollowingConstants.activity.ACTIVITY_FOLLOW,
-                        ActivityConstants.verbs.FOLLOW,
-                        gtUser.user.id,
-                        camUser.user.id
-                      );
-                      return callback();
-                    }
+                  // Ensure the GT user did not get the activity by ensuring their latest activity is the follow activity they performed
+                  ActivityTestsUtil.assertActivity(
+                    response.items[0],
+                    FollowingConstants.activity.ACTIVITY_FOLLOW,
+                    ActivityConstants.verbs.FOLLOW,
+                    gtUser.user.id,
+                    camUser.user.id
                   );
-                }
-              );
-            }
-          );
+                  return callback();
+                });
+              }
+            );
+          });
         });
       });
     });
@@ -613,50 +574,40 @@ describe('Following Activity', () => {
   it('verify followers from external tenants no longer receive activity for users who become private', callback => {
     FollowingTestsUtil.createFollowerAndFollowed(camAdminRestContext, (follower, followed) => {
       // Afterward, camUser sets their visibility to loggedin
-      RestAPI.User.updateUser(
-        followed.restContext,
-        followed.user.id,
-        { visibility: 'private' },
-        err => {
-          assert.ok(!err);
+      RestAPI.User.updateUser(followed.restContext, followed.user.id, { visibility: 'private' }, err => {
+        assert.ok(!err);
 
-          // Then, followed user creates a content item, which will create an activity that would have been sent to the follower if their
-          // privacy wasn't changed to private
-          RestAPI.Content.createLink(
-            followed.restContext,
-            'Google',
-            'Google',
-            'public',
-            'http://www.google.ca',
-            [],
-            [],
-            [],
-            (err, link) => {
+        // Then, followed user creates a content item, which will create an activity that would have been sent to the follower if their
+        // privacy wasn't changed to private
+        RestAPI.Content.createLink(
+          followed.restContext,
+          'Google',
+          'Google',
+          'public',
+          'http://www.google.ca',
+          [],
+          [],
+          [],
+          (err, link) => {
+            assert.ok(!err);
+
+            // Verify that follower user did not receive the content creation activity
+            ActivityTestsUtil.collectAndGetActivityStream(follower.restContext, null, null, (err, response) => {
               assert.ok(!err);
 
-              // Verify that follower user did not receive the content creation activity
-              ActivityTestsUtil.collectAndGetActivityStream(
-                follower.restContext,
-                null,
-                null,
-                (err, response) => {
-                  assert.ok(!err);
-
-                  // Ensure the gtUser did not get the activity by ensuring their latest activity is the follow activity they performed
-                  ActivityTestsUtil.assertActivity(
-                    response.items[0],
-                    FollowingConstants.activity.ACTIVITY_FOLLOW,
-                    ActivityConstants.verbs.FOLLOW,
-                    follower.user.id,
-                    followed.user.id
-                  );
-                  return callback();
-                }
+              // Ensure the gtUser did not get the activity by ensuring their latest activity is the follow activity they performed
+              ActivityTestsUtil.assertActivity(
+                response.items[0],
+                FollowingConstants.activity.ACTIVITY_FOLLOW,
+                ActivityConstants.verbs.FOLLOW,
+                follower.user.id,
+                followed.user.id
               );
-            }
-          );
-        }
-      );
+              return callback();
+            });
+          }
+        );
+      });
     });
   });
 
@@ -680,60 +631,52 @@ describe('Following Activity', () => {
           assert.strictEqual(messages[0].to[0].address, followed.user.email);
           assert.notStrictEqual(messages[0].html.indexOf(follower.user.profilePath), -1);
 
-          ActivityTestsUtil.collectAndGetNotificationStream(
-            followed.restContext,
-            null,
-            (err, response) => {
+          ActivityTestsUtil.collectAndGetNotificationStream(followed.restContext, null, (err, response) => {
+            assert.ok(!err);
+
+            // Only the follow activity should be in the stream
+            assert.strictEqual(response.items.length, 1);
+            ActivityTestsUtil.assertActivity(
+              response.items[0],
+              'following-follow',
+              'follow',
+              follower.user.id,
+              followed.user.id
+            );
+
+            // Ensure the unread notification count was set to 1
+            RestAPI.User.getMe(followed.restContext, (err, me) => {
               assert.ok(!err);
+              assert.strictEqual(me.notificationsUnread, 1);
 
-              // Only the follow activity should be in the stream
-              assert.strictEqual(response.items.length, 1);
-              ActivityTestsUtil.assertActivity(
-                response.items[0],
-                'following-follow',
-                'follow',
-                follower.user.id,
-                followed.user.id
-              );
-
-              // Ensure the unread notification count was set to 1
-              RestAPI.User.getMe(followed.restContext, (err, me) => {
+              // Another user follows our user
+              RestAPI.Following.follow(otherFollower.restContext, followed.user.id, err => {
                 assert.ok(!err);
-                assert.strictEqual(me.notificationsUnread, 1);
 
-                // Another user follows our user
-                RestAPI.Following.follow(otherFollower.restContext, followed.user.id, err => {
+                // Get the notifications for the followed user
+                ActivityTestsUtil.collectAndGetNotificationStream(followed.restContext, null, (err, response) => {
                   assert.ok(!err);
 
-                  // Get the notifications for the followed user
-                  ActivityTestsUtil.collectAndGetNotificationStream(
-                    followed.restContext,
-                    null,
-                    (err, response) => {
-                      assert.ok(!err);
-
-                      // There should be only 1 (aggregated) following-follow activity in the notification stream
-                      assert.strictEqual(response.items.length, 1);
-                      ActivityTestsUtil.assertActivity(
-                        response.items[0],
-                        'following-follow',
-                        'follow',
-                        [follower.user.id, otherFollower.user.id],
-                        followed.user.id
-                      );
-
-                      // Ensure the unread notification count is still 1
-                      RestAPI.User.getMe(followed.restContext, (err, me) => {
-                        assert.ok(!err);
-                        assert.strictEqual(me.notificationsUnread, 1);
-                        return callback();
-                      });
-                    }
+                  // There should be only 1 (aggregated) following-follow activity in the notification stream
+                  assert.strictEqual(response.items.length, 1);
+                  ActivityTestsUtil.assertActivity(
+                    response.items[0],
+                    'following-follow',
+                    'follow',
+                    [follower.user.id, otherFollower.user.id],
+                    followed.user.id
                   );
+
+                  // Ensure the unread notification count is still 1
+                  RestAPI.User.getMe(followed.restContext, (err, me) => {
+                    assert.ok(!err);
+                    assert.strictEqual(me.notificationsUnread, 1);
+                    return callback();
+                  });
                 });
               });
-            }
-          );
+            });
+          });
         });
       });
     });
@@ -743,52 +686,48 @@ describe('Following Activity', () => {
    * Test that verifies that users get a single aggregated activity in their email when multiple users follow them
    */
   it('verify users get a single aggregated activity in their email when 1 or multiple users follow them', callback => {
-    TestsUtil.generateTestUsers(
-      camAdminRestContext,
-      4,
-      (err, users, simon, branden, nico, bert) => {
+    TestsUtil.generateTestUsers(camAdminRestContext, 4, (err, users, simon, branden, nico, bert) => {
+      assert.ok(!err);
+
+      // Both Branden and Nico will follow Simon
+      RestAPI.Following.follow(branden.restContext, simon.user.id, err => {
         assert.ok(!err);
-
-        // Both Branden and Nico will follow Simon
-        RestAPI.Following.follow(branden.restContext, simon.user.id, err => {
+        RestAPI.Following.follow(nico.restContext, simon.user.id, err => {
           assert.ok(!err);
-          RestAPI.Following.follow(nico.restContext, simon.user.id, err => {
-            assert.ok(!err);
 
-            // Fetch the emails and ensure Simon got a single email with a single activity
-            EmailTestsUtil.collectAndFetchAllEmails(messages => {
-              assert.strictEqual(messages.length, 1);
-              assert.strictEqual(messages[0].to[0].address, simon.user.email);
-              assert.strictEqual(messages[0].html.match(/data-activity-id/g).length, 1);
+          // Fetch the emails and ensure Simon got a single email with a single activity
+          EmailTestsUtil.collectAndFetchAllEmails(messages => {
+            assert.strictEqual(messages.length, 1);
+            assert.strictEqual(messages[0].to[0].address, simon.user.email);
+            assert.strictEqual(messages[0].html.match(/data-activity-id/g).length, 1);
 
-              // Assert both Branden and Nico are mentioned in the email
-              assert.ok(messages[0].html.indexOf(branden.user.profilePath) > 0);
-              assert.ok(messages[0].html.indexOf(nico.user.profilePath) > 0);
+            // Assert both Branden and Nico are mentioned in the email
+            assert.ok(messages[0].html.indexOf(branden.user.profilePath) > 0);
+            assert.ok(messages[0].html.indexOf(nico.user.profilePath) > 0);
 
-              // Sanity check that with a single user a single activity is received
-              RestAPI.Following.follow(bert.restContext, simon.user.id, err => {
-                assert.ok(!err);
+            // Sanity check that with a single user a single activity is received
+            RestAPI.Following.follow(bert.restContext, simon.user.id, err => {
+              assert.ok(!err);
 
-                // Fetch the emails and ensure Simon got a single email with a single activity
-                EmailTestsUtil.collectAndFetchAllEmails(messages => {
-                  assert.strictEqual(messages.length, 1);
-                  assert.strictEqual(messages[0].to[0].address, simon.user.email);
-                  assert.strictEqual(messages[0].html.match(/data-activity-id/g).length, 1);
+              // Fetch the emails and ensure Simon got a single email with a single activity
+              EmailTestsUtil.collectAndFetchAllEmails(messages => {
+                assert.strictEqual(messages.length, 1);
+                assert.strictEqual(messages[0].to[0].address, simon.user.email);
+                assert.strictEqual(messages[0].html.match(/data-activity-id/g).length, 1);
 
-                  // Assert both Branden and Nico are not mentioned in the email
-                  assert.strictEqual(messages[0].html.indexOf(branden.user.profilePath), -1);
-                  assert.strictEqual(messages[0].html.indexOf(nico.user.profilePath), -1);
+                // Assert both Branden and Nico are not mentioned in the email
+                assert.strictEqual(messages[0].html.indexOf(branden.user.profilePath), -1);
+                assert.strictEqual(messages[0].html.indexOf(nico.user.profilePath), -1);
 
-                  // Assert Bert is mentioned in the email
-                  assert.ok(messages[0].html.indexOf(bert.user.profilePath) > 0);
-                  return callback();
-                });
+                // Assert Bert is mentioned in the email
+                assert.ok(messages[0].html.indexOf(bert.user.profilePath) > 0);
+                return callback();
               });
             });
           });
         });
-      }
-    );
+      });
+    });
   });
 
   /**
@@ -804,97 +743,87 @@ describe('Following Activity', () => {
       const bert = _.values(users)[2];
 
       /*!
-             * Following has 2 "groupBy" specifications that can aggregate activities. One grouping by actor and one grouping by object. This
-             * results in the following groups eventually being created for the following test:
-             *
-             *  Group #1:   Simon   followed       *
-             *  Group #2:     *     followed    Branden
-             *  Group #3:     *     followed      Bert
-             */
+       * Following has 2 "groupBy" specifications that can aggregate activities. One grouping by actor and one grouping by object. This
+       * results in the following groups eventually being created for the following test:
+       *
+       *  Group #1:   Simon   followed       *
+       *  Group #2:     *     followed    Branden
+       *  Group #3:     *     followed      Bert
+       */
 
       /*!
-             * Simon follows Branden. This activity becomes 2 aggregates, one for Group #1 and one for Group #2, but since the activities are
-             * identical, only one activity is delivered that is referenced by both:
-             *
-             * Aggregate State:
-             *
-             *  Group #1: Simon followed (Branden)      [references Activity #1]
-             *  Group #2: (Simon) followed Branden      [references Activity #1]
-             *
-             * Activity Feed State:
-             *
-             *  Activity #1: Simon followed Branden
-             */
+       * Simon follows Branden. This activity becomes 2 aggregates, one for Group #1 and one for Group #2, but since the activities are
+       * identical, only one activity is delivered that is referenced by both:
+       *
+       * Aggregate State:
+       *
+       *  Group #1: Simon followed (Branden)      [references Activity #1]
+       *  Group #2: (Simon) followed Branden      [references Activity #1]
+       *
+       * Activity Feed State:
+       *
+       *  Activity #1: Simon followed Branden
+       */
       RestAPI.Following.follow(simon.restContext, branden.user.id, err => {
         assert.ok(!err);
 
-        ActivityTestsUtil.collectAndGetActivityStream(
-          simon.restContext,
-          simon.user.id,
-          null,
-          (err, response) => {
+        ActivityTestsUtil.collectAndGetActivityStream(simon.restContext, simon.user.id, null, (err, response) => {
+          assert.ok(!err);
+
+          /*!
+           * Simon follows Bert. This activity joins the Group #1 aggregate, and "orphans" the Group #2 aggregate (i.e., Group #2
+           * aggregate no longer references any activity since that activity gets deleted and replaced with an updated one). The new
+           * states should be:
+           *
+           * Aggregate State:
+           *
+           *  Group #1: Simon followed (Branden,Bert) [references Activity #2]
+           *  Group #2: (Simon) followed Branden      [references Activity #1 (deleted)]
+           *  Group #3: (Simon) followed Bert         [(no reference since Group #3 "claimed" the activity)]
+           *
+           * Activity Feed State:
+           *
+           *  Activity #2: Simon followed Branden and Bert
+           */
+          RestAPI.Following.follow(simon.restContext, bert.user.id, err => {
             assert.ok(!err);
 
-            /*!
-                     * Simon follows Bert. This activity joins the Group #1 aggregate, and "orphans" the Group #2 aggregate (i.e., Group #2
-                     * aggregate no longer references any activity since that activity gets deleted and replaced with an updated one). The new
-                     * states should be:
-                     *
-                     * Aggregate State:
-                     *
-                     *  Group #1: Simon followed (Branden,Bert) [references Activity #2]
-                     *  Group #2: (Simon) followed Branden      [references Activity #1 (deleted)]
-                     *  Group #3: (Simon) followed Bert         [(no reference since Group #3 "claimed" the activity)]
-                     *
-                     * Activity Feed State:
-                     *
-                     *  Activity #2: Simon followed Branden and Bert
-                     */
-            RestAPI.Following.follow(simon.restContext, bert.user.id, err => {
+            ActivityTestsUtil.collectAndGetActivityStream(simon.restContext, simon.user.id, null, (err, response) => {
               assert.ok(!err);
 
-              ActivityTestsUtil.collectAndGetActivityStream(
-                simon.restContext,
-                simon.user.id,
-                null,
-                (err, response) => {
-                  assert.ok(!err);
+              /*!
+               * Simon follows Bert, again. The point of this test is to ensure that this activity doesn't rejoin with Group #2,
+               * thus resulting a new "Simon followed Branden" being delivered, as it is a redundant activity that is already
+               * represented by the activity being tracked by Group #1.
+               *
+               * Aggregate State:
+               *
+               *  Group #1: Simon followed (Branden,Bert)     [references Activity #3]
+               *  Group #2: (Simon) followed Branden          [references Activity #1 (deleted)]
+               *
+               * Activity Feed State:
+               *
+               * Activity #3: Simon followed Branden and Bert
+               *
+               * Therefore we should assert that Simon's activity feed contains only 1 single activity
+               */
+              RestAPI.Following.follow(simon.restContext, branden.user.id, err => {
+                assert.ok(!err);
 
-                  /*!
-                             * Simon follows Bert, again. The point of this test is to ensure that this activity doesn't rejoin with Group #2,
-                             * thus resulting a new "Simon followed Branden" being delivered, as it is a redundant activity that is already
-                             * represented by the activity being tracked by Group #1.
-                             *
-                             * Aggregate State:
-                             *
-                             *  Group #1: Simon followed (Branden,Bert)     [references Activity #3]
-                             *  Group #2: (Simon) followed Branden          [references Activity #1 (deleted)]
-                             *
-                             * Activity Feed State:
-                             *
-                             * Activity #3: Simon followed Branden and Bert
-                             *
-                             * Therefore we should assert that Simon's activity feed contains only 1 single activity
-                             */
-                  RestAPI.Following.follow(simon.restContext, branden.user.id, err => {
+                ActivityTestsUtil.collectAndGetActivityStream(
+                  simon.restContext,
+                  simon.user.id,
+                  null,
+                  (err, response) => {
                     assert.ok(!err);
-
-                    ActivityTestsUtil.collectAndGetActivityStream(
-                      simon.restContext,
-                      simon.user.id,
-                      null,
-                      (err, response) => {
-                        assert.ok(!err);
-                        assert.strictEqual(response.items.length, 1);
-                        return callback();
-                      }
-                    );
-                  });
-                }
-              );
+                    assert.strictEqual(response.items.length, 1);
+                    return callback();
+                  }
+                );
+              });
             });
-          }
-        );
+          });
+        });
       });
     });
   });

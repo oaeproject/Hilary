@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
+import assert from 'assert';
 
-const Sanitization = require('oae-util/lib/sanitization');
+import * as Sanitization from 'oae-util/lib/sanitization';
 
 describe('Sanitization', () => {
   /**

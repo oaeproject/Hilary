@@ -20,7 +20,7 @@
 # docker-compose up
 #
 
-version: '3'
+version: "3"
 
 networks:
   my_network:
@@ -35,12 +35,12 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: oae-hilary
-    # command: nodemon -L app.js | bunyan # default
-    # command: grunt test-module:oae-principals # for running tests
+    # command: nodemon -L app.js | npx bunyan # default
+    # command: npm test # for running tests
     extra_hosts:
       - "admin.oae.com:172.20.0.9"
     #   - "tenant1.oae.com:172.20.0.9"
-      # - "any.other.host.oae.com:172.20.0.9"
+    # - "any.other.host.oae.com:172.20.0.9"
     image: hilary:latest
     restart: always
     networks:
@@ -131,4 +131,13 @@ services:
       - my_network
     ports:
       - 9001:9001
+    tty: false
+  oae-ethercalc:
+    container_name: oae-ethercalc
+    image: oaeproject/oae-ethercalc-docker
+    restart: always
+    networks:
+      - my_network
+    ports:
+      - 8000:8000
     tty: false

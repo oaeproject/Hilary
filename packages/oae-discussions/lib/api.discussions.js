@@ -14,27 +14,31 @@
  */
 
 /* eslint-disable no-unused-vars */
-const _ = require('underscore');
+import _ from 'underscore';
+import DiscussionsAPI from 'oae-discussions';
 
-const AuthzAPI = require('oae-authz');
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const AuthzInvitations = require('oae-authz/lib/invitations');
-const AuthzPermissions = require('oae-authz/lib/permissions');
-const LibraryAPI = require('oae-library');
-const log = require('oae-logger').logger('discussions-api');
-const MessageBoxAPI = require('oae-messagebox');
-const { MessageBoxConstants } = require('oae-messagebox/lib/constants');
-const OaeUtil = require('oae-util/lib/util');
-const PrincipalsUtil = require('oae-principals/lib/util');
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
-const ResourceActions = require('oae-resource/lib/actions');
-const Signature = require('oae-util/lib/signature');
-const { Validator } = require('oae-authz/lib/validator');
+import * as AuthzAPI from 'oae-authz';
+import * as AuthzInvitations from 'oae-authz/lib/invitations';
+import * as AuthzPermissions from 'oae-authz/lib/permissions';
+import * as LibraryAPI from 'oae-library';
+import { logger } from 'oae-logger';
+import * as MessageBoxAPI from 'oae-messagebox';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as PrincipalsUtil from 'oae-principals/lib/util';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as ResourceActions from 'oae-resource/lib/actions';
+import * as Signature from 'oae-util/lib/signature';
+import { setUpConfig } from 'oae-config';
 
-const DiscussionsAPI = require('oae-discussions');
-const DiscussionsConfig = require('oae-config').config('oae-discussions');
-const { DiscussionsConstants } = require('./constants');
-const DiscussionsDAO = require('./internal/dao');
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
+import { Validator } from 'oae-authz/lib/validator';
+import * as DiscussionsDAO from './internal/dao';
+import { DiscussionsConstants } from './constants';
+
+const log = logger('discussions-api');
+
+const DiscussionsConfig = setUpConfig('oae-discussions');
 
 // Discussion fields that are allowed to be updated
 const DISCUSSION_UPDATE_FIELDS = ['displayName', 'description', 'visibility'];
@@ -52,17 +56,8 @@ const DISCUSSION_UPDATE_FIELDS = ['displayName', 'description', 'visibility'];
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Discussion} callback.discussion The discussion object that was created
  */
-const createDiscussion = function(
-  ctx,
-  displayName,
-  description,
-  visibility,
-  roles,
-  opts,
-  callback
-) {
-  visibility =
-    visibility || DiscussionsConfig.getValue(ctx.tenant().alias, 'visibility', 'discussion');
+const createDiscussion = function(ctx, displayName, description, visibility, roles, opts, callback) {
+  visibility = visibility || DiscussionsConfig.getValue(ctx.tenant().alias, 'visibility', 'discussion');
   roles = roles || {};
   opts = opts || {};
 
@@ -70,27 +65,19 @@ const createDiscussion = function(
 
   // Verify basic properties
   const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'Anonymous users cannot create a discussion' })
-    .isLoggedInUser(ctx);
-  validator
-    .check(displayName, { code: 400, msg: 'Must provide a display name for the discussion' })
-    .notEmpty();
+  validator.check(null, { code: 401, msg: 'Anonymous users cannot create a discussion' }).isLoggedInUser(ctx);
+  validator.check(displayName, { code: 400, msg: 'Must provide a display name for the discussion' }).notEmpty();
   validator
     .check(displayName, { code: 400, msg: 'A display name can be at most 1000 characters long' })
     .isShortString();
-  validator
-    .check(description, { code: 400, msg: 'Must provide a description for the discussion' })
-    .notEmpty();
+  validator.check(description, { code: 400, msg: 'Must provide a description for the discussion' }).notEmpty();
   validator
     .check(description, { code: 400, msg: 'A description can be at most 10000 characters long' })
     .isMediumString();
   validator
     .check(visibility, {
       code: 400,
-      msg:
-        'An invalid discussion visibility option has been provided. Must be one of: ' +
-        allVisibilities.join(', ')
+      msg: 'An invalid discussion visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
     })
     .isIn(allVisibilities);
 
@@ -124,19 +111,13 @@ const createDiscussion = function(
       return callback(err);
     }
 
-    DiscussionsAPI.emit(
-      DiscussionsConstants.events.CREATED_DISCUSSION,
-      ctx,
-      discussion,
-      memberChangeInfo,
-      errs => {
-        if (errs) {
-          return callback(_.first(errs));
-        }
-
-        return callback(null, discussion);
+    DiscussionsAPI.emit(DiscussionsConstants.events.CREATED_DISCUSSION, ctx, discussion, memberChangeInfo, errs => {
+      if (errs) {
+        return callback(_.first(errs));
       }
-    );
+
+      return callback(null, discussion);
+    });
   });
 };
 
@@ -154,12 +135,8 @@ const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
   const allVisibilities = _.values(AuthzConstants.visibility);
 
   const validator = new Validator();
-  validator
-    .check(discussionId, { code: 400, msg: 'A discussion id must be provided' })
-    .isResourceId();
-  validator
-    .check(null, { code: 401, msg: 'You must be authenticated to update a discussion' })
-    .isLoggedInUser(ctx);
+  validator.check(discussionId, { code: 400, msg: 'A discussion id must be provided' }).isResourceId();
+  validator.check(null, { code: 401, msg: 'You must be authenticated to update a discussion' }).isLoggedInUser(ctx);
   validator
     .check(_.keys(profileFields).length, {
       code: 400,
@@ -170,11 +147,7 @@ const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
     validator
       .check(field, {
         code: 400,
-        msg:
-          "The field '" +
-          field +
-          "' is not a valid field. Must be one of: " +
-          DISCUSSION_UPDATE_FIELDS.join(', ')
+        msg: "The field '" + field + "' is not a valid field. Must be one of: " + DISCUSSION_UPDATE_FIELDS.join(', ')
       })
       .isIn(DISCUSSION_UPDATE_FIELDS);
     if (field === 'visibility') {
@@ -186,14 +159,10 @@ const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
         .isIn(allVisibilities);
     } else if (field === 'displayName') {
       validator.check(value, { code: 400, msg: 'A display name cannot be empty' }).notEmpty();
-      validator
-        .check(value, { code: 400, msg: 'A display name can be at most 1000 characters long' })
-        .isShortString();
+      validator.check(value, { code: 400, msg: 'A display name can be at most 1000 characters long' }).isShortString();
     } else if (field === 'description') {
       validator.check(value, { code: 400, msg: 'A description cannot be empty' }).notEmpty();
-      validator
-        .check(value, { code: 400, msg: 'A description can only be 10000 characters long' })
-        .isMediumString();
+      validator.check(value, { code: 400, msg: 'A description can only be 10000 characters long' }).isMediumString();
     }
   });
 
@@ -249,12 +218,8 @@ const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
  */
 const deleteDiscussion = function(ctx, discussionId, callback) {
   const validator = new Validator();
-  validator
-    .check(discussionId, { code: 400, msg: 'A discussion id must be provided' })
-    .isResourceId();
-  validator
-    .check(null, { code: 401, msg: 'You must be authenticated to delete a discussion' })
-    .isLoggedInUser(ctx);
+  validator.check(discussionId, { code: 400, msg: 'A discussion id must be provided' }).isResourceId();
+  validator.check(null, { code: 401, msg: 'You must be authenticated to delete a discussion' }).isLoggedInUser(ctx);
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -332,9 +297,7 @@ const getDiscussionsLibrary = function(ctx, principalId, start, limit, callback)
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   const validator = new Validator();
-  validator
-    .check(principalId, { code: 400, msg: 'A user or group id must be provided' })
-    .isPrincipalId();
+  validator.check(principalId, { code: 400, msg: 'A user or group id must be provided' }).isPrincipalId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -346,53 +309,49 @@ const getDiscussionsLibrary = function(ctx, principalId, start, limit, callback)
     }
 
     // Determine which library visibility the current user should receive
-    LibraryAPI.Authz.resolveTargetLibraryAccess(
-      ctx,
-      principal.id,
-      principal,
-      (err, hasAccess, visibility) => {
-        if (err) {
-          return callback(err);
-        }
-        if (!hasAccess) {
-          return callback({ code: 401, msg: 'You do not have have access to this library' });
-        }
+    LibraryAPI.Authz.resolveTargetLibraryAccess(ctx, principal.id, principal, (err, hasAccess, visibility) => {
+      if (err) {
+        return callback(err);
+      }
 
-        // Get the discussion ids from the library index
-        LibraryAPI.Index.list(
-          DiscussionsConstants.library.DISCUSSIONS_LIBRARY_INDEX_NAME,
-          principalId,
-          visibility,
-          { start, limit },
-          (err, entries, nextToken) => {
+      if (!hasAccess) {
+        return callback({ code: 401, msg: 'You do not have have access to this library' });
+      }
+
+      // Get the discussion ids from the library index
+      LibraryAPI.Index.list(
+        DiscussionsConstants.library.DISCUSSIONS_LIBRARY_INDEX_NAME,
+        principalId,
+        visibility,
+        { start, limit },
+        (err, entries, nextToken) => {
+          if (err) {
+            return callback(err);
+          }
+
+          // Get the discussion objects from the discussion ids
+          const discussionIds = _.pluck(entries, 'resourceId');
+          DiscussionsDAO.getDiscussionsById(discussionIds, null, (err, discussions) => {
             if (err) {
               return callback(err);
             }
 
-            // Get the discussion objects from the discussion ids
-            const discussionIds = _.pluck(entries, 'resourceId');
-            DiscussionsDAO.getDiscussionsById(discussionIds, null, (err, discussions) => {
-              if (err) {
-                return callback(err);
-              }
+            // Emit an event indicating that the discussion library has been retrieved
+            DiscussionsAPI.emit(
+              DiscussionsConstants.events.GET_DISCUSSION_LIBRARY,
+              ctx,
+              principalId,
+              visibility,
+              start,
+              limit,
+              discussions
+            );
 
-              // Emit an event indicating that the discussion library has been retrieved
-              DiscussionsAPI.emit(
-                DiscussionsConstants.events.GET_DISCUSSION_LIBRARY,
-                ctx,
-                principalId,
-                visibility,
-                start,
-                limit,
-                discussions
-              );
-
-              return callback(null, discussions, nextToken);
-            });
-          }
-        );
-      }
-    );
+            return callback(null, discussions, nextToken);
+          });
+        }
+      );
+    });
   });
 };
 
@@ -407,9 +366,7 @@ const getDiscussionsLibrary = function(ctx, principalId, start, limit, callback)
  */
 const getDiscussion = function(ctx, discussionId, callback) {
   const validator = new Validator();
-  validator
-    .check(discussionId, { code: 400, msg: 'discussionId must be a valid resource id' })
-    .isResourceId();
+  validator.check(discussionId, { code: 400, msg: 'discussionId must be a valid resource id' }).isResourceId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -445,9 +402,7 @@ const getDiscussion = function(ctx, discussionId, callback) {
  */
 const getFullDiscussionProfile = function(ctx, discussionId, callback) {
   const validator = new Validator();
-  validator
-    .check(discussionId, { code: 400, msg: 'discussionId must be a valid resource id' })
-    .isResourceId();
+  validator.check(discussionId, { code: 400, msg: 'discussionId must be a valid resource id' }).isResourceId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -463,6 +418,7 @@ const getFullDiscussionProfile = function(ctx, discussionId, callback) {
       if (err) {
         return callback(err);
       }
+
       if (!permissions.canView) {
         // The user has no effective role, which means they are not allowed to view (this has already taken into
         // consideration implicit privacy rules, such as whether or not the discussion is public).
@@ -518,9 +474,7 @@ const getDiscussionMembers = function(ctx, discussionId, start, limit, callback)
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   const validator = new Validator();
-  validator
-    .check(discussionId, { code: 400, msg: 'A discussion id must be provided' })
-    .isResourceId();
+  validator.check(discussionId, { code: 400, msg: 'A discussion id must be provided' }).isResourceId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -568,9 +522,7 @@ const getDiscussionMembers = function(ctx, discussionId, start, limit, callback)
  */
 const getDiscussionInvitations = function(ctx, discussionId, callback) {
   const validator = new Validator();
-  validator
-    .check(discussionId, { code: 400, msg: 'A valid resource id must be specified' })
-    .isResourceId();
+  validator.check(discussionId, { code: 400, msg: 'A valid resource id must be specified' }).isResourceId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -595,9 +547,7 @@ const getDiscussionInvitations = function(ctx, discussionId, callback) {
  */
 const resendDiscussionInvitation = function(ctx, discussionId, email, callback) {
   const validator = new Validator();
-  validator
-    .check(discussionId, { code: 400, msg: 'A valid resource id must be specified' })
-    .isResourceId();
+  validator.check(discussionId, { code: 400, msg: 'A valid resource id must be specified' }).isResourceId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -627,9 +577,7 @@ const shareDiscussion = function(ctx, discussionId, principalIds, callback) {
   validator
     .check(null, { code: 401, msg: 'You have to be logged in to be able to share a discussion' })
     .isLoggedInUser(ctx);
-  validator
-    .check(discussionId, { code: 400, msg: 'A valid discussion id must be provided' })
-    .isResourceId();
+  validator.check(discussionId, { code: 400, msg: 'A valid discussion id must be provided' }).isResourceId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -639,35 +587,30 @@ const shareDiscussion = function(ctx, discussionId, principalIds, callback) {
       return callback(err);
     }
 
-    ResourceActions.share(
-      ctx,
-      discussion,
-      principalIds,
-      AuthzConstants.role.MEMBER,
-      (err, memberChangeInfo) => {
-        if (err) {
-          return callback(err);
-        }
-        if (_.isEmpty(memberChangeInfo.changes)) {
+    ResourceActions.share(ctx, discussion, principalIds, AuthzConstants.role.MEMBER, (err, memberChangeInfo) => {
+      if (err) {
+        return callback(err);
+      }
+
+      if (_.isEmpty(memberChangeInfo.changes)) {
+        return callback();
+      }
+
+      DiscussionsAPI.emit(
+        DiscussionsConstants.events.UPDATED_DISCUSSION_MEMBERS,
+        ctx,
+        discussion,
+        memberChangeInfo,
+        {},
+        errs => {
+          if (errs) {
+            return callback(_.first(errs));
+          }
+
           return callback();
         }
-
-        DiscussionsAPI.emit(
-          DiscussionsConstants.events.UPDATED_DISCUSSION_MEMBERS,
-          ctx,
-          discussion,
-          memberChangeInfo,
-          {},
-          errs => {
-            if (errs) {
-              return callback(_.first(errs));
-            }
-
-            return callback();
-          }
-        );
-      }
-    );
+      );
+    });
   });
 };
 
@@ -690,9 +633,7 @@ const setDiscussionPermissions = function(ctx, discussionId, changes, callback) 
       msg: 'You have to be logged in to be able to change discussion permissions'
     })
     .isLoggedInUser(ctx);
-  validator
-    .check(discussionId, { code: 400, msg: 'A valid discussion id must be provided' })
-    .isResourceId();
+  validator.check(discussionId, { code: 400, msg: 'A valid discussion id must be provided' }).isResourceId();
   _.each(changes, (role, principalId) => {
     validator
       .check(role, {
@@ -729,6 +670,7 @@ const setDiscussionPermissions = function(ctx, discussionId, changes, callback) 
       if (err) {
         return callback(err);
       }
+
       if (_.isEmpty(memberChangeInfo.changes)) {
         return callback();
       }
@@ -771,9 +713,7 @@ const removeDiscussionFromLibrary = function(ctx, libraryOwnerId, discussionId, 
       msg: 'You must be authenticated to remove a discussion from a library'
     })
     .isLoggedInUser(ctx);
-  validator
-    .check(libraryOwnerId, { code: 400, msg: 'A user or group id must be provided' })
-    .isPrincipalId();
+  validator.check(libraryOwnerId, { code: 400, msg: 'A user or group id must be provided' }).isPrincipalId();
   validator
     .check(discussionId, {
       code: 400,
@@ -840,20 +780,12 @@ const removeDiscussionFromLibrary = function(ctx, libraryOwnerId, discussionId, 
  */
 const createMessage = function(ctx, discussionId, body, replyToCreatedTimestamp, callback) {
   const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'Only authenticated users can post on discussions' })
-    .isLoggedInUser(ctx);
-  validator
-    .check(discussionId, { code: 400, msg: 'Invalid discussion id provided' })
-    .isResourceId();
+  validator.check(null, { code: 401, msg: 'Only authenticated users can post on discussions' }).isLoggedInUser(ctx);
+  validator.check(discussionId, { code: 400, msg: 'Invalid discussion id provided' }).isResourceId();
   validator.check(body, { code: 400, msg: 'A discussion body must be provided' }).notEmpty();
-  validator
-    .check(body, { code: 400, msg: 'A discussion body can only be 100000 characters long' })
-    .isLongString();
+  validator.check(body, { code: 400, msg: 'A discussion body can only be 100000 characters long' }).isLongString();
   if (replyToCreatedTimestamp) {
-    validator
-      .check(replyToCreatedTimestamp, { code: 400, msg: 'Invalid reply-to timestamp provided' })
-      .isInt();
+    validator.check(replyToCreatedTimestamp, { code: 400, msg: 'Invalid reply-to timestamp provided' }).isInt();
   }
 
   if (validator.hasErrors()) {
@@ -925,12 +857,8 @@ const createMessage = function(ctx, discussionId, body, replyToCreatedTimestamp,
  */
 const deleteMessage = function(ctx, discussionId, messageCreatedDate, callback) {
   const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'Only authenticated users can delete messages' })
-    .isLoggedInUser(ctx);
-  validator
-    .check(discussionId, { code: 400, msg: 'A discussion id must be provided' })
-    .isResourceId();
+  validator.check(null, { code: 401, msg: 'Only authenticated users can delete messages' }).isLoggedInUser(ctx);
+  validator.check(discussionId, { code: 400, msg: 'A discussion id must be provided' }).isResourceId();
   validator
     .check(messageCreatedDate, {
       code: 400,
@@ -948,54 +876,51 @@ const deleteMessage = function(ctx, discussionId, messageCreatedDate, callback) 
     }
 
     // Ensure that the message exists. We also need it so we can make sure we have access to deleted it
-    MessageBoxAPI.getMessages(
-      discussionId,
-      [messageCreatedDate],
-      { scrubDeleted: false },
-      (err, messages) => {
+    MessageBoxAPI.getMessages(discussionId, [messageCreatedDate], { scrubDeleted: false }, (err, messages) => {
+      if (err) {
+        return callback(err);
+      }
+
+      if (!messages[0]) {
+        return callback({ code: 404, msg: 'The specified message does not exist' });
+      }
+
+      const message = messages[0];
+
+      // Determine if we have access to delete the discussion message
+      AuthzPermissions.canManageMessage(ctx, discussion, message, err => {
         if (err) {
           return callback(err);
         }
-        if (!messages[0]) {
-          return callback({ code: 404, msg: 'The specified message does not exist' });
-        }
 
-        const message = messages[0];
-
-        // Determine if we have access to delete the discussion message
-        AuthzPermissions.canManageMessage(ctx, discussion, message, err => {
-          if (err) {
-            return callback(err);
-          }
-
-          // Delete the message using the "leaf" method, which will SOFT delete if the message has replies, or HARD delete if it does not
-          MessageBoxAPI.deleteMessage(
-            discussionId,
-            messageCreatedDate,
-            { deleteType: MessageBoxConstants.deleteTypes.LEAF },
-            (err, deleteType, deletedMessage) => {
-              if (err) {
-                return callback(err);
-              }
-
-              DiscussionsAPI.emit(
-                DiscussionsConstants.events.DELETED_DISCUSSION_MESSAGE,
-                ctx,
-                message,
-                discussion,
-                deleteType
-              );
-
-              // If a soft-delete occurred, we want to inform the consumer of the soft-delete message model
-              if (deleteType === MessageBoxConstants.deleteTypes.SOFT) {
-                return callback(null, deletedMessage);
-              }
-              return callback();
+        // Delete the message using the "leaf" method, which will SOFT delete if the message has replies, or HARD delete if it does not
+        MessageBoxAPI.deleteMessage(
+          discussionId,
+          messageCreatedDate,
+          { deleteType: MessageBoxConstants.deleteTypes.LEAF },
+          (err, deleteType, deletedMessage) => {
+            if (err) {
+              return callback(err);
             }
-          );
-        });
-      }
-    );
+
+            DiscussionsAPI.emit(
+              DiscussionsConstants.events.DELETED_DISCUSSION_MESSAGE,
+              ctx,
+              message,
+              discussion,
+              deleteType
+            );
+
+            // If a soft-delete occurred, we want to inform the consumer of the soft-delete message model
+            if (deleteType === MessageBoxConstants.deleteTypes.SOFT) {
+              return callback(null, deletedMessage);
+            }
+
+            return callback();
+          }
+        );
+      });
+    });
   });
 };
 
@@ -1015,9 +940,7 @@ const getMessages = function(ctx, discussionId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   const validator = new Validator();
-  validator
-    .check(discussionId, { code: 400, msg: 'Must provide a valid discussion id' })
-    .isResourceId();
+  validator.check(discussionId, { code: 400, msg: 'Must provide a valid discussion id' }).isResourceId();
   validator.check(limit, { code: 400, msg: 'Must provide a valid limit' }).isInt();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
@@ -1030,40 +953,34 @@ const getMessages = function(ctx, discussionId, start, limit, callback) {
     }
 
     // Fetch the messages from the message box
-    MessageBoxAPI.getMessagesFromMessageBox(
-      discussionId,
-      start,
-      limit,
-      null,
-      (err, messages, nextToken) => {
+    MessageBoxAPI.getMessagesFromMessageBox(discussionId, start, limit, null, (err, messages, nextToken) => {
+      if (err) {
+        return callback(err);
+      }
+
+      let userIds = _.map(messages, message => {
+        return message.createdBy;
+      });
+
+      // Remove falsey and duplicate userIds
+      userIds = _.uniq(_.compact(userIds));
+
+      // Get the basic principal profiles of the messagers to add to the messages as `createdBy`.
+      PrincipalsUtil.getPrincipals(ctx, userIds, (err, users) => {
         if (err) {
           return callback(err);
         }
 
-        let userIds = _.map(messages, message => {
-          return message.createdBy;
-        });
-
-        // Remove falsey and duplicate userIds
-        userIds = _.uniq(_.compact(userIds));
-
-        // Get the basic principal profiles of the messagers to add to the messages as `createdBy`.
-        PrincipalsUtil.getPrincipals(ctx, userIds, (err, users) => {
-          if (err) {
-            return callback(err);
+        // Attach the user profiles to the message objects
+        _.each(messages, message => {
+          if (users[message.createdBy]) {
+            message.createdBy = users[message.createdBy];
           }
-
-          // Attach the user profiles to the message objects
-          _.each(messages, message => {
-            if (users[message.createdBy]) {
-              message.createdBy = users[message.createdBy];
-            }
-          });
-
-          return callback(err, messages, nextToken);
         });
-      }
-    );
+
+        return callback(err, messages, nextToken);
+      });
+    });
   });
 };
 
@@ -1083,6 +1000,7 @@ const _getDiscussion = function(discussionId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!discussion) {
       return callback({ code: 404, msg: 'Could not find discussion: ' + discussionId });
     }
@@ -1091,7 +1009,7 @@ const _getDiscussion = function(discussionId, callback) {
   });
 };
 
-module.exports = {
+export {
   createDiscussion,
   updateDiscussion,
   deleteDiscussion,

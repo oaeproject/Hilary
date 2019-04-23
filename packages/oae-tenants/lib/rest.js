@@ -13,17 +13,16 @@
  * permissions and limitations under the License.
  */
 
-var _ = require('underscore');
-var OAE = require('oae-util/lib/oae');
-var OaeUtil = require('oae-util/lib/util');
+import _ from 'underscore';
 
-var TenantsAPI = require('oae-tenants/lib/api');
-var TenantNetworksAPI = require('oae-tenants/lib/api.networks');
+import * as OAE from 'oae-util/lib/oae';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as TenantsAPI from 'oae-tenants/lib/api';
+import * as TenantNetworksAPI from 'oae-tenants/lib/api.networks';
 
-
-/////////////////////
+/// //////////////////
 // TENANT NETWORKS //
-/////////////////////
+/// //////////////////
 
 /**
  * @REST getTenantNetworks
@@ -38,13 +37,13 @@ var TenantNetworksAPI = require('oae-tenants/lib/api.networks');
  * @HttpResponse                    401         Must be a global administrator user to view tenant networks
  */
 OAE.globalAdminRouter.on('get', '/api/tenantNetworks', function(req, res) {
-    TenantNetworksAPI.getTenantNetworks(req.ctx, function(err, tenantNetworks) {
-        if (err) {
-            return res.status(err.code).send(err.msg);
-        }
+  TenantNetworksAPI.getTenantNetworks(req.ctx, function(err, tenantNetworks) {
+    if (err) {
+      return res.status(err.code).send(err.msg);
+    }
 
-        return res.status(200).send(tenantNetworks);
-    });
+    return res.status(200).send(tenantNetworks);
+  });
 });
 
 /**
@@ -62,13 +61,13 @@ OAE.globalAdminRouter.on('get', '/api/tenantNetworks', function(req, res) {
  * @HttpResponse                        401             Must be a global administrator user to create a tenant network
  */
 OAE.globalAdminRouter.on('post', '/api/tenantNetwork/create', function(req, res) {
-    TenantNetworksAPI.createTenantNetwork(req.ctx, req.body.displayName, function(err, tenantNetwork) {
-        if (err) {
-            return res.status(err.code).send(err.msg);
-        }
+  TenantNetworksAPI.createTenantNetwork(req.ctx, req.body.displayName, function(err, tenantNetwork) {
+    if (err) {
+      return res.status(err.code).send(err.msg);
+    }
 
-        return res.status(201).send(tenantNetwork);
-    });
+    return res.status(201).send(tenantNetwork);
+  });
 });
 
 /**
@@ -88,13 +87,13 @@ OAE.globalAdminRouter.on('post', '/api/tenantNetwork/create', function(req, res)
  * @HttpResponse                        401             Must be a global administrator user to update a tenant network
  */
 OAE.globalAdminRouter.on('post', '/api/tenantNetwork/:id', function(req, res) {
-    TenantNetworksAPI.updateTenantNetwork(req.ctx, req.params.id, req.body.displayName, function(err, tenantNetwork) {
-        if (err) {
-            return res.status(err.code).send(err.msg);
-        }
+  TenantNetworksAPI.updateTenantNetwork(req.ctx, req.params.id, req.body.displayName, function(err, tenantNetwork) {
+    if (err) {
+      return res.status(err.code).send(err.msg);
+    }
 
-        return res.status(200).send(tenantNetwork);
-    });
+    return res.status(200).send(tenantNetwork);
+  });
 });
 
 /**
@@ -111,13 +110,13 @@ OAE.globalAdminRouter.on('post', '/api/tenantNetwork/:id', function(req, res) {
  * @HttpResponse                        401     Must be a global administrator user to delete a tenant network
  */
 OAE.globalAdminRouter.on('delete', '/api/tenantNetwork/:id', function(req, res) {
-    TenantNetworksAPI.deleteTenantNetwork(req.ctx, req.params.id, function(err) {
-        if (err) {
-            return res.status(err.code).send(err.msg);
-        }
+  TenantNetworksAPI.deleteTenantNetwork(req.ctx, req.params.id, function(err) {
+    if (err) {
+      return res.status(err.code).send(err.msg);
+    }
 
-        return res.status(200).end();
-    });
+    return res.status(200).end();
+  });
 });
 
 /**
@@ -139,14 +138,14 @@ OAE.globalAdminRouter.on('delete', '/api/tenantNetwork/:id', function(req, res) 
  * @HttpResponse                            401         Must be a global administrator user to update a tenant network
  */
 OAE.globalAdminRouter.on('post', '/api/tenantNetwork/:id/addTenants', function(req, res) {
-    var tenantAliases = _.isString(req.body.alias) ? [req.body.alias] : req.body.alias;
-    TenantNetworksAPI.addTenantAliases(req.ctx, req.params.id, tenantAliases, function(err) {
-        if (err) {
-            return res.status(err.code).send(err.msg);
-        }
+  const tenantAliases = _.isString(req.body.alias) ? [req.body.alias] : req.body.alias;
+  TenantNetworksAPI.addTenantAliases(req.ctx, req.params.id, tenantAliases, function(err) {
+    if (err) {
+      return res.status(err.code).send(err.msg);
+    }
 
-        return res.status(200).end();
-    });
+    return res.status(200).end();
+  });
 });
 
 /**
@@ -167,20 +166,19 @@ OAE.globalAdminRouter.on('post', '/api/tenantNetwork/:id/addTenants', function(r
  * @HttpResponse                            401         Must be a global administrator user to update a tenant network
  */
 OAE.globalAdminRouter.on('post', '/api/tenantNetwork/:id/removeTenants', function(req, res) {
-    var tenantAliases = _.isString(req.body.alias) ? [req.body.alias] : req.body.alias;
-    TenantNetworksAPI.removeTenantAliases(req.ctx, req.params.id, tenantAliases, function(err) {
-        if (err) {
-            return res.status(err.code).send(err.msg);
-        }
+  const tenantAliases = _.isString(req.body.alias) ? [req.body.alias] : req.body.alias;
+  TenantNetworksAPI.removeTenantAliases(req.ctx, req.params.id, tenantAliases, function(err) {
+    if (err) {
+      return res.status(err.code).send(err.msg);
+    }
 
-        return res.status(200).end();
-    });
+    return res.status(200).end();
+  });
 });
 
-
-/////////////
+/// //////////
 // TENANTS //
-/////////////
+/// //////////
 
 /**
  * @REST postTenantCreate
@@ -207,14 +205,15 @@ OAE.globalAdminRouter.on('post', '/api/tenantNetwork/:id/removeTenants', functio
  * @HttpResponse                    400             The tenant alias should not contain a space
  */
 OAE.globalAdminRouter.on('post', '/api/tenant/create', function(req, res) {
-    var opts = _.oaeExtendDefined({}, _.pick(req.body, 'countryCode'));
-    opts.emailDomains = OaeUtil.toArray(req.body.emailDomains);
-    TenantsAPI.createTenant(req.ctx, req.body.alias, req.body.displayName, req.body.host, opts, function(err, tenant) {
-        if (err) {
-            return res.status(err.code).send(err.msg);
-        }
-        res.status(200).send(tenant);
-    });
+  const opts = _.oaeExtendDefined({}, _.pick(req.body, 'countryCode'));
+  opts.emailDomains = OaeUtil.toArray(req.body.emailDomains);
+  TenantsAPI.createTenant(req.ctx, req.body.alias, req.body.displayName, req.body.host, opts, function(err, tenant) {
+    if (err) {
+      return res.status(err.code).send(err.msg);
+    }
+
+    res.status(200).send(tenant);
+  });
 });
 
 /**
@@ -229,7 +228,7 @@ OAE.globalAdminRouter.on('post', '/api/tenant/create', function(req, res) {
  * @HttpResponse                200             Tenants available
  */
 OAE.globalAdminRouter.on('get', '/api/tenants', function(req, res) {
-    res.status(200).send(TenantsAPI.getTenants());
+  res.status(200).send(TenantsAPI.getTenants());
 });
 
 /**
@@ -245,13 +244,13 @@ OAE.globalAdminRouter.on('get', '/api/tenants', function(req, res) {
  * @HttpResponse                200             The tenants for each email address
  */
 OAE.tenantRouter.on('get', '/api/tenantsByEmail', function(req, res) {
-    var emails = OaeUtil.toArray(req.query.emails);
-    if (_.isEmpty(emails)) {
-        return res.status(400).send('Missing emails parameter');
-    } else {
-        var tenants = TenantsAPI.getTenantsForEmailDomains(emails);
-        return res.status(200).send(tenants);
-    }
+  const emails = OaeUtil.toArray(req.query.emails);
+  if (_.isEmpty(emails)) {
+    return res.status(400).send('Missing emails parameter');
+  }
+
+  const tenants = TenantsAPI.getTenantsForEmailDomains(emails);
+  return res.status(200).send(tenants);
 });
 
 /**
@@ -265,8 +264,8 @@ OAE.tenantRouter.on('get', '/api/tenantsByEmail', function(req, res) {
  * @Return      {Tenant}                        The current tenant
  * @HttpResponse                200             Current tenant available
  */
-var _getCurrentTenant = function(req, res) {
-    res.status(200).send(req.ctx.tenant());
+const _getCurrentTenant = function(req, res) {
+  res.status(200).send(req.ctx.tenant());
 };
 
 OAE.globalAdminRouter.on('get', '/api/tenant', _getCurrentTenant);
@@ -286,11 +285,12 @@ OAE.tenantRouter.on('get', '/api/tenant', _getCurrentTenant);
  * @HttpResponse                   404          There is no tenant with alias ...
  */
 OAE.globalAdminRouter.on('get', '/api/tenant/:alias', function(req, res) {
-    var tenant = TenantsAPI.getTenant(req.params.alias);
-    if (!tenant) {
-        return res.status(404).send('There is no tenant with alias ' + req.params.alias);
-    }
-    res.status(200).send(tenant);
+  const tenant = TenantsAPI.getTenant(req.params.alias);
+  if (!tenant) {
+    return res.status(404).send('There is no tenant with alias ' + req.params.alias);
+  }
+
+  res.status(200).send(tenant);
 });
 
 /**
@@ -317,16 +317,18 @@ OAE.globalAdminRouter.on('get', '/api/tenant/:alias', function(req, res) {
  * @HttpResponse                    404             Tenant with alias ... does not exist and cannot be updated
  */
 OAE.tenantRouter.on('post', '/api/tenant', function(req, res) {
-    var update = _.oaeExtendDefined({}, _.pick(req.body, 'displayName', 'host', 'countryCode'));
-    if (_.has(req.body, 'emailDomains')) {
-        update.emailDomains = OaeUtil.toArray(req.body.emailDomains);
+  const update = _.oaeExtendDefined({}, _.pick(req.body, 'displayName', 'host', 'countryCode'));
+  if (_.has(req.body, 'emailDomains')) {
+    update.emailDomains = OaeUtil.toArray(req.body.emailDomains);
+  }
+
+  TenantsAPI.updateTenant(req.ctx, req.ctx.tenant().alias, update, function(err) {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-    TenantsAPI.updateTenant(req.ctx, req.ctx.tenant().alias, update, function(err) {
-        if (err) {
-            return res.status(err.code).send(err.msg);
-        }
-        res.status(200).end();
-    });
+
+    res.status(200).end();
+  });
 });
 
 /**
@@ -345,13 +347,14 @@ OAE.tenantRouter.on('post', '/api/tenant', function(req, res) {
  * @HttpResponse                    404             Tenant with alias ... does not exist and cannot be enabled or disabled
  */
 OAE.globalAdminRouter.on('post', '/api/tenant/start', function(req, res) {
-    // Sets the tenant to be ENABLED by passing in 'false'
-    TenantsAPI.disableTenants(req.ctx, req.body.aliases, false, function(err) {
-        if (err) {
-            return res.status(err.code).send(err.msg);
-        }
-        res.status(200).end();
-    });
+  // Sets the tenant to be ENABLED by passing in 'false'
+  TenantsAPI.disableTenants(req.ctx, req.body.aliases, false, function(err) {
+    if (err) {
+      return res.status(err.code).send(err.msg);
+    }
+
+    res.status(200).end();
+  });
 });
 
 /**
@@ -370,13 +373,14 @@ OAE.globalAdminRouter.on('post', '/api/tenant/start', function(req, res) {
  * @HttpResponse                    404             Tenant with alias ... does not exist and cannot be enabled or disabled
  */
 OAE.globalAdminRouter.on('post', '/api/tenant/stop', function(req, res) {
-    // Sets the tenant to be disabled by passing in 'true'
-    TenantsAPI.disableTenants(req.ctx, req.body.aliases, true, function(err) {
-        if (err) {
-            return res.status(err.code).send(err.msg);
-        }
-        res.status(200).end();
-    });
+  // Sets the tenant to be disabled by passing in 'true'
+  TenantsAPI.disableTenants(req.ctx, req.body.aliases, true, function(err) {
+    if (err) {
+      return res.status(err.code).send(err.msg);
+    }
+
+    res.status(200).end();
+  });
 });
 
 /**
@@ -404,22 +408,23 @@ OAE.globalAdminRouter.on('post', '/api/tenant/stop', function(req, res) {
  * @HttpResponse                    404             Tenant with alias ... does not exist and cannot be updated
  */
 OAE.globalAdminRouter.on('post', '/api/tenant/:alias', function(req, res) {
-    var update = _.oaeExtendDefined({}, _.pick(req.body, 'displayName', 'host', 'countryCode'));
-    if (_.has(req.body, 'emailDomains')) {
-        update.emailDomains = OaeUtil.toArray(req.body.emailDomains);
+  const update = _.oaeExtendDefined({}, _.pick(req.body, 'displayName', 'host', 'countryCode'));
+  if (_.has(req.body, 'emailDomains')) {
+    update.emailDomains = OaeUtil.toArray(req.body.emailDomains);
+  }
+
+  TenantsAPI.updateTenant(req.ctx, req.params.alias, update, function(err) {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-    TenantsAPI.updateTenant(req.ctx, req.params.alias, update, function(err) {
-        if (err) {
-            return res.status(err.code).send(err.msg);
-        }
-        res.status(200).end();
-    });
+
+    res.status(200).end();
+  });
 });
 
-
-//////////////////////////
+/// ///////////////////////
 // TENANT LANDING PAGES //
-//////////////////////////
+/// ///////////////////////
 
 /**
  * @REST getTenantLandingPage
@@ -433,6 +438,6 @@ OAE.globalAdminRouter.on('post', '/api/tenant/:alias', function(req, res) {
  * @HttpResponse                200                 The landing page information
  */
 OAE.tenantRouter.on('get', '/api/tenant/landingPage', function(req, res) {
-    var landingPage = TenantsAPI.getLandingPage(req.ctx);
-    return res.status(200).send(landingPage);
+  const landingPage = TenantsAPI.getLandingPage(req.ctx);
+  return res.status(200).send(landingPage);
 });

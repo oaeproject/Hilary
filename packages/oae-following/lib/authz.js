@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-const AuthzPermissions = require('oae-authz/lib/permissions');
+import * as AuthzPermissions from 'oae-authz/lib/permissions';
 
 /**
  * Determine if the current user in context is allowed to see the followers list of the provided user.
@@ -60,6 +60,7 @@ const canFollow = function(ctx, user, callback) {
   if (ctx.user() && ctx.user().id === user.id) {
     return callback({ code: 400, msg: 'A user cannot follow themselves' });
   }
+
   if (user.deleted) {
     return callback({ code: 404, msg: 'The user could not be found' });
   }
@@ -67,8 +68,4 @@ const canFollow = function(ctx, user, callback) {
   return AuthzPermissions.canInteract(ctx, user, callback);
 };
 
-module.exports = {
-  canFollow,
-  canViewFollowing,
-  canViewFollowers
-};
+export { canFollow, canViewFollowing, canViewFollowers };

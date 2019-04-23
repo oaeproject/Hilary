@@ -13,15 +13,13 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
-const SearchTestsUtil = require('oae-search/lib/test/util');
-const TestsUtil = require('oae-tests/lib/util');
-
-const FollowingTestsUtil = require('oae-following/lib/test/util');
+import * as RestAPI from 'oae-rest';
+import * as SearchTestsUtil from 'oae-search/lib/test/util';
+import * as TestsUtil from 'oae-tests/lib/util';
+import * as FollowingTestsUtil from 'oae-following/lib/test/util';
 
 let globalAdminOnTenantRestContext = null;
 let camAnonymousRestContext = null;
@@ -42,16 +40,11 @@ describe('Following Search', () => {
     gtAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.gt.host);
 
     // Authenticate the global admin into a tenant so we can perform user-tenant requests with a global admin to test their access
-    RestAPI.Admin.loginOnTenant(
-      TestsUtil.createGlobalAdminRestContext(),
-      'localhost',
-      null,
-      (err, ctx) => {
-        assert.ok(!err);
-        globalAdminOnTenantRestContext = ctx;
-        return callback();
-      }
-    );
+    RestAPI.Admin.loginOnTenant(TestsUtil.createGlobalAdminRestContext(), 'localhost', null, (err, ctx) => {
+      assert.ok(!err);
+      globalAdminOnTenantRestContext = ctx;
+      return callback();
+    });
   });
 
   /**
@@ -62,34 +55,22 @@ describe('Following Search', () => {
       assert.ok(!err);
       const user = _.values(testUsers)[0];
 
-      RestAPI.Search.search(
-        user.restContext,
-        'following',
-        [user.user.id],
-        null,
-        (err, response) => {
+      RestAPI.Search.search(user.restContext, 'following', [user.user.id], null, (err, response) => {
+        assert.ok(!err);
+        assert.ok(response);
+        assert.strictEqual(response.total, 0);
+        assert.ok(response.results);
+        assert.strictEqual(response.results.length, 0);
+
+        RestAPI.Search.search(user.restContext, 'followers', [user.user.id], null, (err, response) => {
           assert.ok(!err);
           assert.ok(response);
           assert.strictEqual(response.total, 0);
           assert.ok(response.results);
           assert.strictEqual(response.results.length, 0);
-
-          RestAPI.Search.search(
-            user.restContext,
-            'followers',
-            [user.user.id],
-            null,
-            (err, response) => {
-              assert.ok(!err);
-              assert.ok(response);
-              assert.strictEqual(response.total, 0);
-              assert.ok(response.results);
-              assert.strictEqual(response.results.length, 0);
-              return callback();
-            }
-          );
-        }
-      );
+          return callback();
+        });
+      });
     });
   });
 
@@ -102,58 +83,34 @@ describe('Following Search', () => {
       const user = _.values(testUsers)[0];
 
       // Ensure failure with a non-valid resource id
-      RestAPI.Search.search(
-        user.restContext,
-        'following',
-        ['not-a-valid-id'],
-        null,
-        (err, response) => {
+      RestAPI.Search.search(user.restContext, 'following', ['not-a-valid-id'], null, (err, response) => {
+        assert.ok(err);
+        assert.strictEqual(err.code, 400);
+        assert.ok(!response);
+
+        // Ensure failure with group id instead of user id
+        RestAPI.Search.search(user.restContext, 'following', ['g:not-a:user-id'], null, (err, response) => {
           assert.ok(err);
           assert.strictEqual(err.code, 400);
           assert.ok(!response);
 
-          // Ensure failure with group id instead of user id
-          RestAPI.Search.search(
-            user.restContext,
-            'following',
-            ['g:not-a:user-id'],
-            null,
-            (err, response) => {
-              assert.ok(err);
-              assert.strictEqual(err.code, 400);
-              assert.ok(!response);
+          // Ensure failure with non-existent user id
+          RestAPI.Search.search(user.restContext, 'following', ['u:cam:nonExistentUserId'], null, (err, response) => {
+            assert.ok(err);
+            assert.strictEqual(err.code, 404);
+            assert.ok(!response);
 
-              // Ensure failure with non-existent user id
-              RestAPI.Search.search(
-                user.restContext,
-                'following',
-                ['u:cam:nonExistentUserId'],
-                null,
-                (err, response) => {
-                  assert.ok(err);
-                  assert.strictEqual(err.code, 404);
-                  assert.ok(!response);
-
-                  // Sanity check a valid search
-                  RestAPI.Search.search(
-                    user.restContext,
-                    'following',
-                    [user.user.id],
-                    null,
-                    (err, response) => {
-                      assert.ok(response);
-                      assert.strictEqual(response.total, 0);
-                      assert.ok(response.results);
-                      assert.strictEqual(response.results.length, 0);
-                      return callback();
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
+            // Sanity check a valid search
+            RestAPI.Search.search(user.restContext, 'following', [user.user.id], null, (err, response) => {
+              assert.ok(response);
+              assert.strictEqual(response.total, 0);
+              assert.ok(response.results);
+              assert.strictEqual(response.results.length, 0);
+              return callback();
+            });
+          });
+        });
+      });
     });
   });
 
@@ -166,58 +123,34 @@ describe('Following Search', () => {
       const user = _.values(testUsers)[0];
 
       // Ensure failure with a non-valid resource id
-      RestAPI.Search.search(
-        user.restContext,
-        'followers',
-        ['not-a-valid-id'],
-        null,
-        (err, response) => {
+      RestAPI.Search.search(user.restContext, 'followers', ['not-a-valid-id'], null, (err, response) => {
+        assert.ok(err);
+        assert.strictEqual(err.code, 400);
+        assert.ok(!response);
+
+        // Ensure failure with group id instead of user id
+        RestAPI.Search.search(user.restContext, 'followers', ['g:not-a:user-id'], null, (err, response) => {
           assert.ok(err);
           assert.strictEqual(err.code, 400);
           assert.ok(!response);
 
-          // Ensure failure with group id instead of user id
-          RestAPI.Search.search(
-            user.restContext,
-            'followers',
-            ['g:not-a:user-id'],
-            null,
-            (err, response) => {
-              assert.ok(err);
-              assert.strictEqual(err.code, 400);
-              assert.ok(!response);
+          // Ensure failure with non-existent user id
+          RestAPI.Search.search(user.restContext, 'followers', ['u:cam:nonExistentUserId'], null, (err, response) => {
+            assert.ok(err);
+            assert.strictEqual(err.code, 404);
+            assert.ok(!response);
 
-              // Ensure failure with non-existent user id
-              RestAPI.Search.search(
-                user.restContext,
-                'followers',
-                ['u:cam:nonExistentUserId'],
-                null,
-                (err, response) => {
-                  assert.ok(err);
-                  assert.strictEqual(err.code, 404);
-                  assert.ok(!response);
-
-                  // Sanity check a valid search
-                  RestAPI.Search.search(
-                    user.restContext,
-                    'followers',
-                    [user.user.id],
-                    null,
-                    (err, response) => {
-                      assert.ok(response);
-                      assert.strictEqual(response.total, 0);
-                      assert.ok(response.results);
-                      assert.strictEqual(response.results.length, 0);
-                      return callback();
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
+            // Sanity check a valid search
+            RestAPI.Search.search(user.restContext, 'followers', [user.user.id], null, (err, response) => {
+              assert.ok(response);
+              assert.strictEqual(response.total, 0);
+              assert.ok(response.results);
+              assert.strictEqual(response.results.length, 0);
+              return callback();
+            });
+          });
+        });
+      });
     });
   });
 
@@ -269,98 +202,63 @@ describe('Following Search', () => {
       const publicUser = _.values(testUsers)[2];
       const bert = _.values(testUsers)[3];
 
-      RestAPI.User.updateUser(
-        privateUser.restContext,
-        privateUser.user.id,
-        { visibility: 'private' },
-        err => {
+      RestAPI.User.updateUser(privateUser.restContext, privateUser.user.id, { visibility: 'private' }, err => {
+        assert.ok(!err);
+
+        RestAPI.User.updateUser(loggedinUser.restContext, loggedinUser.user.id, { visibility: 'loggedin' }, err => {
           assert.ok(!err);
 
-          RestAPI.User.updateUser(
-            loggedinUser.restContext,
-            loggedinUser.user.id,
-            { visibility: 'loggedin' },
-            err => {
-              assert.ok(!err);
-
-              // Verify anonymous can only see public follow searches
-              FollowingTestsUtil.assertNoSearchFeedAccess(
-                camAnonymousRestContext,
-                [privateUser.user.id, loggedinUser.user.id],
-                401,
-                () => {
-                  FollowingTestsUtil.assertHasFollowFeedAccess(
-                    camAnonymousRestContext,
-                    [publicUser.user.id],
-                    () => {
-                      // Verify gt admin can only see public follow searches
-                      FollowingTestsUtil.assertNoSearchFeedAccess(
-                        gtAdminRestContext,
-                        [privateUser.user.id, loggedinUser.user.id],
-                        401,
-                        () => {
-                          FollowingTestsUtil.assertHasSearchFeedAccess(
-                            gtAdminRestContext,
-                            [publicUser.user.id],
-                            () => {
-                              // Verify bert can see only public and loggedin follow searches
-                              FollowingTestsUtil.assertNoSearchFeedAccess(
-                                bert.restContext,
-                                [privateUser.user.id],
-                                401,
-                                () => {
-                                  FollowingTestsUtil.assertHasSearchFeedAccess(
-                                    bert.restContext,
-                                    [publicUser.user.id, loggedinUser.user.id],
-                                    () => {
-                                      // Verify private user can see follow searches
-                                      FollowingTestsUtil.assertHasSearchFeedAccess(
-                                        privateUser.restContext,
-                                        [
-                                          publicUser.user.id,
-                                          loggedinUser.user.id,
-                                          privateUser.user.id
-                                        ],
-                                        () => {
-                                          // Verify cam admin can see follow searches
-                                          FollowingTestsUtil.assertHasSearchFeedAccess(
-                                            camAdminRestContext,
-                                            [
-                                              publicUser.user.id,
-                                              loggedinUser.user.id,
-                                              privateUser.user.id
-                                            ],
-                                            () => {
-                                              // Verify global admin can see follow searches
-                                              FollowingTestsUtil.assertHasSearchFeedAccess(
-                                                globalAdminOnTenantRestContext,
-                                                [
-                                                  publicUser.user.id,
-                                                  loggedinUser.user.id,
-                                                  privateUser.user.id
-                                                ],
-                                                callback
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
+          // Verify anonymous can only see public follow searches
+          FollowingTestsUtil.assertNoSearchFeedAccess(
+            camAnonymousRestContext,
+            [privateUser.user.id, loggedinUser.user.id],
+            401,
+            () => {
+              FollowingTestsUtil.assertHasFollowFeedAccess(camAnonymousRestContext, [publicUser.user.id], () => {
+                // Verify gt admin can only see public follow searches
+                FollowingTestsUtil.assertNoSearchFeedAccess(
+                  gtAdminRestContext,
+                  [privateUser.user.id, loggedinUser.user.id],
+                  401,
+                  () => {
+                    FollowingTestsUtil.assertHasSearchFeedAccess(gtAdminRestContext, [publicUser.user.id], () => {
+                      // Verify bert can see only public and loggedin follow searches
+                      FollowingTestsUtil.assertNoSearchFeedAccess(bert.restContext, [privateUser.user.id], 401, () => {
+                        FollowingTestsUtil.assertHasSearchFeedAccess(
+                          bert.restContext,
+                          [publicUser.user.id, loggedinUser.user.id],
+                          () => {
+                            // Verify private user can see follow searches
+                            FollowingTestsUtil.assertHasSearchFeedAccess(
+                              privateUser.restContext,
+                              [publicUser.user.id, loggedinUser.user.id, privateUser.user.id],
+                              () => {
+                                // Verify cam admin can see follow searches
+                                FollowingTestsUtil.assertHasSearchFeedAccess(
+                                  camAdminRestContext,
+                                  [publicUser.user.id, loggedinUser.user.id, privateUser.user.id],
+                                  () => {
+                                    // Verify global admin can see follow searches
+                                    FollowingTestsUtil.assertHasSearchFeedAccess(
+                                      globalAdminOnTenantRestContext,
+                                      [publicUser.user.id, loggedinUser.user.id, privateUser.user.id],
+                                      callback
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      });
+                    });
+                  }
+                );
+              });
             }
           );
-        }
-      );
+        });
+      });
     });
   });
 

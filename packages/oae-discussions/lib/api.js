@@ -13,7 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const EmitterAPI = require('oae-emitter');
+import * as EmitterAPI from 'oae-emitter';
+
+import * as Discussions from './api.discussions';
 
 /**
  * ### Events
@@ -30,6 +32,6 @@ const EmitterAPI = require('oae-emitter');
  * * `updatedDiscussionMembers(ctx, discussion, memberUpdates, newMemberIds, updatedMemberIds, removedMemberIds)`: The members and/or managers for a discussion have been altered.
  */
 const DiscussionsAPI = new EmitterAPI.EventEmitter();
-module.exports = DiscussionsAPI;
+export default DiscussionsAPI;
 
-module.exports.Discussions = require('./api.discussions');
+export { Discussions };

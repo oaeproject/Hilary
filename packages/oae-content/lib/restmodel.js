@@ -44,6 +44,26 @@
  */
 
 /**
+ * @RESTModel BasicContentCollabsheet
+ *
+ * @Required    [created,createdBy,displayName,ethercalcRoomId,id,lastModified,latestRevisionId,profilePath,resourceSubType,resourceType,tenant,visibility]
+ * @Property    {number}                created                     The timestamp (millis since epoch) at which the collaborative spreadsheet was created
+ * @Property    {string}                createdBy                   The id of the user who created the collaborative spreadsheet
+ * @Property    {string}                description                 A longer description for the collaborative spreadsheet
+ * @Property    {string}                displayName                 The display name of the collaborative spreadsheet
+ * @Property    {string}                ethercalcRoomId             The id of the collaborative spreadsheet's corresponding Ethercalc room
+ * @Property    {string}                id                          The id of the collaborative spreadsheet
+ * @Property    {number}                lastModified                The timestamp (millis since epoch) at which the collaborative spreadsheet was last modified
+ * @Property    {string}                latestRevisionId            The id of the current collaborative spreadsheet revision
+ * @Property    {Previews}              previews                    The thumbnails for the collaborative spreadsheet
+ * @Property    {string}                profilePath                 The relative path to the collaborative spreadsheet
+ * @Property    {string}                resourceSubType             The content item type                           [collabsheet]
+ * @Property    {string}                resourceType                The resource type of the content item           [content]
+ * @Property    {Tenant}                tenant                      The tenant to which this collaborative spreadsheet is associated
+ * @Property    {string}                visibility                  The visibility of the collaborative spreadsheet    [loggedin,private,public]
+ */
+
+/**
  * @RESTModel BasicContentFile
  *
  * @Required    [created,createdBy,displayName,downloadPath,filename,id,lastModified,latestRevisionId,mime,profilePath,resourceSubType,resourceType,size,tenant,visibility]
@@ -107,6 +127,20 @@
  */
 
 /**
+ * @RESTModel CollabsheetRevision
+ *
+ * @Required [contentId,created,createdBy,revisionId]
+ * @Property    {string}                contentId                   The id of the collaborative spreadsheet associated to the revision
+ * @Property    {number}                created                     The timestamp (millis since epoch) at which the revision was created
+ * @Property    {BasicUser}             createdBy                   The user who created the revision
+ * @Property    {string}                ethercalcHtml               The full HTML content of the collaborative spreadsheet
+ * @Property    {string}                ethercalcSnapshot           The contents of the collaborative spreadsheet in socialcalc format
+ * @Property    {Previews}              previews                    The thumbnails for the revision
+ * @Property    {string}                revisionId                  The id of the revision
+ * @Property    {string}                thumbnailUrl                The relative path to the revision thumbnail
+ */
+
+/**
  * @RESTModel Content
  *
  * @Required  []
@@ -137,6 +171,29 @@
  * @Property    {string}                resourceType                The resource type of the content item           [content]
  * @Property    {BasicTenant}           tenant                      The tenant to which this collaborative document is associated
  * @Property    {string}                visibility                  The visibility of the collaborative document    [loggedin,private,public]
+ */
+
+/**
+ * @RESTModel ContentCollabsheet
+ *
+ * @Required    [canShare,created,createdBy,displayName,ethercalcRoomId,id,isManager,lastModified,latestRevisionId,profilePath,resourceSubType,resourceType,tenant,visibility]
+ * @Property    {boolean}               canShare                    Whether the current user is allowed to share the collaborative spreadsheet
+ * @Property    {number}                created                     The timestamp (millis since epoch) at which the collaborative spreadsheet was created
+ * @Property    {BasicUser}             createdBy                   The user who created the collaborative spreadsheet
+ * @Property    {string}                description                 A longer description for the collaborative spreadsheet
+ * @Property    {string}                displayName                 The display name of the collaborative spreadsheet
+ * @Property    {string}                ethercalcRoomId             The id of the collaborative spreadsheet's corresponding Ethercalc room
+ * @Property    {string}                id                          The id of the collaborative spreadsheet
+ * @Property    {boolean}               isManager                   Whether the current user is a manager of the collaborative spreadsheet
+ * @Property    {number}                lastModified                The timestamp (millis since epoch) at which the collaborative spreadsheet was last modified
+ * @Property    {CollabsheetRevision}   latestRevision              The current collaborative spreadsheet revision
+ * @Property    {string}                latestRevisionId            The id of the current collaborative spreadsheet revision
+ * @Property    {Previews}              previews                    The thumbnails for the collaborative spreadsheet
+ * @Property    {string}                profilePath                 The relative path to the collaborative spreadsheet
+ * @Property    {string}                resourceSubType             The content item type                           [collabsheet]
+ * @Property    {string}                resourceType                The resource type of the content item           [content]
+ * @Property    {BasicTenant}           tenant                      The tenant to which this collaborative spreadsheet is associated
+ * @Property    {string}                visibility                  The visibility of the collaborative spreadsheet [loggedin,private,public]
  */
 
 /**
@@ -294,6 +351,7 @@
  *
  * @Required  []
  * @Property    {CollabdocRevision}     (collabdocRevision)         Used when the revision is a collaborative document revision
+ * @Property    {CollabsheetRevision}   (collabsheetRevision)       Used when the revision is a collaborative spreadsheet revision
  * @Property    {FileRevision}          (fileRevision)              Used when the revision is a file revision
  * @Property    {LinkRevision}          (linkRevision)              Used when the revision is a link revision
  */

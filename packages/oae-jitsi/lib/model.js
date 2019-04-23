@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
+import util from 'util';
 
-const AuthzUtil = require('oae-authz/lib/util');
+import * as AuthzUtil from 'oae-authz/lib/util';
 
 const Meeting = function(
   tenant,
@@ -47,6 +47,4 @@ const Meeting = function(
   return that;
 };
 
-module.exports = {
-  Meeting
-};
+export { Meeting };

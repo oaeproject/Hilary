@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const { Validator } = require('oae-authz/lib/validator');
+import assert from 'assert';
+import { Validator } from 'oae-authz/lib/validator';
 
 describe('Authz-Validator', () => {
   describe('#isResourceId()', () => {

@@ -13,11 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
-
-const ConfigTestUtil = require('oae-config/lib/test/util');
-
-const UIAPI = require('oae-ui');
+import _ from 'underscore';
+import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as UIAPI from 'oae-ui';
 
 /**
  * Updates the skin variables for a tenant and waits till the CSS has been regenerated.
@@ -87,6 +85,4 @@ const updateSkinAndWait = function(restCtx, tenantAlias, skinConfig, callback) {
   UIAPI.emitter.once('skinParsed', _updateListener);
 };
 
-module.exports = {
-  updateSkinAndWait
-};
+export { updateSkinAndWait };

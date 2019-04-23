@@ -13,20 +13,23 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import PrincipalsEmitter from 'oae-principals/lib/internal/emitter';
 
-const AuthzAPI = require('oae-authz');
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const AuthzUtil = require('oae-authz/lib/util');
-const LibraryAPI = require('oae-library');
+import _ from 'underscore';
 
-const PrincipalsEmitter = require('oae-principals/lib/internal/emitter');
-const { PrincipalsConstants } = require('oae-principals/lib/constants');
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
-const PrincipalsDelete = require('oae-principals/lib/delete');
+import * as AuthzAPI from 'oae-authz';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as LibraryAPI from 'oae-library';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as PrincipalsDelete from 'oae-principals/lib/delete';
 
-const log = require('oae-logger').logger('principals-memberslibrary');
+import { PrincipalsConstants } from 'oae-principals/lib/constants';
+import { AuthzConstants } from 'oae-authz/lib/constants';
+
+import { logger } from 'oae-logger';
+
+const log = logger('principals-memberslibrary');
 
 /// //////
 // API //
@@ -184,10 +187,7 @@ PrincipalsEmitter.when(
     // performance issues with many group members updates)
     LibraryAPI.Index.purge(PrincipalsConstants.library.MEMBERS_INDEX_NAME, group.id, err => {
       if (err) {
-        log().error(
-          { err, groupId: group.id },
-          'An unexpected error occurred trying to purge a group members library'
-        );
+        log().error({ err, groupId: group.id }, 'An unexpected error occurred trying to purge a group members library');
         return callback(err);
       }
 
@@ -199,30 +199,27 @@ PrincipalsEmitter.when(
 /*!
  * When someone joins a group, we should add them to the group's members library
  */
-PrincipalsEmitter.when(
-  PrincipalsConstants.events.JOINED_GROUP,
-  (ctx, group, oldGroup, memberChangeInfo, callback) => {
-    const joinRole = memberChangeInfo.changes[ctx.user().id];
-    const entry = {
-      id: group.id,
-      rank: _getMembersLibraryRank(group.id, ctx.user(), joinRole),
-      resource: ctx.user(),
-      value: joinRole
-    };
+PrincipalsEmitter.when(PrincipalsConstants.events.JOINED_GROUP, (ctx, group, oldGroup, memberChangeInfo, callback) => {
+  const joinRole = memberChangeInfo.changes[ctx.user().id];
+  const entry = {
+    id: group.id,
+    rank: _getMembersLibraryRank(group.id, ctx.user(), joinRole),
+    resource: ctx.user(),
+    value: joinRole
+  };
 
-    LibraryAPI.Index.insert(PrincipalsConstants.library.MEMBERS_INDEX_NAME, [entry], err => {
-      if (err) {
-        log().error(
-          { err, groupId: group.id, userId: ctx.user().id },
-          'An unexpected error occurred trying to insert a user into a group members library'
-        );
-        return callback(err);
-      }
+  LibraryAPI.Index.insert(PrincipalsConstants.library.MEMBERS_INDEX_NAME, [entry], err => {
+    if (err) {
+      log().error(
+        { err, groupId: group.id, userId: ctx.user().id },
+        'An unexpected error occurred trying to insert a user into a group members library'
+      );
+      return callback(err);
+    }
 
-      return callback();
-    });
-  }
-);
+    return callback();
+  });
+});
 
 /*!
  * When someone leaves a group, we should remove them from the group's members library. We don't
@@ -309,6 +306,7 @@ const _hasProfilePicture = function(principal) {
   if (principal.picture && principal.picture.smallUri) {
     return true;
   }
+
   return false;
 };
 
@@ -337,6 +335,4 @@ const _handleInvalidateMembersLibrary = function(group, membershipsGraph, member
 PrincipalsDelete.registerGroupDeleteHandler('members-library', _handleInvalidateMembersLibrary);
 PrincipalsDelete.registerGroupRestoreHandler('members-library', _handleInvalidateMembersLibrary);
 
-module.exports = {
-  list
-};
+export { list };

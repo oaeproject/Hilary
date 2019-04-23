@@ -1,4 +1,4 @@
-const Cassandra = require('oae-util/lib/cassandra');
+import { createColumnFamilies } from 'oae-util/lib/cassandra';
 
 /**
  * Create the schema for Learning Tools Interoperability tools
@@ -8,7 +8,7 @@ const Cassandra = require('oae-util/lib/cassandra');
  * @api private
  */
 const ensureSchema = function(callback) {
-  Cassandra.createColumnFamilies(
+  createColumnFamilies(
     {
       LtiTools:
         'CREATE TABLE "LtiTools" ("id" text, "groupId" text, "launchUrl" text, "secret" text, "oauthConsumerKey" text, "displayName" text, "description" text, PRIMARY KEY ("groupId", "id"))'
@@ -17,4 +17,4 @@ const ensureSchema = function(callback) {
   );
 };
 
-module.exports = { ensureSchema };
+export { ensureSchema };

@@ -14,18 +14,18 @@
  */
 
 /* eslint-disable radix */
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const AuthzUtil = require('oae-authz/lib/util');
-const ConfigTestUtil = require('oae-config/lib/test/util');
-const PrincipalsTestUtil = require('oae-principals/lib/test/util');
-const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
-const TenantsTestUtil = require('oae-tenants/lib/test/util');
-const TestsUtil = require('oae-tests');
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import * as TestsUtil from 'oae-tests';
+import * as SearchTestsUtil from 'oae-search/lib/test/util';
 
-const SearchTestsUtil = require('oae-search/lib/test/util');
+import { RestContext } from 'oae-rest/lib/model';
 
 describe('General Search', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user
@@ -870,14 +870,14 @@ describe('General Search', () => {
      */
     it('verify a variety of valid and invalid values for the resourceTypes parameter', callback => {
       /*!
-             * Helper function that verifies that a search result feed has (or doesn't have) results of certain resourceTypes
-             *
-             * @param  {SearchResult}   results             The search results object
-             * @param  {Boolean}        shouldHaveUser      Whether or not the results should contain a user object
-             * @param  {Boolean}        shouldHaveGroup     Whether or not the results should contain a group object
-             * @param  {Boolean}        shouldHaveContent   Whether or not the results should contain a content object
-             * @return {Object}                             The search document. `null` if it didn't exist
-             */
+       * Helper function that verifies that a search result feed has (or doesn't have) results of certain resourceTypes
+       *
+       * @param  {SearchResult}   results             The search results object
+       * @param  {Boolean}        shouldHaveUser      Whether or not the results should contain a user object
+       * @param  {Boolean}        shouldHaveGroup     Whether or not the results should contain a group object
+       * @param  {Boolean}        shouldHaveContent   Whether or not the results should contain a content object
+       * @return {Object}                             The search document. `null` if it didn't exist
+       */
       const _verifyHasResourceTypes = function(results, shouldHaveUser, shouldHaveGroup, shouldHaveContent) {
         let hasUser = false;
         let hasGroup = false;
@@ -4234,6 +4234,7 @@ describe('General Search', () => {
           return i;
         }
       }
+
       return -1;
     };
 

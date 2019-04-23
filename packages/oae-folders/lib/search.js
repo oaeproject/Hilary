@@ -15,20 +15,22 @@
 
 /* eslint-disable no-unused-vars */
 
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
 
-const AuthzSearch = require('oae-authz/lib/search');
-const AuthzUtil = require('oae-authz/lib/util');
-const ContentUtil = require('oae-content/lib/internal/util');
-const log = require('oae-logger').logger('folders-search');
-const MessageBoxSearch = require('oae-messagebox/lib/search');
-const SearchAPI = require('oae-search');
-const TenantsAPI = require('oae-tenants');
+import * as AuthzSearch from 'oae-authz/lib/search';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as ContentUtil from 'oae-content/lib/internal/util';
+import { logger } from 'oae-logger';
+import * as MessageBoxSearch from 'oae-messagebox/lib/search';
+import * as SearchAPI from 'oae-search';
+import * as TenantsAPI from 'oae-tenants';
 
-const FoldersAPI = require('oae-folders');
-const { FoldersConstants } = require('oae-folders/lib/constants');
-const FoldersDAO = require('oae-folders/lib/internal/dao');
+import * as FoldersAPI from 'oae-folders';
+import { FoldersConstants } from 'oae-folders/lib/constants';
+import * as FoldersDAO from 'oae-folders/lib/internal/dao';
+
+const log = logger('folders-search');
 
 /**
  * Initializes the child search documents for the folders module
@@ -98,26 +100,23 @@ FoldersAPI.emitter.on(FoldersConstants.events.UPDATED_FOLDER_PREVIEWS, folder =>
  * When the members of a folder are updated, fire a task to update the memberships search
  * documents of those whose roles have changed
  */
-FoldersAPI.emitter.on(
-  FoldersConstants.events.UPDATED_FOLDER_MEMBERS,
-  (ctx, folder, memberChangeInfo, opts) => {
-    // Update the members document for this folder
-    SearchAPI.postIndexTask('folder', [{ id: folder.groupId, folderId: folder.id }], {
-      children: {
-        // eslint-disable-next-line camelcase
-        resource_members: true
-      }
-    });
+FoldersAPI.emitter.on(FoldersConstants.events.UPDATED_FOLDER_MEMBERS, (ctx, folder, memberChangeInfo, opts) => {
+  // Update the members document for this folder
+  SearchAPI.postIndexTask('folder', [{ id: folder.groupId, folderId: folder.id }], {
+    children: {
+      // eslint-disable-next-line camelcase
+      resource_members: true
+    }
+  });
 
-    // Update each of the updated members their membership documents
-    const principalIds = _.chain(memberChangeInfo.members.added)
-      .union(memberChangeInfo.members.updated)
-      .union(memberChangeInfo.members.removed)
-      .pluck('id')
-      .value();
-    AuthzSearch.fireMembershipUpdateTasks(principalIds);
-  }
-);
+  // Update each of the updated members their membership documents
+  const principalIds = _.chain(memberChangeInfo.members.added)
+    .union(memberChangeInfo.members.updated)
+    .union(memberChangeInfo.members.removed)
+    .pluck('id')
+    .value();
+  AuthzSearch.fireMembershipUpdateTasks(principalIds);
+});
 
 /**
  * Index the resource members for a set of content items
@@ -144,12 +143,9 @@ const _indexContentResourceMembers = function(ctx, folder, contentItems) {
  * When content items are added to a folder, fire a task to update the members search document
  * of the content items that were added
  */
-FoldersAPI.emitter.on(
-  FoldersConstants.events.ADDED_CONTENT_ITEMS,
-  (ctx, actionContext, folder, contentItems) => {
-    return _indexContentResourceMembers(ctx, folder, contentItems);
-  }
-);
+FoldersAPI.emitter.on(FoldersConstants.events.ADDED_CONTENT_ITEMS, (ctx, actionContext, folder, contentItems) => {
+  return _indexContentResourceMembers(ctx, folder, contentItems);
+});
 
 /*!
  * When content items are removed from a folder, fire a task to update the members search document
@@ -176,16 +172,13 @@ FoldersAPI.emitter.on(FoldersConstants.events.CREATED_COMMENT, (ctx, message, fo
 /*!
  * When a folder message is deleted, we must delete the child message document
  */
-FoldersAPI.emitter.on(
-  FoldersConstants.events.DELETED_COMMENT,
-  (ctx, message, folder, deleteType) => {
-    return MessageBoxSearch.deleteMessageSearchDocument(
-      FoldersConstants.search.MAPPING_FOLDER_MESSAGE,
-      folder.groupId,
-      message
-    );
-  }
-);
+FoldersAPI.emitter.on(FoldersConstants.events.DELETED_COMMENT, (ctx, message, folder, deleteType) => {
+  return MessageBoxSearch.deleteMessageSearchDocument(
+    FoldersConstants.search.MAPPING_FOLDER_MESSAGE,
+    folder.groupId,
+    message
+  );
+});
 
 /// /////////////////////
 // DOCUMENT PRODUCERS //
@@ -335,11 +328,7 @@ const _transformFolderDocuments = function(ctx, docs, callback) {
     // Add the full tenant object and profile path
     _.extend(result, {
       tenant: TenantsAPI.getTenant(result.tenantAlias).compact(),
-      profilePath: util.format(
-        '/folder/%s/%s',
-        result.tenantAlias,
-        AuthzUtil.getResourceFromId(result.id).resourceId
-      )
+      profilePath: util.format('/folder/%s/%s', result.tenantAlias, AuthzUtil.getResourceFromId(result.id).resourceId)
     });
 
     // If applicable, sign the thumbnailUrl so the current user can access it
@@ -366,11 +355,11 @@ SearchAPI.registerSearchDocumentTransformer('folder', _transformFolderDocuments)
  */
 SearchAPI.registerReindexAllHandler('folder', callback => {
   /*!
-     * Handles each iteration of the FoldersDAO iterate all method, firing tasks for all folders to
-     * be reindexed.
-     *
-     * @see FoldersDAO#iterateAll
-     */
+   * Handles each iteration of the FoldersDAO iterate all method, firing tasks for all folders to
+   * be reindexed.
+   *
+   * @see FoldersDAO#iterateAll
+   */
   const _onEach = function(folderRows, done) {
     // Aggregate folder reindexing task resources
     const folderResources = _.map(folderRows, row => {
@@ -392,6 +381,4 @@ SearchAPI.registerReindexAllHandler('folder', callback => {
   FoldersDAO.iterateAll(['id', 'groupId'], 100, _onEach, callback);
 });
 
-module.exports = {
-  init
-};
+export { init };

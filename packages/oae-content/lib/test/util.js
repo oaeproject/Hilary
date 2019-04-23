@@ -13,20 +13,21 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const util = require('util');
-const _ = require('underscore');
-const ShortId = require('shortid');
+import assert from 'assert';
+import util from 'util';
+import _ from 'underscore';
+import ShortId from 'shortid';
+import async from 'async';
 
-const AuthzTestUtil = require('oae-authz/lib/test/util');
-const MqTestUtil = require('oae-util/lib/test/mq-util');
-const LibraryTestUtil = require('oae-library/lib/test/util');
-const PrincipalsTestUtil = require('oae-principals/lib/test/util');
-const RestAPI = require('oae-rest');
-const TaskQueue = require('oae-util/lib/taskqueue');
-const TestsUtil = require('oae-tests/lib/util');
+import * as AuthzTestUtil from 'oae-authz/lib/test/util';
+import * as MqTestUtil from 'oae-util/lib/test/mq-util';
+import * as LibraryTestUtil from 'oae-library/lib/test/util';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as TaskQueue from 'oae-util/lib/taskqueue';
+import * as TestsUtil from 'oae-tests/lib/util';
 
-const { ContentConstants } = require('oae-content/lib/constants');
+import { ContentConstants } from 'oae-content/lib/constants';
 
 /**
  * Set up 2 public tenants and 2 private tenants, each with a public, loggedin, private set of users, groups and
@@ -826,6 +827,7 @@ const createCollabDoc = function(adminRestContext, nrOfUsers, nrOfJoinedUsers, c
             callCallback();
           });
         };
+
         for (let i = 0; i < nrOfJoinedUsers; i++) {
           joinCollabDoc(i);
         }
@@ -856,6 +858,69 @@ const publishCollabDoc = function(contentId, userId, callback) {
 };
 
 /**
+ * Create a set of test users and a collaborative spreadsheet.
+ * The `nrOfJoinedUsers` specifies how many users should join the spreadsheet
+ *
+ * @param  {RestContext}    adminRestContext        An administrator rest context that can be used to create the users
+ * @param  {Number}         nrOfUsers               The number of users that should be created
+ * @param  {Number}         nrOfJoinedUsers         The number of users that should be joined in the spreadsheet. These will be the first `nrOfJoinedUsers` of the users hash
+ * @param  {Function}       callback                Standard callback function
+ * @param  {Object}         callback.err            An error that occurred, if any
+ * @param  {Content}        callback.contentObj     The created collaborative spreadsheet
+ * @param  {Object}         callback.users          The created users
+ * @param  {Object}         callback.user1          An object containing the user profile and a rest context for the first user of the set of users that was created
+ * @param  {Object}         callback.user..         An object containing the user profile and a rest context for the next user of the set of users that was created
+ */
+const createCollabsheet = function(adminRestContext, nrOfUsers, nrOfJoinedUsers, callback) {
+  TestsUtil.generateTestUsers(adminRestContext, nrOfUsers, function(err, users) {
+    assert.ok(!err);
+
+    const userIds = _.keys(users);
+    const userValues = _.values(users);
+
+    // Create a collaborative document where all the users are managers
+    const name = TestsUtil.generateTestUserId('collabdoc');
+    RestAPI.Content.createCollabsheet(
+      userValues[0].restContext,
+      name,
+      'description',
+      'public',
+      userIds,
+      [],
+      [],
+      [],
+      function(err, contentObj) {
+        assert.ok(!err);
+
+        const restContexts = _.pluck(userValues, 'restContext');
+        async.each(
+          restContexts,
+          (eachUserToJoin, exit) => {
+            RestAPI.Content.joinCollabDoc(eachUserToJoin, contentObj.id, function(err, data) {
+              if (err) {
+                exit(err);
+              }
+
+              assert.ok(!err);
+              exit(null, data);
+            });
+          },
+          err => {
+            if (err) {
+              callback(err);
+            }
+
+            const callbackArgs = _.union([contentObj, users], userValues);
+
+            return callback.apply(callback, callbackArgs);
+          }
+        );
+      }
+    );
+  });
+};
+
+/**
  * Purge the members library. See @LibraryTestUtil.assertPurgeFreshLibrary for more details
  *
  * @param  {String}     contentId   The id of the content item whose members library to purge
@@ -867,7 +932,7 @@ const _purgeMembersLibrary = function(contentId, callback) {
   LibraryTestUtil.assertPurgeFreshLibraries(ContentConstants.library.MEMBERS_LIBRARY_INDEX_NAME, [contentId], callback);
 };
 
-module.exports = {
+export {
   setupMultiTenantPrivacyEntities,
   assertCreateLinkSucceeds,
   assertCreateLinkFails,
@@ -885,5 +950,6 @@ module.exports = {
   assertGetContentLibrarySucceeds,
   generateTestLinks,
   publishCollabDoc,
-  createCollabDoc
+  createCollabDoc,
+  createCollabsheet
 };

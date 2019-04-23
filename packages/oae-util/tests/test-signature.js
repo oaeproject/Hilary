@@ -13,10 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
+import assert from 'assert';
 
-const Signature = require('oae-util/lib/signature');
-const { Validator } = require('oae-util/lib/validator');
+import * as Signature from 'oae-util/lib/signature';
 
 // Keep track of the node Date.now function since we will
 // override it at times in tests to mock a future date
@@ -76,11 +75,7 @@ describe('Signature', () => {
     it('verify expiring signature cannot be verified with different data or expires timestamp', callback => {
       const signatureData = Signature.createExpiringSignature({ '0': 'zero', '1': 'one' });
       assert.ok(
-        !Signature.verifyExpiringSignature(
-          { '0': 'one', '1': 'zero' },
-          signatureData.expires,
-          signatureData.signature
-        )
+        !Signature.verifyExpiringSignature({ '0': 'one', '1': 'zero' }, signatureData.expires, signatureData.signature)
       );
       assert.ok(
         !Signature.verifyExpiringSignature(
@@ -90,11 +85,7 @@ describe('Signature', () => {
         )
       );
       assert.ok(
-        Signature.verifyExpiringSignature(
-          { '0': 'zero', '1': 'one' },
-          signatureData.expires,
-          signatureData.signature
-        )
+        Signature.verifyExpiringSignature({ '0': 'zero', '1': 'one' }, signatureData.expires, signatureData.signature)
       );
       return callback();
     });
@@ -115,17 +106,15 @@ describe('Signature', () => {
       Date.now = function() {
         return now + 5 * 1000;
       };
-      assert.ok(
-        Signature.verifyExpiringSignature(data, signatureData.expires, signatureData.signature)
-      );
+
+      assert.ok(Signature.verifyExpiringSignature(data, signatureData.expires, signatureData.signature));
 
       // Ensure the signature is never valid 12 seconds from now
       Date.now = function() {
         return now + 12 * 1000;
       };
-      assert.ok(
-        !Signature.verifyExpiringSignature(data, signatureData.expires, signatureData.signature)
-      );
+
+      assert.ok(!Signature.verifyExpiringSignature(data, signatureData.expires, signatureData.signature));
 
       return callback();
     });
@@ -140,12 +129,14 @@ describe('Signature', () => {
       Date.now = function() {
         return Date.UTC(2013, 0, 25, 11, 39, 46);
       };
+
       const signatureDataFirst = Signature.createExpiringSignature(data, 15 * 60, 15 * 60);
 
       // Increase the time by 5min and create a new signature with the same data
       Date.now = function() {
         return Date.UTC(2013, 0, 25, 11, 44, 46);
       };
+
       const signatureDataSecond = Signature.createExpiringSignature(data, 15 * 60, 15 * 60);
 
       // Ensure the signature from now is the same as the signature from 5m ago
@@ -156,6 +147,7 @@ describe('Signature', () => {
       Date.now = function() {
         return Date.UTC(2013, 0, 25, 11, 55, 46);
       };
+
       const signatureDataThird = Signature.createExpiringSignature(data, 15 * 60, 15 * 60);
       assert.notStrictEqual(signatureDataSecond.expires, signatureDataThird.expires);
       assert.notStrictEqual(signatureDataSecond.signature, signatureDataThird.signature);

@@ -13,19 +13,18 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const fs = require('fs');
-const path = require('path');
-const mkdirp = require('mkdirp');
-const _ = require('underscore');
-const shell = require('shelljs');
+import assert from 'assert';
+import fs from 'fs';
+import path from 'path';
+import mkdirp from 'mkdirp';
+import _ from 'underscore';
+import shell from 'shelljs';
 
-const Cleaner = require('oae-util/lib/cleaner');
+import * as Cleaner from 'oae-util/lib/cleaner';
 
 describe('Content', () => {
   describe('Cleaner', () => {
-    let dir =
-      process.env.TMP || process.env.TMPDIR || process.env.TEMP || path.join(process.cwd(), 'tmp');
+    let dir = process.env.TMP || process.env.TMPDIR || process.env.TEMP || path.join(process.cwd(), 'tmp');
     dir = path.join(dir, 'oae', 'tests');
 
     // We need to normalize as some OSes (like Mac OS X) return a path with double slashes.
@@ -75,6 +74,7 @@ describe('Content', () => {
           });
         }
       };
+
       Cleaner.emitter.on('cleaned', onCleaned);
     });
 
@@ -102,6 +102,7 @@ describe('Content', () => {
           });
         }
       };
+
       Cleaner.emitter.on('cleaned', onCleaned);
     });
   });

@@ -13,10 +13,11 @@
  * permissions and limitations under the License.
  */
 
-const AuthzAPI = require('oae-authz');
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const AuthzUtil = require('oae-authz/lib/util');
-const TenantsUtil = require('oae-tenants/lib/util');
+import * as AuthzAPI from 'oae-authz';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as TenantsUtil from 'oae-tenants/lib/util';
+
+import { AuthzConstants } from 'oae-authz/lib/constants';
 
 /**
  * Determine which visibility level of library the user in context should receive from the target library owner. The following
@@ -59,6 +60,7 @@ const resolveTargetLibraryAccess = function(ctx, libraryId, libraryOwner, callba
     if (err) {
       return callback(err);
     }
+
     if (implicitRole === roleHigh) {
       // We are implicitly a manager (i.e., we are administrator of the library's tenant)
       return callback(null, true, AuthzConstants.visibility.PRIVATE);
@@ -73,21 +75,25 @@ const resolveTargetLibraryAccess = function(ctx, libraryId, libraryOwner, callba
       if (err) {
         return callback(err);
       }
+
       if (hasAnyRole) {
         // If the current user has an explicit role on the library resource, they can always
         // see private items
         return callback(null, true, AuthzConstants.visibility.PRIVATE);
       }
+
       if (implicitRole && TenantsUtil.isLoggedIn(ctx, libraryOwner.tenant.alias)) {
         // If we have implicit access and we can are logged in to the library's tenant, we
         // can see loggedin items
         return callback(null, true, AuthzConstants.visibility.LOGGEDIN);
       }
+
       if (implicitRole) {
         // If we have implicit access but aren't authenticated to the library's tenant, we
         // can see public items
         return callback(null, true, AuthzConstants.visibility.PUBLIC);
       }
+
       if (
         ctx.user() &&
         TenantsUtil.canInteract(ctx.user().tenant.alias, libraryOwner.tenant.alias) &&
@@ -139,7 +145,4 @@ const resolveLibraryBucketVisibility = function(libraryId, resource) {
   return effectiveVisibility;
 };
 
-module.exports = {
-  resolveTargetLibraryAccess,
-  resolveLibraryBucketVisibility
-};
+export { resolveTargetLibraryAccess, resolveLibraryBucketVisibility };

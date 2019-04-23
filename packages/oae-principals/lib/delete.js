@@ -13,16 +13,18 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
+import Counter from 'oae-util/lib/counter';
 
-const AuthzAPI = require('oae-authz');
-const Counter = require('oae-util/lib/counter');
+import * as AuthzAPI from 'oae-authz';
 
-const groupDeleteLog = require('oae-logger').logger('group-delete');
-const groupRestoreLog = require('oae-logger').logger('group-restore');
-const PrincipalsEmitter = require('./internal/emitter');
-const { PrincipalsConstants } = require('./constants');
+import { logger } from 'oae-logger';
+import { PrincipalsConstants } from './constants';
+import PrincipalsEmitter from './internal/emitter';
+
+const groupDeleteLog = logger('group-delete');
+const groupRestoreLog = logger('group-restore');
 
 // Manage all handlers that have been registered for performing operations when a principal has been
 // deleted or restored in the system
@@ -55,13 +57,9 @@ const deleteCounter = new Counter();
  */
 const registerGroupDeleteHandler = function(name, handler) {
   if (_groupDeleteHandlers[name]) {
-    throw new Error(
-      util.format('Attempted to register multiple group delete handlers for name "%s"', name)
-    );
+    throw new Error(util.format('Attempted to register multiple group delete handlers for name "%s"', name));
   } else if (!_.isFunction(handler)) {
-    throw new TypeError(
-      util.format('Attempted to register non-function group delete handler for name "%s"', name)
-    );
+    throw new TypeError(util.format('Attempted to register non-function group delete handler for name "%s"', name));
   }
 
   _groupDeleteHandlers[name] = handler;
@@ -86,13 +84,9 @@ const registerGroupDeleteHandler = function(name, handler) {
  */
 const registerGroupRestoreHandler = function(name, handler) {
   if (_groupRestoreHandlers[name]) {
-    throw new Error(
-      util.format('Attempted to register multiple group restore handlers for name "%s"', name)
-    );
+    throw new Error(util.format('Attempted to register multiple group restore handlers for name "%s"', name));
   } else if (!_.isFunction(handler)) {
-    throw new TypeError(
-      util.format('Attempted to register non-function group restore handler for name "%s"', name)
-    );
+    throw new TypeError(util.format('Attempted to register non-function group restore handler for name "%s"', name));
   }
 
   _groupRestoreHandlers[name] = handler;
@@ -178,8 +172,8 @@ const _invokeGroupHandlers = function(log, handlers, group) {
  * @api private
  */
 const _invokeHandlers = function(...args) {
-  let [log, handlers, principal] = args;
-  // const args = Array.prototype.slice.call(arguments);
+  const [log, handlers, principal] = args;
+  // Const args = Array.prototype.slice.call(arguments);
   // The arguments for the handler (including the `principal`) start from the 2nd argument and
   // continue until the end of the arguments list
   const handlerArgs = args.slice(2);
@@ -208,10 +202,7 @@ const _invokeHandlers = function(...args) {
         );
       }
 
-      return log().debug(
-        { principalId: principal.id, handlerName: name },
-        'Successfully processed handler'
-      );
+      return log().debug({ principalId: principal.id, handlerName: name }, 'Successfully processed handler');
     });
 
     // Invoke the handler with our arguments array
@@ -241,7 +232,7 @@ PrincipalsEmitter.on(PrincipalsConstants.events.RESTORED_GROUP, (ctx, group) => 
   invokeGroupRestoreHandlers(group);
 });
 
-module.exports = {
+export {
   registerGroupDeleteHandler,
   registerGroupRestoreHandler,
   invokeGroupDeleteHandlers,

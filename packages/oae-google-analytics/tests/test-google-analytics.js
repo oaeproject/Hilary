@@ -13,10 +13,10 @@
  * visibilitys and limitations under the License.
  */
 
-const assert = require('assert');
+import assert from 'assert';
 
-const RestAPI = require('oae-rest');
-const TestsUtil = require('oae-tests');
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
 
 describe('Google Analytics', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user
@@ -56,43 +56,19 @@ describe('Google Analytics', () => {
         RestAPI.Config.getTenantConfig(camAdminRestContext, null, (err, config) => {
           assert.ok(!err);
           assert.ok(config);
-          assert.strictEqual(
-            config['oae-google-analytics']['google-analytics'].globalEnabled,
-            false
-          );
-          assert.strictEqual(
-            config['oae-google-analytics']['google-analytics'].globalTrackingId,
-            ''
-          );
-          assert.strictEqual(
-            config['oae-google-analytics']['google-analytics'].tenantEnabled,
-            false
-          );
-          assert.strictEqual(
-            config['oae-google-analytics']['google-analytics'].tenantTrackingId,
-            ''
-          );
+          assert.strictEqual(config['oae-google-analytics']['google-analytics'].globalEnabled, false);
+          assert.strictEqual(config['oae-google-analytics']['google-analytics'].globalTrackingId, '');
+          assert.strictEqual(config['oae-google-analytics']['google-analytics'].tenantEnabled, false);
+          assert.strictEqual(config['oae-google-analytics']['google-analytics'].tenantTrackingId, '');
 
           // Check that the Google Analytics config values are available in the config feed for an anonymous user
           RestAPI.Config.getTenantConfig(anonymousRestContext, null, (err, config) => {
             assert.ok(!err);
             assert.ok(config);
-            assert.strictEqual(
-              config['oae-google-analytics']['google-analytics'].globalEnabled,
-              false
-            );
-            assert.strictEqual(
-              config['oae-google-analytics']['google-analytics'].globalTrackingId,
-              ''
-            );
-            assert.strictEqual(
-              config['oae-google-analytics']['google-analytics'].tenantEnabled,
-              false
-            );
-            assert.strictEqual(
-              config['oae-google-analytics']['google-analytics'].tenantTrackingId,
-              ''
-            );
+            assert.strictEqual(config['oae-google-analytics']['google-analytics'].globalEnabled, false);
+            assert.strictEqual(config['oae-google-analytics']['google-analytics'].globalTrackingId, '');
+            assert.strictEqual(config['oae-google-analytics']['google-analytics'].tenantEnabled, false);
+            assert.strictEqual(config['oae-google-analytics']['google-analytics'].tenantTrackingId, '');
             callback();
           });
         });

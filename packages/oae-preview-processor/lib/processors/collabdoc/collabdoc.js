@@ -13,19 +13,22 @@
  * permissions and limitations under the License.
  */
 
-const fs = require('fs');
-const Path = require('path');
-const _ = require('underscore');
-const cheerio = require('cheerio');
+import fs from 'fs';
+import Path from 'path';
+import PreviewConstants from 'oae-preview-processor/lib/constants';
+import _ from 'underscore';
+import cheerio from 'cheerio';
+import { isResourceACollabDoc, isResourceACollabSheet } from 'oae-content/lib/backends/util';
+import { logger } from 'oae-logger';
 
-const ImageUtil = require('oae-util/lib/image');
-const IO = require('oae-util/lib/io');
-const log = require('oae-logger').logger('oae-preview-processor');
-const RestAPI = require('oae-rest');
-const OaeUtil = require('oae-util/lib/util');
+import * as puppeteerHelper from 'oae-preview-processor/lib/internal/puppeteer';
 
-const PreviewConstants = require('oae-preview-processor/lib/constants');
-const puppeteerHelper = require('oae-preview-processor/lib/internal/puppeteer');
+import * as ImageUtil from 'oae-util/lib/image';
+import * as IO from 'oae-util/lib/io';
+import * as RestAPI from 'oae-rest';
+import * as OaeUtil from 'oae-util/lib/util';
+
+const log = logger('oae-preview-processor');
 
 const screenShottingOptions = {
   viewport: {
@@ -45,10 +48,7 @@ const screenShottingOptions = {
 const init = function(_config, callback) {
   _config = _config || {};
 
-  screenShottingOptions.timeout = OaeUtil.getNumberParam(
-    _config.screenShotting.timeout,
-    screenShottingOptions.timeout
-  );
+  screenShottingOptions.timeout = OaeUtil.getNumberParam(_config.screenShotting.timeout, screenShottingOptions.timeout);
 
   const chromiumExecutable = _config.screenShotting.binary;
   if (chromiumExecutable) {
@@ -71,7 +71,7 @@ const FILE_URI = 'file://';
  * @borrows Interface.test as CollabDocProcessor.test
  */
 const test = function(ctx, contentObj, callback) {
-  if (contentObj.resourceSubType === 'collabdoc') {
+  if (isResourceACollabDoc(contentObj.resourceSubType) || isResourceACollabSheet(contentObj.resourceSubType)) {
     callback(null, 10);
   } else {
     callback(null, -1);
@@ -88,23 +88,28 @@ const generatePreviews = function(ctx, contentObj, callback) {
     if (err) {
       return callback(err);
     }
+
     if (revisions.results.length === 1) {
       // Only 1 revision => unpublished document.
       // Ignore it for now.
       return callback(null, true);
     }
 
-    // Write the etherpad HTML to an HTML file, so a screenshot can be generated as the preview
-    _writeEtherpadHtml(ctx, contentObj.latestRevision.etherpadHtml, (err, etherpadFilePath) => {
+    // Store whether this document is a collaborative document or spreadsheet
+    const type = contentObj.resourceSubType;
+    const html = isResourceACollabDoc(contentObj.resourceSubType) ? 'etherpadHtml' : 'ethercalcHtml';
+
+    // Write the HTML to an HTML file, so a screenshot can be generated as the preview
+    _writeCollabHtml(ctx, contentObj.latestRevision[html], type, function(err, collabFilePath) {
       if (err) {
         return callback(err);
       }
 
       // Generate a screenshot that is suitable to display in the activity feed.
-      etherpadFilePath = FILE_URI + etherpadFilePath;
+      const collabFileUri = FILE_URI + collabFilePath;
       const imgPath = Path.join(ctx.baseDir, '/wide.png');
 
-      puppeteerHelper.getImage(etherpadFilePath, imgPath, screenShottingOptions, err => {
+      puppeteerHelper.getImage(collabFileUri, imgPath, screenShottingOptions, err => {
         if (err) {
           log().error({ err, contentId: ctx.contentId }, 'Could not generate an image');
           return callback(err);
@@ -136,8 +141,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
             }
 
             // Move the files to the thumbnail path
-            const key =
-              PreviewConstants.SIZES.IMAGE.THUMBNAIL + 'x' + PreviewConstants.SIZES.IMAGE.THUMBNAIL;
+            const key = PreviewConstants.SIZES.IMAGE.THUMBNAIL + 'x' + PreviewConstants.SIZES.IMAGE.THUMBNAIL;
             const thumbnailPath = Path.join(ctx.baseDir, '/thumbnail.png');
 
             IO.moveFile(files[key].path, thumbnailPath, err => {
@@ -156,36 +160,39 @@ const generatePreviews = function(ctx, contentObj, callback) {
 };
 
 /**
- * Take the provided Etherpad HTML, wrap into the preview template and store it to disk
+ * Take the provided Collab HTML, wrap into the preview template and store it to disk
  *
  * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
- * @param  {String}     etherpadHtml    The HTML to wrap into the preview template
+ * @param  {String}     collabHtml      The HTML to wrap into the preview template
+ * @param  {String}     type            Standard callback function
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  * @param  {String}     callback.path   The path the file has been written to
  * @api private
  */
-const _writeEtherpadHtml = function(ctx, etherpadHtml, callback) {
-  _getWrappedEtherpadHtml(ctx, etherpadHtml, (err, wrappedHtml) => {
+const _writeCollabHtml = function(ctx, collabHtml, type, callback) {
+  _getWrappedCollabHtml(ctx, collabHtml, (err, wrappedHtml) => {
     if (err) {
       return callback(err);
     }
 
-    // Write the resulting HTML file to a temporary file on disk
-    const etherpadFilePath = Path.join(ctx.baseDir, 'etherpad.html');
-    fs.writeFile(etherpadFilePath, wrappedHtml, err => {
+    // Write the resulting HTML to a temporary file on disk
+    const collabFilePath = isResourceACollabDoc(type)
+      ? Path.join(ctx.baseDir, '/etherpad.html')
+      : Path.join(ctx.baseDir, '/ethercalc.html');
+    fs.writeFile(collabFilePath, wrappedHtml, err => {
       if (err) {
-        log().error({ err, contentId: ctx.contentId }, 'Could not write the etherpad HTML to disk');
-        return callback({ code: 500, msg: 'Could not write the etherpad HTML to disk' });
+        log().error({ err, contentId: ctx.contentId }, 'Could not write the collaborative file preview HTML to disk');
+        return callback({ code: 500, msg: 'Could not write the collaborative file preview HTML to disk' });
       }
 
-      return callback(null, etherpadFilePath);
+      return callback(null, collabFilePath);
     });
   });
 };
 
 /**
- * Wrap provided etherpad HTML into an HTML template
+ * Wrap provided HTML into an HTML template
  *
  * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
  * @param  {String}     etherpadHtml    The HTML as retrieved from the API
@@ -194,16 +201,16 @@ const _writeEtherpadHtml = function(ctx, etherpadHtml, callback) {
  * @param  {String}     callback.html   Resulting wrapped HTML
  * @api private
  */
-const _getWrappedEtherpadHtml = function(ctx, etherpadHtml, callback) {
+const _getWrappedCollabHtml = function(ctx, collabHtml, callback) {
   let htmlFragment = null;
   // Extract the body from the HTML fragment
   try {
-    const $ = cheerio.load(etherpadHtml);
+    const $ = cheerio.load(collabHtml);
     htmlFragment = $('body').html() || '';
   } catch (error) {
     log().error(
-      { err: error, etherpadHtml, contentId: ctx.contentId },
-      'Unable to parse etherpad HTML'
+      { err: error, collabHtml, contentId: ctx.contentId },
+      'Unable to parse collaborative file preview HTML'
     );
     return callback({ code: 500, msg: 'Unable to parse etherpad HTML' });
   }
@@ -221,8 +228,8 @@ const _getWrappedEtherpadHtml = function(ctx, etherpadHtml, callback) {
   } else {
     fs.readFile(HTML_FILE, 'utf8', (err, content) => {
       if (err) {
-        log().error({ err, contentId: ctx.contentId }, 'Could not read the collabdoc wrapper HTML');
-        return callback({ code: 500, msg: 'Could not read the collabdoc wrapper HTML' });
+        log().error({ err, contentId: ctx.contentId }, 'Could not read the collaborative file preview wrapper HTML');
+        return callback({ code: 500, msg: 'Could not read the collaborative file preview wrapper HTML' });
       }
 
       // Cache the wrapped HTML
@@ -232,8 +239,4 @@ const _getWrappedEtherpadHtml = function(ctx, etherpadHtml, callback) {
   }
 };
 
-module.exports = {
-  init,
-  test,
-  generatePreviews
-};
+export { init, test, generatePreviews };

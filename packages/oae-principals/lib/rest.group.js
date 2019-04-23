@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const OAE = require('oae-util/lib/oae');
-const OaeUtil = require('oae-util/lib/util');
+import { AuthzConstants } from 'oae-authz/lib/constants';
 
-const PrincipalsAPI = require('./api');
+import * as OAE from 'oae-util/lib/oae';
+import * as OaeUtil from 'oae-util/lib/util';
+import PrincipalsAPI from './api';
 
 /**
  * @REST postGroupCreate
@@ -175,6 +175,7 @@ OAE.tenantRouter.on('post', '/api/group/:groupId', (req, res) => {
     if (err) {
       return res.status(err.code).send(err.msg);
     }
+
     res.status(200).send(updatedGroup);
   });
 });
@@ -202,6 +203,7 @@ OAE.tenantRouter.on('get', '/api/group/:groupId/members', (req, res) => {
     if (err) {
       return res.status(err.code).send(err.msg);
     }
+
     res.status(200).send({ results: members, nextToken });
   });
 });
@@ -244,6 +246,7 @@ OAE.tenantRouter.on('post', '/api/group/:groupId/members', (req, res) => {
     if (err) {
       return res.status(err.code).send(err.msg);
     }
+
     res.status(200).end();
   });
 });
@@ -404,6 +407,7 @@ OAE.tenantRouter.on('post', '/api/group/:groupId/join-request', (req, res) => {
     if (err) {
       return res.status(err.code).send(err.msg);
     }
+
     return res.status(200).end();
   });
 });
@@ -427,6 +431,7 @@ OAE.tenantRouter.on('get', '/api/group/:groupId/join-request/mine', (req, res) =
     if (err) {
       return res.status(err.code).send(err.msg);
     }
+
     return res.status(200).send(request);
   });
 });
@@ -459,6 +464,7 @@ OAE.tenantRouter.on('get', '/api/group/:groupId/join-request/all', (req, res) =>
       if (err) {
         return res.status(err.code).send(err.msg);
       }
+
       return res.status(200).send({ results: requests, nextToken });
     }
   );
@@ -493,6 +499,7 @@ OAE.tenantRouter.on('put', '/api/group/:groupId/join-request', (req, res) => {
       if (err) {
         return res.status(err.code).send(err.msg);
       }
+
       return res.status(200).end();
     }
   );

@@ -22,12 +22,12 @@
  * @param  {Object}     object          TinCan API Object information
  * @return {Statement}                  TinCan API Statement containing the body for the request to TinCan
  */
-module.exports.TinCanStatement = function(actor, verb, object) {
-    var that = {};
-    that.actor = actor;
-    that.verb = verb;
-    that.object = object;
-    return that;
+export const TinCanStatement = function(actor, verb, object) {
+  const that = {};
+  that.actor = actor;
+  that.verb = verb;
+  that.object = object;
+  return that;
 };
 
 /**
@@ -38,15 +38,15 @@ module.exports.TinCanStatement = function(actor, verb, object) {
  * @param  {String}  homePage           The link to the user's profile
  * @return {Actor}                      TinCan API Actor model containing information about the actor
  */
-module.exports.TinCanActor = function(displayName, homePage) {
-    var that = {};
-    that.name = displayName;
-    that.objectType = 'Agent';
-    that.account = {
-        'homePage': homePage,
-        'name': displayName
-    };
-    return that;
+export const TinCanActor = function(displayName, homePage) {
+  const that = {};
+  that.name = displayName;
+  that.objectType = 'Agent';
+  that.account = {
+    homePage,
+    name: displayName
+  };
+  return that;
 };
 
 /**
@@ -58,19 +58,19 @@ module.exports.TinCanActor = function(displayName, homePage) {
  * @param  {String}  description        The description of the activity object
  * @return {Object}                     TinCan API Object model containing information about the object
  */
-module.exports.TinCanObject = function(id, displayName, description) {
-    var that = {};
-    that.id = id;
-    that.objectType = 'Activity';
-    that.definition = {
-        'name': {
-            'en-US': displayName
-        },
-        'description': {
-            'en-US': description
-        }
-    };
-    return that;
+export const TinCanObject = function(id, displayName, description) {
+  const that = {};
+  that.id = id;
+  that.objectType = 'Activity';
+  that.definition = {
+    name: {
+      'en-US': displayName
+    },
+    description: {
+      'en-US': description
+    }
+  };
+  return that;
 };
 
 /**
@@ -82,11 +82,11 @@ module.exports.TinCanObject = function(id, displayName, description) {
  * @param  {String}  display            The display name of the verb
  * @return {Verb}                       TinCan API Verb model containing information about the verb
  */
-module.exports.TinCanVerb = function(id, display) {
-    var that = {};
-    that.id = id;
-    that.display = {
-        'en-US': display
-    };
-    return that;
+export const TinCanVerb = function(id, display) {
+  const that = {};
+  that.id = id;
+  that.display = {
+    'en-US': display
+  };
+  return that;
 };

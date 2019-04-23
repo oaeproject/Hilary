@@ -13,17 +13,48 @@
  * permissions and limitations under the License.
  */
 
-const fs = require('fs');
-const async = require('async');
-const _ = require('underscore');
+import fs from 'fs';
+import async from 'async';
+import _ from 'underscore';
 
-const log = require('oae-logger').logger('oae-modules');
-const OaeUtil = require('oae-util/lib/util');
-const IO = require('./io');
-const Swagger = require('./swagger');
+import { logger } from 'oae-logger';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as IO from './io';
+import * as Swagger from './swagger';
+
+const log = logger('oae-modules');
 
 // Variable that will be used to cache the available modules
 let cachedAvailableModules = [];
+
+// The ES6 modules so far
+const ES6Modules = [
+  'oae-version',
+  'oae-doc',
+  'oae-logger',
+  'oae-config',
+  'oae-ui',
+  'oae-lti',
+  'oae-emitter',
+  'oae-telemetry',
+  'oae-activity',
+  'oae-authentication',
+  'oae-authz',
+  'oae-content',
+  'oae-discussions',
+  'oae-email',
+  'oae-folders',
+  'oae-following',
+  'oae-jitsi',
+  'oae-library',
+  'oae-messagebox',
+  'oae-tincanapi',
+  'oae-preview-processor',
+  'oae-search',
+  'oae-tenants',
+  'oae-util',
+  'oae-principals'
+];
 
 /// ///////////////////////
 // Module bootstrapping //
@@ -43,6 +74,7 @@ const bootstrapModules = function(config, callback) {
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(modules)) {
       return callback(new Error('No modules to install, or error aggregating modules.'));
     }
@@ -54,6 +86,7 @@ const bootstrapModules = function(config, callback) {
       if (err) {
         return callback(err);
       }
+
       // Register all endpoints
       return bootstrapModulesRest(modules, callback);
     });
@@ -75,18 +108,26 @@ const bootstrapModulesInit = function(modules, config, callback) {
   async.mapSeries(
     modules,
     (moduleName, done) => {
+      const _onceDone = err => {
+        if (err) {
+          log().error(err.stack);
+          log().error({ err }, 'Error initializing module %s', moduleName);
+          return callback(err);
+        }
+
+        log().info('Initialized module %s', moduleName);
+        done();
+      };
+
       const moduleInitPath = OaeUtil.getNodeModulesDir() + moduleName + MODULE_INIT_FILE;
 
       if (fs.existsSync(moduleInitPath)) {
-        require(moduleName + MODULE_INIT_FILE)(config, err => {
-          if (err) {
-            log().error(err.stack);
-            log().error({ err }, 'Error initializing module %s', moduleName);
-            return callback(err);
-          }
-          log().info('Initialized module %s', moduleName);
-          done();
-        });
+        // ES6 modules cannot have an export default as a function, so init it exported instead
+        if (_.contains(ES6Modules, moduleName)) {
+          require(moduleName + MODULE_INIT_FILE).init(config, _onceDone);
+        } else {
+          require(moduleName + MODULE_INIT_FILE)(config, _onceDone);
+        }
       } else {
         done();
       }
@@ -95,6 +136,7 @@ const bootstrapModulesInit = function(modules, config, callback) {
       if (err) {
         callback(err);
       }
+
       callback(null);
     }
   );
@@ -116,6 +158,7 @@ const bootstrapModulesRest = function(modules, callback) {
       log().info('REST services for %s have been registered', module);
       require(module + '/lib/rest');
     }
+
     // Swagger document all modules
     return Swagger.documentModule(module, complete);
   });
@@ -180,8 +223,4 @@ const getAvailableModules = function() {
   return cachedAvailableModules.slice(0);
 };
 
-module.exports = {
-  initAvailableModules,
-  getAvailableModules,
-  bootstrapModules
-};
+export { initAvailableModules, getAvailableModules, bootstrapModules };

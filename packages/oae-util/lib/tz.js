@@ -13,20 +13,20 @@
  * permissions and limitations under the License.
  */
 
-const fs = require('fs');
-const path = require('path');
-const _ = require('underscore');
-const tz = require('timezone-js');
-const railsTimezone = require('rails-timezone');
+import fs from 'fs';
+import path from 'path';
+import _ from 'underscore';
+import tz from 'timezone-js';
+import railsTimezone from 'rails-timezone';
 
-const RailsMappings = require('oae-util/timezones-rails');
+import RailsMappings from 'oae-util/timezones-rails';
 
 tz.timezone.loadingScheme = tz.timezone.loadingSchemes.MANUAL_LOAD;
 tz.timezone.transport = function(opts) {
   return fs.readFileSync(opts.url, 'utf8');
 };
+
 tz.timezone.loadZoneJSONData(path.join(__dirname, '/../timezones.json'), true);
-module.exports.timezone = tz;
 
 /**
  * Given a ruby-on-rails supported timezone name, map it to a TZInfo identifier supported by OAE.
@@ -180,9 +180,4 @@ const getZones = function() {
   return railsZones;
 };
 
-module.exports = {
-  getTimezoneFromRails,
-  getClosestSupportedTimezone,
-  getZones,
-  timezone: tz
-};
+export { getTimezoneFromRails, tz as timezone, getClosestSupportedTimezone, getZones };

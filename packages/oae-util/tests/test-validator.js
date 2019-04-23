@@ -13,14 +13,14 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
+import assert from 'assert';
 
-const { Context } = require('oae-context');
-const { Tenant } = require('oae-tenants/lib/model');
-const TestsUtil = require('oae-tests/lib/util');
-const { User } = require('oae-principals/lib/model.user');
+import { Context } from 'oae-context';
+import { Tenant } from 'oae-tenants/lib/model';
+import { User } from 'oae-principals/lib/model.user';
+import { Validator } from 'oae-util/lib/validator';
 
-const { Validator } = require('oae-util/lib/validator');
+import * as TestsUtil from 'oae-tests/lib/util';
 
 describe('Utilities', () => {
   describe('Validator', () => {
@@ -212,9 +212,7 @@ describe('Utilities', () => {
       validator.check('https://oae-widgets.oaeproject.org/sdk').isUrl();
       validator.check('http://support.google.com/docs/bin/answer.py?hl=en&answer=66343').isUrl();
       validator.check('http://www.w3.org/2004/02/skos/core#broader').isUrl();
-      validator
-        .check('https://wordpress.org/support/topic/plugin-addthis-odd-url-string?replies=5')
-        .isUrl();
+      validator.check('https://wordpress.org/support/topic/plugin-addthis-odd-url-string?replies=5').isUrl();
       assert.ok(!validator.hasErrors());
       assert.ok(!validator.getErrors());
       assert.strictEqual(validator.getErrorCount(), 0);
@@ -224,11 +222,7 @@ describe('Utilities', () => {
       validator.check('').isUrl();
       validator.check('String').isUrl();
       validator.check('www.example.com').isUrl();
-      validator
-        .check(
-          'https://twimg0-a.akamaihd.net/profile_images/300425859/ls_1278_Nicolaas-website.jpg'
-        )
-        .isUrl();
+      validator.check('https://twimg0-a.akamaihd.net/profile_images/300425859/ls_1278_Nicolaas-website.jpg').isUrl();
       assert.ok(validator.hasErrors());
       assert.strictEqual(validator.getErrors().length, 2);
       assert.strictEqual(validator.getErrorCount(), 2);

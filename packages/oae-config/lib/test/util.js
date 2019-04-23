@@ -13,10 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const Counter = require('oae-util/lib/counter');
-const RestAPI = require('oae-rest');
-
-const ConfigAPI = require('oae-config');
+import Counter from 'oae-util/lib/counter';
+import { Config } from 'oae-rest';
+import * as ConfigAPI from 'oae-config';
 
 // Maintains the number of updates that have not yet been refreshed in the application cache
 const updateCounter = new Counter();
@@ -29,7 +28,7 @@ const updateCounter = new Counter();
  * For method parameter descriptions, @see RestAPI.Config#updateConfig
  */
 const updateConfigAndWait = function(restCtx, tenantAlias, configUpdate, callback) {
-  RestAPI.Config.updateConfig(restCtx, tenantAlias, configUpdate, err => {
+  Config.updateConfig(restCtx, tenantAlias, configUpdate, err => {
     if (err) {
       return callback(err);
     }
@@ -47,7 +46,7 @@ const updateConfigAndWait = function(restCtx, tenantAlias, configUpdate, callbac
  * For method parameter descriptions, @see RestAPI.Config#clearConfig
  */
 const clearConfigAndWait = function(restCtx, tenantAlias, configFields, callback) {
-  RestAPI.Config.clearConfig(restCtx, tenantAlias, configFields, err => {
+  Config.clearConfig(restCtx, tenantAlias, configFields, err => {
     if (err) {
       return callback(err);
     }
@@ -89,8 +88,4 @@ ConfigAPI.eventEmitter.on('preCache', _incrementUpdateCount);
 ConfigAPI.eventEmitter.on('update', _decrementUpdateCount);
 ConfigAPI.eventEmitter.on('cached', _decrementUpdateCount);
 
-module.exports = {
-  clearConfigAndWait,
-  updateConfigAndWait,
-  whenConfigUpdated
-};
+export { clearConfigAndWait, updateConfigAndWait, whenConfigUpdated };

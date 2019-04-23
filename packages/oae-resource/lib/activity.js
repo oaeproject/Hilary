@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
-const ActivityAPI = require('oae-activity');
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const ActivityModel = require('oae-activity/lib/model');
-const { AuthzConstants } = require('oae-authz/lib/constants');
+import * as ActivityAPI from 'oae-activity';
+import * as ActivityModel from 'oae-activity/lib/model';
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import { ActivityConstants } from 'oae-activity/lib/constants';
 
 /**
  * Post the "accept invitation" activity for the given context and target resource
@@ -46,6 +46,4 @@ const postInvitationAcceptActivity = function(ctx, resource, inviterUser) {
   ActivityAPI.postActivity(ctx, activitySeed);
 };
 
-module.exports = {
-  postInvitationAcceptActivity
-};
+export { postInvitationAcceptActivity };

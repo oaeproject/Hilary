@@ -13,11 +13,12 @@
  * permissions and limitations under the License.
  */
 
-const events = require('events');
-const util = require('util');
-const _ = require('underscore');
+import events from 'events';
+import util from 'util';
+import _ from 'underscore';
+import { logger } from 'oae-logger';
 
-const log = require('oae-logger').logger('oae-emitter');
+const log = logger('oae-emitter');
 
 /**
  * The OAE EventEmitter extends the core Node.js event emitter to allow chained event handling
@@ -36,6 +37,7 @@ const EventEmitter = function() {
   events.EventEmitter.call(this);
   this._when = {};
 };
+
 util.inherits(EventEmitter, events.EventEmitter);
 
 /**
@@ -47,16 +49,14 @@ util.inherits(EventEmitter, events.EventEmitter);
  * @param  {Function}   [callback]      Standard callback function. Invoked when all `when` handlers have completed their task
  */
 EventEmitter.prototype.emit = function(...args) {
-  /* name, [args...], [callback] */
+  /* Name, [args...], [callback] */
   const self = this;
-  // const args = _.toArray(arguments);
+  // Const args = _.toArray(arguments);
 
   // The name is required and must be the first argument
   const name = args.shift();
   if (!_.isString(name)) {
-    throw new TypeError(
-      util.format('Expected a string for event "name", but got: %s', JSON.stringify(name, null, 2))
-    );
+    throw new TypeError(util.format('Expected a string for event "name", but got: %s', JSON.stringify(name, null, 2)));
   }
 
   // First invoke the core event listeners
@@ -135,6 +135,4 @@ EventEmitter.prototype.when = function(name, handler) {
   this._when[name].push(handler);
 };
 
-module.exports = {
-  EventEmitter
-};
+export { EventEmitter };

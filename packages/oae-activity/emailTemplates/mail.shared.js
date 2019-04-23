@@ -13,11 +13,11 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const AuthzUtil = require('oae-authz/lib/util');
+import * as AuthzUtil from 'oae-authz/lib/util';
 
-const { ActivityConstants } = require('oae-activity/lib/constants');
+import { ActivityConstants } from 'oae-activity/lib/constants';
 
 /**
  * Determine if the given string is an email
@@ -53,10 +53,7 @@ const getEmailSubject = (util, recipient, activities) => {
     // a little bit differently because we have to legitimize our email quicker (i.e., in the
     // subject)
     if (_.size(activities) === 1) {
-      return util.i18n.translate(
-        activities[0].summary.i18nKey,
-        activities[0].summary.i18nArguments
-      );
+      return util.i18n.translate(activities[0].summary.i18nKey, activities[0].summary.i18nArguments);
     }
 
     const actors = _getAllEntities(activities, 'actor');
@@ -65,27 +62,27 @@ const getEmailSubject = (util, recipient, activities) => {
         actor1DisplayName: actors[0].displayName
       });
     }
+
     if (_.size(actors) === 2) {
       return util.i18n.translate('__MSG__ACTIVITY_EMAIL_SUBJECT_INVITE_ACTOR_2__', {
         actor1DisplayName: actors[0].displayName,
         actor2DisplayName: actors[1].displayName
       });
     }
+
     return util.i18n.translate('__MSG__ACTIVITY_EMAIL_SUBJECT_INVITE_ACTOR_3+__', {
       actor1DisplayName: actors[0].displayName,
       numActorsMinus1: actors.length - 1
     });
   }
+
   // If the user already has an account, we can generalize a bit on what has happened based
   // on their email preference and number of activities
   const { emailPreference } = recipient;
   let message = util.i18n.translate('__MSG__RECENT_ACTIVITY__');
   if (emailPreference === 'immediate') {
     if (activities.length === 1) {
-      message = util.i18n.translate(
-        activities[0].summary.i18nKey,
-        activities[0].summary.i18nArguments
-      );
+      message = util.i18n.translate(activities[0].summary.i18nKey, activities[0].summary.i18nArguments);
     } else {
       message = util.i18n.translate('__MSG__ACTIVITY_EMAIL_SUBJECT_MULTIPLE__');
     }
@@ -124,17 +121,20 @@ const getEmailSummary = function(util, recipient, activities, baseUrl) {
         actor1DisplayName: actors[0].displayName
       });
     }
+
     if (_.size(actors) === 2) {
       return util.i18n.translate('__MSG__ACTIVITY_EMAIL_SUBJECT_INVITE_ACTOR_2__', {
         actor1DisplayName: actors[0].displayName,
         actor2DisplayName: actors[1].displayName
       });
     }
+
     return util.i18n.translate('__MSG__ACTIVITY_EMAIL_SUBJECT_INVITE_ACTOR_3+__', {
       actor1DisplayName: actors[0].displayName,
       numActorsMinus1: actors.length - 1
     });
   }
+
   const { emailPreference } = recipient;
   if (emailPreference === 'immediate') {
     // Determine if there was a single or multiple actors
@@ -144,6 +144,7 @@ const getEmailSummary = function(util, recipient, activities, baseUrl) {
       if (actor !== null && actor['oae:id'] !== activity.originalActivity.actor['oae:id']) {
         isSingleActor = false;
       }
+
       actor = activity.originalActivity.actor;
     });
 
@@ -165,11 +166,14 @@ const getEmailSummary = function(util, recipient, activities, baseUrl) {
 
       return util.url.ensureAbsoluteLinks(summary, baseUrl);
     }
+
     return '__MSG__ACTIVITY_EMAIL_SUMMARY_IMMEDIATE_MULTIPLE_ACTORS__';
   }
+
   if (emailPreference === 'daily') {
     return '__MSG__ACTIVITY_EMAIL_SUMMARY_DAILY__';
   }
+
   if (emailPreference === 'weekly') {
     return '__MSG__ACTIVITY_EMAIL_SUMMARY_WEEKLY__';
   }
@@ -209,8 +213,4 @@ const _getAllEntities = function(activities, entityType) {
   return entities;
 };
 
-module.exports = {
-  isEmail,
-  getEmailSubject,
-  getEmailSummary
-};
+export { isEmail, getEmailSubject, getEmailSummary };

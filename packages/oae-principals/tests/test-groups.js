@@ -13,25 +13,25 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const fs = require('fs');
-const util = require('util');
-const _ = require('underscore');
+import assert from 'assert';
+import fs from 'fs';
+import util from 'util';
+import _ from 'underscore';
 
-const AuthzAPI = require('oae-authz');
-const AuthzUtil = require('oae-authz/lib/util');
-const Cassandra = require('oae-util/lib/cassandra');
-const ConfigTestUtil = require('oae-config/lib/test/util');
-const FoldersTestUtil = require('oae-folders/lib/test/util');
-const LibraryTestUtil = require('oae-library/lib/test/util');
-const RestAPI = require('oae-rest');
-const TenantsTestUtil = require('oae-tenants/lib/test/util');
-const TestsUtil = require('oae-tests');
+import * as AuthzAPI from 'oae-authz';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as FoldersTestUtil from 'oae-folders/lib/test/util';
+import * as LibraryTestUtil from 'oae-library/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import * as TestsUtil from 'oae-tests';
+import PrincipalsAPI from 'oae-principals';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
 
-const PrincipalsAPI = require('oae-principals');
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const { PrincipalsConstants } = require('oae-principals/lib/constants');
-const PrincipalsTestUtil = require('oae-principals/lib/test/util');
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import { PrincipalsConstants } from 'oae-principals/lib/constants';
 
 describe('Groups', () => {
   // Rest context that can be used to perform requests as different types of users
@@ -2503,15 +2503,15 @@ describe('Groups', () => {
         assert.ok(!err);
 
         /*
-                 * Create a group tree which looks like:
-                 *                  top
-                 *                 /    \
-                 *   simonParentParent   nicoParentParent
-                 *               /        \
-                 *       simonParent      nicoParent
-                 *             /            \
-                 *          simon           nico
-                 */
+         * Create a group tree which looks like:
+         *                  top
+         *                 /    \
+         *   simonParentParent   nicoParentParent
+         *               /        \
+         *       simonParent      nicoParent
+         *             /            \
+         *          simon           nico
+         */
         TestsUtil.generateTestGroups(
           camAdminRestContext,
           5,
@@ -2855,6 +2855,7 @@ describe('Groups', () => {
               createdPrincipals[expectedMembers[i]].id
             );
           }
+
           return callback();
         }
       );
@@ -2890,6 +2891,7 @@ describe('Groups', () => {
               createdPrincipals[expectedGroups[i]].id
             );
           }
+
           return callback();
         }
       );
@@ -2984,6 +2986,7 @@ describe('Groups', () => {
               assert.ok(err);
               assert.strictEqual(err.code, 401);
             }
+
             return callback();
           });
         });

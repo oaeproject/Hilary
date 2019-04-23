@@ -13,15 +13,14 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable no-unused-vars */
 /* eslint-disable max-nested-callbacks */
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const RestAPI = require('oae-rest');
-const TestsUtil = require('oae-tests');
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
 
-const ActivityTestUtil = require('oae-activity/lib/test/util');
+import * as ActivityTestUtil from 'oae-activity/lib/test/util';
 
 describe('Activity push', () => {
   // Rest context that can be used every time we need to make a request as a tenant admin
@@ -791,11 +790,11 @@ describe('Activity push', () => {
           assert.ok(!err);
 
           /*
-                     * Register a push client for mrvisser who is subscribed to:
-                     *  * `activity`-stream with the `activitystream` format
-                     *  * `activity`-stream with the `internal` format
-                     *  * `notification`-stream with the `internal` format
-                     */
+           * Register a push client for mrvisser who is subscribed to:
+           *  * `activity`-stream with the `activitystream` format
+           *  * `activity`-stream with the `internal` format
+           *  * `notification`-stream with the `internal` format
+           */
           const data = {
             authentication: {
               userId: mrvisserMeData.id,
@@ -874,11 +873,11 @@ describe('Activity push', () => {
           assert.ok(!err);
 
           /*
-                     * Register a push client for mrvisser who is subscribed to:
-                     *  * `activity`-stream with the `activitystream` format
-                     *  * `activity`-stream with the `internal` format
-                     *  * `notification`-stream with the `internal` format
-                     */
+           * Register a push client for mrvisser who is subscribed to:
+           *  * `activity`-stream with the `activitystream` format
+           *  * `activity`-stream with the `internal` format
+           *  * `notification`-stream with the `internal` format
+           */
           const data = {
             authentication: {
               userId: mrvisserMeData.id,

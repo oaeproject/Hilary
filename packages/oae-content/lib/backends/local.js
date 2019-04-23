@@ -13,18 +13,20 @@
  * permissions and limitations under the License.
  */
 
-const fs = require('fs');
-const Path = require('path');
-const util = require('util');
-const makeDir = require('make-dir');
+import fs from 'fs';
+import Path from 'path';
+import util from 'util';
+import makeDir from 'make-dir';
 
-const IO = require('oae-util/lib/io');
-const log = require('oae-logger').logger('local-storage');
-const TempFile = require('oae-util/lib/tempfile');
+import * as IO from 'oae-util/lib/io';
+import { logger } from 'oae-logger';
+import * as TempFile from 'oae-util/lib/tempfile';
 
-const { ContentConstants } = require('../constants');
-const { DownloadStrategy } = require('../model');
-const BackendUtil = require('./util');
+import { ContentConstants } from '../constants';
+import { DownloadStrategy } from '../model';
+import * as BackendUtil from './util';
+
+const log = logger('local-storage');
 
 let _rootDir = null;
 
@@ -49,6 +51,7 @@ const init = function(rootDir, callback) {
       log().error({ dir: _rootDir, err }, 'Could not create/find the local storage directory');
       return callback(err);
     }
+
     callback();
   });
 };
@@ -137,6 +140,7 @@ const remove = function(tenantAlias, uri, callback) {
 
       // Otherwise we pass back an error
     }
+
     if (err) {
       log().error({ err }, 'Error removing %s', path);
       return callback({ code: 500, msg: 'Unable to remove the file: ' + err });
@@ -179,11 +183,4 @@ const _ensureDirectoryExists = function(dir, callback) {
     });
 };
 
-module.exports = {
-  init,
-  getRootDirectory,
-  store,
-  get,
-  remove,
-  getDownloadStrategy
-};
+export { init, getRootDirectory, store, get, remove, getDownloadStrategy };

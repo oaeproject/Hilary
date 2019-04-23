@@ -13,24 +13,26 @@
  * permissions and limitations under the License.
  */
 
-const { exec } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const util = require('util');
-const _ = require('underscore');
+import { exec } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import util from 'util';
+import PreviewConstants from 'oae-preview-processor/lib/constants';
+import _ from 'underscore';
+import { logger } from 'oae-logger';
 
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const ContentUtil = require('oae-content/lib/internal/util');
-const { Context } = require('oae-context');
-const FoldersAPI = require('oae-folders');
-const { FoldersConstants } = require('oae-folders/lib/constants');
-const FoldersDAO = require('oae-folders/lib/internal/dao');
-const ImageUtil = require('oae-util/lib/image');
-const LibraryAPI = require('oae-library');
-const log = require('oae-logger').logger('folders-previews');
-const TempFile = require('oae-util/lib/tempfile');
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import { Context } from 'oae-context';
+import { FoldersConstants } from 'oae-folders/lib/constants';
 
-const PreviewConstants = require('oae-preview-processor/lib/constants');
+import * as FoldersAPI from 'oae-folders';
+import * as ContentUtil from 'oae-content/lib/internal/util';
+import * as FoldersDAO from 'oae-folders/lib/internal/dao';
+import * as ImageUtil from 'oae-util/lib/image';
+import * as LibraryAPI from 'oae-library';
+import * as TempFile from 'oae-util/lib/tempfile';
+
+const log = logger('folders-previews');
 
 // The path to a file that only contains white pixels. This file can be used as
 // filler content in the generated image grid
@@ -52,6 +54,7 @@ const generatePreviews = function(folderId, callback) {
       // However, we should set an empty previews object as we might have removed all the
       // content items that were used in the old thumbnail
     }
+
     if (_.isEmpty(contentItems)) {
       return FoldersDAO.setPreviews(folder, {}, callback);
     }
@@ -108,75 +111,67 @@ const _getData = function(folderId, callback) {
 const _getContentWithPreviews = function(folder, callback, _contentWithPreviews, _start) {
   _contentWithPreviews = _contentWithPreviews || [];
 
-  FoldersDAO.getContentItems(
-    folder.groupId,
-    { start: _start, limit: 20 },
-    (err, contentItems, nextToken) => {
-      if (err) {
-        return callback(err);
-      }
-
-      _contentWithPreviews = _.chain(contentItems)
-        // Remove null content items. This can happen if libraries are in an inconsistent
-        // state. For example, if an item was deleted from the system but hasn't been removed
-        // from the libraries, a `null` value would be returned by `getMultipleContentItems`
-        .compact()
-
-        // We can only use content items that have a thumbnail
-        .filter(contentItem => {
-          return contentItem.previews && contentItem.previews.thumbnailUri;
-        })
-
-        // Only use content items that are implicitly visible to those that can see this
-        // folder's library
-        .filter(contentItem => {
-          // If this content item were inserted into the folder's content library, it would be
-          // in this visibility bucket (e.g., a public content item would be in the public
-          // library)
-          const targetBucketVisibility = LibraryAPI.Authz.resolveLibraryBucketVisibility(
-            folder.id,
-            contentItem
-          );
-          const targetBucketVisibilityPriority = AuthzConstants.visibility.ALL_PRIORITY.indexOf(
-            targetBucketVisibility
-          );
-
-          // If a user has access to see this visibility of folder implicitly, then they will
-          // get this visibility bucket. E.g., if folder is public, we only use content items
-          // from the public visibility bucket (i.e., public content items)
-          const implicitBucketVisibility = folder.visibility;
-          const implicitBucketVisibilityPriority = AuthzConstants.visibility.ALL_PRIORITY.indexOf(
-            implicitBucketVisibility
-          );
-
-          // Only use content items whose target bucket visibility is visibile within the
-          // implicit bucket visibility
-          return targetBucketVisibilityPriority <= implicitBucketVisibilityPriority;
-        })
-
-        // Add them to the set of items we've already retrieved
-        .concat(_contentWithPreviews)
-
-        // Ensure that the newest items are on top. Underscore's sortBy function sorts ascending,
-        // so we multiply the lastModified timestamp with `-1` so the newest (=highest) value
-        // comes first
-        .sortBy(contentItem => {
-          return -1 * contentItem.lastModified;
-        })
-        .value()
-
-        // We only use up to 8 items, so only hold on to the 8 newest items
-        .slice(0, 8);
-
-      if (!nextToken) {
-        // Once we have exhausted all items and kept only the 8 most recent, we return with our
-        // results
-        return callback(null, _contentWithPreviews);
-      }
-      // There are more to list, run recursively
-      return _getContentWithPreviews(folder, callback, _contentWithPreviews, nextToken);
+  FoldersDAO.getContentItems(folder.groupId, { start: _start, limit: 20 }, (err, contentItems, nextToken) => {
+    if (err) {
+      return callback(err);
     }
-  );
+
+    _contentWithPreviews = _.chain(contentItems)
+      // Remove null content items. This can happen if libraries are in an inconsistent
+      // state. For example, if an item was deleted from the system but hasn't been removed
+      // from the libraries, a `null` value would be returned by `getMultipleContentItems`
+      .compact()
+
+      // We can only use content items that have a thumbnail
+      .filter(contentItem => {
+        return contentItem.previews && contentItem.previews.thumbnailUri;
+      })
+
+      // Only use content items that are implicitly visible to those that can see this
+      // folder's library
+      .filter(contentItem => {
+        // If this content item were inserted into the folder's content library, it would be
+        // in this visibility bucket (e.g., a public content item would be in the public
+        // library)
+        const targetBucketVisibility = LibraryAPI.Authz.resolveLibraryBucketVisibility(folder.id, contentItem);
+        const targetBucketVisibilityPriority = AuthzConstants.visibility.ALL_PRIORITY.indexOf(targetBucketVisibility);
+
+        // If a user has access to see this visibility of folder implicitly, then they will
+        // get this visibility bucket. E.g., if folder is public, we only use content items
+        // from the public visibility bucket (i.e., public content items)
+        const implicitBucketVisibility = folder.visibility;
+        const implicitBucketVisibilityPriority = AuthzConstants.visibility.ALL_PRIORITY.indexOf(
+          implicitBucketVisibility
+        );
+
+        // Only use content items whose target bucket visibility is visibile within the
+        // implicit bucket visibility
+        return targetBucketVisibilityPriority <= implicitBucketVisibilityPriority;
+      })
+
+      // Add them to the set of items we've already retrieved
+      .concat(_contentWithPreviews)
+
+      // Ensure that the newest items are on top. Underscore's sortBy function sorts ascending,
+      // so we multiply the lastModified timestamp with `-1` so the newest (=highest) value
+      // comes first
+      .sortBy(contentItem => {
+        return -1 * contentItem.lastModified;
+      })
+      .value()
+
+      // We only use up to 8 items, so only hold on to the 8 newest items
+      .slice(0, 8);
+
+    if (!nextToken) {
+      // Once we have exhausted all items and kept only the 8 most recent, we return with our
+      // results
+      return callback(null, _contentWithPreviews);
+    }
+
+    // There are more to list, run recursively
+    return _getContentWithPreviews(folder, callback, _contentWithPreviews, nextToken);
+  });
 };
 
 /**
@@ -403,6 +398,7 @@ const _removeOldPreviews = function(ctx, folder, callback) {
     if (err) {
       return callback(err);
     }
+
     _removeOldPreview(ctx, folder, 'wideUri', callback);
   });
 };
@@ -439,32 +435,20 @@ const _removeOldPreview = function(ctx, folder, type, callback) {
 const _storeNewPreviews = function(ctx, folder, thumbnail, wide, callback) {
   // Store the files with a unique filename
   let filename = util.format('thumbnail_%s.jpg', Date.now());
-  ContentUtil.getStorageBackend(ctx).store(
-    ctx,
-    thumbnail,
-    { filename, resourceId: folder.id },
-    (err, thumbnailUri) => {
+  ContentUtil.getStorageBackend(ctx).store(ctx, thumbnail, { filename, resourceId: folder.id }, (err, thumbnailUri) => {
+    if (err) {
+      return callback(err);
+    }
+
+    filename = util.format('wide_%s.jpg', Date.now());
+    ContentUtil.getStorageBackend(ctx).store(ctx, wide, { filename, resourceId: folder.id }, (err, wideUri) => {
       if (err) {
         return callback(err);
       }
 
-      filename = util.format('wide_%s.jpg', Date.now());
-      ContentUtil.getStorageBackend(ctx).store(
-        ctx,
-        wide,
-        { filename, resourceId: folder.id },
-        (err, wideUri) => {
-          if (err) {
-            return callback(err);
-          }
-
-          return callback(null, thumbnailUri, wideUri);
-        }
-      );
-    }
-  );
+      return callback(null, thumbnailUri, wideUri);
+    });
+  });
 };
 
-module.exports = {
-  generatePreviews
-};
+export { generatePreviews };

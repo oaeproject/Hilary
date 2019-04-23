@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-const TenantAPI = require('oae-tenants');
+import * as TenantAPI from 'oae-tenants';
 
 /**
  * A generic context object that represents a user execution context.
@@ -83,11 +83,13 @@ const Context = function(tenant, user, authenticationStrategy, locale, imposter)
 
       // 2. Check if there is a locale in the request context (headers)
     }
+
     if (that.locale()) {
       return that.locale();
 
       // 3. Otherwise we'll need to fall back to the `default` key
     }
+
     return 'default';
   };
 
@@ -114,6 +116,4 @@ Context.fromUser = function(user) {
   return new Context(TenantAPI.getTenant(user.tenant.alias), user);
 };
 
-module.exports = {
-  Context
-};
+export { Context };

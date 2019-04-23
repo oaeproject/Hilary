@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
-const OaeUtil = require('oae-util/lib/util');
+import _ from 'underscore';
+import * as OaeUtil from 'oae-util/lib/util';
 
 /**
  * Allows for validation and applying of filters when triggering a "reprocessing" previews task
@@ -72,6 +72,7 @@ const FilterGenerator = function(filters) {
         if (content.previews && content.previews.status) {
           return _.contains(statuses, content.previews.status);
         }
+
         // If the previews object is missing, something is seriously wrong and we should reprocess it
         return true;
       });
@@ -112,6 +113,7 @@ const FilterGenerator = function(filters) {
         if (revision.previews && revision.previews.status) {
           return _.contains(statuses, revision.previews.status);
         }
+
         // If the previews object is missing, something is seriously wrong and we should reprocess it
         return true;
       });
@@ -230,6 +232,4 @@ const FilterGenerator = function(filters) {
   return that;
 };
 
-module.exports = {
-  FilterGenerator
-};
+export { FilterGenerator };

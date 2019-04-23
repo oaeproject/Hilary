@@ -14,13 +14,13 @@
  */
 
 /* esling-disable no-unused-vars */
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const AuthzUtil = require('oae-authz/lib/util');
-const RestAPI = require('oae-rest');
-const SearchTestsUtil = require('oae-search/lib/test/util');
-const TestsUtil = require('oae-tests');
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as RestAPI from 'oae-rest';
+import * as SearchTestsUtil from 'oae-search/lib/test/util';
+import * as TestsUtil from 'oae-tests';
 
 describe('Discussion Search', () => {
   // REST contexts we can use to do REST requests

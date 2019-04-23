@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-const { AuthzConstants } = require('oae-authz/lib/constants');
+import { AuthzConstants } from 'oae-authz/lib/constants';
 
 const PrincipalsConstants = {};
 
@@ -89,4 +89,4 @@ PrincipalsConstants.requestStatus = {
   PENDING: 'pending'
 };
 
-module.exports = { PrincipalsConstants };
+export { PrincipalsConstants };

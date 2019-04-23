@@ -13,14 +13,14 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const fs = require('fs');
-const path = require('path');
-const _ = require('underscore');
+import assert from 'assert';
+import fs from 'fs';
+import path from 'path';
+import _ from 'underscore';
 
-const ContentDAO = require('oae-content/lib/internal/dao');
-const RestAPI = require('oae-rest');
-const TestsUtil = require('oae-tests');
+import * as ContentDAO from 'oae-content/lib/internal/dao';
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
 
 describe('Content DAO', () => {
   // Rest contexts that will be used for requests
@@ -75,8 +75,8 @@ describe('Content DAO', () => {
           let foundLink = false;
 
           /*!
-                 * Verifies that only the contentId is returned in the content row
-                 */
+           * Verifies that only the contentId is returned in the content row
+           */
           const _onEach = function(contentRows, done) {
             // Ensure we only get the contentId of the content item
             _.each(contentRows, contentRow => {
@@ -104,9 +104,9 @@ describe('Content DAO', () => {
             foundLink = false;
 
             /*!
-                     * Verifies that only the contentId and displayName of the content rows are returned, and that they are
-                     * accurate.
-                     */
+             * Verifies that only the contentId and displayName of the content rows are returned, and that they are
+             * accurate.
+             */
             const _onEach = function(contentRows, done) {
               // Ensure we only get the contentId and displayName of the content item
               _.each(contentRows, contentRow => {
@@ -165,36 +165,23 @@ describe('Content DAO', () => {
             assert.ok(!err);
             RestAPI.Content.updateFileBody(mrvisser.restContext, contentObj.id, getStream, err => {
               assert.ok(!err);
-              RestAPI.Content.updateFileBody(
-                mrvisser.restContext,
-                contentObj.id,
-                getStream,
-                err => {
+              RestAPI.Content.updateFileBody(mrvisser.restContext, contentObj.id, getStream, err => {
+                assert.ok(!err);
+                RestAPI.Content.updateFileBody(mrvisser.restContext, contentObj.id, getStream, err => {
                   assert.ok(!err);
-                  RestAPI.Content.updateFileBody(
-                    mrvisser.restContext,
-                    contentObj.id,
-                    getStream,
-                    err => {
-                      assert.ok(!err);
 
-                      ContentDAO.Revisions.getAllRevisionsForContent(
-                        [contentObj.id],
-                        (err, data) => {
-                          assert.ok(!err);
-                          assert.ok(data[contentObj.id]);
-                          assert.ok(data[contentObj.id].length, 5);
-                          _.each(data[contentObj.id], revision => {
-                            assert.strictEqual(revision.contentId, contentObj.id);
-                            assert.strictEqual(revision.filename, 'apereo.jpg');
-                          });
-                          return callback();
-                        }
-                      );
-                    }
-                  );
-                }
-              );
+                  ContentDAO.Revisions.getAllRevisionsForContent([contentObj.id], (err, data) => {
+                    assert.ok(!err);
+                    assert.ok(data[contentObj.id]);
+                    assert.ok(data[contentObj.id].length, 5);
+                    _.each(data[contentObj.id], revision => {
+                      assert.strictEqual(revision.contentId, contentObj.id);
+                      assert.strictEqual(revision.filename, 'apereo.jpg');
+                    });
+                    return callback();
+                  });
+                });
+              });
             });
           });
         }

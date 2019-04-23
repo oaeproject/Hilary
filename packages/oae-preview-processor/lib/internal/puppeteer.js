@@ -14,11 +14,13 @@
  */
 
 /* eslint-disable security/detect-non-literal-fs-filename */
-const fs = require('fs');
-const path = require('path');
-const puppeteer = require('puppeteer');
+import fs from 'fs';
+import path from 'path';
+import puppeteer from 'puppeteer';
 
-const log = require('oae-logger').logger('oae-preview-processor');
+import { logger } from 'oae-logger';
+
+const log = logger('oae-preview-processor');
 
 const launchOptions = {
   args: ['--disable-dev-shm-usage']
@@ -94,7 +96,7 @@ const getPuppeteerImage = function(url, imgPath, options, callback) {
       await navigateToPageIfUrl(page, url);
 
       await page.screenshot({ path: imgPath });
-    } catch (ex) {
+    } catch (error) {
       if (isAttachment) {
         // Set image path to be blank in the case of attachment
         // webshot would write that file before, but not puppeteer
@@ -110,8 +112,8 @@ const getPuppeteerImage = function(url, imgPath, options, callback) {
           }
         });
       } else {
-        log().error({ err: ex }, 'Could not generate a screenshot.');
-        return callback({ code: 500, msg: ex });
+        log().error({ err: error }, 'Could not generate a screenshot.');
+        return callback({ code: 500, msg: error });
       }
     } finally {
       await browser.close();
@@ -120,4 +122,4 @@ const getPuppeteerImage = function(url, imgPath, options, callback) {
   })();
 };
 
-module.exports = { getImage: getPuppeteerImage };
+export { getPuppeteerImage as getImage };

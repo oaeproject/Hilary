@@ -13,24 +13,21 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const util = require('util');
-const path = require('path');
-const _ = require('underscore');
+import assert from 'assert';
+import util from 'util';
+import path from 'path';
+import _ from 'underscore';
 
-const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
-const TestsUtil = require('oae-tests');
-const Swagger = require('../lib/swagger');
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
+import * as Swagger from '../lib/swagger';
 
 describe('Swagger', () => {
   let anonymousRestContext = null;
   let globalAdminRestContext = null;
 
   before(callback => {
-    anonymousRestContext = TestsUtil.createTenantRestContext(
-      global.oaeTests.tenants.localhost.host
-    );
+    anonymousRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.localhost.host);
     globalAdminRestContext = TestsUtil.createGlobalAdminRestContext();
     // Register the test doc
     Swagger.register(path.join(__dirname, '/data/restjsdoc.js'), () => {
@@ -52,10 +49,7 @@ describe('Swagger', () => {
         _.each(resources.apis, api => {
           assert.ok(_.isString(api.path));
         });
-        assert.ok(
-          _.findWhere(resources.apis, { path: '/test' }),
-          'There should be a resource for the "/test" apis'
-        );
+        assert.ok(_.findWhere(resources.apis, { path: '/test' }), 'There should be a resource for the "/test" apis');
         return callback();
       });
     });
@@ -88,10 +82,7 @@ describe('Swagger', () => {
               assert.ok(_.isObject(model.properties), 'Model properties must be an Object');
               _.each(model.required, id => {
                 assert.ok(_.isString(id), 'Required property ids must be Strings');
-                assert.ok(
-                  model.properties[id],
-                  util.format('Required property "%s" is not defined', id)
-                );
+                assert.ok(model.properties[id], util.format('Required property "%s" is not defined', id));
               });
               _.each(model.properties, property => {
                 assert.ok(_.isString(property.type));
@@ -114,10 +105,7 @@ describe('Swagger', () => {
                     // Complex type, make sure there's a model for it
                     assert.ok(
                       data.models[property.items.$ref],
-                      util.format(
-                        'Array item $ref "%s" is not defined in models',
-                        property.items.$ref
-                      )
+                      util.format('Array item $ref "%s" is not defined in models', property.items.$ref)
                     );
                   }
                 } else if (!_.contains(Swagger.Constants.primitives, property.type)) {
@@ -141,10 +129,7 @@ describe('Swagger', () => {
                 const verbs = ['GET', 'POST', 'PUT', 'DELETE'];
                 assert.ok(
                   _.contains(verbs, operation.method),
-                  util.format(
-                    'Operation method "%s" is not one of "GET", "POST", "PUT", or "DELETE"',
-                    operation.method
-                  )
+                  util.format('Operation method "%s" is not one of "GET", "POST", "PUT", or "DELETE"', operation.method)
                 );
                 assert.ok(_.isString(operation.nickname), 'Operation nickname must be a String');
                 assert.ok(
@@ -152,13 +137,8 @@ describe('Swagger', () => {
                   util.format('Operation nickname "%s" cannot contain spaces', operation.nickname)
                 );
                 assert.ok(_.isString(operation.summary), 'Operation summary must be a String');
-                assert.ok(
-                  _.isString(operation.responseClass),
-                  'Operation responseClass must be a String'
-                );
-                const responseClass = operation.responseClass
-                  .replace(/^List\[/, '')
-                  .replace(/\]/, '');
+                assert.ok(_.isString(operation.responseClass), 'Operation responseClass must be a String');
+                const responseClass = operation.responseClass.replace(/^List\[/, '').replace(/\]/, '');
                 if (
                   !_.contains(Swagger.Constants.primitives, responseClass) &&
                   responseClass !== 'void' &&
@@ -173,10 +153,7 @@ describe('Swagger', () => {
                 assert.ok(_.isArray(operation.parameters), 'Operation parameters must be an Array');
                 _.each(operation.parameters, parameter => {
                   assert.ok(_.isString(parameter.name), 'Parameter name must be a String');
-                  assert.ok(
-                    _.isString(parameter.description),
-                    'Parameter description must be a String'
-                  );
+                  assert.ok(_.isString(parameter.description), 'Parameter description must be a String');
                   const dataType = parameter.dataType.replace(/^List\[/, '').replace(/\]/, '');
                   if (!_.contains(Swagger.Constants.primitives, dataType) && dataType !== 'File') {
                     assert.ok(
@@ -184,14 +161,9 @@ describe('Swagger', () => {
                       util.format('Parameter dataType "%s" is undefined in models', dataType)
                     );
                   }
-                  assert.ok(
-                    _.isBoolean(parameter.required),
-                    'Parameter required must be a Boolean'
-                  );
-                  assert.ok(
-                    _.isBoolean(parameter.allowMultiple),
-                    'Parameter allowMultiple must be a Boolean'
-                  );
+
+                  assert.ok(_.isBoolean(parameter.required), 'Parameter required must be a Boolean');
+                  assert.ok(_.isBoolean(parameter.allowMultiple), 'Parameter allowMultiple must be a Boolean');
                   const paramTypes = ['body', 'path', 'query', 'form', 'header'];
                   assert.ok(
                     _.contains(paramTypes, parameter.paramType),
@@ -210,11 +182,7 @@ describe('Swagger', () => {
                   if (_.contains(['path', 'query', 'header'], parameter.paramType)) {
                     assert.ok(
                       _.contains(Swagger.Constants.primitives, parameter.dataType),
-                      util.format(
-                        '%s parameter "%s" must be of a primitive type',
-                        parameter.paramType,
-                        parameter.name
-                      )
+                      util.format('%s parameter "%s" must be of a primitive type', parameter.paramType, parameter.name)
                     );
                   }
                 });
@@ -272,10 +240,7 @@ describe('Swagger', () => {
                 assert.strictEqual(params.var4.allowMultiple, false);
                 assert.strictEqual(params.var4.paramType, 'query');
                 // Verify a query parameter that can appear multiple times
-                assert.strictEqual(
-                  params.var5.description,
-                  'A query parameter that can appear multiple times'
-                );
+                assert.strictEqual(params.var5.description, 'A query parameter that can appear multiple times');
                 assert.strictEqual(params.var5.dataType, 'string');
                 assert.strictEqual(params.var5.required, false);
                 assert.strictEqual(params.var5.allowMultiple, true);
@@ -312,14 +277,8 @@ describe('Swagger', () => {
 
                 // Verify the responseMessages
                 const responseMessages = _.indexBy(operation.responseMessages, 'code');
-                assert.strictEqual(
-                  responseMessages['404'].message,
-                  'Why this endpoint would send a 404'
-                );
-                assert.strictEqual(
-                  responseMessages['302'].message,
-                  'Why this endpoint would redirect'
-                );
+                assert.strictEqual(responseMessages['404'].message, 'Why this endpoint would send a 404');
+                assert.strictEqual(responseMessages['302'].message, 'Why this endpoint would redirect');
 
                 // Verify the `Test` model
                 assert.strictEqual(_.size(data.models), 3);
@@ -331,10 +290,7 @@ describe('Swagger', () => {
                 assert.strictEqual(data.models.Test.properties.test.type, 'string');
                 assert.strictEqual(data.models.Test.properties.test.description, 'A property');
                 assert.strictEqual(data.models.Test.properties.test2.type, 'array');
-                assert.strictEqual(
-                  data.models.Test.properties.test2.description,
-                  'Array of Test2s'
-                );
+                assert.strictEqual(data.models.Test.properties.test2.description, 'Array of Test2s');
                 assert.strictEqual(data.models.Test.properties.test2.items.$ref, 'Test2');
 
                 // Verify the `Test2` model
@@ -347,10 +303,7 @@ describe('Swagger', () => {
                 assert.strictEqual(data.models.Test2.properties.test.description, 'A property');
                 assert.strictEqual(data.models.Test2.properties.test.items.type, 'string');
                 assert.strictEqual(data.models.Test2.properties.num.type, 'number');
-                assert.strictEqual(
-                  data.models.Test2.properties.num.description,
-                  'A numeric property'
-                );
+                assert.strictEqual(data.models.Test2.properties.num.description, 'A numeric property');
                 assert.strictEqual(data.models.Test2.properties.test3.type, 'Test3');
 
                 // Verify the `Test3` model

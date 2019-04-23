@@ -13,10 +13,15 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
-const ElasticSearchClient = require('elasticsearchclient');
-const log = require('oae-logger').logger('elasticsearchclient');
-const Telemetry = require('oae-telemetry').telemetry('search');
+import _ from 'underscore';
+import { logger } from 'oae-logger';
+
+import ElasticSearchClient from 'elasticsearchclient';
+import { telemetry } from 'oae-telemetry';
+
+const log = logger('elasticsearchclient');
+
+const Telemetry = telemetry('search');
 
 let index = null;
 let client = null;
@@ -58,6 +63,7 @@ const createIndex = function(indexName, settings, callback) {
     if (exists) {
       return callback();
     }
+
     log().info(
       {
         indexName,
@@ -105,12 +111,14 @@ const indexExists = function(indexName, callback) {
     if (err && err.error === 'IndexMissingException[[' + indexName + '] missing]') {
       return callback(null, false);
     }
+
     if (err) {
       const timeout = 5;
       log().error('Error connecting to elasticsearch, retrying in ' + timeout + 's...');
 
       return setTimeout(indexExists, timeout * 1000, indexName, callback);
     }
+
     return callback(null, true);
   };
 
@@ -147,6 +155,7 @@ const putMapping = function(typeName, fieldProperties, opts, callback) {
     if (err) {
       return callback(err);
     }
+
     if (exists) {
       return callback();
     }
@@ -210,7 +219,7 @@ const search = function(query, options, callback) {
  * @param  {Function}  callback        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any
  */
-index = function(typeName, id, doc, options, callback) {
+const runIndex = function(typeName, id, doc, options, callback) {
   log().trace({ typeName, id, document: doc, options }, 'Indexing a document');
   return _exec('index', client.index(index, typeName, doc, id, options), callback);
 };
@@ -331,7 +340,7 @@ const _logError = function(callName, err) {
   log().error({ err }, 'Error executing %s query.', callName);
 };
 
-module.exports = {
+export {
   refreshSearchConfiguration,
   createIndex,
   deleteIndex,
@@ -340,7 +349,7 @@ module.exports = {
   putMapping,
   mappingExists,
   search,
-  index,
+  runIndex,
   bulk,
   del,
   deleteByQuery

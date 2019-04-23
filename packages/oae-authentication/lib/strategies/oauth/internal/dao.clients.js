@@ -13,11 +13,11 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const Cassandra = require('oae-util/lib/cassandra');
+import * as Cassandra from 'oae-util/lib/cassandra';
 
-const { Client } = require('../model');
+import { Client } from '../model';
 
 /**
  * Creates a client.
@@ -105,6 +105,7 @@ const getClientById = function(id, callback) {
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(clients)) {
       return callback();
     }
@@ -122,21 +123,17 @@ const getClientById = function(id, callback) {
  * @param  {Client[]}   callback.clients    The set of clients that are registered for this user
  */
 const getClientsByUser = function(userId, callback) {
-  Cassandra.runQuery(
-    'SELECT "clientId" FROM "OAuthClientsByUser" WHERE "userId" = ?',
-    [userId],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
-      }
-
-      const clientIds = _.map(rows, row => {
-        return row.get('clientId');
-      });
-
-      _getClientsByIds(clientIds, callback);
+  Cassandra.runQuery('SELECT "clientId" FROM "OAuthClientsByUser" WHERE "userId" = ?', [userId], (err, rows) => {
+    if (err) {
+      return callback(err);
     }
-  );
+
+    const clientIds = _.map(rows, row => {
+      return row.get('clientId');
+    });
+
+    _getClientsByIds(clientIds, callback);
+  });
 };
 
 /**
@@ -169,10 +166,4 @@ const _getClientsByIds = function(clientIds, callback) {
   });
 };
 
-module.exports = {
-  createClient,
-  updateClient,
-  deleteClient,
-  getClientById,
-  getClientsByUser
-};
+export { createClient, updateClient, deleteClient, getClientById, getClientsByUser };

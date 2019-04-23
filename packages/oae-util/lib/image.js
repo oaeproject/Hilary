@@ -13,16 +13,20 @@
  * permissions and limitations under the License.
  */
 
-const { exec } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const util = require('util');
-const gm = require('gm');
-const temp = require('temp');
-const _ = require('underscore');
+import { exec } from 'child_process';
 
-const log = require('oae-logger').logger('oae-util-image');
-const { Validator } = require('oae-util/lib/validator');
+import fs from 'fs';
+import path from 'path';
+import util from 'util';
+import gm from 'gm';
+import temp from 'temp';
+import _ from 'underscore';
+
+import { logger } from 'oae-logger';
+
+import { Validator } from 'oae-util/lib/validator';
+
+const log = logger('oae-util-image');
 
 const VALID_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif'];
 
@@ -56,6 +60,7 @@ const autoOrient = function(inputPath, opts, callback) {
         log().error({ err }, 'Could not auto orient the image %s', inputPath);
         return callback({ code: 500, msg: 'Could not auto orient the image' });
       }
+
       fs.stat(outputPath, (err, stat) => {
         if (err) {
           fs.unlink(outputPath, () => {
@@ -69,6 +74,7 @@ const autoOrient = function(inputPath, opts, callback) {
             msg: 'Could not retrieve the file information for the cropped file'
           });
         }
+
         const file = {
           path: outputPath,
           size: stat.size,
@@ -108,9 +114,7 @@ const autoOrient = function(inputPath, opts, callback) {
  */
 const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
   const validator = new Validator();
-  validator
-    .check(imagePath, { code: 400, msg: 'A path to the image that you want to crop is missing' })
-    .notNull();
+  validator.check(imagePath, { code: 400, msg: 'A path to the image that you want to crop is missing' }).notNull();
   validator
     .check(null, {
       code: 400,
@@ -118,18 +122,10 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
     })
     .isObject(selectedArea);
   if (selectedArea) {
-    validator
-      .check(selectedArea.x, { code: 400, msg: 'The x-coordinate needs to be a valid integer' })
-      .isInt();
-    validator
-      .check(selectedArea.x, { code: 400, msg: 'The x-coordinate needs to be a valid integer' })
-      .min(0);
-    validator
-      .check(selectedArea.y, { code: 400, msg: 'The y-coordinate needs to be a valid integer' })
-      .isInt();
-    validator
-      .check(selectedArea.y, { code: 400, msg: 'The y-coordinate needs to be a valid integer' })
-      .min(0);
+    validator.check(selectedArea.x, { code: 400, msg: 'The x-coordinate needs to be a valid integer' }).isInt();
+    validator.check(selectedArea.x, { code: 400, msg: 'The x-coordinate needs to be a valid integer' }).min(0);
+    validator.check(selectedArea.y, { code: 400, msg: 'The y-coordinate needs to be a valid integer' }).isInt();
+    validator.check(selectedArea.y, { code: 400, msg: 'The y-coordinate needs to be a valid integer' }).min(0);
     validator
       .check(selectedArea.width, {
         code: 400,
@@ -155,6 +151,7 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
       })
       .min(1);
   }
+
   validator.check(sizes, { code: 400, msg: 'The desired sizes array is missing' }).notNull();
   if (sizes) {
     validator.check(sizes.length, { code: 400, msg: 'The desired sizes array is empty' }).min(1);
@@ -185,6 +182,7 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
         .min(0);
     }
   }
+
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -194,6 +192,7 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
     if (err) {
       return callback(err);
     }
+
     const files = {};
     let resized = 0;
     let called = false;
@@ -246,9 +245,7 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
  */
 const cropImage = function(imagePath, selectedArea, callback) {
   const validator = new Validator();
-  validator
-    .check(imagePath, { code: 400, msg: 'A path to the image that you want to crop is missing' })
-    .notNull();
+  validator.check(imagePath, { code: 400, msg: 'A path to the image that you want to crop is missing' }).notNull();
   validator
     .check(null, {
       code: 400,
@@ -256,18 +253,10 @@ const cropImage = function(imagePath, selectedArea, callback) {
     })
     .isObject(selectedArea);
   if (selectedArea) {
-    validator
-      .check(selectedArea.x, { code: 400, msg: 'The x-coordinate needs to be a valid integer' })
-      .isInt();
-    validator
-      .check(selectedArea.x, { code: 400, msg: 'The x-coordinate needs to be a valid integer' })
-      .min(0);
-    validator
-      .check(selectedArea.y, { code: 400, msg: 'The y-coordinate needs to be a valid integer' })
-      .isInt();
-    validator
-      .check(selectedArea.y, { code: 400, msg: 'The y-coordinate needs to be a valid integer' })
-      .min(0);
+    validator.check(selectedArea.x, { code: 400, msg: 'The x-coordinate needs to be a valid integer' }).isInt();
+    validator.check(selectedArea.x, { code: 400, msg: 'The x-coordinate needs to be a valid integer' }).min(0);
+    validator.check(selectedArea.y, { code: 400, msg: 'The y-coordinate needs to be a valid integer' }).isInt();
+    validator.check(selectedArea.y, { code: 400, msg: 'The y-coordinate needs to be a valid integer' }).min(0);
     validator
       .check(selectedArea.width, {
         code: 400,
@@ -293,9 +282,11 @@ const cropImage = function(imagePath, selectedArea, callback) {
       })
       .min(1);
   }
+
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
+
   _cropImage(imagePath, selectedArea, callback);
 };
 
@@ -349,6 +340,7 @@ const _cropImage = function(imagePath, selectedArea, callback) {
           log().error({ err }, 'Could not crop the image %s', imagePath);
           return callback({ code: 500, msg: 'Could not crop the image' });
         }
+
         fs.stat(tempPath, (err, stat) => {
           if (err) {
             fs.unlink(tempPath, () => {
@@ -362,6 +354,7 @@ const _cropImage = function(imagePath, selectedArea, callback) {
               msg: 'Could not retrieve the file information for the cropped file'
             });
           }
+
           const file = {
             path: tempPath,
             size: stat.size,
@@ -390,17 +383,11 @@ const _cropImage = function(imagePath, selectedArea, callback) {
  */
 const resizeImage = function(imagePath, size, callback) {
   const validator = new Validator();
-  validator
-    .check(imagePath, { code: 400, msg: 'A path to the image that you want to resize is missing' })
-    .notNull();
+  validator.check(imagePath, { code: 400, msg: 'A path to the image that you want to resize is missing' }).notNull();
   validator.check(null, { code: 400, msg: 'The size must be specified' }).isObject(size);
   if (size) {
-    validator
-      .check(size.width, { code: 400, msg: 'The width needs to be a valid integer larger than 0' })
-      .isInt();
-    validator
-      .check(size.width, { code: 400, msg: 'The width needs to be a valid integer larger than 0' })
-      .min(0);
+    validator.check(size.width, { code: 400, msg: 'The width needs to be a valid integer larger than 0' }).isInt();
+    validator.check(size.width, { code: 400, msg: 'The width needs to be a valid integer larger than 0' }).min(0);
     validator
       .check(size.height, {
         code: 400,
@@ -414,9 +401,11 @@ const resizeImage = function(imagePath, size, callback) {
       })
       .min(0);
   }
+
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
+
   _resizeImage(imagePath, size, callback);
 };
 
@@ -451,6 +440,7 @@ const _resizeImage = function(imagePath, size, callback) {
         log().error({ err }, 'Could not resize the image %s', imagePath);
         return callback({ code: 500, msg: 'Could not resize the image' });
       }
+
       fs.stat(tempPath, (err, stat) => {
         if (err) {
           fs.unlink(tempPath, () => {
@@ -464,6 +454,7 @@ const _resizeImage = function(imagePath, size, callback) {
             msg: 'Could not get the file information for the resized file'
           });
         }
+
         const file = {
           path: tempPath,
           size: stat.size,
@@ -489,6 +480,7 @@ const getImageExtension = function(source, fallback) {
   if (!_.contains(VALID_EXTENSIONS, ext)) {
     ext = fallback;
   }
+
   return ext;
 };
 
@@ -508,9 +500,7 @@ const getImageExtension = function(source, fallback) {
  */
 const convertToJPG = function(inputPath, callback) {
   const validator = new Validator();
-  validator
-    .check(inputPath, { code: 400, msg: 'A path to the image that you want to resize is missing' })
-    .notNull();
+  validator.check(inputPath, { code: 400, msg: 'A path to the image that you want to resize is missing' }).notNull();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -520,6 +510,7 @@ const convertToJPG = function(inputPath, callback) {
     // If we're dealing with a GIF, we use the first frame
     conversionPath = inputPath + '[0]';
   }
+
   gm(conversionPath).size((err, size) => {
     if (err) {
       log().error({ err }, 'Unable to get size of the image that should be converted to JPG');
@@ -527,15 +518,15 @@ const convertToJPG = function(inputPath, callback) {
     }
 
     /*!
-         * The below command is responsible for generating a somewhat decent looking JPG.
-         * We superimpose the original image over a white image of the same size to ensure
-         * that formats which can contain transparant pixels look reasonably well in a JPG.
-         *
-         * gm convert -size 220x276 xc:white -compose over img.png -flatten flattened.jpg
-         *
-         * There doesn't seem to be a good way to execute the proper command with the `gm` module,
-         * so we have to do it manually here.
-         */
+     * The below command is responsible for generating a somewhat decent looking JPG.
+     * We superimpose the original image over a white image of the same size to ensure
+     * that formats which can contain transparant pixels look reasonably well in a JPG.
+     *
+     * gm convert -size 220x276 xc:white -compose over img.png -flatten flattened.jpg
+     *
+     * There doesn't seem to be a good way to execute the proper command with the `gm` module,
+     * so we have to do it manually here.
+     */
     const outputPath = temp.path({ suffix: '.jpg' });
     const cmd = util.format(
       'gm convert -size %dx%d xc:white -compose over %s -flatten %s',
@@ -569,6 +560,7 @@ const convertToJPG = function(inputPath, callback) {
             msg: 'Could not retrieve the file information for the converted file'
           });
         }
+
         const file = {
           path: outputPath,
           size: stat.size,
@@ -580,11 +572,4 @@ const convertToJPG = function(inputPath, callback) {
   });
 };
 
-module.exports = {
-  autoOrient,
-  cropAndResize,
-  cropImage,
-  resizeImage,
-  getImageExtension,
-  convertToJPG
-};
+export { autoOrient, cropAndResize, cropImage, resizeImage, getImageExtension, convertToJPG };

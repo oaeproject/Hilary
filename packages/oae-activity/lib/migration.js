@@ -1,4 +1,4 @@
-const Cassandra = require('oae-util/lib/cassandra');
+import { createColumnFamilies } from 'oae-util/lib/cassandra';
 
 /**
  * Ensure that the all of the activity-related schemas are created. If they already exist, this method will not do anything.
@@ -8,7 +8,7 @@ const Cassandra = require('oae-util/lib/cassandra');
  * @api private
  */
 const ensureSchema = function(callback) {
-  Cassandra.createColumnFamilies(
+  createColumnFamilies(
     {
       ActivityStreams:
         'CREATE TABLE "ActivityStreams" ("activityStreamId" text, "activityId" text, "activity" text, PRIMARY KEY ("activityStreamId", "activityId")) WITH COMPACT STORAGE',
@@ -18,4 +18,4 @@ const ensureSchema = function(callback) {
   );
 };
 
-module.exports = { ensureSchema };
+export { ensureSchema };

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-module.exports = {
+export default {
   TYPES: {
     IMAGE: [
       'application/dicom',

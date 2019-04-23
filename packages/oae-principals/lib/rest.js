@@ -13,13 +13,23 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
-const locale = require('locale');
+import _ from 'underscore';
+import locale from 'locale';
 
-const OAE = require('oae-util/lib/oae');
+import * as OAE from 'oae-util/lib/oae';
 
-let languages = require('../config/user').user.elements.defaultLanguage.list;
-const PrincipalsAPI = require('./api');
+// eslint-disable-next-line no-unused-vars
+import * as UserRESTEndpoints from 'oae-principals/lib/rest.user.js';
+// eslint-disable-next-line no-unused-vars
+import * as GroupRESTEndpoints from 'oae-principals/lib/rest.group.js';
+import * as userConfig from '../config/user';
+import PrincipalsAPI from './api';
+
+// Require the user related REST endpoints
+
+// Require the group related REST endpoints
+
+let languages = userConfig.user.elements.defaultLanguage.list;
 
 /// /////////
 // LOCALE //
@@ -63,9 +73,7 @@ OAE.tenantServer.use((req, res, next) => {
     PrincipalsAPI.needsToAcceptTermsAndConditions(ctx) &&
     !_isWhiteListed(req.path)
   ) {
-    return res
-      .status(419)
-      .send('You need to accept the Terms and Conditions before you can interact with this tenant');
+    return res.status(419).send('You need to accept the Terms and Conditions before you can interact with this tenant');
   }
 
   return next();
@@ -108,24 +116,11 @@ const _isWhiteListed = function(url) {
  * @HttpResponse                401                     You have to be logged in to be able to update a picture
  */
 OAE.tenantRouter.on('post', '/api/crop', (req, res) => {
-  PrincipalsAPI.generateSizes(
-    req.ctx,
-    req.body.principalId,
-    req.body.x,
-    req.body.y,
-    req.body.width,
-    (err, data) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-
-      return res.status(200).send(data);
+  PrincipalsAPI.generateSizes(req.ctx, req.body.principalId, req.body.x, req.body.y, req.body.width, (err, data) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    return res.status(200).send(data);
+  });
 });
-
-// Require the user related REST endpoints
-require('oae-principals/lib/rest.user.js'); // eslint-disable-line import/no-unassigned-import
-
-// Require the group related REST endpoints
-require('oae-principals/lib/rest.group.js'); // eslint-disable-line import/no-unassigned-import

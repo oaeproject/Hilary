@@ -14,19 +14,19 @@
  */
 
 /* eslint-disable no-unused-vars */
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const { ContentConstants } = require('oae-content/lib/constants');
-const EmailTestsUtil = require('oae-email/lib/test/util');
-const OaeUtil = require('oae-util/lib/util');
-const RestAPI = require('oae-rest');
-const TestsUtil = require('oae-tests');
+import { ContentConstants } from 'oae-content/lib/constants';
+import * as EmailTestsUtil from 'oae-email/lib/test/util';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
 
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const ActivityModel = require('oae-activity/lib/model');
-const ActivityRouter = require('oae-activity/lib/internal/router');
-const ActivityTestsUtil = require('oae-activity/lib/test/util');
+import { ActivityConstants } from 'oae-activity/lib/constants';
+import * as ActivityModel from 'oae-activity/lib/model';
+import * as ActivityRouter from 'oae-activity/lib/internal/router';
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
 
 describe('Notifications', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user
@@ -39,11 +39,11 @@ describe('Notifications', () => {
   let globalAdminRestContext = null;
 
   /*!
-     * Create a default activity configuration object, overridden with the given `overlay` object.
-     *
-     * @param  {Object}    overlay     Configuration properties with which to overide the default.
-     * @return {Object}                An object that represents the default configuration for unit tests, overridden by the overlay.
-     */
+   * Create a default activity configuration object, overridden with the given `overlay` object.
+   *
+   * @param  {Object}    overlay     Configuration properties with which to overide the default.
+   * @return {Object}                An object that represents the default configuration for unit tests, overridden by the overlay.
+   */
   const createDefaultConfig = function(overlay) {
     return _.extend({ collectionPollingFrequency: -1 }, overlay);
   };
@@ -216,16 +216,16 @@ describe('Notifications', () => {
                                 assert.strictEqual(me.notificationsUnread, 0);
 
                                 /*!
-                                                     * Share two things at once before aggregating. This verifies the case where 2
-                                                     * items are aggregated together in memory, not in the feed.
-                                                     *
-                                                     * Note that just because 2 aggregating items are aggregating in the same cycle
-                                                     * doesn't mean they're aggregated together in-memory, that only happens if they
-                                                     * are dropped in the same routed activity bucket. If the config value
-                                                     * `numberOfProcessingBuckets` is `1`, then it will happen all the time. If it
-                                                     * is larger than `1` and this functionality regresses, then this will be an
-                                                     * intermittent test failure.
-                                                     */
+                                 * Share two things at once before aggregating. This verifies the case where 2
+                                 * items are aggregated together in memory, not in the feed.
+                                 *
+                                 * Note that just because 2 aggregating items are aggregating in the same cycle
+                                 * doesn't mean they're aggregated together in-memory, that only happens if they
+                                 * are dropped in the same routed activity bucket. If the config value
+                                 * `numberOfProcessingBuckets` is `1`, then it will happen all the time. If it
+                                 * is larger than `1` and this functionality regresses, then this will be an
+                                 * intermittent test failure.
+                                 */
 
                                 RestAPI.Content.createLink(
                                   mrvisser.restContext,
@@ -503,8 +503,8 @@ describe('Notifications', () => {
 
   describe('Mail deduplication', () => {
     /*!
-         * Flush the mail queue so other tests don't impact the mail deduplication tests
-         */
+     * Flush the mail queue so other tests don't impact the mail deduplication tests
+     */
     beforeEach(EmailTestsUtil.clearEmailCollections);
 
     /**

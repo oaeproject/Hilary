@@ -13,21 +13,21 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const url = require('url');
-const _ = require('underscore');
+import assert from 'assert';
+import url from 'url';
+import _ from 'underscore';
 
-const LibraryAPI = require('oae-library');
-const OaeUtil = require('oae-util/lib/util');
-const RestAPI = require('oae-rest');
-const SearchTestUtil = require('oae-search/lib/test/util');
+import * as LibraryAPI from 'oae-library';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as RestAPI from 'oae-rest';
+import * as SearchTestUtil from 'oae-search/lib/test/util';
 
-const AuthzAPI = require('oae-authz');
-const AuthzDelete = require('oae-authz/lib/delete');
-const AuthzInvitationsDAO = require('oae-authz/lib/invitations/dao');
-const AuthzUtil = require('oae-authz/lib/util');
+import * as AuthzAPI from 'oae-authz';
+import * as AuthzDelete from 'oae-authz/lib/delete';
+import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
+import * as AuthzUtil from 'oae-authz/lib/util';
 
-const PrincipalsTestUtil = require('oae-principals/lib/test/util');
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
 
 /**
  * Delete the given resource by its id and ensure it completes successfully
@@ -146,30 +146,25 @@ const assertAcceptInvitationFails = function(restContext, token, httpCode, callb
   // Get invitations before attempting to accept, if applicable. Since this a failure scenario, it
   // is possible that the token is completely invalid
   OaeUtil.invokeIfNecessary(token, AuthzInvitationsDAO.getEmailByToken, token, (err, email) => {
-    OaeUtil.invokeIfNecessary(
-      email,
-      AuthzInvitationsDAO.getAllInvitationsByEmail,
-      email,
-      (err, invitationsBefore) => {
-        // Perform the accept
-        RestAPI.Invitations.acceptInvitation(restContext, token, err => {
-          assert.ok(err);
-          assert.strictEqual(err.code, httpCode);
+    OaeUtil.invokeIfNecessary(email, AuthzInvitationsDAO.getAllInvitationsByEmail, email, (err, invitationsBefore) => {
+      // Perform the accept
+      RestAPI.Invitations.acceptInvitation(restContext, token, err => {
+        assert.ok(err);
+        assert.strictEqual(err.code, httpCode);
 
-          // Ensure we get the same result from querying invitations to ensure that failing to
-          // accept the invitation did not trash them
-          OaeUtil.invokeIfNecessary(
-            email,
-            AuthzInvitationsDAO.getAllInvitationsByEmail,
-            email,
-            (err, invitationsAfter) => {
-              assert.deepStrictEqual(invitationsBefore, invitationsAfter);
-              return callback();
-            }
-          );
-        });
-      }
-    );
+        // Ensure we get the same result from querying invitations to ensure that failing to
+        // accept the invitation did not trash them
+        OaeUtil.invokeIfNecessary(
+          email,
+          AuthzInvitationsDAO.getAllInvitationsByEmail,
+          email,
+          (err, invitationsAfter) => {
+            assert.deepStrictEqual(invitationsBefore, invitationsAfter);
+            return callback();
+          }
+        );
+      });
+    });
   });
 };
 
@@ -202,13 +197,7 @@ const assertGetInvitationsSucceeds = function(restContext, resourceType, resourc
  * @param  {Invitation[]}   callback.invitations    The invitations that are pending for the resource
  * @throws {AssertionError}                         Thrown if any assertions fail
  */
-const assertGetInvitationsFails = function(
-  restContext,
-  resourceType,
-  resourceId,
-  httpCode,
-  callback
-) {
+const assertGetInvitationsFails = function(restContext, resourceType, resourceId, httpCode, callback) {
   RestAPI.Invitations.getInvitations(restContext, resourceType, resourceId, (err, result) => {
     assert.ok(err);
     assert.strictEqual(err.code, httpCode);
@@ -226,13 +215,7 @@ const assertGetInvitationsFails = function(
  * @param  {Function}       callback                Invoked when all assertions pass
  * @throws {AssertionError}                         Thrown if any assertions fail
  */
-const assertResendInvitationSucceeds = function(
-  restContext,
-  resourceType,
-  resourceId,
-  email,
-  callback
-) {
+const assertResendInvitationSucceeds = function(restContext, resourceType, resourceId, email, callback) {
   RestAPI.Invitations.resendInvitation(restContext, resourceType, resourceId, email, err => {
     assert.ok(!err);
     return callback();
@@ -251,14 +234,7 @@ const assertResendInvitationSucceeds = function(
  * @param  {Function}       callback                Invoked when all assertions pass
  * @throws {AssertionError}                         Thrown if any assertions fail
  */
-const assertResendInvitationFails = function(
-  restContext,
-  resourceType,
-  resourceId,
-  email,
-  httpCode,
-  callback
-) {
+const assertResendInvitationFails = function(restContext, resourceType, resourceId, email, httpCode, callback) {
   RestAPI.Invitations.resendInvitation(restContext, resourceType, resourceId, email, err => {
     assert.ok(err);
     assert.strictEqual(err.code, httpCode);
@@ -331,10 +307,7 @@ const assertAuthzMembersGraphIdsEqual = function(resourceIds, expectedIds, callb
 const assertPrincipalMembershipsGraphIdsEqual = function(principalId, expectedIds, callback) {
   AuthzAPI.getPrincipalMembershipsGraph(principalId, (err, graph) => {
     assert.ok(!err);
-    assert.deepStrictEqual(
-      _.pluck(graph.traverseOut(principalId), 'id').sort(),
-      expectedIds.slice().sort()
-    );
+    assert.deepStrictEqual(_.pluck(graph.traverseOut(principalId), 'id').sort(), expectedIds.slice().sort());
     return callback(graph);
   });
 };
@@ -418,6 +391,7 @@ const assertCreateMembershipsGraphSucceeds = function(graph, callback, _ops) {
 
     return assertCreateMembershipsGraphSucceeds(graph, callback, _ops);
   }
+
   if (_.isEmpty(_ops)) {
     return callback();
   }
@@ -482,9 +456,7 @@ const getEmailRolesFromResults = function(invitations) {
  * @throws {AssertionError}             Thrown if there is no invitation url
  */
 const parseInvitationUrlFromMessage = function(message) {
-  const match = message.html.match(
-    /href="(https?:\/\/[^/]+\/signup\?url=%2F%3FinvitationToken%3D[^"]+)"/
-  );
+  const match = message.html.match(/href="(https?:\/\/[^/]+\/signup\?url=%2F%3FinvitationToken%3D[^"]+)"/);
 
   assert.ok(match);
   assert.strictEqual(match.length, 2);
@@ -525,7 +497,7 @@ const _toLowerCase = function(str) {
   return str.toLowerCase();
 };
 
-module.exports = {
+export {
   assertSetDeletedSucceeds,
   assertUnsetDeletedSucceeds,
   assertAcceptInvitationForEmailSucceeds,

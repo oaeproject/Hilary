@@ -14,15 +14,15 @@
  */
 
 /* eslint-disable no-unused-vars */
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const AuthzTestUtil = require('oae-authz/lib/test/util');
-const LibraryAPI = require('oae-library');
-const PrincipalsTestUtil = require('oae-principals/lib/test/util');
-const RestAPI = require('oae-rest');
-const SearchTestUtil = require('oae-search/lib/test/util');
-const TestsUtil = require('oae-tests/lib/util');
+import * as AuthzTestUtil from 'oae-authz/lib/test/util';
+import * as LibraryAPI from 'oae-library';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as SearchTestUtil from 'oae-search/lib/test/util';
+import * as TestsUtil from 'oae-tests/lib/util';
 
 /**
  * Set up 2 public tenants and 2 private tenants, each with a public, loggedin, private set of users and
@@ -55,20 +55,18 @@ const TestsUtil = require('oae-tests/lib/util');
  */
 const setupMultiTenantPrivacyEntities = function(callback) {
   // Create the tenants and users
-  TestsUtil.setupMultiTenantPrivacyEntities(
-    (publicTenant, publicTenant1, privateTenant, privateTenant1) => {
-      // Create the discussions.
-      _setupTenant(publicTenant, () => {
-        _setupTenant(publicTenant1, () => {
-          _setupTenant(privateTenant, () => {
-            _setupTenant(privateTenant1, () => {
-              return callback(publicTenant, publicTenant1, privateTenant, privateTenant1);
-            });
+  TestsUtil.setupMultiTenantPrivacyEntities((publicTenant, publicTenant1, privateTenant, privateTenant1) => {
+    // Create the discussions.
+    _setupTenant(publicTenant, () => {
+      _setupTenant(publicTenant1, () => {
+        _setupTenant(privateTenant, () => {
+          _setupTenant(privateTenant1, () => {
+            return callback(publicTenant, publicTenant1, privateTenant, privateTenant1);
           });
         });
       });
-    }
-  );
+    });
+  });
 };
 
 /**
@@ -80,15 +78,12 @@ const setupMultiTenantPrivacyEntities = function(callback) {
  * @api private
  */
 const _setupTenant = function(tenant, callback) {
-  _createMultiPrivacyDiscussions(
-    tenant.adminRestContext,
-    (publicDiscussion, loggedinDiscussion, privateDiscussion) => {
-      tenant.publicDiscussion = publicDiscussion;
-      tenant.loggedinDiscussion = loggedinDiscussion;
-      tenant.privateDiscussion = privateDiscussion;
-      callback();
-    }
-  );
+  _createMultiPrivacyDiscussions(tenant.adminRestContext, (publicDiscussion, loggedinDiscussion, privateDiscussion) => {
+    tenant.publicDiscussion = publicDiscussion;
+    tenant.loggedinDiscussion = loggedinDiscussion;
+    tenant.privateDiscussion = privateDiscussion;
+    callback();
+  });
 };
 
 /**
@@ -185,25 +180,16 @@ const assertCreateDiscussionSucceeds = function(
 
         // Ensure the members have the expected roles
         getAllDiscussionMembers(restContext, discussion.id, null, result => {
-          AuthzTestUtil.assertMemberRolesEquals(
-            {},
-            roleChanges,
-            AuthzTestUtil.getMemberRolesFromResults(result)
-          );
+          AuthzTestUtil.assertMemberRolesEquals({}, roleChanges, AuthzTestUtil.getMemberRolesFromResults(result));
 
-          AuthzTestUtil.assertGetInvitationsSucceeds(
-            restContext,
-            'discussion',
-            discussion.id,
-            result => {
-              AuthzTestUtil.assertEmailRolesEquals(
-                {},
-                roleChanges,
-                AuthzTestUtil.getEmailRolesFromResults(result.results)
-              );
-              return callback(discussion);
-            }
-          );
+          AuthzTestUtil.assertGetInvitationsSucceeds(restContext, 'discussion', discussion.id, result => {
+            AuthzTestUtil.assertEmailRolesEquals(
+              {},
+              roleChanges,
+              AuthzTestUtil.getEmailRolesFromResults(result.results)
+            );
+            return callback(discussion);
+          });
         });
       }
     );
@@ -330,57 +316,42 @@ const assertShareDiscussionSucceeds = function(
   getAllDiscussionMembers(managerRestContext, discussionId, null, result => {
     const memberRolesBefore = AuthzTestUtil.getMemberRolesFromResults(result);
 
-    AuthzTestUtil.assertGetInvitationsSucceeds(
-      managerRestContext,
-      'discussion',
-      discussionId,
-      result => {
-        const emailRolesBefore = AuthzTestUtil.getEmailRolesFromResults(result.results);
+    AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, result => {
+      const emailRolesBefore = AuthzTestUtil.getEmailRolesFromResults(result.results);
 
-        // Build a role update object that represents the change that should occur in the share
-        // operation
-        const roleChange = {};
-        _.each(targetIds, targetId => {
-          if (!memberRolesBefore[targetId] && !emailRolesBefore[targetId]) {
-            roleChange[targetId] = 'member';
-          }
-        });
+      // Build a role update object that represents the change that should occur in the share
+      // operation
+      const roleChange = {};
+      _.each(targetIds, targetId => {
+        if (!memberRolesBefore[targetId] && !emailRolesBefore[targetId]) {
+          roleChange[targetId] = 'member';
+        }
+      });
 
-        // Perform the discussion share
-        RestAPI.Discussions.shareDiscussion(actorRestContext, discussionId, targetIds, err => {
-          assert.ok(!err);
+      // Perform the discussion share
+      RestAPI.Discussions.shareDiscussion(actorRestContext, discussionId, targetIds, err => {
+        assert.ok(!err);
 
-          // Ensure the members and invitations had the expected updates
-          AuthzTestUtil.assertGetInvitationsSucceeds(
-            managerRestContext,
-            'discussion',
-            discussionId,
-            result => {
-              AuthzTestUtil.assertEmailRolesEquals(
-                emailRolesBefore,
-                roleChange,
-                AuthzTestUtil.getEmailRolesFromResults(result.results)
-              );
-
-              getAllDiscussionMembers(
-                managerRestContext,
-                discussionId,
-                null,
-                membersAfterUpdate => {
-                  AuthzTestUtil.assertMemberRolesEquals(
-                    memberRolesBefore,
-                    roleChange,
-                    AuthzTestUtil.getMemberRolesFromResults(membersAfterUpdate)
-                  );
-
-                  return callback();
-                }
-              );
-            }
+        // Ensure the members and invitations had the expected updates
+        AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, result => {
+          AuthzTestUtil.assertEmailRolesEquals(
+            emailRolesBefore,
+            roleChange,
+            AuthzTestUtil.getEmailRolesFromResults(result.results)
           );
+
+          getAllDiscussionMembers(managerRestContext, discussionId, null, membersAfterUpdate => {
+            AuthzTestUtil.assertMemberRolesEquals(
+              memberRolesBefore,
+              roleChange,
+              AuthzTestUtil.getMemberRolesFromResults(membersAfterUpdate)
+            );
+
+            return callback();
+          });
         });
-      }
-    );
+      });
+    });
   });
 };
 
@@ -407,51 +378,36 @@ const assertShareDiscussionFails = function(
   getAllDiscussionMembers(managerRestContext, discussionId, null, result => {
     const memberRolesBefore = AuthzTestUtil.getMemberRolesFromResults(result);
 
-    AuthzTestUtil.assertGetInvitationsSucceeds(
-      managerRestContext,
-      'discussion',
-      discussionId,
-      result => {
-        const emailRolesBefore = AuthzTestUtil.getEmailRolesFromResults(result.results);
+    AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, result => {
+      const emailRolesBefore = AuthzTestUtil.getEmailRolesFromResults(result.results);
 
-        // Perform the discussion share
-        RestAPI.Discussions.shareDiscussion(actorRestContext, discussionId, targetIds, err => {
-          assert.ok(err);
-          assert.strictEqual(err.code, httpCode);
+      // Perform the discussion share
+      RestAPI.Discussions.shareDiscussion(actorRestContext, discussionId, targetIds, err => {
+        assert.ok(err);
+        assert.strictEqual(err.code, httpCode);
 
-          const delta = {};
+        const delta = {};
 
-          // Ensure the members and invitations had the expected updates
-          AuthzTestUtil.assertGetInvitationsSucceeds(
-            managerRestContext,
-            'discussion',
-            discussionId,
-            result => {
-              AuthzTestUtil.assertEmailRolesEquals(
-                emailRolesBefore,
-                delta,
-                AuthzTestUtil.getEmailRolesFromResults(result.results)
-              );
-
-              getAllDiscussionMembers(
-                managerRestContext,
-                discussionId,
-                null,
-                membersAfterUpdate => {
-                  AuthzTestUtil.assertMemberRolesEquals(
-                    memberRolesBefore,
-                    delta,
-                    AuthzTestUtil.getMemberRolesFromResults(membersAfterUpdate)
-                  );
-
-                  return callback();
-                }
-              );
-            }
+        // Ensure the members and invitations had the expected updates
+        AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, result => {
+          AuthzTestUtil.assertEmailRolesEquals(
+            emailRolesBefore,
+            delta,
+            AuthzTestUtil.getEmailRolesFromResults(result.results)
           );
+
+          getAllDiscussionMembers(managerRestContext, discussionId, null, membersAfterUpdate => {
+            AuthzTestUtil.assertMemberRolesEquals(
+              memberRolesBefore,
+              delta,
+              AuthzTestUtil.getMemberRolesFromResults(membersAfterUpdate)
+            );
+
+            return callback();
+          });
         });
-      }
-    );
+      });
+    });
   });
 };
 
@@ -475,56 +431,36 @@ const assertUpdateDiscussionMembersSucceeds = function(
   getAllDiscussionMembers(managerRestContext, discussionId, null, result => {
     const memberRolesBefore = AuthzTestUtil.getMemberRolesFromResults(result);
 
-    AuthzTestUtil.assertGetInvitationsSucceeds(
-      managerRestContext,
-      'discussion',
-      discussionId,
-      result => {
-        const emailRolesBefore = AuthzTestUtil.getEmailRolesFromResults(result.results);
+    AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, result => {
+      const emailRolesBefore = AuthzTestUtil.getEmailRolesFromResults(result.results);
 
-        RestAPI.Discussions.updateDiscussionMembers(
-          actorRestContext,
-          discussionId,
-          updates,
-          err => {
-            assert.ok(!err);
-            // Wait for library and search to be updated before continuing
-            LibraryAPI.Index.whenUpdatesComplete(() => {
-              SearchTestUtil.whenIndexingComplete(() => {
-                // Ensure the members and invitations had the expected updates
-                AuthzTestUtil.assertGetInvitationsSucceeds(
-                  managerRestContext,
-                  'discussion',
-                  discussionId,
-                  result => {
-                    AuthzTestUtil.assertEmailRolesEquals(
-                      emailRolesBefore,
-                      updates,
-                      AuthzTestUtil.getEmailRolesFromResults(result.results)
-                    );
+      RestAPI.Discussions.updateDiscussionMembers(actorRestContext, discussionId, updates, err => {
+        assert.ok(!err);
+        // Wait for library and search to be updated before continuing
+        LibraryAPI.Index.whenUpdatesComplete(() => {
+          SearchTestUtil.whenIndexingComplete(() => {
+            // Ensure the members and invitations had the expected updates
+            AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, result => {
+              AuthzTestUtil.assertEmailRolesEquals(
+                emailRolesBefore,
+                updates,
+                AuthzTestUtil.getEmailRolesFromResults(result.results)
+              );
 
-                    getAllDiscussionMembers(
-                      managerRestContext,
-                      discussionId,
-                      null,
-                      membersAfterUpdate => {
-                        AuthzTestUtil.assertMemberRolesEquals(
-                          memberRolesBefore,
-                          updates,
-                          AuthzTestUtil.getMemberRolesFromResults(membersAfterUpdate)
-                        );
-
-                        return callback();
-                      }
-                    );
-                  }
+              getAllDiscussionMembers(managerRestContext, discussionId, null, membersAfterUpdate => {
+                AuthzTestUtil.assertMemberRolesEquals(
+                  memberRolesBefore,
+                  updates,
+                  AuthzTestUtil.getMemberRolesFromResults(membersAfterUpdate)
                 );
+
+                return callback();
               });
             });
-          }
-        );
-      }
-    );
+          });
+        });
+      });
+    });
   });
 };
 
@@ -551,60 +487,40 @@ const assertUpdateDiscussionMembersFails = function(
   getAllDiscussionMembers(managerRestContext, discussionId, null, result => {
     const memberRolesBefore = AuthzTestUtil.getMemberRolesFromResults(result);
 
-    AuthzTestUtil.assertGetInvitationsSucceeds(
-      managerRestContext,
-      'discussion',
-      discussionId,
-      result => {
-        const emailRolesBefore = AuthzTestUtil.getEmailRolesFromResults(result.results);
+    AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, result => {
+      const emailRolesBefore = AuthzTestUtil.getEmailRolesFromResults(result.results);
 
-        RestAPI.Discussions.updateDiscussionMembers(
-          actorRestContext,
-          discussionId,
-          updates,
-          err => {
-            assert.ok(err);
-            assert.strictEqual(err.code, httpCode);
+      RestAPI.Discussions.updateDiscussionMembers(actorRestContext, discussionId, updates, err => {
+        assert.ok(err);
+        assert.strictEqual(err.code, httpCode);
 
-            // Wait for library and search to be udpated before continuing
-            LibraryAPI.Index.whenUpdatesComplete(() => {
-              SearchTestUtil.whenIndexingComplete(() => {
-                const delta = {};
+        // Wait for library and search to be udpated before continuing
+        LibraryAPI.Index.whenUpdatesComplete(() => {
+          SearchTestUtil.whenIndexingComplete(() => {
+            const delta = {};
 
-                // Ensure the members and invitations had the expected updates
-                AuthzTestUtil.assertGetInvitationsSucceeds(
-                  managerRestContext,
-                  'discussion',
-                  discussionId,
-                  result => {
-                    AuthzTestUtil.assertEmailRolesEquals(
-                      emailRolesBefore,
-                      delta,
-                      AuthzTestUtil.getEmailRolesFromResults(result.results)
-                    );
+            // Ensure the members and invitations had the expected updates
+            AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, result => {
+              AuthzTestUtil.assertEmailRolesEquals(
+                emailRolesBefore,
+                delta,
+                AuthzTestUtil.getEmailRolesFromResults(result.results)
+              );
 
-                    getAllDiscussionMembers(
-                      managerRestContext,
-                      discussionId,
-                      null,
-                      membersAfterUpdate => {
-                        AuthzTestUtil.assertMemberRolesEquals(
-                          memberRolesBefore,
-                          delta,
-                          AuthzTestUtil.getMemberRolesFromResults(membersAfterUpdate)
-                        );
-
-                        return callback();
-                      }
-                    );
-                  }
+              getAllDiscussionMembers(managerRestContext, discussionId, null, membersAfterUpdate => {
+                AuthzTestUtil.assertMemberRolesEquals(
+                  memberRolesBefore,
+                  delta,
+                  AuthzTestUtil.getMemberRolesFromResults(membersAfterUpdate)
                 );
+
+                return callback();
               });
             });
-          }
-        );
-      }
-    );
+          });
+        });
+      });
+    });
   });
 };
 
@@ -620,15 +536,7 @@ const assertUpdateDiscussionMembersFails = function(
  * @param  {Object[][]}     callback.responses  The raw response objects for each page request that was made to get the discussion members library
  * @throws {AssertionError}                     Thrown if an error occurrs while paging through the discussion members library
  */
-const getAllDiscussionMembers = function(
-  restContext,
-  discussionId,
-  opts,
-  callback,
-  _members,
-  _responses,
-  _nextToken
-) {
+const getAllDiscussionMembers = function(restContext, discussionId, opts, callback, _members, _responses, _nextToken) {
   _members = _members || [];
   _responses = _responses || [];
   if (_nextToken === null) {
@@ -637,25 +545,19 @@ const getAllDiscussionMembers = function(
 
   opts = opts || {};
   opts.batchSize = opts.batchSize || 25;
-  RestAPI.Discussions.getDiscussionMembers(
-    restContext,
-    discussionId,
-    _nextToken,
-    opts.batchSize,
-    (err, result) => {
-      assert.ok(!err);
-      _responses.push(result);
-      return getAllDiscussionMembers(
-        restContext,
-        discussionId,
-        opts,
-        callback,
-        _.union(_members, result.results),
-        _responses,
-        result.nextToken
-      );
-    }
-  );
+  RestAPI.Discussions.getDiscussionMembers(restContext, discussionId, _nextToken, opts.batchSize, (err, result) => {
+    assert.ok(!err);
+    _responses.push(result);
+    return getAllDiscussionMembers(
+      restContext,
+      discussionId,
+      opts,
+      callback,
+      _.union(_members, result.results),
+      _responses,
+      result.nextToken
+    );
+  });
 };
 
 /**
@@ -718,19 +620,13 @@ const assertGetAllDiscussionsLibrarySucceeds = function(
  */
 const assertGetDiscussionsLibrarySucceeds = function(restContext, principalId, opts, callback) {
   opts = opts || {};
-  RestAPI.Discussions.getDiscussionsLibrary(
-    restContext,
-    principalId,
-    opts.start,
-    opts.limit,
-    (err, result) => {
-      assert.ok(!err);
-      return callback(result);
-    }
-  );
+  RestAPI.Discussions.getDiscussionsLibrary(restContext, principalId, opts.start, opts.limit, (err, result) => {
+    assert.ok(!err);
+    return callback(result);
+  });
 };
 
-module.exports = {
+export {
   setupMultiTenantPrivacyEntities,
   assertCreateDiscussionSucceeds,
   assertCreateDiscussionFails,

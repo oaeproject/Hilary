@@ -13,23 +13,26 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import PrincipalsEmitter from 'oae-principals/lib/internal/emitter';
 
-const AuthzAPI = require('oae-authz');
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const AuthzDelete = require('oae-authz/lib/delete');
-const AuthzUtil = require('oae-authz/lib/util');
-const LibraryAPI = require('oae-library');
-const { SearchConstants } = require('oae-search/lib/constants');
-const SearchUtil = require('oae-search/lib/util');
+import _ from 'underscore';
 
-const { PrincipalsConstants } = require('oae-principals/lib/constants');
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
-const PrincipalsDelete = require('oae-principals/lib/delete');
-const PrincipalsEmitter = require('oae-principals/lib/internal/emitter');
-const PrincipalsUtil = require('oae-principals/lib/util');
+import * as AuthzAPI from 'oae-authz';
+import * as AuthzDelete from 'oae-authz/lib/delete';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as LibraryAPI from 'oae-library';
+import * as SearchUtil from 'oae-search/lib/util';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as PrincipalsDelete from 'oae-principals/lib/delete';
+import * as PrincipalsUtil from 'oae-principals/lib/util';
 
-const log = require('oae-logger').logger('principals-memberships');
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import { SearchConstants } from 'oae-search/lib/constants';
+import { PrincipalsConstants } from 'oae-principals/lib/constants';
+
+import { logger } from 'oae-logger';
+
+const log = logger('principals-memberships');
 
 /// /////////////////////////////////////////
 // LIBRARY INDEX AND SEARCH REGISTRATIONS //
@@ -369,6 +372,7 @@ const _touchMembershipLibraries = function(group, oldLastModified, memberChangeI
         if (oldLastModified) {
           return _updateMembershipsLibraries(changedGroup, explodedInsertedPrincipals, callback);
         }
+
         return callback();
       });
     });

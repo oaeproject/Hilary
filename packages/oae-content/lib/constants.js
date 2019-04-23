@@ -13,23 +13,19 @@
  * permissions and limitations under the License.
  */
 
-const { AuthzConstants } = require('oae-authz/lib/constants');
+import { AuthzConstants } from 'oae-authz/lib/constants';
 
 const ContentConstants = {};
-module.exports = { ContentConstants };
+export { ContentConstants };
 
 ContentConstants.role = {
   // Determines not only all known roles, but the ordered priority they take as the "effective"
   // role. (e.g., if you are both a viewer and a manager, your effective role is "manager", so it
   // must be later in the list)
-  ALL_PRIORITY: [
-    AuthzConstants.role.VIEWER,
-    AuthzConstants.role.EDITOR,
-    AuthzConstants.role.MANAGER
-  ]
+  ALL_PRIORITY: [AuthzConstants.role.VIEWER, AuthzConstants.role.EDITOR, AuthzConstants.role.MANAGER]
 };
 
-ContentConstants.resourceSubTypes = ['collabdoc', 'link', 'file'];
+ContentConstants.resourceSubTypes = ['collabdoc', 'collabsheet', 'link', 'file'];
 
 ContentConstants.events = {
   CREATED_COMMENT: 'createdComment',
@@ -40,6 +36,7 @@ ContentConstants.events = {
   RESTORED_REVISION: 'restoredContent',
   UPDATED_CONTENT: 'updatedContent',
   EDITED_COLLABDOC: 'editedCollabdoc',
+  EDITED_COLLABSHEET: 'editedCollabsheet',
   GET_CONTENT_LIBRARY: 'getContentLibrary',
   GET_CONTENT_PROFILE: 'getContentProfile',
   UPDATED_CONTENT_BODY: 'updatedContentBody',
@@ -91,5 +88,7 @@ ContentConstants.search = {
 };
 
 ContentConstants.queue = {
-  ETHERPAD_PUBLISH: 'oae-content/etherpad-publish'
+  ETHERPAD_PUBLISH: 'oae-content/etherpad-publish',
+  ETHERCALC_PUBLISH: 'oae-content/ethercalc-publish',
+  ETHERCALC_EDIT: 'oae-content/ethercalc-edit'
 };

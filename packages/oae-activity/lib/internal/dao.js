@@ -13,17 +13,20 @@
  * permissions and limitations under the License.
  */
 
-const crypto = require('crypto');
-const util = require('util');
-const _ = require('underscore');
-const ShortId = require('shortid');
+import crypto from 'crypto';
+import util from 'util';
+import _ from 'underscore';
+import ShortId from 'shortid';
 
-const Cassandra = require('oae-util/lib/cassandra');
-const log = require('oae-logger').logger('oae-activity');
-const OaeUtil = require('oae-util/lib/util');
+import * as Cassandra from 'oae-util/lib/cassandra';
 
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const ActivitySystemConfig = require('./config');
+import { logger } from 'oae-logger';
+import * as OaeUtil from 'oae-util/lib/util';
+
+import { ActivityConstants } from 'oae-activity/lib/constants';
+import * as ActivitySystemConfig from './config';
+
+const log = logger('oae-activity');
 
 // The redis client that will be used for storing / fetch aggregate entities
 let redisClient = null;
@@ -106,10 +109,7 @@ const getActivitiesFromStreams = function(activityStreamIds, start, callback) {
         activitiesPerStream[activityStreamId].push(activity);
       } catch (error) {
         activityStr = activityStr.slice(0, 300);
-        log().warn(
-          { err: error, activityId, value: activityStr },
-          'Error parsing activity from Cassandra'
-        );
+        log().warn({ err: error, activityId, value: activityStr }, 'Error parsing activity from Cassandra');
       }
     });
 
@@ -200,11 +200,7 @@ const deleteActivities = function(routeActivityIds, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  */
 const clearActivityStream = function(activityStreamId, callback) {
-  Cassandra.runQuery(
-    'DELETE FROM "ActivityStreams" WHERE "activityStreamId" = ?',
-    [activityStreamId],
-    callback
-  );
+  Cassandra.runQuery('DELETE FROM "ActivityStreams" WHERE "activityStreamId" = ?', [activityStreamId], callback);
 };
 
 /**
@@ -413,17 +409,12 @@ const indexAggregateData = function(statusUpdatesByActivityStreamId, callback) {
       keysToExpire.push(statusKey);
 
       // Keep track of which aggregates are active for an activity stream, so we can reset aggregation per stream
-      const activeAggregatesForActivityStreamKey = _createActiveAggregatesForActivityStreamKey(
-        activityStreamId
-      );
+      const activeAggregatesForActivityStreamKey = _createActiveAggregatesForActivityStreamKey(activityStreamId);
       multi.zadd(activeAggregatesForActivityStreamKey, Date.now(), aggregateKey);
 
       // An aggregate will expire after `aggregateMaxExpiry` seconds
       // There is no point in keeping this set around for any longer than that
-      multi.expire(
-        activeAggregatesForActivityStreamKey,
-        ActivitySystemConfig.getConfig().aggregateMaxExpiry
-      );
+      multi.expire(activeAggregatesForActivityStreamKey, ActivitySystemConfig.getConfig().aggregateMaxExpiry);
 
       // Although we expire the set, it might contain expired items
       // Every time we add something in the set, we remove anything that has expired
@@ -474,60 +465,47 @@ const deleteAggregateData = function(aggregateKeys, callback) {
  */
 const resetAggregationForActivityStreams = function(activityStreamIds, callback) {
   // 1. Get all the active aggregates for these activity streams
-  getActiveAggregateKeysForActivityStreams(
-    activityStreamIds,
-    (err, activeAggregateKeysForActivityStreams) => {
-      if (err) {
-        log().error(
-          { err, activityStreamIds },
-          'Failed to get the active aggregate keys for a set of activity streams'
-        );
-        return callback(err);
-      }
-
-      // 2. Remove the active aggregates
-      const multi = redisClient.multi();
-      let allActiveAggregateKeys = [];
-      _.each(activeAggregateKeysForActivityStreams, (activeAggregateKeys, index) => {
-        const activityStream = activityStreamIds[index];
-        if (!_.isEmpty(activeAggregateKeys)) {
-          // As we will be removing these aggregate keys, they will no longer be active for this stream so we can remove them from the "current active aggregate keys" set
-          const activeAggregatesForActivityStreamKey = _createActiveAggregatesForActivityStreamKey(
-            activityStream
-          );
-          multi.zrem(activeAggregatesForActivityStreamKey, activeAggregateKeys);
-
-          // Keep track of all the active aggregate keys across activitystreams so we can generate the status and entity cache keys
-          // This allows us to delete them in one big `del` command
-          allActiveAggregateKeys = allActiveAggregateKeys.concat(activeAggregateKeys);
-        }
-      });
-
-      // Delete all the active aggregate keys if there are any
-      const activeAggregateCacheKeysToDelete = _getAggregateCacheKeysForAggregateKeys(
-        allActiveAggregateKeys
-      );
-      if (_.isEmpty(activeAggregateCacheKeysToDelete)) {
-        return callback();
-      }
-
-      multi.del(activeAggregateCacheKeysToDelete);
-      multi.exec(err => {
-        if (err) {
-          log().error(
-            { err, activityStreamIds },
-            'Failed to reset aggregation for a set of activity streams'
-          );
-          return callback({
-            code: 500,
-            msg: 'Failed to reset aggregation for a set of activity streams'
-          });
-        }
-
-        return callback();
-      });
+  getActiveAggregateKeysForActivityStreams(activityStreamIds, (err, activeAggregateKeysForActivityStreams) => {
+    if (err) {
+      log().error({ err, activityStreamIds }, 'Failed to get the active aggregate keys for a set of activity streams');
+      return callback(err);
     }
-  );
+
+    // 2. Remove the active aggregates
+    const multi = redisClient.multi();
+    let allActiveAggregateKeys = [];
+    _.each(activeAggregateKeysForActivityStreams, (activeAggregateKeys, index) => {
+      const activityStream = activityStreamIds[index];
+      if (!_.isEmpty(activeAggregateKeys)) {
+        // As we will be removing these aggregate keys, they will no longer be active for this stream so we can remove them from the "current active aggregate keys" set
+        const activeAggregatesForActivityStreamKey = _createActiveAggregatesForActivityStreamKey(activityStream);
+        multi.zrem(activeAggregatesForActivityStreamKey, activeAggregateKeys);
+
+        // Keep track of all the active aggregate keys across activitystreams so we can generate the status and entity cache keys
+        // This allows us to delete them in one big `del` command
+        allActiveAggregateKeys = allActiveAggregateKeys.concat(activeAggregateKeys);
+      }
+    });
+
+    // Delete all the active aggregate keys if there are any
+    const activeAggregateCacheKeysToDelete = _getAggregateCacheKeysForAggregateKeys(allActiveAggregateKeys);
+    if (_.isEmpty(activeAggregateCacheKeysToDelete)) {
+      return callback();
+    }
+
+    multi.del(activeAggregateCacheKeysToDelete);
+    multi.exec(err => {
+      if (err) {
+        log().error({ err, activityStreamIds }, 'Failed to reset aggregation for a set of activity streams');
+        return callback({
+          code: 500,
+          msg: 'Failed to reset aggregation for a set of activity streams'
+        });
+      }
+
+      return callback();
+    });
+  });
 };
 
 /**
@@ -547,10 +525,7 @@ const getActiveAggregateKeysForActivityStreams = function(activityStreams, callb
   });
   multi.exec((err, activeAggregateKeysForActivityStreams) => {
     if (err) {
-      log().error(
-        { err, activityStreams },
-        'Failed to get the active aggregate keys for a set of activity streams'
-      );
+      log().error({ err, activityStreams }, 'Failed to get the active aggregate keys for a set of activity streams');
       return callback({
         code: 500,
         msg: 'Failed to get the active aggregate keys for a set of activity streams'
@@ -596,55 +571,55 @@ const getAggregatedEntities = function(aggregateKeys, callback) {
   }
 
   /*!
-     * Each aggregate key has actors, objects and targets associated to it, and each of those are stored as separate cache entries. For
-     * example:
-     *
-     * ```
-     *  "aggregateKey0:actors": {
-     *      "<entityKey0>": "<entityIdentity0>",
-     *      "<entityKey1>": "<entityIdentity1>"
-     *  }
-     *
-     *  "aggregateKey0:objects": {
-     *      "<entityKey2>": "<entityIdentity2>"
-     *  }
-     *
-     *  "aggregateKey0:targets": {
-     *      "<entityKey3>": "<entityIdentity3>"
-     *  }
-     * ```
-     *
-     * The "aggregateKey0:actors" value is a cache key and its value is a Redis "hash". The entity keys in the hashes represent all
-     * entities that have been aggregated for the associated aggregate key + entity type. The value of the hash is a cache key that
-     * can be used to fetch the entity that represents the entity keyed by the entity key.
-     *
-     * To get all the aggregated entities for an aggregate key, we have to use a redis multi command and parse the result. Here is
-     * an example:
-     *
-     * ```
-     *  multi
-     *  hgetall "aggregateKey0:actors"
-     *  hgetall "aggregateKey0:objects"
-     *  hgetall "aggregateKey0:targets"
-     *  exec
-     * ```
-     *
-     * This fetches all the actors, objects and targets. The result of this will be an array of the results of each command, separated by a new line:
-     *
-     * ```
-     *  [
-     *      {
-     *          "<entityKey0>": "<entityIdentity0>",
-     *          "<entityKey1>": "<entityIdentity1>"
-     *      },
-     *      { "<entityKey2>": "<entityIdentity2>" },
-     *      { "<entityKey3>": "<entityIdentity3>" }
-     *  ]
-     * ```
-     *
-     * To construct the result of the query, a second command is needed to fetch the entities that are represented by the entity identities. That is
-     * performed using a Redis multi-get ("mget"), by `_fetchEntitiesByIdentities`.
-     */
+   * Each aggregate key has actors, objects and targets associated to it, and each of those are stored as separate cache entries. For
+   * example:
+   *
+   * ```
+   *  "aggregateKey0:actors": {
+   *      "<entityKey0>": "<entityIdentity0>",
+   *      "<entityKey1>": "<entityIdentity1>"
+   *  }
+   *
+   *  "aggregateKey0:objects": {
+   *      "<entityKey2>": "<entityIdentity2>"
+   *  }
+   *
+   *  "aggregateKey0:targets": {
+   *      "<entityKey3>": "<entityIdentity3>"
+   *  }
+   * ```
+   *
+   * The "aggregateKey0:actors" value is a cache key and its value is a Redis "hash". The entity keys in the hashes represent all
+   * entities that have been aggregated for the associated aggregate key + entity type. The value of the hash is a cache key that
+   * can be used to fetch the entity that represents the entity keyed by the entity key.
+   *
+   * To get all the aggregated entities for an aggregate key, we have to use a redis multi command and parse the result. Here is
+   * an example:
+   *
+   * ```
+   *  multi
+   *  hgetall "aggregateKey0:actors"
+   *  hgetall "aggregateKey0:objects"
+   *  hgetall "aggregateKey0:targets"
+   *  exec
+   * ```
+   *
+   * This fetches all the actors, objects and targets. The result of this will be an array of the results of each command, separated by a new line:
+   *
+   * ```
+   *  [
+   *      {
+   *          "<entityKey0>": "<entityIdentity0>",
+   *          "<entityKey1>": "<entityIdentity1>"
+   *      },
+   *      { "<entityKey2>": "<entityIdentity2>" },
+   *      { "<entityKey3>": "<entityIdentity3>" }
+   *  ]
+   * ```
+   *
+   * To construct the result of the query, a second command is needed to fetch the entities that are represented by the entity identities. That is
+   * performed using a Redis multi-get ("mget"), by `_fetchEntitiesByIdentities`.
+   */
 
   // Collect all the hgetall commands for the actor, object and targets of each aggregate key and execute it
   const multiGetAggregateEntities = redisClient.multi();
@@ -707,10 +682,7 @@ const getAggregatedEntities = function(aggregateKeys, callback) {
             targets: {}
           };
 
-          log().trace(
-            { aggregate: result },
-            'Iterating aggregated entity identities to map to full entities'
-          );
+          log().trace({ aggregate: result }, 'Iterating aggregated entity identities to map to full entities');
 
           _.each(result, (identity, entityKey) => {
             // Grab the entity from the identity map that was fetched
@@ -757,10 +729,7 @@ const _fetchEntitiesByIdentities = function(entityIdentities, callback) {
         try {
           entitiesByIdentity[entityIdentities[i]] = JSON.parse(entityStr);
         } catch (error) {
-          log().warn(
-            { entityStr },
-            'Failed to parse aggregated activity entity from redis. Skipping.'
-          );
+          log().warn({ entityStr }, 'Failed to parse aggregated activity entity from redis. Skipping.');
         }
       }
     });
@@ -792,8 +761,8 @@ const saveAggregatedEntities = function(aggregates, callback) {
   log().trace({ aggregates }, 'Saving aggregate entities.');
 
   /*!
-     * For details on how these are persisted in redis, see the large summary comment within #getAggregatedEntities
-     */
+   * For details on how these are persisted in redis, see the large summary comment within #getAggregatedEntities
+   */
 
   const multi = redisClient.multi();
   _.each(aggregates, (aggregate, aggregateKey) => {
@@ -995,6 +964,7 @@ const unqueueUsersForEmail = function(bucketId, userIds, callback) {
   if (_.isEmpty(userIds)) {
     return callback();
   }
+
   const queries = _.map(userIds, userId => {
     return {
       query: 'DELETE FROM "EmailBuckets" WHERE "bucketId" = ? AND "userId" = ?',
@@ -1056,14 +1026,14 @@ const incrementNotificationsUnreadCounts = function(userIdsIncrBy, callback) {
     }
 
     /*!
-         * The result is the new counts for the cache keys, separated by new line:
-         *
-         *  <userId0>
-         *  7
-         *  <userId1>
-         *  3
-         * ...
-         */
+     * The result is the new counts for the cache keys, separated by new line:
+     *
+     *  <userId0>
+     *  7
+     *  <userId1>
+     *  3
+     * ...
+     */
     const newValues = {};
     _.each(results, (newValue, i) => {
       newValues[userIds[i]] = newValue;
@@ -1089,10 +1059,7 @@ const _rowsToActivities = function(rows) {
       activities.push(JSON.parse(activityStr));
     } catch (error) {
       activityStr = activityStr.slice(0, 300);
-      log().warn(
-        { err: error, activityId, value: activityStr },
-        'Error parsing activity from Cassandra'
-      );
+      log().warn({ err: error, activityId, value: activityStr }, 'Error parsing activity from Cassandra');
     }
   });
   return activities;
@@ -1217,7 +1184,7 @@ const _createActiveAggregatesForActivityStreamKey = function(activityStream) {
   return util.format('oae-activity:active-aggregates:%s', activityStream);
 };
 
-module.exports = {
+export {
   init,
   getActivities,
   getActivitiesFromStreams,

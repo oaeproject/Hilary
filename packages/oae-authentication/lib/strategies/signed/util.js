@@ -13,14 +13,14 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
 
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
-const Signature = require('oae-util/lib/signature');
-const TenantsAPI = require('oae-tenants');
-const TenantsUtil = require('oae-tenants/lib/util');
-const { Validator } = require('oae-authz/lib/validator');
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as Signature from 'oae-util/lib/signature';
+import * as TenantsAPI from 'oae-tenants';
+import * as TenantsUtil from 'oae-tenants/lib/util';
+import { Validator } from 'oae-authz/lib/validator';
 
 const TIME_1_MINUTE_IN_SECONDS = 60;
 
@@ -47,11 +47,11 @@ const getSignedTenantAuthenticationRequest = function(ctx, tenantAlias, callback
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
+
   if (ctx.imposter()) {
     return callback({
       code: 401,
-      msg:
-        'You cannot create a signed authentication token to a tenant while impostering another user'
+      msg: 'You cannot create a signed authentication token to a tenant while impostering another user'
     });
   }
 
@@ -64,11 +64,7 @@ const getSignedTenantAuthenticationRequest = function(ctx, tenantAlias, callback
   }
 
   const data = { tenantAlias, userId: ctx.user().id };
-  const signedData = Signature.createExpiringSignature(
-    data,
-    TIME_1_MINUTE_IN_SECONDS,
-    TIME_1_MINUTE_IN_SECONDS
-  );
+  const signedData = Signature.createExpiringSignature(data, TIME_1_MINUTE_IN_SECONDS, TIME_1_MINUTE_IN_SECONDS);
 
   // Include the authenticating `userId` in the signed data. It isn't necessary to include the tenant alias in
   // the body, as we can assume that from the target context during the verification phase, so we omit it from
@@ -106,12 +102,14 @@ const getSignedBecomeUserAuthenticationRequest = function(ctx, becomeUserId, cal
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
+
   if (!ctx.user().isAdmin(ctx.user().tenant.alias)) {
     // Only users who have an admin status can become someone. This check is redundant to
     // the check that verifies the current user is an admin of the target user's tenant,
     // however this can be done before we go to the database
     return callback({ code: 401, msg: 'Only administrators can become a user' });
   }
+
   if (ctx.imposter()) {
     // If the session is already impostering someone, they cannot imposter someone else.
     // For example: Global admin imposters a tenant administrator, then further imposters
@@ -125,10 +123,12 @@ const getSignedBecomeUserAuthenticationRequest = function(ctx, becomeUserId, cal
     if (err) {
       return callback(err);
     }
+
     if (!ctx.user().isAdmin(becomeUser.tenant.alias)) {
       // The current user must be an admin of the target user's tenant in order to become them
       return callback({ code: 401, msg: 'You are not authorized to become this user' });
     }
+
     if (becomeUser.isAdmin(becomeUser.tenant.alias) && !ctx.user().isGlobalAdmin()) {
       // If the target user is a tenant admin, only the global admin can become them
       return callback({
@@ -144,11 +144,7 @@ const getSignedBecomeUserAuthenticationRequest = function(ctx, becomeUserId, cal
       userId: ctx.user().id,
       becomeUserId
     };
-    const signedData = Signature.createExpiringSignature(
-      data,
-      TIME_1_MINUTE_IN_SECONDS,
-      TIME_1_MINUTE_IN_SECONDS
-    );
+    const signedData = Signature.createExpiringSignature(data, TIME_1_MINUTE_IN_SECONDS, TIME_1_MINUTE_IN_SECONDS);
 
     // Include the authenticating `userId` and target `becomeUserId` in the signed data. It isn't necessary to
     // include the tenant alias in the body, as we can assume that from the target context during the verification
@@ -172,9 +168,7 @@ const getSignedBecomeUserAuthenticationRequest = function(ctx, becomeUserId, cal
  */
 const verifySignedAuthenticationBody = function(ctx, body, callback) {
   const validator = new Validator();
-  validator
-    .check(body.userId, { code: 400, msg: 'Invalid user id provided as the authenticating user' })
-    .isUserId();
+  validator.check(body.userId, { code: 400, msg: 'Invalid user id provided as the authenticating user' }).isUserId();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -208,7 +202,7 @@ const _getSignedAuthenticationUrl = function(tenant) {
   return util.format('%s/api/auth/signed', TenantsUtil.getBaseUrl(tenant));
 };
 
-module.exports = {
+export {
   getSignedTenantAuthenticationRequest,
   getSignedBecomeUserAuthenticationRequest,
   verifySignedAuthenticationBody

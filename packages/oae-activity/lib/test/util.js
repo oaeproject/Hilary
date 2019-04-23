@@ -15,20 +15,20 @@
 
 /* eslint-disable no-unused-vars */
 /* eslint-disable max-params */
-const assert = require('assert');
-const _ = require('underscore');
-const cheerio = require('cheerio');
-const ShortId = require('shortid');
-const sjsc = require('sockjs-client-ws');
+import assert from 'assert';
+import _ from 'underscore';
+import cheerio from 'cheerio';
+import ShortId from 'shortid';
+import sjsc from 'sockjs-client-ws';
 
-const EmitterAPI = require('oae-emitter');
-const MqTestsUtil = require('oae-util/lib/test/mq-util');
-const OaeUtil = require('oae-util/lib/util');
-const RestAPI = require('oae-rest');
+import * as EmitterAPI from 'oae-emitter';
+import * as MqTestsUtil from 'oae-util/lib/test/mq-util';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as RestAPI from 'oae-rest';
 
-const ActivityAggregator = require('oae-activity/lib/internal/aggregator');
-const ActivityAPI = require('oae-activity');
-const { ActivityConstants } = require('oae-activity/lib/constants');
+import * as ActivityAggregator from 'oae-activity/lib/internal/aggregator';
+import * as ActivityAPI from 'oae-activity';
+import { ActivityConstants } from 'oae-activity/lib/constants';
 
 /**
  * Refresh the activity module's configuration, keeping in mind default test configuration. This is
@@ -178,12 +178,7 @@ const assertFeedContainsActivity = function(
  * @param  {Function}       callback            Standard callback function
  * @throws {Error}                              An assertion error gets thrown if the activity was found
  */
-const assertFeedDoesNotContainActivity = function(
-  restContext,
-  activityStreamId,
-  activityType,
-  callback
-) {
+const assertFeedDoesNotContainActivity = function(restContext, activityStreamId, activityType, callback) {
   collectAndGetActivityStream(restContext, activityStreamId, null, (err, response) => {
     assert.ok(!err);
     const activity = _.findWhere(response.items, { 'oae:activityType': activityType });
@@ -232,11 +227,7 @@ const _assertNotificationStreamContainsActivity = function(
  * @param  {Function}       callback            Standard callback function
  * @throws {Error}                              An assertion error gets thrown if the activity was found
  */
-const _assertNotificationStreamDoesNotContainActivity = function(
-  restContext,
-  activityType,
-  callback
-) {
+const _assertNotificationStreamDoesNotContainActivity = function(restContext, activityType, callback) {
   collectAndGetNotificationStream(restContext, null, (err, notificationStream) => {
     assert.ok(!err);
     const activity = _.findWhere(notificationStream.items, { 'oae:activityType': activityType });
@@ -255,14 +246,7 @@ const _assertNotificationStreamDoesNotContainActivity = function(
  * @param  {String|String[]}    [objectEntityId]    The id of the entity that should be the object, or an array of expected object entity ids if the entity is expected to be an oae:collection aggregate. If not specified, an assertion will be performed that the object does not exist
  * @param  {String|String[]}    [targetEntityId]    The id of the entity taht should be the target, or an array of expected target entity ids if the entity is expected to be an oae:collection aggregate. If not specified, an assertion will be performed that the target does not exist
  */
-const assertActivity = function(
-  activity,
-  activityType,
-  verb,
-  actorEntityId,
-  objectEntityId,
-  targetEntityId
-) {
+const assertActivity = function(activity, activityType, verb, actorEntityId, objectEntityId, targetEntityId) {
   assert.ok(activity);
   assert.strictEqual(activity[ActivityConstants.properties.OAE_ACTIVITY_TYPE], activityType);
   assert.strictEqual(activity.verb, verb);
@@ -292,10 +276,7 @@ const _assertActivityEntity = function(activityEntity, entityId) {
     // Ensure it is a collection with the same amount of ids as the given list of entity ids
     assert.strictEqual(activityEntity.objectType, 'collection');
     assert.ok(activityEntity[ActivityConstants.properties.OAE_COLLECTION]);
-    assert.strictEqual(
-      activityEntity[ActivityConstants.properties.OAE_COLLECTION].length,
-      entityIds.length
-    );
+    assert.strictEqual(activityEntity[ActivityConstants.properties.OAE_COLLECTION].length, entityIds.length);
 
     // Ensure every id in the list is in the entity collection
     _.each(activityEntity[ActivityConstants.properties.OAE_COLLECTION], activityEntity => {
@@ -527,16 +508,10 @@ const getFullySetupPushClient = function(data, callback) {
 
         const allRegisteredCallback = _.after(data.streams.length, callback);
         _.each(data.streams, stream => {
-          client.subscribe(
-            stream.resourceId,
-            stream.streamType,
-            stream.token,
-            stream.format,
-            err => {
-              assert.ok(!err, 'Failed to register for feed');
-              allRegisteredCallback(client);
-            }
-          );
+          client.subscribe(stream.resourceId, stream.streamType, stream.token, stream.format, err => {
+            assert.ok(!err, 'Failed to register for feed');
+            allRegisteredCallback(client);
+          });
         });
       }
     );
@@ -555,38 +530,35 @@ const getFullySetupPushClient = function(data, callback) {
  * @param  {Function}       callback            Invoked when a message with the specified activity has been received
  * @param  {Activity}       callback.activity   The activity object that was contained in the message
  */
-const waitForPushActivity = function(
-  client,
-  activityType,
-  verb,
-  actorId,
-  objectId,
-  targetId,
-  callback
-) {
+const waitForPushActivity = function(client, activityType, verb, actorId, objectId, targetId, callback) {
   /*!
-     * Listener function to wait for messages, perform the activity filter, and unbind itself from
-     * the client when the activity has been found. When found, the callback will be invoked with
-     * the activity
-     */
+   * Listener function to wait for messages, perform the activity filter, and unbind itself from
+   * the client when the activity has been found. When found, the callback will be invoked with
+   * the activity
+   */
   const _onMessage = function(message) {
     const targetActivity = _.find(message.activities, activity => {
       if (activity[ActivityConstants.properties.OAE_ACTIVITY_TYPE] !== activityType) {
         return false;
       }
+
       if (activity.verb !== verb) {
         return false;
       }
+
       if (activity.actor[ActivityConstants.properties.OAE_ID] !== actorId) {
         return false;
       }
+
       if (objectId && activity.object[ActivityConstants.properties.OAE_ID] !== objectId) {
         return false;
       }
+
       if (targetId) {
         if (!activity.target) {
           return false;
         }
+
         if (activity.target[ActivityConstants.properties.OAE_ID] !== targetId) {
           return false;
         }
@@ -605,7 +577,7 @@ const waitForPushActivity = function(
   return client.on('message', _onMessage);
 };
 
-module.exports = {
+export {
   waitForPushActivity,
   getFullySetupPushClient,
   refreshConfiguration,
@@ -615,8 +587,8 @@ module.exports = {
   markNotificationsAsRead,
   assertFeedContainsActivity,
   assertFeedDoesNotContainActivity,
-  assertNotificationStreamContainsActivity: _assertNotificationStreamContainsActivity,
-  assertNotificationStreamDoesNotContainActivity: _assertNotificationStreamDoesNotContainActivity,
+  _assertNotificationStreamContainsActivity as assertNotificationStreamContainsActivity,
+  _assertNotificationStreamDoesNotContainActivity as assertNotificationStreamDoesNotContainActivity,
   assertActivity,
   parseActivityHtml,
   getPushClient

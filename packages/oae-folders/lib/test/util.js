@@ -14,27 +14,27 @@
  */
 
 /* eslint-disable no-unused-vars */
-const assert = require('assert');
-const util = require('util');
-const _ = require('underscore');
-const shortid = require('shortid');
+import assert from 'assert';
+import util from 'util';
+import _ from 'underscore';
+import shortid from 'shortid';
 
-const AuthzTestUtil = require('oae-authz/lib/test/util');
-const AuthzUtil = require('oae-authz/lib/util');
-const ContentTestUtil = require('oae-content/lib/test/util');
-const { Context } = require('oae-context');
-const LibraryAPI = require('oae-library');
-const LibraryTestUtil = require('oae-library/lib/test/util');
-const MQTestUtil = require('oae-util/lib/test/mq-util');
-const PreviewConstants = require('oae-preview-processor/lib/constants');
-const PrincipalsAPI = require('oae-principals');
-const RestAPI = require('oae-rest');
-const SearchTestUtil = require('oae-search/lib/test/util');
-const { User } = require('oae-principals/lib/model');
+import * as AuthzTestUtil from 'oae-authz/lib/test/util';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as ContentTestUtil from 'oae-content/lib/test/util';
+import * as LibraryAPI from 'oae-library';
+import * as LibraryTestUtil from 'oae-library/lib/test/util';
+import * as MQTestUtil from 'oae-util/lib/test/mq-util';
+import PreviewConstants from 'oae-preview-processor/lib/constants';
+import PrincipalsAPI from 'oae-principals';
+import * as RestAPI from 'oae-rest';
+import * as SearchTestUtil from 'oae-search/lib/test/util';
+import * as FoldersLibrary from 'oae-folders/lib/library';
 
-const FoldersLibrary = require('oae-folders/lib/library');
-const FoldersDAO = require('../internal/dao');
-const { FoldersConstants } = require('../constants');
+import { Context } from 'oae-context';
+import { User } from 'oae-principals/lib/model';
+import * as FoldersDAO from '../internal/dao';
+import { FoldersConstants } from '../constants';
 
 /**
  * Generate a number of folders for use in testing
@@ -81,13 +81,7 @@ const generateTestFolders = function(restContext, numFolders, callback, _folders
  * @param  {Folder}         callback.folder...      All folders that were generated as separate callback parameters
  * @throws {AssertionError}                         Thrown if an error occurred generating the folders
  */
-const generateTestFoldersWithVisibility = function(
-  restContext,
-  numFolders,
-  visibility,
-  callback,
-  _folders
-) {
+const generateTestFoldersWithVisibility = function(restContext, numFolders, visibility, callback, _folders) {
   _folders = _folders || [];
   if (numFolders === 0) {
     LibraryAPI.Index.whenUpdatesComplete(() => {
@@ -108,13 +102,7 @@ const generateTestFoldersWithVisibility = function(
     (err, createdFolder) => {
       assert.ok(!err);
       _folders.push(createdFolder);
-      return generateTestFoldersWithVisibility(
-        restContext,
-        numFolders - 1,
-        visibility,
-        callback,
-        _folders
-      );
+      return generateTestFoldersWithVisibility(restContext, numFolders - 1, visibility, callback, _folders);
     }
   );
 };
@@ -153,20 +141,18 @@ const generateTestFoldersWithVisibility = function(
  */
 const setupMultiTenantPrivacyEntities = function(callback) {
   // Base the folders privacy setup on content. We then create folders to go along with them
-  ContentTestUtil.setupMultiTenantPrivacyEntities(
-    (publicTenant, publicTenant1, privateTenant, privateTenant1) => {
-      // Create the folders
-      _setupTenant(publicTenant, () => {
-        _setupTenant(publicTenant1, () => {
-          _setupTenant(privateTenant, () => {
-            _setupTenant(privateTenant1, () => {
-              return callback(publicTenant, publicTenant1, privateTenant, privateTenant1);
-            });
+  ContentTestUtil.setupMultiTenantPrivacyEntities((publicTenant, publicTenant1, privateTenant, privateTenant1) => {
+    // Create the folders
+    _setupTenant(publicTenant, () => {
+      _setupTenant(publicTenant1, () => {
+        _setupTenant(privateTenant, () => {
+          _setupTenant(privateTenant1, () => {
+            return callback(publicTenant, publicTenant1, privateTenant, privateTenant1);
           });
         });
       });
-    }
-  );
+    });
+  });
 };
 
 /**
@@ -178,12 +164,7 @@ const setupMultiTenantPrivacyEntities = function(callback) {
  * @param  {Function}           callback        Standard callback function
  * @throws {AssertionError}                     Thrown if the content items are not successfully added
  */
-const assertAddContentItemsToFolderSucceeds = function(
-  restContext,
-  folderId,
-  contentIds,
-  callback
-) {
+const assertAddContentItemsToFolderSucceeds = function(restContext, folderId, contentIds, callback) {
   // First ensure the folder's content library is not stale
   getAllFolderContentItems(restContext, folderId, null, () => {
     // Add the content items to the folder
@@ -222,13 +203,7 @@ const assertAddContentItemsToFolderSucceeds = function(
  * @param  {Function}           callback        Standard callback function
  * @throws {AssertionError}                     Thrown if the request did not fail in the expected manner
  */
-const assertAddContentItemsToFolderFails = function(
-  restContext,
-  folderId,
-  contentIds,
-  httpCode,
-  callback
-) {
+const assertAddContentItemsToFolderFails = function(restContext, folderId, contentIds, httpCode, callback) {
   RestAPI.Folders.addContentItemsToFolder(restContext, folderId, contentIds, err => {
     assert.ok(err);
     assert.strictEqual(err.code, httpCode);
@@ -245,12 +220,7 @@ const assertAddContentItemsToFolderFails = function(
  * @param  {Function}           callback        Standard callback function
  * @throws {AssertionError}                     Thrown if the content item is not successfully added to all the folders
  */
-const assertAddContentItemToFoldersSucceeds = function(
-  restContext,
-  folderIds,
-  contentId,
-  callback
-) {
+const assertAddContentItemToFoldersSucceeds = function(restContext, folderIds, contentId, callback) {
   if (_.isEmpty(folderIds)) {
     return callback();
   }
@@ -273,12 +243,7 @@ const assertAddContentItemToFoldersSucceeds = function(
  * @param  {Function}           callback        Standard callback function
  * @throws {AssertionError}                     Thrown if the content items are not successfully removed
  */
-const assertRemoveContentItemsFromFolderSucceeds = function(
-  restContext,
-  folderId,
-  contentIds,
-  callback
-) {
+const assertRemoveContentItemsFromFolderSucceeds = function(restContext, folderId, contentIds, callback) {
   // First ensure the folder's content library is not stale
   getAllFolderContentItems(restContext, folderId, null, (contentItems, responses) => {
     // Ensure the items are there in the first place
@@ -324,13 +289,7 @@ const assertRemoveContentItemsFromFolderSucceeds = function(
  * @param  {Function}           callback        Standard callback function
  * @throws {AssertionError}                     Thrown if the request did not fail in the expected manner
  */
-const assertRemoveContentItemsFromFolderFails = function(
-  restContext,
-  folderId,
-  contentIds,
-  httpCode,
-  callback
-) {
+const assertRemoveContentItemsFromFolderFails = function(restContext, folderId, contentIds, httpCode, callback) {
   RestAPI.Folders.removeContentItemsFromFolder(restContext, folderId, contentIds, err => {
     assert.ok(err);
     assert.strictEqual(err.code, httpCode);
@@ -449,10 +408,7 @@ const assertCreateFolderSucceeds = function(
         assert.ok(_.isNumber(createdFolder.created));
         assert.strictEqual(createdFolder.created, createdFolder.lastModified);
         assert.strictEqual(createdFolder.profilePath.indexOf('/folder/'), 0);
-        assert.notStrictEqual(
-          createdFolder.profilePath.indexOf(createdFolder.id.split(':').pop()),
-          -1
-        );
+        assert.notStrictEqual(createdFolder.profilePath.indexOf(createdFolder.id.split(':').pop()), -1);
         assert.strictEqual(createdFolder.resourceType, 'folder');
 
         // Determine what the full membership should be, including the current user who created
@@ -487,21 +443,32 @@ const assertCreateFolderSucceeds = function(
                 AuthzTestUtil.getMemberRolesFromResults(membersAfterCreate)
               );
 
-              AuthzTestUtil.assertGetInvitationsSucceeds(
-                restContext,
-                'folder',
-                createdFolder.id,
-                result => {
-                  AuthzTestUtil.assertEmailRolesEquals(
-                    {},
-                    expectedMemberRoles,
-                    AuthzTestUtil.getEmailRolesFromResults(result.results)
-                  );
+              AuthzTestUtil.assertGetInvitationsSucceeds(restContext, 'folder', createdFolder.id, result => {
+                AuthzTestUtil.assertEmailRolesEquals(
+                  {},
+                  expectedMemberRoles,
+                  AuthzTestUtil.getEmailRolesFromResults(result.results)
+                );
 
-                  // Get the folders libraries after it was created and ensure that the folder is in the libraries
-                  _getAllFoldersInLibraries(
-                    allMemberInfos,
-                    principalFoldersLibrariesAfterCreate => {
+                // Get the folders libraries after it was created and ensure that the folder is in the libraries
+                _getAllFoldersInLibraries(allMemberInfos, principalFoldersLibrariesAfterCreate => {
+                  _.each(allMemberInfos, memberInfo => {
+                    assert.ok(
+                      _.chain(principalFoldersLibrariesAfterCreate[memberInfo.profile.id])
+                        .pluck('id')
+                        .contains(createdFolder.id)
+                        .value()
+                    );
+                  });
+
+                  const allMemberInfoIds = _.chain(allMemberInfos)
+                    .pluck('profile')
+                    .pluck('id')
+                    .value();
+
+                  // Purge the member folder libraries and check again to ensure they update properly both on-the-fly and when built from scratch
+                  _purgeFoldersLibraries(allMemberInfoIds, () => {
+                    _getAllFoldersInLibraries(allMemberInfos, principalFoldersLibrariesAfterCreate => {
                       _.each(allMemberInfos, memberInfo => {
                         assert.ok(
                           _.chain(principalFoldersLibrariesAfterCreate[memberInfo.profile.id])
@@ -511,33 +478,11 @@ const assertCreateFolderSucceeds = function(
                         );
                       });
 
-                      const allMemberInfoIds = _.chain(allMemberInfos)
-                        .pluck('profile')
-                        .pluck('id')
-                        .value();
-
-                      // Purge the member folder libraries and check again to ensure they update properly both on-the-fly and when built from scratch
-                      _purgeFoldersLibraries(allMemberInfoIds, () => {
-                        _getAllFoldersInLibraries(
-                          allMemberInfos,
-                          principalFoldersLibrariesAfterCreate => {
-                            _.each(allMemberInfos, memberInfo => {
-                              assert.ok(
-                                _.chain(principalFoldersLibrariesAfterCreate[memberInfo.profile.id])
-                                  .pluck('id')
-                                  .contains(createdFolder.id)
-                                  .value()
-                              );
-                            });
-
-                            return callback(createdFolder);
-                          }
-                        );
-                      });
-                    }
-                  );
-                }
-              );
+                      return callback(createdFolder);
+                    });
+                  });
+                });
+              });
             });
           });
         });
@@ -633,24 +578,13 @@ const assertUpdateFolderFails = function(restContext, folderId, updates, httpCod
  * @param  {Function}           callback        Standard callback function
  * @throws {AssertionError}                     Thrown if the request did not fail in the expected manner
  */
-const assertUpdateFolderContentVisibilityFails = function(
-  restContext,
-  folderId,
-  visibility,
-  httpCode,
-  callback
-) {
-  RestAPI.Folders.updateFolderContentVisibility(
-    restContext,
-    folderId,
-    visibility,
-    (err, folder) => {
-      assert.ok(err);
-      assert.strictEqual(err.code, httpCode);
-      assert.ok(!folder);
-      return callback();
-    }
-  );
+const assertUpdateFolderContentVisibilityFails = function(restContext, folderId, visibility, httpCode, callback) {
+  RestAPI.Folders.updateFolderContentVisibility(restContext, folderId, visibility, (err, folder) => {
+    assert.ok(err);
+    assert.strictEqual(err.code, httpCode);
+    assert.ok(!folder);
+    return callback();
+  });
 };
 
 /**
@@ -703,14 +637,7 @@ const assertDeleteFolderSucceeds = function(restContext, folderId, deleteContent
  * @param  {Function}           callback        Standard callback function
  * @throws {AssertionError}                     Thrown if the request did not fail in the expected manner
  */
-const assertGetFolderContentLibraryFails = function(
-  restContext,
-  folderId,
-  start,
-  limit,
-  httpCode,
-  callback
-) {
+const assertGetFolderContentLibraryFails = function(restContext, folderId, start, limit, httpCode, callback) {
   RestAPI.Folders.getFolderContentLibrary(restContext, folderId, start, limit, (err, result) => {
     assert.ok(err);
     assert.strictEqual(err.code, httpCode);
@@ -730,13 +657,7 @@ const assertGetFolderContentLibraryFails = function(
  * @param  {Object}             callback.result     The result object, as per `RestAPI.Folders.getFolderContentLibrary`
  * @throws {AssertionError}                         Thrown if the request did not succeed
  */
-const assertGetFolderContentLibrarySucceeds = function(
-  restContext,
-  folderId,
-  start,
-  limit,
-  callback
-) {
+const assertGetFolderContentLibrarySucceeds = function(restContext, folderId, start, limit, callback) {
   RestAPI.Folders.getFolderContentLibrary(restContext, folderId, start, limit, (err, result) => {
     assert.ok(!err);
     assert.ok(_.isArray(result.results));
@@ -789,14 +710,7 @@ const assertFolderEquals = function(restContext, folderId, contentIds, callback)
  * @param  {Function}           callback        Standard callback function
  * @throws {AssertionError}                     Thrown if the request did not fail in the expected manner
  */
-const assertGetFolderMembersFails = function(
-  restContext,
-  folderId,
-  start,
-  limit,
-  httpCode,
-  callback
-) {
+const assertGetFolderMembersFails = function(restContext, folderId, start, limit, httpCode, callback) {
   RestAPI.Folders.getFolderMembers(restContext, folderId, start, limit, (err, result) => {
     assert.ok(err);
     assert.strictEqual(err.code, httpCode);
@@ -949,14 +863,7 @@ const assertGetFoldersLibrarySucceeds = function(restContext, principalId, start
  * @param  {Function}           callback            Standard callback function
  * @throws {AssertionError}                         Thrown if the request did not fail in the expected manner
  */
-const assertGetFoldersLibraryFails = function(
-  restContext,
-  principalId,
-  start,
-  limit,
-  httpCode,
-  callback
-) {
+const assertGetFoldersLibraryFails = function(restContext, principalId, start, limit, httpCode, callback) {
   RestAPI.Folders.getFoldersLibrary(restContext, principalId, start, limit, (err, result) => {
     assert.ok(err);
     assert.strictEqual(err.code, httpCode);
@@ -976,13 +883,7 @@ const assertGetFoldersLibraryFails = function(
  * @param  {Function}           callback            Standard callback function
  * @throws {AssertionError}                         Thrown if the request did not fail in the expected manner
  */
-const assertRemoveFolderFromLibraryFails = function(
-  restContext,
-  principalId,
-  folderId,
-  httpCode,
-  callback
-) {
+const assertRemoveFolderFromLibraryFails = function(restContext, principalId, folderId, httpCode, callback) {
   RestAPI.Folders.removeFolderFromLibrary(restContext, principalId, folderId, (err, result) => {
     assert.ok(err);
     assert.strictEqual(err.code, httpCode);
@@ -1000,12 +901,7 @@ const assertRemoveFolderFromLibraryFails = function(
  * @param  {Function}           callback            Standard callback function
  * @throws {AssertionError}                         Thrown if the request failed
  */
-const assertRemoveFolderFromLibrarySucceeds = function(
-  restContext,
-  principalId,
-  folderId,
-  callback
-) {
+const assertRemoveFolderFromLibrarySucceeds = function(restContext, principalId, folderId, callback) {
   RestAPI.Folders.removeFolderFromLibrary(restContext, principalId, folderId, (err, result) => {
     assert.ok(!err);
 
@@ -1039,13 +935,7 @@ const assertRemoveFolderFromLibrarySucceeds = function(
  * @param  {Function}           callback        Standard callback function
  * @throws {AssertionError}                     Thrown if the request did not succeed
  */
-const assertShareFolderSucceeds = function(
-  managerRestContext,
-  actorRestContext,
-  folderId,
-  viewers,
-  callback
-) {
+const assertShareFolderSucceeds = function(managerRestContext, actorRestContext, folderId, viewers, callback) {
   const viewersSplit = _.partition(viewers, viewer => {
     return _.isString(viewer);
   });
@@ -1091,60 +981,49 @@ const assertShareFolderSucceeds = function(
           assert.ok(!err);
           LibraryAPI.Index.whenUpdatesComplete(() => {
             // Ensure the invitations and members of the folder were udpated as we would expect
-            AuthzTestUtil.assertGetInvitationsSucceeds(
-              managerRestContext,
-              'folder',
-              folderId,
-              result => {
-                AuthzTestUtil.assertEmailRolesEquals(
-                  emailRolesBefore,
+            AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'folder', folderId, result => {
+              AuthzTestUtil.assertEmailRolesEquals(
+                emailRolesBefore,
+                roleChanges,
+                AuthzTestUtil.getEmailRolesFromResults(result.results)
+              );
+
+              getAllFolderMembers(managerRestContext, folderId, null, results => {
+                AuthzTestUtil.assertMemberRolesEquals(
+                  memberRolesBefore,
                   roleChanges,
-                  AuthzTestUtil.getEmailRolesFromResults(result.results)
+                  AuthzTestUtil.getMemberRolesFromResults(results)
                 );
 
-                getAllFolderMembers(managerRestContext, folderId, null, results => {
-                  AuthzTestUtil.assertMemberRolesEquals(
-                    memberRolesBefore,
-                    roleChanges,
-                    AuthzTestUtil.getMemberRolesFromResults(results)
-                  );
+                // Ensure the folder libraries of all the principals we shared with contain the folder
+                _getAllFoldersInLibraries(viewerInfos, principalFoldersLibrariesAfterShare => {
+                  _.each(principalFoldersLibrariesAfterShare, (foldersLibrary, principalId) => {
+                    assert.ok(
+                      _.chain(foldersLibrary)
+                        .pluck('id')
+                        .contains(foldersLibrary, folderId)
+                    );
+                  });
 
-                  // Ensure the folder libraries of all the principals we shared with contain the folder
-                  _getAllFoldersInLibraries(viewerInfos, principalFoldersLibrariesAfterShare => {
-                    _.each(principalFoldersLibrariesAfterShare, (foldersLibrary, principalId) => {
-                      assert.ok(
-                        _.chain(foldersLibrary)
-                          .pluck('id')
-                          .contains(foldersLibrary, folderId)
-                      );
-                    });
+                  // Purge the folder libraries of all users to ensure a rebuild will
+                  // still contain the shared folder
+                  _purgeFoldersLibraries(viewerInfoIds, () => {
+                    // Ensure the rebuilt libraries of all the principals we shared with contain the folder
+                    _getAllFoldersInLibraries(viewerInfos, principalFoldersLibrariesAfterShare => {
+                      _.each(principalFoldersLibrariesAfterShare, (foldersLibrary, principalId) => {
+                        assert.ok(
+                          _.chain(foldersLibrary)
+                            .pluck('id')
+                            .contains(foldersLibrary, folderId)
+                        );
+                      });
 
-                    // Purge the folder libraries of all users to ensure a rebuild will
-                    // still contain the shared folder
-                    _purgeFoldersLibraries(viewerInfoIds, () => {
-                      // Ensure the rebuilt libraries of all the principals we shared with contain the folder
-                      _getAllFoldersInLibraries(
-                        viewerInfos,
-                        principalFoldersLibrariesAfterShare => {
-                          _.each(
-                            principalFoldersLibrariesAfterShare,
-                            (foldersLibrary, principalId) => {
-                              assert.ok(
-                                _.chain(foldersLibrary)
-                                  .pluck('id')
-                                  .contains(foldersLibrary, folderId)
-                              );
-                            }
-                          );
-
-                          return callback();
-                        }
-                      );
+                      return callback();
                     });
                   });
                 });
-              }
-            );
+              });
+            });
           });
         });
       });
@@ -1163,14 +1042,7 @@ const assertShareFolderSucceeds = function(
  * @param  {Function}           callback        Standard callback function
  * @throws {AssertionError}                     Thrown if the request did not fail in the expected manner
  */
-const assertShareFolderFails = function(
-  managerRestContext,
-  actorRestContext,
-  folderId,
-  viewerIds,
-  httpCode,
-  callback
-) {
+const assertShareFolderFails = function(managerRestContext, actorRestContext, folderId, viewerIds, httpCode, callback) {
   RestAPI.Folders.shareFolder(actorRestContext, folderId, viewerIds, err => {
     assert.ok(err);
     assert.strictEqual(err.code, httpCode);
@@ -1265,46 +1137,41 @@ const assertUpdateFolderMembersSucceeds = function(
           assert.ok(!err);
 
           // Ensure the member and email roles are as we expect given the change made
-          AuthzTestUtil.assertGetInvitationsSucceeds(
-            managerRestContext,
-            'folder',
-            folderId,
-            result => {
-              AuthzTestUtil.assertEmailRolesEquals(
-                emailRolesBefore,
+          AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'folder', folderId, result => {
+            AuthzTestUtil.assertEmailRolesEquals(
+              emailRolesBefore,
+              roleChange,
+              AuthzTestUtil.getEmailRolesFromResults(result.results)
+            );
+            getAllFolderMembers(managerRestContext, folderId, null, results => {
+              AuthzTestUtil.assertMemberRolesEquals(
+                memberRolesBefore,
                 roleChange,
-                AuthzTestUtil.getEmailRolesFromResults(result.results)
+                AuthzTestUtil.getMemberRolesFromResults(results)
               );
-              getAllFolderMembers(managerRestContext, folderId, null, results => {
-                AuthzTestUtil.assertMemberRolesEquals(
-                  memberRolesBefore,
-                  roleChange,
-                  AuthzTestUtil.getMemberRolesFromResults(results)
-                );
 
-                // For all the members we had a rest context for, ensure their libraries are updated
-                // appropriately to contain (or not contain) this folder
-                _getAllFoldersInLibraries(memberInfos, principalFoldersLibrariesAfterUpdate => {
-                  _.each(roleChange, (change, memberId) => {
-                    const foldersLibrary = principalFoldersLibrariesAfterUpdate[memberId];
-                    if (foldersLibrary) {
-                      const containsFolder = _.chain(foldersLibrary)
-                        .pluck('id')
-                        .contains(folderId)
-                        .value();
-                      if (change === false) {
-                        assert.ok(!containsFolder);
-                      } else {
-                        assert.ok(containsFolder);
-                      }
+              // For all the members we had a rest context for, ensure their libraries are updated
+              // appropriately to contain (or not contain) this folder
+              _getAllFoldersInLibraries(memberInfos, principalFoldersLibrariesAfterUpdate => {
+                _.each(roleChange, (change, memberId) => {
+                  const foldersLibrary = principalFoldersLibrariesAfterUpdate[memberId];
+                  if (foldersLibrary) {
+                    const containsFolder = _.chain(foldersLibrary)
+                      .pluck('id')
+                      .contains(folderId)
+                      .value();
+                    if (change === false) {
+                      assert.ok(!containsFolder);
+                    } else {
+                      assert.ok(containsFolder);
                     }
-                  });
-
-                  return callback();
+                  }
                 });
+
+                return callback();
               });
-            }
-          );
+            });
+          });
         });
       });
     });
@@ -1322,13 +1189,7 @@ const assertUpdateFolderMembersSucceeds = function(
  * @param  {Function}       callback                Standard callback function
  * @throws {AssertionError}                         Thrown if any assertions failed
  */
-const assertFullFoldersLibraryEquals = function(
-  restContext,
-  principalId,
-  expectedFolderIds,
-  ensureOrder,
-  callback
-) {
+const assertFullFoldersLibraryEquals = function(restContext, principalId, expectedFolderIds, ensureOrder, callback) {
   getAllFoldersInLibrary(restContext, principalId, null, folders => {
     const actualFolderIds = _.pluck(folders, 'id');
 
@@ -1356,25 +1217,19 @@ const assertFullFoldersLibraryEquals = function(
  * @throws {AssertionError}                         Thrown if any assertions failed
  */
 const assertFolderSearchEquals = function(restContext, folderId, q, expectedContent, callback) {
-  SearchTestUtil.searchAll(
-    restContext,
-    'folder-content',
-    [folderId],
-    { q, scope: '_network' },
-    (err, results) => {
-      assert.ok(!err);
+  SearchTestUtil.searchAll(restContext, 'folder-content', [folderId], { q, scope: '_network' }, (err, results) => {
+    assert.ok(!err);
 
-      // Assert we've got the exact number of results that we expected (in case we want 0 results)
-      assert.strictEqual(results.results.length, expectedContent.length);
+    // Assert we've got the exact number of results that we expected (in case we want 0 results)
+    assert.strictEqual(results.results.length, expectedContent.length);
 
-      // Assert that the results that came back are the ones we expected
-      _.each(expectedContent, content => {
-        assert.ok(_.findWhere(results.results, { id: content.id }));
-      });
+    // Assert that the results that came back are the ones we expected
+    _.each(expectedContent, content => {
+      assert.ok(_.findWhere(results.results, { id: content.id }));
+    });
 
-      return callback();
-    }
-  );
+    return callback();
+  });
 };
 
 /**
@@ -1387,13 +1242,7 @@ const assertFolderSearchEquals = function(restContext, folderId, q, expectedCont
  * @param  {Function}           callback            Standard callback function
  * @throws {AssertionError}                         Thrown if any assertions failed
  */
-const assertGeneralFolderSearchEquals = function(
-  restContext,
-  q,
-  expectedFolders,
-  missingFolders,
-  callback
-) {
+const assertGeneralFolderSearchEquals = function(restContext, q, expectedFolders, missingFolders, callback) {
   SearchTestUtil.searchAll(
     restContext,
     'general',
@@ -1418,14 +1267,7 @@ const assertGeneralFolderSearchEquals = function(
  * @param  {Function}           callback            Standard callback function
  * @throws {AssertionError}                         Thrown if any assertions failed
  */
-const assertFolderLibrarySearch = function(
-  restContext,
-  principalId,
-  q,
-  expectedFolders,
-  missingFolders,
-  callback
-) {
+const assertFolderLibrarySearch = function(restContext, principalId, q, expectedFolders, missingFolders, callback) {
   SearchTestUtil.searchAll(restContext, 'folder-library', [principalId], { q }, (err, results) => {
     assert.ok(!err);
     _assertSearchResults(results, expectedFolders, missingFolders);
@@ -1454,10 +1296,7 @@ const _assertSearchResults = function(results, expectedFolders, missingFolders) 
     assert.strictEqual(searchResult.visibility, folder.visibility);
     const tenantAlias = folder.tenant.alias;
     const { resourceId } = AuthzUtil.getResourceFromId(folder.id);
-    assert.strictEqual(
-      searchResult.profilePath,
-      util.format('/folder/%s/%s', tenantAlias, resourceId)
-    );
+    assert.strictEqual(searchResult.profilePath, util.format('/folder/%s/%s', tenantAlias, resourceId));
 
     // If the folder has a thumbnail, we assert the search result has it as well
     if (folder.previews && folder.previews.thumbnailUri) {
@@ -1502,12 +1341,7 @@ const assertFolderSearchFails = function(restContext, folderId, httpCode, callba
  * @param  {Function}           callback                Standard callback function
  * @throws {AssertionError}                             Thrown if any assertions failed
  */
-const assertFullFolderMembersEquals = function(
-  restContext,
-  folderId,
-  expectedMemberRoles,
-  callback
-) {
+const assertFullFolderMembersEquals = function(restContext, folderId, expectedMemberRoles, callback) {
   // Remove any roles that contain a role of `false` as they would have been removed
   expectedMemberRoles = _.extend({}, expectedMemberRoles);
   _.each(expectedMemberRoles, (role, userId) => {
@@ -1541,15 +1375,7 @@ const assertFullFolderMembersEquals = function(
  * @param  {Folder[]}       callback.folders        A list of all folders in the library
  * @param  {Object[]}       callback.responses      All the raw web responses that were received for each page request
  */
-const getAllFoldersInLibrary = function(
-  restContext,
-  principalId,
-  opts,
-  callback,
-  _nextToken,
-  _folders,
-  _responses
-) {
+const getAllFoldersInLibrary = function(restContext, principalId, opts, callback, _nextToken, _folders, _responses) {
   opts = opts || {};
   opts.batchSize = opts.batchSize || 25;
   _folders = _folders || [];
@@ -1601,24 +1427,18 @@ const getAllFolderContentItems = function(
     return callback(_contentItems, _responses);
   }
 
-  assertGetFolderContentLibrarySucceeds(
-    restContext,
-    folderId,
-    _nextToken,
-    opts.batchSize,
-    result => {
-      _responses.push(result);
-      return getAllFolderContentItems(
-        restContext,
-        folderId,
-        opts,
-        callback,
-        result.nextToken,
-        _.union(_contentItems, result.results),
-        _responses
-      );
-    }
-  );
+  assertGetFolderContentLibrarySucceeds(restContext, folderId, _nextToken, opts.batchSize, result => {
+    _responses.push(result);
+    return getAllFolderContentItems(
+      restContext,
+      folderId,
+      opts,
+      callback,
+      result.nextToken,
+      _.union(_contentItems, result.results),
+      _responses
+    );
+  });
 };
 
 /**
@@ -1632,15 +1452,7 @@ const getAllFolderContentItems = function(
  * @param  {Principal[]}    callback.members        A list of all users and groups who are members of the folder
  * @param  {Object[]}       callback.responses      All the raw web responses that were received for each page request
  */
-const getAllFolderMembers = function(
-  restContext,
-  folderId,
-  opts,
-  callback,
-  _nextToken,
-  _members,
-  _responses
-) {
+const getAllFolderMembers = function(restContext, folderId, opts, callback, _nextToken, _members, _responses) {
   opts = opts || {};
   opts.batchSize = opts.batchSize || 25;
   _members = _members || [];
@@ -1674,14 +1486,7 @@ const getAllFolderMembers = function(
  * @param  {Function}           callback        Standard callback function
  * @throws {AssertionError}                     Thrown if the request did not fail in the expected manner
  */
-const assertCreateMessageFails = function(
-  restContext,
-  folderId,
-  body,
-  replyTo,
-  httpCode,
-  callback
-) {
+const assertCreateMessageFails = function(restContext, folderId, body, replyTo, httpCode, callback) {
   RestAPI.Folders.createMessage(restContext, folderId, body, replyTo, err => {
     assert.ok(err);
     assert.strictEqual(err.code, httpCode);
@@ -1753,13 +1558,7 @@ const assertGetMessagesSucceeds = function(restContext, folderId, start, limit, 
  * @param  {Function}           callback            Standard callback function
  * @throws {AssertionError}                         Thrown if the request did not fail in the expected manner
  */
-const assertDeleteMessageFails = function(
-  restContext,
-  folderId,
-  messageCreated,
-  httpCode,
-  callback
-) {
+const assertDeleteMessageFails = function(restContext, folderId, messageCreated, httpCode, callback) {
   RestAPI.Folders.deleteMessage(restContext, folderId, messageCreated, (err, result) => {
     assert.ok(err);
     assert.strictEqual(err.code, httpCode);
@@ -1792,15 +1591,12 @@ const assertDeleteMessageSucceeds = function(restContext, folderId, messageCreat
  * @api private
  */
 const _setupTenant = function(tenant, callback) {
-  _createMultiPrivacyFolders(
-    tenant.adminRestContext,
-    (publicFolder, loggedinFolder, privateFolder) => {
-      tenant.publicFolder = publicFolder;
-      tenant.loggedinFolder = loggedinFolder;
-      tenant.privateFolder = privateFolder;
-      return callback();
-    }
-  );
+  _createMultiPrivacyFolders(tenant.adminRestContext, (publicFolder, loggedinFolder, privateFolder) => {
+    tenant.publicFolder = publicFolder;
+    tenant.loggedinFolder = loggedinFolder;
+    tenant.privateFolder = privateFolder;
+    return callback();
+  });
 };
 
 /**
@@ -1948,7 +1744,7 @@ const _generalizePrincipalInfoModel = function(principalInfo) {
   return principalInfo;
 };
 
-module.exports = {
+export {
   generateTestFolders,
   generateTestFoldersWithVisibility,
   setupMultiTenantPrivacyEntities,

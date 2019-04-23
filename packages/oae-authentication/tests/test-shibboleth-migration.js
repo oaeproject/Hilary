@@ -13,17 +13,19 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const util = require('util');
-const _ = require('underscore');
-const csv = require('csv');
-const temp = require('temp');
+import assert from 'assert';
+import util from 'util';
+import _ from 'underscore';
+import csv from 'csv';
+import temp from 'temp';
 
-const Cassandra = require('oae-util/lib/cassandra');
-const RestAPI = require('oae-rest');
-const TestsUtil = require('oae-tests');
-const log = require('oae-logger').logger('oae-authentication');
-const ShibbolethMigrator = require('../../../etc/migration/shibboleth_migration/migrate-users-to-shibboleth.js');
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
+import { logger } from 'oae-logger';
+import ShibbolethMigrator from '../../../etc/migration/shibboleth_migration/migrate-users-to-shibboleth.js';
+
+const log = logger('oae-authentication');
 
 describe('Shibboleth Migration', () => {
   let camAdminRestContext = null;
@@ -57,13 +59,13 @@ describe('Shibboleth Migration', () => {
   });
 
   /*!
-     * Check that Shibboleth login ID records were created for all users with Google login
-     *
-     * @param  String           tenantAlias         The tenant we are testing
-     * @param  {Object[]}       users               The users we want to check login for
-     * @param  {Function}       callback            Invoked when assertions are complete
-     * @throws {AssertionError}                     Thrown if the assertions fail
-     */
+   * Check that Shibboleth login ID records were created for all users with Google login
+   *
+   * @param  String           tenantAlias         The tenant we are testing
+   * @param  {Object[]}       users               The users we want to check login for
+   * @param  {Function}       callback            Invoked when assertions are complete
+   * @throws {AssertionError}                     Thrown if the assertions fail
+   */
   const _assertHaveShibbolethLoginIds = function(tenantAlias, users, callback) {
     if (_.isEmpty(users)) {
       return callback();
@@ -91,13 +93,13 @@ describe('Shibboleth Migration', () => {
   };
 
   /*!
-     * Check that no Shibboleth login ID records were created for users without a Google login ID
-     *
-     * @param  String           tenantAlias         The tenant we are testing
-     * @param  {Object[]}       users               The users we want to check login for
-     * @param  {Function}       callback            Invoked when assertions are complete
-     * @throws {AssertionError}                     Thrown if the assertions fail
-     */
+   * Check that no Shibboleth login ID records were created for users without a Google login ID
+   *
+   * @param  String           tenantAlias         The tenant we are testing
+   * @param  {Object[]}       users               The users we want to check login for
+   * @param  {Function}       callback            Invoked when assertions are complete
+   * @throws {AssertionError}                     Thrown if the assertions fail
+   */
   const _assertHaveNoShibbolethLoginIds = function(tenantAlias, users, callback) {
     if (_.isEmpty(users)) {
       return callback();
@@ -120,12 +122,12 @@ describe('Shibboleth Migration', () => {
   };
 
   /*!
-     * Create Google authentication records for a set of users
-     *
-     * @param  String           tenantAlias         The tenant we are testing
-     * @param  {Object[]}       users               The users we want to check login for
-     * @return {Object[]}       queries             The Cassandra queries to create the records
-     */
+   * Create Google authentication records for a set of users
+   *
+   * @param  String           tenantAlias         The tenant we are testing
+   * @param  {Object[]}       users               The users we want to check login for
+   * @return {Object[]}       queries             The Cassandra queries to create the records
+   */
   const _createGoogleLogins = function(tenantAlias, users) {
     // Create Google logins for users
     const googleLoginIds = _.map(users, user => {

@@ -13,18 +13,26 @@
  * permissions and limitations under the License.
  */
 
-const crypto = require('crypto');
-const passport = require('passport');
+import crypto from 'crypto';
+import passport from 'passport';
+import { Context } from 'oae-context';
+import * as OAE from 'oae-util/lib/oae';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import initCas from './strategies/cas/init';
+import initFacebook from './strategies/facebook/init';
+import initGoogle from './strategies/google/init';
+import initLDAP from './strategies/ldap/init';
+import initLocal from './strategies/local/init';
+import initOAuth from './strategies/oauth/init';
+import initShibb from './strategies/shibboleth/init';
+import initSigned from './strategies/signed/init';
+import initTwitter from './strategies/twitter/init';
 
-const { Context } = require('oae-context');
-const OAE = require('oae-util/lib/oae');
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
+import * as AuthenticationAPI from './api';
+import { AuthenticationConstants } from './constants';
+import * as AuthenticationUtil from './util';
 
-const AuthenticationAPI = require('./api');
-const { AuthenticationConstants } = require('./constants');
-const AuthenticationUtil = require('./util');
-
-module.exports = function(config, callback) {
+export function init(config, callback) {
   // Attach the Authentication middleware
   AuthenticationUtil.setupAuthMiddleware(config, OAE.globalAdminServer);
   AuthenticationUtil.setupAuthMiddleware(config, OAE.tenantServer);
@@ -34,15 +42,15 @@ module.exports = function(config, callback) {
 
   AuthenticationAPI.init(config.servers.globalAdminAlias);
 
-  require('./strategies/cas/init')(config);
-  require('./strategies/facebook/init')(config);
-  require('./strategies/google/init')(config);
-  require('./strategies/ldap/init')(config);
-  require('./strategies/local/init')(config);
-  require('./strategies/oauth/init')(config);
-  require('./strategies/shibboleth/init')(config);
-  require('./strategies/signed/init')(config);
-  require('./strategies/twitter/init')(config);
+  initCas(config);
+  initFacebook(config);
+  initGoogle(config);
+  initLDAP(config);
+  initLocal(config);
+  initOAuth(config);
+  initShibb(config);
+  initSigned(config);
+  initTwitter(config);
 
   // Add the OAE middleware to the ExpressJS server
   // We do this *AFTER* all the authentication strategies have been initialized
@@ -51,7 +59,7 @@ module.exports = function(config, callback) {
   OAE.globalAdminServer.use(contextMiddleware);
 
   return callback();
-};
+}
 
 /**
  * Express.js middleware that will stick an OAE `Context` object on each request at `req.ctx`. This
@@ -98,6 +106,7 @@ const setupPassportSerializers = function(cookieSecret) {
       if (oaeAuthInfo.imposter) {
         toSerialize.imposterId = oaeAuthInfo.imposter.id;
       }
+
       if (oaeAuthInfo.strategyId) {
         toSerialize.strategyId = oaeAuthInfo.strategyId;
       }
@@ -148,14 +157,17 @@ const setupPassportSerializers = function(cookieSecret) {
         // If the user does not exist, the session is toast
         return callback(null, false);
       }
+
       if (err) {
         // If an unexpected error occurred, return an error
         return callback(err);
       }
+
       if (user.deleted) {
         // The user has been deleted, the session is toast
         return callback(null, false);
       }
+
       if (!sessionData.imposterId) {
         // There is no impostering happening here, so we just
         // treat this like a normal session
@@ -168,10 +180,12 @@ const setupPassportSerializers = function(cookieSecret) {
           // If the user does not exist, the session is toast
           return callback(null, false);
         }
+
         if (err) {
           // If an unexpected error occurred, return an error
           return callback(err);
         }
+
         if (imposterUser.deleted) {
           // Burn any sessions being impostered by a deleted user
           return callback(null, false);

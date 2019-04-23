@@ -13,9 +13,18 @@
  * permissions and limitations under the License.
  */
 
-var OAE = require('oae-util/lib/oae');
+import * as OAE from 'oae-util/lib/oae';
+import * as VersionAPI from './api';
 
-var VersionAPI = require('./api');
+const _getVersion = async function(req, res) {
+  try {
+    const repoInformation = await VersionAPI.getVersion();
+    return res.status(200).send(JSON.stringify(repoInformation));
+  } catch (error) {
+    const msg = 'Unable to gather repo information';
+    return res.status(500).send(msg);
+  }
+};
 
 /**
  * @REST getVersion
@@ -30,13 +39,3 @@ var VersionAPI = require('./api');
  */
 OAE.tenantRouter.on('get', '/api/version', _getVersion);
 OAE.globalAdminRouter.on('get', '/api/version', _getVersion);
-
-function _getVersion(req, res) {
-    VersionAPI.getVersion(function(err, version) {
-        if (err) {
-            return res.status(err.code).send(err.msg);
-        }
-
-        return res.status(200).send(version);
-    });
-}

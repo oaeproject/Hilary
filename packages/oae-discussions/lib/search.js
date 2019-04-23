@@ -13,18 +13,19 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
 
-const AuthzUtil = require('oae-authz/lib/util');
-const log = require('oae-logger').logger('discussions-search');
-const MessageBoxSearch = require('oae-messagebox/lib/search');
-const SearchAPI = require('oae-search');
-const TenantsAPI = require('oae-tenants');
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as MessageBoxSearch from 'oae-messagebox/lib/search';
+import * as SearchAPI from 'oae-search';
+import * as TenantsAPI from 'oae-tenants';
+import { logger } from 'oae-logger';
+import * as DiscussionsDAO from './internal/dao';
+import DiscussionsAPI from './api';
+import { DiscussionsConstants } from './constants';
 
-const DiscussionsAPI = require('./api');
-const { DiscussionsConstants } = require('./constants');
-const DiscussionsDAO = require('./internal/dao');
+const log = logger('discussions-search');
 
 /**
  * Initializes the child search documents for the Discussions module
@@ -91,36 +92,30 @@ DiscussionsAPI.on(DiscussionsConstants.events.DELETED_DISCUSSION, (ctx, discussi
 /*!
  * When a message is added to a discussion, we must index the child message document
  */
-DiscussionsAPI.on(
-  DiscussionsConstants.events.CREATED_DISCUSSION_MESSAGE,
-  (ctx, message, discussion) => {
-    const resource = {
-      id: discussion.id,
-      messages: [message]
-    };
+DiscussionsAPI.on(DiscussionsConstants.events.CREATED_DISCUSSION_MESSAGE, (ctx, message, discussion) => {
+  const resource = {
+    id: discussion.id,
+    messages: [message]
+  };
 
-    SearchAPI.postIndexTask('discussion', [resource], {
-      children: {
-        // eslint-disable-next-line camelcase
-        discussion_message: true
-      }
-    });
-  }
-);
+  SearchAPI.postIndexTask('discussion', [resource], {
+    children: {
+      // eslint-disable-next-line camelcase
+      discussion_message: true
+    }
+  });
+});
 
 /*!
  * When a discussion message is deleted, we must delete the child message document
  */
-DiscussionsAPI.on(
-  DiscussionsConstants.events.DELETED_DISCUSSION_MESSAGE,
-  (ctx, message, discussion, _) => {
-    return MessageBoxSearch.deleteMessageSearchDocument(
-      DiscussionsConstants.search.MAPPING_DISCUSSION_MESSAGE,
-      discussion.id,
-      message
-    );
-  }
-);
+DiscussionsAPI.on(DiscussionsConstants.events.DELETED_DISCUSSION_MESSAGE, (ctx, message, discussion, _) => {
+  return MessageBoxSearch.deleteMessageSearchDocument(
+    DiscussionsConstants.search.MAPPING_DISCUSSION_MESSAGE,
+    discussion.id,
+    message
+  );
+});
 
 /// /////////////////////
 // DOCUMENT PRODUCERS //
@@ -310,12 +305,12 @@ SearchAPI.registerSearchDocumentTransformer('discussion', _transformDiscussionDo
 
 SearchAPI.registerReindexAllHandler('discussion', callback => {
   /*!
-     * Handles each iteration of the DiscussionDAO iterate all method, firing tasks for all discussions to
-     * be reindexed.
-     *
-     * @see DiscussionDAO#iterateAll
-     * @api private
-     */
+   * Handles each iteration of the DiscussionDAO iterate all method, firing tasks for all discussions to
+   * be reindexed.
+   *
+   * @see DiscussionDAO#iterateAll
+   * @api private
+   */
   const _onEach = function(discussionRows, done) {
     // Batch up this iteration of task resources
     const discussionResources = [];
@@ -333,6 +328,4 @@ SearchAPI.registerReindexAllHandler('discussion', callback => {
   DiscussionsDAO.iterateAll(['id'], 100, _onEach, callback);
 });
 
-module.exports = {
-  init
-};
+export { init };

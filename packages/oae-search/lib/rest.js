@@ -12,15 +12,14 @@
  * or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
 
-const OAE = require('oae-util/lib/oae');
-const OaeUtil = require('oae-util/lib/util');
-const TenantsAPI = require('oae-tenants/lib/api');
-
-const SearchAPI = require('oae-search');
-const SearchUtil = require('oae-search/lib/util');
+import * as OAE from 'oae-util/lib/oae';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as TenantsAPI from 'oae-tenants/lib/api';
+import * as SearchAPI from 'oae-search';
+import * as SearchUtil from 'oae-search/lib/util';
 
 const REGEX_SEARCH_ENDPOINT = /\/api\/search\/([^/]+)(\/.*)?/;
 

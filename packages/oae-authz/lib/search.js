@@ -13,13 +13,15 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const AuthzAPI = require('oae-authz');
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const AuthzUtil = require('oae-authz/lib/util');
-const SearchAPI = require('oae-search');
-const SearchUtil = require('oae-search/lib/util');
+import * as AuthzAPI from 'oae-authz';
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as SearchAPI from 'oae-search';
+import * as SearchUtil from 'oae-search/lib/util';
+import * as resourceMembersSchema from './search/schema/resourceMembersSchema';
+import * as resourceMembershipsSchema from './search/schema/resourceMembershipsSchema';
 
 /**
  * Initializes the child search documents for the Authz module
@@ -30,7 +32,7 @@ const SearchUtil = require('oae-search/lib/util');
 const init = function(callback) {
   const membersChildSearchDocumentOptions = {
     resourceTypes: ['content', 'discussion', 'group'],
-    schema: require('./search/schema/resourceMembersSchema'),
+    schema: resourceMembersSchema,
     producer(resources, callback) {
       return _produceResourceMembersDocuments(resources.slice(), callback);
     }
@@ -38,7 +40,7 @@ const init = function(callback) {
 
   const membershipsChildSearchDocumentOptions = {
     resourceTypes: ['group', 'user'],
-    schema: require('./search/schema/resourceMembershipsSchema'),
+    schema: resourceMembershipsSchema,
     producer(resources, callback) {
       return _produceResourceMembershipsDocuments(resources.slice(), callback);
     }
@@ -220,7 +222,4 @@ const _getMembershipIds = function(resource, callback) {
   );
 };
 
-module.exports = {
-  init,
-  fireMembershipUpdateTasks
-};
+export { init, fireMembershipUpdateTasks };

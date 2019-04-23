@@ -13,22 +13,22 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const ActivityAPI = require('oae-activity');
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const ActivityModel = require('oae-activity/lib/model');
-const ActivityUtil = require('oae-activity/lib/util');
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const AuthzUtil = require('oae-authz/lib/util');
-const MessageBoxAPI = require('oae-messagebox');
-const MessageBoxUtil = require('oae-messagebox/lib/util');
-const PrincipalsUtil = require('oae-principals/lib/util');
-const TenantsUtil = require('oae-tenants/lib/util');
+import * as ActivityAPI from 'oae-activity';
+import * as ActivityModel from 'oae-activity/lib/model';
+import * as ActivityUtil from 'oae-activity/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as MessageBoxAPI from 'oae-messagebox';
+import * as MessageBoxUtil from 'oae-messagebox/lib/util';
+import * as PrincipalsUtil from 'oae-principals/lib/util';
+import * as TenantsUtil from 'oae-tenants/lib/util';
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import { ActivityConstants } from 'oae-activity/lib/constants';
+import * as DiscussionsDAO from './internal/dao';
+import DiscussionsAPI from './api';
 
-const DiscussionsAPI = require('./api');
-const { DiscussionsConstants } = require('./constants');
-const DiscussionsDAO = require('./internal/dao');
+import { DiscussionsConstants } from './constants';
 
 /// ////////////////////
 // DISCUSSION-CREATE //
@@ -102,58 +102,52 @@ ActivityAPI.registerActivityType(DiscussionsConstants.activity.ACTIVITY_DISCUSSI
   }
 });
 
-ActivityAPI.registerActivityType(
-  DiscussionsConstants.activity.ACTIVITY_DISCUSSION_UPDATE_VISIBILITY,
-  {
-    streams: {
-      activity: {
-        router: {
-          actor: ['self'],
-          object: ['self', 'members']
-        }
-      },
-      notification: {
-        router: {
-          object: ['managers']
-        }
+ActivityAPI.registerActivityType(DiscussionsConstants.activity.ACTIVITY_DISCUSSION_UPDATE_VISIBILITY, {
+  streams: {
+    activity: {
+      router: {
+        actor: ['self'],
+        object: ['self', 'members']
+      }
+    },
+    notification: {
+      router: {
+        object: ['managers']
       }
     }
   }
-);
+});
 
 /*!
  * Post either a discussion-update or discussion-update-visibility activity when a user updates a discussion's metadata.
  */
-DiscussionsAPI.on(
-  DiscussionsConstants.events.UPDATED_DISCUSSION,
-  (ctx, newDiscussion, oldDiscussion) => {
-    const millis = Date.now();
-    const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
-      user: ctx.user()
-    });
-    const objectResource = new ActivityModel.ActivitySeedResource('discussion', newDiscussion.id, {
-      discussion: newDiscussion
-    });
+DiscussionsAPI.on(DiscussionsConstants.events.UPDATED_DISCUSSION, (ctx, newDiscussion, oldDiscussion) => {
+  const millis = Date.now();
+  const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
+    user: ctx.user()
+  });
+  const objectResource = new ActivityModel.ActivitySeedResource('discussion', newDiscussion.id, {
+    discussion: newDiscussion
+  });
 
-    // We discriminate between general updates and visibility changes.
-    // If the visibility has changed, we fire a visibility changed activity *instead* of an update activity
-    let activityType = null;
-    if (newDiscussion.visibility === oldDiscussion.visibility) {
-      activityType = DiscussionsConstants.activity.ACTIVITY_DISCUSSION_UPDATE;
-    } else {
-      activityType = DiscussionsConstants.activity.ACTIVITY_DISCUSSION_UPDATE_VISIBILITY;
-    }
-
-    const activitySeed = new ActivityModel.ActivitySeed(
-      activityType,
-      millis,
-      ActivityConstants.verbs.UPDATE,
-      actorResource,
-      objectResource
-    );
-    ActivityAPI.postActivity(ctx, activitySeed);
+  // We discriminate between general updates and visibility changes.
+  // If the visibility has changed, we fire a visibility changed activity *instead* of an update activity
+  let activityType = null;
+  if (newDiscussion.visibility === oldDiscussion.visibility) {
+    activityType = DiscussionsConstants.activity.ACTIVITY_DISCUSSION_UPDATE;
+  } else {
+    activityType = DiscussionsConstants.activity.ACTIVITY_DISCUSSION_UPDATE_VISIBILITY;
   }
-);
+
+  const activitySeed = new ActivityModel.ActivitySeed(
+    activityType,
+    millis,
+    ActivityConstants.verbs.UPDATE,
+    actorResource,
+    objectResource
+  );
+  ActivityAPI.postActivity(ctx, activitySeed);
+});
 
 /// /////////////////////
 // DISCUSSION-MESSAGE //
@@ -191,32 +185,28 @@ ActivityAPI.registerActivityType(DiscussionsConstants.activity.ACTIVITY_DISCUSSI
 /*!
  * Post a discussion-message activity when a user comments on a discussion
  */
-DiscussionsAPI.on(
-  DiscussionsConstants.events.CREATED_DISCUSSION_MESSAGE,
-  (ctx, message, discussion) => {
-    const millis = Date.now();
-    const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
-      user: ctx.user()
-    });
-    const objectResource = new ActivityModel.ActivitySeedResource(
-      'discussion-message',
-      message.id,
-      { discussionId: discussion.id, message }
-    );
-    const targetResource = new ActivityModel.ActivitySeedResource('discussion', discussion.id, {
-      discussion
-    });
-    const activitySeed = new ActivityModel.ActivitySeed(
-      DiscussionsConstants.activity.ACTIVITY_DISCUSSION_MESSAGE,
-      millis,
-      ActivityConstants.verbs.POST,
-      actorResource,
-      objectResource,
-      targetResource
-    );
-    ActivityAPI.postActivity(ctx, activitySeed);
-  }
-);
+DiscussionsAPI.on(DiscussionsConstants.events.CREATED_DISCUSSION_MESSAGE, (ctx, message, discussion) => {
+  const millis = Date.now();
+  const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
+    user: ctx.user()
+  });
+  const objectResource = new ActivityModel.ActivitySeedResource('discussion-message', message.id, {
+    discussionId: discussion.id,
+    message
+  });
+  const targetResource = new ActivityModel.ActivitySeedResource('discussion', discussion.id, {
+    discussion
+  });
+  const activitySeed = new ActivityModel.ActivitySeed(
+    DiscussionsConstants.activity.ACTIVITY_DISCUSSION_MESSAGE,
+    millis,
+    ActivityConstants.verbs.POST,
+    actorResource,
+    objectResource,
+    targetResource
+  );
+  ActivityAPI.postActivity(ctx, activitySeed);
+});
 
 /// ////////////////////////////////////////////////////////////////////////////////
 // DISCUSSION-SHARE, DISCUSSION-ADD-TO-LIBRARY and DISCUSSION-UPDATE-MEMBER-ROLE //
@@ -265,101 +255,89 @@ ActivityAPI.registerActivityType(DiscussionsConstants.activity.ACTIVITY_DISCUSSI
   }
 });
 
-ActivityAPI.registerActivityType(
-  DiscussionsConstants.activity.ACTIVITY_DISCUSSION_UPDATE_MEMBER_ROLE,
-  {
-    groupBy: [{ actor: true, target: true }],
-    streams: {
-      activity: {
-        router: {
-          actor: ['self'],
-          object: ['self', 'members'],
-          target: ['managers']
-        }
+ActivityAPI.registerActivityType(DiscussionsConstants.activity.ACTIVITY_DISCUSSION_UPDATE_MEMBER_ROLE, {
+  groupBy: [{ actor: true, target: true }],
+  streams: {
+    activity: {
+      router: {
+        actor: ['self'],
+        object: ['self', 'members'],
+        target: ['managers']
       }
     }
   }
-);
+});
 
 /*!
  * Post a discussion-share or discussion-add-to-library activity based on discussion sharing
  */
-DiscussionsAPI.on(
-  DiscussionsConstants.events.UPDATED_DISCUSSION_MEMBERS,
-  (ctx, discussion, memberChangeInfo, opts) => {
-    if (opts.invitation) {
-      // If this member update came from an invitation, we bypass adding activity as there is a
-      // dedicated activity for that
-      return;
-    }
+DiscussionsAPI.on(DiscussionsConstants.events.UPDATED_DISCUSSION_MEMBERS, (ctx, discussion, memberChangeInfo, opts) => {
+  if (opts.invitation) {
+    // If this member update came from an invitation, we bypass adding activity as there is a
+    // dedicated activity for that
+    return;
+  }
 
-    const addedPrincipalIds = _.pluck(memberChangeInfo.members.added, 'id');
-    const updatedPrincipalIds = _.pluck(memberChangeInfo.members.updated, 'id');
+  const addedPrincipalIds = _.pluck(memberChangeInfo.members.added, 'id');
+  const updatedPrincipalIds = _.pluck(memberChangeInfo.members.updated, 'id');
 
-    const millis = Date.now();
-    const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
-      user: ctx.user()
-    });
-    const discussionResource = new ActivityModel.ActivitySeedResource('discussion', discussion.id, {
-      discussion
-    });
+  const millis = Date.now();
+  const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
+    user: ctx.user()
+  });
+  const discussionResource = new ActivityModel.ActivitySeedResource('discussion', discussion.id, {
+    discussion
+  });
 
-    // For users that are newly added to the discussion, post either a share or "add to library" activity, depending on context
-    _.each(addedPrincipalIds, principalId => {
-      if (principalId === ctx.user().id) {
-        // Users can't "share" with themselves, they actually "add it to their library"
-        ActivityAPI.postActivity(
-          ctx,
-          new ActivityModel.ActivitySeed(
-            DiscussionsConstants.activity.ACTIVITY_DISCUSSION_ADD_TO_LIBRARY,
-            millis,
-            ActivityConstants.verbs.ADD,
-            actorResource,
-            discussionResource
-          )
-        );
-      } else {
-        // A user shared discussion with some other user, fire the discussion share activity
-        const principalResourceType = PrincipalsUtil.isGroup(principalId) ? 'group' : 'user';
-        const principalResource = new ActivityModel.ActivitySeedResource(
-          principalResourceType,
-          principalId
-        );
-        ActivityAPI.postActivity(
-          ctx,
-          new ActivityModel.ActivitySeed(
-            DiscussionsConstants.activity.ACTIVITY_DISCUSSION_SHARE,
-            millis,
-            ActivityConstants.verbs.SHARE,
-            actorResource,
-            discussionResource,
-            principalResource
-          )
-        );
-      }
-    });
-
-    // For users whose role changed, post the discussion-update-member-role activity
-    _.each(updatedPrincipalIds, principalId => {
-      const principalResourceType = PrincipalsUtil.isGroup(principalId) ? 'group' : 'user';
-      const principalResource = new ActivityModel.ActivitySeedResource(
-        principalResourceType,
-        principalId
-      );
+  // For users that are newly added to the discussion, post either a share or "add to library" activity, depending on context
+  _.each(addedPrincipalIds, principalId => {
+    if (principalId === ctx.user().id) {
+      // Users can't "share" with themselves, they actually "add it to their library"
       ActivityAPI.postActivity(
         ctx,
         new ActivityModel.ActivitySeed(
-          DiscussionsConstants.activity.ACTIVITY_DISCUSSION_UPDATE_MEMBER_ROLE,
+          DiscussionsConstants.activity.ACTIVITY_DISCUSSION_ADD_TO_LIBRARY,
           millis,
-          ActivityConstants.verbs.UPDATE,
+          ActivityConstants.verbs.ADD,
           actorResource,
-          principalResource,
           discussionResource
         )
       );
-    });
-  }
-);
+    } else {
+      // A user shared discussion with some other user, fire the discussion share activity
+      const principalResourceType = PrincipalsUtil.isGroup(principalId) ? 'group' : 'user';
+      const principalResource = new ActivityModel.ActivitySeedResource(principalResourceType, principalId);
+      ActivityAPI.postActivity(
+        ctx,
+        new ActivityModel.ActivitySeed(
+          DiscussionsConstants.activity.ACTIVITY_DISCUSSION_SHARE,
+          millis,
+          ActivityConstants.verbs.SHARE,
+          actorResource,
+          discussionResource,
+          principalResource
+        )
+      );
+    }
+  });
+
+  // For users whose role changed, post the discussion-update-member-role activity
+  _.each(updatedPrincipalIds, principalId => {
+    const principalResourceType = PrincipalsUtil.isGroup(principalId) ? 'group' : 'user';
+    const principalResource = new ActivityModel.ActivitySeedResource(principalResourceType, principalId);
+    ActivityAPI.postActivity(
+      ctx,
+      new ActivityModel.ActivitySeed(
+        DiscussionsConstants.activity.ACTIVITY_DISCUSSION_UPDATE_MEMBER_ROLE,
+        millis,
+        ActivityConstants.verbs.UPDATE,
+        actorResource,
+        principalResource,
+        discussionResource
+      )
+    );
+  });
+});
 
 /// ////////////////////////
 // ACTIVITY ENTITY TYPES //
@@ -371,9 +349,7 @@ DiscussionsAPI.on(
  */
 const _discussionProducer = function(resource, callback) {
   const discussion =
-    resource.resourceData && resource.resourceData.discussion
-      ? resource.resourceData.discussion
-      : null;
+    resource.resourceData && resource.resourceData.discussion ? resource.resourceData.discussion : null;
 
   // If the discussion item was fired with the resource, use it instead of fetching
   if (discussion) {
@@ -438,9 +414,7 @@ const _discussionTransformer = function(ctx, activityEntities, callback) {
     transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
     _.each(entities, (entity, entityId) => {
       // Transform the persistent entity into an ActivityStrea.ms compliant format
-      transformedActivityEntities[activityId][
-        entityId
-      ] = _transformPersistentDiscussionActivityEntity(ctx, entity);
+      transformedActivityEntities[activityId][entityId] = _transformPersistentDiscussionActivityEntity(ctx, entity);
     });
   });
   return callback(null, transformedActivityEntities);
@@ -506,9 +480,7 @@ const _discussionMessageTransformer = function(ctx, activityEntities, callback) 
       const resource = AuthzUtil.getResourceFromId(discussionId);
       const profilePath = '/discussion/' + resource.tenantAlias + '/' + resource.resourceId;
       const urlFormat = '/api/discussion/' + discussionId + '/messages/%s';
-      transformedActivityEntities[activityId][
-        entityId
-      ] = MessageBoxUtil.transformPersistentMessageActivityEntity(
+      transformedActivityEntities[activityId][entityId] = MessageBoxUtil.transformPersistentMessageActivityEntity(
         ctx,
         entity,
         profilePath,
@@ -544,11 +516,7 @@ ActivityAPI.registerActivityEntityType('discussion', {
     internal: _discussionInternalTransformer
   },
   propagation(associationsCtx, entity, callback) {
-    ActivityUtil.getStandardResourcePropagation(
-      entity.discussion.visibility,
-      AuthzConstants.joinable.NO,
-      callback
-    );
+    ActivityUtil.getStandardResourcePropagation(entity.discussion.visibility, AuthzConstants.joinable.NO, callback);
   }
 });
 
@@ -570,58 +538,42 @@ ActivityAPI.registerActivityEntityType('discussion-message', {
 /*!
  * Register an association that presents the discussion
  */
-ActivityAPI.registerActivityEntityAssociation(
-  'discussion',
-  'self',
-  (associationsCtx, entity, callback) => {
-    return callback(null, [entity[ActivityConstants.properties.OAE_ID]]);
-  }
-);
+ActivityAPI.registerActivityEntityAssociation('discussion', 'self', (associationsCtx, entity, callback) => {
+  return callback(null, [entity[ActivityConstants.properties.OAE_ID]]);
+});
 
 /*!
  * Register an association that presents the members of a discussion categorized by role
  */
-ActivityAPI.registerActivityEntityAssociation(
-  'discussion',
-  'members-by-role',
-  (associationsCtx, entity, callback) => {
-    ActivityUtil.getAllAuthzMembersByRole(entity[ActivityConstants.properties.OAE_ID], callback);
-  }
-);
+ActivityAPI.registerActivityEntityAssociation('discussion', 'members-by-role', (associationsCtx, entity, callback) => {
+  ActivityUtil.getAllAuthzMembersByRole(entity[ActivityConstants.properties.OAE_ID], callback);
+});
 
 /*!
  * Register an association that presents all the indirect members of a discussion
  */
-ActivityAPI.registerActivityEntityAssociation(
-  'discussion',
-  'members',
-  (associationsCtx, entity, callback) => {
-    associationsCtx.get('members-by-role', (err, membersByRole) => {
-      if (err) {
-        return callback(err);
-      }
+ActivityAPI.registerActivityEntityAssociation('discussion', 'members', (associationsCtx, entity, callback) => {
+  associationsCtx.get('members-by-role', (err, membersByRole) => {
+    if (err) {
+      return callback(err);
+    }
 
-      return callback(null, _.flatten(_.values(membersByRole)));
-    });
-  }
-);
+    return callback(null, _.flatten(_.values(membersByRole)));
+  });
+});
 
 /*!
  * Register an association that presents all the managers of a discussion
  */
-ActivityAPI.registerActivityEntityAssociation(
-  'discussion',
-  'managers',
-  (associationsCtx, entity, callback) => {
-    associationsCtx.get('members-by-role', (err, membersByRole) => {
-      if (err) {
-        return callback(err);
-      }
+ActivityAPI.registerActivityEntityAssociation('discussion', 'managers', (associationsCtx, entity, callback) => {
+  associationsCtx.get('members-by-role', (err, membersByRole) => {
+    if (err) {
+      return callback(err);
+    }
 
-      return callback(null, membersByRole[AuthzConstants.role.MANAGER]);
-    });
-  }
-);
+    return callback(null, membersByRole[AuthzConstants.role.MANAGER]);
+  });
+});
 
 /*!
  * Register an assocation that presents all the commenting contributors of a discussion
@@ -630,22 +582,13 @@ ActivityAPI.registerActivityEntityAssociation(
   'discussion',
   'message-contributors',
   (associationsCtx, entity, callback) => {
-    MessageBoxAPI.getRecentContributions(
-      entity[ActivityConstants.properties.OAE_ID],
-      null,
-      100,
-      callback
-    );
+    MessageBoxAPI.getRecentContributions(entity[ActivityConstants.properties.OAE_ID], null, 100, callback);
   }
 );
 
 /*!
  * Register an association that presents the discussion for a discussion-message entity
  */
-ActivityAPI.registerActivityEntityAssociation(
-  'discussion-message',
-  'self',
-  (associationsCtx, entity, callback) => {
-    return callback(null, [entity.discussionId]);
-  }
-);
+ActivityAPI.registerActivityEntityAssociation('discussion-message', 'self', (associationsCtx, entity, callback) => {
+  return callback(null, [entity.discussionId]);
+});

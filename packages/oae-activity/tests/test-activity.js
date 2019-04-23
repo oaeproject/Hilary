@@ -15,25 +15,23 @@
 
 /* eslint-disable no-unused-vars */
 /* eslint-disable max-nested-callbacks */
-const assert = require('assert');
-const util = require('util');
-const _ = require('underscore');
-
-const ConfigTestsUtil = require('oae-config/lib/test/util');
-const { Context } = require('oae-context/lib/api');
-const FollowingTestsUtil = require('oae-following/lib/test/util');
-const RestAPI = require('oae-rest');
-const TestsUtil = require('oae-tests');
-
-const ActivityAggregator = require('oae-activity/lib/internal/aggregator');
-const ActivityAPI = require('oae-activity');
-const ActivityDAO = require('oae-activity/lib/internal/dao');
-const ActivityRegistry = require('oae-activity/lib/internal/registry');
-const { ActivitySeed } = require('oae-activity/lib/model');
-const { ActivitySeedResource } = require('oae-activity/lib/model');
-const ActivityTestUtil = require('oae-activity/lib/test/util');
-const ActivityUtil = require('oae-activity/lib/util');
-const { AssociationsSession } = require('oae-activity/lib/model');
+import assert from 'assert';
+import util from 'util';
+import _ from 'underscore';
+import * as ConfigTestsUtil from 'oae-config/lib/test/util';
+import { Context } from 'oae-context/lib/api';
+import * as FollowingTestsUtil from 'oae-following/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
+import * as ActivityAggregator from 'oae-activity/lib/internal/aggregator';
+import * as ActivityAPI from 'oae-activity';
+import * as ActivityDAO from 'oae-activity/lib/internal/dao';
+import * as ActivityRegistry from 'oae-activity/lib/internal/registry';
+import { ActivitySeed } from 'oae-activity/lib/model';
+import { ActivitySeedResource } from 'oae-activity/lib/model';
+import * as ActivityTestUtil from 'oae-activity/lib/test/util';
+import * as ActivityUtil from 'oae-activity/lib/util';
+import { AssociationsSession } from 'oae-activity/lib/model';
 
 // Keep a safe reference to the get aggregate status function as we will
 // patch it in some of these tests
@@ -151,11 +149,13 @@ describe('Activity', () => {
 
       // A single entity
     }
+
     if (activity[entity]['oae:id']) {
       return [activity[entity]];
 
       // A collection of entities
     }
+
     return activity[entity]['oae:collection'];
   };
 
@@ -216,6 +216,7 @@ describe('Activity', () => {
       return callback();
     });
   };
+
   /**
    * Creates 2 tenants with a set of users, groups and discussions. The first
    * tenant will contain an extra public user that will be used to share discussions
@@ -918,8 +919,8 @@ describe('Activity', () => {
               assert.ok(!err);
 
               /*!
-                      * @return a valid activity seed that can be overlayed with invalid values for testing.
-                      */
+               * @return a valid activity seed that can be overlayed with invalid values for testing.
+               */
               const _createActivitySeed = function(seedOverlay, actorOverlay, objectOverlay, targetOverlay) {
                 if (!seedOverlay) {
                   return null;
@@ -2826,6 +2827,7 @@ describe('Activity', () => {
               // this set, simply pass up to the regular function
               return activityDaoGetAggregateStatusFn(allAggregateKeys, callback);
             }
+
             // There is an aggregate key we've flagged as broken,
             // mock an error
             return callback({ code: 500, msg: 'Forced error for test' });

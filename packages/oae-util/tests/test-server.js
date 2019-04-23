@@ -13,24 +13,24 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const fs = require('fs');
-const path = require('path');
-const _ = require('underscore');
+import assert from 'assert';
+import fs from 'fs';
+import path from 'path';
+import _ from 'underscore';
 
-const OaeServer = require('oae-util/lib/server');
-const PrincipalsTestUtil = require('oae-principals/lib/test/util');
-const RestAPI = require('oae-rest');
-const RestUtil = require('oae-rest/lib/util');
-const TestsUtil = require('oae-tests');
+import * as OaeServer from 'oae-util/lib/server';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as RestUtil from 'oae-rest/lib/util';
+import * as TestsUtil from 'oae-tests';
 
 describe('OAE Server', () => {
   // Rest context for the cam admin
   let camAdminRestContext = null;
 
   /*!
-     * Function that will set up the user contexts
-     */
+   * Function that will set up the user contexts
+   */
   before(callback => {
     // Fill up Cam tenant admin rest context
     camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
@@ -39,8 +39,8 @@ describe('OAE Server', () => {
 
   describe('CSRF', () => {
     /*!
-         * Verifies CSRF validation with invalid hosts and safe paths
-         */
+     * Verifies CSRF validation with invalid hosts and safe paths
+     */
     it('verify CSRF validation with invalid hosts and safe paths', callback => {
       TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, user) => {
         assert.ok(!err);
@@ -178,7 +178,6 @@ describe('OAE Server', () => {
           // When setting up the tests, we configured the cookie name to a specific value.
           // Ensure that this value is used. This tests regressions in the cookie-session
           // middleware
-          const { config } = require('../../../config.js');
           assert.ok(_.contains(cookieNames, TestsUtil.CONFIG_COOKIE_NAME));
 
           // Rename the cookie to something else

@@ -13,25 +13,27 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const AuthzAPI = require('oae-authz');
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const AuthzInvitationsDAO = require('oae-authz/lib/invitations/dao');
-const AuthzModel = require('oae-authz/lib/model');
-const AuthzPermissions = require('oae-authz/lib/permissions');
-const AuthzUtil = require('oae-authz/lib/util');
-const EmitterAPI = require('oae-emitter');
-const { Invitation } = require('oae-authz/lib/invitations/model');
-const OaeUtil = require('oae-util/lib/util');
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
-const PrincipalsUtil = require('oae-principals/lib/util');
-const { Validator } = require('oae-authz/lib/validator');
+import { logger } from 'oae-logger';
 
-const ResourceActivity = require('oae-resource/lib/activity');
-const { ResourceConstants } = require('oae-resource/lib/constants');
+import * as AuthzAPI from 'oae-authz';
+import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
+import * as AuthzModel from 'oae-authz/lib/model';
+import * as AuthzPermissions from 'oae-authz/lib/permissions';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as EmitterAPI from 'oae-emitter';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as PrincipalsUtil from 'oae-principals/lib/util';
+import * as ResourceActivity from 'oae-resource/lib/activity';
 
-const log = require('oae-logger').logger('oae-resource-actions');
+import { Invitation } from 'oae-authz/lib/invitations/model';
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import { Validator } from 'oae-authz/lib/validator';
+import { ResourceConstants } from 'oae-resource/lib/constants';
+
+const log = logger('oae-resource-actions');
 
 const ResourceActions = new EmitterAPI.EventEmitter();
 
@@ -687,6 +689,7 @@ const _applyAllMemberChanges = function(memberRolesByResourceId, callback) {
         log().warn({ err }, 'An error occurred computing member role changes when an invitation was accepted');
         return _done();
       }
+
       if (_.isEmpty(idChangeInfo.changes)) {
         // Ignore any resource where its invitation change should not be applied
         return _done();
@@ -811,11 +814,4 @@ const _emitInvited = function(ctx, resource, emailRoles, emailTokens, callback) 
   });
 };
 
-module.exports = {
-  emitter: ResourceActions,
-  create,
-  share,
-  setRoles,
-  resendInvitation,
-  acceptInvitation
-};
+export { ResourceActions as emitter, create, share, setRoles, resendInvitation, acceptInvitation };

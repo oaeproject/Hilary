@@ -13,56 +13,66 @@
  * permissions and limitations under the License.
  */
 
-const fs = require('fs');
-const path = require('path');
-const util = require('util');
-const _ = require('underscore');
-const mime = require('mime');
-const ShortId = require('shortid');
+import fs from 'fs';
+import path from 'path';
+import util from 'util';
+import * as ContentUtils from 'oae-content/lib/backends/util';
+import _ from 'underscore';
+import mime from 'mime';
+import ShortId from 'shortid';
 
-const AuthzAPI = require('oae-authz');
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const AuthzInvitations = require('oae-authz/lib/invitations');
-const AuthzPermissions = require('oae-authz/lib/permissions');
-const AuthzUtil = require('oae-authz/lib/util');
-const Config = require('oae-config').config('oae-content');
-const { Context } = require('oae-context');
-const EmitterAPI = require('oae-emitter');
-const LibraryAPI = require('oae-library');
-const log = require('oae-logger').logger('oae-content');
-const MessageBoxAPI = require('oae-messagebox');
-const { MessageBoxConstants } = require('oae-messagebox/lib/constants');
-const OaeUtil = require('oae-util/lib/util');
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
-const PrincipalsUtil = require('oae-principals/lib/util');
-const ResourceActions = require('oae-resource/lib/actions');
-const Signature = require('oae-util/lib/signature');
-const { Validator } = require('oae-util/lib/validator');
+import * as AuthzAPI from 'oae-authz';
+import * as AuthzInvitations from 'oae-authz/lib/invitations';
+import * as AuthzPermissions from 'oae-authz/lib/permissions';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import { setUpConfig } from 'oae-config';
+import * as EmitterAPI from 'oae-emitter';
+import * as LibraryAPI from 'oae-library';
+import { logger } from 'oae-logger';
 
-const { ContentConstants } = require('./constants');
-const ContentDAO = require('./internal/dao');
-const ContentMembersLibrary = require('./internal/membersLibrary');
-const ContentUtil = require('./internal/util');
-const Etherpad = require('./internal/etherpad');
+import { getFoldersByIds } from 'oae-folders/lib/internal/dao';
+import * as MessageBoxAPI from 'oae-messagebox';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as PrincipalsUtil from 'oae-principals/lib/util';
+import * as ResourceActions from 'oae-resource/lib/actions';
+import * as Signature from 'oae-util/lib/signature';
+import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
+import { Context } from 'oae-context';
+import { Validator } from 'oae-util/lib/validator';
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import { ContentConstants } from './constants';
+import * as ContentDAO from './internal/dao';
+import * as ContentMembersLibrary from './internal/membersLibrary';
+import * as ContentUtil from './internal/util';
+import * as Ethercalc from './internal/ethercalc';
+import * as Etherpad from './internal/etherpad';
+
+const Config = setUpConfig('oae-content');
+const log = logger('oae-content');
+
+const COLLABDOC = 'collabdoc';
+const COLLABSHEET = 'collabsheet';
 
 /**
  * ### Events
  *
  * The `ContentAPI`, as enumerated in `ContentConstants.events`, emits the following events:
  *
- * * `createdComment(ctx, comment, content)`: A new comment was posted for a content item. The `ctx`, `comment` and commented `content` object are provided.
- * * `createdContent(ctx, content)`: A new content item was created. The `ctx` and the `content` object that was created are both provided.
- * * `deletedComment(ctx, comment, content, deleteType)`: An existing comment has been deleted on a content item. The `ctx`, `content` and target `comment` object are provided.
- * * `deletedContent(ctx, contentObj, members)`: A content item was deleted. The 'ctx', the deleted 'contentObj' and the list of authz principals that had this content item in their library
- * * `downloadedContent(ctx, content, revision)`: A content item was downloaded. The `ctx`, `content` and the `revision` are all provided.
- * * `editedCollabdoc(ctx, contentObj)`: A collaborative document was edited by a user without resulting in a new revision. This happens if the revision-creation was already triggered by another user leaving the document
- * * `getContentLibrary(ctx, principalId, visibility, start, limit, contentObjects)`: A content library was retrieved.
- * * `getContentProfile(ctx, content)`: A content profile was retrieved. The `ctx` and the `content` are both provided.
- * * `restoredContent(ctx, newContentObj, oldContentObj, restoredRevision)`: An older revision for a content item has been restored.
- * * `updatedContent(ctx, newContentObj, oldContentObj)`: A content item was updated. The `ctx`, the updated content object and the content before was updated are provided.
- * * `updatedContentBody(ctx, newContentObj, oldContentObj, revision)`: A content item's file body was updated. The `ctx` of the request, the `newContentObj` object after being updated, the `oldContentObj` object before the update, and the revision object.
- * * `updatedContentMembers(ctx, content, memberUpdates, addedMemberIds, updatedMemberIds, removedMemberIds)`: A content's members list was updated. The `ctx`, full `content` object of the updated content, and the hash of principalId -> role that outlines the changes that were made are provided, as well as arrays containing the ids of the added members, updated members and removed members that resulted from the change
- * * `updatedContentPreview(content)`: A content item's preview has been updated
+ * `createdComment(ctx, comment, content)`: A new comment was posted for a content item. The `ctx`, `comment` and commented `content` object are provided.
+ * `createdContent(ctx, content)`: A new content item was created. The `ctx` and the `content` object that was created are both provided.
+ * `deletedComment(ctx, comment, content, deleteType)`: An existing comment has been deleted on a content item. The `ctx`, `content` and target `comment` object are provided.
+ * `deletedContent(ctx, contentObj, members)`: A content item was deleted. The 'ctx', the deleted 'contentObj' and the list of authz principals that had this content item in their library
+ * `downloadedContent(ctx, content, revision)`: A content item was downloaded. The `ctx`, `content` and the `revision` are all provided.
+ * `editedCollabdoc(ctx, contentObj)`: A collaborative document was edited by a user without resulting in a new revision. This happens if the revision-creation was already triggered by another user leaving the document
+ * `editedCollabsheet(ctx, contentObj)`: A collaborative spreadsheet was edited by a user without resulting in a new revision. This happens if the revision-creation was already triggered by another user leaving the spreadsheet
+ * `getContentLibrary(ctx, principalId, visibility, start, limit, contentObjects)`: A content library was retrieved.
+ * `getContentProfile(ctx, content)`: A content profile was retrieved. The `ctx` and the `content` are both provided.
+ * `restoredContent(ctx, newContentObj, oldContentObj, restoredRevision)`: An older revision for a content item has been restored.
+ * `updatedContent(ctx, newContentObj, oldContentObj)`: A content item was updated. The `ctx`, the updated content object and the content before was updated are provided.
+ * `updatedContentBody(ctx, newContentObj, oldContentObj, revision)`: A content item's file body was updated. The `ctx` of the request, the `newContentObj` object after being updated, the `oldContentObj` object before the update, and the revision object.
+ * `updatedContentMembers(ctx, content, memberUpdates, addedMemberIds, updatedMemberIds, removedMemberIds)`: A content's members list was updated. The `ctx`, full `content` object of the updated content, and the hash of principalId -> role that outlines the changes that were made are provided, as well as arrays containing the ids of the added members, updated members and removed members that resulted from the change
+ * `updatedContentPreview(content)`: A content item's preview has been updated
  */
 const emitter = new EmitterAPI.EventEmitter();
 
@@ -134,6 +144,7 @@ const getFullContentProfile = function(ctx, contentId, callback) {
       if (err && err.code !== 401) {
         return callback(err);
       }
+
       if (err) {
         isManager = false;
       }
@@ -162,6 +173,7 @@ const _getFullContentProfile = function(ctx, contentObj, isManager, callback) {
     if (err) {
       return callback(err);
     }
+
     contentObj.createdBy = createdBy;
 
     // Check if the user can share this content item
@@ -170,6 +182,7 @@ const _getFullContentProfile = function(ctx, contentObj, isManager, callback) {
       if (err && err.code !== 401) {
         return callback(err);
       }
+
       if (err) {
         canShare = false;
       }
@@ -177,8 +190,11 @@ const _getFullContentProfile = function(ctx, contentObj, isManager, callback) {
       // Specify on the return value if the current user can share the content item
       contentObj.canShare = canShare;
 
-      // For any other than collabdoc, we simply return with the share information
-      if (contentObj.resourceSubType !== 'collabdoc') {
+      // For any other than collabdoc or collabsheet, we simply return with the share information
+      if (
+        !ContentUtils.isResourceACollabDoc(contentObj.resourceSubType) &&
+        !ContentUtils.isResourceACollabSheet(contentObj.resourceSubType)
+      ) {
         emitter.emit(ContentConstants.events.GET_CONTENT_PROFILE, ctx, contentObj);
         return callback(null, contentObj);
       }
@@ -194,6 +210,7 @@ const _getFullContentProfile = function(ctx, contentObj, isManager, callback) {
           if (err && err.code !== 401) {
             return callback(err);
           }
+
           if (err) {
             contentObj.isEditor = false;
           } else {
@@ -402,12 +419,14 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
       })
       .isMediumString();
   }
+
   if (file) {
     validator.check(file.size, { code: 400, msg: 'Missing size on the file object' }).notEmpty();
     validator.check(file.size, { code: 400, msg: 'Invalid size on the file object' }).isInt();
     validator.check(file.size, { code: 400, msg: 'Invalid size on the file object' }).min(0);
     validator.check(file.name, { code: 400, msg: 'Missing name on the file object' }).notEmpty();
   }
+
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -507,7 +526,7 @@ const createCollabDoc = function(ctx, displayName, description, visibility, addi
       ctx,
       contentId,
       revisionId,
-      'collabdoc',
+      COLLABDOC,
       displayName,
       description,
       visibility,
@@ -544,17 +563,82 @@ const createCollabDoc = function(ctx, displayName, description, visibility, addi
 };
 
 /**
+ * Create a collaborative sheet as a pooled content item
+ * @param  {Context} ctx                     Standard context object containing the current user and the current tenant
+ *
+ * @param  {String} displayName             The display name of the collaborative spreadsheet
+ * @param  {String} [description]           A longer description for the collaborative spreadsheet
+ * @param  {String} [visibility]            The visibility of the collaborative spreadsheet.One of`public`, `loggedin`, `private`
+ * @param  {Object} [additionalMembers]     Object where the keys represent principal ids that need to be added to the content upon creation and the values represent the role that principal will have.Possible values are "viewer", "editor" and "manager"
+ * @param  {String[]} [folders]               The ids of the folders to which this collaborative spreadsheet should be added
+ * @param  {Function} callback                Standard callback function* @param  { Object } callback.err            An error that occurred, if any
+ * @param  {Content} callback.content        The created collaborative spreadsheet
+ */
+const createCollabSheet = function(ctx, displayName, description, visibility, additionalMembers, folders, callback) {
+  callback = callback || function() {};
+
+  // Setting content to default if no visibility setting is provided
+  visibility = visibility || Config.getValue(ctx.tenant().alias, 'visibility', 'collabsheets');
+
+  const contentId = _generateContentId(ctx.tenant().alias);
+  const revisionId = _generateRevisionId(contentId);
+
+  Ethercalc.createRoom(contentId, function(err, roomId) {
+    if (err) {
+      return callback(err);
+    }
+
+    _createContent(
+      ctx,
+      contentId,
+      revisionId,
+      COLLABSHEET,
+      displayName,
+      description,
+      visibility,
+      additionalMembers,
+      folders,
+      { ethercalcRoomId: roomId },
+      {},
+      function(err, content, revision, memberChangeInfo) {
+        if (err) {
+          return callback(err);
+        }
+
+        content.ethercalcRoomId = roomId;
+
+        emitter.emit(
+          ContentConstants.events.CREATED_CONTENT,
+          ctx,
+          content,
+          revision,
+          memberChangeInfo,
+          folders,
+          function(err) {
+            if (err) {
+              return callback(_.first(err));
+            }
+
+            return callback(null, content);
+          }
+        );
+      }
+    );
+  });
+};
+
+/**
  * Create a new piece of pooled content
  *
  * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
  * @param  {String}         contentId           The id of the content item
  * @param  {Strign}         revisionId          The id of the revision for the content item
- * @param  {String}         resourceSubType     The content item type. One of `file`, `collabdoc`, `link`
+ * @param  {String}         resourceSubType     The content item type. One of `file`, `collabdoc`, `collabsheet`, `link`
  * @param  {String}         displayName         The display name of the content item
  * @param  {String}         [description]       A longer description for the content item
  * @param  {String}         visibility          The visibility of the collaborative document. One of `public`, `loggedin`, `private`
- * @param  {Object}         roles               Object where the keys represent principal ids that need to be added to the content upon creation and the values represent the role that principal will have. Possible values are "viewer" and "manager", as well as "editor" for collabdocs
- * @param  {String}         folders             The ids of the folders to which this content item should be added
+ * @param  {Object}         roles               Object where the keys represent principal ids that need to be added to the content upon creation and the values represent the role that principal will have. Possible values are "viewer" and "manager", as well as "editor" for collabdocs and collabsheets
+ * @param  {String}         folderIds             The ids of the folders to which this content item should be added
  * @param  {Object}         otherValues         JSON object where the keys represent other metadata values that need to be stored, and the values represent the metadata values
  * @param  {Object}         revisionData        JSON object where the keys represent revision columns that need to be stored, and the values represent the revision values
  * @param  {Function}       callback            Standard callback function
@@ -597,6 +681,7 @@ const _createContent = function(
       .check(description, { code: 400, msg: 'A description can only be 10000 characters long' })
       .isMediumString();
   }
+
   validator
     .check(visibility, {
       code: 400,
@@ -615,9 +700,10 @@ const _createContent = function(
 
   // Ensure all roles applied are valid. Editor is only valid for collabdocs
   const validRoles = [AuthzConstants.role.VIEWER, AuthzConstants.role.MANAGER];
-  if (resourceSubType === 'collabdoc') {
+  if (ContentUtils.isResourceACollabDoc(resourceSubType) || ContentUtils.isResourceACollabSheet(resourceSubType)) {
     validRoles.push(AuthzConstants.role.EDITOR);
   }
+
   _.each(roles, role => {
     validator
       .check(role, {
@@ -696,12 +782,11 @@ const canManageFolders = function(ctx, folderIds, callback) {
     return callback(validator.getFirstError());
   }
 
-  // Ensure that all the folders exist. We have to require the FoldersDAO
-  // inline as we'd get a dependency cycle otherwise
-  require('oae-folders/lib/internal/dao').getFoldersByIds(folderIds, (err, folders) => {
+  getFoldersByIds(folderIds, (err, folders) => {
     if (err) {
       return callback(err);
     }
+
     if (folders.length !== folderIds.length) {
       return callback({ code: 400, msg: 'One or more folders do not exist' });
     }
@@ -832,6 +917,7 @@ const handlePublish = function(data, callback) {
           if (err) {
             return callback(err);
           }
+
           if (
             Etherpad.isContentEqual(revision.etherpadHtml, html) ||
             (!revision.etherpadHtml && Etherpad.isContentEmpty(html))
@@ -899,14 +985,182 @@ const handlePublish = function(data, callback) {
 };
 
 /**
- * Join a collaborative document.
- * Only users who have manager permissions on the collaborative document can join the pad.
+ * Publish a collaborative spreadsheet. When a sheet is published the following happens:
+ *
+ *     -  The HTML for this room is retrieved
+ *     -  A new revision is created with this HTML
+ *     -  The content object is updated with this HTML
+ *     -  The content item gets bumped to the top of all the libraries it resides in
+ *     -  An `updatedContent` event is fired so activities and PP images can be generated
+ *
+ * Note that this function does *NOT* perform any permission checks. It's assumed that this
+ * function deals with messages coming from RabbitMQ. Producers of those messages are expected
+ * to perform the necessary permissions checks. In the typical case where Ethercalc is submitting
+ * edit messages, the authorization happens by virtue of the app server constructing a session
+ * in Ethercalc.
+ *
+ * @param  {Object}     data                The message as sent by Ethercalc
+ * @param  {String}     data.roomId         The id for the Ethercalc room that has been published
+ * @param  {String}     data.userId         The id of the user that published the document
+ * @param  {Function}   callback            Standard callback function
+ * @param  {Object}     callback.err        An error that occurred, if any
+ */
+const ethercalcPublish = function(data, callback) {
+  callback =
+    callback ||
+    function(err) {
+      if (err) {
+        log().error({ err, data }, 'Error handling ethercalc edit');
+      }
+    };
+
+  ContentDAO.Ethercalc.hasUserEditedSpreadsheet(data.contentId, data.userId, function(err, hasEdited) {
+    if (err) {
+      callback(err);
+    }
+
+    if (!hasEdited) {
+      // No edits have been made
+      return callback();
+    }
+
+    log().trace({ data }, 'Got an ethercalc edit');
+    ContentDAO.Content.getContent(data.contentId, function(err, contentObj) {
+      if (err) {
+        return callback(err);
+      }
+
+      const roomId = contentObj.ethercalcRoomId;
+      PrincipalsDAO.getPrincipal(data.userId, function(err, principal) {
+        if (err) {
+          return callback(err);
+        }
+
+        const ctx = Context.fromUser(principal);
+        Ethercalc.getHTML(roomId, function(err, html) {
+          if (err) {
+            return callback(err);
+          }
+
+          // Get the latest OAE revision and compare the html to what's in Ethercalc.
+          // We only need to create a new revision if there is an actual update
+          ContentDAO.Revisions.getRevision(contentObj.latestRevisionId, function(err, revision) {
+            if (err) {
+              return callback(err);
+            }
+
+            if (
+              Ethercalc.isContentEqual(revision.ethercalcHtml, html) ||
+              (!revision.ethercalcHtml && Ethercalc.isContentEmpty(html))
+            ) {
+              // Spreadsheet has had edits but content has not changed - no further action necessary
+              emitter.emit(ContentConstants.events.EDITED_COLLABSHEET, ctx, contentObj);
+
+              return callback();
+            }
+
+            // Otherwise we create a new revision
+            const newRevisionId = _generateRevisionId(contentObj.id);
+            Ethercalc.getRoom(roomId, function(err, snapshot) {
+              if (err) {
+                return callback(err);
+              }
+
+              ContentDAO.Revisions.createRevision(
+                newRevisionId,
+                contentObj.id,
+                data.userId,
+                {
+                  ethercalcHtml: html,
+                  ethercalcSnapshot: snapshot
+                },
+                function(err, revision) {
+                  if (err) {
+                    log().error(
+                      {
+                        err,
+                        contentId: contentObj.id
+                      },
+                      'Could not create a revision for this collaborative spreadsheet'
+                    );
+                    return callback({
+                      code: 500,
+                      msg: 'Could not create a revision for this collaborative spreadsheet'
+                    });
+                  }
+
+                  // eslint-disable-next-line no-unused-vars
+                  Ethercalc.getRoom(roomId, function(err, snapshot) {
+                    if (err) {
+                      log().error(
+                        {
+                          err,
+                          contentId: contentObj.id
+                        },
+                        'Failed to fetch Ethercalc snapshot for this collaborative spreadsheet'
+                      );
+                      return callback({
+                        code: 500,
+                        msg: 'Failed to fetch Ethercalc snapshot for this collaborative spreadsheet'
+                      });
+                    }
+
+                    // Update the content so we can easily retrieve it.
+                    // This will also bump the collabsheet to the top of the library lists
+                    ContentDAO.Content.updateContent(
+                      contentObj,
+                      {
+                        latestRevisionId: revision.revisionId
+                      },
+                      true,
+                      function(err, newContentObj) {
+                        if (err) {
+                          log().error(
+                            {
+                              err,
+                              contentId: contentObj.id
+                            },
+                            'Could not update the main content this collaborative spreadsheet'
+                          );
+                          return callback({
+                            code: 500,
+                            msg: 'Could not update this collaborative spreadsheet'
+                          });
+                        }
+
+                        // Add the revision on the content object so the UI doesn't have to do another request to get the HTML
+                        newContentObj.latestRevision = revision;
+                        // Emit an event for activities and preview processing
+                        emitter.emit(
+                          ContentConstants.events.UPDATED_CONTENT_BODY,
+                          ctx,
+                          newContentObj,
+                          contentObj,
+                          revision
+                        );
+                        return callback();
+                      }
+                    );
+                  });
+                }
+              );
+            });
+          });
+        });
+      });
+    });
+  });
+};
+
+/**
+ * Join a collaborative document or spreadsheet.
+ * Only users who have manager permissions on the collaborative document can join the pad/room
  *
  * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
- * @param  {String}     contentId       The ID of the collaborative document that should be joined
+ * @param  {String}     contentId       The ID of the collaborative document or spreadsheet that should be joined
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
- * @param  {Object}     callback.url    JSON object containing the url where the pad is accessible
+ * @param  {Object}     callback.url    JSON object containing the url where the pad/room is accessible
  */
 const joinCollabDoc = function(ctx, contentId, callback) {
   // Parameter validation
@@ -921,24 +1175,33 @@ const joinCollabDoc = function(ctx, contentId, callback) {
     if (err) {
       return callback(err);
     }
-    if (contentObj.resourceSubType !== 'collabdoc') {
-      return callback({ code: 400, msg: 'This is not a collaborative document' });
-    }
 
-    // Join the pad
-    Etherpad.joinPad(ctx, contentObj, (err, data) => {
-      if (err) {
-        return callback(err);
-      }
-
-      ContentDAO.Etherpad.saveAuthorId(data.author.authorID, ctx.user().id, err => {
+    if (ContentUtils.isResourceACollabDoc(contentObj.resourceSubType)) {
+      // Join the pad
+      Etherpad.joinPad(ctx, contentObj, (err, data) => {
         if (err) {
           return callback(err);
         }
 
-        return callback(null, { url: data.url });
+        ContentDAO.Etherpad.saveAuthorId(data.author.authorID, ctx.user().id, err => {
+          if (err) {
+            return callback(err);
+          }
+
+          return callback(null, { url: data.url });
+        });
       });
-    });
+    } else if (ContentUtils.isResourceACollabSheet(contentObj.resourceSubType)) {
+      Ethercalc.joinRoom(ctx, contentObj, function(err, data) {
+        if (err) {
+          return callback(err);
+        }
+
+        callback(null, data);
+      });
+    } else {
+      return callback({ code: 400, msg: 'This is not a collaborative document nor a spreadsheet' });
+    }
   });
 };
 
@@ -967,6 +1230,16 @@ const deleteContent = function(ctx, contentId, callback) {
     return callback(validator.getFirstError());
   }
 
+  const done = (ctx, contentObj, members, callback) => {
+    emitter.emit(ContentConstants.events.DELETED_CONTENT, ctx, contentObj, members, function(err) {
+      if (err) {
+        return callback(_.first(err));
+      }
+
+      return callback();
+    });
+  };
+
   // Fist check whether or not the current user is a manager of the piece of content
   _canManage(ctx, contentId, (err, contentObj) => {
     if (err) {
@@ -979,13 +1252,18 @@ const deleteContent = function(ctx, contentId, callback) {
         return callback(err);
       }
 
-      emitter.emit(ContentConstants.events.DELETED_CONTENT, ctx, contentObj, members, errs => {
-        if (errs) {
-          return callback(_.first(errs));
-        }
+      if (ContentUtils.isResourceACollabSheet(contentObj.resourceSubType)) {
+        Ethercalc.deleteRoom(contentObj.ethercalcRoomId, function(err) {
+          if (err) {
+            return callback(err);
+          }
 
-        return callback();
-      });
+          log().info({ contentId }, 'Deleted an Ethercalc room');
+          done(ctx, contentObj, members, callback);
+        });
+      } else {
+        done(ctx, contentObj, members, callback);
+      }
     });
   });
 };
@@ -1024,6 +1302,7 @@ const shareContent = function(ctx, contentId, principalIds, callback) {
       if (err) {
         return callback(err);
       }
+
       if (_.isEmpty(memberChangeInfo.changes)) {
         return callback();
       }
@@ -1117,11 +1396,15 @@ const setContentPermissions = function(ctx, contentId, changes, callback) {
       return callback(err);
     }
 
-    // Ensure all roles applied are valid. Editor is only valid for collabdocs
+    // Ensure all roles applied are valid. Editor is only valid for collabdocs and collabsheets
     const validRoles = [AuthzConstants.role.VIEWER, AuthzConstants.role.MANAGER];
-    if (content.resourceSubType === 'collabdoc') {
+    if (
+      ContentUtils.isResourceACollabDoc(content.resourceSubType) ||
+      ContentUtils.isResourceACollabSheet(content.resourceSubType)
+    ) {
       validRoles.push(AuthzConstants.role.EDITOR);
     }
+
     // eslint-disable-next-line no-unused-vars
     _.each(changes, (role, principalId) => {
       if (role !== false) {
@@ -1141,6 +1424,7 @@ const setContentPermissions = function(ctx, contentId, changes, callback) {
       if (err) {
         return callback(err);
       }
+
       if (_.isEmpty(memberChangeInfo.changes)) {
         return callback();
       }
@@ -1251,6 +1535,7 @@ const getContentMembersLibrary = function(ctx, contentId, start, limit, callback
       if (err) {
         return callback(err);
       }
+
       if (!hasAccess) {
         return callback({
           code: 401,
@@ -1263,6 +1548,7 @@ const getContentMembersLibrary = function(ctx, contentId, start, limit, callback
         if (err) {
           return callback(err);
         }
+
         if (_.isEmpty(memberIds)) {
           return callback(null, [], nextToken);
         }
@@ -1289,6 +1575,7 @@ const getContentMembersLibrary = function(ctx, contentId, start, limit, callback
                     role: memberRole
                   };
                 }
+
                 return null;
               })
               .compact()
@@ -1406,6 +1693,7 @@ const _updateFileBody = function(ctx, contentId, file, callback) {
     validator.check(file.size, { code: 400, msg: 'Invalid size on the file object.' }).min(0);
     validator.check(file.name, { code: 400, msg: 'Missing name on the file object.' }).notEmpty();
   }
+
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -1414,6 +1702,7 @@ const _updateFileBody = function(ctx, contentId, file, callback) {
     if (err) {
       return callback(err);
     }
+
     if (contentObj.resourceSubType !== 'file') {
       return callback({ code: 400, msg: 'This content object is not a file.' });
     }
@@ -1595,6 +1884,7 @@ const setPreviewItems = function(
           called = true;
           return cleanUpCallback(err);
         }
+
         if (todo === 0 && !called) {
           // All files have been stored, store the metadata and exit
           called = true;
@@ -1686,6 +1976,7 @@ const getSignedPreviewDownloadInfo = function(ctx, contentId, revisionId, previe
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
+
   if (!Signature.verifyExpiringResourceSignature(ctx, contentId, signatureData.expires, signatureData.signature)) {
     return callback({ code: 401, msg: 'Invalid content signature data for accessing previews' });
   }
@@ -1787,6 +2078,7 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
       validator.check(profileFields.link, { code: 400, msg: 'A valid link should be provided' }).isUrl();
     }
   }
+
   if (profileFields.visibility) {
     validator
       .check(profileFields.visibility, {
@@ -1795,6 +2087,7 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
       })
       .isIn(_.values(AuthzConstants.visibility));
   }
+
   validator
     .check(null, { code: 401, msg: 'You have to be logged in to be able to update a content item' })
     .isLoggedInUser(ctx);
@@ -1812,6 +2105,7 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
       if (oldContentObj.resourceSubType !== 'link') {
         return callback({ code: 400, msg: 'This piece of content is not a link' });
       }
+
       if (profileFields.link !== oldContentObj.link) {
         // Reset the previews object so we don't show the old preview items while the new link is still being processed
         profileFields.previews = { status: ContentConstants.previews.PENDING };
@@ -1990,6 +2284,7 @@ const deleteComment = function(ctx, contentId, commentCreatedDate, callback) {
       if (err) {
         return callback(err);
       }
+
       if (_.isEmpty(messages) || !messages[0]) {
         return callback({ code: 404, msg: 'The specified comment does not exist' });
       }
@@ -2041,6 +2336,7 @@ const _deleteComment = function(ctx, content, commentToDelete, callback) {
         // If a soft-delete occurred, we want to inform the consumer of the soft-delete message model
         return callback(null, deletedComment);
       }
+
       return callback();
     }
   );
@@ -2086,6 +2382,7 @@ const getContentLibraryItems = function(ctx, principalId, start, limit, callback
       if (err) {
         return callback(err);
       }
+
       if (!hasAccess) {
         return callback({ code: 401, msg: 'You do not have access to this library' });
       }
@@ -2237,6 +2534,7 @@ const getRevision = function(ctx, contentId, revisionId, callback) {
   if (revisionId) {
     validator.check(revisionId, { code: 400, msg: 'A valid revisionId must be provided' }).isResourceId();
   }
+
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -2271,6 +2569,7 @@ const getRevisionDownloadInfo = function(ctx, contentId, revisionId, callback) {
   if (revisionId) {
     validator.check(revisionId, { code: 400, msg: 'A valid revisionId must be provided' }).isResourceId();
   }
+
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -2280,6 +2579,7 @@ const getRevisionDownloadInfo = function(ctx, contentId, revisionId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (content.resourceSubType !== 'file') {
       return callback({ code: 400, msg: 'Only file content items can be downloaded' });
     }
@@ -2298,6 +2598,7 @@ const getRevisionDownloadInfo = function(ctx, contentId, revisionId, callback) {
       if (err) {
         return callback(err);
       }
+
       if (content.id !== revision.contentId) {
         // It's possible that the user specified a revision id that belonged to a different content item. Yikes!
         return callback({
@@ -2340,6 +2641,7 @@ const _getRevision = function(ctx, contentObj, revisionId, callback) {
         // Ex: Alice has access to c:cam:aliceDoc but not to c:cam:bobDoc which has revision rev:cam:foo
         // doing getRevision(ctx, 'c:cam:aliceDoc', 'rev:cam:foo', ..) should return this error.
       }
+
       if (revisionObj.contentId !== contentObj.id) {
         return callback({
           code: 400,
@@ -2356,6 +2658,7 @@ const _getRevision = function(ctx, contentObj, revisionId, callback) {
       if (err) {
         return callback(err);
       }
+
       if (_.isEmpty(revisions)) {
         return callback({ code: 404, msg: 'No revision found for ' + contentObj.id });
       }
@@ -2417,6 +2720,7 @@ const restoreRevision = function(ctx, contentId, revisionId, callback) {
       if (err) {
         return callback(err);
       }
+
       if (contentObj.id !== revision.contentId) {
         return callback({
           code: 400,
@@ -2432,10 +2736,10 @@ const restoreRevision = function(ctx, contentId, revisionId, callback) {
         }
 
         /*!
-           * We need to update the content item in the Content CF.
-           * We do so by copying all the non-standard fields from the revision
-           * to the Content CF.
-           */
+         * We need to update the content item in the Content CF.
+         * We do so by copying all the non-standard fields from the revision
+         * to the Content CF.
+         */
         const blacklist = [
           'revisionId',
           'contentId',
@@ -2463,7 +2767,7 @@ const restoreRevision = function(ctx, contentId, revisionId, callback) {
 
           // If this piece of content is a collaborative document,
           // we need to set the text in etherpad.
-          if (contentObj.resourceSubType === 'collabdoc') {
+          if (ContentUtils.isResourceACollabDoc(contentObj.resourceSubType)) {
             Etherpad.setHTML(contentObj.id, contentObj.etherpadPadId, revision.etherpadHtml, err => {
               if (err) {
                 return callback(err);
@@ -2523,6 +2827,7 @@ const _storePreview = function(ctx, previewReference, options, callback) {
     // to reference it
     return callback(null, 'remote:' + previewReference);
   }
+
   // Otherwise, it is expected to be a stream reference to a file on disk, in which case we want to store it
   // using the tenant default storage mechanism
   ContentUtil.getStorageBackend(ctx).store(ctx.tenant().alias, previewReference, options, callback);
@@ -2588,11 +2893,12 @@ const _generateRevisionId = function(contentId) {
   return AuthzUtil.toId('rev', tenantAlias, ShortId.generate());
 };
 
-module.exports = {
+export {
   getContent,
   getFullContentProfile,
   createLink,
   createFile,
+  createCollabSheet,
   createCollabDoc,
   handlePublish,
   joinCollabDoc,
@@ -2617,5 +2923,6 @@ module.exports = {
   getRevisionDownloadInfo,
   restoreRevision,
   verifySignedDownloadQueryString,
+  ethercalcPublish,
   emitter
 };

@@ -13,18 +13,20 @@
  * permissions and limitations under the License.
  */
 
-const SearchAPI = require('oae-search');
+import * as SearchAPI from 'oae-search';
+import generalSearch from './searches/general';
+import deletedSearch from './searches/deleted';
+import { queryBuilder, postProcessor } from './searches/email';
 
-module.exports = function(config, callback) {
-  // const { index, hosts } = config.search;
+export function init(config, callback) {
+  // Const { index, hosts } = config.search;
   const destroy = config.search.index.destroyOnStartup === true;
 
   // Register generic search endpoints
-  SearchAPI.registerSearch('general', require('./searches/general'));
-  SearchAPI.registerSearch('deleted', require('./searches/deleted'));
+  SearchAPI.registerSearch('general', generalSearch);
+  SearchAPI.registerSearch('deleted', deletedSearch);
 
-  const emailSearch = require('./searches/email');
-  SearchAPI.registerSearch('email', emailSearch.queryBuilder, emailSearch.postProcessor);
+  SearchAPI.registerSearch('email', queryBuilder, postProcessor);
 
   SearchAPI.refreshSearchConfiguration(config.search, err => {
     if (err) {
@@ -34,4 +36,4 @@ module.exports = function(config, callback) {
     // Build the index and seed the search schema
     return SearchAPI.buildIndex(destroy, callback);
   });
-};
+}

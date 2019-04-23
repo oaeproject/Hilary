@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-var _ = require('underscore');
-var userModel = require('oae-principals/lib/model.user.js');
-var groupModel = require('oae-principals/lib/model.group.js');
+import _ from 'underscore';
+import { User } from 'oae-principals/lib/model.user.js';
+import { Group } from 'oae-principals/lib/model.group.js';
 
 // Expose the user and group model.
-_.extend(module.exports, userModel, groupModel);
+export { User, Group };

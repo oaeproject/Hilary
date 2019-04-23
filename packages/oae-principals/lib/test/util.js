@@ -14,26 +14,27 @@
  */
 
 /* eslint-disable no-unused-vars */
-const assert = require('assert');
-const fs = require('fs');
-const util = require('util');
-const path = require('path');
-const _ = require('underscore');
+import assert from 'assert';
+import fs from 'fs';
+import util from 'util';
+import path from 'path';
+import _ from 'underscore';
 
-const AuthzAPI = require('oae-authz');
+import * as AuthzAPI from 'oae-authz';
 
-const AuthzUtil = require('oae-authz/lib/util');
-const ConfigTestsUtil = require('oae-config/lib/test/util');
-const EmailAPI = require('oae-email');
-const LibraryAPI = require('oae-library');
-const OaeUtil = require('oae-util/lib/util');
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
-const RestAPI = require('oae-rest');
-const SearchTestUtil = require('oae-search/lib/test/util');
-const TestsUtil = require('oae-tests/lib/util');
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as ConfigTestsUtil from 'oae-config/lib/test/util';
+import * as EmailAPI from 'oae-email';
+import * as LibraryAPI from 'oae-library';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as RestAPI from 'oae-rest';
+import * as SearchTestUtil from 'oae-search/lib/test/util';
+import * as TestsUtil from 'oae-tests/lib/util';
+import * as AuthzTestUtil from 'oae-authz/lib/test/util';
 
-const PrincipalsAPI = require('oae-principals');
-const PrincipalsDelete = require('oae-principals/lib/delete');
+import { emitter } from 'oae-principals';
+import * as PrincipalsDelete from 'oae-principals/lib/delete';
 
 /**
  * Import a batch of users from a CSV file. This function is a test utility function that wraps the REST API call and listens
@@ -48,7 +49,7 @@ const importUsers = function(restCtx, tenantAlias, csvGenerator, authenticationS
       return callback(err);
     }
 
-    PrincipalsAPI.emitter.once('postCSVUserImport', callback);
+    emitter.once('postCSVUserImport', callback);
   });
 };
 
@@ -484,7 +485,6 @@ const assertCreateGroupSucceeds = function(
   memberIds,
   callback
 ) {
-  const AuthzTestUtil = require('oae-authz/lib/test/util');
   assertGetMeSucceeds(restContext, me => {
     const roleChanges = _.extend(
       AuthzTestUtil.createRoleChange(managerIds, 'manager'),
@@ -504,7 +504,7 @@ const assertCreateGroupSucceeds = function(
         if (err) {
           return callback(err);
         }
-        const AuthzTestUtil = require('oae-authz/lib/test/util');
+
         // Ensure the members and managers are as we would expect for members and invitations
         assertGetAllMembersLibrarySucceeds(restContext, group.id, null, results => {
           AuthzTestUtil.assertMemberRolesEquals({}, roleChanges, AuthzTestUtil.getMemberRolesFromResults(results));
@@ -977,8 +977,6 @@ const assertUploadGroupPictureSucceeds = function(restCtx, groupId, opts, callba
  * @throws {AssertionError}                     Thrown if any of the assertions fail
  */
 const assertSetGroupMembersSucceeds = function(managerRestContext, actorRestContext, groupId, members, callback) {
-  const AuthzTestUtil = require('oae-authz/lib/test/util');
-
   assertGetAllMembersLibrarySucceeds(managerRestContext, groupId, null, results => {
     const memberRolesBefore = AuthzTestUtil.getMemberRolesFromResults(results);
     AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'group', groupId, result => {
@@ -1220,6 +1218,7 @@ const assertMembershipsLibrariesEquals = function(restCtx, expectedMemberships, 
   if (!_userIds) {
     return assertMembershipsLibrariesEquals(restCtx, expectedMemberships, callback, _.keys(expectedMemberships));
   }
+
   if (_.isEmpty(_userIds)) {
     return callback();
   }
@@ -2268,7 +2267,7 @@ const assertUpdateJoinGroupByRequestFails = function(restCtx, groupId, principal
   });
 };
 
-module.exports = {
+export {
   importUsers,
   addUserToAllGroups,
   updateAllGroups,

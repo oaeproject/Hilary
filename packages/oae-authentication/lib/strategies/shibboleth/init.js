@@ -13,23 +13,25 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const Cassandra = require('oae-util/lib/cassandra');
-const ConfigAPI = require('oae-config');
-const log = require('oae-logger').logger('oae-authentication');
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as ConfigAPI from 'oae-config';
+import { logger } from 'oae-logger';
 
-const AuthenticationAPI = require('oae-authentication');
+import * as AuthenticationAPI from 'oae-authentication';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants';
+import * as AuthenticationUtil from 'oae-authentication/lib/util';
 
-const AuthenticationConfig = ConfigAPI.config('oae-authentication');
-const { AuthenticationConstants } = require('oae-authentication/lib/constants');
-const AuthenticationUtil = require('oae-authentication/lib/util');
+import * as ShibbolethAPI from './api';
+import ShibbolethStrategy from './strategy';
 
-const ShibbolethAPI = require('./api');
-const ShibbolethStrategy = require('./strategy');
+const log = logger('oae-authentication');
 
-module.exports = function(config) {
+const AuthenticationConfig = ConfigAPI.setUpConfig('oae-authentication');
+
+export default function(config) {
   // Refresh the shibboleth configuration
   ShibbolethAPI.refreshConfiguration(config);
 
@@ -73,17 +75,9 @@ module.exports = function(config) {
         // any of the configurable attributes. Rather than relying on `mod_shib`'s `remote_user`
         // attribute, we rely on the configured list as it allows administrators to specify
         // attributes on a per-tenant basis. We use `remote_user` as the fall back value
-        const externalId = _getBestAttributeValue(
-          tenant.alias,
-          'externalIdAttributes',
-          headers,
-          headers.remote_user
-        );
+        const externalId = _getBestAttributeValue(tenant.alias, 'externalIdAttributes', headers, headers.remote_user);
         if (!externalId) {
-          log().error(
-            { headers, tenant },
-            'No suitable attribute was found for the `externalId` attribute'
-          );
+          log().error({ headers, tenant }, 'No suitable attribute was found for the `externalId` attribute');
           return callback({
             code: 500,
             msg: 'No suitable attribute was found for the `externalId` attribute'
@@ -93,12 +87,7 @@ module.exports = function(config) {
         // There are a lot of SAML attributes that may indicate a user's display name. The administrator
         // should provide a suitable priority list to construct the display name. If no suitable value was
         // returned from the mapping, we fall back to the `remote_user` attribute, as this is always provided
-        const displayName = _getBestAttributeValue(
-          tenant.alias,
-          'mapDisplayName',
-          headers,
-          headers.remote_user
-        );
+        const displayName = _getBestAttributeValue(tenant.alias, 'mapDisplayName', headers, headers.remote_user);
 
         // Set the optional profile parameters
         const opts = {
@@ -137,6 +126,7 @@ module.exports = function(config) {
 
               // There is no need to persist the metadata when the user account already exists
             }
+
             if (!created) {
               return callback(null, user);
             }
@@ -160,16 +150,16 @@ module.exports = function(config) {
             // We store extra information as it might be useful later on
             const metadata = {
               /*
-                     * The Shib persistent ID is a triple of:
-                     *    * The IdP's entity ID
-                     *    * The SP's entity ID
-                     *    * A randomly generated ID identifying the user
-                     *  e.g.: https://idp.testshib.org/idp/shibboleth!https://shib-sp.oae-performance.oaeproject.org/shibboleth!wjsKmFPZ7Kjml9HqD0Dbio5vzVo=
-                     *
-                     * This ID can be used with the IdP to retrieve profile attributes of the user or to check if that user
-                     * is still part of the organization. We store it for use it later on.
-                     * @see https://wiki.shibboleth.net/confluence/display/SHIB2/IdPPersistentNameIdentifier
-                     */
+               * The Shib persistent ID is a triple of:
+               *    * The IdP's entity ID
+               *    * The SP's entity ID
+               *    * A randomly generated ID identifying the user
+               *  e.g.: https://idp.testshib.org/idp/shibboleth!https://shib-sp.oae-performance.oaeproject.org/shibboleth!wjsKmFPZ7Kjml9HqD0Dbio5vzVo=
+               *
+               * This ID can be used with the IdP to retrieve profile attributes of the user or to check if that user
+               * is still part of the organization. We store it for use it later on.
+               * @see https://wiki.shibboleth.net/confluence/display/SHIB2/IdPPersistentNameIdentifier
+               */
               persistentId: headers['persistent-id'],
 
               // The entity ID of the IdP
@@ -179,12 +169,7 @@ module.exports = function(config) {
               affiliation: headers.affiliation,
               unscopedAffiliation: headers['unscoped-affiliation']
             };
-            const q = Cassandra.constructUpsertCQL(
-              'ShibbolethMetadata',
-              'loginId',
-              loginId,
-              metadata
-            );
+            const q = Cassandra.constructUpsertCQL('ShibbolethMetadata', 'loginId', loginId, metadata);
             if (!q) {
               log().error(
                 {
@@ -197,6 +182,7 @@ module.exports = function(config) {
               );
               return callback({ code: 500, msg: 'Unable to store Shibboleth metadata' });
             }
+
             Cassandra.runQuery(q.query, q.parameters, err => {
               if (err) {
                 return callback(err);
@@ -213,7 +199,7 @@ module.exports = function(config) {
 
   // Register our strategy
   AuthenticationAPI.registerStrategy(AuthenticationConstants.providers.SHIBBOLETH, strategy);
-};
+}
 
 /**
  * Get the value from the attribute that best matches a configured priority list

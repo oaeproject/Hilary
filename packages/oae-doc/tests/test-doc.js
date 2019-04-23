@@ -13,11 +13,11 @@
  * visibilitys and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const RestAPI = require('oae-rest');
-const TestsUtil = require('oae-tests');
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
 
 describe('Docs', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user
@@ -26,7 +26,7 @@ describe('Docs', () => {
   /**
    * Function that will fill up the global admin, tenant admin and anymous rest context
    */
-  before((callback) => {
+  before(callback => {
     // Fill up the anonymous cam rest context
     anonymousCamRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
     callback();
@@ -36,7 +36,7 @@ describe('Docs', () => {
     /**
      * Test that verifies that it is possible to get a list of all of the available modules
      */
-    it('verify get modules', (callback) => {
+    it('verify get modules', callback => {
       // Get the back-end modules
       RestAPI.Doc.getModules(anonymousCamRestContext, 'backend', (err, backendModules) => {
         assert.ok(!err);
@@ -58,11 +58,8 @@ describe('Docs', () => {
     /**
      * Test that verifies that validation is done appropriately
      */
-    it('verify validation', (callback) => {
-      RestAPI.Doc.getModules(anonymousCamRestContext, 'invalid module type', (
-        err,
-        modules
-      ) => {
+    it('verify validation', callback => {
+      RestAPI.Doc.getModules(anonymousCamRestContext, 'invalid module type', (err, modules) => {
         assert.strictEqual(err.code, 400);
         assert.ok(!modules);
 
@@ -75,90 +72,62 @@ describe('Docs', () => {
     /**
      * Test that verifies that the JSDocs for an existing module can be retrieved
      */
-    it('verify get module documentation', (callback) => {
+    it('verify get module documentation', callback => {
       // Get the documentation for a back-end module
-      RestAPI.Doc.getModuleDocumentation(anonymousCamRestContext, 'backend', 'oae-doc', (
-        err,
-        docs
-      ) => {
+      RestAPI.Doc.getModuleDocumentation(anonymousCamRestContext, 'backend', 'oae-doc', (err, docs) => {
         assert.ok(!err);
         assert.ok(docs);
         assert.ok(_.keys(docs).length);
         assert.ok(_.keys(docs['api.js']).length);
 
         // Get the documentation for a front-end module
-        RestAPI.Doc.getModuleDocumentation(
-          anonymousCamRestContext,
-          'frontend',
-          'oae.api.util.js',
-          (err, docs) => {
-            assert.ok(!err);
-            assert.ok(docs);
-            assert.ok(docs.length);
-            callback();
-          }
-        );
+        RestAPI.Doc.getModuleDocumentation(anonymousCamRestContext, 'frontend', 'oae.api.util.js', (err, docs) => {
+          assert.ok(!err);
+          assert.ok(docs);
+          assert.ok(docs.length);
+          callback();
+        });
       });
     });
 
     /**
      * Test that verifies that validation is done appropriately
      */
-    it('verify validation', (callback) => {
+    it('verify validation', callback => {
       // Get non-existing back-end module
-      RestAPI.Doc.getModuleDocumentation(
-        anonymousCamRestContext,
-        'backend',
-        'oae-non-existing',
-        (err, docs) => {
+      RestAPI.Doc.getModuleDocumentation(anonymousCamRestContext, 'backend', 'oae-non-existing', (err, docs) => {
+        assert.strictEqual(err.code, 404);
+        assert.ok(!docs);
+        // Get non-existing back-end module
+        RestAPI.Doc.getModuleDocumentation(anonymousCamRestContext, 'backend', 'oae.api.nonexisting', (err, docs) => {
           assert.strictEqual(err.code, 404);
           assert.ok(!docs);
-          // Get non-existing back-end module
-          RestAPI.Doc.getModuleDocumentation(
-            anonymousCamRestContext,
-            'backend',
-            'oae.api.nonexisting',
-            (err, docs) => {
+
+          // Get non-OAE back-end module
+          RestAPI.Doc.getModuleDocumentation(anonymousCamRestContext, 'backend', 'helenus', (err, docs) => {
+            assert.strictEqual(err.code, 404);
+            assert.ok(!docs);
+            // Get non-OAE front-end module
+            RestAPI.Doc.getModuleDocumentation(anonymousCamRestContext, 'frontend', 'test', (err, docs) => {
               assert.strictEqual(err.code, 404);
               assert.ok(!docs);
 
-              // Get non-OAE back-end module
+              // Get an invalid module type
               RestAPI.Doc.getModuleDocumentation(
                 anonymousCamRestContext,
-                'backend',
-                'helenus',
+                'invalid module type',
+                'oae.api.util.js',
                 (err, docs) => {
-                  assert.strictEqual(err.code, 404);
+                  assert.strictEqual(err.code, 400);
                   assert.ok(!docs);
-                  // Get non-OAE front-end module
-                  RestAPI.Doc.getModuleDocumentation(
-                    anonymousCamRestContext,
-                    'frontend',
-                    'test',
-                    (err, docs) => {
-                      assert.strictEqual(err.code, 404);
-                      assert.ok(!docs);
 
-                      // Get an invalid module type
-                      RestAPI.Doc.getModuleDocumentation(
-                        anonymousCamRestContext,
-                        'invalid module type',
-                        'oae.api.util.js',
-                        (err, docs) => {
-                          assert.strictEqual(err.code, 400);
-                          assert.ok(!docs);
-
-                          return callback();
-                        }
-                      );
-                    }
-                  );
+                  return callback();
                 }
               );
-            }
-          );
-        }
-      );
+            });
+          });
+        });
+      });
     });
   });
 });

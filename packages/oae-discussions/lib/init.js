@@ -14,18 +14,17 @@
  */
 
 /* eslint-disable no-unused-vars */
-const DiscussionsSearch = require('./search');
+import * as DiscussionsSearch from './search';
 
-module.exports = function(config, callback) {
+export function init(config, callback) {
   // Register the library functionality
   const library = require('./library');
 
   // Register the activity functionality
-
   const activity = require('./activity');
 
   // Register the invitations functionality
   const invitations = require('./invitations');
 
   return DiscussionsSearch.init(callback);
-};
+}

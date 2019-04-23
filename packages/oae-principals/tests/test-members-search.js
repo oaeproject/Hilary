@@ -13,23 +13,23 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const util = require('util');
-const _ = require('underscore');
+import assert from 'assert';
+import util from 'util';
+import _ from 'underscore';
 
-const AuthzUtil = require('oae-authz/lib/util');
-const RestAPI = require('oae-rest');
-const SearchTestsUtil = require('oae-search/lib/test/util');
-const TestsUtil = require('oae-tests');
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as RestAPI from 'oae-rest';
+import * as SearchTestsUtil from 'oae-search/lib/test/util';
+import * as TestsUtil from 'oae-tests';
 
 describe('Members Library Search', () => {
   /*!
-     * Get the document with the specified id from the search results.
-     *
-     * @param  {SearchResult}  results     The search results object
-     * @param  {String}        docId       The id of the document to search
-     * @return {Object}                    The search document. `null` if it didn't exist
-     */
+   * Get the document with the specified id from the search results.
+   *
+   * @param  {SearchResult}  results     The search results object
+   * @param  {String}        docId       The id of the document to search
+   * @return {Object}                    The search document. `null` if it didn't exist
+   */
   const _getDocById = function(results, docId) {
     for (let i = 0; i < results.results.length; i++) {
       const doc = results.results[i];
@@ -37,6 +37,7 @@ describe('Members Library Search', () => {
         return doc;
       }
     }
+
     return null;
   };
 
@@ -63,197 +64,177 @@ describe('Members Library Search', () => {
     gtAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.gt.host);
 
     /*!
-         * Creates the following variable setup for testing members search:
-         *
-         * Users:
-         *  privateUserMember:  A user with visibility 'private'. Is a member of all the target groups.
-         *  loggedinUserMember: A user with visibility 'loggedin'. Is a member of all the target groups.
-         *  publicUserMember:   A user with visibility 'public'. Is a member of all the target groups.
-         *
-         * Target Groups:
-         *  targetPublicGroup:      A group with visibility 'public' that will be a target of members search.
-         *  targetLoggedinGroup:    A group with visibility 'loggedin' that will be a target of members search.
-         *  targetPrivateGroup:     A group with visibility 'private' that will be a target of members search.
-         *
-         * Member Groups:
-         *  publicGroupMember:      A group with visibility 'public'. Is a member of all the target groups.
-         *  privateGroupMember:     A group with visibility 'private'. Is a member of all the target groups.
-         */
-    TestsUtil.generateTestUsers(
-      camAdminRestContext,
-      4,
-      (err, users, doer, publicUser, loggedinUser, privateUser) => {
+     * Creates the following variable setup for testing members search:
+     *
+     * Users:
+     *  privateUserMember:  A user with visibility 'private'. Is a member of all the target groups.
+     *  loggedinUserMember: A user with visibility 'loggedin'. Is a member of all the target groups.
+     *  publicUserMember:   A user with visibility 'public'. Is a member of all the target groups.
+     *
+     * Target Groups:
+     *  targetPublicGroup:      A group with visibility 'public' that will be a target of members search.
+     *  targetLoggedinGroup:    A group with visibility 'loggedin' that will be a target of members search.
+     *  targetPrivateGroup:     A group with visibility 'private' that will be a target of members search.
+     *
+     * Member Groups:
+     *  publicGroupMember:      A group with visibility 'public'. Is a member of all the target groups.
+     *  privateGroupMember:     A group with visibility 'private'. Is a member of all the target groups.
+     */
+    TestsUtil.generateTestUsers(camAdminRestContext, 4, (err, users, doer, publicUser, loggedinUser, privateUser) => {
+      assert.ok(!err);
+
+      doerRestContext = doer.restContext;
+      publicUserMember = publicUser.user;
+
+      const loggedinOpts = {
+        visibility: 'loggedin',
+        publicAlias: 'LoggedinHidden'
+      };
+      RestAPI.User.updateUser(loggedinUser.restContext, loggedinUser.user.id, loggedinOpts, (err, loggedinUser) => {
         assert.ok(!err);
+        loggedinUserMember = loggedinUser;
 
-        doerRestContext = doer.restContext;
-        publicUserMember = publicUser.user;
-
-        const loggedinOpts = {
-          visibility: 'loggedin',
-          publicAlias: 'LoggedinHidden'
+        const privateOpts = {
+          visibility: 'private',
+          publicAlias: 'PrivateHidden'
         };
-        RestAPI.User.updateUser(
-          loggedinUser.restContext,
-          loggedinUser.user.id,
-          loggedinOpts,
-          (err, loggedinUser) => {
-            assert.ok(!err);
-            loggedinUserMember = loggedinUser;
+        RestAPI.User.updateUser(privateUser.restContext, privateUser.user.id, privateOpts, (err, privateUser) => {
+          assert.ok(!err);
+          privateUserMember = privateUser;
 
-            const privateOpts = {
-              visibility: 'private',
-              publicAlias: 'PrivateHidden'
-            };
-            RestAPI.User.updateUser(
-              privateUser.restContext,
-              privateUser.user.id,
-              privateOpts,
-              (err, privateUser) => {
-                assert.ok(!err);
-                privateUserMember = privateUser;
+          RestAPI.Group.createGroup(
+            doerRestContext,
+            TestsUtil.generateTestUserId('targetPublicGroup'),
+            TestsUtil.generateTestUserId('targetPublicGroup'),
+            'public',
+            'no',
+            [],
+            [],
+            (err, _targetPublicGroup) => {
+              assert.ok(!err);
+              targetPublicGroup = _targetPublicGroup;
 
-                RestAPI.Group.createGroup(
-                  doerRestContext,
-                  TestsUtil.generateTestUserId('targetPublicGroup'),
-                  TestsUtil.generateTestUserId('targetPublicGroup'),
-                  'public',
-                  'no',
-                  [],
-                  [],
-                  (err, _targetPublicGroup) => {
-                    assert.ok(!err);
-                    targetPublicGroup = _targetPublicGroup;
+              RestAPI.Group.createGroup(
+                doerRestContext,
+                TestsUtil.generateTestUserId('targetLoggedinGroup'),
+                TestsUtil.generateTestUserId('targetLoggedinGroup'),
+                'loggedin',
+                'no',
+                [],
+                [],
+                (err, _targetLoggedinGroup) => {
+                  assert.ok(!err);
+                  targetLoggedinGroup = _targetLoggedinGroup;
 
-                    RestAPI.Group.createGroup(
-                      doerRestContext,
-                      TestsUtil.generateTestUserId('targetLoggedinGroup'),
-                      TestsUtil.generateTestUserId('targetLoggedinGroup'),
-                      'loggedin',
-                      'no',
-                      [],
-                      [],
-                      (err, _targetLoggedinGroup) => {
-                        assert.ok(!err);
-                        targetLoggedinGroup = _targetLoggedinGroup;
+                  RestAPI.Group.createGroup(
+                    doerRestContext,
+                    TestsUtil.generateTestUserId('targetPrivateGroup'),
+                    TestsUtil.generateTestUserId('targetPrivateGroup'),
+                    'private',
+                    'no',
+                    [],
+                    [],
+                    (err, _targetPrivateGroup) => {
+                      assert.ok(!err);
+                      targetPrivateGroup = _targetPrivateGroup;
 
-                        RestAPI.Group.createGroup(
-                          doerRestContext,
-                          TestsUtil.generateTestUserId('targetPrivateGroup'),
-                          TestsUtil.generateTestUserId('targetPrivateGroup'),
-                          'private',
-                          'no',
-                          [],
-                          [],
-                          (err, _targetPrivateGroup) => {
-                            assert.ok(!err);
-                            targetPrivateGroup = _targetPrivateGroup;
+                      RestAPI.Group.createGroup(
+                        doerRestContext,
+                        TestsUtil.generateTestUserId('publicGroupMemberAlias'),
+                        TestsUtil.generateTestUserId('publicGroupMemberAlias'),
+                        'public',
+                        'no',
+                        [],
+                        [],
+                        (err, _publicGroupMember) => {
+                          assert.ok(!err);
+                          publicGroupMember = _publicGroupMember;
 
-                            RestAPI.Group.createGroup(
-                              doerRestContext,
-                              TestsUtil.generateTestUserId('publicGroupMemberAlias'),
-                              TestsUtil.generateTestUserId('publicGroupMemberAlias'),
-                              'public',
-                              'no',
-                              [],
-                              [],
-                              (err, _publicGroupMember) => {
-                                assert.ok(!err);
-                                publicGroupMember = _publicGroupMember;
+                          RestAPI.Group.createGroup(
+                            doerRestContext,
+                            TestsUtil.generateTestUserId('privateGroupMemberAlias'),
+                            TestsUtil.generateTestUserId('privateGroupMemberAlias'),
+                            'private',
+                            'no',
+                            [],
+                            [],
+                            (err, _privateGroupMember) => {
+                              assert.ok(!err);
+                              privateGroupMember = _privateGroupMember;
 
-                                RestAPI.Group.createGroup(
-                                  doerRestContext,
-                                  TestsUtil.generateTestUserId('privateGroupMemberAlias'),
-                                  TestsUtil.generateTestUserId('privateGroupMemberAlias'),
-                                  'private',
-                                  'no',
-                                  [],
-                                  [],
-                                  (err, _privateGroupMember) => {
-                                    assert.ok(!err);
-                                    privateGroupMember = _privateGroupMember;
+                              const memberships = {};
+                              memberships[publicGroupMember.id] = 'member';
+                              memberships[privateGroupMember.id] = 'member';
+                              memberships[publicUserMember.id] = 'member';
+                              memberships[loggedinUserMember.id] = 'member';
+                              memberships[privateUserMember.id] = 'member';
 
-                                    const memberships = {};
-                                    memberships[publicGroupMember.id] = 'member';
-                                    memberships[privateGroupMember.id] = 'member';
-                                    memberships[publicUserMember.id] = 'member';
-                                    memberships[loggedinUserMember.id] = 'member';
-                                    memberships[privateUserMember.id] = 'member';
+                              // Set the members of the groups with the cam admin since they are the only ones with access to make the private
+                              // user a member
+                              RestAPI.Group.setGroupMembers(
+                                camAdminRestContext,
+                                targetPublicGroup.id,
+                                memberships,
+                                err => {
+                                  assert.ok(!err);
 
-                                    // Set the members of the groups with the cam admin since they are the only ones with access to make the private
-                                    // user a member
-                                    RestAPI.Group.setGroupMembers(
-                                      camAdminRestContext,
-                                      targetPublicGroup.id,
-                                      memberships,
-                                      err => {
-                                        assert.ok(!err);
+                                  RestAPI.Group.setGroupMembers(
+                                    camAdminRestContext,
+                                    targetLoggedinGroup.id,
+                                    memberships,
+                                    err => {
+                                      assert.ok(!err);
 
-                                        RestAPI.Group.setGroupMembers(
-                                          camAdminRestContext,
-                                          targetLoggedinGroup.id,
-                                          memberships,
-                                          err => {
-                                            assert.ok(!err);
-
-                                            RestAPI.Group.setGroupMembers(
-                                              camAdminRestContext,
-                                              targetPrivateGroup.id,
-                                              memberships,
-                                              err => {
-                                                assert.ok(!err);
-                                                return callback();
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
-      }
-    );
+                                      RestAPI.Group.setGroupMembers(
+                                        camAdminRestContext,
+                                        targetPrivateGroup.id,
+                                        memberships,
+                                        err => {
+                                          assert.ok(!err);
+                                          return callback();
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        });
+      });
+    });
   });
 
   /**
    * Test that verifies a user cannot search members of something that is not a valid group id or non-existing group
    */
   it('verify cannot search for invalid or non-existent group', callback => {
-    SearchTestsUtil.searchAll(
-      anonymousRestContext,
-      'members-library',
-      ['not-a-group-id'],
-      null,
-      (err, results) => {
-        assert.ok(err);
-        assert.strictEqual(err.code, 400);
-        assert.ok(!results);
+    SearchTestsUtil.searchAll(anonymousRestContext, 'members-library', ['not-a-group-id'], null, (err, results) => {
+      assert.ok(err);
+      assert.strictEqual(err.code, 400);
+      assert.ok(!results);
 
-        SearchTestsUtil.searchAll(
-          anonymousRestContext,
-          'members-library',
-          [util.format('g:%s:nonexistent-group-id', global.oaeTests.tenants.cam.alias)],
-          null,
-          (err, results) => {
-            assert.ok(err);
-            assert.strictEqual(err.code, 404);
-            assert.ok(!results);
-            return callback();
-          }
-        );
-      }
-    );
+      SearchTestsUtil.searchAll(
+        anonymousRestContext,
+        'members-library',
+        [util.format('g:%s:nonexistent-group-id', global.oaeTests.tenants.cam.alias)],
+        null,
+        (err, results) => {
+          assert.ok(err);
+          assert.strictEqual(err.code, 404);
+          assert.ok(!results);
+          return callback();
+        }
+      );
+    });
   });
 
   /**
@@ -383,14 +364,8 @@ describe('Members Library Search', () => {
                       assert.ok(publicGroupResult);
 
                       // Verify user visibility. Private should have their publicAlias swapped into the title
-                      assert.strictEqual(
-                        publicUserResult.displayName,
-                        publicUserMember.displayName
-                      );
-                      assert.strictEqual(
-                        loggedinUserResult.displayName,
-                        loggedinUserMember.displayName
-                      );
+                      assert.strictEqual(publicUserResult.displayName, publicUserMember.displayName);
+                      assert.strictEqual(loggedinUserResult.displayName, loggedinUserMember.displayName);
 
                       // There should be no extra right now because we haven't added extension properties
                       assert.ok(!loggedinUserResult.extra);
@@ -399,10 +374,7 @@ describe('Members Library Search', () => {
                       assert.strictEqual(loggedinUserResult.q_high, undefined);
                       assert.strictEqual(loggedinUserResult.q_low, undefined);
                       assert.strictEqual(loggedinUserResult.sort, undefined);
-                      assert.strictEqual(
-                        publicGroupResult.displayName,
-                        publicGroupMember.displayName
-                      );
+                      assert.strictEqual(publicGroupResult.displayName, publicGroupMember.displayName);
 
                       // Verify that the correct resourceTypes are set
                       assert.strictEqual(publicUserResult.resourceType, 'user');
@@ -453,14 +425,8 @@ describe('Members Library Search', () => {
                           assert.ok(publicGroupResult);
 
                           // Verify user visibility. Private should have their publicAlias swapped into the title
-                          assert.strictEqual(
-                            publicUserResult.displayName,
-                            publicUserMember.displayName
-                          );
-                          assert.strictEqual(
-                            loggedinUserResult.displayName,
-                            loggedinUserMember.displayName
-                          );
+                          assert.strictEqual(publicUserResult.displayName, publicUserMember.displayName);
+                          assert.strictEqual(loggedinUserResult.displayName, loggedinUserMember.displayName);
 
                           // There should be no extra right now because we haven't added extension properties
                           assert.ok(!loggedinUserResult.extra);
@@ -468,18 +434,9 @@ describe('Members Library Search', () => {
                           assert.strictEqual(loggedinUserResult.q_high, undefined);
                           assert.strictEqual(loggedinUserResult.q_low, undefined);
                           assert.strictEqual(loggedinUserResult.sort, undefined);
-                          assert.strictEqual(
-                            privateUserResult.displayName,
-                            privateUserMember.publicAlias
-                          );
-                          assert.strictEqual(
-                            publicGroupResult.displayName,
-                            publicGroupMember.displayName
-                          );
-                          assert.strictEqual(
-                            privateGroupResult.displayName,
-                            privateGroupMember.displayName
-                          );
+                          assert.strictEqual(privateUserResult.displayName, privateUserMember.publicAlias);
+                          assert.strictEqual(publicGroupResult.displayName, publicGroupMember.displayName);
+                          assert.strictEqual(privateGroupResult.displayName, privateGroupMember.displayName);
 
                           // Verify that the correct resourceTypes are set
                           assert.strictEqual(publicUserResult.resourceType, 'user');
@@ -591,14 +548,8 @@ describe('Members Library Search', () => {
                       assert.ok(publicGroupResult);
 
                       // Verify user visibility. Private should have their publicAlias swapped into the title
-                      assert.strictEqual(
-                        publicUserResult.displayName,
-                        publicUserMember.displayName
-                      );
-                      assert.strictEqual(
-                        loggedinUserResult.displayName,
-                        loggedinUserMember.displayName
-                      );
+                      assert.strictEqual(publicUserResult.displayName, publicUserMember.displayName);
+                      assert.strictEqual(loggedinUserResult.displayName, loggedinUserMember.displayName);
 
                       // There should be no extra right now because we haven't added extension properties
                       assert.ok(!loggedinUserResult.extra);
@@ -607,10 +558,7 @@ describe('Members Library Search', () => {
                       assert.strictEqual(loggedinUserResult.q_high, undefined);
                       assert.strictEqual(loggedinUserResult.q_low, undefined);
                       assert.strictEqual(loggedinUserResult.sort, undefined);
-                      assert.strictEqual(
-                        publicGroupResult.displayName,
-                        publicGroupMember.displayName
-                      );
+                      assert.strictEqual(publicGroupResult.displayName, publicGroupMember.displayName);
 
                       // Verify that the correct resourceTypes are set
                       assert.strictEqual(publicUserResult.resourceType, 'user');
@@ -662,14 +610,8 @@ describe('Members Library Search', () => {
                           assert.ok(publicGroupResult);
 
                           // Verify user visibility. Private should have their publicAlias swapped into the title
-                          assert.strictEqual(
-                            publicUserResult.displayName,
-                            publicUserMember.displayName
-                          );
-                          assert.strictEqual(
-                            loggedinUserResult.displayName,
-                            loggedinUserMember.displayName
-                          );
+                          assert.strictEqual(publicUserResult.displayName, publicUserMember.displayName);
+                          assert.strictEqual(loggedinUserResult.displayName, loggedinUserMember.displayName);
 
                           // There should be no extra right now because we haven't added extension properties
                           assert.ok(!loggedinUserResult.extra);
@@ -678,18 +620,9 @@ describe('Members Library Search', () => {
                           assert.strictEqual(loggedinUserResult.q_high, undefined);
                           assert.strictEqual(loggedinUserResult.q_low, undefined);
                           assert.strictEqual(loggedinUserResult.sort, undefined);
-                          assert.strictEqual(
-                            privateUserResult.displayName,
-                            privateUserMember.publicAlias
-                          );
-                          assert.strictEqual(
-                            publicGroupResult.displayName,
-                            publicGroupMember.displayName
-                          );
-                          assert.strictEqual(
-                            privateGroupResult.displayName,
-                            privateGroupMember.displayName
-                          );
+                          assert.strictEqual(privateUserResult.displayName, privateUserMember.publicAlias);
+                          assert.strictEqual(publicGroupResult.displayName, publicGroupMember.displayName);
+                          assert.strictEqual(privateGroupResult.displayName, privateGroupMember.displayName);
 
                           // Verify that the correct resourceTypes are set
                           assert.strictEqual(publicUserResult.resourceType, 'user');
@@ -812,14 +745,8 @@ describe('Members Library Search', () => {
                           assert.ok(publicGroupResult);
 
                           // Verify user visibility. Private should have their publicAlias swapped into the title
-                          assert.strictEqual(
-                            publicUserResult.displayName,
-                            publicUserMember.displayName
-                          );
-                          assert.strictEqual(
-                            loggedinUserResult.displayName,
-                            loggedinUserMember.displayName
-                          );
+                          assert.strictEqual(publicUserResult.displayName, publicUserMember.displayName);
+                          assert.strictEqual(loggedinUserResult.displayName, loggedinUserMember.displayName);
 
                           // There should be no extra right now because we haven't added extension properties
                           assert.ok(!loggedinUserResult.extra);
@@ -828,18 +755,9 @@ describe('Members Library Search', () => {
                           assert.strictEqual(loggedinUserResult.q_high, undefined);
                           assert.strictEqual(loggedinUserResult.q_low, undefined);
                           assert.strictEqual(loggedinUserResult.sort, undefined);
-                          assert.strictEqual(
-                            privateUserResult.displayName,
-                            privateUserMember.publicAlias
-                          );
-                          assert.strictEqual(
-                            publicGroupResult.displayName,
-                            publicGroupMember.displayName
-                          );
-                          assert.strictEqual(
-                            privateGroupResult.displayName,
-                            privateGroupMember.displayName
-                          );
+                          assert.strictEqual(privateUserResult.displayName, privateUserMember.publicAlias);
+                          assert.strictEqual(publicGroupResult.displayName, publicGroupMember.displayName);
+                          assert.strictEqual(privateGroupResult.displayName, privateGroupMember.displayName);
 
                           // Verify that the correct resourceTypes are set
                           assert.strictEqual(publicUserResult.resourceType, 'user');

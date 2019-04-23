@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const Cassandra = require('oae-util/lib/cassandra');
+import * as Cassandra from 'oae-util/lib/cassandra';
 
 /**
  * Get the list of followers of the specified user
@@ -144,15 +144,13 @@ const saveFollows = function(followerUserId, followedUserIds, callback) {
     queries.push(
       // Query that indicates the follower is following the user
       {
-        query:
-          'INSERT INTO "FollowingUsersFollowing" ("userId", "followingId", "value") VALUES (?, ?, ?)',
+        query: 'INSERT INTO "FollowingUsersFollowing" ("userId", "followingId", "value") VALUES (?, ?, ?)',
         parameters: [followerUserId, followedUserId, '1']
       },
 
       // Query that indicates the user is followed by the user
       {
-        query:
-          'INSERT INTO "FollowingUsersFollowers" ("userId", "followerId", "value") VALUES (?, ?, ?)',
+        query: 'INSERT INTO "FollowingUsersFollowers" ("userId", "followerId", "value") VALUES (?, ?, ?)',
         parameters: [followedUserId, followerUserId, '1']
       }
     );
@@ -198,10 +196,4 @@ const deleteFollows = function(followerUserId, followedUserIds, callback) {
   Cassandra.runBatchQuery(queries, callback);
 };
 
-module.exports = {
-  getFollowers,
-  getFollowing,
-  isFollowing,
-  saveFollows,
-  deleteFollows
-};
+export { getFollowers, getFollowing, isFollowing, saveFollows, deleteFollows };

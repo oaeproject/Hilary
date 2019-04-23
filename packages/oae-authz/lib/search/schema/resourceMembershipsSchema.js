@@ -24,11 +24,9 @@
  * @return {Object}     schema                      The resource memberships schema object
  *         {String[]}   schema.direct_memberships   A multi-value field that holds the direct parent group ids to which the resource is a member
  */
-module.exports = {
-  // eslint-disable-next-line camelcase
-  direct_memberships: {
-    type: 'string',
-    store: 'no',
-    index: 'not_analyzed'
-  }
+// eslint-disable-next-line camelcase
+export const direct_memberships = {
+  type: 'string',
+  store: 'no',
+  index: 'not_analyzed'
 };

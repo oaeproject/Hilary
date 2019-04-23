@@ -13,17 +13,17 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const ActivityAPI = require('oae-activity');
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const ActivityModel = require('oae-activity/lib/model');
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const AuthzUtil = require('oae-authz/lib/util');
+import * as ActivityAPI from 'oae-activity';
+import * as ActivityModel from 'oae-activity/lib/model';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as FollowingDAO from 'oae-following/lib/internal/dao';
+import * as FollowingAPI from 'oae-following';
 
-const FollowingAPI = require('oae-following');
-const { FollowingConstants } = require('oae-following/lib/constants');
-const FollowingDAO = require('oae-following/lib/internal/dao');
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import { ActivityConstants } from 'oae-activity/lib/constants';
+import { FollowingConstants } from 'oae-following/lib/constants';
 
 /// ///////////////////
 // FOLLOWING-FOLLOW //
@@ -85,32 +85,29 @@ FollowingAPI.emitter.on(FollowingConstants.events.FOLLOW, (ctx, followingUser, f
 /*!
  * Register a user association that presents all the followers of a user
  */
-ActivityAPI.registerActivityEntityAssociation(
-  'user',
-  'followers',
-  (associationsCtx, entity, callback) => {
-    // Get all the followers of the user
-    const userId = entity.user.id;
-    const userTenantAlias = entity.user.tenant.alias;
-    const userVisibility = entity.user.visibility;
+ActivityAPI.registerActivityEntityAssociation('user', 'followers', (associationsCtx, entity, callback) => {
+  // Get all the followers of the user
+  const userId = entity.user.id;
+  const userTenantAlias = entity.user.tenant.alias;
+  const userVisibility = entity.user.visibility;
 
-    // When a user is private, their followers are effectively no longer associated
-    if (userVisibility === AuthzConstants.visibility.PRIVATE) {
-      return callback(null, []);
+  // When a user is private, their followers are effectively no longer associated
+  if (userVisibility === AuthzConstants.visibility.PRIVATE) {
+    return callback(null, []);
+  }
+
+  FollowingDAO.getFollowers(userId, null, 10000, (err, followers) => {
+    if (err) {
+      return callback(err);
     }
 
-    FollowingDAO.getFollowers(userId, null, 10000, (err, followers) => {
-      if (err) {
-        return callback(err);
-      }
-      if (userVisibility === AuthzConstants.visibility.LOGGEDIN) {
-        // If the user is loggedin, only associate the user to followers that are within their tenant
-        followers = _.filter(followers, follower => {
-          return userTenantAlias === AuthzUtil.getPrincipalFromId(follower).tenantAlias;
-        });
-      }
+    if (userVisibility === AuthzConstants.visibility.LOGGEDIN) {
+      // If the user is loggedin, only associate the user to followers that are within their tenant
+      followers = _.filter(followers, follower => {
+        return userTenantAlias === AuthzUtil.getPrincipalFromId(follower).tenantAlias;
+      });
+    }
 
-      return callback(null, followers);
-    });
-  }
-);
+    return callback(null, followers);
+  });
+});

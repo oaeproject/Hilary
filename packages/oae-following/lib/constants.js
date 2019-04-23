@@ -31,4 +31,4 @@ FollowingConstants.search = {
   MAPPING_RESOURCE_FOLLOWING: 'resource_following'
 };
 
-module.exports = { FollowingConstants };
+export { FollowingConstants };

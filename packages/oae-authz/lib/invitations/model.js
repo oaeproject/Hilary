@@ -42,6 +42,4 @@ Invitation.fromHash = function(hash, resource, inviterUser) {
   return new Invitation(resource, hash.email, inviterUser, hash.role);
 };
 
-module.exports = {
-  Invitation
-};
+export { Invitation };

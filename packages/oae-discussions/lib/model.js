@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
+import util from 'util';
 
-const AuthzUtil = require('oae-authz/lib/util');
+import * as AuthzUtil from 'oae-authz/lib/util';
 
 /**
  * A model object that represents a discussion object.
@@ -30,16 +30,7 @@ const AuthzUtil = require('oae-authz/lib/util');
  * @param  {Number}         lastModified    The timestamp (millis since epoch) at which the discussion was last modified (or received the last message)
  * @return {Discussion}                     The discussion with the data provided
  */
-const Discussion = function(
-  tenant,
-  id,
-  createdBy,
-  displayName,
-  description,
-  visibility,
-  created,
-  lastModified
-) {
+const Discussion = function(tenant, id, createdBy, displayName, description, visibility, created, lastModified) {
   const { resourceId } = AuthzUtil.getResourceFromId(id);
   const that = {};
   that.tenant = tenant;
@@ -55,4 +46,4 @@ const Discussion = function(
   return that;
 };
 
-module.exports = { Discussion };
+export { Discussion };

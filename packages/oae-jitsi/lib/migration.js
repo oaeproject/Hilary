@@ -1,4 +1,4 @@
-const Cassandra = require('oae-util/lib/cassandra');
+import { createColumnFamilies } from 'oae-util/lib/cassandra';
 
 /**
  * Ensure that all of the meeting-related schemas are created. If they already exist, this method will not do anything.
@@ -8,7 +8,7 @@ const Cassandra = require('oae-util/lib/cassandra');
  * @api private
  */
 const ensureSchema = function(callback) {
-  Cassandra.createColumnFamilies(
+  createColumnFamilies(
     {
       MeetingsJitsi:
         'CREATE TABLE "MeetingsJitsi" ("id" text PRIMARY KEY, "tenantAlias" text, "displayName" text, "visibility" text, "description" text, "createdBy" text, "created" text, "lastModified" text, "chat" boolean, "contactList" boolean)'
@@ -17,4 +17,4 @@ const ensureSchema = function(callback) {
   );
 };
 
-module.exports = { ensureSchema };
+export { ensureSchema };

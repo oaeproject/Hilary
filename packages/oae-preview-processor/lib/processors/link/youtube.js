@@ -13,14 +13,16 @@
  * permissions and limitations under the License.
  */
 
-const url = require('url');
-const Youtube = require('youtube-api');
+import url from 'url';
+import Youtube from 'youtube-api';
+import { logger } from 'oae-logger';
+import { setUpConfig } from 'oae-config';
 
-const log = require('oae-logger').logger('oae-preview-processor');
+import * as LinkProcessorUtil from 'oae-preview-processor/lib/processors/link/util';
+import * as PreviewUtil from 'oae-preview-processor/lib/util';
 
-const LinkProcessorUtil = require('oae-preview-processor/lib/processors/link/util');
-const PreviewConfig = require('oae-config').config('oae-preview-processor');
-const PreviewUtil = require('oae-preview-processor/lib/util');
+const log = logger('oae-preview-processor');
+const PreviewConfig = setUpConfig('oae-preview-processor');
 
 const YOUTUBE_FULL_REGEX = /^http(s)?:\/\/(www\.)?youtube\.com\/watch/;
 const YOUTUBE_SHORT_REGEX = /^http(s)?:\/\/youtu.be\/(.+)/;
@@ -44,6 +46,7 @@ const test = function(ctx, contentObj, callback) {
   if (YOUTUBE_FULL_REGEX.test(contentObj.link) || YOUTUBE_SHORT_REGEX.test(contentObj.link)) {
     return callback(null, 10);
   }
+
   return callback(null, -1);
 };
 
@@ -109,15 +112,14 @@ const _getId = function(link) {
 
     // The short link has it as its path
   }
+
   if (parsedUrl.hostname === 'youtu.be') {
     return parsedUrl.pathname.substr(1);
 
     // Although not really possible, but we return null in all other cases
   }
+
   return null;
 };
 
-module.exports = {
-  test,
-  generatePreviews
-};
+export { test, generatePreviews };

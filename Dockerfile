@@ -26,14 +26,41 @@
 # $ docker run -it --name=hilary --net=host oae-hilary:latest
 #
 
-FROM oaeproject/oae-hilary-deps-docker:v0.4
+FROM node:10-alpine
 
 LABEL Name=OAE-Hilary
 LABEL Author=ApereoFoundation
 LABEL Email=oae@apereo.org
 
+RUN apk --update --no-cache add \
+    git \
+		python \
+    ghostscript \
+    graphicsmagick
+
+# Installs the 3.8 Chromium package.
+RUN apk update && apk upgrade && \
+    echo @3.8 http://nl.alpinelinux.org/alpine/v3.8/community >> /etc/apk/repositories && \
+    echo @3.8 http://nl.alpinelinux.org/alpine/v3.8/main >> /etc/apk/repositories && \
+    apk add --no-cache \
+      chromium@3.8 \
+      nss@3.8 \
+      freetype@3.8 \
+      harfbuzz@3.8 \
+      ttf-freefont@3.8
+
+# Tell Puppeteer to skip installing Chrome. We'll be using the installed package.
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
+
+# Install libreoffice
+RUN apk add --no-cache libreoffice openjdk8-jre
+
+# install nodegit
+RUN apk --update --no-cache add build-base libgit2-dev
+RUN ln -s /usr/lib/libcurl.so.4 /usr/lib/libcurl-gnutls.so.4
+
 # Set the base directory
-ENV HILARY_DIR usr/src/Hilary
+ENV HILARY_DIR /usr/src/Hilary
 RUN mkdir -p ${HILARY_DIR} \
     && chown -R node:node ${HILARY_DIR} \
     && chmod -R 755 ${HILARY_DIR}

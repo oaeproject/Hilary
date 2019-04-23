@@ -13,14 +13,16 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
 
-const EmitterAPI = require('oae-emitter');
-const Locking = require('oae-util/lib/locking');
-const log = require('oae-logger').logger('oae-telemetry');
-const OaeUtil = require('oae-util/lib/util');
-const Redis = require('oae-util/lib/redis');
+import * as EmitterAPI from 'oae-emitter';
+import * as Locking from 'oae-util/lib/locking';
+import { logger } from 'oae-logger';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as Redis from 'oae-util/lib/redis';
+
+const log = logger('oae-telemetry');
 
 let telemetryConfig = null;
 
@@ -39,6 +41,7 @@ let resetIntervalId = null;
  *  * `publish(data)` - Indicates that data was just published to a telemetry publisher. The data that was published is provided in the event
  */
 const TelemetryAPI = new EmitterAPI.EventEmitter();
+const emitter = TelemetryAPI;
 
 /**
  * Initializes the Telemetry API so that it can start accepting and publishing metrics to an
@@ -67,10 +70,7 @@ const init = function(_telemetryConfig, callback) {
       }
 
       // Begin the publish and reset intervals
-      publishIntervalId = setInterval(
-        _publishTelemetryData,
-        telemetryConfig.publishInterval * 1000
-      );
+      publishIntervalId = setInterval(_publishTelemetryData, telemetryConfig.publishInterval * 1000);
       resetIntervalId = setInterval(_resetTelemetryCounts, telemetryConfig.resetInterval * 1000);
 
       return callback();
@@ -274,6 +274,7 @@ const _resetTelemetryCounts = function(callback) {
       log().error({ err }, 'Error acquiring lock to reset telemetry data');
       return callback();
     }
+
     if (!token) {
       // We didn't acquire the lock, so don't bother resetting
       return callback();
@@ -338,31 +339,28 @@ const _pushCountsToRedis = function(callback) {
  */
 const _lockAndGetCounts = function(callback) {
   // Try and fetch the lock for the duration of the publishing interval
-  Locking.acquire(
-    _getTelemetryCountPublishLock(),
-    telemetryConfig.publishInterval,
-    (err, token) => {
-      if (err) {
-        log().error({ err }, 'Error acquiring lock to publish telemetry counts');
-        return callback();
-      }
-      if (!token) {
-        // We didn't acquire the lock, so don't bother with the counts
-        return callback();
-      }
-
-      // Fetch the full counts hash in redis
-      _getCounts((err, countsHash) => {
-        if (err) {
-          return callback();
-        }
-
-        // We return without releasing the lock, because the expiry of the lock managers the collection interval, so that if another application
-        // server tries to collect 1 second after this, they will fail to get the lock
-        return callback(countsHash);
-      });
+  Locking.acquire(_getTelemetryCountPublishLock(), telemetryConfig.publishInterval, (err, token) => {
+    if (err) {
+      log().error({ err }, 'Error acquiring lock to publish telemetry counts');
+      return callback();
     }
-  );
+
+    if (!token) {
+      // We didn't acquire the lock, so don't bother with the counts
+      return callback();
+    }
+
+    // Fetch the full counts hash in redis
+    _getCounts((err, countsHash) => {
+      if (err) {
+        return callback();
+      }
+
+      // We return without releasing the lock, because the expiry of the lock managers the collection interval, so that if another application
+      // server tries to collect 1 second after this, they will fail to get the lock
+      return callback(countsHash);
+    });
+  });
 };
 
 /**
@@ -529,11 +527,4 @@ const _getTelemetryCountKeyParts = function(telemetryCountKey) {
   };
 };
 
-module.exports = {
-  emitter: TelemetryAPI,
-  init,
-  telemetry,
-  request,
-  reset,
-  getTelemetryData
-};
+export { emitter, init, telemetry, request, reset, getTelemetryData };

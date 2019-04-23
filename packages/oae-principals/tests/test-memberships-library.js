@@ -13,19 +13,18 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const AuthzUtil = require('oae-authz/lib/util');
-const Cassandra = require('oae-util/lib/cassandra');
-const LibraryAPI = require('oae-library');
-const RestAPI = require('oae-rest');
-const { SearchConstants } = require('oae-search/lib/constants');
-const SearchTestsUtil = require('oae-search/lib/test/util');
-const TestsUtil = require('oae-tests');
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as LibraryAPI from 'oae-library';
+import * as RestAPI from 'oae-rest';
+import * as SearchTestsUtil from 'oae-search/lib/test/util';
+import * as TestsUtil from 'oae-tests';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
 
-const { PrincipalsConstants } = require('oae-principals/lib/constants');
-const PrincipalsTestUtil = require('oae-principals/lib/test/util');
+import { PrincipalsConstants } from 'oae-principals/lib/constants';
 
 describe('Memberships Library', () => {
   // REST contexts we can use to do REST requests
@@ -582,12 +581,12 @@ describe('Memberships Library', () => {
 
   describe('Search', () => {
     /*!
-         * Get the document with the specified id from the search results.
-         *
-         * @param  {SearchResult}  results     The search results object
-         * @param  {String}        docId       The id of the document to search
-         * @return {Object}                    The search document. `null` if it didn't exist
-         */
+     * Get the document with the specified id from the search results.
+     *
+     * @param  {SearchResult}  results     The search results object
+     * @param  {String}        docId       The id of the document to search
+     * @return {Object}                    The search document. `null` if it didn't exist
+     */
     const _getDocById = function(results, docId) {
       for (let i = 0; i < results.results.length; i++) {
         const doc = results.results[i];
@@ -595,6 +594,7 @@ describe('Memberships Library', () => {
           return doc;
         }
       }
+
       return null;
     };
 

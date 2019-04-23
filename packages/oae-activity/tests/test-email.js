@@ -15,26 +15,24 @@
 
 /* eslint-disable no-unused-vars */
 
-const assert = require('assert');
-const util = require('util');
-const $ = require('cheerio');
-const _ = require('underscore');
-
-const ConfigTestUtil = require('oae-config/lib/test/util');
-const ContentTestUtil = require('oae-content/lib/test/util');
-const EmailTestUtil = require('oae-email/lib/test/util');
-const PrincipalsTestUtil = require('oae-principals/lib/test/util');
-const RestAPI = require('oae-rest');
-const Sanitization = require('oae-util/lib/sanitization');
-const TenantsTestUtil = require('oae-tenants/lib/test/util');
-const TestsUtil = require('oae-tests');
-const TZ = require('oae-util/lib/tz');
-
-const ActivityAPI = require('oae-activity');
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const ActivityEmail = require('oae-activity/lib/internal/email');
-const ActivitySystemConfig = require('oae-activity/lib/internal/config');
-const ActivityTestUtil = require('oae-activity/lib/test/util');
+import assert from 'assert';
+import util from 'util';
+import $ from 'cheerio';
+import _ from 'underscore';
+import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as ContentTestUtil from 'oae-content/lib/test/util';
+import * as EmailTestUtil from 'oae-email/lib/test/util';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as Sanitization from 'oae-util/lib/sanitization';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import * as TestsUtil from 'oae-tests';
+import * as TZ from 'oae-util/lib/tz';
+import * as ActivityAPI from 'oae-activity';
+import { ActivityConstants } from 'oae-activity/lib/constants';
+import * as ActivityEmail from 'oae-activity/lib/internal/email';
+import * as ActivitySystemConfig from 'oae-activity/lib/internal/config';
+import * as ActivityTestUtil from 'oae-activity/lib/test/util';
 
 describe('Activity Email', () => {
   // Rest contexts that can be used every time we need to make a request as an admin
@@ -93,6 +91,7 @@ describe('Activity Email', () => {
     } else {
       dailyHour = now.getHours() + 5;
     }
+
     dailyHour %= 24;
 
     let weeklyHour = null;
@@ -808,6 +807,7 @@ describe('Activity Email', () => {
         if (userIds.length === 24) {
           return allTenantsCreated();
         }
+
         // Create a tenant
         const alias = TenantsTestUtil.generateTestTenantAlias();
         const host = TenantsTestUtil.generateTestTenantHost();

@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const GroupAPI = require('./api.group');
-const PictureAPI = require('./api.picture');
-const TermsAndConditionsAPI = require('./api.termsAndConditions');
-const UserAPI = require('./api.user');
+import * as GroupAPI from './api.group';
+import * as PictureAPI from './api.picture';
+import * as TermsAndConditionsAPI from './api.termsAndConditions';
+import * as UserAPI from './api.user';
 
 /**
  * ### Events
@@ -38,10 +38,10 @@ const UserAPI = require('./api.user');
  * * `joinedGroup(ctx, group, role)`: A user joined a group. The `ctx`, `group` object that was joined, and the `role` of the user that they joined as.
  * * `leftGroup(ctx, group, role)`: A user left a group. The `ctx` and `group` object that was left are provided as well as the `role` they had before they left.
  */
-const PrincipalsAPI = require('./internal/emitter');
+import PrincipalsAPI from './internal/emitter';
 
-module.exports = { emitter: PrincipalsAPI };
-
+const allExports = {};
 // This file would become unmaintainable if all the logic would be placed here.
 // That's why we split them up in a couple of files of which the api logic gets exported.
-_.extend(module.exports, GroupAPI, PictureAPI, TermsAndConditionsAPI, UserAPI);
+export default _.extend(allExports, GroupAPI, PictureAPI, TermsAndConditionsAPI, UserAPI);
+export { PrincipalsAPI as emitter };

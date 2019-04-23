@@ -13,8 +13,10 @@
  * permissions and limitations under the License.
  */
 
-const Server = require('oae-util/lib/server');
-const TenantsConfig = require('oae-config').config('oae-tenants');
+import * as Server from 'oae-util/lib/server';
+import { setUpConfig } from 'oae-config';
+
+const TenantsConfig = setUpConfig('oae-tenants');
 
 /**
  * Determine whether or not the given context represents a session that is authenticated to the specified tenant.
@@ -85,10 +87,4 @@ const getBaseUrl = function(tenant) {
   return protocol + '://' + tenant.host;
 };
 
-module.exports = {
-  isLoggedIn,
-  isPrivate,
-  canInteract,
-  canInviteGuests,
-  getBaseUrl
-};
+export { isLoggedIn, isPrivate, canInteract, canInviteGuests, getBaseUrl };

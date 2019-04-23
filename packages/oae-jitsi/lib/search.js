@@ -13,18 +13,20 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
+import { logger } from 'oae-logger';
 
-const AuthzUtil = require('oae-authz/lib/util');
-const log = require('oae-logger').logger('meeting-jitsi-search');
-const MessageBoxSearch = require('oae-messagebox/lib/search');
-const SearchAPI = require('oae-search');
-const TenantsAPI = require('oae-tenants');
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as MessageBoxSearch from 'oae-messagebox/lib/search';
+import * as SearchAPI from 'oae-search';
+import * as TenantsAPI from 'oae-tenants';
+import * as MeetingsAPI from 'oae-jitsi';
+import * as MeetingsDAO from 'oae-jitsi/lib/internal/dao';
 
-const MeetingsAPI = require('oae-jitsi');
-const { MeetingsConstants } = require('oae-jitsi/lib/constants');
-const MeetingsDAO = require('oae-jitsi/lib/internal/dao');
+import { MeetingsConstants } from 'oae-jitsi/lib/constants';
+
+const log = logger('meeting-jitsi-search');
 
 /**
  * Initializes the child search documents for the meeting module
@@ -99,6 +101,7 @@ const _produceMeetingSearchDocuments = function(resources, callback) {
     if (err) {
       return callback([err]);
     }
+
     if (_.isEmpty(meetings)) {
       return callback();
     }
@@ -284,21 +287,18 @@ MeetingsAPI.emitter.on(MeetingsConstants.events.DELETED_MEETING, (ctx, meeting) 
 /**
  * When a message is added to a meeting, we must index the child message document
  */
-MeetingsAPI.emitter.on(
-  MeetingsConstants.events.CREATED_MEETING_MESSAGE,
-  (ctx, message, meeting) => {
-    const resource = {
-      id: meeting.id,
-      messages: [message]
-    };
+MeetingsAPI.emitter.on(MeetingsConstants.events.CREATED_MEETING_MESSAGE, (ctx, message, meeting) => {
+  const resource = {
+    id: meeting.id,
+    messages: [message]
+  };
 
-    SearchAPI.postIndexTask('meeting-jitsi', [resource], {
-      children: {
-        'meeting-jitsi_message': true
-      }
-    });
-  }
-);
+  SearchAPI.postIndexTask('meeting-jitsi', [resource], {
+    children: {
+      'meeting-jitsi_message': true
+    }
+  });
+});
 
 /**
  * When a meeting message is deleted, we must delete the child message document
@@ -322,12 +322,12 @@ MeetingsAPI.emitter.on(
 
 SearchAPI.registerReindexAllHandler('meeting-jitsi', callback => {
   /*
-     * Handles each iteration of the MeetingDAO iterate all method, firing tasks for all meetings to
-     * be reindexed.
-     *
-     * @see MeetingDAO#iterateAll
-     * @api private
-     */
+   * Handles each iteration of the MeetingDAO iterate all method, firing tasks for all meetings to
+   * be reindexed.
+   *
+   * @see MeetingDAO#iterateAll
+   * @api private
+   */
   const _onEach = function(meetingRows, done) {
     // Batch up this iteration of task resources
     const meetingResources = [];
@@ -346,6 +346,4 @@ SearchAPI.registerReindexAllHandler('meeting-jitsi', callback => {
   MeetingsDAO.iterateAll(['id'], 100, _onEach, callback);
 });
 
-module.exports = {
-  init
-};
+export { init };

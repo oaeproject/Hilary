@@ -13,12 +13,14 @@
  * permissions and limitations under the License.
  */
 
-const fs = require('fs');
-const log = require('oae-logger').logger('oae-ui-init');
-const UIAPI = require('./api');
+import { realpathSync } from 'fs';
+import { logger } from 'oae-logger';
+import * as UIAPI from './api';
 
-module.exports = function(config, callback) {
-  const uiDirectory = fs.realpathSync(config.ui.path);
+const log = logger('oae-ui-init');
+
+export const init = function(config, callback) {
+  const uiDirectory = realpathSync(config.ui.path);
   // The hashes.json file can be found in the root folder of the optimized build folder
   const hashesPath = uiDirectory + '/hashes.json';
 

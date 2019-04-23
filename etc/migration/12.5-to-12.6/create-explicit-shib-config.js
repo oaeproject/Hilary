@@ -70,7 +70,7 @@ const configKey = 'oae-authentication/shibboleth/externalIdAttributes';
 const currentDefault = 'eppn persistent-id targeted-id';
 
 function _filterTenants(tenants, callback) {
-  const AuthenticationConfig = ConfigAPI.config('oae-authentication');
+  const AuthenticationConfig = ConfigAPI.setUpConfig('oae-authentication');
   const tenantsWithShibEnabled = [];
 
   // We only want the tenancies with Shibboleth enabled...

@@ -22,10 +22,9 @@
  * This should only be used during unit tests and *NEVER* in production.
  */
 
-
-const { DownloadStrategy}  = require('../model');
-const BackendUtil = require('./util');
-const LocalStorage = require('./local');
+import { DownloadStrategy } from '../model';
+import * as BackendUtil from './util';
+import * as LocalStorage from './local';
 
 /**
  * @borrows Interface.store as TestStorageBackend.store
@@ -54,6 +53,7 @@ const get = function(tenantAlias, uri, callback) {
 const remove = function(tenantAlias, uri, callback) {
   LocalStorage.remove(tenantAlias, uri, callback);
 };
+
 /**
  * @borrows Interface.getDownloadStrategy as TestStorageBackend.getDownloadStrategy
  */
@@ -62,9 +62,4 @@ const getDownloadStrategy = function(tenantAlias, uri) {
   return new DownloadStrategy('test', file);
 };
 
-module.exports = {
-  store,
-  get,
-  remove,
-  getDownloadStrategy
-};
+export { store, get, remove, getDownloadStrategy };

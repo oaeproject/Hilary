@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-const { AuthenticationConstants } = require('./constants');
+import { AuthenticationConstants } from './constants';
 
 /**
  * An object that represents a means to log in to the system.
@@ -40,6 +40,4 @@ const LoginId = function(tenantAlias, provider, externalId, properties) {
   return that;
 };
 
-module.exports = {
-  LoginId
-};
+export { LoginId };

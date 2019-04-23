@@ -13,197 +13,187 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
+import assert from 'assert';
 
-const ConfigTestUtil = require('oae-config/lib/test/util');
-const RestAPI = require('oae-rest');
-const TestsUtil = require('oae-tests');
-
-const TenantsTestUtil = require('oae-tenants/lib/test/util');
+import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
 
 describe('Tenant Landing Pages', () => {
+  // Rest context that can be used every time we need to make a request as an anonymous user
+  let anonymousCamRestContext = null;
+  // Rest context that can be used every time we need to use a request as a global admin
+  let globalAdminRestContext = null;
 
-    // Rest context that can be used every time we need to make a request as an anonymous user
-    let anonymousCamRestContext = null;
-    // Rest context that can be used every time we need to use a request as a global admin
-    let globalAdminRestContext = null;
+  /**
+   * Function that will fill up the anonymous and the tenant admin context
+   */
+  before(callback => {
+    // Fill up anonymous rest context
+    anonymousCamRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
+    // Fill up the global admin rest context
+    globalAdminRestContext = TestsUtil.createGlobalAdminRestContext();
+    return callback();
+  });
 
-    /**
-     * Function that will fill up the anonymous and the tenant admin context
-     */
-    before((callback) => {
-        // Fill up anonymous rest context
-        anonymousCamRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-        // Fill up the global admin rest context
-        globalAdminRestContext = TestsUtil.createGlobalAdminRestContext();
-        return callback();
-    });
+  /**
+   * Test that verifies that attributes are returned
+   */
+  it('verify the attributes are returned', callback => {
+    TestsUtil.setupMultiTenantPrivacyEntities(tenant => {
+      // Clear the default landing page
+      TenantsTestUtil.clearTenantLandingPage(tenant.adminRestContext, () => {
+        // Configure all the attributes for the first block
+        const configUpdate = {};
+        configUpdate['oae-tenants/block_1/type'] = 'text';
+        configUpdate['oae-tenants/block_1/text/default'] = 'some text';
+        configUpdate['oae-tenants/block_1/xs'] = '100%';
+        configUpdate['oae-tenants/block_1/sm'] = '100%';
+        configUpdate['oae-tenants/block_1/md'] = '100%';
+        configUpdate['oae-tenants/block_1/lg'] = '100%';
+        configUpdate['oae-tenants/block_1/minHeight'] = '100';
+        configUpdate['oae-tenants/block_1/horizontalAlign'] = 'left';
+        configUpdate['oae-tenants/block_1/verticalAlign'] = 'top';
+        configUpdate['oae-tenants/block_1/bgColor'] = 'red';
+        configUpdate['oae-tenants/block_1/titleColor'] = 'green';
+        configUpdate['oae-tenants/block_1/textColor'] = 'blue';
+        configUpdate['oae-tenants/block_1/icon'] = 'https://foo.com/icon.png';
+        configUpdate['oae-tenants/block_1/imgUrl'] = 'https://foo.com/img.png';
+        configUpdate['oae-tenants/block_1/videoUrl'] = 'https://foo.com/video.wav';
+        configUpdate['oae-tenants/block_1/videoPlaceholder'] = 'https://foo.com/video.placeholder.png';
+        ConfigTestUtil.updateConfigAndWait(globalAdminRestContext, tenant.tenant.alias, configUpdate, () => {
+          // Get the landing page information
+          const anonymousRestContext = TestsUtil.createTenantRestContext(tenant.tenant.host);
+          RestAPI.Tenants.getLandingPage(anonymousRestContext, (err, landingPage) => {
+            assert.ok(!err);
 
-    /**
-     * Test that verifies that attributes are returned
-     */
-    it('verify the attributes are returned', (callback) => {
-        TestsUtil.setupMultiTenantPrivacyEntities((tenant) => {
+            // Only 1 block has been configured
+            assert.strictEqual(landingPage.length, 1);
 
-            // Clear the default landing page
-            TenantsTestUtil.clearTenantLandingPage(tenant.adminRestContext, () => {
+            // Verify all attributes are returned
+            assert.strictEqual(landingPage[0].type, 'text');
+            assert.strictEqual(landingPage[0].text, 'some text');
+            assert.strictEqual(landingPage[0].xs, '100%');
+            assert.strictEqual(landingPage[0].sm, '100%');
+            assert.strictEqual(landingPage[0].md, '100%');
+            assert.strictEqual(landingPage[0].lg, '100%');
+            assert.strictEqual(landingPage[0].minHeight, '100');
+            assert.strictEqual(landingPage[0].horizontalAlign, 'left');
+            assert.strictEqual(landingPage[0].verticalAlign, 'top');
+            assert.strictEqual(landingPage[0].bgColor, 'red');
+            assert.strictEqual(landingPage[0].titleColor, 'green');
+            assert.strictEqual(landingPage[0].textColor, 'blue');
+            assert.strictEqual(landingPage[0].icon, 'https://foo.com/icon.png');
+            assert.strictEqual(landingPage[0].imgUrl, 'https://foo.com/img.png');
+            assert.strictEqual(landingPage[0].videoUrl, 'https://foo.com/video.wav');
+            assert.strictEqual(landingPage[0].videoPlaceholder, 'https://foo.com/video.placeholder.png');
 
-                // Configure all the attributes for the first block
-                const configUpdate = {};
-                configUpdate['oae-tenants/block_1/type'] = 'text';
-                configUpdate['oae-tenants/block_1/text/default'] = 'some text';
-                configUpdate['oae-tenants/block_1/xs'] = '100%';
-                configUpdate['oae-tenants/block_1/sm'] = '100%';
-                configUpdate['oae-tenants/block_1/md'] = '100%';
-                configUpdate['oae-tenants/block_1/lg'] = '100%';
-                configUpdate['oae-tenants/block_1/minHeight'] = '100';
-                configUpdate['oae-tenants/block_1/horizontalAlign'] = 'left';
-                configUpdate['oae-tenants/block_1/verticalAlign'] = 'top';
-                configUpdate['oae-tenants/block_1/bgColor'] = 'red';
-                configUpdate['oae-tenants/block_1/titleColor'] = 'green';
-                configUpdate['oae-tenants/block_1/textColor'] = 'blue';
-                configUpdate['oae-tenants/block_1/icon'] = 'https://foo.com/icon.png';
-                configUpdate['oae-tenants/block_1/imgUrl'] = 'https://foo.com/img.png';
-                configUpdate['oae-tenants/block_1/videoUrl'] = 'https://foo.com/video.wav';
-                configUpdate['oae-tenants/block_1/videoPlaceholder'] = 'https://foo.com/video.placeholder.png';
-                ConfigTestUtil.updateConfigAndWait(globalAdminRestContext, tenant.tenant.alias, configUpdate, () => {
-
-                    // Get the landing page information
-                    const anonymousRestContext = TestsUtil.createTenantRestContext(tenant.tenant.host);
-                    RestAPI.Tenants.getLandingPage(anonymousRestContext, (err, landingPage) => {
-                        assert.ok(!err);
-
-                        // Only 1 block has been configured
-                        assert.strictEqual(landingPage.length, 1);
-
-                        // Verify all attributes are returned
-                        assert.strictEqual(landingPage[0].type, 'text');
-                        assert.strictEqual(landingPage[0].text, 'some text');
-                        assert.strictEqual(landingPage[0].xs, '100%');
-                        assert.strictEqual(landingPage[0].sm, '100%');
-                        assert.strictEqual(landingPage[0].md, '100%');
-                        assert.strictEqual(landingPage[0].lg, '100%');
-                        assert.strictEqual(landingPage[0].minHeight, '100');
-                        assert.strictEqual(landingPage[0].horizontalAlign, 'left');
-                        assert.strictEqual(landingPage[0].verticalAlign, 'top');
-                        assert.strictEqual(landingPage[0].bgColor, 'red');
-                        assert.strictEqual(landingPage[0].titleColor, 'green');
-                        assert.strictEqual(landingPage[0].textColor, 'blue');
-                        assert.strictEqual(landingPage[0].icon, 'https://foo.com/icon.png');
-                        assert.strictEqual(landingPage[0].imgUrl, 'https://foo.com/img.png');
-                        assert.strictEqual(landingPage[0].videoUrl, 'https://foo.com/video.wav');
-                        assert.strictEqual(landingPage[0].videoPlaceholder, 'https://foo.com/video.placeholder.png');
-
-                        return callback();
-                    });
-                });
-            });
+            return callback();
+          });
         });
+      });
     });
+  });
 
-    /**
-     * Test that verifies that only non-empty blocks are returned
-     */
-    it('verify empty blocks are not returned', (callback) => {
-        TestsUtil.setupMultiTenantPrivacyEntities((tenant) => {
+  /**
+   * Test that verifies that only non-empty blocks are returned
+   */
+  it('verify empty blocks are not returned', callback => {
+    TestsUtil.setupMultiTenantPrivacyEntities(tenant => {
+      // Clear the default landing page
+      TenantsTestUtil.clearTenantLandingPage(tenant.adminRestContext, () => {
+        // Configure 1 block on the the tenant's landing page
+        const configUpdate = {};
+        configUpdate['oae-tenants/block_1/type'] = 'text';
+        configUpdate['oae-tenants/block_1/text/default'] = 'some text';
+        ConfigTestUtil.updateConfigAndWait(globalAdminRestContext, tenant.tenant.alias, configUpdate, () => {
+          // Get the landing page information
+          const anonymousRestContext = TestsUtil.createTenantRestContext(tenant.tenant.host);
+          RestAPI.Tenants.getLandingPage(anonymousRestContext, (err, landingPage) => {
+            assert.ok(!err);
 
-            // Clear the default landing page
-            TenantsTestUtil.clearTenantLandingPage(tenant.adminRestContext, () => {
+            // Only 1 block has been configured
+            assert.strictEqual(landingPage.length, 1);
 
-                // Configure 1 block on the the tenant's landing page
-                const configUpdate = {};
-                configUpdate['oae-tenants/block_1/type'] = 'text';
-                configUpdate['oae-tenants/block_1/text/default'] = 'some text';
-                ConfigTestUtil.updateConfigAndWait(globalAdminRestContext, tenant.tenant.alias, configUpdate, () => {
-
-                    // Get the landing page information
-                    const anonymousRestContext = TestsUtil.createTenantRestContext(tenant.tenant.host);
-                    RestAPI.Tenants.getLandingPage(anonymousRestContext, (err, landingPage) => {
-                        assert.ok(!err);
-
-                        // Only 1 block has been configured
-                        assert.strictEqual(landingPage.length, 1);
-
-                        return callback();
-                    });
-                });
-            });
+            return callback();
+          });
         });
+      });
     });
+  });
 
-    /**
-     * Test that verifies that text attributes are internationalizable
-     */
-    it('verify that text attributes are internationalizable', (callback) => {
-        TestsUtil.setupMultiTenantPrivacyEntities((tenant) => {
+  /**
+   * Test that verifies that text attributes are internationalizable
+   */
+  it('verify that text attributes are internationalizable', callback => {
+    TestsUtil.setupMultiTenantPrivacyEntities(tenant => {
+      // Configure the tenant's landing page
+      const configUpdate = {};
+      configUpdate['oae-tenants/block_1/type'] = 'text';
+      configUpdate['oae-tenants/block_1/text/default'] = 'default text';
+      configUpdate['oae-tenants/block_1/text/fr_FR'] = 'French text';
+      ConfigTestUtil.updateConfigAndWait(globalAdminRestContext, tenant.tenant.alias, configUpdate, () => {
+        const anonymousRestContext = TestsUtil.createTenantRestContext(tenant.tenant.host);
+        RestAPI.Tenants.getLandingPage(anonymousRestContext, (err, landingPage) => {
+          assert.ok(!err);
 
-            // Configure the tenant's landing page
-            const configUpdate = {};
-            configUpdate['oae-tenants/block_1/type'] = 'text';
-            configUpdate['oae-tenants/block_1/text/default'] = 'default text';
-            configUpdate['oae-tenants/block_1/text/fr_FR'] = 'French text';
-            ConfigTestUtil.updateConfigAndWait(globalAdminRestContext, tenant.tenant.alias, configUpdate, () => {
+          // Verify the default text was returned
+          assert.strictEqual(landingPage[0].text, 'default text');
 
-                const anonymousRestContext = TestsUtil.createTenantRestContext(tenant.tenant.host);
-                RestAPI.Tenants.getLandingPage(anonymousRestContext, (err, landingPage) => {
+          // Generate some test users
+          TestsUtil.generateTestUsers(tenant.adminRestContext, 3, (err, users, frenchUser, defaultUser, hindiUser) => {
+            // Set a user's locale to French
+            RestAPI.User.updateUser(frenchUser.restContext, frenchUser.user.id, { locale: 'fr_FR' }, err => {
+              assert.ok(!err);
+
+              // Get the landing page information with the French user
+              RestAPI.Tenants.getLandingPage(frenchUser.restContext, (err, landingPage) => {
+                assert.ok(!err);
+
+                // Verify the French text was returned
+                assert.strictEqual(landingPage[0].text, 'French text');
+
+                // Get the landing page information with a user who has no configured locale
+                RestAPI.Tenants.getLandingPage(defaultUser.restContext, (err, landingPage) => {
+                  assert.ok(!err);
+
+                  // Verify the default text was returned
+                  assert.strictEqual(landingPage[0].text, 'default text');
+
+                  // Set a user's locale to Hindi
+                  RestAPI.User.updateUser(hindiUser.restContext, hindiUser.user.id, { locale: 'hi_IN' }, err => {
                     assert.ok(!err);
 
-                    // Verify the default text was returned
-                    assert.strictEqual(landingPage[0].text, 'default text');
+                    // Get the landing page information with the Hindi user
+                    RestAPI.Tenants.getLandingPage(hindiUser.restContext, function(err, landingPage) {
+                      assert.ok(!err);
 
-                    // Generate some test users
-                    TestsUtil.generateTestUsers(tenant.adminRestContext, 3, (err, users, frenchUser, defaultUser, hindiUser) => {
-
-                        // Set a user's locale to French
-                        RestAPI.User.updateUser(frenchUser.restContext, frenchUser.user.id, {'locale': 'fr_FR'}, (err) => {
-                            assert.ok(!err);
-
-                            // Get the landing page information with the French user
-                            RestAPI.Tenants.getLandingPage(frenchUser.restContext, (err, landingPage) => {
-                                assert.ok(!err);
-
-                                // Verify the French text was returned
-                                assert.strictEqual(landingPage[0].text, 'French text');
-
-                                // Get the landing page information with a user who has no configured locale
-                                RestAPI.Tenants.getLandingPage(defaultUser.restContext, (err, landingPage) => {
-                                    assert.ok(!err);
-
-                                    // Verify the default text was returned
-                                    assert.strictEqual(landingPage[0].text, 'default text');
-
-                                    // Set a user's locale to Hindi
-                                    RestAPI.User.updateUser(hindiUser.restContext, hindiUser.user.id, {'locale': 'hi_IN'}, (err) => {
-                                        assert.ok(!err);
-
-                                        // Get the landing page information with the Hindi user
-                                        RestAPI.Tenants.getLandingPage(hindiUser.restContext, function(err, landingPage) {
-                                            assert.ok(!err);
-
-                                            // Verify the default text was returned
-                                            assert.strictEqual(landingPage[0].text, 'default text');
-                                            return callback();
-                                        });
-                                    });
-                                });
-                            });
-                        });
+                      // Verify the default text was returned
+                      assert.strictEqual(landingPage[0].text, 'default text');
+                      return callback();
                     });
+                  });
                 });
+              });
             });
+          });
         });
+      });
     });
+  });
 
-    /**
-     * Test that verifies that blocks are not returned in the config
-     */
-    it('verify that blocks are not returned in the config', (callback) => {
-        RestAPI.Config.getTenantConfig(anonymousCamRestContext, null, (err, config) => {
-            assert.ok(!err);
-            for (let i = 1; i <= 12; i++) {
-                assert.ok(!config['oae-tenants']['block_' + i]);
-            }
-            return callback();
-        });
+  /**
+   * Test that verifies that blocks are not returned in the config
+   */
+  it('verify that blocks are not returned in the config', callback => {
+    RestAPI.Config.getTenantConfig(anonymousCamRestContext, null, (err, config) => {
+      assert.ok(!err);
+      for (let i = 1; i <= 12; i++) {
+        assert.ok(!config['oae-tenants']['block_' + i]);
+      }
+
+      return callback();
     });
+  });
 });

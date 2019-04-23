@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-const AuthzTestUtil = require('oae-authz/lib/test/util');
+import * as AuthzTestUtil from 'oae-authz/lib/test/util';
 
 describe('Authz Delete', () => {
   /**
@@ -30,11 +30,7 @@ describe('Authz Delete', () => {
         // Verify we successfully delete the second id
         AuthzTestUtil.assertSetDeletedSucceeds(group2, () => {
           // Verify isDeleted that contains both deleted ids works as expected
-          return AuthzTestUtil.assertIsDeletedSucceeds(
-            [group1, group2],
-            [group1, group2],
-            callback
-          );
+          return AuthzTestUtil.assertIsDeletedSucceeds([group1, group2], [group1, group2], callback);
         });
       });
     });

@@ -13,23 +13,23 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const fs = require('fs');
-const path = require('path');
-const querystring = require('querystring');
-const url = require('url');
-const gm = require('gm');
-const _ = require('underscore');
+import assert from 'assert';
+import fs from 'fs';
+import path from 'path';
+import querystring from 'querystring';
+import url from 'url';
+import gm from 'gm';
+import _ from 'underscore';
 
-const LocalStorage = require('oae-content/lib/backends/local');
-const RestAPI = require('oae-rest');
-const RestUtil = require('oae-rest/lib/util');
-const SearchTestsUtil = require('oae-search/lib/test/util');
-const TestsUtil = require('oae-tests');
+import * as LocalStorage from 'oae-content/lib/backends/local';
+import * as RestAPI from 'oae-rest';
+import * as RestUtil from 'oae-rest/lib/util';
+import * as SearchTestsUtil from 'oae-search/lib/test/util';
+import * as TestsUtil from 'oae-tests';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as PrincipalsUtil from 'oae-principals/lib/util';
 
-const { PrincipalsConstants } = require('oae-principals/lib/constants');
-const PrincipalsTestUtil = require('oae-principals/lib/test/util');
-const PrincipalsUtil = require('oae-principals/lib/util');
+import { PrincipalsConstants } from 'oae-principals/lib/constants';
 
 describe('Profile pictures', () => {
   // Rest context that can be used every time we need to make a request as a global admin
@@ -474,44 +474,24 @@ describe('Profile pictures', () => {
             RestAPI.Group.downloadPicture(ctx, groupA.group.id, 'medium', (err, body, response) => {
               assert.ok(!err);
               assert.strictEqual(response.statusCode, 204);
-              RestAPI.Group.downloadPicture(
-                ctx,
-                groupA.group.id,
-                'large',
-                (err, body, response) => {
-                  assert.ok(!err);
-                  assert.strictEqual(response.statusCode, 204);
+              RestAPI.Group.downloadPicture(ctx, groupA.group.id, 'large', (err, body, response) => {
+                assert.ok(!err);
+                assert.strictEqual(response.statusCode, 204);
 
-                  // Now try downloading it with some invalid parameters
-                  RestAPI.Group.downloadPicture(
-                    ctx,
-                    'invalid-group-id',
-                    'small',
-                    (err, body, response) => {
-                      assert.strictEqual(err.code, 400);
-                      RestAPI.Group.downloadPicture(
-                        ctx,
-                        groupA.group.id,
-                        null,
-                        (err, body, response) => {
-                          assert.strictEqual(err.code, 400);
+                // Now try downloading it with some invalid parameters
+                RestAPI.Group.downloadPicture(ctx, 'invalid-group-id', 'small', (err, body, response) => {
+                  assert.strictEqual(err.code, 400);
+                  RestAPI.Group.downloadPicture(ctx, groupA.group.id, null, (err, body, response) => {
+                    assert.strictEqual(err.code, 400);
 
-                          // The other group has no picture, this should result in a 404
-                          RestAPI.Group.downloadPicture(
-                            ctx,
-                            groupB.group.id,
-                            'small',
-                            (err, body, response) => {
-                              assert.strictEqual(err.code, 404);
-                              callback();
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
+                    // The other group has no picture, this should result in a 404
+                    RestAPI.Group.downloadPicture(ctx, groupB.group.id, 'small', (err, body, response) => {
+                      assert.strictEqual(err.code, 404);
+                      callback();
+                    });
+                  });
+                });
+              });
             });
           });
         });
@@ -539,16 +519,11 @@ describe('Profile pictures', () => {
                     RestAPI.Group.downloadPicture(ctx, group.id, 'medium', (err, body, request) => {
                       assert.ok(!err);
                       assert.strictEqual(request.statusCode, 204);
-                      RestAPI.Group.downloadPicture(
-                        ctx,
-                        group.id,
-                        'large',
-                        (err, body, request) => {
-                          assert.ok(!err);
-                          assert.strictEqual(request.statusCode, 204);
-                          callback();
-                        }
-                      );
+                      RestAPI.Group.downloadPicture(ctx, group.id, 'large', (err, body, request) => {
+                        assert.ok(!err);
+                        assert.strictEqual(request.statusCode, 204);
+                        callback();
+                      });
                     });
                   });
                 });
@@ -581,10 +556,16 @@ describe('Profile pictures', () => {
             err => {
               assert.ok(!err);
 
-              RestAPI.User.getUser(
-                contexts.nicolaas.restContext,
-                contexts.simon.user.id,
-                (err, user) => {
+              RestAPI.User.getUser(contexts.nicolaas.restContext, contexts.simon.user.id, (err, user) => {
+                assert.ok(!err);
+                assert.strictEqual(user.picture.small, undefined);
+                assert.strictEqual(user.picture.smallUri, undefined);
+                assert.strictEqual(user.picture.medium, undefined);
+                assert.strictEqual(user.picture.mediumUri, undefined);
+                assert.strictEqual(user.picture.large, undefined);
+                assert.strictEqual(user.picture.largeUri, undefined);
+
+                RestAPI.User.getUser(anonymousRestContext, contexts.simon.user.id, (err, user) => {
                   assert.ok(!err);
                   assert.strictEqual(user.picture.small, undefined);
                   assert.strictEqual(user.picture.smallUri, undefined);
@@ -593,60 +574,38 @@ describe('Profile pictures', () => {
                   assert.strictEqual(user.picture.large, undefined);
                   assert.strictEqual(user.picture.largeUri, undefined);
 
-                  RestAPI.User.getUser(
-                    anonymousRestContext,
+                  RestAPI.User.updateUser(
+                    contexts.simon.restContext,
                     contexts.simon.user.id,
-                    (err, user) => {
+                    { visibility: 'loggedin' },
+                    err => {
                       assert.ok(!err);
-                      assert.strictEqual(user.picture.small, undefined);
-                      assert.strictEqual(user.picture.smallUri, undefined);
-                      assert.strictEqual(user.picture.medium, undefined);
-                      assert.strictEqual(user.picture.mediumUri, undefined);
-                      assert.strictEqual(user.picture.large, undefined);
-                      assert.strictEqual(user.picture.largeUri, undefined);
 
-                      RestAPI.User.updateUser(
-                        contexts.simon.restContext,
-                        contexts.simon.user.id,
-                        { visibility: 'loggedin' },
-                        err => {
+                      RestAPI.User.getUser(contexts.nicolaas.restContext, contexts.simon.user.id, (err, user) => {
+                        assert.ok(!err);
+                        assert.ok(user.picture.small);
+                        assert.ok(!user.picture.smallUri);
+                        assert.ok(user.picture.medium);
+                        assert.ok(!user.picture.mediumUri);
+                        assert.ok(user.picture.large);
+                        assert.ok(!user.picture.largeUri);
+
+                        // The user who owns the pictures can see everything
+                        RestAPI.User.getUser(contexts.simon.restContext, contexts.simon.user.id, (err, user) => {
                           assert.ok(!err);
-
-                          RestAPI.User.getUser(
-                            contexts.nicolaas.restContext,
-                            contexts.simon.user.id,
-                            (err, user) => {
-                              assert.ok(!err);
-                              assert.ok(user.picture.small);
-                              assert.ok(!user.picture.smallUri);
-                              assert.ok(user.picture.medium);
-                              assert.ok(!user.picture.mediumUri);
-                              assert.ok(user.picture.large);
-                              assert.ok(!user.picture.largeUri);
-
-                              // The user who owns the pictures can see everything
-                              RestAPI.User.getUser(
-                                contexts.simon.restContext,
-                                contexts.simon.user.id,
-                                (err, user) => {
-                                  assert.ok(!err);
-                                  assert.ok(user.picture.small);
-                                  assert.ok(!user.picture.smallUri);
-                                  assert.ok(user.picture.medium);
-                                  assert.ok(!user.picture.mediumUri);
-                                  assert.ok(user.picture.large);
-                                  assert.ok(!user.picture.largeUri);
-                                  callback();
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
+                          assert.ok(user.picture.small);
+                          assert.ok(!user.picture.smallUri);
+                          assert.ok(user.picture.medium);
+                          assert.ok(!user.picture.mediumUri);
+                          assert.ok(user.picture.large);
+                          assert.ok(!user.picture.largeUri);
+                          callback();
+                        });
+                      });
                     }
                   );
-                }
-              );
+                });
+              });
             }
           );
         }
@@ -685,27 +644,20 @@ describe('Profile pictures', () => {
     _createUsers(contexts => {
       TestsUtil.generateTestGroups(contexts.simon.restContext, 1, group => {
         group = group.group;
-        RestAPI.Group.uploadPicture(
-          contexts.nicolaas.restContext,
-          group.id,
-          _getPictureStream,
-          null,
-          err => {
-            assert.strictEqual(err.code, 401);
-            _verifyCropping(
-              contexts.nicolaas.restContext,
-              group,
-              _createSelectedArea(10, 10, 200),
-              401,
-              () => {
-                // Making Nico a member should still not allow him to change the picture.
-                const members = {};
-                members[contexts.nicolaas.user.id] = 'member';
-                RestAPI.Group.setGroupMembers(
-                  contexts.simon.restContext,
-                  group.id,
-                  members,
-                  err => {
+        RestAPI.Group.uploadPicture(contexts.nicolaas.restContext, group.id, _getPictureStream, null, err => {
+          assert.strictEqual(err.code, 401);
+          _verifyCropping(contexts.nicolaas.restContext, group, _createSelectedArea(10, 10, 200), 401, () => {
+            // Making Nico a member should still not allow him to change the picture.
+            const members = {};
+            members[contexts.nicolaas.user.id] = 'member';
+            RestAPI.Group.setGroupMembers(contexts.simon.restContext, group.id, members, err => {
+              assert.ok(!err);
+              RestAPI.Group.uploadPicture(contexts.nicolaas.restContext, group.id, _getPictureStream, null, err => {
+                assert.strictEqual(err.code, 401);
+                _verifyCropping(contexts.nicolaas.restContext, group, _createSelectedArea(10, 10, 200), 401, () => {
+                  // Making him a manager should.
+                  members[contexts.nicolaas.user.id] = 'manager';
+                  RestAPI.Group.setGroupMembers(contexts.simon.restContext, group.id, members, err => {
                     assert.ok(!err);
                     RestAPI.Group.uploadPicture(
                       contexts.nicolaas.restContext,
@@ -713,49 +665,22 @@ describe('Profile pictures', () => {
                       _getPictureStream,
                       null,
                       err => {
-                        assert.strictEqual(err.code, 401);
+                        assert.ok(!err);
                         _verifyCropping(
                           contexts.nicolaas.restContext,
                           group,
                           _createSelectedArea(10, 10, 200),
-                          401,
-                          () => {
-                            // Making him a manager should.
-                            members[contexts.nicolaas.user.id] = 'manager';
-                            RestAPI.Group.setGroupMembers(
-                              contexts.simon.restContext,
-                              group.id,
-                              members,
-                              err => {
-                                assert.ok(!err);
-                                RestAPI.Group.uploadPicture(
-                                  contexts.nicolaas.restContext,
-                                  group.id,
-                                  _getPictureStream,
-                                  null,
-                                  err => {
-                                    assert.ok(!err);
-                                    _verifyCropping(
-                                      contexts.nicolaas.restContext,
-                                      group,
-                                      _createSelectedArea(10, 10, 200),
-                                      200,
-                                      callback
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
+                          200,
+                          callback
                         );
                       }
                     );
-                  }
-                );
-              }
-            );
-          }
-        );
+                  });
+                });
+              });
+            });
+          });
+        });
       });
     });
   });
@@ -807,13 +732,9 @@ describe('Profile pictures', () => {
 
               // Get the URIs and check that they are not removed on the filesystem
               const smallPicturePath =
-                rootFilesDir +
-                '/' +
-                _getUriFromDownloadUrl(firstRequestUser.picture.small).split(':')[1];
+                rootFilesDir + '/' + _getUriFromDownloadUrl(firstRequestUser.picture.small).split(':')[1];
               const mediumPicturePath =
-                rootFilesDir +
-                '/' +
-                _getUriFromDownloadUrl(firstRequestUser.picture.medium).split(':')[1];
+                rootFilesDir + '/' + _getUriFromDownloadUrl(firstRequestUser.picture.medium).split(':')[1];
               assert.strictEqual(
                 fs.existsSync(smallPicturePath),
                 true,
@@ -983,18 +904,9 @@ describe('Profile pictures', () => {
         users[results.results[i].id] = results.results[i];
       }
 
-      assert.strictEqual(
-        Object.prototype.hasOwnProperty.call(users[publicUserId], 'thumbnailUrl'),
-        canPublic
-      );
-      assert.strictEqual(
-        Object.prototype.hasOwnProperty.call(users[loggedinUserId], 'thumbnailUrl'),
-        canLoggedIn
-      );
-      assert.strictEqual(
-        Object.prototype.hasOwnProperty.call(users[privateUserId], 'thumbnailUrl'),
-        canPrivate
-      );
+      assert.strictEqual(Object.prototype.hasOwnProperty.call(users[publicUserId], 'thumbnailUrl'), canPublic);
+      assert.strictEqual(Object.prototype.hasOwnProperty.call(users[loggedinUserId], 'thumbnailUrl'), canLoggedIn);
+      assert.strictEqual(Object.prototype.hasOwnProperty.call(users[privateUserId], 'thumbnailUrl'), canPrivate);
       callback();
     });
   };
@@ -1012,64 +924,67 @@ describe('Profile pictures', () => {
       const privateUser = _.values(users)[2];
       const nonMemberUser = _.values(users)[3];
 
-      RestAPI.User.updateUser(
-        loggedInUser.restContext,
-        loggedInUser.user.id,
-        { visibility: 'loggedin' },
-        err => {
+      RestAPI.User.updateUser(loggedInUser.restContext, loggedInUser.user.id, { visibility: 'loggedin' }, err => {
+        assert.ok(!err);
+
+        RestAPI.User.updateUser(privateUser.restContext, privateUser.user.id, { visibility: 'private' }, err => {
           assert.ok(!err);
 
-          RestAPI.User.updateUser(
-            privateUser.restContext,
-            privateUser.user.id,
-            { visibility: 'private' },
+          // Each user has a profile picture
+          const selectedArea = _createSelectedArea(10, 10, 200, 200);
+          RestAPI.User.uploadPicture(
+            publicUser.restContext,
+            publicUser.user.id,
+            _getPictureStream,
+            selectedArea,
             err => {
               assert.ok(!err);
 
-              // Each user has a profile picture
-              const selectedArea = _createSelectedArea(10, 10, 200, 200);
               RestAPI.User.uploadPicture(
-                publicUser.restContext,
-                publicUser.user.id,
+                loggedInUser.restContext,
+                loggedInUser.user.id,
                 _getPictureStream,
                 selectedArea,
                 err => {
                   assert.ok(!err);
 
                   RestAPI.User.uploadPicture(
-                    loggedInUser.restContext,
-                    loggedInUser.user.id,
+                    privateUser.restContext,
+                    privateUser.user.id,
                     _getPictureStream,
                     selectedArea,
                     err => {
                       assert.ok(!err);
 
-                      RestAPI.User.uploadPicture(
+                      // Create a group with the two other members
+                      const groupName = TestsUtil.generateTestUserId('someGroupName');
+                      RestAPI.Group.createGroup(
                         privateUser.restContext,
-                        privateUser.user.id,
-                        _getPictureStream,
-                        selectedArea,
-                        err => {
+                        groupName,
+                        groupName,
+                        'public',
+                        'no',
+                        [],
+                        [loggedInUser.user.id, publicUser.user.id],
+                        (err, group) => {
                           assert.ok(!err);
 
-                          // Create a group with the two other members
-                          const groupName = TestsUtil.generateTestUserId('someGroupName');
-                          RestAPI.Group.createGroup(
-                            privateUser.restContext,
-                            groupName,
-                            groupName,
-                            'public',
-                            'no',
-                            [],
-                            [loggedInUser.user.id, publicUser.user.id],
-                            (err, group) => {
-                              assert.ok(!err);
-
-                              // Perform one search where we wait for the search index to refresh so all subsequent search requests don't have to wait
-                              SearchTestsUtil.whenIndexingComplete(() => {
-                                // The public member can only see his own thumbnail and the loggedin user
+                          // Perform one search where we wait for the search index to refresh so all subsequent search requests don't have to wait
+                          SearchTestsUtil.whenIndexingComplete(() => {
+                            // The public member can only see his own thumbnail and the loggedin user
+                            _verifySearchThumbnails(
+                              publicUser.restContext,
+                              group.id,
+                              true,
+                              true,
+                              false,
+                              publicUser.user.id,
+                              loggedInUser.user.id,
+                              privateUser.user.id,
+                              () => {
+                                // The 'logged in' user can see his own thumbnail and the public one
                                 _verifySearchThumbnails(
-                                  publicUser.restContext,
+                                  loggedInUser.restContext,
                                   group.id,
                                   true,
                                   true,
@@ -1078,36 +993,23 @@ describe('Profile pictures', () => {
                                   loggedInUser.user.id,
                                   privateUser.user.id,
                                   () => {
-                                    // The 'logged in' user can see his own thumbnail and the public one
-                                    _verifySearchThumbnails(
-                                      loggedInUser.restContext,
+                                    // The private user can see everyone's thumbnail
+                                    return _verifySearchThumbnails(
+                                      privateUser.restContext,
                                       group.id,
                                       true,
                                       true,
-                                      false,
+                                      true,
                                       publicUser.user.id,
                                       loggedInUser.user.id,
                                       privateUser.user.id,
-                                      () => {
-                                        // The private user can see everyone's thumbnail
-                                        return _verifySearchThumbnails(
-                                          privateUser.restContext,
-                                          group.id,
-                                          true,
-                                          true,
-                                          true,
-                                          publicUser.user.id,
-                                          loggedInUser.user.id,
-                                          privateUser.user.id,
-                                          callback
-                                        );
-                                      }
+                                      callback
                                     );
                                   }
                                 );
-                              });
-                            }
-                          );
+                              }
+                            );
+                          });
                         }
                       );
                     }
@@ -1116,8 +1018,8 @@ describe('Profile pictures', () => {
               );
             }
           );
-        }
-      );
+        });
+      });
     });
   });
 
@@ -1135,108 +1037,75 @@ describe('Profile pictures', () => {
       TestsUtil.generateTestGroups(simon.restContext, 4, (oaeTeam, backendTeam, uiTeam, qaTeam) => {
         // Upload pictures for the sub teams
         const selectedArea = _createSelectedArea(10, 10, 200, 200);
-        RestAPI.User.uploadPicture(
-          simon.restContext,
-          backendTeam.group.id,
-          _getPictureStream,
-          selectedArea,
-          err => {
+        RestAPI.User.uploadPicture(simon.restContext, backendTeam.group.id, _getPictureStream, selectedArea, err => {
+          assert.ok(!err);
+
+          RestAPI.User.uploadPicture(simon.restContext, uiTeam.group.id, _getPictureStream, selectedArea, err => {
             assert.ok(!err);
 
-            RestAPI.User.uploadPicture(
-              simon.restContext,
-              uiTeam.group.id,
-              _getPictureStream,
-              selectedArea,
-              err => {
+            RestAPI.User.uploadPicture(simon.restContext, qaTeam.group.id, _getPictureStream, selectedArea, err => {
+              assert.ok(!err);
+
+              // Make the uiTeam loggedin.
+              RestAPI.Group.updateGroup(simon.restContext, uiTeam.group.id, { visibility: 'loggedin' }, err => {
                 assert.ok(!err);
 
-                RestAPI.User.uploadPicture(
-                  simon.restContext,
-                  qaTeam.group.id,
-                  _getPictureStream,
-                  selectedArea,
-                  err => {
+                // Make the qa team private.
+                RestAPI.Group.updateGroup(simon.restContext, qaTeam.group.id, { visibility: 'private' }, err => {
+                  assert.ok(!err);
+
+                  // Make the backend, ui and qa teams member of oae team.
+                  const changes = {};
+                  changes[backendTeam.group.id] = 'member';
+                  changes[uiTeam.group.id] = 'member';
+                  changes[qaTeam.group.id] = 'member';
+                  RestAPI.Group.setGroupMembers(simon.restContext, oaeTeam.group.id, changes, err => {
                     assert.ok(!err);
 
-                    // Make the uiTeam loggedin.
-                    RestAPI.Group.updateGroup(
+                    // Search through the memberlist of oaeTeam and filter the results so we only get the backend team group back.
+                    SearchTestsUtil.searchAll(
                       simon.restContext,
-                      uiTeam.group.id,
-                      { visibility: 'loggedin' },
-                      err => {
+                      'members-library',
+                      [oaeTeam.group.id],
+                      { q: '' },
+                      (err, results) => {
                         assert.ok(!err);
+                        assert.strictEqual(results.total, 4);
 
-                        // Make the qa team private.
-                        RestAPI.Group.updateGroup(
+                        // We only need the groups
+                        results.results = _.filter(results.results, result => {
+                          return result.resourceType !== 'user';
+                        });
+
+                        // All the groups should expose their thumbnail regardless of their visibility setting.
+                        assert.ok(results.results[0].thumbnailUrl);
+                        assert.ok(results.results[1].thumbnailUrl);
+                        assert.ok(results.results[2].thumbnailUrl);
+
+                        // Try downloading it by just using the returned url.
+                        RestUtil.performRestRequest(
                           simon.restContext,
-                          qaTeam.group.id,
-                          { visibility: 'private' },
-                          err => {
+                          results.results[0].thumbnailUrl,
+                          'GET',
+                          null,
+                          (err, body, response) => {
                             assert.ok(!err);
-
-                            // Make the backend, ui and qa teams member of oae team.
-                            const changes = {};
-                            changes[backendTeam.group.id] = 'member';
-                            changes[uiTeam.group.id] = 'member';
-                            changes[qaTeam.group.id] = 'member';
-                            RestAPI.Group.setGroupMembers(
-                              simon.restContext,
-                              oaeTeam.group.id,
-                              changes,
-                              err => {
-                                assert.ok(!err);
-
-                                // Search through the memberlist of oaeTeam and filter the results so we only get the backend team group back.
-                                SearchTestsUtil.searchAll(
-                                  simon.restContext,
-                                  'members-library',
-                                  [oaeTeam.group.id],
-                                  { q: '' },
-                                  (err, results) => {
-                                    assert.ok(!err);
-                                    assert.strictEqual(results.total, 4);
-
-                                    // We only need the groups
-                                    results.results = _.filter(results.results, result => {
-                                      return result.resourceType !== 'user';
-                                    });
-
-                                    // All the groups should expose their thumbnail regardless of their visibility setting.
-                                    assert.ok(results.results[0].thumbnailUrl);
-                                    assert.ok(results.results[1].thumbnailUrl);
-                                    assert.ok(results.results[2].thumbnailUrl);
-
-                                    // Try downloading it by just using the returned url.
-                                    RestUtil.performRestRequest(
-                                      simon.restContext,
-                                      results.results[0].thumbnailUrl,
-                                      'GET',
-                                      null,
-                                      (err, body, response) => {
-                                        assert.ok(!err);
-                                        // Downloading happens via nginx, so we can't verify the response body.
-                                        // We can verify if the status code is a 204 and if the appropriate headers are present.
-                                        assert.strictEqual(response.statusCode, 204);
-                                        assert.ok(response.headers['x-accel-redirect']);
-                                        assert.ok(response.headers['content-disposition']);
-                                        callback();
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
+                            // Downloading happens via nginx, so we can't verify the response body.
+                            // We can verify if the status code is a 204 and if the appropriate headers are present.
+                            assert.strictEqual(response.statusCode, 204);
+                            assert.ok(response.headers['x-accel-redirect']);
+                            assert.ok(response.headers['content-disposition']);
+                            callback();
                           }
                         );
                       }
                     );
-                  }
-                );
-              }
-            );
-          }
-        );
+                  });
+                });
+              });
+            });
+          });
+        });
       });
     });
   });

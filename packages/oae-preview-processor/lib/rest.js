@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
-const urlExpander = require('expand-url');
+import _ from 'underscore';
+import urlExpander from 'expand-url';
 
-const OAE = require('oae-util/lib/oae');
+import * as OAE from 'oae-util/lib/oae';
 
-const PreviewProcessorAPI = require('oae-preview-processor');
+import * as PreviewProcessorAPI from 'oae-preview-processor';
 
 /**
  * @REST postContentReprocessPreviews
@@ -29,7 +29,7 @@ const PreviewProcessorAPI = require('oae-preview-processor');
  * @Method      POST
  * @Path        /content/reprocessPreviews
  * @FormParam   {String[]}          [content_createdBy]           Filter content based on who it was created by
- * @FormParam   {string[]}          [content_resourceSubType]     Filter content based on its resourceSubType                                               [collabdoc,file,link]
+ * @FormParam   {string[]}          [content_resourceSubType]     Filter content based on its resourceSubType                                               [collabdoc,collabsheet,file,link]
  * @FormParam   {string[]}          [content_previewsStatus]      Filter content based on the status of the previews processing                             [ignored,error]
  * @FormParam   {string[]}          [content_tenant]              Filter content based on the tenant where it was created
  * @FormParam   {number}            [revision_createdAfter]       Filter those revisions who were created after a certain timestamp in ms since epoch
@@ -60,6 +60,7 @@ OAE.globalAdminRouter.on('post', '/api/content/reprocessPreviews', (req, res) =>
     if (err) {
       return res.status(err.code).send(err.msg);
     }
+
     res.status(200).end();
   });
 });
@@ -72,18 +73,13 @@ OAE.globalAdminRouter.on('post', '/api/content/reprocessPreviews', (req, res) =>
  * @api private
  */
 const _handleReprocessPreview = function(req, res) {
-  PreviewProcessorAPI.reprocessPreview(
-    req.ctx,
-    req.params.contentId,
-    req.params.revisionId,
-    err => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-
-      res.status(200).end();
+  PreviewProcessorAPI.reprocessPreview(req.ctx, req.params.contentId, req.params.revisionId, err => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    res.status(200).end();
+  });
 };
 
 /**
@@ -107,11 +103,7 @@ OAE.globalAdminRouter.on(
   '/api/content/:contentId/revision/:revisionId/reprocessPreview',
   _handleReprocessPreview
 );
-OAE.tenantRouter.on(
-  'post',
-  '/api/content/:contentId/revision/:revisionId/reprocessPreview',
-  _handleReprocessPreview
-);
+OAE.tenantRouter.on('post', '/api/content/:contentId/revision/:revisionId/reprocessPreview', _handleReprocessPreview);
 
 /**
  * @REST getLongurlExpand

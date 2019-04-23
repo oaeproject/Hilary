@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
-const OaeUtil = require('oae-util/lib/util');
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
-const SearchUtil = require('oae-search/lib/util');
-const { Validator } = require('oae-authz/lib/validator');
+import * as OaeUtil from 'oae-util/lib/util';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as SearchUtil from 'oae-search/lib/util';
+import * as FollowingAuthz from 'oae-following/lib/authz';
 
-const FollowingAuthz = require('oae-following/lib/authz');
-const { FollowingConstants } = require('oae-following/lib/constants');
+import { Validator } from 'oae-authz/lib/validator';
+import { FollowingConstants } from 'oae-following/lib/constants';
 
 /**
  * Search that searches a user's followers list.
@@ -35,7 +35,7 @@ const { FollowingConstants } = require('oae-following/lib/constants');
  * @param  {Object}        callback.err        An error that occurred, if any
  * @param  {SearchResult}  callback.results    An object that represents the results of the query
  */
-module.exports = function(ctx, opts, callback) {
+export default function(ctx, opts, callback) {
   // Sanitize the search options
   opts = opts || {};
   opts.pathParams = opts.pathParams || [];
@@ -66,7 +66,9 @@ module.exports = function(ctx, opts, callback) {
       return _search(ctx, opts, callback);
     });
   });
-};
+}
+
+
 
 /**
  * Perform the search that searches a user's followers list

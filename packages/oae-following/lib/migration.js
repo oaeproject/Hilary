@@ -1,4 +1,4 @@
-const Cassandra = require('oae-util/lib/cassandra');
+import { createColumnFamilies } from 'oae-util/lib/cassandra';
 
 /**
  * Create the following database schema
@@ -8,7 +8,7 @@ const Cassandra = require('oae-util/lib/cassandra');
  * @api private
  */
 const ensureSchema = function(callback) {
-  Cassandra.createColumnFamilies(
+  createColumnFamilies(
     {
       FollowingUsersFollowers:
         'CREATE TABLE "FollowingUsersFollowers" ("userId" text, "followerId" text, "value" text, PRIMARY KEY ("userId", "followerId")) WITH COMPACT STORAGE',
@@ -19,4 +19,4 @@ const ensureSchema = function(callback) {
   );
 };
 
-module.exports = { ensureSchema };
+export { ensureSchema };

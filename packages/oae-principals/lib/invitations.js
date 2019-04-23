@@ -13,20 +13,22 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const AuthzUtil = require('oae-authz/lib/util');
-const { Context } = require('oae-context');
-const { Invitation } = require('oae-authz/lib/invitations/model');
-const ResourceActions = require('oae-resource/lib/actions');
-const { ResourceConstants } = require('oae-resource/lib/constants');
+import { Invitation } from 'oae-authz/lib/invitations/model';
+import { ResourceConstants } from 'oae-resource/lib/constants';
+import { Context } from 'oae-context';
+import { PrincipalsConstants } from 'oae-principals/lib/constants';
 
-const { PrincipalsConstants } = require('oae-principals/lib/constants');
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
-const PrincipalsEmitter = require('oae-principals/lib/internal/emitter');
-const PrincipalsUtil = require('oae-principals/lib/util');
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as ResourceActions from 'oae-resource/lib/actions';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import PrincipalsEmitter from 'oae-principals/lib/internal/emitter';
+import * as PrincipalsUtil from 'oae-principals/lib/util';
 
-const log = require('oae-logger').logger('oae-principals-invitations');
+import { logger } from 'oae-logger';
+
+const log = logger('oae-principals-invitations');
 
 /*!
  * When an invitation is accepted, pass on the events to update group members and then feed back the

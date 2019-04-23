@@ -13,20 +13,20 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
-const shortid = require('shortid');
+import _ from 'underscore';
+import shortid from 'shortid';
 
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const ActivityModel = require('oae-activity/lib/model');
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const AuthzUtil = require('oae-authz/lib/util');
-const ContentUtil = require('oae-content/lib/internal/util');
-const TenantsUtil = require('oae-tenants/lib/util');
+import { ActivityConstants } from 'oae-activity/lib/constants';
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import { PrincipalsConstants } from 'oae-principals/lib/constants';
 
-const { PrincipalsConstants } = require('oae-principals/lib/constants');
-const PrincipalsEmitter = require('oae-principals/lib/internal/emitter');
-const PrincipalsDAO = require('./internal/dao');
-const { User } = require('./model');
+import * as ActivityModel from 'oae-activity/lib/model';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as ContentUtil from 'oae-content/lib/internal/util';
+import * as TenantsUtil from 'oae-tenants/lib/util';
+import PrincipalsEmitter from 'oae-principals/lib/internal/emitter';
+import { User } from './model';
+import * as PrincipalsDAO from './internal/dao';
 
 /**
  * Get a principal (user or group)
@@ -42,6 +42,7 @@ const getPrincipal = function(ctx, principalId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!principals[principalId]) {
       return callback({ code: 404, msg: 'Could not find principal with id ' + principalId });
     }
@@ -82,7 +83,7 @@ const getPrincipals = function(ctx, principalIds, callback) {
  * @param  {Principal}  callback.updatedPrincipal   The updated version of the principal with its last modifed date updated
  */
 const touchLastModified = function(oldPrincipal, callback) {
-  // const oldLastModified = oldPrincipal.lastModified;
+  // Const oldLastModified = oldPrincipal.lastModified;
   const newLastModified = Date.now().toString();
   const updatedProfileFields = { lastModified: newLastModified };
   PrincipalsDAO.updatePrincipal(oldPrincipal.id, updatedProfileFields, err => {
@@ -194,6 +195,7 @@ const hideUserData = function(ctx, user) {
     if (!invalid.test(user.publicAlias)) {
       user.displayName = user.publicAlias;
     }
+
     user.picture = {};
 
     // The profile path should be removed from the user object as well. This will tell the UI
@@ -320,6 +322,7 @@ const transformPersistentUserActivityEntityToInternal = function(ctx, userId, us
     _generatePictureURLs(ctx, user, -1);
     return user;
   }
+
   return { id: userId };
 };
 
@@ -408,6 +411,7 @@ const transformPersistentGroupActivityEntityToInternal = function(ctx, groupId, 
     _generatePictureURLs(ctx, group, -1);
     return group;
   }
+
   return { id: groupId };
 };
 
@@ -439,37 +443,22 @@ const _transformPrincipals = function(ctx, principals) {
  */
 const _generatePictureURLs = function(ctx, principal, duration, offset) {
   if (principal.picture.smallUri) {
-    principal.picture.small = ContentUtil.getSignedDownloadUrl(
-      ctx,
-      principal.picture.smallUri,
-      duration,
-      offset
-    );
+    principal.picture.small = ContentUtil.getSignedDownloadUrl(ctx, principal.picture.smallUri, duration, offset);
     delete principal.picture.smallUri;
   }
 
   if (principal.picture.mediumUri) {
-    principal.picture.medium = ContentUtil.getSignedDownloadUrl(
-      ctx,
-      principal.picture.mediumUri,
-      duration,
-      offset
-    );
+    principal.picture.medium = ContentUtil.getSignedDownloadUrl(ctx, principal.picture.mediumUri, duration, offset);
     delete principal.picture.mediumUri;
   }
 
   if (principal.picture.largeUri) {
-    principal.picture.large = ContentUtil.getSignedDownloadUrl(
-      ctx,
-      principal.picture.largeUri,
-      duration,
-      offset
-    );
+    principal.picture.large = ContentUtil.getSignedDownloadUrl(ctx, principal.picture.largeUri, duration, offset);
     delete principal.picture.largeUri;
   }
 };
 
-module.exports = {
+export {
   getPrincipal,
   getPrincipals,
   touchLastModified,

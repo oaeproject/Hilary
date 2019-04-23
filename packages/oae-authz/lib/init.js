@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
-// eslint-disable-next-line no-unused-vars
-const AuthzActivity = require('./activity');
-const AuthzSearch = require('./search');
+import * as AuthzSearch from './search';
+// eslint-disable-next-line no-unused-vars, import/namespace
+import * as AuthzActivity from './activity';
 
-module.exports = function(config, callback) {
+export function init(config, callback) {
   return AuthzSearch.init(callback);
-};
+}

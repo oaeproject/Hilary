@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const { EventEmitter } = require('oae-emitter');
-const Redis = require('./redis');
-const { Validator } = require('./validator');
+import { EventEmitter } from 'oae-emitter';
+import * as Redis from './redis';
+import { Validator } from './validator';
 
 /*!
  * This module abstracts most of the redis publish/subscribe functions away.
@@ -40,16 +40,19 @@ const init = function(config, callback) {
       if (err) {
         return callback(err);
       }
+
       redisManager = client;
       Redis.createClient(config, (err, client) => {
         if (err) {
           return callback(err);
         }
+
         redisSubscriber = client;
         Redis.createClient(config, (err, client) => {
           if (err) {
             return callback(err);
           }
+
           redisPublisher = client;
 
           // Listen to all channels and emit them as events.
@@ -81,11 +84,8 @@ const publish = function(channel, message, callback) {
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
+
   redisPublisher.publish(channel, message, callback);
 };
 
-module.exports = {
-  publish,
-  init,
-  emitter
-};
+export { publish, init, emitter };

@@ -13,6 +13,6 @@
  * permissions and limitations under the License.
  */
 
-var EmitterAPI = require('oae-emitter');
+import * as EmitterAPI from 'oae-emitter';
 
-module.exports = new EmitterAPI.EventEmitter();
+export default new EmitterAPI.EventEmitter();

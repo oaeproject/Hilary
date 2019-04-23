@@ -14,15 +14,15 @@
  */
 
 /* eslint-disable camelcase */
-const _ = require('underscore');
+import _ from 'underscore';
 
-const { ContentConstants } = require('oae-content/lib/constants');
-const { DiscussionsConstants } = require('oae-discussions/lib/constants');
-const { FoldersConstants } = require('oae-folders/lib/constants');
-const OaeUtil = require('oae-util/lib/util');
+import { ContentConstants } from 'oae-content/lib/constants';
+import { DiscussionsConstants } from 'oae-discussions/lib/constants';
+import { FoldersConstants } from 'oae-folders/lib/constants';
+import { SearchConstants } from 'oae-search/lib/constants';
 
-const { SearchConstants } = require('oae-search/lib/constants');
-const SearchUtil = require('oae-search/lib/util');
+import * as OaeUtil from 'oae-util/lib/util';
+import * as SearchUtil from 'oae-search/lib/util';
 
 const RESOURCE_TYPES_ACCESS_SCOPED = [
   SearchConstants.general.RESOURCE_TYPE_ALL,
@@ -47,7 +47,7 @@ const RESOURCE_TYPES_ACCESS_SCOPED = [
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {SearchResult}   callback.results        An object that represents the results of the query
  */
-module.exports = function(ctx, opts, callback) {
+export default function(ctx, opts, callback) {
   // Sanitize custom search options
   opts = opts || {};
   opts.limit = OaeUtil.getNumberParam(opts.limit, 10, 1, 25);
@@ -57,7 +57,7 @@ module.exports = function(ctx, opts, callback) {
   opts.searchAllResourceTypes = _.isEmpty(opts.resourceTypes);
 
   return _search(ctx, opts, callback);
-};
+}
 
 /**
  * Perform the search that searches a 'q' analyzed field on documents, scoping it by user access. This is delegated from the

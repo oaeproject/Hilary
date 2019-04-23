@@ -13,37 +13,43 @@
  * permissions and limitations under the License.
  */
 
-const mkdirp = require('mkdirp');
+import mkdirp from 'mkdirp';
 
-const Cleaner = require('oae-util/lib/cleaner');
-const log = require('oae-logger').logger('oae-content');
-const TaskQueue = require('oae-util/lib/taskqueue');
+import * as Cleaner from 'oae-util/lib/cleaner';
+import { logger } from 'oae-logger';
+import * as TaskQueue from 'oae-util/lib/taskqueue';
 
-const ContentAPI = require('./api');
-const { ContentConstants } = require('./constants');
-const ContentSearch = require('./search');
-const Etherpad = require('./internal/etherpad');
-const LocalStorage = require('./backends/local');
+import * as Etherpad from './internal/etherpad';
+import * as Ethercalc from './internal/ethercalc';
+import * as LocalStorage from './backends/local';
+import * as ContentAPI from './api';
+import { ContentConstants } from './constants';
+import * as ContentSearch from './search';
 
-module.exports = function(config, callback) {
-  // Initialize the content library capabilities
-  // eslint-disable-next-line import/no-unassigned-import
-  require('./library');
+// Initialize the content library capabilities
+// eslint-disable-next-line no-unused-vars
+import * as library from './library';
 
-  // Initialize activity capabilities
-  // eslint-disable-next-line import/no-unassigned-import
-  require('./activity');
+// Initialize activity capabilities
+// eslint-disable-next-line no-unused-vars
+import * as activity from './activity';
 
-  // Ensure that the preview listeners get registered
-  // eslint-disable-next-line import/no-unassigned-import
-  require('./previews');
+// Ensure that the preview listeners get registered
+// eslint-disable-next-line no-unused-vars
+import * as previews from './previews';
 
-  // Initialize invitations listeners
-  // eslint-disable-next-line import/no-unassigned-import
-  require('./invitations');
+// Initialize invitations listeners
+// eslint-disable-next-line no-unused-vars
+import * as invitations from './invitations';
 
+const log = logger('oae-content');
+
+export function init(config, callback) {
   // Initialize the etherpad client.
   Etherpad.refreshConfiguration(config.etherpad);
+
+  // Initialize the ethercalc client
+  Ethercalc.refreshConfiguration(config.ethercalc);
 
   ContentSearch.init(err => {
     if (err) {
@@ -75,9 +81,32 @@ module.exports = function(config, callback) {
             return callback(err);
           }
 
-          return callback();
+          // Same for Ethercalc - no ack because ack breaks Ethercalc
+          TaskQueue.bind(
+            ContentConstants.queue.ETHERCALC_EDIT,
+            Ethercalc.setEditedBy,
+            { subscribe: { ack: false } },
+            function(err) {
+              if (err) {
+                return callback(err);
+              }
+
+              TaskQueue.bind(
+                ContentConstants.queue.ETHERCALC_PUBLISH,
+                ContentAPI.ethercalcPublish,
+                { subscribe: { ack: false } },
+                function(err) {
+                  if (err) {
+                    return callback(err);
+                  }
+
+                  return callback();
+                }
+              );
+            }
+          );
         });
       });
     });
   });
-};
+}

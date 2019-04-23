@@ -13,32 +13,40 @@
  * permissions and limitations under the License.
  */
 
-const crypto = require('crypto');
-const fs = require('fs');
-const util = require('util');
-const path = require('path');
-const { MailParser } = require('mailparser');
-const redback = require('redback');
-const juice = require('juice');
-const stubTransport = require('nodemailer-stub-transport');
-const sendmailTransport = require('nodemailer-sendmail-transport');
-const _ = require('underscore');
-const nodemailer = require('nodemailer');
-const { htmlToText } = require('nodemailer-html-to-text');
+import crypto from 'crypto';
+import fs from 'fs';
+import util from 'util';
+import path from 'path';
+import redback from 'redback';
+import juice from 'juice';
+import stubTransport from 'nodemailer-stub-transport';
+import sendmailTransport from 'nodemailer-sendmail-transport';
+import _ from 'underscore';
+import nodemailer from 'nodemailer';
+import { logger } from 'oae-logger';
+import { setUpConfig } from 'oae-config';
+import { telemetry } from 'oae-telemetry';
 
-const Counter = require('oae-util/lib/counter');
-const EmailConfig = require('oae-config').config('oae-email');
-const EmitterAPI = require('oae-emitter');
-const IO = require('oae-util/lib/io');
-const Locking = require('oae-util/lib/locking');
-const log = require('oae-logger').logger('oae-email');
-const OaeModules = require('oae-util/lib/modules');
-const Redis = require('oae-util/lib/redis');
-const Telemetry = require('oae-telemetry').telemetry('oae-email');
-const TenantsAPI = require('oae-tenants');
-const TenantsConfig = require('oae-config').config('oae-tenants');
-const UIAPI = require('oae-ui');
-const { Validator } = require('oae-util/lib/validator');
+import Counter from 'oae-util/lib/counter';
+import * as EmitterAPI from 'oae-emitter';
+import * as IO from 'oae-util/lib/io';
+import * as Locking from 'oae-util/lib/locking';
+import * as OaeModules from 'oae-util/lib/modules';
+import * as Redis from 'oae-util/lib/redis';
+
+import * as UIAPI from 'oae-ui';
+import { htmlToText } from 'nodemailer-html-to-text';
+import { MailParser } from 'mailparser';
+import { Validator } from 'oae-util/lib/validator';
+import * as TenantsAPI from 'oae-tenants';
+
+const EmailConfig = setUpConfig('oae-email');
+
+const log = logger('oae-email');
+
+const Telemetry = telemetry('oae-email');
+
+const TenantsConfig = setUpConfig('oae-tenants');
 
 let EmailRateLimiter = null;
 
@@ -121,18 +129,18 @@ const init = function(emailSystemConfig, callback) {
   const EmailRedback = redback.use(Redis.getClient(), { namespace: 'oae-email:redback' });
 
   /*!
-     * For robust unit tests, any provided timespan needs to cover at least 2 buckets so that when
-     * we do a count on the rate, we don't risk rolling over to a new interval and miss the emails
-     * we just sent, resetting the frequency to 0 and intermittently failing the test. Therefore
-     * we set the bucket interval to be (timespan / 2).
-     *
-     * Additionally, when a bucket is incremented in redback, the following 2 buckets are cleared.
-     * Therefore in order to ensure we don't roll over to a new bucket while incrementing and risking
-     * our previous bucket getting cleared, we must ensure we have at least 5 buckets so that the
-     * clearing of the "next 2" buckets does not impact the counting of the "previous 2". (e.g., if
-     * the current time bucket is 2, redback will clear buckets 3 and 4 while we count back from 0,
-     * 1 and 2).
-     */
+   * For robust unit tests, any provided timespan needs to cover at least 2 buckets so that when
+   * we do a count on the rate, we don't risk rolling over to a new interval and miss the emails
+   * we just sent, resetting the frequency to 0 and intermittently failing the test. Therefore
+   * we set the bucket interval to be (timespan / 2).
+   *
+   * Additionally, when a bucket is incremented in redback, the following 2 buckets are cleared.
+   * Therefore in order to ensure we don't roll over to a new bucket while incrementing and risking
+   * our previous bucket getting cleared, we must ensure we have at least 5 buckets so that the
+   * clearing of the "next 2" buckets does not impact the counting of the "previous 2". (e.g., if
+   * the current time bucket is 2, redback will clear buckets 3 and 4 while we count back from 0,
+   * 1 and 2).
+   */
   const bucketInterval = Math.ceil(throttleConfig.timespan / 2);
   EmailRateLimiter = EmailRedback.createRateLimit('email', {
     // The rate limiter seems to need at least 5 buckets to work, so lets give it exactly 5 (there are exactly bucket_span / bucket_interval buckets)
@@ -157,13 +165,8 @@ const init = function(emailSystemConfig, callback) {
     log().info({ data: emailSystemConfig.smtpTransport }, 'Configuring SMTP email transport.');
     emailTransport = nodemailer.createTransport(emailSystemConfig.smtpTransport);
   } else if (emailSystemConfig.transport === 'sendmail') {
-    log().info(
-      { data: emailSystemConfig.sendmailTransport },
-      'Configuring Sendmail email transport.'
-    );
-    emailTransport = nodemailer.createTransport(
-      sendmailTransport(emailSystemConfig.sendmailTransport.path)
-    );
+    log().info({ data: emailSystemConfig.sendmailTransport }, 'Configuring Sendmail email transport.');
+    emailTransport = nodemailer.createTransport(sendmailTransport(emailSystemConfig.sendmailTransport.path));
   } else {
     log().error(
       {
@@ -240,9 +243,7 @@ const sendEmail = function(templateModule, templateId, recipient, data, opts, ca
   const validator = new Validator();
   validator.check(templateModule, { code: 400, msg: 'Must specify a template module' }).notEmpty();
   validator.check(templateId, { code: 400, msg: 'Must specify a template id' }).notEmpty();
-  validator
-    .check(null, { code: 400, msg: 'Must specify a user when sending an email' })
-    .isObject(recipient);
+  validator.check(null, { code: 400, msg: 'Must specify a user when sending an email' }).isObject(recipient);
 
   // Only validate the user email if it was a valid object
   if (recipient) {
@@ -291,6 +292,7 @@ const sendEmail = function(templateModule, templateId, recipient, data, opts, ca
     );
     return callback(noMetaTemplateErr);
   }
+
   if (!htmlTemplate && !txtTemplate) {
     const noContentTemplateErr = {
       code: 500,
@@ -406,8 +408,7 @@ const sendEmail = function(templateModule, templateId, recipient, data, opts, ca
   // eslint-disable-next-line no-template-curly-in-string
   fromName = fromName.replace('${tenant}', tenant.displayName);
   const fromAddr =
-    EmailConfig.getValue(tenant.alias, 'general', 'fromAddress') ||
-    util.format('noreply@%s', tenant.host);
+    EmailConfig.getValue(tenant.alias, 'general', 'fromAddress') || util.format('noreply@%s', tenant.host);
   const from = util.format('"%s" <%s>', fromName, fromAddr);
 
   // Build the email object that will be sent through nodemailer. The 'from' property can be overridden by
@@ -437,21 +438,16 @@ const sendEmail = function(templateModule, templateId, recipient, data, opts, ca
   // a source location of the message. We also add the userid of the user
   // we sent the message to, so we can determine what user a message was
   // sent to in Sendgrid
-  emailInfo.messageId = util.format(
-    '%s.%s@%s',
-    opts.hash,
-    recipient.id.replace(/:/g, '-'),
-    tenant.host
-  );
+  emailInfo.messageId = util.format('%s.%s@%s', opts.hash, recipient.id.replace(/:/g, '-'), tenant.host);
 
   // Increment our debug sent count. We have to do it here because we
   // optionally enter an asynchronous block below
   _incr();
 
   /*!
-     * Wrapper callback that conveniently decrements the email sent count when
-     * processing has completed
-     */
+   * Wrapper callback that conveniently decrements the email sent count when
+   * processing has completed
+   */
   const _decrCallback = function(err) {
     _decr();
     callback(err);
@@ -520,6 +516,7 @@ const _sendEmail = function(emailInfo, opts, callback) {
       log().error({ err, emailInfo }, 'Unable to lock email id');
       return callback(err);
     }
+
     if (!token) {
       Telemetry.incr('lock.fail');
       log().error(
@@ -535,6 +532,7 @@ const _sendEmail = function(emailInfo, opts, callback) {
         log().error({ err }, 'Failed to perform email throttle check');
         return callback({ code: 500, msg: 'Failed to perform email throttle check' });
       }
+
       if (count > throttleConfig.count - 1) {
         Telemetry.incr('throttled');
         log().warn({ to: emailInfo.to }, 'Throttling in effect');
@@ -553,10 +551,7 @@ const _sendEmail = function(emailInfo, opts, callback) {
         // We got a lock and aren't throttled, send our mail
         emailTransport.sendMail(emailInfo, (err, info) => {
           if (err) {
-            log().error(
-              { err, to: emailInfo.to, subject: emailInfo.subject },
-              'Error sending email to recipient'
-            );
+            log().error({ err, to: emailInfo.to, subject: emailInfo.subject }, 'Error sending email to recipient');
             return callback(err);
           }
 
@@ -626,6 +621,7 @@ const _getTemplatesForModules = function(basedir, modules, callback, _templates)
     if (err) {
       return callback(err);
     }
+
     _templates[module] = templatesForModule;
 
     return _getTemplatesForModules(basedir, modules, callback, _templates);
@@ -649,6 +645,7 @@ const _getTemplatesForModule = function(basedir, module, callback) {
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(files)) {
       return callback();
     }
@@ -755,6 +752,7 @@ const _getCompiledTemplate = function(templatePath, callback) {
         const compiledTemplate = UIAPI.compileTemplate(templateContent);
         return callback(null, compiledTemplate);
       }
+
       return callback({ code: 500, msg: 'Template file ' + templatePath + ' had no content' });
     });
   });
@@ -775,6 +773,7 @@ const _templatesPath = function(basedir, module, template) {
   if (template) {
     templatePath += '/' + template;
   }
+
   return templatePath;
 };
 
@@ -851,10 +850,4 @@ const _decr = function() {
   }
 };
 
-module.exports = {
-  init,
-  refreshTemplates,
-  sendEmail,
-  whenAllEmailsSent,
-  emitter: EmailAPI
-};
+export { init, refreshTemplates, sendEmail, whenAllEmailsSent, EmailAPI as emitter };

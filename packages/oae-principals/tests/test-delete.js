@@ -13,20 +13,17 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const AuthzAPI = require('oae-authz');
-const AuthzUtil = require('oae-authz/lib/util');
-const FollowingTestUtil = require('oae-following/lib/test/util');
-const Redis = require('oae-util/lib/redis');
-const RestAPI = require('oae-rest');
-const SearchTestUtil = require('oae-search/lib/test/util');
-const TestsUtil = require('oae-tests');
-
-const PrincipalsDelete = require('oae-principals/lib/delete');
-const PrincipalsTestUtil = require('oae-principals/lib/test/util');
-const DisableUsersMigration = require('../../../etc/migration/disable_users_from_tenancy/lib/disable-users-by-tenancy');
+import * as FollowingTestUtil from 'oae-following/lib/test/util';
+import * as Redis from 'oae-util/lib/redis';
+import * as RestAPI from 'oae-rest';
+import * as SearchTestUtil from 'oae-search/lib/test/util';
+import * as TestsUtil from 'oae-tests';
+import * as PrincipalsDelete from 'oae-principals/lib/delete';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as DisableUsersMigration from '../../../etc/migration/disable_users_from_tenancy/lib/disable-users-by-tenancy';
 
 describe('Principals Delete and Restore', () => {
   // Rest context that can be used to perform requests as different types of users
@@ -512,8 +509,8 @@ describe('Principals Delete and Restore', () => {
      */
     it('verify deleting and restoring multiple times re-invokes handler logic', callback => {
       /*!
-             * Create a group delete handler that maintains the count of times it has been invoked
-             */
+       * Create a group delete handler that maintains the count of times it has been invoked
+       */
       let deleteHandlerCount = 0;
       PrincipalsDelete.registerGroupDeleteHandler(
         'test-group-reinvoke',
@@ -524,8 +521,8 @@ describe('Principals Delete and Restore', () => {
       );
 
       /*!
-             * Create a group restore handler that maintains the count of times it has been invoked
-             */
+       * Create a group restore handler that maintains the count of times it has been invoked
+       */
       let restoreHandlerCount = 0;
       PrincipalsDelete.registerGroupRestoreHandler(
         'test-group-reinvoke',

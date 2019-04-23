@@ -13,10 +13,12 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
-const multiparty = require('multiparty');
+import _ from 'underscore';
+import multiparty from 'multiparty';
 
-const log = require('oae-logger').logger('oae-util-multipart');
+import { logger } from 'oae-logger';
+
+const log = logger('oae-util-multipart');
 
 /**
  * Get the multipart file upload request parser middleware for Express. The middleware only has an effect if it
@@ -35,7 +37,7 @@ const log = require('oae-logger').logger('oae-util-multipart');
  * @param  {String}     [formOptions.uploadDir]     The temporary directory to use to store the uploaded file
  * @return {Function}                               An express middleware handler that will parse the request body if it is multipart/form-data
  */
-module.exports = function(formOptions) {
+export default function(formOptions) {
   formOptions = formOptions || {};
   formOptions = {
     autoFiles: true,
@@ -43,8 +45,8 @@ module.exports = function(formOptions) {
   };
 
   /*!
-     * Provide the middleware handler as per the export summary
-     */
+   * Provide the middleware handler as per the export summary
+   */
   return function(req, res, next) {
     if (req._body) {
       // The request has already been parsed, don't try to handle it
@@ -59,6 +61,7 @@ module.exports = function(formOptions) {
       // Ignore GET and HEAD requests
       return next();
     }
+
     if (!req.is('multipart/form-data')) {
       // Only handle multipart/form-data requests
       return next();
@@ -103,7 +106,9 @@ module.exports = function(formOptions) {
       return next();
     });
   };
-};
+}
+
+
 
 /**
  * Multiparty always supplies its values as arrays. To be consistent with other request parsers,

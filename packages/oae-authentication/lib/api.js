@@ -13,31 +13,33 @@
  * permissions and limitations under the License.
  */
 
-const crypto = require('crypto');
-const util = require('util');
-const _ = require('underscore');
-const passport = require('passport');
+import crypto from 'crypto';
+import util from 'util';
+import _ from 'underscore';
+import passport from 'passport';
 
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const AuthzInvitationsDAO = require('oae-authz/lib/invitations/dao');
-const Cassandra = require('oae-util/lib/cassandra');
-const ConfigAPI = require('oae-config');
-const EmitterAPI = require('oae-emitter');
-const Locking = require('oae-util/lib/locking');
-const EmailAPI = require('oae-email');
-const OaeEmitter = require('oae-util/lib/emitter');
-const OaeUtil = require('oae-util/lib/util');
-const PrincipalsAPI = require('oae-principals');
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
-const TenantsAPI = require('oae-tenants');
-const TenantsUtil = require('oae-tenants/lib/util');
-const log = require('oae-logger').logger('oae-authentication');
-const { Validator } = require('oae-authz/lib/validator');
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as ConfigAPI from 'oae-config';
+import * as EmitterAPI from 'oae-emitter';
+import * as Locking from 'oae-util/lib/locking';
+import * as EmailAPI from 'oae-email';
+import OaeEmitter from 'oae-util/lib/emitter';
+import * as OaeUtil from 'oae-util/lib/util';
+import PrincipalsAPI from 'oae-principals';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as TenantsAPI from 'oae-tenants';
+import * as TenantsUtil from 'oae-tenants/lib/util';
+import { logger } from 'oae-logger';
+import { Validator } from 'oae-authz/lib/validator';
+import { getTenantSkinVariables } from 'oae-ui';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants';
+import * as AuthenticationUtil from 'oae-authentication/lib/util';
 
-const { AuthenticationConstants } = require('oae-authentication/lib/constants');
-const AuthenticationUtil = require('oae-authentication/lib/util');
+import { LoginId } from 'oae-authentication/lib/model';
 
-const { LoginId } = require('oae-authentication/lib/model');
+const log = logger('oae-authentication');
 
 let globalTenantAlias = null;
 
@@ -81,10 +83,7 @@ const _configUpdate = function(tenantAlias) {
   } else {
     const tenant = TenantsAPI.getTenant(tenantAlias);
     if (!tenant) {
-      return log().error(
-        { tenantAlias },
-        'Error fetching tenant to update authentication configuration'
-      );
+      return log().error({ tenantAlias }, 'Error fetching tenant to update authentication configuration');
     }
 
     refreshStrategies(tenant);
@@ -149,6 +148,7 @@ const localUsernameExists = function(ctx, tenantAlias, username, callback) {
     if (err && err.code !== 404) {
       return callback(err);
     }
+
     if (!userId) {
       return callback(null, false);
     }
@@ -184,8 +184,7 @@ const getOrCreateGlobalAdminUser = function(ctx, username, password, displayName
   validator
     .check(null, {
       code: 401,
-      msg:
-        'You must be authenticated to the global admin tenant to create a global administrator user'
+      msg: 'You must be authenticated to the global admin tenant to create a global administrator user'
     })
     .isLoggedInUser(ctx, globalTenantAlias);
   validator
@@ -223,6 +222,7 @@ const getOrCreateGlobalAdminUser = function(ctx, username, password, displayName
       if (err) {
         return callback(err);
       }
+
       if (!created) {
         // The user already existed, just return the existing user
         return callback(null, user, loginId, false);
@@ -233,6 +233,7 @@ const getOrCreateGlobalAdminUser = function(ctx, username, password, displayName
         if (err) {
           return callback(err);
         }
+
         if (created) {
           log().info({ user, username }, 'Global Admin account created');
         }
@@ -270,15 +271,7 @@ const getOrCreateGlobalAdminUser = function(ctx, username, password, displayName
  * @param  {String}     callback.loginId        The *flattened* loginId for this user
  * @param  {Boolean}    callback.created        `true` if the user was created, `false` otherwise
  */
-const getOrCreateUser = function(
-  ctx,
-  authProvider,
-  externalId,
-  providerProperties,
-  displayName,
-  opts,
-  callback
-) {
+const getOrCreateUser = function(ctx, authProvider, externalId, providerProperties, displayName, opts, callback) {
   const validator = new Validator();
   validator.check(displayName, { code: 400, msg: 'You must provide a display name' }).notEmpty();
   validator
@@ -321,12 +314,14 @@ const _getOrCreateUser = function(ctx, loginId, displayName, opts, callback) {
     if (err && err.code !== 404) {
       return callback(err);
     }
+
     if (userId) {
       // The user existed, simply fetch their profile
       PrincipalsDAO.getPrincipal(userId, (err, user) => {
         if (err) {
           return callback(err);
         }
+
         if (user.deleted) {
           return callback({ code: 401, msg: 'Provided login id belongs to a deleted user' });
         }
@@ -363,6 +358,7 @@ const _getOrCreateUser = function(ctx, loginId, displayName, opts, callback) {
           if (err) {
             return callback(err);
           }
+
           if (email && !opts.email) {
             // If no email is provided by the auth provider, set the email associated to the
             // token as the verified email
@@ -379,8 +375,7 @@ const _getOrCreateUser = function(ctx, loginId, displayName, opts, callback) {
           // If an email address was provided by a non authoritative source (Facebook, Twitter,
           // Google, Local authentication) by a user that is not an administrator we should
           // check whether the email address matches the tenant's configured email domain
-          let shouldCheckEmail =
-            !_.isEmpty(ctx.tenant().emailDomains) && !isAdmin && !opts.authoritative;
+          let shouldCheckEmail = !_.isEmpty(ctx.tenant().emailDomains) && !isAdmin && !opts.authoritative;
 
           // However, if a user followed a link from an invitation email we do not check whether
           // the email belongs to the configured tenant's email domain. This is to allow for the
@@ -390,25 +385,19 @@ const _getOrCreateUser = function(ctx, loginId, displayName, opts, callback) {
             shouldCheckEmail = false;
           }
 
-          OaeUtil.invokeIfNecessary(
-            shouldCheckEmail,
-            _validateEmailBelongsToTenant,
-            ctx,
-            opts.email,
-            err => {
+          OaeUtil.invokeIfNecessary(shouldCheckEmail, _validateEmailBelongsToTenant, ctx, opts.email, err => {
+            if (err) {
+              return callback(err);
+            }
+
+            createUser(ctx, loginId, displayName, opts, (err, user) => {
               if (err) {
                 return callback(err);
               }
 
-              createUser(ctx, loginId, displayName, opts, (err, user) => {
-                if (err) {
-                  return callback(err);
-                }
-
-                return callback(null, user, _flattenLoginId(loginId), true);
-              });
-            }
-          );
+              return callback(null, user, _flattenLoginId(loginId), true);
+            });
+          });
         }
       );
     }
@@ -483,12 +472,14 @@ const createTenantAdminUser = function(ctx, loginId, displayName, opts, callback
       msg: 'A non-existing tenant was specified as the target for this user'
     });
   }
+
   if (targetTenant.isGlobalAdminServer) {
     return callback({
       code: 400,
       msg: 'A tenant administrator cannot be created on the global admin tenant'
     });
   }
+
   if (!ctx.user() || !ctx.user().isAdmin(targetTenant.alias)) {
     return callback({ code: 401, msg: 'Only administrators can create new tenant administrators' });
   }
@@ -561,6 +552,7 @@ const createUser = function(ctx, loginId, displayName, opts, callback) {
       msg: 'Only global administrators may create a user on the global admin tenant'
     });
   }
+
   if (ctx.tenant().alias !== targetTenant.alias && !isGlobalAdmin) {
     // Only global admins can create users on a tenant other than the current
     return callback({
@@ -598,6 +590,7 @@ const _createUser = function(ctx, loginId, displayName, opts, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!lockToken) {
       return callback({
         code: 400,
@@ -610,6 +603,7 @@ const _createUser = function(ctx, loginId, displayName, opts, callback) {
       if (err && err.code !== 404) {
         return callback(err);
       }
+
       if (userId) {
         return callback({
           code: 400,
@@ -695,6 +689,7 @@ const associateLoginId = function(ctx, loginId, userId, callback) {
     if (err && err.code !== 404) {
       return callback(err);
     }
+
     if (existingUserIdMapping && !isAdmin) {
       // Only admin can re-associate a login id to another user
       return callback({ code: 401, msg: 'Login ID is already associated to a user' });
@@ -705,6 +700,7 @@ const associateLoginId = function(ctx, loginId, userId, callback) {
       if (err) {
         return callback(err);
       }
+
       if (loginIds[loginId.provider]) {
         return callback({
           code: 400,
@@ -717,6 +713,7 @@ const associateLoginId = function(ctx, loginId, userId, callback) {
         if (err) {
           return callback(err);
         }
+
         if (user.deleted) {
           return callback({ code: 404, msg: util.format("Couldn't find principal: ", userId) });
         }
@@ -772,6 +769,7 @@ const changePassword = function(ctx, userId, oldPassword, newPassword, callback)
     if (err) {
       return callback(err);
     }
+
     if (user.deleted) {
       return callback({ code: 404, msg: util.format("Couldn't find principal: ", userId) });
     }
@@ -792,13 +790,10 @@ const changePassword = function(ctx, userId, oldPassword, newPassword, callback)
       const isAdmin = ctx.user().isAdmin(localLoginId.tenantAlias);
       const isTargetUser = ctx.user().id === userId;
       if (!isAdmin && !isTargetUser) {
-        log().info(
-          'Failed attempt to change password for user %s by user %s',
-          userId,
-          ctx.user().id
-        );
+        log().info('Failed attempt to change password for user %s by user %s', userId, ctx.user().id);
         return callback({ code: 401, msg: "You're not authorized to change this user's password" });
       }
+
       if (isAdmin) {
         // If the user is admin we don't care about the old password
         log().info('User %s is changing the password for user %s', ctx.user().id, userId);
@@ -856,6 +851,7 @@ const checkPassword = function(tenantAlias, username, password, callback) {
       if (err) {
         return callback(err);
       }
+
       if (_.isEmpty(rows)) {
         // No user found with that login id
         return callback({ code: 401, msg: 'No password found for this principal' });
@@ -864,9 +860,7 @@ const checkPassword = function(tenantAlias, username, password, callback) {
       // Check if the user provided password matches the stored password
       const result = Cassandra.rowToHash(rows[0]);
       const passwordMatches =
-        result.userId &&
-        result.password &&
-        AuthenticationUtil.hashAndComparePassword(password, result.password);
+        result.userId && result.password && AuthenticationUtil.hashAndComparePassword(password, result.password);
       if (passwordMatches) {
         callback(null, result.userId);
       } else {
@@ -926,6 +920,7 @@ const getResetPasswordSecret = function(ctx, username, callback) {
       if (err) {
         return callback(err);
       }
+
       if (!user.email) {
         log().warn({ userId }, 'Used asked for password reset but has no email address');
         return callback({
@@ -953,7 +948,7 @@ const getResetPasswordSecret = function(ctx, username, callback) {
             user,
             username,
             baseUrl: TenantsUtil.getBaseUrl(ctx.tenant()),
-            skinVariables: require('oae-ui').getTenantSkinVariables(ctx.tenant().alias),
+            skinVariables: getTenantSkinVariables(ctx.tenant().alias),
             secret
           };
 
@@ -981,9 +976,7 @@ const resetPassword = function(ctx, username, secret, newPassword, callback) {
   validator.check(username, { code: 400, msg: 'A username must be provided' }).notEmpty();
   validator.check(secret, { code: 400, msg: 'A secret must be provided' }).notEmpty();
   validator.check(newPassword, { code: 400, msg: 'A new password must be provided' }).notEmpty();
-  validator
-    .check(newPassword, { code: 400, msg: 'Must specify a password at least 6 characters long' })
-    .len(6);
+  validator.check(newPassword, { code: 400, msg: 'Must specify a password at least 6 characters long' }).len(6);
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -1002,6 +995,7 @@ const resetPassword = function(ctx, username, secret, newPassword, callback) {
       if (err) {
         return callback(err);
       }
+
       if (_.isEmpty(rows)) {
         // No user found with that login id
         return callback({ code: 401, msg: 'No user found for this login ID' });
@@ -1017,6 +1011,7 @@ const resetPassword = function(ctx, username, secret, newPassword, callback) {
 
         // If the secret column was found.
       }
+
       return _changePassword(loginId, newPassword, callback);
     }
   );
@@ -1065,22 +1060,17 @@ const _associateLoginId = function(loginId, userId, callback) {
   delete loginId.properties.loginId;
   loginId.properties.userId = userId;
 
-  const query = Cassandra.constructUpsertCQL(
-    'AuthenticationLoginId',
-    'loginId',
-    flattenedLoginId,
-    loginId.properties
-  );
+  const query = Cassandra.constructUpsertCQL('AuthenticationLoginId', 'loginId', flattenedLoginId, loginId.properties);
   if (query) {
     const queries = [];
     queries.push(query);
     queries.push({
-      query:
-        'INSERT INTO "AuthenticationUserLoginId" ("userId", "loginId", "value") VALUES (?, ?, ?)',
+      query: 'INSERT INTO "AuthenticationUserLoginId" ("userId", "loginId", "value") VALUES (?, ?, ?)',
       parameters: [userId, flattenedLoginId, '1']
     });
     return Cassandra.runBatchQuery(queries, callback);
   }
+
   log().error(
     {
       loginId,
@@ -1116,6 +1106,7 @@ const getUserLoginIds = function(ctx, userId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!ctx.user().isAdmin(user.tenant.alias)) {
       // Only global administrators and administrators of the tenant the user belongs to can request the login ids
       return callback({
@@ -1154,26 +1145,22 @@ const _getUserLoginIds = function(userId, callback) {
     return callback(null, {});
   }
 
-  Cassandra.runQuery(
-    'SELECT "loginId" FROM "AuthenticationUserLoginId" WHERE "userId" = ?',
-    [userId],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
-      }
-
-      const loginIds = {};
-      _.each(rows, row => {
-        row = Cassandra.rowToHash(row);
-        if (row.loginId) {
-          const loginId = _expandLoginId(row.loginId);
-          loginIds[loginId.provider] = loginId;
-        }
-      });
-
-      return callback(null, loginIds);
+  Cassandra.runQuery('SELECT "loginId" FROM "AuthenticationUserLoginId" WHERE "userId" = ?', [userId], (err, rows) => {
+    if (err) {
+      return callback(err);
     }
-  );
+
+    const loginIds = {};
+    _.each(rows, row => {
+      row = Cassandra.rowToHash(row);
+      if (row.loginId) {
+        const loginId = _expandLoginId(row.loginId);
+        loginIds[loginId.provider] = loginId;
+      }
+    });
+
+    return callback(null, loginIds);
+  });
 };
 
 /**
@@ -1193,6 +1180,7 @@ const _getUserIdFromLoginId = function(loginId, callback) {
       if (err) {
         return callback(err);
       }
+
       if (_.isEmpty(rows)) {
         return callback({ code: 404, msg: 'No user could be found with the provided login id' });
       }
@@ -1216,6 +1204,7 @@ const _flattenLoginId = function(loginId) {
   if (!loginId || !loginId.tenantAlias || !loginId.provider || !loginId.externalId) {
     return null;
   }
+
   return loginId.tenantAlias + ':' + loginId.provider + ':' + loginId.externalId;
 };
 
@@ -1252,18 +1241,14 @@ const _validateLoginIdForLookup = function(validator, loginId) {
   validator.check(null, { code: 400, msg: 'Must specify a login id' }).isObject(loginId);
   if (validator.getErrorCount() === numErrors) {
     // Only validate these if loginId is a valid object
-    validator
-      .check(loginId.tenantAlias, { code: 400, msg: 'Must specify a tenant id on the login id' })
-      .notEmpty();
+    validator.check(loginId.tenantAlias, { code: 400, msg: 'Must specify a tenant id on the login id' }).notEmpty();
     validator
       .check(loginId.provider, {
         code: 400,
         msg: 'Must specify an authentication provider on the login id'
       })
       .notEmpty();
-    validator
-      .check(loginId.externalId, { code: 400, msg: 'Must specify an external id on the login id' })
-      .notEmpty();
+    validator.check(loginId.externalId, { code: 400, msg: 'Must specify an external id on the login id' }).notEmpty();
   }
 };
 
@@ -1413,7 +1398,7 @@ const logout = function(req, res) {
   return strategy.logout(req, res);
 };
 
-module.exports = {
+export {
   emitter,
   init,
   localUsernameExists,

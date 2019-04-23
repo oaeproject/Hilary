@@ -13,10 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const OAE = require('oae-util/lib/oae');
-const OaeUtil = require('oae-util/lib/util');
-
-const ConfigAPI = require('oae-config');
+import * as OAE from 'oae-util/lib/oae';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as ConfigAPI from 'oae-config';
 
 /**
  * Convenience method to handle getting the configuration schema for the current tenant

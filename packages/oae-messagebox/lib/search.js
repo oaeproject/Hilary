@@ -13,12 +13,11 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const SearchAPI = require('oae-search');
-const SearchUtil = require('oae-search/lib/util');
-
-const MessageBoxAPI = require('oae-messagebox');
+import * as SearchAPI from 'oae-search';
+import * as SearchUtil from 'oae-search/lib/util';
+import * as MessageBoxAPI from 'oae-messagebox';
 
 /**
  * Register and create a message search document name and schema that is a child of resource documents. Registering
@@ -108,26 +107,21 @@ const deleteMessageSearchDocument = function(name, resourceId, message) {
  */
 const _getAllMessages = function(messageBoxId, start, chunkSize, callback, _messages) {
   _messages = _messages || [];
-  MessageBoxAPI.getMessagesFromMessageBox(
-    messageBoxId,
-    start,
-    chunkSize,
-    null,
-    (err, messages, nextToken) => {
-      if (err) {
-        return callback(err);
-      }
-
-      _messages = _.union(_messages, messages);
-      if (!nextToken) {
-        return callback(null, _messages);
-      }
-      return _getAllMessages(messageBoxId, nextToken, chunkSize, callback, _messages);
+  MessageBoxAPI.getMessagesFromMessageBox(messageBoxId, start, chunkSize, null, (err, messages, nextToken) => {
+    if (err) {
+      return callback(err);
     }
-  );
+
+    _messages = _.union(_messages, messages);
+    if (!nextToken) {
+      return callback(null, _messages);
+    }
+
+    return _getAllMessages(messageBoxId, nextToken, chunkSize, callback, _messages);
+  });
 };
 
-module.exports = {
+export {
   registerMessageSearchDocument,
   createAllMessageSearchDocuments,
   createMessageSearchDocuments,

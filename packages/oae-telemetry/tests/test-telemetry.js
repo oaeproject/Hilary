@@ -13,19 +13,19 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const RestAPI = require('oae-rest');
-const TelemetryAPI = require('oae-telemetry');
-const TestsUtil = require('oae-tests');
+import * as RestAPI from 'oae-rest';
+import * as TelemetryAPI from 'oae-telemetry';
+import * as TestsUtil from 'oae-tests';
 
 describe('Telemetry', () => {
   /*!
-     * Create an enabled telemetry configuration from the given configuration
-     *
-     * @param  {Object}     config  The configuration object with which to create an enabled telemetry config
-     */
+   * Create an enabled telemetry configuration from the given configuration
+   *
+   * @param  {Object}     config  The configuration object with which to create an enabled telemetry config
+   */
   const _createConfig = function(config) {
     return _.extend({ enabled: true }, config);
   };
@@ -178,10 +178,7 @@ describe('Telemetry', () => {
           RestAPI.Telemetry.getTelemetryData(anonymousGlobalRestContext, (err, res) => {
             assert.ok(err);
             assert.strictEqual(err.code, 401);
-            assert.strictEqual(
-              err.msg,
-              'Only global administrators are allowed to retrieve telemetry data'
-            );
+            assert.strictEqual(err.msg, 'Only global administrators are allowed to retrieve telemetry data');
 
             // Request the telemetry data using a tenant user
             RestAPI.Telemetry.getTelemetryData(john.restContext, (err, res) => {

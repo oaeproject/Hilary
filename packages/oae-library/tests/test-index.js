@@ -13,11 +13,10 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
+import assert from 'assert';
 
-const TestsUtil = require('oae-tests/lib/util');
-
-const LibraryAPI = require('oae-library');
+import * as TestsUtil from 'oae-tests/lib/util';
+import * as LibraryAPI from 'oae-library';
 
 describe('Library Indexing', () => {
   describe('#registerLibraryIndex', () => {
@@ -53,14 +52,14 @@ describe('Library Indexing', () => {
      */
     it('verify a library index is cleared when purged and then rebuilt when queried', callback => {
       /*!
-             * Convenience function to create a light-weight resource with just an id, tenant alias
-             * and visibility
-             *
-             * @param  {String}     id              The id fo the resource to create
-             * @param  {String}     tenantAlias     The tenant alias of the resource
-             * @param  {String}     visibility      The visibility of the resource
-             * @return {Object}                     The light weight resource object
-             */
+       * Convenience function to create a light-weight resource with just an id, tenant alias
+       * and visibility
+       *
+       * @param  {String}     id              The id fo the resource to create
+       * @param  {String}     tenantAlias     The tenant alias of the resource
+       * @param  {String}     visibility      The visibility of the resource
+       * @return {Object}                     The light weight resource object
+       */
       const _resource = function(id, tenantAlias, visibility) {
         return {
           id,
@@ -111,69 +110,48 @@ describe('Library Indexing', () => {
             assert.strictEqual(isStale, true);
 
             // Query the index and make sure we get the items
-            LibraryAPI.Index.list(
-              testName,
-              'somelibrary',
-              'private',
-              { limit: 10 },
-              (err, entries) => {
-                assert.ok(!err);
-                assert.strictEqual(entries.length, 3);
-                assert.deepStrictEqual(entries[0], { resourceId: 'c', value: 1 });
-                assert.deepStrictEqual(entries[1], { resourceId: 'b', value: ['a', 'b', 'c'] });
-                assert.deepStrictEqual(entries[2], { resourceId: 'a', value: 1 });
+            LibraryAPI.Index.list(testName, 'somelibrary', 'private', { limit: 10 }, (err, entries) => {
+              assert.ok(!err);
+              assert.strictEqual(entries.length, 3);
+              assert.deepStrictEqual(entries[0], { resourceId: 'c', value: 1 });
+              assert.deepStrictEqual(entries[1], { resourceId: 'b', value: ['a', 'b', 'c'] });
+              assert.deepStrictEqual(entries[2], { resourceId: 'a', value: 1 });
 
-                // Ensure that each library index list is no longer stale
-                LibraryAPI.Index.isStale(testName, 'somelibrary', 'private', (err, isStale) => {
+              // Ensure that each library index list is no longer stale
+              LibraryAPI.Index.isStale(testName, 'somelibrary', 'private', (err, isStale) => {
+                assert.ok(!err);
+                assert.strictEqual(isStale, false);
+                LibraryAPI.Index.isStale(testName, 'somelibrary', 'loggedin', (err, isStale) => {
                   assert.ok(!err);
                   assert.strictEqual(isStale, false);
-                  LibraryAPI.Index.isStale(testName, 'somelibrary', 'loggedin', (err, isStale) => {
+                  LibraryAPI.Index.isStale(testName, 'somelibrary', 'public', (err, isStale) => {
                     assert.ok(!err);
                     assert.strictEqual(isStale, false);
-                    LibraryAPI.Index.isStale(testName, 'somelibrary', 'public', (err, isStale) => {
+
+                    // Purge the full library
+                    LibraryAPI.Index.purge(testName, 'somelibrary', err => {
                       assert.ok(!err);
-                      assert.strictEqual(isStale, false);
 
-                      // Purge the full library
-                      LibraryAPI.Index.purge(testName, 'somelibrary', err => {
+                      // Ensure that each library index list is stale once again
+                      LibraryAPI.Index.isStale(testName, 'somelibrary', 'private', (err, isStale) => {
                         assert.ok(!err);
-
-                        // Ensure that each library index list is stale once again
-                        LibraryAPI.Index.isStale(
-                          testName,
-                          'somelibrary',
-                          'private',
-                          (err, isStale) => {
+                        assert.strictEqual(isStale, true);
+                        LibraryAPI.Index.isStale(testName, 'somelibrary', 'loggedin', (err, isStale) => {
+                          assert.ok(!err);
+                          assert.strictEqual(isStale, true);
+                          LibraryAPI.Index.isStale(testName, 'somelibrary', 'public', (err, isStale) => {
                             assert.ok(!err);
                             assert.strictEqual(isStale, true);
-                            LibraryAPI.Index.isStale(
-                              testName,
-                              'somelibrary',
-                              'loggedin',
-                              (err, isStale) => {
-                                assert.ok(!err);
-                                assert.strictEqual(isStale, true);
-                                LibraryAPI.Index.isStale(
-                                  testName,
-                                  'somelibrary',
-                                  'public',
-                                  (err, isStale) => {
-                                    assert.ok(!err);
-                                    assert.strictEqual(isStale, true);
 
-                                    return callback();
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
+                            return callback();
+                          });
+                        });
                       });
                     });
                   });
                 });
-              }
-            );
+              });
+            });
           });
         });
       });

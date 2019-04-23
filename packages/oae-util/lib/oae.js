@@ -13,13 +13,14 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
-const log = require('oae-logger').logger('oae');
-const Modules = require('./modules');
-const OaeEmitter = require('./emitter');
-const Server = require('./server');
+import { logger } from 'oae-logger';
+import * as Modules from './modules';
+import OaeEmitter from './emitter';
+import * as Server from './server';
 
-const Shutdown = require('./internal/shutdown');
+import * as Shutdown from './internal/shutdown';
+
+const log = logger();
 
 const SHUTDOWN_GRACE_TIME_MILLIS = 60000;
 const PRESHUTDOWN_DEFAULT_TIMEOUT_MILLIS = 15000;
@@ -73,13 +74,9 @@ const init = function(config, callback) {
 
   // Start up the global and tenant servers
   globalAdminServer = Server.setupServer(config.servers.globalAdminPort, config);
-  module.exports.globalAdminServer = globalAdminServer;
   tenantServer = Server.setupServer(config.servers.tenantPort, config);
-  module.exports.tenantServer = tenantServer;
   tenantRouter = Server.setupRouter(tenantServer);
-  module.exports.tenantRouter = tenantRouter;
   globalAdminRouter = Server.setupRouter(globalAdminServer);
-  module.exports.globalAdminRouter = globalAdminRouter;
 
   // Initialize the modules and their CFs, as well as registering the Rest endpoints
   Modules.bootstrapModules(config, err => {
@@ -114,7 +111,4 @@ const registerPreShutdownHandler = function(name, maxTimeMillis, handler) {
   Shutdown.registerPreShutdownHandler(name, maxTimeMillis, handler);
 };
 
-_.extend(module.exports, {
-  init,
-  registerPreShutdownHandler
-});
+export { globalAdminServer, tenantServer, tenantRouter, globalAdminRouter, init, registerPreShutdownHandler };

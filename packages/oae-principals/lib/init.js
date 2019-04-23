@@ -13,32 +13,41 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
+import util from 'util';
 
-const AuthenticationAPI = require('oae-authentication');
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const { Context } = require('oae-context');
-const TenantsAPI = require('oae-tenants');
-const { User } = require('oae-principals/lib/model');
+import * as AuthenticationAPI from 'oae-authentication';
+import * as TenantsAPI from 'oae-tenants';
 
-module.exports = function(config, callback) {
-  // Initialize activity capabilities
-  require('oae-principals/lib/activity'); // eslint-disable-line import/no-unassigned-import
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import { Context } from 'oae-context';
+import { User } from 'oae-principals/lib/model';
 
-  // Initialize search capabilities
-  require('oae-principals/lib/search'); // eslint-disable-line import/no-unassigned-import
+// Initialize activity capabilities
+// eslint-disable-line no-ununsed-vars
+import * as activity from 'oae-principals/lib/activity';
 
-  // Initialize invitations capabilities
-  require('oae-principals/lib/invitations'); // eslint-disable-line import/no-unassigned-import
+// Initialize search capabilities
+// eslint-disable-line no-ununsed-vars
+import * as search from 'oae-principals/lib/search';
 
-  // Initialize members and memberships library capabilities
-  require('oae-principals/lib/libraries/members'); // eslint-disable-line import/no-unassigned-import
-  require('oae-principals/lib/libraries/memberships'); // eslint-disable-line import/no-unassigned-import
-  // Initialize principals delete capabilities
-  require('oae-principals/lib/delete'); // eslint-disable-line import/no-unassigned-import
+// Initialize invitations capabilities
+// eslint-disable-line no-ununsed-vars
+import * as invitations from 'oae-principals/lib/invitations';
 
+// Initialize members and memberships library capabilities
+// eslint-disable-line no-ununsed-vars
+import * as members from 'oae-principals/lib/libraries/members';
+
+// eslint-disable-line no-ununsed-vars
+import * as memberships from 'oae-principals/lib/libraries/memberships';
+
+// Initialize principals delete capabilities
+// eslint-disable-line no-ununsed-vars
+import * as deleted from 'oae-principals/lib/delete';
+
+export function init(config, callback) {
   return _ensureGlobalAdmin(config, callback);
-};
+}
 
 /**
  * Ensure that the default global administrative user exists with username "administrator", and create

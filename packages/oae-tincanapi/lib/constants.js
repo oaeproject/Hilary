@@ -46,4 +46,4 @@ TinCanAPIConstants.verbs = {
   }
 };
 
-module.exports = { TinCanAPIConstants };
+export { TinCanAPIConstants };

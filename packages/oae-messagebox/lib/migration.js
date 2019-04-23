@@ -1,4 +1,4 @@
-const Cassandra = require('oae-util/lib/cassandra');
+import { createColumnFamilies } from 'oae-util/lib/cassandra';
 
 /*
  * Ensure that the all of the messages column families are created. If they already exist, this method will not do anything
@@ -8,7 +8,7 @@ const Cassandra = require('oae-util/lib/cassandra');
  * @api private
  */
 const ensureSchema = function(callback) {
-  Cassandra.createColumnFamilies(
+  createColumnFamilies(
     {
       Messages:
         'CREATE TABLE "Messages" ("id" text PRIMARY KEY, "threadKey" text, "createdBy" text, "body" text, "deleted" text)',
@@ -23,4 +23,4 @@ const ensureSchema = function(callback) {
   );
 };
 
-module.exports = { ensureSchema };
+export { ensureSchema };

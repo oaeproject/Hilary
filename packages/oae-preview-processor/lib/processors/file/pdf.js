@@ -13,22 +13,23 @@
  * permissions and limitations under the License.
  */
 
-const fs = require('fs');
-const util = require('util');
+import fs from 'fs';
+import util from 'util';
+import path from 'path';
+import stream from 'stream';
+import PreviewConstants from 'oae-preview-processor/lib/constants';
+import gm from 'gm';
+import pdfjsLib from 'pdfjs-dist';
+import _ from 'underscore';
+import { logger } from 'oae-logger';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as PreviewUtil from 'oae-preview-processor/lib/util';
+import domStubs from './domstubs';
 
 const fsWriteFile = util.promisify(fs.writeFile);
 const fsMakeDir = util.promisify(fs.mkdir);
-const path = require('path');
-const stream = require('stream');
-const gm = require('gm');
-const pdfjsLib = require('pdfjs-dist');
-const _ = require('underscore');
 
-const log = require('oae-logger').logger('oae-preview-processor');
-const OaeUtil = require('oae-util/lib/util');
-
-const PreviewConstants = require('oae-preview-processor/lib/constants');
-const PreviewUtil = require('oae-preview-processor/lib/util');
+const log = logger('oae-preview-processor');
 
 const PAGES_SUBDIRECTORY = 'pages';
 const TXT_CONTENT_FILENAME = 'plain.txt';
@@ -44,8 +45,10 @@ ReadableSVGStream.prototype._read = function() {
       return;
     }
   }
+
   this.push(null);
 };
+
 util.inherits(ReadableSVGStream, stream.Readable);
 
 /**
@@ -62,6 +65,7 @@ const init = function(config, callback) {
       msg: 'Missing configuration for the pdf preview / processing'
     });
   }
+
   viewportScale = OaeUtil.getNumberParam(config.pdfPreview.viewportScale, viewportScale);
   return callback();
 };
@@ -70,10 +74,7 @@ const init = function(config, callback) {
  * @borrows Interface.test as PDF.test
  */
 const test = function(ctx, contentObj, callback) {
-  if (
-    contentObj.resourceSubType === RESOURCE_SUBTYPE &&
-    PreviewConstants.TYPES.PDF.indexOf(ctx.revision.mime) !== -1
-  ) {
+  if (contentObj.resourceSubType === RESOURCE_SUBTYPE && PreviewConstants.TYPES.PDF.indexOf(ctx.revision.mime) !== -1) {
     callback(null, 10);
   } else {
     callback(null, -1);
@@ -105,7 +106,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
  * @param  {Object}              callback.err    An error that occurred, if any
  */
 const previewPDF = async function(ctx, pdfPath, callback) {
-  require('./domstubs.js').setStubs(global);
+  domStubs.setStubs(global);
 
   const pagesDir = path.join(ctx.baseDir, PAGES_SUBDIRECTORY);
   const output = path.join(pagesDir, TXT_CONTENT_FILENAME);
@@ -134,9 +135,9 @@ const previewPDF = async function(ctx, pdfPath, callback) {
     await fsWriteFile(output, pdfContents.join(' '));
 
     _generateThumbnail(ctx, pdfPath, pagesDir, callback);
-  } catch (e) {
+  } catch (error) {
     const errorMessage = 'Unable to process PDF';
-    log().error({ e }, errorMessage);
+    log().error({ error }, errorMessage);
     return callback({ code: 500, msg: errorMessage });
   }
 };
@@ -197,6 +198,7 @@ function ReadableSVGStream(options) {
   if (!(this instanceof ReadableSVGStream)) {
     return new ReadableSVGStream(options);
   }
+
   stream.Readable.call(this, options);
   this.serializer = options.svgElement.getSerializer();
 }
@@ -218,10 +220,10 @@ function writeSvgToFile(svgElement, filePath) {
     writableStream.once('error', reject);
     writableStream.once('finish', resolve);
     readableSvgStream.pipe(writableStream);
-  }).catch(err => {
+  }).catch(error => {
     readableSvgStream = null; // Explicitly null because of v8 bug 6512.
     writableStream.end();
-    throw err;
+    throw error;
   });
 }
 
@@ -256,10 +258,10 @@ const previewAndIndexEachPage = async function(ctx, pagesDir, pageNum, doc) {
     ctx.addPreview(pagePath, pageName);
 
     return fsWriteFile(pagePath, pageContents);
-  } catch (e) {
+  } catch (error) {
     const errorMessage = `Preview processing for pdf page ${pageNum} file failed`;
-    log().error({ e }, errorMessage);
-    throw e;
+    log().error({ error }, errorMessage);
+    throw error;
   }
 };
 
@@ -279,9 +281,4 @@ const processAllPages = async function(ctx, pagesDir, numPages, doc) {
   }
 };
 
-module.exports = {
-  init,
-  test,
-  generatePreviews,
-  previewPDF
-};
+export { init, test, generatePreviews, previewPDF };

@@ -13,20 +13,22 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const AuthzInvitationsDAO = require('oae-authz/lib/invitations/dao');
-const AuthzUtil = require('oae-authz/lib/util');
-const { Context } = require('oae-context');
-const { Invitation } = require('oae-authz/lib/invitations/model');
-const ResourceActions = require('oae-resource/lib/actions');
-const { ResourceConstants } = require('oae-resource/lib/constants');
+import { logger } from 'oae-logger';
 
-const FoldersAPI = require('oae-folders');
-const { FoldersConstants } = require('oae-folders/lib/constants');
-const FoldersDAO = require('oae-folders/lib/internal/dao');
+import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as ResourceActions from 'oae-resource/lib/actions';
+import * as FoldersAPI from 'oae-folders';
+import * as FoldersDAO from 'oae-folders/lib/internal/dao';
 
-const log = require('oae-logger').logger('oae-folders-invitations');
+import { Context } from 'oae-context';
+import { Invitation } from 'oae-authz/lib/invitations/model';
+import { ResourceConstants } from 'oae-resource/lib/constants';
+import { FoldersConstants } from 'oae-folders/lib/constants';
+
+const log = logger('oae-folders-invitations');
 
 /*!
  * When an invitation is accepted, pass on the events to update folder members and then feed back
@@ -55,6 +57,7 @@ ResourceActions.emitter.when(
         );
         return callback();
       }
+
       if (_.isEmpty(folders)) {
         return callback();
       }
@@ -87,24 +90,21 @@ ResourceActions.emitter.when(
 /*!
  * When a folder is deleted, we delete all invitations associated to it
  */
-FoldersAPI.emitter.when(
-  FoldersConstants.events.DELETED_FOLDER,
-  (ctx, folder, memberIds, callback) => {
-    AuthzInvitationsDAO.deleteInvitationsByResourceId(folder.id, err => {
-      if (err) {
-        log().warn(
-          {
-            err,
-            folderId: folder.id
-          },
-          'An error occurred while removing invitations after a folder was deleted'
-        );
-      }
+FoldersAPI.emitter.when(FoldersConstants.events.DELETED_FOLDER, (ctx, folder, memberIds, callback) => {
+  AuthzInvitationsDAO.deleteInvitationsByResourceId(folder.id, err => {
+    if (err) {
+      log().warn(
+        {
+          err,
+          folderId: folder.id
+        },
+        'An error occurred while removing invitations after a folder was deleted'
+      );
+    }
 
-      return callback();
-    });
-  }
-);
+    return callback();
+  });
+});
 
 /**
  * Determine if the given id is a folder id

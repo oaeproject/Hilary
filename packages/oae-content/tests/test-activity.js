@@ -13,28 +13,29 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const fs = require('fs');
-const path = require('path');
-const url = require('url');
-const util = require('util');
-const _ = require('underscore');
+import assert from 'assert';
+import fs from 'fs';
+import path from 'path';
+import url from 'url';
+import util from 'util';
+import _ from 'underscore';
 
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const ActivityTestsUtil = require('oae-activity/lib/test/util');
-const ActivityDAO = require('oae-activity/lib/internal/dao');
-const AuthzUtil = require('oae-authz/lib/util');
-const Cassandra = require('oae-util/lib/cassandra');
-const EmailTestsUtil = require('oae-email/lib/test/util');
-const FollowingTestsUtil = require('oae-following/lib/test/util');
-const PreviewConstants = require('oae-preview-processor/lib/constants');
-const PrincipalsTestUtil = require('oae-principals/lib/test/util');
-const RestAPI = require('oae-rest');
-const RestUtil = require('oae-rest/lib/util');
-const TestsUtil = require('oae-tests');
+import { ActivityConstants } from 'oae-activity/lib/constants';
 
-const ContentTestUtil = require('oae-content/lib/test/util');
-const Etherpad = require('oae-content/lib/internal/etherpad');
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
+import * as ActivityDAO from 'oae-activity/lib/internal/dao';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as EmailTestsUtil from 'oae-email/lib/test/util';
+import * as FollowingTestsUtil from 'oae-following/lib/test/util';
+import PreviewConstants from 'oae-preview-processor/lib/constants';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as RestUtil from 'oae-rest/lib/util';
+import * as TestsUtil from 'oae-tests';
+
+import * as ContentTestUtil from 'oae-content/lib/test/util';
+import * as Etherpad from 'oae-content/lib/internal/etherpad';
 
 describe('Content Activity', () => {
   // Rest contexts that can be used for performing REST requests
@@ -110,31 +111,16 @@ describe('Content Activity', () => {
             assert.ok(!err);
             const groupBmembers = {};
             groupBmembers[groupMemberB.user.id] = 'member';
-            RestAPI.Group.setGroupMembers(
-              simong.restContext,
-              groupB.group.id,
-              groupBmembers,
-              err => {
+            RestAPI.Group.setGroupMembers(simong.restContext, groupB.group.id, groupBmembers, err => {
+              assert.ok(!err);
+
+              // Nico follows simong
+              RestAPI.Following.follow(nico.restContext, simong.user.id, err => {
                 assert.ok(!err);
 
-                // Nico follows simong
-                RestAPI.Following.follow(nico.restContext, simong.user.id, err => {
-                  assert.ok(!err);
-
-                  return callback(
-                    simong,
-                    nico,
-                    bert,
-                    stuart,
-                    stephen,
-                    groupMemberA,
-                    groupMemberB,
-                    groupA,
-                    groupB
-                  );
-                });
-              }
-            );
+                return callback(simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB, groupA, groupB);
+              });
+            });
           });
         });
       }
@@ -142,14 +128,14 @@ describe('Content Activity', () => {
   };
 
   /*!
-     * Get the activity from the stream with the given criteria
-     *
-     * @param  {ActivityStream}    activityStream      The stream to search
-     * @param  {String}            activityType        The type of activity to find
-     * @param  {String}            entityType          The type of entity to apply the criteria (one of actor, object or target)
-     * @param  {String}            entityOaeId         The oae:id of the entity to search
-     * @return {Activity}                              An activity from the stream that matches the provided criteria
-     */
+   * Get the activity from the stream with the given criteria
+   *
+   * @param  {ActivityStream}    activityStream      The stream to search
+   * @param  {String}            activityType        The type of activity to find
+   * @param  {String}            entityType          The type of entity to apply the criteria (one of actor, object or target)
+   * @param  {String}            entityOaeId         The oae:id of the entity to search
+   * @return {Activity}                              An activity from the stream that matches the provided criteria
+   */
   const _getActivity = function(activityStream, activityType, entityType, entityOaeId) {
     if (!activityStream) {
       return null;
@@ -165,12 +151,12 @@ describe('Content Activity', () => {
   };
 
   /*!
-     * Get the email from the email list with the given to address
-     *
-     * @param  {Object[]}          emails              The emails to search
-     * @param  {String}            to                  The email address to which the email should be sent
-     * @return {Object}                                The first email from the email list that matches the to address
-     */
+   * Get the email from the email list with the given to address
+   *
+   * @param  {Object[]}          emails              The emails to search
+   * @param  {String}            to                  The email address to which the email should be sent
+   * @return {Object}                                The first email from the email list that matches the to address
+   */
   const _getEmail = function(emails, to) {
     return _.find(emails, email => {
       return email.to[0].address === to;
@@ -196,225 +182,135 @@ describe('Content Activity', () => {
      * Test that verifies a content resource routes activities to its members when created, updated and shared
      */
     it('verify routing to content members', callback => {
-      TestsUtil.generateTestUsers(
-        camAdminRestContext,
-        3,
-        (err, users, jack, jane, managerGroupMember) => {
-          assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, jack, jane, managerGroupMember) => {
+        assert.ok(!err);
 
-          // Create the group that will be a viewer of the content
-          RestAPI.Group.createGroup(
-            camAdminRestContext,
-            'Viewer Group displayName',
-            'Viewer Group Description',
-            'public',
-            'no',
-            [],
-            [],
-            (err, viewerGroup) => {
-              assert.ok(!err);
+        // Create the group that will be a viewer of the content
+        RestAPI.Group.createGroup(
+          camAdminRestContext,
+          'Viewer Group displayName',
+          'Viewer Group Description',
+          'public',
+          'no',
+          [],
+          [],
+          (err, viewerGroup) => {
+            assert.ok(!err);
 
-              // Create a group that will be a manager of the content
-              RestAPI.Group.createGroup(
-                camAdminRestContext,
-                'Manager Group displayName',
-                'Manager Group Description',
-                'public',
-                'no',
-                [],
-                [],
-                (err, managerGroup) => {
+            // Create a group that will be a manager of the content
+            RestAPI.Group.createGroup(
+              camAdminRestContext,
+              'Manager Group displayName',
+              'Manager Group Description',
+              'public',
+              'no',
+              [],
+              [],
+              (err, managerGroup) => {
+                assert.ok(!err);
+
+                // ManagerGroupMember should be a member of the manager group to verify indirect group member routing
+                const membership = {};
+                membership[managerGroupMember.user.id] = 'manager';
+                RestAPI.Group.setGroupMembers(camAdminRestContext, managerGroup.id, membership, err => {
                   assert.ok(!err);
 
-                  // ManagerGroupMember should be a member of the manager group to verify indirect group member routing
-                  const membership = {};
-                  membership[managerGroupMember.user.id] = 'manager';
-                  RestAPI.Group.setGroupMembers(
-                    camAdminRestContext,
-                    managerGroup.id,
-                    membership,
-                    err => {
+                  // Create a content item with manager group and viewer group as members.
+                  RestAPI.Content.createLink(
+                    jack.restContext,
+                    'Google',
+                    'Google',
+                    'public',
+                    'http://www.google.ca',
+                    [managerGroup.id],
+                    [viewerGroup.id],
+                    [],
+                    (err, link) => {
                       assert.ok(!err);
 
-                      // Create a content item with manager group and viewer group as members.
-                      RestAPI.Content.createLink(
-                        jack.restContext,
-                        'Google',
-                        'Google',
-                        'public',
-                        'http://www.google.ca',
-                        [managerGroup.id],
-                        [viewerGroup.id],
-                        [],
-                        (err, link) => {
-                          assert.ok(!err);
+                      // Share the content item with jane
+                      RestAPI.Content.shareContent(jack.restContext, link.id, [jane.user.id], err => {
+                        assert.ok(!err);
 
-                          // Share the content item with jane
-                          RestAPI.Content.shareContent(
-                            jack.restContext,
-                            link.id,
-                            [jane.user.id],
-                            err => {
-                              assert.ok(!err);
+                        // Update the content item
+                        RestAPI.Content.updateContent(
+                          jack.restContext,
+                          link.id,
+                          { description: 'Super awesome link' },
+                          err => {
+                            assert.ok(!err);
 
-                              // Update the content item
-                              RestAPI.Content.updateContent(
-                                jack.restContext,
-                                link.id,
-                                { description: 'Super awesome link' },
-                                err => {
-                                  assert.ok(!err);
+                            // Verify Jack got the create, share and update as he was the actor for all of them
+                            ActivityTestsUtil.collectAndGetActivityStream(
+                              jack.restContext,
+                              jack.user.id,
+                              null,
+                              (err, activityStream) => {
+                                assert.ok(!err);
+                                assert.ok(_getActivity(activityStream, 'content-create', 'object', link.id));
+                                assert.ok(_getActivity(activityStream, 'content-share', 'target', jane.user.id));
+                                assert.ok(_getActivity(activityStream, 'content-update', 'object', link.id));
 
-                                  // Verify Jack got the create, share and update as he was the actor for all of them
-                                  ActivityTestsUtil.collectAndGetActivityStream(
-                                    jack.restContext,
-                                    jack.user.id,
-                                    null,
-                                    (err, activityStream) => {
-                                      assert.ok(!err);
-                                      assert.ok(
-                                        _getActivity(
-                                          activityStream,
-                                          'content-create',
-                                          'object',
-                                          link.id
-                                        )
-                                      );
-                                      assert.ok(
-                                        _getActivity(
-                                          activityStream,
-                                          'content-share',
-                                          'target',
-                                          jane.user.id
-                                        )
-                                      );
-                                      assert.ok(
-                                        _getActivity(
-                                          activityStream,
-                                          'content-update',
-                                          'object',
-                                          link.id
-                                        )
-                                      );
+                                // Verify the manager group received the create, share and update as they are a content member
+                                ActivityTestsUtil.collectAndGetActivityStream(
+                                  camAdminRestContext,
+                                  managerGroup.id,
+                                  null,
+                                  (err, activityStream) => {
+                                    assert.ok(!err);
+                                    assert.ok(_getActivity(activityStream, 'content-create', 'object', link.id));
+                                    assert.ok(_getActivity(activityStream, 'content-share', 'target', jane.user.id));
+                                    assert.ok(_getActivity(activityStream, 'content-update', 'object', link.id));
 
-                                      // Verify the manager group received the create, share and update as they are a content member
-                                      ActivityTestsUtil.collectAndGetActivityStream(
-                                        camAdminRestContext,
-                                        managerGroup.id,
-                                        null,
-                                        (err, activityStream) => {
-                                          assert.ok(!err);
-                                          assert.ok(
-                                            _getActivity(
-                                              activityStream,
-                                              'content-create',
-                                              'object',
-                                              link.id
-                                            )
-                                          );
-                                          assert.ok(
-                                            _getActivity(
-                                              activityStream,
-                                              'content-share',
-                                              'target',
-                                              jane.user.id
-                                            )
-                                          );
-                                          assert.ok(
-                                            _getActivity(
-                                              activityStream,
-                                              'content-update',
-                                              'object',
-                                              link.id
-                                            )
-                                          );
+                                    // Verify the viewer group received only the create and update. only managers care about the sharing of the "object"
+                                    ActivityTestsUtil.collectAndGetActivityStream(
+                                      camAdminRestContext,
+                                      viewerGroup.id,
+                                      null,
+                                      (err, activityStream) => {
+                                        assert.ok(!err);
+                                        assert.ok(_getActivity(activityStream, 'content-create', 'object', link.id));
+                                        assert.ok(
+                                          !_getActivity(activityStream, 'content-share', 'target', jane.user.id)
+                                        );
+                                        assert.ok(_getActivity(activityStream, 'content-update', 'object', link.id));
 
-                                          // Verify the viewer group received only the create and update. only managers care about the sharing of the "object"
-                                          ActivityTestsUtil.collectAndGetActivityStream(
-                                            camAdminRestContext,
-                                            viewerGroup.id,
-                                            null,
-                                            (err, activityStream) => {
-                                              assert.ok(!err);
-                                              assert.ok(
-                                                _getActivity(
-                                                  activityStream,
-                                                  'content-create',
-                                                  'object',
-                                                  link.id
-                                                )
-                                              );
-                                              assert.ok(
-                                                !_getActivity(
-                                                  activityStream,
-                                                  'content-share',
-                                                  'target',
-                                                  jane.user.id
-                                                )
-                                              );
-                                              assert.ok(
-                                                _getActivity(
-                                                  activityStream,
-                                                  'content-update',
-                                                  'object',
-                                                  link.id
-                                                )
-                                              );
-
-                                              // Verify the manager group *member* got the same activities as the manager group, as they are a member
-                                              ActivityTestsUtil.collectAndGetActivityStream(
-                                                camAdminRestContext,
-                                                managerGroupMember.user.id,
-                                                null,
-                                                (err, activityStream) => {
-                                                  assert.ok(!err);
-                                                  assert.ok(
-                                                    _getActivity(
-                                                      activityStream,
-                                                      'content-create',
-                                                      'object',
-                                                      link.id
-                                                    )
-                                                  );
-                                                  assert.ok(
-                                                    _getActivity(
-                                                      activityStream,
-                                                      'content-share',
-                                                      'target',
-                                                      jane.user.id
-                                                    )
-                                                  );
-                                                  assert.ok(
-                                                    _getActivity(
-                                                      activityStream,
-                                                      'content-update',
-                                                      'object',
-                                                      link.id
-                                                    )
-                                                  );
-                                                  return callback();
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
+                                        // Verify the manager group *member* got the same activities as the manager group, as they are a member
+                                        ActivityTestsUtil.collectAndGetActivityStream(
+                                          camAdminRestContext,
+                                          managerGroupMember.user.id,
+                                          null,
+                                          (err, activityStream) => {
+                                            assert.ok(!err);
+                                            assert.ok(
+                                              _getActivity(activityStream, 'content-create', 'object', link.id)
+                                            );
+                                            assert.ok(
+                                              _getActivity(activityStream, 'content-share', 'target', jane.user.id)
+                                            );
+                                            assert.ok(
+                                              _getActivity(activityStream, 'content-update', 'object', link.id)
+                                            );
+                                            return callback();
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      });
                     }
                   );
-                }
-              );
-            }
-          );
-        }
-      );
+                });
+              }
+            );
+          }
+        );
+      });
     });
 
     /**
@@ -458,10 +354,7 @@ describe('Content Activity', () => {
                   assert.strictEqual(object['oae:resourceSubType'], 'link');
                   assert.strictEqual(
                     object['oae:profilePath'],
-                    '/content/' +
-                      link.tenant.alias +
-                      '/' +
-                      AuthzUtil.getResourceFromId(link.id).resourceId
+                    '/content/' + link.tenant.alias + '/' + AuthzUtil.getResourceFromId(link.id).resourceId
                   );
                   assert.strictEqual(object.displayName, 'Google');
                   return callback();
@@ -521,10 +414,7 @@ describe('Content Activity', () => {
 
                         // Should have exactly 1 activity, 2 aggregated comments
                         assert.strictEqual(activityStream.items.length, 1);
-                        assert.strictEqual(
-                          activityStream.items[0].object['oae:collection'].length,
-                          2
-                        );
+                        assert.strictEqual(activityStream.items[0].object['oae:collection'].length, 2);
                         callback();
                       }
                     );
@@ -568,51 +458,38 @@ describe('Content Activity', () => {
                 assert.ok(!err);
 
                 // Force a collection before the content item goes private
-                ActivityTestsUtil.collectAndGetActivityStream(
-                  mrvisser.restContext,
-                  mrvisser.user.id,
-                  null,
-                  err => {
+                ActivityTestsUtil.collectAndGetActivityStream(mrvisser.restContext, mrvisser.user.id, null, err => {
+                  assert.ok(!err);
+
+                  // Simong has had enough of mrvisser's tom-foolery and makes the content item private
+                  RestAPI.Content.updateContent(simong.restContext, link.id, { visibility: 'private' }, err => {
                     assert.ok(!err);
 
-                    // Simong has had enough of mrvisser's tom-foolery and makes the content item private
-                    RestAPI.Content.updateContent(
-                      simong.restContext,
+                    // Bert retorts!
+                    RestAPI.Content.createComment(
+                      bert.restContext,
                       link.id,
-                      { visibility: 'private' },
-                      err => {
+                      "You're wrong and you smell bad!",
+                      null,
+                      (err, bertComment) => {
                         assert.ok(!err);
 
-                        // Bert retorts!
-                        RestAPI.Content.createComment(
-                          bert.restContext,
-                          link.id,
-                          "You're wrong and you smell bad!",
+                        // Mrvisser should only have the activity for the comment he made, not Bert's
+                        ActivityTestsUtil.collectAndGetActivityStream(
+                          mrvisser.restContext,
+                          mrvisser.user.id,
                           null,
-                          (err, bertComment) => {
+                          (err, activityStream) => {
                             assert.ok(!err);
-
-                            // Mrvisser should only have the activity for the comment he made, not Bert's
-                            ActivityTestsUtil.collectAndGetActivityStream(
-                              mrvisser.restContext,
-                              mrvisser.user.id,
-                              null,
-                              (err, activityStream) => {
-                                assert.ok(!err);
-                                assert.strictEqual(activityStream.items.length, 1);
-                                assert.strictEqual(
-                                  activityStream.items[0].object['oae:id'],
-                                  mrvisserComment.id
-                                );
-                                callback();
-                              }
-                            );
+                            assert.strictEqual(activityStream.items.length, 1);
+                            assert.strictEqual(activityStream.items[0].object['oae:id'], mrvisserComment.id);
+                            callback();
                           }
                         );
                       }
                     );
-                  }
-                );
+                  });
+                });
               }
             );
           }
@@ -639,62 +516,51 @@ describe('Content Activity', () => {
 
         // Give one of the users a profile picture
         const cropArea = { x: 0, y: 0, width: 250, height: 250 };
-        RestAPI.User.uploadPicture(
-          mrvisser.restContext,
-          mrvisser.user.id,
-          getPictureStream,
-          cropArea,
-          err => {
-            assert.ok(!err);
+        RestAPI.User.uploadPicture(mrvisser.restContext, mrvisser.user.id, getPictureStream, cropArea, err => {
+          assert.ok(!err);
 
-            // Create a content item to be commented on
-            RestAPI.Content.createLink(
-              simong.restContext,
-              'Google',
-              'Google',
-              'public',
-              'http://www.google.ca',
-              [],
-              [],
-              [],
-              (err, link) => {
-                assert.ok(!err);
+          // Create a content item to be commented on
+          RestAPI.Content.createLink(
+            simong.restContext,
+            'Google',
+            'Google',
+            'public',
+            'http://www.google.ca',
+            [],
+            [],
+            [],
+            (err, link) => {
+              assert.ok(!err);
 
-                // Mrvisser is not a member, but he will comment on it
-                RestAPI.Content.createComment(
-                  mrvisser.restContext,
-                  link.id,
-                  'This link clearly goes to Google.',
-                  null,
-                  (err, mrvisserComment) => {
-                    assert.ok(!err);
+              // Mrvisser is not a member, but he will comment on it
+              RestAPI.Content.createComment(
+                mrvisser.restContext,
+                link.id,
+                'This link clearly goes to Google.',
+                null,
+                (err, mrvisserComment) => {
+                  assert.ok(!err);
 
-                    // Mrvisser should have a notification and an activity about this because he was a recent commenter
-                    ActivityTestsUtil.collectAndGetActivityStream(
-                      mrvisser.restContext,
-                      mrvisser.user.id,
-                      null,
-                      (err, activityStream) => {
-                        assert.ok(!err);
-                        assert.strictEqual(activityStream.items.length, 1);
-                        assert.strictEqual(
-                          activityStream.items[0].object['oae:id'],
-                          mrvisserComment.id
-                        );
-                        assert.ok(activityStream.items[0].object.author.image);
-                        assert.ok(activityStream.items[0].object.author.image.url);
-                        assert.ok(
-                          activityStream.items[0].object.author.image.url.indexOf('expired') === -1
-                        );
-                        callback();
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
+                  // Mrvisser should have a notification and an activity about this because he was a recent commenter
+                  ActivityTestsUtil.collectAndGetActivityStream(
+                    mrvisser.restContext,
+                    mrvisser.user.id,
+                    null,
+                    (err, activityStream) => {
+                      assert.ok(!err);
+                      assert.strictEqual(activityStream.items.length, 1);
+                      assert.strictEqual(activityStream.items[0].object['oae:id'], mrvisserComment.id);
+                      assert.ok(activityStream.items[0].object.author.image);
+                      assert.ok(activityStream.items[0].object.author.image.url);
+                      assert.ok(activityStream.items[0].object.author.image.url.indexOf('expired') === -1);
+                      callback();
+                    }
+                  );
+                }
+              );
+            }
+          );
+        });
       });
     });
 
@@ -731,119 +597,100 @@ describe('Content Activity', () => {
                 assert.ok(!err);
                 ContentTestUtil.publishCollabDoc(contentObj.id, branden.user.id, () => {
                   // Route and aggregate the activity into branden's activity stream
-                  ActivityTestsUtil.collectAndGetActivityStream(
-                    branden.restContext,
-                    branden.user.id,
-                    null,
-                    err => {
-                      assert.ok(!err);
+                  ActivityTestsUtil.collectAndGetActivityStream(branden.restContext, branden.user.id, null, err => {
+                    assert.ok(!err);
 
-                      // Query branden's activity stream to get the item that was persisted
-                      const activityStreamId = util.format('%s#activity', branden.user.id);
-                      Cassandra.runQuery(
-                        'SELECT * FROM "ActivityStreams" WHERE "activityStreamId" = ?',
-                        [activityStreamId],
-                        (err, rows) => {
-                          assert.ok(!err);
-                          assert.strictEqual(rows.length, 2);
+                    // Query branden's activity stream to get the item that was persisted
+                    const activityStreamId = util.format('%s#activity', branden.user.id);
+                    Cassandra.runQuery(
+                      'SELECT * FROM "ActivityStreams" WHERE "activityStreamId" = ?',
+                      [activityStreamId],
+                      (err, rows) => {
+                        assert.ok(!err);
+                        assert.strictEqual(rows.length, 2);
 
-                          // Ensure we get the revision activity, and that there is no latest
-                          // revision content
-                          const hash = Cassandra.rowToHash(rows[1]);
-                          const activity = JSON.parse(hash.activity);
-                          assert.strictEqual(activity['oae:activityType'], 'content-revision');
-                          assert.strictEqual(activity.actor.id, branden.user.id);
-                          assert.strictEqual(activity.object['oae:id'], contentObj.id);
-                          assert.ok(!activity.object.content.latestRevision);
+                        // Ensure we get the revision activity, and that there is no latest
+                        // revision content
+                        const hash = Cassandra.rowToHash(rows[1]);
+                        const activity = JSON.parse(hash.activity);
+                        assert.strictEqual(activity['oae:activityType'], 'content-revision');
+                        assert.strictEqual(activity.actor.id, branden.user.id);
+                        assert.strictEqual(activity.object['oae:id'], contentObj.id);
+                        assert.ok(!activity.object.content.latestRevision);
 
-                          // Comment on the activity, ensuring there is no latest revision content
-                          RestAPI.Content.createComment(
-                            branden.restContext,
-                            contentObj.id,
-                            'Comment A',
-                            null,
-                            (err, commentA) => {
-                              assert.ok(!err);
-                              ActivityTestsUtil.collectAndGetActivityStream(
-                                branden.restContext,
-                                branden.user.id,
-                                null,
-                                err => {
-                                  Cassandra.runQuery(
-                                    'SELECT * FROM "ActivityStreams" WHERE "activityStreamId" = ?',
-                                    [activityStreamId],
-                                    (err, rows) => {
-                                      assert.ok(!err);
-                                      assert.strictEqual(rows.length, 3);
+                        // Comment on the activity, ensuring there is no latest revision content
+                        RestAPI.Content.createComment(
+                          branden.restContext,
+                          contentObj.id,
+                          'Comment A',
+                          null,
+                          (err, commentA) => {
+                            assert.ok(!err);
+                            ActivityTestsUtil.collectAndGetActivityStream(
+                              branden.restContext,
+                              branden.user.id,
+                              null,
+                              err => {
+                                Cassandra.runQuery(
+                                  'SELECT * FROM "ActivityStreams" WHERE "activityStreamId" = ?',
+                                  [activityStreamId],
+                                  (err, rows) => {
+                                    assert.ok(!err);
+                                    assert.strictEqual(rows.length, 3);
 
-                                      // Ensure we get the comment activity, and that there is no latest
-                                      // revision content
-                                      const hash = Cassandra.rowToHash(rows[2]);
-                                      const activity = JSON.parse(hash.activity);
-                                      assert.strictEqual(
-                                        activity['oae:activityType'],
-                                        'content-comment'
-                                      );
-                                      assert.strictEqual(activity.actor.id, branden.user.id);
-                                      assert.strictEqual(activity.target['oae:id'], contentObj.id);
-                                      assert.ok(!activity.target.content.latestRevision);
+                                    // Ensure we get the comment activity, and that there is no latest
+                                    // revision content
+                                    const hash = Cassandra.rowToHash(rows[2]);
+                                    const activity = JSON.parse(hash.activity);
+                                    assert.strictEqual(activity['oae:activityType'], 'content-comment');
+                                    assert.strictEqual(activity.actor.id, branden.user.id);
+                                    assert.strictEqual(activity.target['oae:id'], contentObj.id);
+                                    assert.ok(!activity.target.content.latestRevision);
 
-                                      // Share the activity, ensuring there is no latest revision content
-                                      RestAPI.Content.shareContent(
-                                        branden.restContext,
-                                        contentObj.id,
-                                        [nico.user.id],
-                                        err => {
-                                          assert.ok(!err);
-                                          ActivityTestsUtil.collectAndGetActivityStream(
-                                            branden.restContext,
-                                            branden.user.id,
-                                            null,
-                                            err => {
-                                              Cassandra.runQuery(
-                                                'SELECT * FROM "ActivityStreams" WHERE "activityStreamId" = ?',
-                                                [activityStreamId],
-                                                (err, rows) => {
-                                                  assert.ok(!err);
-                                                  assert.strictEqual(rows.length, 4);
+                                    // Share the activity, ensuring there is no latest revision content
+                                    RestAPI.Content.shareContent(
+                                      branden.restContext,
+                                      contentObj.id,
+                                      [nico.user.id],
+                                      err => {
+                                        assert.ok(!err);
+                                        ActivityTestsUtil.collectAndGetActivityStream(
+                                          branden.restContext,
+                                          branden.user.id,
+                                          null,
+                                          err => {
+                                            Cassandra.runQuery(
+                                              'SELECT * FROM "ActivityStreams" WHERE "activityStreamId" = ?',
+                                              [activityStreamId],
+                                              (err, rows) => {
+                                                assert.ok(!err);
+                                                assert.strictEqual(rows.length, 4);
 
-                                                  // Ensure we get the share activity, and that there is no latest
-                                                  // revision content
-                                                  const hash = Cassandra.rowToHash(rows[3]);
-                                                  const activity = JSON.parse(hash.activity);
-                                                  assert.strictEqual(
-                                                    activity['oae:activityType'],
-                                                    'content-share'
-                                                  );
-                                                  assert.strictEqual(
-                                                    activity.actor.id,
-                                                    branden.user.id
-                                                  );
-                                                  assert.strictEqual(
-                                                    activity.object['oae:id'],
-                                                    contentObj.id
-                                                  );
-                                                  assert.ok(
-                                                    !activity.object.content.latestRevision
-                                                  );
+                                                // Ensure we get the share activity, and that there is no latest
+                                                // revision content
+                                                const hash = Cassandra.rowToHash(rows[3]);
+                                                const activity = JSON.parse(hash.activity);
+                                                assert.strictEqual(activity['oae:activityType'], 'content-share');
+                                                assert.strictEqual(activity.actor.id, branden.user.id);
+                                                assert.strictEqual(activity.object['oae:id'], contentObj.id);
+                                                assert.ok(!activity.object.content.latestRevision);
 
-                                                  return callback();
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
+                                                return callback();
+                                              }
+                                            );
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  });
                 });
               });
             });
@@ -897,11 +744,7 @@ describe('Content Activity', () => {
                       assert.strictEqual(simonEmail.to[0].address, simon.user.email);
                       assert.strictEqual(
                         simonEmail.subject,
-                        util.format(
-                          '%s edited the document "%s"',
-                          branden.user.displayName,
-                          contentObj.displayName
-                        )
+                        util.format('%s edited the document "%s"', branden.user.displayName, contentObj.displayName)
                       );
                       assert.notStrictEqual(simonEmail.html.indexOf(contentObj.profilePath), -1);
 
@@ -910,11 +753,7 @@ describe('Content Activity', () => {
                       assert.strictEqual(nicoEmail.to[0].address, nico.user.email);
                       assert.strictEqual(
                         nicoEmail.subject,
-                        util.format(
-                          '%s edited the document "%s"',
-                          branden.user.displayName,
-                          contentObj.displayName
-                        )
+                        util.format('%s edited the document "%s"', branden.user.displayName, contentObj.displayName)
                       );
                       assert.notStrictEqual(nicoEmail.html.indexOf(contentObj.profilePath), -1);
 
@@ -923,65 +762,32 @@ describe('Content Activity', () => {
                       assert.ok(!brandenEmail);
 
                       // There should be a notification in Simon's stream as he is a manager
-                      ActivityTestsUtil.collectAndGetNotificationStream(
-                        simon.restContext,
-                        null,
-                        (err, data) => {
+                      ActivityTestsUtil.collectAndGetNotificationStream(simon.restContext, null, (err, data) => {
+                        assert.ok(!err);
+                        const notificationSimon = _getActivity(data, 'content-revision', 'object', contentObj.id);
+                        assert.ok(notificationSimon);
+                        assert.strictEqual(notificationSimon['oae:activityType'], 'content-revision');
+                        assert.strictEqual(notificationSimon.actor['oae:id'], branden.user.id);
+                        assert.strictEqual(notificationSimon.object['oae:id'], contentObj.id);
+
+                        // There should be a notification in Nico's stream as he is a member
+                        ActivityTestsUtil.collectAndGetNotificationStream(nico.restContext, null, (err, data) => {
                           assert.ok(!err);
-                          const notificationSimon = _getActivity(
-                            data,
-                            'content-revision',
-                            'object',
-                            contentObj.id
-                          );
-                          assert.ok(notificationSimon);
-                          assert.strictEqual(
-                            notificationSimon['oae:activityType'],
-                            'content-revision'
-                          );
-                          assert.strictEqual(notificationSimon.actor['oae:id'], branden.user.id);
-                          assert.strictEqual(notificationSimon.object['oae:id'], contentObj.id);
+                          const notificationNico = _getActivity(data, 'content-revision', 'object', contentObj.id);
+                          assert.ok(notificationNico);
+                          assert.strictEqual(notificationNico['oae:activityType'], 'content-revision');
+                          assert.strictEqual(notificationNico.actor['oae:id'], branden.user.id);
+                          assert.strictEqual(notificationNico.object['oae:id'], contentObj.id);
 
-                          // There should be a notification in Nico's stream as he is a member
-                          ActivityTestsUtil.collectAndGetNotificationStream(
-                            nico.restContext,
-                            null,
-                            (err, data) => {
-                              assert.ok(!err);
-                              const notificationNico = _getActivity(
-                                data,
-                                'content-revision',
-                                'object',
-                                contentObj.id
-                              );
-                              assert.ok(notificationNico);
-                              assert.strictEqual(
-                                notificationNico['oae:activityType'],
-                                'content-revision'
-                              );
-                              assert.strictEqual(notificationNico.actor['oae:id'], branden.user.id);
-                              assert.strictEqual(notificationNico.object['oae:id'], contentObj.id);
-
-                              // There should be no notification in Branden's stream as he published the change
-                              ActivityTestsUtil.collectAndGetNotificationStream(
-                                branden.restContext,
-                                null,
-                                (err, data) => {
-                                  assert.ok(!err);
-                                  const notificatioBranden = _getActivity(
-                                    data,
-                                    'content-revision',
-                                    'object',
-                                    contentObj.id
-                                  );
-                                  assert.ok(!notificatioBranden);
-                                  return callback();
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
+                          // There should be no notification in Branden's stream as he published the change
+                          ActivityTestsUtil.collectAndGetNotificationStream(branden.restContext, null, (err, data) => {
+                            assert.ok(!err);
+                            const notificatioBranden = _getActivity(data, 'content-revision', 'object', contentObj.id);
+                            assert.ok(!notificatioBranden);
+                            return callback();
+                          });
+                        });
+                      });
                     });
                   });
                 });
@@ -996,74 +802,58 @@ describe('Content Activity', () => {
      * Test that verifies that an activity is generated regardless of whether there was an update to a is collaborative document since the last revision
      */
     it('verify an activity is generated regardless of whether there was an update to a is collaborative document since the last revision', callback => {
-      ContentTestUtil.createCollabDoc(
-        camAdminRestContext,
-        2,
-        2,
-        (contentObj, users, simon, nico) => {
-          // Set some text in the pad
-          const etherpadClient = Etherpad.getClient(contentObj.id);
-          const args = {
-            padID: contentObj.etherpadPadId,
-            text: 'Collaborative editing by Simon and Nico! Oooooh!'
-          };
-          etherpadClient.setText(args, err => {
-            assert.ok(!err);
+      ContentTestUtil.createCollabDoc(camAdminRestContext, 2, 2, (contentObj, users, simon, nico) => {
+        // Set some text in the pad
+        const etherpadClient = Etherpad.getClient(contentObj.id);
+        const args = {
+          padID: contentObj.etherpadPadId,
+          text: 'Collaborative editing by Simon and Nico! Oooooh!'
+        };
+        etherpadClient.setText(args, err => {
+          assert.ok(!err);
 
-            // Lets assume that both users are editting the document. First, Simon leaves
-            ContentTestUtil.publishCollabDoc(contentObj.id, simon.user.id, () => {
-              // Now, Nico leaves WITHOUT making any *extra* edits to the document. But because
-              // he made edits earlier, we should still generate an activity
-              ContentTestUtil.publishCollabDoc(contentObj.id, nico.user.id, () => {
-                // Assert that there is an aggregated activity for an updated document that holds
-                // both Simon and Nico as the actors
-                ActivityTestsUtil.collectAndGetActivityStream(
-                  nico.restContext,
-                  nico.user.id,
-                  null,
-                  (err, data) => {
-                    assert.ok(!err);
-                    ActivityTestsUtil.assertActivity(
-                      data.items[0],
-                      'content-revision',
-                      'update',
-                      [simon.user.id, nico.user.id],
-                      contentObj.id
-                    );
-
-                    // Sanity-check there are 2 revisions, the initial empty one + the one "published" revision
-                    RestAPI.Content.getRevisions(
-                      nico.restContext,
-                      contentObj.id,
-                      null,
-                      null,
-                      (err, data) => {
-                        assert.ok(!err);
-                        assert.strictEqual(data.results.length, 2);
-
-                        // Get the latest revision
-                        RestAPI.Content.getRevision(
-                          nico.restContext,
-                          contentObj.id,
-                          data.results[0].revisionId,
-                          (err, revision) => {
-                            assert.ok(!err);
-                            assert.ok(revision);
-
-                            // Assert the text is in the latest revision
-                            assert.ok(revision.etherpadHtml.indexOf(args.text) > -1);
-                            return callback();
-                          }
-                        );
-                      }
-                    );
-                  }
+          // Lets assume that both users are editting the document. First, Simon leaves
+          ContentTestUtil.publishCollabDoc(contentObj.id, simon.user.id, () => {
+            // Now, Nico leaves WITHOUT making any *extra* edits to the document. But because
+            // he made edits earlier, we should still generate an activity
+            ContentTestUtil.publishCollabDoc(contentObj.id, nico.user.id, () => {
+              // Assert that there is an aggregated activity for an updated document that holds
+              // both Simon and Nico as the actors
+              ActivityTestsUtil.collectAndGetActivityStream(nico.restContext, nico.user.id, null, (err, data) => {
+                assert.ok(!err);
+                ActivityTestsUtil.assertActivity(
+                  data.items[0],
+                  'content-revision',
+                  'update',
+                  [simon.user.id, nico.user.id],
+                  contentObj.id
                 );
+
+                // Sanity-check there are 2 revisions, the initial empty one + the one "published" revision
+                RestAPI.Content.getRevisions(nico.restContext, contentObj.id, null, null, (err, data) => {
+                  assert.ok(!err);
+                  assert.strictEqual(data.results.length, 2);
+
+                  // Get the latest revision
+                  RestAPI.Content.getRevision(
+                    nico.restContext,
+                    contentObj.id,
+                    data.results[0].revisionId,
+                    (err, revision) => {
+                      assert.ok(!err);
+                      assert.ok(revision);
+
+                      // Assert the text is in the latest revision
+                      assert.ok(revision.etherpadHtml.indexOf(args.text) > -1);
+                      return callback();
+                    }
+                  );
+                });
               });
             });
           });
-        }
-      );
+        });
+      });
     });
 
     /**
@@ -1109,116 +899,65 @@ describe('Content Activity', () => {
                     assert.ok(!err);
 
                     // Verify the activity streams. All users should have received an activity
-                    ActivityTestsUtil.collectAndGetActivityStream(
-                      brandenCtx,
-                      null,
-                      null,
-                      (err, data) => {
+                    ActivityTestsUtil.collectAndGetActivityStream(brandenCtx, null, null, (err, data) => {
+                      assert.ok(!err);
+                      const activity = _getActivity(data, 'content-restored-revision', 'object', content.id);
+                      assert.ok(activity);
+                      assert.strictEqual(activity['oae:activityType'], 'content-restored-revision');
+                      assert.strictEqual(activity.actor['oae:id'], brandenId);
+                      assert.strictEqual(activity.object['oae:id'], content.id);
+
+                      ActivityTestsUtil.collectAndGetActivityStream(simonCtx, null, null, (err, data) => {
                         assert.ok(!err);
-                        const activity = _getActivity(
-                          data,
-                          'content-restored-revision',
-                          'object',
-                          content.id
-                        );
+                        const activity = _getActivity(data, 'content-restored-revision', 'object', content.id);
                         assert.ok(activity);
-                        assert.strictEqual(
-                          activity['oae:activityType'],
-                          'content-restored-revision'
-                        );
+                        assert.strictEqual(activity['oae:activityType'], 'content-restored-revision');
                         assert.strictEqual(activity.actor['oae:id'], brandenId);
                         assert.strictEqual(activity.object['oae:id'], content.id);
 
-                        ActivityTestsUtil.collectAndGetActivityStream(
-                          simonCtx,
-                          null,
-                          null,
-                          (err, data) => {
+                        ActivityTestsUtil.collectAndGetActivityStream(nicoCtx, null, null, (err, data) => {
+                          assert.ok(!err);
+                          const notificationSimon = _getActivity(
+                            data,
+                            'content-restored-revision',
+                            'object',
+                            content.id
+                          );
+                          assert.ok(notificationSimon);
+                          assert.strictEqual(notificationSimon['oae:activityType'], 'content-restored-revision');
+                          assert.strictEqual(notificationSimon.actor['oae:id'], brandenId);
+                          assert.strictEqual(notificationSimon.object['oae:id'], content.id);
+
+                          // There should also be a notification in Simon's stream as he is a manager
+                          ActivityTestsUtil.collectAndGetNotificationStream(simonCtx, null, (err, data) => {
                             assert.ok(!err);
-                            const activity = _getActivity(
+                            const notificationSimon = _getActivity(
                               data,
                               'content-restored-revision',
                               'object',
                               content.id
                             );
-                            assert.ok(activity);
-                            assert.strictEqual(
-                              activity['oae:activityType'],
-                              'content-restored-revision'
-                            );
-                            assert.strictEqual(activity.actor['oae:id'], brandenId);
-                            assert.strictEqual(activity.object['oae:id'], content.id);
+                            assert.ok(notificationSimon);
+                            assert.strictEqual(notificationSimon['oae:activityType'], 'content-restored-revision');
+                            assert.strictEqual(notificationSimon.actor['oae:id'], brandenId);
+                            assert.strictEqual(notificationSimon.object['oae:id'], content.id);
 
-                            ActivityTestsUtil.collectAndGetActivityStream(
-                              nicoCtx,
-                              null,
-                              null,
-                              (err, data) => {
-                                assert.ok(!err);
-                                const notificationSimon = _getActivity(
-                                  data,
-                                  'content-restored-revision',
-                                  'object',
-                                  content.id
-                                );
-                                assert.ok(notificationSimon);
-                                assert.strictEqual(
-                                  notificationSimon['oae:activityType'],
-                                  'content-restored-revision'
-                                );
-                                assert.strictEqual(notificationSimon.actor['oae:id'], brandenId);
-                                assert.strictEqual(notificationSimon.object['oae:id'], content.id);
-
-                                // There should also be a notification in Simon's stream as he is a manager
-                                ActivityTestsUtil.collectAndGetNotificationStream(
-                                  simonCtx,
-                                  null,
-                                  (err, data) => {
-                                    assert.ok(!err);
-                                    const notificationSimon = _getActivity(
-                                      data,
-                                      'content-restored-revision',
-                                      'object',
-                                      content.id
-                                    );
-                                    assert.ok(notificationSimon);
-                                    assert.strictEqual(
-                                      notificationSimon['oae:activityType'],
-                                      'content-restored-revision'
-                                    );
-                                    assert.strictEqual(
-                                      notificationSimon.actor['oae:id'],
-                                      brandenId
-                                    );
-                                    assert.strictEqual(
-                                      notificationSimon.object['oae:id'],
-                                      content.id
-                                    );
-
-                                    // There should be no notification in Nico's stream as he is not a manager
-                                    ActivityTestsUtil.collectAndGetNotificationStream(
-                                      nicoCtx,
-                                      null,
-                                      (err, data) => {
-                                        assert.ok(!err);
-                                        const notificationNico = _getActivity(
-                                          data,
-                                          'content-restored-revision',
-                                          'object',
-                                          content.id
-                                        );
-                                        assert.ok(!notificationNico);
-                                        callback();
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
+                            // There should be no notification in Nico's stream as he is not a manager
+                            ActivityTestsUtil.collectAndGetNotificationStream(nicoCtx, null, (err, data) => {
+                              assert.ok(!err);
+                              const notificationNico = _getActivity(
+                                data,
+                                'content-restored-revision',
+                                'object',
+                                content.id
+                              );
+                              assert.ok(!notificationNico);
+                              callback();
+                            });
+                          });
+                        });
+                      });
+                    });
                   }
                 );
               }
@@ -1232,268 +971,166 @@ describe('Content Activity', () => {
      * Test that verifies that content-share or content-add-to-library activities are routed to the content's activity stream
      */
     it('verify content-share or content-add-to-library activities are not routed to the content activity stream', callback => {
-      TestsUtil.generateTestUsers(
-        camAdminRestContext,
-        4,
-        (err, users, simon, nico, bert, stuart) => {
-          assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestContext, 4, (err, users, simon, nico, bert, stuart) => {
+        assert.ok(!err);
 
-          RestAPI.Content.createLink(
-            simon.restContext,
-            'Google',
-            'Google',
-            'public',
-            'http://www.google.ca',
-            [],
-            [],
-            [],
-            (err, contentObj) => {
+        RestAPI.Content.createLink(
+          simon.restContext,
+          'Google',
+          'Google',
+          'public',
+          'http://www.google.ca',
+          [],
+          [],
+          [],
+          (err, contentObj) => {
+            assert.ok(!err);
+
+            // Make Nico a private user and add the file into his library, no activities should be sent
+            RestAPI.User.updateUser(nico.restContext, nico.user.id, { visibility: 'private' }, err => {
               assert.ok(!err);
+              RestAPI.Content.shareContent(nico.restContext, contentObj.id, [nico.user.id], err => {
+                assert.ok(!err);
 
-              // Make Nico a private user and add the file into his library, no activities should be sent
-              RestAPI.User.updateUser(
-                nico.restContext,
-                nico.user.id,
-                { visibility: 'private' },
-                err => {
+                // Route and deliver activities
+                ActivityTestsUtil.collectAndGetActivityStream(nico.restContext, null, null, err => {
                   assert.ok(!err);
-                  RestAPI.Content.shareContent(
-                    nico.restContext,
-                    contentObj.id,
-                    [nico.user.id],
-                    err => {
+
+                  // Assert they didn't end up in the content activity stream
+                  ActivityDAO.getActivities(contentObj.id + '#activity', null, 25, (err, activities) => {
+                    assert.ok(!err);
+                    // Assert that we didn't add the `content-add-to-library` activity by asserting the latest activity in the stream is `content-create`
+                    assert.strictEqual(activities[0]['oae:activityType'], 'content-create');
+
+                    // Try it with a public user
+                    RestAPI.Content.shareContent(bert.restContext, contentObj.id, [bert.user.id], err => {
                       assert.ok(!err);
 
                       // Route and deliver activities
-                      ActivityTestsUtil.collectAndGetActivityStream(
-                        nico.restContext,
-                        null,
-                        null,
-                        err => {
+                      ActivityTestsUtil.collectAndGetActivityStream(bert.restContext, null, null, err => {
+                        assert.ok(!err);
+
+                        // Assert they didn't end up in the content activity stream
+                        ActivityDAO.getActivities(contentObj.id + '#activity', null, 25, (err, activities) => {
                           assert.ok(!err);
+                          // Assert that we didn't add the `content-add-to-library` activity by asserting the latest activity in the stream is `content-create`
+                          assert.strictEqual(activities[0]['oae:activityType'], 'content-create');
 
-                          // Assert they didn't end up in the content activity stream
-                          ActivityDAO.getActivities(
-                            contentObj.id + '#activity',
-                            null,
-                            25,
-                            (err, activities) => {
+                          // Assert that content-share activities do not end up on the activity stream
+                          RestAPI.Content.shareContent(bert.restContext, contentObj.id, [stuart.user.id], err => {
+                            assert.ok(!err);
+
+                            // Route and deliver activities
+                            ActivityTestsUtil.collectAndGetActivityStream(stuart.restContext, null, null, err => {
                               assert.ok(!err);
-                              // Assert that we didn't add the `content-add-to-library` activity by asserting the latest activity in the stream is `content-create`
-                              assert.strictEqual(
-                                activities[0]['oae:activityType'],
-                                'content-create'
-                              );
 
-                              // Try it with a public user
-                              RestAPI.Content.shareContent(
-                                bert.restContext,
-                                contentObj.id,
-                                [bert.user.id],
-                                err => {
-                                  assert.ok(!err);
+                              // Assert they didn't end up in the content activity stream
+                              ActivityDAO.getActivities(contentObj.id + '#activity', null, 25, (err, activities) => {
+                                assert.ok(!err);
+                                // Assert that we didn't add the `content-share` activity by asserting the latest activity in the stream is `content-create`
+                                assert.strictEqual(activities[0]['oae:activityType'], 'content-create');
 
-                                  // Route and deliver activities
-                                  ActivityTestsUtil.collectAndGetActivityStream(
-                                    bert.restContext,
-                                    null,
-                                    null,
-                                    err => {
-                                      assert.ok(!err);
-
-                                      // Assert they didn't end up in the content activity stream
-                                      ActivityDAO.getActivities(
-                                        contentObj.id + '#activity',
-                                        null,
-                                        25,
-                                        (err, activities) => {
-                                          assert.ok(!err);
-                                          // Assert that we didn't add the `content-add-to-library` activity by asserting the latest activity in the stream is `content-create`
-                                          assert.strictEqual(
-                                            activities[0]['oae:activityType'],
-                                            'content-create'
-                                          );
-
-                                          // Assert that content-share activities do not end up on the activity stream
-                                          RestAPI.Content.shareContent(
-                                            bert.restContext,
-                                            contentObj.id,
-                                            [stuart.user.id],
-                                            err => {
-                                              assert.ok(!err);
-
-                                              // Route and deliver activities
-                                              ActivityTestsUtil.collectAndGetActivityStream(
-                                                stuart.restContext,
-                                                null,
-                                                null,
-                                                err => {
-                                                  assert.ok(!err);
-
-                                                  // Assert they didn't end up in the content activity stream
-                                                  ActivityDAO.getActivities(
-                                                    contentObj.id + '#activity',
-                                                    null,
-                                                    25,
-                                                    (err, activities) => {
-                                                      assert.ok(!err);
-                                                      // Assert that we didn't add the `content-share` activity by asserting the latest activity in the stream is `content-create`
-                                                      assert.strictEqual(
-                                                        activities[0]['oae:activityType'],
-                                                        'content-create'
-                                                      );
-
-                                                      return callback();
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
+                                return callback();
+                              });
+                            });
+                          });
+                        });
+                      });
+                    });
+                  });
+                });
+              });
+            });
+          }
+        );
+      });
     });
 
     /**
      * Test that verifies that a comment activity is routed to the managers and recent contributers their notification stream of a private content item
      */
     it('verify comment activity is routed to the managers and recent contributers notification stream of a private content item', callback => {
-      TestsUtil.generateTestUsers(
-        camAdminRestContext,
-        4,
-        (err, users, simon, nico, bert, stuart) => {
-          assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestContext, 4, (err, users, simon, nico, bert, stuart) => {
+        assert.ok(!err);
 
-          RestAPI.Content.createLink(
-            simon.restContext,
-            'Google',
-            'Google',
-            'public',
-            'http://www.google.ca',
-            [nico.user.id],
-            [bert.user.id, stuart.user.id],
-            [],
-            (err, link) => {
+        RestAPI.Content.createLink(
+          simon.restContext,
+          'Google',
+          'Google',
+          'public',
+          'http://www.google.ca',
+          [nico.user.id],
+          [bert.user.id, stuart.user.id],
+          [],
+          (err, link) => {
+            assert.ok(!err);
+
+            RestAPI.Content.createComment(bert.restContext, link.id, 'Comment A', null, (err, commentA) => {
               assert.ok(!err);
 
-              RestAPI.Content.createComment(
-                bert.restContext,
-                link.id,
-                'Comment A',
-                null,
-                (err, commentA) => {
+              // Assert that the managers got it
+              ActivityTestsUtil.collectAndGetNotificationStream(simon.restContext, null, (err, activityStream) => {
+                assert.ok(!err);
+                assert.ok(
+                  _.find(activityStream.items, activity => {
+                    return activity['oae:activityType'] === 'content-comment';
+                  })
+                );
+
+                ActivityTestsUtil.collectAndGetNotificationStream(nico.restContext, null, (err, activityStream) => {
                   assert.ok(!err);
+                  assert.ok(
+                    _.find(activityStream.items, activity => {
+                      return activity['oae:activityType'] === 'content-comment';
+                    })
+                  );
 
-                  // Assert that the managers got it
-                  ActivityTestsUtil.collectAndGetNotificationStream(
-                    simon.restContext,
-                    null,
-                    (err, activityStream) => {
+                  // Create another comment and assert that both the managers and the recent contributers get a notification
+                  RestAPI.Content.createComment(nico.restContext, link.id, 'Comment A', null, (err, commentA) => {
+                    assert.ok(!err);
+
+                    // Because Bert made a comment previously, he should get a notification as well
+                    ActivityTestsUtil.collectAndGetNotificationStream(bert.restContext, null, (err, activityStream) => {
                       assert.ok(!err);
-                      assert.ok(
-                        _.find(activityStream.items, activity => {
-                          return activity['oae:activityType'] === 'content-comment';
-                        })
-                      );
+                      const commentActivities = _.filter(activityStream.items, activity => {
+                        return activity['oae:activityType'] === 'content-comment';
+                      });
+                      assert.ok(commentActivities.length, 2);
 
+                      // Sanity-check that the managers got it as well
                       ActivityTestsUtil.collectAndGetNotificationStream(
                         nico.restContext,
                         null,
                         (err, activityStream) => {
                           assert.ok(!err);
-                          assert.ok(
-                            _.find(activityStream.items, activity => {
-                              return activity['oae:activityType'] === 'content-comment';
-                            })
-                          );
+                          const commentActivities = _.filter(activityStream.items, activity => {
+                            return activity['oae:activityType'] === 'content-comment';
+                          });
+                          assert.ok(commentActivities.length, 2);
 
-                          // Create another comment and assert that both the managers and the recent contributers get a notification
-                          RestAPI.Content.createComment(
-                            nico.restContext,
-                            link.id,
-                            'Comment A',
+                          ActivityTestsUtil.collectAndGetNotificationStream(
+                            simon.restContext,
                             null,
-                            (err, commentA) => {
+                            (err, activityStream) => {
                               assert.ok(!err);
+                              const commentActivities = _.filter(activityStream.items, activity => {
+                                return activity['oae:activityType'] === 'content-comment';
+                              });
+                              assert.ok(commentActivities.length, 2);
 
-                              // Because Bert made a comment previously, he should get a notification as well
-                              ActivityTestsUtil.collectAndGetNotificationStream(
-                                bert.restContext,
-                                null,
-                                (err, activityStream) => {
-                                  assert.ok(!err);
-                                  const commentActivities = _.filter(
-                                    activityStream.items,
-                                    activity => {
-                                      return activity['oae:activityType'] === 'content-comment';
-                                    }
-                                  );
-                                  assert.ok(commentActivities.length, 2);
-
-                                  // Sanity-check that the managers got it as well
-                                  ActivityTestsUtil.collectAndGetNotificationStream(
-                                    nico.restContext,
-                                    null,
-                                    (err, activityStream) => {
-                                      assert.ok(!err);
-                                      const commentActivities = _.filter(
-                                        activityStream.items,
-                                        activity => {
-                                          return activity['oae:activityType'] === 'content-comment';
-                                        }
-                                      );
-                                      assert.ok(commentActivities.length, 2);
-
-                                      ActivityTestsUtil.collectAndGetNotificationStream(
-                                        simon.restContext,
-                                        null,
-                                        (err, activityStream) => {
-                                          assert.ok(!err);
-                                          const commentActivities = _.filter(
-                                            activityStream.items,
-                                            activity => {
-                                              return (
-                                                activity['oae:activityType'] === 'content-comment'
-                                              );
-                                            }
-                                          );
-                                          assert.ok(commentActivities.length, 2);
-
-                                          return callback();
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
+                              return callback();
                             }
                           );
                         }
                       );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
+                    });
+                  });
+                });
+              });
+            });
+          }
+        );
+      });
     });
   });
 
@@ -1512,9 +1149,9 @@ describe('Content Activity', () => {
      */
     it('verify the content entity model contains the correct content information', callback => {
       /*!
-             * Function used to verify the status of the "static" link content item in this test case. This basically means
-             * everything except the preview items.
-             */
+       * Function used to verify the status of the "static" link content item in this test case. This basically means
+       * everything except the preview items.
+       */
       const _assertStandardLinkModel = function(entity, contentId) {
         const { resourceId } = AuthzUtil.getResourceFromId(contentId);
         assert.strictEqual(entity['oae:visibility'], 'public');
@@ -1523,10 +1160,7 @@ describe('Content Activity', () => {
         assert.strictEqual(entity.displayName, 'Google');
         assert.strictEqual(entity.objectType, 'content');
         assert.strictEqual(entity['oae:id'], contentId);
-        assert.strictEqual(
-          entity.url,
-          'http://' + global.oaeTests.tenants.cam.host + '/content/camtest/' + resourceId
-        );
+        assert.strictEqual(entity.url, 'http://' + global.oaeTests.tenants.cam.host + '/content/camtest/' + resourceId);
         assert.ok(entity.id.indexOf(contentId) !== -1);
       };
 
@@ -1567,205 +1201,176 @@ describe('Content Activity', () => {
                     assert.ok(!err);
 
                     // Get the revision ID
-                    RestAPI.Content.getRevisions(
-                      globalTenantAdminRestContext,
-                      link.id,
-                      null,
-                      1,
-                      (err, revisions) => {
-                        assert.ok(!err);
-                        const { revisionId } = revisions.results[0];
+                    RestAPI.Content.getRevisions(globalTenantAdminRestContext, link.id, null, 1, (err, revisions) => {
+                      assert.ok(!err);
+                      const { revisionId } = revisions.results[0];
 
-                        // Set the preview to error status
-                        RestAPI.Content.setPreviewItems(
-                          globalTenantAdminRestContext,
-                          link.id,
-                          revisionId,
-                          'error',
-                          {},
-                          {},
-                          {},
-                          {},
-                          err => {
-                            assert.ok(!err);
+                      // Set the preview to error status
+                      RestAPI.Content.setPreviewItems(
+                        globalTenantAdminRestContext,
+                        link.id,
+                        revisionId,
+                        'error',
+                        {},
+                        {},
+                        {},
+                        {},
+                        err => {
+                          assert.ok(!err);
 
-                            // Verify that the preview does not display
-                            ActivityTestsUtil.collectAndGetActivityStream(
-                              jack.restContext,
-                              jack.user.id,
-                              null,
-                              (err, activityStream) => {
-                                assert.ok(!err);
+                          // Verify that the preview does not display
+                          ActivityTestsUtil.collectAndGetActivityStream(
+                            jack.restContext,
+                            jack.user.id,
+                            null,
+                            (err, activityStream) => {
+                              assert.ok(!err);
 
-                                const entity = activityStream.items[0].object;
-                                _assertStandardLinkModel(entity, link.id);
-                                assert.ok(!entity.image);
-                                assert.ok(!entity['oae:wideImage']);
+                              const entity = activityStream.items[0].object;
+                              _assertStandardLinkModel(entity, link.id);
+                              assert.ok(!entity.image);
+                              assert.ok(!entity['oae:wideImage']);
 
-                                // Set the preview to ignored status with no files
-                                RestAPI.Content.setPreviewItems(
-                                  globalTenantAdminRestContext,
-                                  link.id,
-                                  revisionId,
-                                  'ignored',
-                                  {},
-                                  {},
-                                  {},
-                                  {},
-                                  err => {
-                                    assert.ok(!err);
+                              // Set the preview to ignored status with no files
+                              RestAPI.Content.setPreviewItems(
+                                globalTenantAdminRestContext,
+                                link.id,
+                                revisionId,
+                                'ignored',
+                                {},
+                                {},
+                                {},
+                                {},
+                                err => {
+                                  assert.ok(!err);
 
-                                    // Verify that the preview still does not display
-                                    ActivityTestsUtil.collectAndGetActivityStream(
-                                      jack.restContext,
-                                      jack.user.id,
-                                      null,
-                                      (err, activityStream) => {
-                                        assert.ok(!err);
+                                  // Verify that the preview still does not display
+                                  ActivityTestsUtil.collectAndGetActivityStream(
+                                    jack.restContext,
+                                    jack.user.id,
+                                    null,
+                                    (err, activityStream) => {
+                                      assert.ok(!err);
 
-                                        const entity = activityStream.items[0].object;
-                                        _assertStandardLinkModel(entity, link.id);
-                                        assert.ok(!entity.image);
-                                        assert.ok(!entity['oae:wideImage']);
+                                      const entity = activityStream.items[0].object;
+                                      _assertStandardLinkModel(entity, link.id);
+                                      assert.ok(!entity.image);
+                                      assert.ok(!entity['oae:wideImage']);
 
-                                        // Set the preview to done status with files
-                                        RestAPI.Content.setPreviewItems(
-                                          globalTenantAdminRestContext,
-                                          link.id,
-                                          revisionId,
-                                          'done',
-                                          suitableFiles,
-                                          suitableSizes,
-                                          {},
-                                          {},
-                                          err => {
-                                            assert.ok(!err);
+                                      // Set the preview to done status with files
+                                      RestAPI.Content.setPreviewItems(
+                                        globalTenantAdminRestContext,
+                                        link.id,
+                                        revisionId,
+                                        'done',
+                                        suitableFiles,
+                                        suitableSizes,
+                                        {},
+                                        {},
+                                        err => {
+                                          assert.ok(!err);
 
-                                            // Verify that the previews are returned in the activity
-                                            ActivityTestsUtil.collectAndGetActivityStream(
-                                              jack.restContext,
-                                              jack.user.id,
-                                              null,
-                                              (err, activityStream) => {
-                                                assert.ok(!err);
+                                          // Verify that the previews are returned in the activity
+                                          ActivityTestsUtil.collectAndGetActivityStream(
+                                            jack.restContext,
+                                            jack.user.id,
+                                            null,
+                                            (err, activityStream) => {
+                                              assert.ok(!err);
 
-                                                const entity = activityStream.items[0].object;
-                                                _assertStandardLinkModel(entity, link.id);
-                                                assert.ok(entity.image);
-                                                assert.strictEqual(
-                                                  entity.image.width,
-                                                  PreviewConstants.SIZES.IMAGE.THUMBNAIL
-                                                );
-                                                assert.strictEqual(
-                                                  entity.image.height,
-                                                  PreviewConstants.SIZES.IMAGE.THUMBNAIL
-                                                );
-                                                assert.ok(entity.image.url);
-                                                assert.ok(entity['oae:wideImage']);
-                                                assert.strictEqual(
-                                                  entity['oae:wideImage'].width,
-                                                  PreviewConstants.SIZES.IMAGE.WIDE_WIDTH
-                                                );
-                                                assert.strictEqual(
-                                                  entity['oae:wideImage'].height,
-                                                  PreviewConstants.SIZES.IMAGE.WIDE_HEIGHT
-                                                );
-                                                assert.ok(entity['oae:wideImage'].url);
+                                              const entity = activityStream.items[0].object;
+                                              _assertStandardLinkModel(entity, link.id);
+                                              assert.ok(entity.image);
+                                              assert.strictEqual(
+                                                entity.image.width,
+                                                PreviewConstants.SIZES.IMAGE.THUMBNAIL
+                                              );
+                                              assert.strictEqual(
+                                                entity.image.height,
+                                                PreviewConstants.SIZES.IMAGE.THUMBNAIL
+                                              );
+                                              assert.ok(entity.image.url);
+                                              assert.ok(entity['oae:wideImage']);
+                                              assert.strictEqual(
+                                                entity['oae:wideImage'].width,
+                                                PreviewConstants.SIZES.IMAGE.WIDE_WIDTH
+                                              );
+                                              assert.strictEqual(
+                                                entity['oae:wideImage'].height,
+                                                PreviewConstants.SIZES.IMAGE.WIDE_HEIGHT
+                                              );
+                                              assert.ok(entity['oae:wideImage'].url);
 
-                                                // Ensure the standard and wide image can be downloaded right now by even an anonymous user on another tenant
-                                                let signedDownloadUrl = url.parse(
-                                                  entity['oae:wideImage'].url,
-                                                  true
-                                                );
-                                                RestUtil.performRestRequest(
-                                                  anonymousGtRestContext,
-                                                  signedDownloadUrl.pathname,
-                                                  'GET',
-                                                  signedDownloadUrl.query,
-                                                  (err, body, response) => {
-                                                    assert.ok(!err);
-                                                    assert.strictEqual(response.statusCode, 204);
+                                              // Ensure the standard and wide image can be downloaded right now by even an anonymous user on another tenant
+                                              let signedDownloadUrl = url.parse(entity['oae:wideImage'].url, true);
+                                              RestUtil.performRestRequest(
+                                                anonymousGtRestContext,
+                                                signedDownloadUrl.pathname,
+                                                'GET',
+                                                signedDownloadUrl.query,
+                                                (err, body, response) => {
+                                                  assert.ok(!err);
+                                                  assert.strictEqual(response.statusCode, 204);
 
-                                                    signedDownloadUrl = url.parse(
-                                                      entity.image.url,
-                                                      true
-                                                    );
-                                                    RestUtil.performRestRequest(
-                                                      anonymousGtRestContext,
-                                                      signedDownloadUrl.pathname,
-                                                      'GET',
-                                                      signedDownloadUrl.query,
-                                                      (err, body, response) => {
-                                                        assert.ok(!err);
-                                                        assert.strictEqual(
-                                                          response.statusCode,
-                                                          204
-                                                        );
+                                                  signedDownloadUrl = url.parse(entity.image.url, true);
+                                                  RestUtil.performRestRequest(
+                                                    anonymousGtRestContext,
+                                                    signedDownloadUrl.pathname,
+                                                    'GET',
+                                                    signedDownloadUrl.query,
+                                                    (err, body, response) => {
+                                                      assert.ok(!err);
+                                                      assert.strictEqual(response.statusCode, 204);
 
-                                                        // Jump ahead in time by 5 years, test-drive a hovercar and check if the signatures still work
-                                                        const now = Date.now();
-                                                        Date.now = function() {
-                                                          return (
-                                                            now + 5 * 365 * 24 * 60 * 60 * 1000
+                                                      // Jump ahead in time by 5 years, test-drive a hovercar and check if the signatures still work
+                                                      const now = Date.now();
+                                                      Date.now = function() {
+                                                        return now + 5 * 365 * 24 * 60 * 60 * 1000;
+                                                      };
+
+                                                      // Ensure the standard and wide image can still be downloaded 5y in the future by even an anonymous user on another tenant
+                                                      signedDownloadUrl = url.parse(entity['oae:wideImage'].url, true);
+                                                      RestUtil.performRestRequest(
+                                                        anonymousGtRestContext,
+                                                        signedDownloadUrl.pathname,
+                                                        'GET',
+                                                        signedDownloadUrl.query,
+                                                        (err, body, response) => {
+                                                          assert.ok(!err);
+                                                          assert.strictEqual(response.statusCode, 204);
+
+                                                          signedDownloadUrl = url.parse(entity.image.url, true);
+                                                          RestUtil.performRestRequest(
+                                                            anonymousGtRestContext,
+                                                            signedDownloadUrl.pathname,
+                                                            'GET',
+                                                            signedDownloadUrl.query,
+                                                            (err, body, response) => {
+                                                              assert.ok(!err);
+                                                              assert.strictEqual(response.statusCode, 204);
+
+                                                              return callback();
+                                                            }
                                                           );
-                                                        };
-
-                                                        // Ensure the standard and wide image can still be downloaded 5y in the future by even an anonymous user on another tenant
-                                                        signedDownloadUrl = url.parse(
-                                                          entity['oae:wideImage'].url,
-                                                          true
-                                                        );
-                                                        RestUtil.performRestRequest(
-                                                          anonymousGtRestContext,
-                                                          signedDownloadUrl.pathname,
-                                                          'GET',
-                                                          signedDownloadUrl.query,
-                                                          (err, body, response) => {
-                                                            assert.ok(!err);
-                                                            assert.strictEqual(
-                                                              response.statusCode,
-                                                              204
-                                                            );
-
-                                                            signedDownloadUrl = url.parse(
-                                                              entity.image.url,
-                                                              true
-                                                            );
-                                                            RestUtil.performRestRequest(
-                                                              anonymousGtRestContext,
-                                                              signedDownloadUrl.pathname,
-                                                              'GET',
-                                                              signedDownloadUrl.query,
-                                                              (err, body, response) => {
-                                                                assert.ok(!err);
-                                                                assert.strictEqual(
-                                                                  response.statusCode,
-                                                                  204
-                                                                );
-
-                                                                return callback();
-                                                              }
-                                                            );
-                                                          }
-                                                        );
-                                                      }
-                                                    );
-                                                  }
-                                                );
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
+                                                        }
+                                                      );
+                                                    }
+                                                  );
+                                                }
+                                              );
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    });
                   }
                 );
               }
@@ -1796,116 +1401,99 @@ describe('Content Activity', () => {
             assert.ok(!err);
 
             // Create 3 comments, including one reply. We want to make sure the context is properly aggregated in these comments as their activities are delivered.
-            RestAPI.Content.createComment(
-              jack.restContext,
-              link.id,
-              'Comment A',
-              null,
-              (err, commentA) => {
+            RestAPI.Content.createComment(jack.restContext, link.id, 'Comment A', null, (err, commentA) => {
+              assert.ok(!err);
+
+              RestAPI.Content.createComment(jack.restContext, link.id, 'Comment B', null, (err, commentB) => {
                 assert.ok(!err);
 
                 RestAPI.Content.createComment(
                   jack.restContext,
                   link.id,
-                  'Comment B',
-                  null,
-                  (err, commentB) => {
+                  'Reply Comment A',
+                  commentA.created,
+                  (err, replyCommentA) => {
                     assert.ok(!err);
 
-                    RestAPI.Content.createComment(
+                    ActivityTestsUtil.collectAndGetActivityStream(
                       jack.restContext,
-                      link.id,
-                      'Reply Comment A',
-                      commentA.created,
-                      (err, replyCommentA) => {
+                      jack.user.id,
+                      null,
+                      (err, activityStream) => {
                         assert.ok(!err);
+                        assert.ok(activityStream);
 
-                        ActivityTestsUtil.collectAndGetActivityStream(
-                          jack.restContext,
-                          jack.user.id,
-                          null,
-                          (err, activityStream) => {
-                            assert.ok(!err);
-                            assert.ok(activityStream);
+                        // The first in the list (most recent) is the aggregated comment activity
+                        const activity = activityStream.items[0];
+                        let hadCommentA = false;
+                        let hadCommentB = false;
+                        let hadReplyCommentA = false;
 
-                            // The first in the list (most recent) is the aggregated comment activity
-                            const activity = activityStream.items[0];
-                            let hadCommentA = false;
-                            let hadCommentB = false;
-                            let hadReplyCommentA = false;
+                        assert.ok(activity.object['oae:collection']);
+                        assert.strictEqual(activity.object['oae:collection'].length, 3);
 
-                            assert.ok(activity.object['oae:collection']);
-                            assert.strictEqual(activity.object['oae:collection'].length, 3);
+                        /*!
+                         * Verifies the model of a comment and its context.
+                         *
+                         * @param  {ActivityEntity}    entity                      The comment entity to verify
+                         * @param  {Comment}           comment                     The comment with which to verify the entity
+                         * @param  {Comment}           [replyToComment]            Indicates the entity should have this comment as its inReplyTo. If unspecified, the entity should have no parent.
+                         */
+                        const _validateComment = function(entity, comment, replyToComment) {
+                          assert.strictEqual(entity.objectType, 'content-comment');
+                          assert.strictEqual(entity.content, comment.body);
+                          assert.strictEqual(entity['oae:id'], comment.id);
+                          assert.strictEqual(
+                            entity.url,
+                            '/content/camtest/' + AuthzUtil.getResourceFromId(comment.messageBoxId).resourceId
+                          );
+                          assert.ok(entity.id.indexOf('content/' + link.id + '/messages/' + comment.created) !== -1);
+                          assert.strictEqual(entity.published, comment.created);
+                          assert.strictEqual(entity['oae:messageBoxId'], comment.messageBoxId);
+                          assert.strictEqual(entity['oae:threadKey'], comment.threadKey);
 
-                            /*!
-                                     * Verifies the model of a comment and its context.
-                                     *
-                                     * @param  {ActivityEntity}    entity                      The comment entity to verify
-                                     * @param  {Comment}           comment                     The comment with which to verify the entity
-                                     * @param  {Comment}           [replyToComment]            Indicates the entity should have this comment as its inReplyTo. If unspecified, the entity should have no parent.
-                                     */
-                            const _validateComment = function(entity, comment, replyToComment) {
-                              assert.strictEqual(entity.objectType, 'content-comment');
-                              assert.strictEqual(entity.content, comment.body);
-                              assert.strictEqual(entity['oae:id'], comment.id);
-                              assert.strictEqual(
-                                entity.url,
-                                '/content/camtest/' +
-                                  AuthzUtil.getResourceFromId(comment.messageBoxId).resourceId
-                              );
-                              assert.ok(
-                                entity.id.indexOf(
-                                  'content/' + link.id + '/messages/' + comment.created
-                                ) !== -1
-                              );
-                              assert.strictEqual(entity.published, comment.created);
-                              assert.strictEqual(entity['oae:messageBoxId'], comment.messageBoxId);
-                              assert.strictEqual(entity['oae:threadKey'], comment.threadKey);
+                          assert.ok(entity.author);
+                          assert.ok(entity.author.objectType, 'user');
+                          assert.strictEqual(entity.author['oae:id'], comment.createdBy.id);
 
-                              assert.ok(entity.author);
-                              assert.ok(entity.author.objectType, 'user');
-                              assert.strictEqual(entity.author['oae:id'], comment.createdBy.id);
-
-                              if (replyToComment) {
-                                _validateComment(entity.inReplyTo, replyToComment);
-                              } else {
-                                assert.ok(!entity.inReplyTo);
-                              }
-                            };
-
-                            // Verify that the collection contains all comments, and their models are correct.
-                            activity.object['oae:collection'].forEach(entity => {
-                              if (entity.content === 'Comment A') {
-                                hadCommentA = true;
-
-                                // Ensures that comment A has correct data, and no parents
-                                _validateComment(entity, commentA);
-                              } else if (entity.content === 'Comment B') {
-                                hadCommentB = true;
-
-                                // Ensures that comment B has correct data, and no parents
-                                _validateComment(entity, commentB);
-                              } else if (entity.content === 'Reply Comment A') {
-                                hadReplyCommentA = true;
-
-                                // Verify that the reply to comment A has the right data and the parent (comment A)
-                                _validateComment(entity, replyCommentA, commentA);
-                              }
-                            });
-
-                            assert.ok(hadCommentA);
-                            assert.ok(hadCommentB);
-                            assert.ok(hadReplyCommentA);
-
-                            return callback();
+                          if (replyToComment) {
+                            _validateComment(entity.inReplyTo, replyToComment);
+                          } else {
+                            assert.ok(!entity.inReplyTo);
                           }
-                        );
+                        };
+
+                        // Verify that the collection contains all comments, and their models are correct.
+                        activity.object['oae:collection'].forEach(entity => {
+                          if (entity.content === 'Comment A') {
+                            hadCommentA = true;
+
+                            // Ensures that comment A has correct data, and no parents
+                            _validateComment(entity, commentA);
+                          } else if (entity.content === 'Comment B') {
+                            hadCommentB = true;
+
+                            // Ensures that comment B has correct data, and no parents
+                            _validateComment(entity, commentB);
+                          } else if (entity.content === 'Reply Comment A') {
+                            hadReplyCommentA = true;
+
+                            // Verify that the reply to comment A has the right data and the parent (comment A)
+                            _validateComment(entity, replyCommentA, commentA);
+                          }
+                        });
+
+                        assert.ok(hadCommentA);
+                        assert.ok(hadCommentB);
+                        assert.ok(hadReplyCommentA);
+
+                        return callback();
                       }
                     );
                   }
                 );
-              }
-            );
+              });
+            });
           }
         );
       });
@@ -1918,142 +1506,140 @@ describe('Content Activity', () => {
      */
     it('verify a public, loggedin and private content activity entities are propagated only to appropriate users', callback => {
       // Create a mix of public, loggedin, private users and groups from public and private tenants
-      TestsUtil.setupMultiTenantPrivacyEntities(
-        (publicTenant0, publicTenant1, privateTenant0, privateTenant1) => {
-          // Follow the publicTenant0.publicUser with the others
-          const followers = [
-            publicTenant0.loggedinUser,
-            publicTenant0.privateUser,
-            publicTenant1.publicUser,
-            publicTenant1.loggedinUser,
-            publicTenant1.privateUser
-          ];
+      TestsUtil.setupMultiTenantPrivacyEntities((publicTenant0, publicTenant1, privateTenant0, privateTenant1) => {
+        // Follow the publicTenant0.publicUser with the others
+        const followers = [
+          publicTenant0.loggedinUser,
+          publicTenant0.privateUser,
+          publicTenant1.publicUser,
+          publicTenant1.loggedinUser,
+          publicTenant1.privateUser
+        ];
 
-          const publicTenant0PublicUserId = publicTenant0.publicUser.user.id;
-          const publicTenant0LoggedinUserId = publicTenant0.loggedinUser.user.id;
-          const publicTenant0PrivateUserId = publicTenant0.privateUser.user.id;
-          const publicTenant1PublicUserId = publicTenant1.publicUser.user.id;
-          const publicTenant1LoggedinUserId = publicTenant1.loggedinUser.user.id;
-          const publicTenant1PrivateUserId = publicTenant1.privateUser.user.id;
+        const publicTenant0PublicUserId = publicTenant0.publicUser.user.id;
+        const publicTenant0LoggedinUserId = publicTenant0.loggedinUser.user.id;
+        const publicTenant0PrivateUserId = publicTenant0.privateUser.user.id;
+        const publicTenant1PublicUserId = publicTenant1.publicUser.user.id;
+        const publicTenant1LoggedinUserId = publicTenant1.loggedinUser.user.id;
+        const publicTenant1PrivateUserId = publicTenant1.privateUser.user.id;
 
-          FollowingTestsUtil.followByAll(publicTenant0.publicUser.user.id, followers, () => {
-            // Create a public, loggedin and private content item to distribute to followers of the actor user
-            RestAPI.Content.createLink(
-              publicTenant0.publicUser.restContext,
-              'Google',
-              'Google',
-              'public',
-              'http://www.google.ca',
-              [],
-              [publicTenant1.publicUser.user.id],
-              [],
-              (err, publicLink) => {
-                assert.ok(!err);
-                RestAPI.Content.createLink(
-                  publicTenant0.publicUser.restContext,
-                  'Google',
-                  'Google',
-                  'loggedin',
-                  'http://www.google.ca',
-                  [],
-                  [publicTenant1.publicUser.user.id],
-                  [],
-                  (err, loggedinLink) => {
-                    assert.ok(!err);
-                    RestAPI.Content.createLink(
-                      publicTenant0.publicUser.restContext,
-                      'Google',
-                      'Google',
-                      'private',
-                      'http://www.google.ca',
-                      [],
-                      [publicTenant1.publicUser.user.id],
-                      [],
-                      (err, privateLink) => {
-                        assert.ok(!err);
+        FollowingTestsUtil.followByAll(publicTenant0.publicUser.user.id, followers, () => {
+          // Create a public, loggedin and private content item to distribute to followers of the actor user
+          RestAPI.Content.createLink(
+            publicTenant0.publicUser.restContext,
+            'Google',
+            'Google',
+            'public',
+            'http://www.google.ca',
+            [],
+            [publicTenant1.publicUser.user.id],
+            [],
+            (err, publicLink) => {
+              assert.ok(!err);
+              RestAPI.Content.createLink(
+                publicTenant0.publicUser.restContext,
+                'Google',
+                'Google',
+                'loggedin',
+                'http://www.google.ca',
+                [],
+                [publicTenant1.publicUser.user.id],
+                [],
+                (err, loggedinLink) => {
+                  assert.ok(!err);
+                  RestAPI.Content.createLink(
+                    publicTenant0.publicUser.restContext,
+                    'Google',
+                    'Google',
+                    'private',
+                    'http://www.google.ca',
+                    [],
+                    [publicTenant1.publicUser.user.id],
+                    [],
+                    (err, privateLink) => {
+                      assert.ok(!err);
 
-                        // Ensure the user who created them got all 3 content items aggregated in their feed
-                        ActivityTestsUtil.collectAndGetActivityStream(
-                          publicTenant0.publicUser.restContext,
-                          null,
-                          null,
-                          (err, result) => {
-                            assert.ok(!err);
-                            ActivityTestsUtil.assertActivity(
-                              result.items[0],
-                              'content-create',
-                              'create',
-                              publicTenant0PublicUserId,
-                              [publicLink.id, loggedinLink.id, privateLink.id],
-                              publicTenant1.publicUser.user.id
-                            );
+                      // Ensure the user who created them got all 3 content items aggregated in their feed
+                      ActivityTestsUtil.collectAndGetActivityStream(
+                        publicTenant0.publicUser.restContext,
+                        null,
+                        null,
+                        (err, result) => {
+                          assert.ok(!err);
+                          ActivityTestsUtil.assertActivity(
+                            result.items[0],
+                            'content-create',
+                            'create',
+                            publicTenant0PublicUserId,
+                            [publicLink.id, loggedinLink.id, privateLink.id],
+                            publicTenant1.publicUser.user.id
+                          );
 
-                            // Ensure the loggedin user of the same tenant gets 2 of the content items in their feed: public and loggedin
-                            ActivityTestsUtil.collectAndGetActivityStream(
-                              publicTenant0.loggedinUser.restContext,
-                              null,
-                              null,
-                              (err, result) => {
-                                assert.ok(!err);
-                                ActivityTestsUtil.assertActivity(
-                                  result.items[0],
-                                  'content-create',
-                                  'create',
-                                  publicTenant0PublicUserId,
-                                  [publicLink.id, loggedinLink.id],
-                                  publicTenant1.publicUser.user.id
-                                );
+                          // Ensure the loggedin user of the same tenant gets 2 of the content items in their feed: public and loggedin
+                          ActivityTestsUtil.collectAndGetActivityStream(
+                            publicTenant0.loggedinUser.restContext,
+                            null,
+                            null,
+                            (err, result) => {
+                              assert.ok(!err);
+                              ActivityTestsUtil.assertActivity(
+                                result.items[0],
+                                'content-create',
+                                'create',
+                                publicTenant0PublicUserId,
+                                [publicLink.id, loggedinLink.id],
+                                publicTenant1.publicUser.user.id
+                              );
 
-                                // Ensure the public user from another tenant gets all 3 of the content items in their feed because they were made a member. This
-                                // ensures that even if the tenant propagation fails on the content item, the association propagation still includes them
-                                ActivityTestsUtil.collectAndGetActivityStream(
-                                  publicTenant1.publicUser.restContext,
-                                  null,
-                                  null,
-                                  (err, result) => {
-                                    assert.ok(!err);
-                                    ActivityTestsUtil.assertActivity(
-                                      result.items[0],
-                                      'content-create',
-                                      'create',
-                                      publicTenant0PublicUserId,
-                                      [publicLink.id, loggedinLink.id, privateLink.id],
-                                      publicTenant1.publicUser.user.id
-                                    );
+                              // Ensure the public user from another tenant gets all 3 of the content items in their feed because they were made a member. This
+                              // ensures that even if the tenant propagation fails on the content item, the association propagation still includes them
+                              ActivityTestsUtil.collectAndGetActivityStream(
+                                publicTenant1.publicUser.restContext,
+                                null,
+                                null,
+                                (err, result) => {
+                                  assert.ok(!err);
+                                  ActivityTestsUtil.assertActivity(
+                                    result.items[0],
+                                    'content-create',
+                                    'create',
+                                    publicTenant0PublicUserId,
+                                    [publicLink.id, loggedinLink.id, privateLink.id],
+                                    publicTenant1.publicUser.user.id
+                                  );
 
-                                    // Ensure the loggedin user from another tenant only gets the public content item since they are not a member and cannot see the loggedin one
-                                    ActivityTestsUtil.collectAndGetActivityStream(
-                                      publicTenant1.loggedinUser.restContext,
-                                      null,
-                                      null,
-                                      (err, result) => {
-                                        assert.ok(!err);
-                                        ActivityTestsUtil.assertActivity(
-                                          result.items[0],
-                                          'content-create',
-                                          'create',
-                                          publicTenant0PublicUserId,
-                                          publicLink.id,
-                                          publicTenant1.publicUser.user.id
-                                        );
-                                        return callback();
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          });
-        }
-      );
+                                  // Ensure the loggedin user from another tenant only gets the public content item since they are not a member and cannot see the loggedin one
+                                  ActivityTestsUtil.collectAndGetActivityStream(
+                                    publicTenant1.loggedinUser.restContext,
+                                    null,
+                                    null,
+                                    (err, result) => {
+                                      assert.ok(!err);
+                                      ActivityTestsUtil.assertActivity(
+                                        result.items[0],
+                                        'content-create',
+                                        'create',
+                                        publicTenant0PublicUserId,
+                                        publicLink.id,
+                                        publicTenant1.publicUser.user.id
+                                      );
+                                      return callback();
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        });
+      });
     });
   });
 
@@ -2078,40 +1664,25 @@ describe('Content Activity', () => {
           (err, link) => {
             assert.ok(!err);
 
-            RestAPI.Content.updateContent(
-              jack.restContext,
-              link.id,
-              { description: 'Super awesome link' },
-              err => {
-                assert.ok(!err);
+            RestAPI.Content.updateContent(jack.restContext, link.id, { description: 'Super awesome link' }, err => {
+              assert.ok(!err);
 
-                ActivityTestsUtil.collectAndGetActivityStream(
-                  jack.restContext,
-                  jack.user.id,
-                  null,
-                  (err, activityStream) => {
-                    assert.ok(!err);
-                    const createActivity = _getActivity(
-                      activityStream,
-                      'content-create',
-                      'object',
-                      link.id
-                    );
-                    const updateActivity = _getActivity(
-                      activityStream,
-                      'content-update',
-                      'object',
-                      link.id
-                    );
-                    assert.ok(createActivity);
-                    assert.strictEqual(createActivity.verb, 'create');
-                    assert.ok(updateActivity);
-                    assert.strictEqual(updateActivity.verb, 'update');
-                    return callback();
-                  }
-                );
-              }
-            );
+              ActivityTestsUtil.collectAndGetActivityStream(
+                jack.restContext,
+                jack.user.id,
+                null,
+                (err, activityStream) => {
+                  assert.ok(!err);
+                  const createActivity = _getActivity(activityStream, 'content-create', 'object', link.id);
+                  const updateActivity = _getActivity(activityStream, 'content-update', 'object', link.id);
+                  assert.ok(createActivity);
+                  assert.strictEqual(createActivity.verb, 'create');
+                  assert.ok(updateActivity);
+                  assert.strictEqual(updateActivity.verb, 'update');
+                  return callback();
+                }
+              );
+            });
           }
         );
       });
@@ -2150,19 +1721,9 @@ describe('Content Activity', () => {
                   null,
                   (err, activityStream) => {
                     assert.ok(!err);
-                    const createActivity = _getActivity(
-                      activityStream,
-                      'content-create',
-                      'object',
-                      content.id
-                    );
+                    const createActivity = _getActivity(activityStream, 'content-create', 'object', content.id);
 
-                    const updateActivity = _getActivity(
-                      activityStream,
-                      'content-revision',
-                      'object',
-                      content.id
-                    );
+                    const updateActivity = _getActivity(activityStream, 'content-revision', 'object', content.id);
                     assert.ok(createActivity);
                     assert.ok(updateActivity);
                     assert.notStrictEqual(
@@ -2208,12 +1769,7 @@ describe('Content Activity', () => {
                 null,
                 (err, activityStream) => {
                   assert.ok(!err);
-                  const shareActivity = _getActivity(
-                    activityStream,
-                    'content-share',
-                    'object',
-                    link.id
-                  );
+                  const shareActivity = _getActivity(activityStream, 'content-share', 'object', link.id);
                   assert.ok(shareActivity);
                   assert.strictEqual(shareActivity.verb, 'share');
                   callback();
@@ -2311,19 +1867,12 @@ describe('Content Activity', () => {
                   null,
                   (err, activityStream) => {
                     assert.ok(!err);
-                    const revisionActivity = _getActivity(
-                      activityStream,
-                      'content-revision',
-                      'object',
-                      content.id
-                    );
+                    const revisionActivity = _getActivity(activityStream, 'content-revision', 'object', content.id);
                     assert.ok(revisionActivity);
                     assert.strictEqual(revisionActivity.verb, 'update');
 
                     // Also verify that a content-update activity *doesn't* get generated. no one will want to see both a revision and a meta-data update
-                    assert.ok(
-                      !_getActivity(activityStream, 'content-update', 'object', content.id)
-                    );
+                    assert.ok(!_getActivity(activityStream, 'content-update', 'object', content.id));
 
                     return callback();
                   }
@@ -2364,12 +1913,7 @@ describe('Content Activity', () => {
                 null,
                 (err, activityStream) => {
                   assert.ok(!err);
-                  const addActivity = _getActivity(
-                    activityStream,
-                    'content-add-to-library',
-                    'object',
-                    link.id
-                  );
+                  const addActivity = _getActivity(activityStream, 'content-add-to-library', 'object', link.id);
                   assert.ok(addActivity);
                   assert.strictEqual(addActivity.verb, 'add');
                   callback();
@@ -2401,32 +1945,27 @@ describe('Content Activity', () => {
             assert.ok(!err);
 
             // Jack adds the content item to his own library
-            RestAPI.Content.updateContent(
-              camAdminRestContext,
-              link.id,
-              { visibility: 'private' },
-              err => {
-                assert.ok(!err);
+            RestAPI.Content.updateContent(camAdminRestContext, link.id, { visibility: 'private' }, err => {
+              assert.ok(!err);
 
-                ActivityTestsUtil.collectAndGetActivityStream(
-                  camAdminRestContext,
-                  jack.user.id,
-                  null,
-                  (err, activityStream) => {
-                    assert.ok(!err);
-                    const updateVisibilityActivity = _getActivity(
-                      activityStream,
-                      'content-update-visibility',
-                      'object',
-                      link.id
-                    );
-                    assert.ok(updateVisibilityActivity);
-                    assert.strictEqual(updateVisibilityActivity.verb, 'update');
-                    callback();
-                  }
-                );
-              }
-            );
+              ActivityTestsUtil.collectAndGetActivityStream(
+                camAdminRestContext,
+                jack.user.id,
+                null,
+                (err, activityStream) => {
+                  assert.ok(!err);
+                  const updateVisibilityActivity = _getActivity(
+                    activityStream,
+                    'content-update-visibility',
+                    'object',
+                    link.id
+                  );
+                  assert.ok(updateVisibilityActivity);
+                  assert.strictEqual(updateVisibilityActivity.verb, 'update');
+                  callback();
+                }
+              );
+            });
           }
         );
       });
@@ -2473,44 +2012,34 @@ describe('Content Activity', () => {
                 assert.ok(!err);
 
                 // Verify the activities were aggregated into one, pivoted by actor
-                ActivityTestsUtil.collectAndGetActivityStream(
-                  jack.restContext,
-                  null,
-                  null,
-                  (err, activityStream) => {
-                    assert.ok(!err);
-                    assert.ok(activityStream);
-                    assert.strictEqual(activityStream.items.length, 1);
+                ActivityTestsUtil.collectAndGetActivityStream(jack.restContext, null, null, (err, activityStream) => {
+                  assert.ok(!err);
+                  assert.ok(activityStream);
+                  assert.strictEqual(activityStream.items.length, 1);
 
-                    const aggregate = _getActivity(
-                      activityStream,
-                      'content-create',
-                      'actor',
-                      jack.user.id
+                  const aggregate = _getActivity(activityStream, 'content-create', 'actor', jack.user.id);
+                  assert.ok(aggregate.object);
+                  assert.ok(aggregate.object['oae:collection']);
+                  assert.strictEqual(aggregate.object['oae:collection'].length, 2);
+
+                  if (
+                    aggregate.object['oae:collection'][0]['oae:id'] === googleLink.id &&
+                    aggregate.object['oae:collection'][1]['oae:id'] === yahooLink.id
+                  ) {
+                    // Don't fail, we want one to be google and the other to be yahoo
+                  } else if (
+                    aggregate.object['oae:collection'][0]['oae:id'] === yahooLink.id &&
+                    aggregate.object['oae:collection'][1]['oae:id'] === googleLink.id
+                  ) {
+                    // Don't fail, we want one to be google and the other to be yahoo
+                  } else {
+                    assert.fail(
+                      'Expected the collection of created content items to be one yahoo link and one google link.'
                     );
-                    assert.ok(aggregate.object);
-                    assert.ok(aggregate.object['oae:collection']);
-                    assert.strictEqual(aggregate.object['oae:collection'].length, 2);
-
-                    if (
-                      aggregate.object['oae:collection'][0]['oae:id'] === googleLink.id &&
-                      aggregate.object['oae:collection'][1]['oae:id'] === yahooLink.id
-                    ) {
-                      // Don't fail, we want one to be google and the other to be yahoo
-                    } else if (
-                      aggregate.object['oae:collection'][0]['oae:id'] === yahooLink.id &&
-                      aggregate.object['oae:collection'][1]['oae:id'] === googleLink.id
-                    ) {
-                      // Don't fail, we want one to be google and the other to be yahoo
-                    } else {
-                      assert.fail(
-                        'Expected the collection of created content items to be one yahoo link and one google link.'
-                      );
-                    }
-
-                    callback();
                   }
-                );
+
+                  callback();
+                });
               }
             );
           }
@@ -2540,71 +2069,61 @@ describe('Content Activity', () => {
             assert.ok(!err);
 
             // Force a collection of activities so that the individual activity is delivered
-            ActivityTestsUtil.collectAndGetActivityStream(
-              jack.restContext,
-              null,
-              null,
-              (err, activityStream) => {
-                assert.ok(!err);
-                assert.ok(activityStream);
-                assert.ok(activityStream.items.length, 1);
+            ActivityTestsUtil.collectAndGetActivityStream(jack.restContext, null, null, (err, activityStream) => {
+              assert.ok(!err);
+              assert.ok(activityStream);
+              assert.ok(activityStream.items.length, 1);
 
-                // Create a Yahoo link
-                RestAPI.Content.createLink(
-                  jack.restContext,
-                  'Yahoo!',
-                  'Yahoo!',
-                  'public',
-                  'http://www.yahoo.ca',
-                  [],
-                  [],
-                  [],
-                  (err, yahooLink) => {
+              // Create a Yahoo link
+              RestAPI.Content.createLink(
+                jack.restContext,
+                'Yahoo!',
+                'Yahoo!',
+                'public',
+                'http://www.yahoo.ca',
+                [],
+                [],
+                [],
+                (err, yahooLink) => {
+                  assert.ok(!err);
+
+                  // Collect again and ensure we still only have one activity
+                  ActivityTestsUtil.collectAndGetActivityStream(jack.restContext, null, null, (err, activityStream) => {
                     assert.ok(!err);
+                    assert.ok(activityStream);
+                    assert.ok(activityStream.items.length, 1);
 
-                    // Collect again and ensure we still only have one activity
-                    ActivityTestsUtil.collectAndGetActivityStream(
+                    // Rinse and repeat once to ensure that the aggregates are removed properly as well
+                    RestAPI.Content.createLink(
                       jack.restContext,
-                      null,
-                      null,
-                      (err, activityStream) => {
+                      'Apereo!',
+                      'Apereo!',
+                      'public',
+                      'http://www.apereo.org',
+                      [],
+                      [],
+                      [],
+                      (err, apereoLink) => {
                         assert.ok(!err);
-                        assert.ok(activityStream);
-                        assert.ok(activityStream.items.length, 1);
 
-                        // Rinse and repeat once to ensure that the aggregates are removed properly as well
-                        RestAPI.Content.createLink(
+                        // Collect again and ensure we still only have one activity
+                        ActivityTestsUtil.collectAndGetActivityStream(
                           jack.restContext,
-                          'Apereo!',
-                          'Apereo!',
-                          'public',
-                          'http://www.apereo.org',
-                          [],
-                          [],
-                          [],
-                          (err, apereoLink) => {
+                          null,
+                          null,
+                          (err, activityStream) => {
                             assert.ok(!err);
-
-                            // Collect again and ensure we still only have one activity
-                            ActivityTestsUtil.collectAndGetActivityStream(
-                              jack.restContext,
-                              null,
-                              null,
-                              (err, activityStream) => {
-                                assert.ok(!err);
-                                assert.ok(activityStream);
-                                assert.ok(activityStream.items.length, 1);
-                                callback();
-                              }
-                            );
+                            assert.ok(activityStream);
+                            assert.ok(activityStream.items.length, 1);
+                            callback();
                           }
                         );
                       }
                     );
-                  }
-                );
-              }
-            );
+                  });
+                }
+              );
+            });
           }
         );
       });
@@ -3038,54 +2557,34 @@ describe('Content Activity', () => {
             assert.ok(!err);
 
             // Update the content once as jack
-            RestAPI.Content.updateContent(
-              jack.restContext,
-              googleLink.id,
-              { displayName: 'The Google' },
-              err => {
+            RestAPI.Content.updateContent(jack.restContext, googleLink.id, { displayName: 'The Google' }, err => {
+              assert.ok(!err);
+
+              // Update it a second time as jack, we use this to make sure we don't get duplicates in the aggregation
+              RestAPI.Content.updateContent(jack.restContext, googleLink.id, { displayName: 'Google' }, err => {
                 assert.ok(!err);
 
-                // Update it a second time as jack, we use this to make sure we don't get duplicates in the aggregation
-                RestAPI.Content.updateContent(
-                  jack.restContext,
-                  googleLink.id,
-                  { displayName: 'Google' },
-                  err => {
+                // Update it with a different user, this should be a second entry in the collection
+                RestAPI.Content.updateContent(camAdminRestContext, googleLink.id, { displayName: 'Google' }, err => {
+                  assert.ok(!err);
+
+                  // Verify we get the 2 actors in the stream
+                  ActivityTestsUtil.collectAndGetActivityStream(jack.restContext, null, null, (err, activityStream) => {
                     assert.ok(!err);
+                    assert.ok(activityStream);
 
-                    // Update it with a different user, this should be a second entry in the collection
-                    RestAPI.Content.updateContent(
-                      camAdminRestContext,
-                      googleLink.id,
-                      { displayName: 'Google' },
-                      err => {
-                        assert.ok(!err);
+                    const activity = activityStream.items[0];
+                    assert.ok(activity);
+                    assert.strictEqual(activity['oae:activityType'], 'content-update');
 
-                        // Verify we get the 2 actors in the stream
-                        ActivityTestsUtil.collectAndGetActivityStream(
-                          jack.restContext,
-                          null,
-                          null,
-                          (err, activityStream) => {
-                            assert.ok(!err);
-                            assert.ok(activityStream);
-
-                            const activity = activityStream.items[0];
-                            assert.ok(activity);
-                            assert.strictEqual(activity['oae:activityType'], 'content-update');
-
-                            const actors = activity.actor['oae:collection'];
-                            assert.ok(actors);
-                            assert.strictEqual(actors.length, 2);
-                            callback();
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
+                    const actors = activity.actor['oae:collection'];
+                    assert.ok(actors);
+                    assert.strictEqual(actors.length, 2);
+                    callback();
+                  });
+                });
+              });
+            });
           }
         );
       });
@@ -3113,135 +2612,115 @@ describe('Content Activity', () => {
             assert.ok(!err);
 
             // Update the content once as jack
-            RestAPI.Content.updateContent(
-              jack.restContext,
-              googleLink.id,
-              { displayName: 'The Google' },
-              err => {
-                assert.ok(!err);
+            RestAPI.Content.updateContent(jack.restContext, googleLink.id, { displayName: 'The Google' }, err => {
+              assert.ok(!err);
 
-                // Add something to the activity feed that happened later than the previous update
-                RestAPI.Content.createLink(
-                  jack.restContext,
-                  'Yahoo!',
-                  'Yahoo!',
-                  'public',
-                  'http://www.yahoo.ca',
-                  [],
-                  [],
-                  [],
-                  (err, yahooLink) => {
+              // Add something to the activity feed that happened later than the previous update
+              RestAPI.Content.createLink(
+                jack.restContext,
+                'Yahoo!',
+                'Yahoo!',
+                'public',
+                'http://www.yahoo.ca',
+                [],
+                [],
+                [],
+                (err, yahooLink) => {
+                  assert.ok(!err);
+
+                  // Update it a second time as jack, we use this to make sure we don't get duplicates in the aggregation, and ensure the update jumps ahead of the last create activity in the feed
+                  RestAPI.Content.updateContent(jack.restContext, googleLink.id, { displayName: 'Google' }, err => {
                     assert.ok(!err);
 
-                    // Update it a second time as jack, we use this to make sure we don't get duplicates in the aggregation, and ensure the update jumps ahead of the last create activity in the feed
-                    RestAPI.Content.updateContent(
+                    // Verify that the activity is still a non-aggregated activity, it just jumped to the front of the feed
+                    ActivityTestsUtil.collectAndGetActivityStream(
                       jack.restContext,
-                      googleLink.id,
-                      { displayName: 'Google' },
-                      err => {
+                      null,
+                      null,
+                      (err, activityStream) => {
                         assert.ok(!err);
+                        assert.ok(activityStream);
 
-                        // Verify that the activity is still a non-aggregated activity, it just jumped to the front of the feed
-                        ActivityTestsUtil.collectAndGetActivityStream(
+                        // One for the "content-create" aggregation, one for the "update content" duplicates
+                        assert.ok(activityStream.items.length, 2);
+
+                        // Ensures that the actor is not a collection, but still an individual entity
+                        const activity = activityStream.items[0];
+                        assert.strictEqual(activity['oae:activityType'], 'content-update');
+                        assert.ok(activity.actor['oae:id'], jack.user.id);
+                        assert.strictEqual(
+                          activity.actor['oae:profilePath'],
+                          '/user/' + jack.user.tenant.alias + '/' + AuthzUtil.getResourceFromId(jack.user.id).resourceId
+                        );
+                        assert.ok(activity.object['oae:id'], googleLink.id);
+                        assert.strictEqual(
+                          activity.object['oae:profilePath'],
+                          '/content/' +
+                            googleLink.tenant.alias +
+                            '/' +
+                            AuthzUtil.getResourceFromId(googleLink.id).resourceId
+                        );
+
+                        // Send a new activity into the feed so it is the most recent
+                        RestAPI.Content.createLink(
                           jack.restContext,
-                          null,
-                          null,
-                          (err, activityStream) => {
+                          'Apereo',
+                          'Apereo',
+                          'public',
+                          'http://www.apereo.org',
+                          [],
+                          [],
+                          [],
+                          (err, apereoLink) => {
                             assert.ok(!err);
-                            assert.ok(activityStream);
 
-                            // One for the "content-create" aggregation, one for the "update content" duplicates
-                            assert.ok(activityStream.items.length, 2);
-
-                            // Ensures that the actor is not a collection, but still an individual entity
-                            const activity = activityStream.items[0];
-                            assert.strictEqual(activity['oae:activityType'], 'content-update');
-                            assert.ok(activity.actor['oae:id'], jack.user.id);
-                            assert.strictEqual(
-                              activity.actor['oae:profilePath'],
-                              '/user/' +
-                                jack.user.tenant.alias +
-                                '/' +
-                                AuthzUtil.getResourceFromId(jack.user.id).resourceId
-                            );
-                            assert.ok(activity.object['oae:id'], googleLink.id);
-                            assert.strictEqual(
-                              activity.object['oae:profilePath'],
-                              '/content/' +
-                                googleLink.tenant.alias +
-                                '/' +
-                                AuthzUtil.getResourceFromId(googleLink.id).resourceId
-                            );
-
-                            // Send a new activity into the feed so it is the most recent
-                            RestAPI.Content.createLink(
+                            // Force a collection so that the most recent activity is in the feed
+                            ActivityTestsUtil.collectAndGetActivityStream(
                               jack.restContext,
-                              'Apereo',
-                              'Apereo',
-                              'public',
-                              'http://www.apereo.org',
-                              [],
-                              [],
-                              [],
-                              (err, apereoLink) => {
+                              null,
+                              null,
+                              (err, activityStream) => {
                                 assert.ok(!err);
+                                assert.ok(activityStream);
+                                assert.strictEqual(activityStream.items.length, 2);
 
-                                // Force a collection so that the most recent activity is in the feed
-                                ActivityTestsUtil.collectAndGetActivityStream(
+                                // Jump the update activity to the top again
+                                RestAPI.Content.updateContent(
                                   jack.restContext,
-                                  null,
-                                  null,
-                                  (err, activityStream) => {
+                                  googleLink.id,
+                                  { displayName: 'Google' },
+                                  err => {
                                     assert.ok(!err);
-                                    assert.ok(activityStream);
-                                    assert.strictEqual(activityStream.items.length, 2);
 
-                                    // Jump the update activity to the top again
-                                    RestAPI.Content.updateContent(
+                                    // Verify update activity is at the top and still an individual activity
+                                    ActivityTestsUtil.collectAndGetActivityStream(
                                       jack.restContext,
-                                      googleLink.id,
-                                      { displayName: 'Google' },
-                                      err => {
-                                        assert.ok(!err);
+                                      null,
+                                      null,
+                                      (err, activityStream) => {
+                                        assert.ok(activityStream);
+                                        assert.strictEqual(activityStream.items.length, 2);
 
-                                        // Verify update activity is at the top and still an individual activity
-                                        ActivityTestsUtil.collectAndGetActivityStream(
-                                          jack.restContext,
-                                          null,
-                                          null,
-                                          (err, activityStream) => {
-                                            assert.ok(activityStream);
-                                            assert.strictEqual(activityStream.items.length, 2);
-
-                                            // Content-update activity should be the first in the list, it should still be a single activity
-                                            const activity = activityStream.items[0];
-                                            assert.strictEqual(
-                                              activity['oae:activityType'],
-                                              'content-update'
-                                            );
-                                            assert.strictEqual(
-                                              activity.actor['oae:id'],
-                                              jack.user.id
-                                            );
-                                            assert.strictEqual(
-                                              activity.actor['oae:profilePath'],
-                                              '/user/' +
-                                                jack.user.tenant.alias +
-                                                '/' +
-                                                AuthzUtil.getResourceFromId(jack.user.id).resourceId
-                                            );
-                                            assert.ok(activity.object['oae:id'], googleLink.id);
-                                            assert.strictEqual(
-                                              activity.object['oae:profilePath'],
-                                              '/content/' +
-                                                googleLink.tenant.alias +
-                                                '/' +
-                                                AuthzUtil.getResourceFromId(googleLink.id)
-                                                  .resourceId
-                                            );
-                                            callback();
-                                          }
+                                        // Content-update activity should be the first in the list, it should still be a single activity
+                                        const activity = activityStream.items[0];
+                                        assert.strictEqual(activity['oae:activityType'], 'content-update');
+                                        assert.strictEqual(activity.actor['oae:id'], jack.user.id);
+                                        assert.strictEqual(
+                                          activity.actor['oae:profilePath'],
+                                          '/user/' +
+                                            jack.user.tenant.alias +
+                                            '/' +
+                                            AuthzUtil.getResourceFromId(jack.user.id).resourceId
                                         );
+                                        assert.ok(activity.object['oae:id'], googleLink.id);
+                                        assert.strictEqual(
+                                          activity.object['oae:profilePath'],
+                                          '/content/' +
+                                            googleLink.tenant.alias +
+                                            '/' +
+                                            AuthzUtil.getResourceFromId(googleLink.id).resourceId
+                                        );
+                                        callback();
                                       }
                                     );
                                   }
@@ -3252,10 +2731,10 @@ describe('Content Activity', () => {
                         );
                       }
                     );
-                  }
-                );
-              }
-            );
+                  });
+                }
+              );
+            });
           }
         );
       });
@@ -3266,10 +2745,10 @@ describe('Content Activity', () => {
     /// ////////////////////////////
 
     /*
-         * The "content-update-visibility" activity demonstrates an activity that has no pivot points, therefore it should be
-         * treated as though it pivots on all three entities (actor, object, target) such that duplicate activities within the
-         * aggregation period are not posted multiple times. Duplicates are instead pushed to the top of the feed.
-         */
+     * The "content-update-visibility" activity demonstrates an activity that has no pivot points, therefore it should be
+     * treated as though it pivots on all three entities (actor, object, target) such that duplicate activities within the
+     * aggregation period are not posted multiple times. Duplicates are instead pushed to the top of the feed.
+     */
 
     /**
      * Test that verifies when a content-update-visibility activity is posted duplicate times, it does not result in multiple entries in the
@@ -3293,138 +2772,115 @@ describe('Content Activity', () => {
             assert.ok(!err);
 
             // Update the content once as jack
-            RestAPI.Content.updateContent(
-              jack.restContext,
-              googleLink.id,
-              { visibility: 'loggedin' },
-              err => {
-                assert.ok(!err);
+            RestAPI.Content.updateContent(jack.restContext, googleLink.id, { visibility: 'loggedin' }, err => {
+              assert.ok(!err);
 
-                // Add something to the activity feed that happened later than the previous update
-                RestAPI.Content.createLink(
-                  jack.restContext,
-                  'Yahoo!',
-                  'Yahoo!',
-                  'public',
-                  'http://www.yahoo.ca',
-                  [],
-                  [],
-                  [],
-                  (err, yahooLink) => {
+              // Add something to the activity feed that happened later than the previous update
+              RestAPI.Content.createLink(
+                jack.restContext,
+                'Yahoo!',
+                'Yahoo!',
+                'public',
+                'http://www.yahoo.ca',
+                [],
+                [],
+                [],
+                (err, yahooLink) => {
+                  assert.ok(!err);
+
+                  // Update it a second time as jack, we use this to make sure we don't get duplicates in the aggregation, and ensure the update jumps ahead of the last create activity in the feed
+                  RestAPI.Content.updateContent(jack.restContext, googleLink.id, { visibility: 'private' }, err => {
                     assert.ok(!err);
 
-                    // Update it a second time as jack, we use this to make sure we don't get duplicates in the aggregation, and ensure the update jumps ahead of the last create activity in the feed
-                    RestAPI.Content.updateContent(
+                    // Verify that the activity is still a non-aggregated activity, it just jumped to the front of the feed
+                    ActivityTestsUtil.collectAndGetActivityStream(
                       jack.restContext,
-                      googleLink.id,
-                      { visibility: 'private' },
-                      err => {
+                      null,
+                      null,
+                      (err, activityStream) => {
                         assert.ok(!err);
+                        assert.ok(activityStream);
 
-                        // Verify that the activity is still a non-aggregated activity, it just jumped to the front of the feed
-                        ActivityTestsUtil.collectAndGetActivityStream(
+                        // One for the "content-create" aggregation, one for the "update content" duplicates
+                        assert.ok(activityStream.items.length, 2);
+
+                        // Ensures that the actor is not a collection, but still an individual entity
+                        const activity = activityStream.items[0];
+                        assert.strictEqual(activity['oae:activityType'], 'content-update-visibility');
+                        assert.ok(activity.actor['oae:id'], jack.user.id);
+                        assert.strictEqual(
+                          activity.actor['oae:profilePath'],
+                          '/user/' + jack.user.tenant.alias + '/' + AuthzUtil.getResourceFromId(jack.user.id).resourceId
+                        );
+                        assert.ok(activity.object['oae:id'], googleLink.id);
+                        assert.strictEqual(
+                          activity.object['oae:profilePath'],
+                          '/content/' +
+                            googleLink.tenant.alias +
+                            '/' +
+                            AuthzUtil.getResourceFromId(googleLink.id).resourceId
+                        );
+
+                        // Send a new activity into the feed so it is the most recent
+                        RestAPI.Content.createLink(
                           jack.restContext,
-                          null,
-                          null,
-                          (err, activityStream) => {
+                          'Apereo',
+                          'Apereo',
+                          'public',
+                          'http://www.apereo.org',
+                          [],
+                          [],
+                          [],
+                          (err, apereoLink) => {
                             assert.ok(!err);
-                            assert.ok(activityStream);
 
-                            // One for the "content-create" aggregation, one for the "update content" duplicates
-                            assert.ok(activityStream.items.length, 2);
-
-                            // Ensures that the actor is not a collection, but still an individual entity
-                            const activity = activityStream.items[0];
-                            assert.strictEqual(
-                              activity['oae:activityType'],
-                              'content-update-visibility'
-                            );
-                            assert.ok(activity.actor['oae:id'], jack.user.id);
-                            assert.strictEqual(
-                              activity.actor['oae:profilePath'],
-                              '/user/' +
-                                jack.user.tenant.alias +
-                                '/' +
-                                AuthzUtil.getResourceFromId(jack.user.id).resourceId
-                            );
-                            assert.ok(activity.object['oae:id'], googleLink.id);
-                            assert.strictEqual(
-                              activity.object['oae:profilePath'],
-                              '/content/' +
-                                googleLink.tenant.alias +
-                                '/' +
-                                AuthzUtil.getResourceFromId(googleLink.id).resourceId
-                            );
-
-                            // Send a new activity into the feed so it is the most recent
-                            RestAPI.Content.createLink(
+                            // Force a collection so that the most recent activity is in the feed
+                            ActivityTestsUtil.collectAndGetActivityStream(
                               jack.restContext,
-                              'Apereo',
-                              'Apereo',
-                              'public',
-                              'http://www.apereo.org',
-                              [],
-                              [],
-                              [],
-                              (err, apereoLink) => {
+                              null,
+                              null,
+                              (err, activityStream) => {
                                 assert.ok(!err);
+                                assert.ok(activityStream);
+                                assert.strictEqual(activityStream.items.length, 2);
 
-                                // Force a collection so that the most recent activity is in the feed
-                                ActivityTestsUtil.collectAndGetActivityStream(
+                                // Jump the update activity to the top again
+                                RestAPI.Content.updateContent(
                                   jack.restContext,
-                                  null,
-                                  null,
-                                  (err, activityStream) => {
+                                  googleLink.id,
+                                  { visibility: 'public' },
+                                  err => {
                                     assert.ok(!err);
-                                    assert.ok(activityStream);
-                                    assert.strictEqual(activityStream.items.length, 2);
 
-                                    // Jump the update activity to the top again
-                                    RestAPI.Content.updateContent(
+                                    // Verify update activity is at the top and still an individual activity
+                                    ActivityTestsUtil.collectAndGetActivityStream(
                                       jack.restContext,
-                                      googleLink.id,
-                                      { visibility: 'public' },
-                                      err => {
-                                        assert.ok(!err);
+                                      null,
+                                      null,
+                                      (err, activityStream) => {
+                                        assert.ok(activityStream);
+                                        assert.strictEqual(activityStream.items.length, 2);
 
-                                        // Verify update activity is at the top and still an individual activity
-                                        ActivityTestsUtil.collectAndGetActivityStream(
-                                          jack.restContext,
-                                          null,
-                                          null,
-                                          (err, activityStream) => {
-                                            assert.ok(activityStream);
-                                            assert.strictEqual(activityStream.items.length, 2);
-
-                                            // Content-update activity should be the first in the list, it should still be a single activity
-                                            const activity = activityStream.items[0];
-                                            assert.strictEqual(
-                                              activity['oae:activityType'],
-                                              'content-update-visibility'
-                                            );
-                                            assert.strictEqual(
-                                              activity.actor['oae:id'],
-                                              jack.user.id
-                                            );
-                                            assert.strictEqual(
-                                              activity.actor['oae:profilePath'],
-                                              '/user/' +
-                                                jack.user.tenant.alias +
-                                                '/' +
-                                                AuthzUtil.getResourceFromId(jack.user.id).resourceId
-                                            );
-                                            assert.ok(activity.object['oae:id'], googleLink.id);
-                                            assert.strictEqual(
-                                              activity.object['oae:profilePath'],
-                                              '/content/' +
-                                                googleLink.tenant.alias +
-                                                '/' +
-                                                AuthzUtil.getResourceFromId(googleLink.id)
-                                                  .resourceId
-                                            );
-                                            callback();
-                                          }
+                                        // Content-update activity should be the first in the list, it should still be a single activity
+                                        const activity = activityStream.items[0];
+                                        assert.strictEqual(activity['oae:activityType'], 'content-update-visibility');
+                                        assert.strictEqual(activity.actor['oae:id'], jack.user.id);
+                                        assert.strictEqual(
+                                          activity.actor['oae:profilePath'],
+                                          '/user/' +
+                                            jack.user.tenant.alias +
+                                            '/' +
+                                            AuthzUtil.getResourceFromId(jack.user.id).resourceId
                                         );
+                                        assert.ok(activity.object['oae:id'], googleLink.id);
+                                        assert.strictEqual(
+                                          activity.object['oae:profilePath'],
+                                          '/content/' +
+                                            googleLink.tenant.alias +
+                                            '/' +
+                                            AuthzUtil.getResourceFromId(googleLink.id).resourceId
+                                        );
+                                        callback();
                                       }
                                     );
                                   }
@@ -3435,10 +2891,10 @@ describe('Content Activity', () => {
                         );
                       }
                     );
-                  }
-                );
-              }
-            );
+                  });
+                }
+              );
+            });
           }
         );
       });
@@ -3449,9 +2905,9 @@ describe('Content Activity', () => {
     /// //////////////////
 
     /*
-         * The content-comment activity demonstrates an activity that has all 3 entities, but only aggregates on 1 of them. This means that
-         * 2 of the entity types are aggregated as more activities are generated instead of just one.
-         */
+     * The content-comment activity demonstrates an activity that has all 3 entities, but only aggregates on 1 of them. This means that
+     * 2 of the entity types are aggregated as more activities are generated instead of just one.
+     */
 
     /**
      * Test that verifies that when content-comment activities are aggregated, both actor and object entities are collected into the activity
@@ -3475,24 +2931,36 @@ describe('Content Activity', () => {
             assert.ok(!err);
 
             // Post a content as jack
-            RestAPI.Content.createComment(
-              jack.restContext,
-              link.id,
-              'Test Comment A',
-              null,
-              err => {
+            RestAPI.Content.createComment(jack.restContext, link.id, 'Test Comment A', null, err => {
+              assert.ok(!err);
+
+              // Post a comment as the cambridge admin, we have now aggregated a 2nd comment posting on the same content item
+              RestAPI.Content.createComment(camAdminRestContext, link.id, 'Test Comment B', null, err => {
                 assert.ok(!err);
 
-                // Post a comment as the cambridge admin, we have now aggregated a 2nd comment posting on the same content item
-                RestAPI.Content.createComment(
-                  camAdminRestContext,
-                  link.id,
-                  'Test Comment B',
-                  null,
-                  err => {
+                // Verify that both actors (camadmin and jack) and both objects (both comments) are available in the activity
+                ActivityTestsUtil.collectAndGetActivityStream(jack.restContext, null, null, (err, activityStream) => {
+                  assert.ok(!err);
+                  assert.ok(activityStream);
+                  assert.strictEqual(activityStream.items.length, 2);
+
+                  const activity = activityStream.items[0];
+                  assert.strictEqual(activity['oae:activityType'], 'content-comment');
+
+                  // Ensure we've aggregated all actors and objects
+                  const actors = activity.actor['oae:collection'];
+                  const objects = activity.object['oae:collection'];
+                  assert.ok(actors);
+                  assert.ok(objects);
+                  assert.strictEqual(actors.length, 2);
+                  assert.strictEqual(objects.length, 2);
+                  assert.strictEqual(activity.target['oae:id'], link.id);
+
+                  // Post a 3rd comment as a user who has posted already
+                  RestAPI.Content.createComment(jack.restContext, link.id, 'Test Comment C', null, err => {
                     assert.ok(!err);
 
-                    // Verify that both actors (camadmin and jack) and both objects (both comments) are available in the activity
+                    // Verify that the 3rd comment is aggregated into the object collection of the activity, however the actor collection has only the 2 unique actors
                     ActivityTestsUtil.collectAndGetActivityStream(
                       jack.restContext,
                       null,
@@ -3505,56 +2973,21 @@ describe('Content Activity', () => {
                         const activity = activityStream.items[0];
                         assert.strictEqual(activity['oae:activityType'], 'content-comment');
 
-                        // Ensure we've aggregated all actors and objects
+                        // Ensure we now have one additional object, but we should still only have 2 users because it was the same user that posted the 3rd time
                         const actors = activity.actor['oae:collection'];
                         const objects = activity.object['oae:collection'];
                         assert.ok(actors);
                         assert.ok(objects);
                         assert.strictEqual(actors.length, 2);
-                        assert.strictEqual(objects.length, 2);
+                        assert.strictEqual(objects.length, 3);
                         assert.strictEqual(activity.target['oae:id'], link.id);
-
-                        // Post a 3rd comment as a user who has posted already
-                        RestAPI.Content.createComment(
-                          jack.restContext,
-                          link.id,
-                          'Test Comment C',
-                          null,
-                          err => {
-                            assert.ok(!err);
-
-                            // Verify that the 3rd comment is aggregated into the object collection of the activity, however the actor collection has only the 2 unique actors
-                            ActivityTestsUtil.collectAndGetActivityStream(
-                              jack.restContext,
-                              null,
-                              null,
-                              (err, activityStream) => {
-                                assert.ok(!err);
-                                assert.ok(activityStream);
-                                assert.strictEqual(activityStream.items.length, 2);
-
-                                const activity = activityStream.items[0];
-                                assert.strictEqual(activity['oae:activityType'], 'content-comment');
-
-                                // Ensure we now have one additional object, but we should still only have 2 users because it was the same user that posted the 3rd time
-                                const actors = activity.actor['oae:collection'];
-                                const objects = activity.object['oae:collection'];
-                                assert.ok(actors);
-                                assert.ok(objects);
-                                assert.strictEqual(actors.length, 2);
-                                assert.strictEqual(objects.length, 3);
-                                assert.strictEqual(activity.target['oae:id'], link.id);
-                                callback();
-                              }
-                            );
-                          }
-                        );
+                        callback();
                       }
                     );
-                  }
-                );
-              }
-            );
+                  });
+                });
+              });
+            });
           }
         );
       });
@@ -3565,12 +2998,12 @@ describe('Content Activity', () => {
     /// ////////////////
 
     /*
-         * The content-share activity demonstrates a case where you have 2 pivots for a single activity.
-         *
-         * One pivot is actor+object, which enables the aggregation: "Branden Visser shared Mythology with 4 users and groups"
-         *
-         * The other pivot is actor+target, which enables the aggregation: "Branden Visser shared 5 items with GroupA"
-         */
+     * The content-share activity demonstrates a case where you have 2 pivots for a single activity.
+     *
+     * One pivot is actor+object, which enables the aggregation: "Branden Visser shared Mythology with 4 users and groups"
+     *
+     * The other pivot is actor+target, which enables the aggregation: "Branden Visser shared 5 items with GroupA"
+     */
 
     /**
      * Test that verifies that duplicating an activity that has multiple pivots does not result in redundant data in the
@@ -3645,10 +3078,7 @@ describe('Content Activity', () => {
                           assert.strictEqual(activity.object['oae:id'], link.id);
                           assert.strictEqual(
                             activity.object['oae:profilePath'],
-                            '/content/' +
-                              link.tenant.alias +
-                              '/' +
-                              AuthzUtil.getResourceFromId(link.id).resourceId
+                            '/content/' + link.tenant.alias + '/' + AuthzUtil.getResourceFromId(link.id).resourceId
                           );
                           assert.strictEqual(activity.target['oae:id'], jane.user.id);
                           assert.strictEqual(
@@ -3660,83 +3090,61 @@ describe('Content Activity', () => {
                           );
 
                           // Repeat once more to ensure we don't duplicate when the aggregate is already active
-                          RestAPI.Content.updateMembers(
-                            jack.restContext,
-                            link.id,
-                            removeJane,
-                            err => {
-                              assert.ok(!err);
+                          RestAPI.Content.updateMembers(jack.restContext, link.id, removeJane, err => {
+                            assert.ok(!err);
 
-                              // Create some noise in the feed to ensure that the third share content will jump to the top
-                              RestAPI.Content.createLink(
-                                jack.restContext,
-                                'Apereo',
-                                'Apereo',
-                                'public',
-                                'http://www.apereo.org',
-                                [],
-                                [],
-                                [],
-                                (err, apereoLink) => {
+                            // Create some noise in the feed to ensure that the third share content will jump to the top
+                            RestAPI.Content.createLink(
+                              jack.restContext,
+                              'Apereo',
+                              'Apereo',
+                              'public',
+                              'http://www.apereo.org',
+                              [],
+                              [],
+                              [],
+                              (err, apereoLink) => {
+                                assert.ok(!err);
+
+                                // Re-share with Jane for the 3rd time
+                                RestAPI.Content.shareContent(jack.restContext, link.id, [jane.user.id], err => {
                                   assert.ok(!err);
 
-                                  // Re-share with Jane for the 3rd time
-                                  RestAPI.Content.shareContent(
+                                  // Verify that jack still has only one activity in his feed representing the content-share
+                                  ActivityTestsUtil.collectAndGetActivityStream(
                                     jack.restContext,
-                                    link.id,
-                                    [jane.user.id],
-                                    err => {
+                                    null,
+                                    null,
+                                    (err, activityStream) => {
                                       assert.ok(!err);
+                                      assert.ok(activityStream);
+                                      assert.strictEqual(activityStream.items.length, 2);
 
-                                      // Verify that jack still has only one activity in his feed representing the content-share
-                                      ActivityTestsUtil.collectAndGetActivityStream(
-                                        jack.restContext,
-                                        null,
-                                        null,
-                                        (err, activityStream) => {
-                                          assert.ok(!err);
-                                          assert.ok(activityStream);
-                                          assert.strictEqual(activityStream.items.length, 2);
-
-                                          // The first activity should be the content share, and it should still not be an aggregation
-                                          const activity = activityStream.items[0];
-                                          assert.strictEqual(
-                                            activity['oae:activityType'],
-                                            'content-share'
-                                          );
-                                          assert.strictEqual(
-                                            activity.actor['oae:id'],
-                                            jack.user.id
-                                          );
-                                          assert.strictEqual(
-                                            activity.actor['oae:profilePath'],
-                                            '/user/camtest/' +
-                                              AuthzUtil.getResourceFromId(jack.user.id).resourceId
-                                          );
-                                          assert.strictEqual(activity.object['oae:id'], link.id);
-                                          assert.strictEqual(
-                                            activity.object['oae:profilePath'],
-                                            '/content/camtest/' +
-                                              AuthzUtil.getResourceFromId(link.id).resourceId
-                                          );
-                                          assert.strictEqual(
-                                            activity.target['oae:id'],
-                                            jane.user.id
-                                          );
-                                          assert.strictEqual(
-                                            activity.target['oae:profilePath'],
-                                            '/user/camtest/' +
-                                              AuthzUtil.getResourceFromId(jane.user.id).resourceId
-                                          );
-                                          return callback();
-                                        }
+                                      // The first activity should be the content share, and it should still not be an aggregation
+                                      const activity = activityStream.items[0];
+                                      assert.strictEqual(activity['oae:activityType'], 'content-share');
+                                      assert.strictEqual(activity.actor['oae:id'], jack.user.id);
+                                      assert.strictEqual(
+                                        activity.actor['oae:profilePath'],
+                                        '/user/camtest/' + AuthzUtil.getResourceFromId(jack.user.id).resourceId
                                       );
+                                      assert.strictEqual(activity.object['oae:id'], link.id);
+                                      assert.strictEqual(
+                                        activity.object['oae:profilePath'],
+                                        '/content/camtest/' + AuthzUtil.getResourceFromId(link.id).resourceId
+                                      );
+                                      assert.strictEqual(activity.target['oae:id'], jane.user.id);
+                                      assert.strictEqual(
+                                        activity.target['oae:profilePath'],
+                                        '/user/camtest/' + AuthzUtil.getResourceFromId(jane.user.id).resourceId
+                                      );
+                                      return callback();
                                     }
                                   );
-                                }
-                              );
-                            }
-                          );
+                                });
+                              }
+                            );
+                          });
                         }
                       );
                     });
@@ -3783,48 +3191,38 @@ describe('Content Activity', () => {
                 assert.ok(!err);
 
                 // Share google link with jane and branden
-                RestAPI.Content.shareContent(
-                  jack.restContext,
-                  googleLink.id,
-                  [jane.user.id, branden.user.id],
-                  err => {
+                RestAPI.Content.shareContent(jack.restContext, googleLink.id, [jane.user.id, branden.user.id], err => {
+                  assert.ok(!err);
+
+                  // Share Yahoo link with jane only
+                  RestAPI.Content.shareContent(jack.restContext, yahooLink.id, [jane.user.id], err => {
                     assert.ok(!err);
 
-                    // Share Yahoo link with jane only
-                    RestAPI.Content.shareContent(
+                    // Verify that the share activities aggregated in both pivot points
+                    ActivityTestsUtil.collectAndGetActivityStream(
                       jack.restContext,
-                      yahooLink.id,
-                      [jane.user.id],
-                      err => {
+                      null,
+                      null,
+                      (err, activityStream) => {
                         assert.ok(!err);
+                        assert.ok(activityStream);
+                        assert.strictEqual(activityStream.items.length, 3);
 
-                        // Verify that the share activities aggregated in both pivot points
-                        ActivityTestsUtil.collectAndGetActivityStream(
-                          jack.restContext,
-                          null,
-                          null,
-                          (err, activityStream) => {
-                            assert.ok(!err);
-                            assert.ok(activityStream);
-                            assert.strictEqual(activityStream.items.length, 3);
+                        // 1. actor+target should have jack+(google,yahoo)+jane, and it would be most recent
+                        let activity = activityStream.items[0];
+                        assert.ok(activity.object['oae:collection']);
+                        assert.strictEqual(activity.object['oae:collection'].length, 2);
 
-                            // 1. actor+target should have jack+(google,yahoo)+jane, and it would be most recent
-                            let activity = activityStream.items[0];
-                            assert.ok(activity.object['oae:collection']);
-                            assert.strictEqual(activity.object['oae:collection'].length, 2);
+                        // 2. actor+object aggregate should have: jack+google+(jane,branden)
+                        activity = activityStream.items[1];
+                        assert.ok(activity.target['oae:collection']);
+                        assert.strictEqual(activity.target['oae:collection'].length, 2);
 
-                            // 2. actor+object aggregate should have: jack+google+(jane,branden)
-                            activity = activityStream.items[1];
-                            assert.ok(activity.target['oae:collection']);
-                            assert.strictEqual(activity.target['oae:collection'].length, 2);
-
-                            return callback();
-                          }
-                        );
+                        return callback();
                       }
                     );
-                  }
-                );
+                  });
+                });
               }
             );
           }
@@ -3866,68 +3264,48 @@ describe('Content Activity', () => {
                 assert.ok(!err);
 
                 // Share google link with jane
-                RestAPI.Content.shareContent(
-                  jack.restContext,
-                  googleLink.id,
-                  [jane.user.id],
-                  err => {
+                RestAPI.Content.shareContent(jack.restContext, googleLink.id, [jane.user.id], err => {
+                  assert.ok(!err);
+
+                  // Perform a collection to activate some aggregates ahead of time
+                  ActivityTestsUtil.collectAndGetActivityStream(jack.restContext, null, null, (err, activityStream) => {
                     assert.ok(!err);
 
-                    // Perform a collection to activate some aggregates ahead of time
-                    ActivityTestsUtil.collectAndGetActivityStream(
-                      jack.restContext,
-                      null,
-                      null,
-                      (err, activityStream) => {
+                    // Share google now with branden, should aggregate with the previous
+                    RestAPI.Content.shareContent(jack.restContext, googleLink.id, [branden.user.id], err => {
+                      assert.ok(!err);
+
+                      // Share Yahoo link with jane only
+                      RestAPI.Content.shareContent(jack.restContext, yahooLink.id, [jane.user.id], err => {
                         assert.ok(!err);
 
-                        // Share google now with branden, should aggregate with the previous
-                        RestAPI.Content.shareContent(
+                        // Verify that the share activities aggregated in both pivot points
+                        ActivityTestsUtil.collectAndGetActivityStream(
                           jack.restContext,
-                          googleLink.id,
-                          [branden.user.id],
-                          err => {
+                          null,
+                          null,
+                          (err, activityStream) => {
                             assert.ok(!err);
+                            assert.ok(activityStream);
+                            assert.strictEqual(activityStream.items.length, 3);
 
-                            // Share Yahoo link with jane only
-                            RestAPI.Content.shareContent(
-                              jack.restContext,
-                              yahooLink.id,
-                              [jane.user.id],
-                              err => {
-                                assert.ok(!err);
+                            // 1. actor+target should have jack+(google,yahoo)+jane, and it would be most recent
+                            let activity = activityStream.items[0];
+                            assert.ok(activity.object['oae:collection']);
+                            assert.strictEqual(activity.object['oae:collection'].length, 2);
 
-                                // Verify that the share activities aggregated in both pivot points
-                                ActivityTestsUtil.collectAndGetActivityStream(
-                                  jack.restContext,
-                                  null,
-                                  null,
-                                  (err, activityStream) => {
-                                    assert.ok(!err);
-                                    assert.ok(activityStream);
-                                    assert.strictEqual(activityStream.items.length, 3);
+                            // 2. actor+object aggregate should have: jack+google+(jane,branden)
+                            activity = activityStream.items[1];
+                            assert.ok(activity.target['oae:collection']);
+                            assert.strictEqual(activity.target['oae:collection'].length, 2);
 
-                                    // 1. actor+target should have jack+(google,yahoo)+jane, and it would be most recent
-                                    let activity = activityStream.items[0];
-                                    assert.ok(activity.object['oae:collection']);
-                                    assert.strictEqual(activity.object['oae:collection'].length, 2);
-
-                                    // 2. actor+object aggregate should have: jack+google+(jane,branden)
-                                    activity = activityStream.items[1];
-                                    assert.ok(activity.target['oae:collection']);
-                                    assert.strictEqual(activity.target['oae:collection'].length, 2);
-
-                                    return callback();
-                                  }
-                                );
-                              }
-                            );
+                            return callback();
                           }
                         );
-                      }
-                    );
-                  }
-                );
+                      });
+                    });
+                  });
+                });
               }
             );
           }
@@ -3969,58 +3347,43 @@ describe('Content Activity', () => {
                 assert.ok(!err);
 
                 // Share google link with jane and branden
-                RestAPI.Content.shareContent(
-                  jack.restContext,
-                  googleLink.id,
-                  [jane.user.id, branden.user.id],
-                  err => {
+                RestAPI.Content.shareContent(jack.restContext, googleLink.id, [jane.user.id, branden.user.id], err => {
+                  assert.ok(!err);
+
+                  // Perform a collection to activate some aggregates ahead of time
+                  ActivityTestsUtil.collectAndGetActivityStream(jack.restContext, null, null, (err, activityStream) => {
                     assert.ok(!err);
 
-                    // Perform a collection to activate some aggregates ahead of time
-                    ActivityTestsUtil.collectAndGetActivityStream(
-                      jack.restContext,
-                      null,
-                      null,
-                      (err, activityStream) => {
-                        assert.ok(!err);
+                    // Share Yahoo link with jane only
+                    RestAPI.Content.shareContent(jack.restContext, yahooLink.id, [jane.user.id], err => {
+                      assert.ok(!err);
 
-                        // Share Yahoo link with jane only
-                        RestAPI.Content.shareContent(
-                          jack.restContext,
-                          yahooLink.id,
-                          [jane.user.id],
-                          err => {
-                            assert.ok(!err);
+                      // Verify that the share activities aggregated in both pivot points
+                      ActivityTestsUtil.collectAndGetActivityStream(
+                        jack.restContext,
+                        null,
+                        null,
+                        (err, activityStream) => {
+                          assert.ok(!err);
+                          assert.ok(activityStream);
+                          assert.strictEqual(activityStream.items.length, 3);
 
-                            // Verify that the share activities aggregated in both pivot points
-                            ActivityTestsUtil.collectAndGetActivityStream(
-                              jack.restContext,
-                              null,
-                              null,
-                              (err, activityStream) => {
-                                assert.ok(!err);
-                                assert.ok(activityStream);
-                                assert.strictEqual(activityStream.items.length, 3);
+                          // 1. actor+target should have jack+(google,yahoo)+jane, and it would be most recent
+                          let activity = activityStream.items[0];
+                          assert.ok(activity.object['oae:collection']);
+                          assert.strictEqual(activity.object['oae:collection'].length, 2);
 
-                                // 1. actor+target should have jack+(google,yahoo)+jane, and it would be most recent
-                                let activity = activityStream.items[0];
-                                assert.ok(activity.object['oae:collection']);
-                                assert.strictEqual(activity.object['oae:collection'].length, 2);
+                          // 2. actor+object aggregate should have: jack+google+(jane,branden)
+                          activity = activityStream.items[1];
+                          assert.ok(activity.target['oae:collection']);
+                          assert.strictEqual(activity.target['oae:collection'].length, 2);
 
-                                // 2. actor+object aggregate should have: jack+google+(jane,branden)
-                                activity = activityStream.items[1];
-                                assert.ok(activity.target['oae:collection']);
-                                assert.strictEqual(activity.target['oae:collection'].length, 2);
-
-                                return callback();
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
+                          return callback();
+                        }
+                      );
+                    });
+                  });
+                });
               }
             );
           }
@@ -4062,84 +3425,58 @@ describe('Content Activity', () => {
                 assert.ok(!err);
 
                 // Share google link with jane
-                RestAPI.Content.shareContent(
-                  jack.restContext,
-                  googleLink.id,
-                  [jane.user.id],
-                  err => {
+                RestAPI.Content.shareContent(jack.restContext, googleLink.id, [jane.user.id], err => {
+                  assert.ok(!err);
+
+                  // Perform a collection to activate some aggregates ahead of time
+                  ActivityTestsUtil.collectAndGetActivityStream(jack.restContext, null, null, (err, activityStream) => {
                     assert.ok(!err);
 
-                    // Perform a collection to activate some aggregates ahead of time
-                    ActivityTestsUtil.collectAndGetActivityStream(
-                      jack.restContext,
-                      null,
-                      null,
-                      (err, activityStream) => {
-                        assert.ok(!err);
+                    // Share google now with branden, should aggregate with the previous
+                    RestAPI.Content.shareContent(jack.restContext, googleLink.id, [branden.user.id], err => {
+                      assert.ok(!err);
 
-                        // Share google now with branden, should aggregate with the previous
-                        RestAPI.Content.shareContent(
-                          jack.restContext,
-                          googleLink.id,
-                          [branden.user.id],
-                          err => {
+                      // Perform a collection to activate some aggregates ahead of time
+                      ActivityTestsUtil.collectAndGetActivityStream(
+                        jack.restContext,
+                        null,
+                        null,
+                        (err, activityStream) => {
+                          assert.ok(!err);
+
+                          // Share Yahoo link with jane only
+                          RestAPI.Content.shareContent(jack.restContext, yahooLink.id, [jane.user.id], err => {
                             assert.ok(!err);
 
-                            // Perform a collection to activate some aggregates ahead of time
+                            // Verify that the share activities aggregated in both pivot points
                             ActivityTestsUtil.collectAndGetActivityStream(
                               jack.restContext,
                               null,
                               null,
                               (err, activityStream) => {
                                 assert.ok(!err);
+                                assert.ok(activityStream);
+                                assert.strictEqual(activityStream.items.length, 3);
 
-                                // Share Yahoo link with jane only
-                                RestAPI.Content.shareContent(
-                                  jack.restContext,
-                                  yahooLink.id,
-                                  [jane.user.id],
-                                  err => {
-                                    assert.ok(!err);
+                                // 1. actor+target should have jack+(google,yahoo)+jane, and it would be most recent
+                                let activity = activityStream.items[0];
+                                assert.ok(activity.object['oae:collection']);
+                                assert.strictEqual(activity.object['oae:collection'].length, 2);
 
-                                    // Verify that the share activities aggregated in both pivot points
-                                    ActivityTestsUtil.collectAndGetActivityStream(
-                                      jack.restContext,
-                                      null,
-                                      null,
-                                      (err, activityStream) => {
-                                        assert.ok(!err);
-                                        assert.ok(activityStream);
-                                        assert.strictEqual(activityStream.items.length, 3);
+                                // 2. actor+object aggregate should have: jack+google+(jane,branden)
+                                activity = activityStream.items[1];
+                                assert.ok(activity.target['oae:collection']);
+                                assert.strictEqual(activity.target['oae:collection'].length, 2);
 
-                                        // 1. actor+target should have jack+(google,yahoo)+jane, and it would be most recent
-                                        let activity = activityStream.items[0];
-                                        assert.ok(activity.object['oae:collection']);
-                                        assert.strictEqual(
-                                          activity.object['oae:collection'].length,
-                                          2
-                                        );
-
-                                        // 2. actor+object aggregate should have: jack+google+(jane,branden)
-                                        activity = activityStream.items[1];
-                                        assert.ok(activity.target['oae:collection']);
-                                        assert.strictEqual(
-                                          activity.target['oae:collection'].length,
-                                          2
-                                        );
-
-                                        return callback();
-                                      }
-                                    );
-                                  }
-                                );
+                                return callback();
                               }
                             );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
+                          });
+                        }
+                      );
+                    });
+                  });
+                });
               }
             );
           }
@@ -4154,107 +3491,92 @@ describe('Content Activity', () => {
      * scrubbed.
      */
     it('verify content-comment email and privacy', callback => {
-      TestsUtil.generateTestUsers(
-        camAdminRestContext,
-        3,
-        (err, users, mrvisser, simong, nicolaas) => {
-          assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, mrvisser, simong, nicolaas) => {
+        assert.ok(!err);
 
-          const simongUpdate = {
-            visibility: 'private',
-            publicAlias: 'swappedFromPublicAlias'
-          };
-          PrincipalsTestUtil.assertUpdateUserSucceeds(
-            simong.restContext,
-            simong.user.id,
-            simongUpdate,
-            () => {
-              RestAPI.Content.createLink(
-                mrvisser.restContext,
-                'Google',
-                'Google',
-                'public',
-                'http://www.google.ca',
-                [],
-                [],
-                [],
-                (err, link) => {
+        const simongUpdate = {
+          visibility: 'private',
+          publicAlias: 'swappedFromPublicAlias'
+        };
+        PrincipalsTestUtil.assertUpdateUserSucceeds(simong.restContext, simong.user.id, simongUpdate, () => {
+          RestAPI.Content.createLink(
+            mrvisser.restContext,
+            'Google',
+            'Google',
+            'public',
+            'http://www.google.ca',
+            [],
+            [],
+            [],
+            (err, link) => {
+              assert.ok(!err);
+
+              RestAPI.Content.createComment(
+                simong.restContext,
+                link.id,
+                '<script>Nice link.</script>\n\nWould click again',
+                null,
+                (err, simongComment) => {
                   assert.ok(!err);
 
-                  RestAPI.Content.createComment(
-                    simong.restContext,
-                    link.id,
-                    '<script>Nice link.</script>\n\nWould click again',
-                    null,
-                    (err, simongComment) => {
-                      assert.ok(!err);
+                  EmailTestsUtil.collectAndFetchAllEmails(messages => {
+                    // There should be exactly one message, the one sent to mrvisser (manager of content item receives content-comment notification)
+                    assert.strictEqual(messages.length, 1);
 
-                      EmailTestsUtil.collectAndFetchAllEmails(messages => {
-                        // There should be exactly one message, the one sent to mrvisser (manager of content item receives content-comment notification)
-                        assert.strictEqual(messages.length, 1);
+                    const stringEmail = JSON.stringify(messages[0], null, 2);
+                    const message = messages[0];
 
-                        const stringEmail = JSON.stringify(messages[0], null, 2);
-                        const message = messages[0];
+                    // Sanity check that the message is to mrvisser
+                    assert.strictEqual(message.to[0].address, mrvisser.user.email);
 
-                        // Sanity check that the message is to mrvisser
-                        assert.strictEqual(message.to[0].address, mrvisser.user.email);
+                    // Ensure that the subject of the email contains the poster's name
+                    assert.notStrictEqual(message.subject.indexOf('swappedFromPublicAlias'), -1);
 
-                        // Ensure that the subject of the email contains the poster's name
-                        assert.notStrictEqual(
-                          message.subject.indexOf('swappedFromPublicAlias'),
-                          -1
-                        );
+                    // Ensure some data expected to be in the email is there
+                    assert.notStrictEqual(stringEmail.indexOf(link.profilePath), -1);
+                    assert.notStrictEqual(stringEmail.indexOf(link.displayName), -1);
 
-                        // Ensure some data expected to be in the email is there
-                        assert.notStrictEqual(stringEmail.indexOf(link.profilePath), -1);
-                        assert.notStrictEqual(stringEmail.indexOf(link.displayName), -1);
+                    // Ensure simong's private info is *nowhere* to be found
+                    assert.strictEqual(stringEmail.indexOf(simong.user.displayName), -1);
+                    assert.strictEqual(stringEmail.indexOf(simong.user.email), -1);
+                    assert.strictEqual(stringEmail.indexOf(simong.user.locale), -1);
 
-                        // Ensure simong's private info is *nowhere* to be found
-                        assert.strictEqual(stringEmail.indexOf(simong.user.displayName), -1);
-                        assert.strictEqual(stringEmail.indexOf(simong.user.email), -1);
-                        assert.strictEqual(stringEmail.indexOf(simong.user.locale), -1);
+                    // The message probably contains the public alias, though
+                    assert.notStrictEqual(stringEmail.indexOf('swappedFromPublicAlias'), -1);
 
-                        // The message probably contains the public alias, though
-                        assert.notStrictEqual(stringEmail.indexOf('swappedFromPublicAlias'), -1);
+                    // The message should have escaped the HTML content in the original message
+                    assert.strictEqual(stringEmail.indexOf('<script>Nice link.</script>'), -1);
 
-                        // The message should have escaped the HTML content in the original message
-                        assert.strictEqual(stringEmail.indexOf('<script>Nice link.</script>'), -1);
+                    // The new line characters should've been converted into paragraphs
+                    assert.notStrictEqual(stringEmail.indexOf('Would click again</p>'), -1);
 
-                        // The new line characters should've been converted into paragraphs
-                        assert.notStrictEqual(stringEmail.indexOf('Would click again</p>'), -1);
+                    // Post a comment as nicolaas and ensure the recent commenter, simong receives an email about it
+                    RestAPI.Content.createComment(
+                      nicolaas.restContext,
+                      link.id,
+                      'It 404d',
+                      null,
+                      (err, nicolaasComment) => {
+                        assert.ok(!err);
 
-                        // Post a comment as nicolaas and ensure the recent commenter, simong receives an email about it
-                        RestAPI.Content.createComment(
-                          nicolaas.restContext,
-                          link.id,
-                          'It 404d',
-                          null,
-                          (err, nicolaasComment) => {
-                            assert.ok(!err);
+                        EmailTestsUtil.collectAndFetchAllEmails(emails => {
+                          // There should be 2 emails this time, one to the manager and one to the recent commenter, simong
+                          assert.strictEqual(emails.length, 2);
 
-                            EmailTestsUtil.collectAndFetchAllEmails(emails => {
-                              // There should be 2 emails this time, one to the manager and one to the recent commenter, simong
-                              assert.strictEqual(emails.length, 2);
-
-                              const emailAddresses = [
-                                emails[0].to[0].address,
-                                emails[1].to[0].address
-                              ];
-                              assert.ok(_.contains(emailAddresses, simong.user.email));
-                              assert.ok(_.contains(emailAddresses, mrvisser.user.email));
-                              return callback();
-                            });
-                          }
-                        );
-                      });
-                    }
-                  );
+                          const emailAddresses = [emails[0].to[0].address, emails[1].to[0].address];
+                          assert.ok(_.contains(emailAddresses, simong.user.email));
+                          assert.ok(_.contains(emailAddresses, mrvisser.user.email));
+                          return callback();
+                        });
+                      }
+                    );
+                  });
                 }
               );
             }
           );
-        }
-      );
+        });
+      });
     });
 
     /**
@@ -4270,53 +3592,48 @@ describe('Content Activity', () => {
           visibility: 'private',
           publicAlias: 'swappedFromPublicAlias'
         };
-        PrincipalsTestUtil.assertUpdateUserSucceeds(
-          simong.restContext,
-          simong.user.id,
-          simongUpdate,
-          () => {
-            // Create the link, sharing it with mrvisser during the creation step. We will ensure he gets an email about it
-            RestAPI.Content.createLink(
-              simong.restContext,
-              'Google',
-              'Google',
-              'public',
-              'http://www.google.ca',
-              [],
-              [mrvisser.user.id],
-              [],
-              (err, link) => {
-                assert.ok(!err);
+        PrincipalsTestUtil.assertUpdateUserSucceeds(simong.restContext, simong.user.id, simongUpdate, () => {
+          // Create the link, sharing it with mrvisser during the creation step. We will ensure he gets an email about it
+          RestAPI.Content.createLink(
+            simong.restContext,
+            'Google',
+            'Google',
+            'public',
+            'http://www.google.ca',
+            [],
+            [mrvisser.user.id],
+            [],
+            (err, link) => {
+              assert.ok(!err);
 
-                // Mrvisser should get an email, with simong's information scrubbed
-                EmailTestsUtil.collectAndFetchAllEmails(messages => {
-                  // There should be exactly one message, the one sent to mrvisser
-                  assert.strictEqual(messages.length, 1);
+              // Mrvisser should get an email, with simong's information scrubbed
+              EmailTestsUtil.collectAndFetchAllEmails(messages => {
+                // There should be exactly one message, the one sent to mrvisser
+                assert.strictEqual(messages.length, 1);
 
-                  const stringEmail = JSON.stringify(messages[0]);
-                  const message = messages[0];
+                const stringEmail = JSON.stringify(messages[0]);
+                const message = messages[0];
 
-                  // Sanity check that the message is to mrvisser
-                  assert.strictEqual(message.to[0].address, mrvisser.user.email);
+                // Sanity check that the message is to mrvisser
+                assert.strictEqual(message.to[0].address, mrvisser.user.email);
 
-                  // Ensure some data expected to be in the email is there
-                  assert.notStrictEqual(stringEmail.indexOf(link.profilePath), -1);
-                  assert.notStrictEqual(stringEmail.indexOf(link.displayName), -1);
+                // Ensure some data expected to be in the email is there
+                assert.notStrictEqual(stringEmail.indexOf(link.profilePath), -1);
+                assert.notStrictEqual(stringEmail.indexOf(link.displayName), -1);
 
-                  // Ensure simong's private info is *nowhere* to be found
-                  assert.strictEqual(stringEmail.indexOf(simong.user.displayName), -1);
-                  assert.strictEqual(stringEmail.indexOf(simong.user.email), -1);
-                  assert.strictEqual(stringEmail.indexOf(simong.user.locale), -1);
+                // Ensure simong's private info is *nowhere* to be found
+                assert.strictEqual(stringEmail.indexOf(simong.user.displayName), -1);
+                assert.strictEqual(stringEmail.indexOf(simong.user.email), -1);
+                assert.strictEqual(stringEmail.indexOf(simong.user.locale), -1);
 
-                  // The message probably contains the public alias, though
-                  assert.notStrictEqual(stringEmail.indexOf('swappedFromPublicAlias'), -1);
+                // The message probably contains the public alias, though
+                assert.notStrictEqual(stringEmail.indexOf('swappedFromPublicAlias'), -1);
 
-                  return callback();
-                });
-              }
-            );
-          }
-        );
+                return callback();
+              });
+            }
+          );
+        });
       });
     });
 
@@ -4333,64 +3650,54 @@ describe('Content Activity', () => {
           visibility: 'private',
           publicAlias: 'swappedFromPublicAlias'
         };
-        PrincipalsTestUtil.assertUpdateUserSucceeds(
-          simong.restContext,
-          simong.user.id,
-          simongUpdate,
-          () => {
-            // Create the link, then share it with mrvisser. We will ensure that mrvisser gets the email about the share
-            RestAPI.Content.createLink(
-              simong.restContext,
-              'Google',
-              'Google',
-              'public',
-              'http://www.google.ca',
-              [],
-              [],
-              [],
-              (err, link) => {
-                assert.ok(!err);
+        PrincipalsTestUtil.assertUpdateUserSucceeds(simong.restContext, simong.user.id, simongUpdate, () => {
+          // Create the link, then share it with mrvisser. We will ensure that mrvisser gets the email about the share
+          RestAPI.Content.createLink(
+            simong.restContext,
+            'Google',
+            'Google',
+            'public',
+            'http://www.google.ca',
+            [],
+            [],
+            [],
+            (err, link) => {
+              assert.ok(!err);
 
-                // Collect the createLink activity
-                EmailTestsUtil.collectAndFetchAllEmails(messages => {
-                  RestAPI.Content.shareContent(
-                    simong.restContext,
-                    link.id,
-                    [mrvisser.user.id],
-                    err => {
-                      assert.ok(!err);
+              // Collect the createLink activity
+              EmailTestsUtil.collectAndFetchAllEmails(messages => {
+                RestAPI.Content.shareContent(simong.restContext, link.id, [mrvisser.user.id], err => {
+                  assert.ok(!err);
 
-                      // Mrvisser should get an email, with simong's information scrubbed
-                      EmailTestsUtil.collectAndFetchAllEmails(messages => {
-                        // There should be exactly one message, the one sent to mrvisser
-                        assert.strictEqual(messages.length, 1);
+                  // Mrvisser should get an email, with simong's information scrubbed
+                  EmailTestsUtil.collectAndFetchAllEmails(messages => {
+                    // There should be exactly one message, the one sent to mrvisser
+                    assert.strictEqual(messages.length, 1);
 
-                        const stringEmail = JSON.stringify(messages[0]);
-                        const message = messages[0];
+                    const stringEmail = JSON.stringify(messages[0]);
+                    const message = messages[0];
 
-                        // Sanity check that the message is to mrvisser
-                        assert.strictEqual(message.to[0].address, mrvisser.user.email);
+                    // Sanity check that the message is to mrvisser
+                    assert.strictEqual(message.to[0].address, mrvisser.user.email);
 
-                        // Ensure some data expected to be in the email is there
-                        assert.notStrictEqual(stringEmail.indexOf(link.profilePath), -1);
-                        assert.notStrictEqual(stringEmail.indexOf(link.displayName), -1);
+                    // Ensure some data expected to be in the email is there
+                    assert.notStrictEqual(stringEmail.indexOf(link.profilePath), -1);
+                    assert.notStrictEqual(stringEmail.indexOf(link.displayName), -1);
 
-                        // Ensure simong's private info is *nowhere* to be found
-                        assert.strictEqual(stringEmail.indexOf(simong.user.displayName), -1);
-                        assert.strictEqual(stringEmail.indexOf(simong.user.email), -1);
-                        assert.strictEqual(stringEmail.indexOf(simong.user.locale), -1);
+                    // Ensure simong's private info is *nowhere* to be found
+                    assert.strictEqual(stringEmail.indexOf(simong.user.displayName), -1);
+                    assert.strictEqual(stringEmail.indexOf(simong.user.email), -1);
+                    assert.strictEqual(stringEmail.indexOf(simong.user.locale), -1);
 
-                        // The message probably contains the public alias, though
-                        assert.notStrictEqual(stringEmail.indexOf('swappedFromPublicAlias'), -1);
-                        return callback();
-                      });
-                    }
-                  );
+                    // The message probably contains the public alias, though
+                    assert.notStrictEqual(stringEmail.indexOf('swappedFromPublicAlias'), -1);
+                    return callback();
+                  });
                 });
-              }
-            );
-          }
-        );
+              });
+            }
+          );
+        });
       });
     });
   });

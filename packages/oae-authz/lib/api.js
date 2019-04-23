@@ -13,19 +13,21 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
 
-const Cassandra = require('oae-util/lib/cassandra');
-const OaeUtil = require('oae-util/lib/util');
-const TenantsUtil = require('oae-tenants/lib/util');
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as TenantsUtil from 'oae-tenants/lib/util';
 
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const AuthzGraph = require('oae-authz/lib/internal/graph');
-const AuthzUtil = require('oae-authz/lib/util');
-const { Validator } = require('oae-authz/lib/validator');
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import AuthzGraph from 'oae-authz/lib/internal/graph';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import { Validator } from 'oae-authz/lib/validator';
 
-const log = require('oae-logger').logger('oae-authz-api');
+import { logger } from 'oae-logger';
+
+const log = logger('oae-authz-api');
 
 /// //////////////////////
 // ROLES & PERMISSIONS //
@@ -129,6 +131,7 @@ const getAllRoles = function(principalId, resourceId, callback) {
       if (directRole) {
         roles.push(directRole);
       }
+
       callback(null, roles);
     });
   });
@@ -151,6 +154,7 @@ const _getIndirectRoles = function(principalId, resourceId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(groups)) {
       return callback(null, []);
     }
@@ -266,6 +270,7 @@ const _hasRole = function(principalId, resourceId, role, callback) {
     if (err) {
       return callback(err);
     }
+
     if (directRole && (role === null || directRole === role)) {
       return callback(null, true);
     }
@@ -281,10 +286,12 @@ const _hasRole = function(principalId, resourceId, role, callback) {
         return callback(null, true);
         // If we are looking for a specific role and that specific role is present
       }
+
       if (_.contains(roles, role)) {
         return callback(null, true);
         // If the specified role cannot be found
       }
+
       callback(null, false);
     });
   });
@@ -311,6 +318,7 @@ const updateRoles = function(resourceId, changes, callback) {
     validator.check(principalId, { code: 400, msg: 'Invalid principal id specified: ' + principalId }).isPrincipalId();
     validator.check(changes[principalId], { code: 400, msg: 'Invalid role provided' }).isValidRoleChange();
   }
+
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -348,6 +356,7 @@ const _updateRoles = function(resourceId, changes, callback) {
           }
         ];
       }
+
       if (role === false) {
         // A role has been removed, so we remove it from both the roles and inverse
         // members index
@@ -362,6 +371,7 @@ const _updateRoles = function(resourceId, changes, callback) {
           }
         ];
       }
+
       return [];
     })
     .flatten()
@@ -729,6 +739,7 @@ const getPrincipalMembershipsGraph = function(principalId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(rows)) {
       // If we have no cached memberships, go to the memberships CFs to try and resolve it
       // recursively
@@ -819,6 +830,7 @@ const getPrincipalMemberships = function(principalId, start, limit, callback) {
       if (err) {
         return callback(err);
       }
+
       if (startMatched || !_.isEmpty(rows)) {
         // If we received some groups from the memberships cache, it means it is valid and we can
         // use the data we have
@@ -847,6 +859,7 @@ const getPrincipalMemberships = function(principalId, start, limit, callback) {
           // We don't want to include the start element, so pick the next element as the start
           startIndex = _.indexOf(allMemberships, start) + 1;
         }
+
         const memberships = allMemberships.slice(startIndex, startIndex + limit);
 
         nextToken = null;
@@ -942,6 +955,7 @@ const _getIndirectPrincipalMembershipsFromCache = function(principalId, start, l
       if (err) {
         return callback(err);
       }
+
       if (startMatched || !_.isEmpty(rows)) {
         // If we received some groups from the memberships cache, it means it is valid and we
         // can use the data we have
@@ -1231,6 +1245,7 @@ const getRolesForPrincipalsAndResourceType = function(principalIds, resourceType
     const principalId = principalIds[i];
     validator.check(principalId, { code: 400, msg: 'Invalid principal id specified: ' + principalId }).isPrincipalId();
   }
+
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -1321,14 +1336,17 @@ const resolveEffectiveRole = function(user, resource, rolesPriority, callback) {
     if (err) {
       return callback(err);
     }
+
     if (implicitRole === _.last(rolesPriority)) {
       // We already have the highest role, use it
       return callback(null, implicitRole, canInteract);
     }
+
     if (!user) {
       // We are anonymous so cannot have any explicit access or interact. Use only our implicitRole if we have one
       return callback(null, implicitRole, canInteract, implicitRole);
     }
+
     if (AuthzUtil.isUserId(resource.id)) {
       // No explicit association exists from a user to another user, therefore we can use the implicit result
       return callback(null, implicitRole, canInteract);
@@ -1339,6 +1357,7 @@ const resolveEffectiveRole = function(user, resource, rolesPriority, callback) {
       if (err) {
         return callback(err);
       }
+
       if (_.isEmpty(roles)) {
         // We have no explicit role, so we fall back to the implicit access
         return callback(null, implicitRole, canInteract);
@@ -1397,6 +1416,7 @@ const resolveImplicitRole = function(principal, resource, rolesPriority, callbac
       // resource, but no interaction abilities
       return callback(null, _.first(rolesPriority), false);
     }
+
     // Anonymous has no implicit access on loggedin or private items
     return callback();
   }
@@ -1410,6 +1430,7 @@ const resolveImplicitRole = function(principal, resource, rolesPriority, callbac
       // The user themself has highest implicit access on themself
       return callback(null, _.last(rolesPriority), true);
     }
+
     if (principal.isAdmin(resource.tenant.alias)) {
       // An admin of the resource's tenant has highest implicit access on the resource
       return callback(null, _.last(rolesPriority), true);
@@ -1431,6 +1452,7 @@ const resolveImplicitRole = function(principal, resource, rolesPriority, callbac
     // interact with it if their tenants are interactable
     return callback(null, _.first(rolesPriority), tenantsCanInteract);
   }
+
   // The resource is not public
   if (
     AuthzUtil.isUserId(principalId) &&
@@ -1442,17 +1464,19 @@ const resolveImplicitRole = function(principal, resource, rolesPriority, callbac
     // share something with a private, joinable group of which I am not a member)
     return callback(null, _.first(rolesPriority), tenantsCanInteract);
   }
+
   if (resource.visibility === AuthzConstants.visibility.LOGGEDIN && principal.tenant.alias === resource.tenant.alias) {
     // A principal has lowest implicit role and can view a loggedin, non-joinable
     // resource only if they are logged in to its tenant
     return callback(null, _.first(rolesPriority), true);
   }
+
   // The resource is private and not joinable, and the principal is not an admin user,
   // therefore there is no way we can grant any implicit access on this resource
   return callback();
 };
 
-module.exports = {
+export {
   getDirectRoles,
   getAllRoles,
   hasAnyRole,

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
 /*!
  * All OAE-specific mixins are prefixed with `oae`, followed by a short name that is descriptive to
@@ -31,6 +31,7 @@ _.mixin({
     if (!source) {
       return undefined;
     }
+
     return source[key];
   },
 

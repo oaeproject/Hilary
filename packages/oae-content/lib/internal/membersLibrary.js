@@ -15,12 +15,14 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const LibraryAPI = require('oae-library');
+import * as LibraryAPI from 'oae-library';
 
-const log = require('oae-logger').logger('content-memberslibrary');
-const { ContentConstants } = require('../constants');
+import { logger } from 'oae-logger';
+import { ContentConstants } from '../constants';
+
+const log = logger('content-memberslibrary');
 
 /**
  * Get items from the content member's library
@@ -147,8 +149,4 @@ const _remove = function(contentItem, principalIds, callback) {
   LibraryAPI.Index.remove(ContentConstants.library.MEMBERS_LIBRARY_INDEX_NAME, entries, callback);
 };
 
-module.exports = {
-  list,
-  insert,
-  remove
-};
+export { list, insert, remove };

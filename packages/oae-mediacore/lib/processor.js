@@ -21,7 +21,7 @@ const _ = require('underscore');
 const log = require('oae-logger').logger('oae-mediacore');
 const PreviewConstants = require('oae-preview-processor/lib/constants');
 
-const MediaCoreConfig = require('oae-config').config('oae-mediacore');
+const MediaCoreConfig = require('oae-config').setUpConfig('oae-mediacore');
 const MediaCoreDAO = require('./internal/dao');
 const MediaCoreUtil = require('./internal/util');
 

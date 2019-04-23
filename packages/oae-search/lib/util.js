@@ -14,19 +14,22 @@
  */
 
 /* eslint-disable camelcase */
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
 
-const AuthzAPI = require('oae-authz');
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const log = require('oae-logger').logger('oae-search-util');
-const OaeUtil = require('oae-util/lib/util');
-const TenantsAPI = require('oae-tenants');
-const TenantsUtil = require('oae-tenants/lib/util');
-const { Validator } = require('oae-util/lib/validator');
+import { logger } from 'oae-logger';
 
-const { SearchConstants } = require('oae-search/lib/constants');
-const SearchModel = require('oae-search/lib/model');
+import * as AuthzAPI from 'oae-authz';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as TenantsAPI from 'oae-tenants';
+import * as TenantsUtil from 'oae-tenants/lib/util';
+import * as SearchModel from 'oae-search/lib/model';
+
+import { SearchConstants } from 'oae-search/lib/constants';
+import { Validator } from 'oae-util/lib/validator';
+import { AuthzConstants } from 'oae-authz/lib/constants';
+
+const log = logger('oae-search-util');
 
 /**
  * Get the standard search parameters from the given request.
@@ -74,10 +77,12 @@ const getScopeParam = function(val, defaultVal) {
     // If it is a valid scope type, return the scope as-is
     return val;
   }
+
   if (TenantsAPI.getTenant(val)) {
     // If it is a valid tenant alias, return the scope as-is
     return val;
   }
+
   // Otherwise, we default to limiting to the current tenant
   return defaultVal;
 };
@@ -95,6 +100,7 @@ const getSortDirParam = function(val, defaultVal, sortBy) {
   if (sortBy === SearchConstants.sort.field.SCORE || sortBy === SearchConstants.sort.field.MODIFIED) {
     return SearchConstants.sort.direction.DESC;
   }
+
   defaultVal = defaultVal ? getSortDirParam(defaultVal) : SearchConstants.sort.direction.ASC;
   return _.contains(SearchConstants.sort.direction.OPTIONS, val) ? val : defaultVal;
 };
@@ -165,6 +171,7 @@ const transformSearchResults = function(ctx, transformers, results, callback) {
     if (!docsByType[type]) {
       docsByType[type] = {};
     }
+
     docsByType[type][id] = doc;
     docIdOrdering[id] = i;
   }
@@ -373,6 +380,7 @@ const filterOr = function(...args) {
   if (_.isEmpty(filters)) {
     return null;
   }
+
   if (filters.length === 1) {
     // If there is only one filter, no need to wrap it in an `or`
     return filters[0];
@@ -392,6 +400,7 @@ const filterAnd = function(...args) {
   if (_.isEmpty(filters)) {
     return null;
   }
+
   if (filters.length === 1) {
     // If there is only one filter, no need to wrap it in an `and`
     return filters[0];
@@ -410,6 +419,7 @@ const filterNot = function(filter) {
   if (!filter) {
     return null;
   }
+
   return { not: filter };
 };
 
@@ -506,6 +516,7 @@ const filterInteractingTenants = function(tenantAlias) {
     // A private tenant can only interact with itself
     return filterTerm('tenantAlias', tenantAlias);
   }
+
   // A public tenant can only interact with public tenants
   const nonInteractingTenantAliases = _.pluck(TenantsAPI.getNonInteractingTenants(), 'alias');
   return filterNot(filterTerms('tenantAlias', nonInteractingTenantAliases));
@@ -538,10 +549,12 @@ const filterScopeAndAccess = function(ctx, scope, needsFilterByExplicitAccess, c
     if (err) {
       return callback(err);
     }
+
     if (user && user.isGlobalAdmin() && scope === SearchConstants.general.SCOPE_ALL) {
       // Global admins can search all public resources, including private tenants'
       return callback(null, filterOr(implicitAccessFilter, explicitAccessFilter));
     }
+
     if (scope === SearchConstants.general.SCOPE_NETWORK || scope === SearchConstants.general.SCOPE_ALL) {
       // When searching network, we care about access and the scope of the tenant network (i.e.,
       // scope public tenants away from private). All resources outside the network that the
@@ -551,6 +564,7 @@ const filterScopeAndAccess = function(ctx, scope, needsFilterByExplicitAccess, c
         filterOr(filterAnd(implicitAccessFilter, interactingTenantAliasesFilter), explicitAccessFilter)
       );
     }
+
     if (scope === SearchConstants.general.SCOPE_INTERACT) {
       if (!user) {
         // Anonymous users cannot interact with anything, give an authorization error for this scenario
@@ -579,6 +593,7 @@ const filterScopeAndAccess = function(ctx, scope, needsFilterByExplicitAccess, c
         )
       );
     }
+
     if (scope === SearchConstants.general.SCOPE_MY) {
       if (!user) {
         // Anonymous users cannot interact with anything, give an authorization error for this scenario
@@ -675,6 +690,7 @@ const filterExplicitAccess = function(ctx, callback) {
     // Anonymous users cannot have explicit access to anything
     return callback();
   }
+
   if (user.isGlobalAdmin()) {
     // The global admin has implicit access to everything, so explicit access is unnecessary
     return callback();
@@ -731,8 +747,10 @@ const filterCreatedBy = function(ctx, createdBy) {
     if (user.id === createdBy) {
       return filterTerm('createdBy', createdBy);
     }
+
     return filterNot(filterTerm('createdBy', user.id));
   }
+
   return null;
 };
 
@@ -878,7 +896,7 @@ const getChildSearchDocumentId = function(type, resourceId, childId) {
   return util.format('%s#%s#%s', resourceId, type, childId || '');
 };
 
-module.exports = {
+export {
   getSearchParams,
   getQueryParam,
   getScopeParam,

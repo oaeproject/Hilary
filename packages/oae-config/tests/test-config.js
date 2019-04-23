@@ -13,15 +13,15 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const ConfigTestUtil = require('oae-config/lib/test/util');
-const RestAPI = require('oae-rest');
-const TenantsTestUtil = require('oae-tenants/lib/test/util');
-const TestsUtil = require('oae-tests');
+import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import * as TestsUtil from 'oae-tests';
 
-const ConfigAPI = require('oae-config');
+import * as ConfigAPI from 'oae-config';
 
 describe('Configuration', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user on the Cambridge tenant
@@ -36,8 +36,8 @@ describe('Configuration', () => {
   let johnRestContext = null;
 
   /*!
-     * Function that will fill up the global admin, tenant admin and anymous rest context
-     */
+   * Function that will fill up the global admin, tenant admin and anymous rest context
+   */
   before(callback => {
     // Fill up the anonymous cam rest context
     anonymousCamRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
@@ -56,8 +56,8 @@ describe('Configuration', () => {
   });
 
   /*!
-     * Clear the configuration values that are changed during tests
-     */
+   * Clear the configuration values that are changed during tests
+   */
   afterEach(callback => {
     // An update object to apply that will clear the values for the global admin
     const globalClearValues = [
@@ -104,10 +104,7 @@ describe('Configuration', () => {
         assert.ok(!err);
         assert.ok(schema);
         assert.ok(schema['oae-authentication'].title);
-        assert.strictEqual(
-          schema['oae-authentication'].twitter.elements.enabled.defaultValue,
-          true
-        );
+        assert.strictEqual(schema['oae-authentication'].twitter.elements.enabled.defaultValue, true);
 
         // Verify that the anonymous users can't retrieve the schema
         RestAPI.Config.getSchema(anonymousGlobalRestContext, (err, schema) => {
@@ -127,10 +124,7 @@ describe('Configuration', () => {
         assert.ok(!err);
         assert.ok(schema);
         assert.ok(schema['oae-authentication'].title);
-        assert.strictEqual(
-          schema['oae-authentication'].twitter.elements.enabled.defaultValue,
-          true
-        );
+        assert.strictEqual(schema['oae-authentication'].twitter.elements.enabled.defaultValue, true);
 
         // Verify that regular tenant users can't retrieve the schema
         RestAPI.Config.getSchema(johnRestContext, (err, schema) => {
@@ -158,19 +152,13 @@ describe('Configuration', () => {
         assert.ok(!err);
         assert.ok(schema);
         assert.ok(schema['oae-content'].title);
-        assert.strictEqual(
-          schema['oae-content'].storage.elements['amazons3-access-key'].defaultValue,
-          '<access-key>'
-        );
+        assert.strictEqual(schema['oae-content'].storage.elements['amazons3-access-key'].defaultValue, '<access-key>');
 
         RestAPI.Config.getSchema(camAdminRestContext, (err, schema) => {
           assert.ok(!err);
           assert.ok(schema);
           assert.ok(schema['oae-content'].title);
-          assert.strictEqual(
-            schema['oae-content'].storage.elements['amazons3-access-key'],
-            undefined
-          );
+          assert.strictEqual(schema['oae-content'].storage.elements['amazons3-access-key'], undefined);
           callback();
         });
       });
@@ -194,18 +182,12 @@ describe('Configuration', () => {
      * Test that verifies that a single configuration value can be retrieved from the cached configuration
      */
     it('verify get single config value', callback => {
-      const AuthenticationConfig = ConfigAPI.config('oae-authentication');
-      const PrincipalsConfig = ConfigAPI.config('oae-principals');
+      const AuthenticationConfig = ConfigAPI.setUpConfig('oae-authentication');
+      const PrincipalsConfig = ConfigAPI.setUpConfig('oae-principals');
       // Retrieve a non-existing value
-      assert.strictEqual(
-        AuthenticationConfig.getValue(global.oaeTests.tenants.cam.alias, 'sso', 'enabled'),
-        null
-      );
+      assert.strictEqual(AuthenticationConfig.getValue(global.oaeTests.tenants.cam.alias, 'sso', 'enabled'), null);
       // Retrieve a boolean value
-      assert.strictEqual(
-        AuthenticationConfig.getValue(global.oaeTests.tenants.cam.alias, 'twitter', 'enabled'),
-        true
-      );
+      assert.strictEqual(AuthenticationConfig.getValue(global.oaeTests.tenants.cam.alias, 'twitter', 'enabled'), true);
       // Retrieve a string value
       assert.strictEqual(
         PrincipalsConfig.getValue(global.oaeTests.tenants.cam.alias, 'user', 'defaultLanguage'),
@@ -225,16 +207,13 @@ describe('Configuration', () => {
     it('verify validation', callback => {
       // Verify that initializing a config factory needs a module name. This should throw an error
       assert.throws(() => {
-        ConfigAPI.config();
+        ConfigAPI.setUpConfig();
       });
       // Verify that a feature needs to be provided when getting a config value
-      const AuthenticationConfig = ConfigAPI.config('oae-authentication');
+      const AuthenticationConfig = ConfigAPI.setUpConfig('oae-authentication');
       assert.strictEqual(AuthenticationConfig.getValue(global.oaeTests.tenants.cam.alias), null);
       // Verify that an element needs to be provided when getting a config value
-      assert.strictEqual(
-        AuthenticationConfig.getValue(global.oaeTests.tenants.cam.alias, 'twitter'),
-        null
-      );
+      assert.strictEqual(AuthenticationConfig.getValue(global.oaeTests.tenants.cam.alias, 'twitter'), null);
       callback();
     });
 
@@ -242,26 +221,16 @@ describe('Configuration', () => {
      * Test that verifies the last updated timestamp is reflected when a value gets updated
      */
     it('verify the last updated timestamp increases when updated', callback => {
-      const PrincipalsConfig = ConfigAPI.config('oae-principals');
+      const PrincipalsConfig = ConfigAPI.setUpConfig('oae-principals');
 
       // Not passing in any of the `tenantAlias`, `feature` or `element` parameters should result in the epoch date being returned
       assert.strictEqual(PrincipalsConfig.getLastUpdated().getTime(), 0);
-      assert.strictEqual(
-        PrincipalsConfig.getLastUpdated(global.oaeTests.tenants.cam.alias).getTime(),
-        0
-      );
-      assert.strictEqual(
-        PrincipalsConfig.getLastUpdated(global.oaeTests.tenants.cam.alias, 'recaptcha').getTime(),
-        0
-      );
+      assert.strictEqual(PrincipalsConfig.getLastUpdated(global.oaeTests.tenants.cam.alias).getTime(), 0);
+      assert.strictEqual(PrincipalsConfig.getLastUpdated(global.oaeTests.tenants.cam.alias, 'recaptcha').getTime(), 0);
 
       // Passing in an unknown element should result in the epoch date
       assert.strictEqual(
-        PrincipalsConfig.getLastUpdated(
-          global.oaeTests.tenants.cam.alias,
-          'careful',
-          'now'
-        ).getTime(),
+        PrincipalsConfig.getLastUpdated(global.oaeTests.tenants.cam.alias, 'careful', 'now').getTime(),
         0
       );
 
@@ -272,11 +241,7 @@ describe('Configuration', () => {
         assert.ok(!err);
 
         // Record the current value of the recaptcha config update timestamp
-        const recaptchaUpdateTime = PrincipalsConfig.getLastUpdated(
-          tenantAlias,
-          'recaptcha',
-          'enabled'
-        ).getTime();
+        const recaptchaUpdateTime = PrincipalsConfig.getLastUpdated(tenantAlias, 'recaptcha', 'enabled').getTime();
         assert.ok(recaptchaUpdateTime > 0);
 
         // Enable recaptcha on the tenant
@@ -289,8 +254,7 @@ describe('Configuration', () => {
 
             // Ensure the config value update time is larger than it was before
             assert.ok(
-              PrincipalsConfig.getLastUpdated(tenantAlias, 'recaptcha', 'enabled').getTime() >
-                recaptchaUpdateTime
+              PrincipalsConfig.getLastUpdated(tenantAlias, 'recaptcha', 'enabled').getTime() > recaptchaUpdateTime
             );
             return callback();
           }
@@ -302,18 +266,14 @@ describe('Configuration', () => {
      * Test that verifies the last updated timestamp does not get updated when the value does not change
      */
     it('verify the last updated timestamp does not change when the config value did not change', callback => {
-      const PrincipalsConfig = ConfigAPI.config('oae-principals');
+      const PrincipalsConfig = ConfigAPI.setUpConfig('oae-principals');
       const tenantAlias = TenantsTestUtil.generateTestTenantAlias();
       const host = TenantsTestUtil.generateTestTenantHost();
       TestsUtil.createTenantWithAdmin(tenantAlias, host, (err, tenant, tenantAdminRestContext) => {
         assert.ok(!err);
 
         // Record the current value of the recaptcha config update timestamp
-        const recaptchaUpdateTime = PrincipalsConfig.getLastUpdated(
-          tenantAlias,
-          'recaptcha',
-          'enabled'
-        ).getTime();
+        const recaptchaUpdateTime = PrincipalsConfig.getLastUpdated(tenantAlias, 'recaptcha', 'enabled').getTime();
         assert.ok(recaptchaUpdateTime > 0);
 
         // Update a different configuration field. Let's enable the twitter!
@@ -348,10 +308,7 @@ describe('Configuration', () => {
         // Verify that a public value is present
         assert.strictEqual(config['oae-authentication'].twitter.enabled, true);
         // Verify that a suppressed value is present
-        assert.strictEqual(
-          config['oae-principals'].recaptcha.privateKey,
-          '6LcFWdYSAAAAANrHjt2Y5VJXoICHa95PFDarVcGs'
-        );
+        assert.strictEqual(config['oae-principals'].recaptcha.privateKey, '6LcFWdYSAAAAANrHjt2Y5VJXoICHa95PFDarVcGs');
         // Verify that a globalAdminOnly value is present
         assert.strictEqual(config['oae-content'].storage['amazons3-access-key'], '<access-key>');
 
@@ -381,10 +338,7 @@ describe('Configuration', () => {
         // Verify that a public value is present
         assert.strictEqual(config['oae-authentication'].twitter.enabled, true);
         // Verify that a suppressed value is present
-        assert.strictEqual(
-          config['oae-principals'].recaptcha.privateKey,
-          '6LcFWdYSAAAAANrHjt2Y5VJXoICHa95PFDarVcGs'
-        );
+        assert.strictEqual(config['oae-principals'].recaptcha.privateKey, '6LcFWdYSAAAAANrHjt2Y5VJXoICHa95PFDarVcGs');
         // Verify that a globalAdminOnly values are not present
         assert.ok(!config['oae-content'].storage);
 
@@ -528,19 +482,12 @@ describe('Configuration', () => {
                               assert.ok(!err);
 
                               // Verify that the value reverts to the default
-                              RestAPI.Config.getTenantConfig(
-                                camAdminRestContext,
-                                null,
-                                (err, config) => {
-                                  assert.ok(!err);
-                                  assert.ok(config);
-                                  assert.strictEqual(
-                                    config['oae-authentication'].twitter.enabled,
-                                    true
-                                  );
-                                  callback();
-                                }
-                              );
+                              RestAPI.Config.getTenantConfig(camAdminRestContext, null, (err, config) => {
+                                assert.ok(!err);
+                                assert.ok(config);
+                                assert.strictEqual(config['oae-authentication'].twitter.enabled, true);
+                                callback();
+                              });
                             }
                           );
                         });
@@ -573,10 +520,7 @@ describe('Configuration', () => {
         ConfigTestUtil.clearConfigAndWait(
           camAdminRestContext,
           null,
-          [
-            'oae-principals/termsAndConditions/text/en_GB',
-            'oae-principals/termsAndConditions/text'
-          ],
+          ['oae-principals/termsAndConditions/text/en_GB', 'oae-principals/termsAndConditions/text'],
           err => {
             assert.strictEqual(err.code, 400);
 
@@ -584,10 +528,7 @@ describe('Configuration', () => {
             ConfigTestUtil.clearConfigAndWait(
               camAdminRestContext,
               null,
-              [
-                'oae-principals/termsAndConditions/text',
-                'oae-principals/termsAndConditions/text/en_GB'
-              ],
+              ['oae-principals/termsAndConditions/text', 'oae-principals/termsAndConditions/text/en_GB'],
               err => {
                 assert.strictEqual(err.code, 400);
 
@@ -595,31 +536,13 @@ describe('Configuration', () => {
                 RestAPI.Config.getTenantConfig(camAdminRestContext, null, (err, config) => {
                   assert.ok(!err);
                   assert.ok(_.isObject(config['oae-principals'].termsAndConditions.text));
-                  assert.strictEqual(
-                    _.keys(config['oae-principals'].termsAndConditions.text).length,
-                    6
-                  );
+                  assert.strictEqual(_.keys(config['oae-principals'].termsAndConditions.text).length, 6);
                   assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
-                  assert.strictEqual(
-                    config['oae-principals'].termsAndConditions.text.en_CA,
-                    'Canadian English'
-                  );
-                  assert.strictEqual(
-                    config['oae-principals'].termsAndConditions.text.en_GB,
-                    'British English'
-                  );
-                  assert.strictEqual(
-                    config['oae-principals'].termsAndConditions.text.en_US,
-                    'American English'
-                  );
-                  assert.strictEqual(
-                    config['oae-principals'].termsAndConditions.text.fr_BE,
-                    'Belgian French'
-                  );
-                  assert.strictEqual(
-                    config['oae-principals'].termsAndConditions.text.fr_FR,
-                    'French French'
-                  );
+                  assert.strictEqual(config['oae-principals'].termsAndConditions.text.en_CA, 'Canadian English');
+                  assert.strictEqual(config['oae-principals'].termsAndConditions.text.en_GB, 'British English');
+                  assert.strictEqual(config['oae-principals'].termsAndConditions.text.en_US, 'American English');
+                  assert.strictEqual(config['oae-principals'].termsAndConditions.text.fr_BE, 'Belgian French');
+                  assert.strictEqual(config['oae-principals'].termsAndConditions.text.fr_FR, 'French French');
 
                   return callback();
                 });
@@ -650,26 +573,11 @@ describe('Configuration', () => {
           assert.ok(_.isObject(config['oae-principals'].termsAndConditions.text));
           assert.strictEqual(_.keys(config['oae-principals'].termsAndConditions.text).length, 6);
           assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
-          assert.strictEqual(
-            config['oae-principals'].termsAndConditions.text.en_CA,
-            'Canadian English'
-          );
-          assert.strictEqual(
-            config['oae-principals'].termsAndConditions.text.en_GB,
-            'British English'
-          );
-          assert.strictEqual(
-            config['oae-principals'].termsAndConditions.text.en_US,
-            'American English'
-          );
-          assert.strictEqual(
-            config['oae-principals'].termsAndConditions.text.fr_BE,
-            'Belgian French'
-          );
-          assert.strictEqual(
-            config['oae-principals'].termsAndConditions.text.fr_FR,
-            'French French'
-          );
+          assert.strictEqual(config['oae-principals'].termsAndConditions.text.en_CA, 'Canadian English');
+          assert.strictEqual(config['oae-principals'].termsAndConditions.text.en_GB, 'British English');
+          assert.strictEqual(config['oae-principals'].termsAndConditions.text.en_US, 'American English');
+          assert.strictEqual(config['oae-principals'].termsAndConditions.text.fr_BE, 'Belgian French');
+          assert.strictEqual(config['oae-principals'].termsAndConditions.text.fr_FR, 'French French');
 
           // Clearing just the British English value should not affect the other values
           ConfigTestUtil.clearConfigAndWait(
@@ -683,37 +591,19 @@ describe('Configuration', () => {
               RestAPI.Config.getTenantConfig(camAdminRestContext, null, (err, config) => {
                 assert.ok(!err);
                 assert.ok(_.isObject(config['oae-principals'].termsAndConditions.text));
-                assert.strictEqual(
-                  _.keys(config['oae-principals'].termsAndConditions.text).length,
-                  5
-                );
+                assert.strictEqual(_.keys(config['oae-principals'].termsAndConditions.text).length, 5);
                 assert.ok(!config['oae-principals'].termsAndConditions.text.en_GB);
                 assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
-                assert.strictEqual(
-                  config['oae-principals'].termsAndConditions.text.en_CA,
-                  'Canadian English'
-                );
-                assert.strictEqual(
-                  config['oae-principals'].termsAndConditions.text.en_US,
-                  'American English'
-                );
-                assert.strictEqual(
-                  config['oae-principals'].termsAndConditions.text.fr_BE,
-                  'Belgian French'
-                );
-                assert.strictEqual(
-                  config['oae-principals'].termsAndConditions.text.fr_FR,
-                  'French French'
-                );
+                assert.strictEqual(config['oae-principals'].termsAndConditions.text.en_CA, 'Canadian English');
+                assert.strictEqual(config['oae-principals'].termsAndConditions.text.en_US, 'American English');
+                assert.strictEqual(config['oae-principals'].termsAndConditions.text.fr_BE, 'Belgian French');
+                assert.strictEqual(config['oae-principals'].termsAndConditions.text.fr_FR, 'French French');
 
                 // Try clearing multiple keys
                 ConfigTestUtil.clearConfigAndWait(
                   camAdminRestContext,
                   null,
-                  [
-                    'oae-principals/termsAndConditions/text/fr_BE',
-                    'oae-principals/termsAndConditions/text/fr_FR'
-                  ],
+                  ['oae-principals/termsAndConditions/text/fr_BE', 'oae-principals/termsAndConditions/text/fr_FR'],
                   err => {
                     assert.ok(!err);
 
@@ -721,25 +611,13 @@ describe('Configuration', () => {
                     RestAPI.Config.getTenantConfig(camAdminRestContext, null, (err, config) => {
                       assert.ok(!err);
                       assert.ok(_.isObject(config['oae-principals'].termsAndConditions.text));
-                      assert.strictEqual(
-                        _.keys(config['oae-principals'].termsAndConditions.text).length,
-                        3
-                      );
+                      assert.strictEqual(_.keys(config['oae-principals'].termsAndConditions.text).length, 3);
                       assert.ok(!config['oae-principals'].termsAndConditions.text.en_GB);
                       assert.ok(!config['oae-principals'].termsAndConditions.text.fr_FR);
                       assert.ok(!config['oae-principals'].termsAndConditions.text.fr_BE);
-                      assert.strictEqual(
-                        config['oae-principals'].termsAndConditions.text.default,
-                        ''
-                      );
-                      assert.strictEqual(
-                        config['oae-principals'].termsAndConditions.text.en_CA,
-                        'Canadian English'
-                      );
-                      assert.strictEqual(
-                        config['oae-principals'].termsAndConditions.text.en_US,
-                        'American English'
-                      );
+                      assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
+                      assert.strictEqual(config['oae-principals'].termsAndConditions.text.en_CA, 'Canadian English');
+                      assert.strictEqual(config['oae-principals'].termsAndConditions.text.en_US, 'American English');
 
                       // Reset the T&C field in its entirety
                       ConfigTestUtil.clearConfigAndWait(
@@ -750,84 +628,54 @@ describe('Configuration', () => {
                           assert.ok(!err);
 
                           // Only the default key should be present
-                          RestAPI.Config.getTenantConfig(
-                            camAdminRestContext,
-                            null,
-                            (err, config) => {
+                          RestAPI.Config.getTenantConfig(camAdminRestContext, null, (err, config) => {
+                            assert.ok(!err);
+                            assert.ok(_.isObject(config['oae-principals'].termsAndConditions.text));
+                            assert.strictEqual(_.keys(config['oae-principals'].termsAndConditions.text).length, 1);
+                            assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
+
+                            // Check that we can still set a value
+                            const configUpdate = {
+                              'oae-principals/termsAndConditions/text/en_CA': 'Canadian English',
+                              'oae-principals/termsAndConditions/text/en_GB': 'British English',
+                              'oae-principals/termsAndConditions/text/en_US': 'American English',
+                              'oae-principals/termsAndConditions/text/fr_BE': 'Belgian French',
+                              'oae-principals/termsAndConditions/text/fr_FR': 'French French'
+                            };
+                            ConfigTestUtil.updateConfigAndWait(camAdminRestContext, null, configUpdate, err => {
                               assert.ok(!err);
-                              assert.ok(
-                                _.isObject(config['oae-principals'].termsAndConditions.text)
-                              );
-                              assert.strictEqual(
-                                _.keys(config['oae-principals'].termsAndConditions.text).length,
-                                1
-                              );
-                              assert.strictEqual(
-                                config['oae-principals'].termsAndConditions.text.default,
-                                ''
-                              );
 
-                              // Check that we can still set a value
-                              const configUpdate = {
-                                'oae-principals/termsAndConditions/text/en_CA': 'Canadian English',
-                                'oae-principals/termsAndConditions/text/en_GB': 'British English',
-                                'oae-principals/termsAndConditions/text/en_US': 'American English',
-                                'oae-principals/termsAndConditions/text/fr_BE': 'Belgian French',
-                                'oae-principals/termsAndConditions/text/fr_FR': 'French French'
-                              };
-                              ConfigTestUtil.updateConfigAndWait(
-                                camAdminRestContext,
-                                null,
-                                configUpdate,
-                                err => {
-                                  assert.ok(!err);
+                              // Verify the update
+                              RestAPI.Config.getTenantConfig(camAdminRestContext, null, (err, config) => {
+                                assert.ok(!err);
+                                assert.ok(_.isObject(config['oae-principals'].termsAndConditions.text));
+                                assert.strictEqual(_.keys(config['oae-principals'].termsAndConditions.text).length, 6);
+                                assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
+                                assert.strictEqual(
+                                  config['oae-principals'].termsAndConditions.text.en_CA,
+                                  'Canadian English'
+                                );
+                                assert.strictEqual(
+                                  config['oae-principals'].termsAndConditions.text.en_GB,
+                                  'British English'
+                                );
+                                assert.strictEqual(
+                                  config['oae-principals'].termsAndConditions.text.en_US,
+                                  'American English'
+                                );
+                                assert.strictEqual(
+                                  config['oae-principals'].termsAndConditions.text.fr_BE,
+                                  'Belgian French'
+                                );
+                                assert.strictEqual(
+                                  config['oae-principals'].termsAndConditions.text.fr_FR,
+                                  'French French'
+                                );
 
-                                  // Verify the update
-                                  RestAPI.Config.getTenantConfig(
-                                    camAdminRestContext,
-                                    null,
-                                    (err, config) => {
-                                      assert.ok(!err);
-                                      assert.ok(
-                                        _.isObject(config['oae-principals'].termsAndConditions.text)
-                                      );
-                                      assert.strictEqual(
-                                        _.keys(config['oae-principals'].termsAndConditions.text)
-                                          .length,
-                                        6
-                                      );
-                                      assert.strictEqual(
-                                        config['oae-principals'].termsAndConditions.text.default,
-                                        ''
-                                      );
-                                      assert.strictEqual(
-                                        config['oae-principals'].termsAndConditions.text.en_CA,
-                                        'Canadian English'
-                                      );
-                                      assert.strictEqual(
-                                        config['oae-principals'].termsAndConditions.text.en_GB,
-                                        'British English'
-                                      );
-                                      assert.strictEqual(
-                                        config['oae-principals'].termsAndConditions.text.en_US,
-                                        'American English'
-                                      );
-                                      assert.strictEqual(
-                                        config['oae-principals'].termsAndConditions.text.fr_BE,
-                                        'Belgian French'
-                                      );
-                                      assert.strictEqual(
-                                        config['oae-principals'].termsAndConditions.text.fr_FR,
-                                        'French French'
-                                      );
-
-                                      return callback();
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
+                                return callback();
+                              });
+                            });
+                          });
                         }
                       );
                     });
@@ -845,40 +693,29 @@ describe('Configuration', () => {
      */
     it('verify get tenant config through global tenant', callback => {
       // Get the config as an admin user
-      RestAPI.Config.getTenantConfig(
-        globalAdminRestContext,
-        global.oaeTests.tenants.cam.alias,
-        (err, config) => {
+      RestAPI.Config.getTenantConfig(globalAdminRestContext, global.oaeTests.tenants.cam.alias, (err, config) => {
+        assert.ok(!err);
+        assert.ok(config);
+        // Verify that a public value is present
+        assert.strictEqual(config['oae-authentication'].twitter.enabled, true);
+        // Verify that a suppressed value is present
+        assert.strictEqual(config['oae-principals'].recaptcha.privateKey, '6LcFWdYSAAAAANrHjt2Y5VJXoICHa95PFDarVcGs');
+        // Verify that a globalAdminOnly value is present
+        assert.strictEqual(config['oae-content'].storage['amazons3-access-key'], '<access-key>');
+
+        // Get the config as an anonymous user
+        RestAPI.Config.getTenantConfig(anonymousGlobalRestContext, global.oaeTests.tenants.cam.alias, (err, config) => {
           assert.ok(!err);
           assert.ok(config);
           // Verify that a public value is present
           assert.strictEqual(config['oae-authentication'].twitter.enabled, true);
-          // Verify that a suppressed value is present
-          assert.strictEqual(
-            config['oae-principals'].recaptcha.privateKey,
-            '6LcFWdYSAAAAANrHjt2Y5VJXoICHa95PFDarVcGs'
-          );
-          // Verify that a globalAdminOnly value is present
-          assert.strictEqual(config['oae-content'].storage['amazons3-access-key'], '<access-key>');
-
-          // Get the config as an anonymous user
-          RestAPI.Config.getTenantConfig(
-            anonymousGlobalRestContext,
-            global.oaeTests.tenants.cam.alias,
-            (err, config) => {
-              assert.ok(!err);
-              assert.ok(config);
-              // Verify that a public value is present
-              assert.strictEqual(config['oae-authentication'].twitter.enabled, true);
-              // Verify that a suppressed value is not present
-              assert.strictEqual(config['oae-principals'].recaptcha.privateKey, undefined);
-              // Verify that a globalAdminOnly value is not present
-              assert.ok(!config['oae-content'].storage);
-              callback();
-            }
-          );
-        }
-      );
+          // Verify that a suppressed value is not present
+          assert.strictEqual(config['oae-principals'].recaptcha.privateKey, undefined);
+          // Verify that a globalAdminOnly value is not present
+          assert.ok(!config['oae-content'].storage);
+          callback();
+        });
+      });
     });
 
     /**
@@ -928,10 +765,7 @@ describe('Configuration', () => {
                       RestAPI.Config.getTenantConfig(johnRestContext, null, (err, config) => {
                         assert.ok(!err);
                         assert.ok(config);
-                        assert.strictEqual(
-                          config['oae-principals'].recaptcha.privateKey,
-                          undefined
-                        );
+                        assert.strictEqual(config['oae-principals'].recaptcha.privateKey, undefined);
                         callback();
                       });
                     });
@@ -962,62 +796,48 @@ describe('Configuration', () => {
             assert.strictEqual(config['oae-authentication'].twitter.enabled, false);
 
             // Validate that the new value can be retrieved through the global admin
-            RestAPI.Config.getTenantConfig(
-              globalAdminRestContext,
-              global.oaeTests.tenants.cam.alias,
-              (err, config) => {
-                assert.ok(!err);
-                assert.ok(config);
-                assert.strictEqual(config['oae-authentication'].twitter.enabled, false);
+            RestAPI.Config.getTenantConfig(globalAdminRestContext, global.oaeTests.tenants.cam.alias, (err, config) => {
+              assert.ok(!err);
+              assert.ok(config);
+              assert.strictEqual(config['oae-authentication'].twitter.enabled, false);
 
-                // Set a new value for a suppressed config value
-                ConfigTestUtil.updateConfigAndWait(
-                  camAdminRestContext,
-                  null,
-                  { 'oae-principals/recaptcha/privateKey': 'newTenantKey' },
-                  err => {
+              // Set a new value for a suppressed config value
+              ConfigTestUtil.updateConfigAndWait(
+                camAdminRestContext,
+                null,
+                { 'oae-principals/recaptcha/privateKey': 'newTenantKey' },
+                err => {
+                  assert.ok(!err);
+
+                  // Validate that the tenant admin can see this as well
+                  RestAPI.Config.getTenantConfig(camAdminRestContext, null, (err, config) => {
                     assert.ok(!err);
+                    assert.ok(config);
+                    assert.strictEqual(config['oae-principals'].recaptcha.privateKey, 'newTenantKey');
 
-                    // Validate that the tenant admin can see this as well
-                    RestAPI.Config.getTenantConfig(camAdminRestContext, null, (err, config) => {
+                    // Validate that a non-admin user can still not see this
+                    RestAPI.Config.getTenantConfig(johnRestContext, null, (err, config) => {
                       assert.ok(!err);
                       assert.ok(config);
-                      assert.strictEqual(
-                        config['oae-principals'].recaptcha.privateKey,
-                        'newTenantKey'
-                      );
+                      assert.strictEqual(config['oae-principals'].recaptcha.privateKey, undefined);
 
-                      // Validate that a non-admin user can still not see this
-                      RestAPI.Config.getTenantConfig(johnRestContext, null, (err, config) => {
+                      // Validate that the global admin still has the old values
+                      RestAPI.Config.getTenantConfig(globalAdminRestContext, null, (err, config) => {
                         assert.ok(!err);
                         assert.ok(config);
+                        assert.strictEqual(config['oae-authentication'].twitter.enabled, true);
                         assert.strictEqual(
                           config['oae-principals'].recaptcha.privateKey,
-                          undefined
+                          '6LcFWdYSAAAAANrHjt2Y5VJXoICHa95PFDarVcGs'
                         );
 
-                        // Validate that the global admin still has the old values
-                        RestAPI.Config.getTenantConfig(
-                          globalAdminRestContext,
-                          null,
-                          (err, config) => {
-                            assert.ok(!err);
-                            assert.ok(config);
-                            assert.strictEqual(config['oae-authentication'].twitter.enabled, true);
-                            assert.strictEqual(
-                              config['oae-principals'].recaptcha.privateKey,
-                              '6LcFWdYSAAAAANrHjt2Y5VJXoICHa95PFDarVcGs'
-                            );
-
-                            return callback();
-                          }
-                        );
+                        return callback();
                       });
                     });
-                  }
-                );
-              }
-            );
+                  });
+                }
+              );
+            });
           });
         }
       );
@@ -1035,23 +855,19 @@ describe('Configuration', () => {
           assert.ok(!err);
 
           // Validate that the change has been made from the global admin
-          RestAPI.Config.getTenantConfig(
-            globalAdminRestContext,
-            global.oaeTests.tenants.cam.alias,
-            (err, config) => {
+          RestAPI.Config.getTenantConfig(globalAdminRestContext, global.oaeTests.tenants.cam.alias, (err, config) => {
+            assert.ok(!err);
+            assert.ok(config);
+            assert.strictEqual(config['oae-authentication'].twitter.enabled, false);
+
+            // Validate that the change has been made from the tenant admin
+            RestAPI.Config.getTenantConfig(camAdminRestContext, null, (err, config) => {
               assert.ok(!err);
               assert.ok(config);
               assert.strictEqual(config['oae-authentication'].twitter.enabled, false);
-
-              // Validate that the change has been made from the tenant admin
-              RestAPI.Config.getTenantConfig(camAdminRestContext, null, (err, config) => {
-                assert.ok(!err);
-                assert.ok(config);
-                assert.strictEqual(config['oae-authentication'].twitter.enabled, false);
-                callback();
-              });
-            }
-          );
+              callback();
+            });
+          });
         }
       );
     });
@@ -1061,128 +877,107 @@ describe('Configuration', () => {
      */
     it('verify config value coercion', callback => {
       // Get Boolean config value that's supposed to be `true`
-      RestAPI.Config.getTenantConfig(
-        globalAdminRestContext,
-        global.oaeTests.tenants.cam.alias,
-        (err, config) => {
-          assert.ok(!err);
-          assert.ok(config);
-          assert.strictEqual(config['oae-authentication'].local.enabled, true);
+      RestAPI.Config.getTenantConfig(globalAdminRestContext, global.oaeTests.tenants.cam.alias, (err, config) => {
+        assert.ok(!err);
+        assert.ok(config);
+        assert.strictEqual(config['oae-authentication'].local.enabled, true);
 
-          // Change the value to false using '0', which would be used by checkboxes
-          ConfigTestUtil.updateConfigAndWait(
-            globalAdminRestContext,
-            global.oaeTests.tenants.cam.alias,
-            { 'oae-authentication/local/enabled': '0' },
-            err => {
+        // Change the value to false using '0', which would be used by checkboxes
+        ConfigTestUtil.updateConfigAndWait(
+          globalAdminRestContext,
+          global.oaeTests.tenants.cam.alias,
+          { 'oae-authentication/local/enabled': '0' },
+          err => {
+            assert.ok(!err);
+            RestAPI.Config.getTenantConfig(globalAdminRestContext, global.oaeTests.tenants.cam.alias, (err, config) => {
               assert.ok(!err);
-              RestAPI.Config.getTenantConfig(
+              assert.ok(config);
+              assert.strictEqual(config['oae-authentication'].local.enabled, false);
+
+              // Change the value to true using '1', which would be used by checkboxes
+              ConfigTestUtil.updateConfigAndWait(
                 globalAdminRestContext,
                 global.oaeTests.tenants.cam.alias,
-                (err, config) => {
+                { 'oae-authentication/local/enabled': '1' },
+                err => {
                   assert.ok(!err);
-                  assert.ok(config);
-                  assert.strictEqual(config['oae-authentication'].local.enabled, false);
-
-                  // Change the value to true using '1', which would be used by checkboxes
-                  ConfigTestUtil.updateConfigAndWait(
+                  RestAPI.Config.getTenantConfig(
                     globalAdminRestContext,
                     global.oaeTests.tenants.cam.alias,
-                    { 'oae-authentication/local/enabled': '1' },
-                    err => {
+                    (err, config) => {
                       assert.ok(!err);
-                      RestAPI.Config.getTenantConfig(
+                      assert.ok(config);
+                      assert.strictEqual(config['oae-authentication'].local.enabled, true);
+
+                      // Change the value to false using the 'false' string
+                      ConfigTestUtil.updateConfigAndWait(
                         globalAdminRestContext,
                         global.oaeTests.tenants.cam.alias,
-                        (err, config) => {
+                        { 'oae-authentication/local/enabled': 'false' },
+                        err => {
                           assert.ok(!err);
-                          assert.ok(config);
-                          assert.strictEqual(config['oae-authentication'].local.enabled, true);
-
-                          // Change the value to false using the 'false' string
-                          ConfigTestUtil.updateConfigAndWait(
+                          RestAPI.Config.getTenantConfig(
                             globalAdminRestContext,
                             global.oaeTests.tenants.cam.alias,
-                            { 'oae-authentication/local/enabled': 'false' },
-                            err => {
+                            (err, config) => {
                               assert.ok(!err);
-                              RestAPI.Config.getTenantConfig(
+                              assert.ok(config);
+                              assert.strictEqual(config['oae-authentication'].local.enabled, false);
+
+                              // Change the value back to true using the 'true' string
+                              ConfigTestUtil.updateConfigAndWait(
                                 globalAdminRestContext,
                                 global.oaeTests.tenants.cam.alias,
-                                (err, config) => {
+                                { 'oae-authentication/local/enabled': 'true' },
+                                err => {
                                   assert.ok(!err);
-                                  assert.ok(config);
-                                  assert.strictEqual(
-                                    config['oae-authentication'].local.enabled,
-                                    false
-                                  );
-
-                                  // Change the value back to true using the 'true' string
-                                  ConfigTestUtil.updateConfigAndWait(
+                                  RestAPI.Config.getTenantConfig(
                                     globalAdminRestContext,
                                     global.oaeTests.tenants.cam.alias,
-                                    { 'oae-authentication/local/enabled': 'true' },
-                                    err => {
+                                    (err, config) => {
                                       assert.ok(!err);
+                                      assert.ok(config);
+                                      assert.strictEqual(config['oae-authentication'].local.enabled, true);
+
+                                      // Get non-Boolean config value
                                       RestAPI.Config.getTenantConfig(
                                         globalAdminRestContext,
                                         global.oaeTests.tenants.cam.alias,
                                         (err, config) => {
                                           assert.ok(!err);
                                           assert.ok(config);
-                                          assert.strictEqual(
-                                            config['oae-authentication'].local.enabled,
-                                            true
-                                          );
 
-                                          // Get non-Boolean config value
-                                          RestAPI.Config.getTenantConfig(
+                                          // Change the value to '1' and ensure it isn't coerced to a boolean
+                                          ConfigTestUtil.updateConfigAndWait(
                                             globalAdminRestContext,
                                             global.oaeTests.tenants.cam.alias,
-                                            (err, config) => {
+                                            { 'oae-email/general/fromName': '1' },
+                                            err => {
                                               assert.ok(!err);
-                                              assert.ok(config);
-
-                                              // Change the value to '1' and ensure it isn't coerced to a boolean
-                                              ConfigTestUtil.updateConfigAndWait(
+                                              RestAPI.Config.getTenantConfig(
                                                 globalAdminRestContext,
                                                 global.oaeTests.tenants.cam.alias,
-                                                { 'oae-email/general/fromName': '1' },
-                                                err => {
+                                                (err, config) => {
                                                   assert.ok(!err);
-                                                  RestAPI.Config.getTenantConfig(
+                                                  assert.ok(config);
+                                                  assert.strictEqual(config['oae-email'].general.fromName, '1');
+
+                                                  // Change the value to '0' and ensure it isn't coerced to a boolean
+                                                  ConfigTestUtil.updateConfigAndWait(
                                                     globalAdminRestContext,
                                                     global.oaeTests.tenants.cam.alias,
-                                                    (err, config) => {
+                                                    { 'oae-email/general/fromName': '0' },
+                                                    err => {
                                                       assert.ok(!err);
-                                                      assert.ok(config);
-                                                      assert.strictEqual(
-                                                        config['oae-email'].general.fromName,
-                                                        '1'
-                                                      );
-
-                                                      // Change the value to '0' and ensure it isn't coerced to a boolean
-                                                      ConfigTestUtil.updateConfigAndWait(
+                                                      RestAPI.Config.getTenantConfig(
                                                         globalAdminRestContext,
                                                         global.oaeTests.tenants.cam.alias,
-                                                        { 'oae-email/general/fromName': '0' },
-                                                        err => {
+                                                        (err, config) => {
                                                           assert.ok(!err);
-                                                          RestAPI.Config.getTenantConfig(
-                                                            globalAdminRestContext,
-                                                            global.oaeTests.tenants.cam.alias,
-                                                            (err, config) => {
-                                                              assert.ok(!err);
-                                                              assert.ok(config);
-                                                              assert.strictEqual(
-                                                                config['oae-email'].general
-                                                                  .fromName,
-                                                                '0'
-                                                              );
+                                                          assert.ok(config);
+                                                          assert.strictEqual(config['oae-email'].general.fromName, '0');
 
-                                                              return callback();
-                                                            }
-                                                          );
+                                                          return callback();
                                                         }
                                                       );
                                                     }
@@ -1205,10 +1000,10 @@ describe('Configuration', () => {
                   );
                 }
               );
-            }
-          );
-        }
-      );
+            });
+          }
+        );
+      });
     });
 
     /**
@@ -1267,9 +1062,7 @@ describe('Configuration', () => {
                             (err, testSetEmptyStringConfig) => {
                               assert.ok(!err);
                               assert.strictEqual(
-                                testSetEmptyStringConfig['oae-content'].storage[
-                                  'amazons3-access-key'
-                                ],
+                                testSetEmptyStringConfig['oae-content'].storage['amazons3-access-key'],
                                 'blahblahblah'
                               );
 
@@ -1288,9 +1081,7 @@ describe('Configuration', () => {
                                     (err, testSetEmptyStringConfig) => {
                                       assert.ok(!err);
                                       assert.strictEqual(
-                                        testSetEmptyStringConfig['oae-content'].storage[
-                                          'amazons3-access-key'
-                                        ],
+                                        testSetEmptyStringConfig['oae-content'].storage['amazons3-access-key'],
                                         ''
                                       );
 
@@ -1328,8 +1119,7 @@ describe('Configuration', () => {
                                                     (err, config) => {
                                                       assert.ok(!err);
                                                       assert.strictEqual(
-                                                        config['oae-authentication'].twitter
-                                                          .enabled,
+                                                        config['oae-authentication'].twitter.enabled,
                                                         true
                                                       );
 
@@ -1340,8 +1130,7 @@ describe('Configuration', () => {
                                                         (err, config) => {
                                                           assert.ok(!err);
                                                           assert.strictEqual(
-                                                            config['oae-authentication'].twitter
-                                                              .enabled,
+                                                            config['oae-authentication'].twitter.enabled,
                                                             true
                                                           );
 
@@ -1350,8 +1139,7 @@ describe('Configuration', () => {
                                                             johnRestContext,
                                                             null,
                                                             {
-                                                              'oae-content/storage/amazons3-access-key':
-                                                                'moops'
+                                                              'oae-content/storage/amazons3-access-key': 'moops'
                                                             },
                                                             err => {
                                                               assert.ok(err);
@@ -1380,10 +1168,7 @@ describe('Configuration', () => {
                                                                     },
                                                                     err => {
                                                                       assert.ok(err);
-                                                                      assert.strictEqual(
-                                                                        err.code,
-                                                                        401
-                                                                      );
+                                                                      assert.strictEqual(err.code, 401);
 
                                                                       // Ensure the value did not change
                                                                       RestAPI.Config.getTenantConfig(
@@ -1392,10 +1177,9 @@ describe('Configuration', () => {
                                                                         (err, config) => {
                                                                           assert.ok(!err);
                                                                           assert.strictEqual(
-                                                                            config[
-                                                                              'oae-google-analytics'
-                                                                            ]['google-analytics']
-                                                                              .globalEnabled,
+                                                                            config['oae-google-analytics'][
+                                                                              'google-analytics'
+                                                                            ].globalEnabled,
                                                                             false
                                                                           );
 
@@ -1417,9 +1201,7 @@ describe('Configuration', () => {
                                                                                 (err, config) => {
                                                                                   assert.ok(!err);
                                                                                   assert.strictEqual(
-                                                                                    config[
-                                                                                      'oae-google-analytics'
-                                                                                    ][
+                                                                                    config['oae-google-analytics'][
                                                                                       'google-analytics'
                                                                                     ].globalEnabled,
                                                                                     true
@@ -1434,13 +1216,8 @@ describe('Configuration', () => {
                                                                                       // eslint-disable-next-line no-unused-vars
                                                                                       config
                                                                                     ) => {
-                                                                                      assert.ok(
-                                                                                        err
-                                                                                      );
-                                                                                      assert.strictEqual(
-                                                                                        err.code,
-                                                                                        400
-                                                                                      );
+                                                                                      assert.ok(err);
+                                                                                      assert.strictEqual(err.code, 400);
                                                                                       return callback();
                                                                                     }
                                                                                   );
@@ -1489,152 +1266,116 @@ describe('Configuration', () => {
      */
     it('verify internationalizable field', callback => {
       // Verify there is a default key
-      RestAPI.Config.getTenantConfig(
-        globalAdminRestContext,
-        global.oaeTests.tenants.cam.alias,
-        (err, config) => {
-          assert.ok(!err);
-          assert.ok(_.isObject(config['oae-principals'].termsAndConditions.text));
-          assert.strictEqual(_.keys(config['oae-principals'].termsAndConditions.text).length, 1);
-          assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
+      RestAPI.Config.getTenantConfig(globalAdminRestContext, global.oaeTests.tenants.cam.alias, (err, config) => {
+        assert.ok(!err);
+        assert.ok(_.isObject(config['oae-principals'].termsAndConditions.text));
+        assert.strictEqual(_.keys(config['oae-principals'].termsAndConditions.text).length, 1);
+        assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
 
-          // Set some American English text
-          ConfigTestUtil.updateConfigAndWait(
-            globalAdminRestContext,
-            global.oaeTests.tenants.cam.alias,
-            { 'oae-principals/termsAndConditions/text/en_US': 'Some legalese in American English' },
-            err => {
+        // Set some American English text
+        ConfigTestUtil.updateConfigAndWait(
+          globalAdminRestContext,
+          global.oaeTests.tenants.cam.alias,
+          { 'oae-principals/termsAndConditions/text/en_US': 'Some legalese in American English' },
+          err => {
+            assert.ok(!err);
+            RestAPI.Config.getTenantConfig(globalAdminRestContext, global.oaeTests.tenants.cam.alias, (err, config) => {
               assert.ok(!err);
-              RestAPI.Config.getTenantConfig(
+              assert.ok(_.isObject(config['oae-principals'].termsAndConditions.text));
+              assert.strictEqual(_.keys(config['oae-principals'].termsAndConditions.text).length, 2);
+              assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
+              assert.strictEqual(
+                config['oae-principals'].termsAndConditions.text.en_US,
+                'Some legalese in American English'
+              );
+
+              // Set some Dutch text
+              ConfigTestUtil.updateConfigAndWait(
                 globalAdminRestContext,
                 global.oaeTests.tenants.cam.alias,
-                (err, config) => {
+                {
+                  'oae-principals/termsAndConditions/text/nl_BE': 'Een waterdicht legaal contract'
+                },
+                err => {
                   assert.ok(!err);
-                  assert.ok(_.isObject(config['oae-principals'].termsAndConditions.text));
-                  assert.strictEqual(
-                    _.keys(config['oae-principals'].termsAndConditions.text).length,
-                    2
-                  );
-                  assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
-                  assert.strictEqual(
-                    config['oae-principals'].termsAndConditions.text.en_US,
-                    'Some legalese in American English'
-                  );
-
-                  // Set some Dutch text
-                  ConfigTestUtil.updateConfigAndWait(
+                  RestAPI.Config.getTenantConfig(
                     globalAdminRestContext,
                     global.oaeTests.tenants.cam.alias,
-                    {
-                      'oae-principals/termsAndConditions/text/nl_BE':
-                        'Een waterdicht legaal contract'
-                    },
-                    err => {
+                    (err, config) => {
                       assert.ok(!err);
-                      RestAPI.Config.getTenantConfig(
+                      assert.ok(_.isObject(config['oae-principals'].termsAndConditions.text));
+                      assert.strictEqual(_.keys(config['oae-principals'].termsAndConditions.text).length, 3);
+                      assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
+                      assert.strictEqual(
+                        config['oae-principals'].termsAndConditions.text.en_US,
+                        'Some legalese in American English'
+                      );
+                      assert.strictEqual(
+                        config['oae-principals'].termsAndConditions.text.nl_BE,
+                        'Een waterdicht legaal contract'
+                      );
+
+                      // Verify that updating the American English text doesn't change the other languages
+                      ConfigTestUtil.updateConfigAndWait(
                         globalAdminRestContext,
                         global.oaeTests.tenants.cam.alias,
-                        (err, config) => {
+                        {
+                          'oae-principals/termsAndConditions/text/en_US': 'Some updated legalese in American English'
+                        },
+                        err => {
                           assert.ok(!err);
-                          assert.ok(_.isObject(config['oae-principals'].termsAndConditions.text));
-                          assert.strictEqual(
-                            _.keys(config['oae-principals'].termsAndConditions.text).length,
-                            3
-                          );
-                          assert.strictEqual(
-                            config['oae-principals'].termsAndConditions.text.default,
-                            ''
-                          );
-                          assert.strictEqual(
-                            config['oae-principals'].termsAndConditions.text.en_US,
-                            'Some legalese in American English'
-                          );
-                          assert.strictEqual(
-                            config['oae-principals'].termsAndConditions.text.nl_BE,
-                            'Een waterdicht legaal contract'
-                          );
-
-                          // Verify that updating the American English text doesn't change the other languages
-                          ConfigTestUtil.updateConfigAndWait(
+                          RestAPI.Config.getTenantConfig(
                             globalAdminRestContext,
                             global.oaeTests.tenants.cam.alias,
-                            {
-                              'oae-principals/termsAndConditions/text/en_US':
-                                'Some updated legalese in American English'
-                            },
-                            err => {
+                            (err, config) => {
                               assert.ok(!err);
-                              RestAPI.Config.getTenantConfig(
+                              assert.ok(_.isObject(config['oae-principals'].termsAndConditions.text));
+                              assert.strictEqual(_.keys(config['oae-principals'].termsAndConditions.text).length, 3);
+                              assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
+                              assert.strictEqual(
+                                config['oae-principals'].termsAndConditions.text.en_US,
+                                'Some updated legalese in American English'
+                              );
+                              assert.strictEqual(
+                                config['oae-principals'].termsAndConditions.text.nl_BE,
+                                'Een waterdicht legaal contract'
+                              );
+
+                              // Verify that updating multiple keys does not affect the keys that should not be updated
+                              const update = {
+                                'oae-principals/termsAndConditions/text/en_US': 'en us text',
+                                'oae-principals/termsAndConditions/text/fr_FR': 'fr fr text'
+                              };
+                              ConfigTestUtil.updateConfigAndWait(
                                 globalAdminRestContext,
                                 global.oaeTests.tenants.cam.alias,
-                                (err, config) => {
+                                update,
+                                err => {
                                   assert.ok(!err);
-                                  assert.ok(
-                                    _.isObject(config['oae-principals'].termsAndConditions.text)
-                                  );
-                                  assert.strictEqual(
-                                    _.keys(config['oae-principals'].termsAndConditions.text).length,
-                                    3
-                                  );
-                                  assert.strictEqual(
-                                    config['oae-principals'].termsAndConditions.text.default,
-                                    ''
-                                  );
-                                  assert.strictEqual(
-                                    config['oae-principals'].termsAndConditions.text.en_US,
-                                    'Some updated legalese in American English'
-                                  );
-                                  assert.strictEqual(
-                                    config['oae-principals'].termsAndConditions.text.nl_BE,
-                                    'Een waterdicht legaal contract'
-                                  );
-
-                                  // Verify that updating multiple keys does not affect the keys that should not be updated
-                                  const update = {
-                                    'oae-principals/termsAndConditions/text/en_US': 'en us text',
-                                    'oae-principals/termsAndConditions/text/fr_FR': 'fr fr text'
-                                  };
-                                  ConfigTestUtil.updateConfigAndWait(
+                                  RestAPI.Config.getTenantConfig(
                                     globalAdminRestContext,
                                     global.oaeTests.tenants.cam.alias,
-                                    update,
-                                    err => {
+                                    (err, config) => {
                                       assert.ok(!err);
-                                      RestAPI.Config.getTenantConfig(
-                                        globalAdminRestContext,
-                                        global.oaeTests.tenants.cam.alias,
-                                        (err, config) => {
-                                          assert.ok(!err);
-                                          assert.ok(
-                                            _.isObject(
-                                              config['oae-principals'].termsAndConditions.text
-                                            )
-                                          );
-                                          assert.strictEqual(
-                                            _.keys(config['oae-principals'].termsAndConditions.text)
-                                              .length,
-                                            4
-                                          );
-                                          assert.strictEqual(
-                                            config['oae-principals'].termsAndConditions.text
-                                              .default,
-                                            ''
-                                          );
-                                          assert.strictEqual(
-                                            config['oae-principals'].termsAndConditions.text.en_US,
-                                            'en us text'
-                                          );
-                                          assert.strictEqual(
-                                            config['oae-principals'].termsAndConditions.text.nl_BE,
-                                            'Een waterdicht legaal contract'
-                                          );
-                                          assert.strictEqual(
-                                            config['oae-principals'].termsAndConditions.text.fr_FR,
-                                            'fr fr text'
-                                          );
-                                          callback();
-                                        }
+                                      assert.ok(_.isObject(config['oae-principals'].termsAndConditions.text));
+                                      assert.strictEqual(
+                                        _.keys(config['oae-principals'].termsAndConditions.text).length,
+                                        4
                                       );
+                                      assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
+                                      assert.strictEqual(
+                                        config['oae-principals'].termsAndConditions.text.en_US,
+                                        'en us text'
+                                      );
+                                      assert.strictEqual(
+                                        config['oae-principals'].termsAndConditions.text.nl_BE,
+                                        'Een waterdicht legaal contract'
+                                      );
+                                      assert.strictEqual(
+                                        config['oae-principals'].termsAndConditions.text.fr_FR,
+                                        'fr fr text'
+                                      );
+                                      callback();
                                     }
                                   );
                                 }
@@ -1647,10 +1388,10 @@ describe('Configuration', () => {
                   );
                 }
               );
-            }
-          );
-        }
-      );
+            });
+          }
+        );
+      });
     });
 
     /**
@@ -1697,10 +1438,7 @@ describe('Configuration', () => {
                         global.oaeTests.tenants.cam.alias,
                         (err, config) => {
                           assert.ok(!err);
-                          assert.strictEqual(
-                            config['oae-principals'].recaptcha.publicKey,
-                            'untrimmed value'
-                          );
+                          assert.strictEqual(config['oae-principals'].recaptcha.publicKey, 'untrimmed value');
 
                           // Set the recaptcha public key to only whitespace and ensure it is treated like the empty string
                           ConfigTestUtil.updateConfigAndWait(
@@ -1711,18 +1449,11 @@ describe('Configuration', () => {
                               assert.ok(!err);
 
                               // Ensure the recaptcha public key became the empty string
-                              RestAPI.Config.getTenantConfig(
-                                globalAdminRestContext,
-                                null,
-                                (err, config) => {
-                                  assert.ok(!err);
-                                  assert.strictEqual(
-                                    config['oae-principals'].recaptcha.publicKey,
-                                    ''
-                                  );
-                                  return callback();
-                                }
-                              );
+                              RestAPI.Config.getTenantConfig(globalAdminRestContext, null, (err, config) => {
+                                assert.ok(!err);
+                                assert.strictEqual(config['oae-principals'].recaptcha.publicKey, '');
+                                return callback();
+                              });
                             }
                           );
                         }
@@ -1751,12 +1482,9 @@ describe('Configuration', () => {
         });
 
         // Assert that there is a value 'private' in the list
-        const privateValues = _.filter(
-          schema['oae-principals'].group.elements.visibility.list,
-          option => {
-            return option.value === 'private';
-          }
-        );
+        const privateValues = _.filter(schema['oae-principals'].group.elements.visibility.list, option => {
+          return option.value === 'private';
+        });
         assert.strictEqual(privateValues.length, 1);
 
         // Set a value for a list config field
@@ -1766,33 +1494,29 @@ describe('Configuration', () => {
           { 'oae-principals/group/visibility': 'private' },
           err => {
             assert.ok(!err);
-            RestAPI.Config.getTenantConfig(
-              globalAdminRestContext,
-              global.oaeTests.tenants.cam.alias,
-              (err, config) => {
-                assert.ok(!err);
-                assert.strictEqual(config['oae-principals'].group.visibility, 'private');
+            RestAPI.Config.getTenantConfig(globalAdminRestContext, global.oaeTests.tenants.cam.alias, (err, config) => {
+              assert.ok(!err);
+              assert.strictEqual(config['oae-principals'].group.visibility, 'private');
 
-                // Clear the config and ensure it goes back to the default
-                ConfigTestUtil.clearConfigAndWait(
-                  globalAdminRestContext,
-                  global.oaeTests.tenants.cam.alias,
-                  ['oae-principals/group/visibility'],
-                  err => {
-                    assert.ok(!err);
-                    RestAPI.Config.getTenantConfig(
-                      globalAdminRestContext,
-                      global.oaeTests.tenants.cam.alias,
-                      (err, config) => {
-                        assert.ok(!err);
-                        assert.strictEqual(config['oae-principals'].group.visibility, 'public');
-                        return callback();
-                      }
-                    );
-                  }
-                );
-              }
-            );
+              // Clear the config and ensure it goes back to the default
+              ConfigTestUtil.clearConfigAndWait(
+                globalAdminRestContext,
+                global.oaeTests.tenants.cam.alias,
+                ['oae-principals/group/visibility'],
+                err => {
+                  assert.ok(!err);
+                  RestAPI.Config.getTenantConfig(
+                    globalAdminRestContext,
+                    global.oaeTests.tenants.cam.alias,
+                    (err, config) => {
+                      assert.ok(!err);
+                      assert.strictEqual(config['oae-principals'].group.visibility, 'public');
+                      return callback();
+                    }
+                  );
+                }
+              );
+            });
           }
         );
       });
@@ -1812,12 +1536,9 @@ describe('Configuration', () => {
         });
 
         // Assert that there is a value 'amazons3' in the set
-        const amazons3Values = _.filter(
-          schema['oae-content'].storage.elements.backend.group,
-          option => {
-            return option.value === 'amazons3';
-          }
-        );
+        const amazons3Values = _.filter(schema['oae-content'].storage.elements.backend.group, option => {
+          return option.value === 'amazons3';
+        });
         assert.strictEqual(amazons3Values.length, 1);
 
         // Update one of the values
@@ -1827,33 +1548,29 @@ describe('Configuration', () => {
           { 'oae-content/storage/backend': 'amazons3' },
           err => {
             assert.ok(!err);
-            RestAPI.Config.getTenantConfig(
-              globalAdminRestContext,
-              global.oaeTests.tenants.cam.alias,
-              (err, config) => {
-                assert.ok(!err);
-                assert.strictEqual(config['oae-content'].storage.backend, 'amazons3');
+            RestAPI.Config.getTenantConfig(globalAdminRestContext, global.oaeTests.tenants.cam.alias, (err, config) => {
+              assert.ok(!err);
+              assert.strictEqual(config['oae-content'].storage.backend, 'amazons3');
 
-                // Clear the config and ensure it goes back to the default
-                ConfigTestUtil.clearConfigAndWait(
-                  globalAdminRestContext,
-                  global.oaeTests.tenants.cam.alias,
-                  ['oae-content/storage/backend'],
-                  err => {
-                    assert.ok(!err);
-                    RestAPI.Config.getTenantConfig(
-                      globalAdminRestContext,
-                      global.oaeTests.tenants.cam.alias,
-                      (err, config) => {
-                        assert.ok(!err);
-                        assert.strictEqual(config['oae-content'].storage.backend, 'local');
-                        return callback();
-                      }
-                    );
-                  }
-                );
-              }
-            );
+              // Clear the config and ensure it goes back to the default
+              ConfigTestUtil.clearConfigAndWait(
+                globalAdminRestContext,
+                global.oaeTests.tenants.cam.alias,
+                ['oae-content/storage/backend'],
+                err => {
+                  assert.ok(!err);
+                  RestAPI.Config.getTenantConfig(
+                    globalAdminRestContext,
+                    global.oaeTests.tenants.cam.alias,
+                    (err, config) => {
+                      assert.ok(!err);
+                      assert.strictEqual(config['oae-content'].storage.backend, 'local');
+                      return callback();
+                    }
+                  );
+                }
+              );
+            });
           }
         );
       });

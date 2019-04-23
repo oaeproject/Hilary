@@ -33,7 +33,4 @@ const getBar = function() {
   return 'bar';
 };
 
-module.exports = {
-  getFoo,
-  getBar
-};
+export { getFoo, getBar };

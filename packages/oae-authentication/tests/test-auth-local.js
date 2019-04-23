@@ -13,20 +13,20 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
+import assert from 'assert';
 
-const Cassandra = require('oae-util/lib/cassandra');
-const ConfigTestUtil = require('oae-config/lib/test/util');
-const { Context } = require('oae-context');
-const PrincipalsAPI = require('oae-principals');
-const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
-const TestsUtil = require('oae-tests');
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import { Context } from 'oae-context';
+import PrincipalsAPI from 'oae-principals';
+import * as RestAPI from 'oae-rest';
+import { RestContext } from 'oae-rest/lib/model';
+import * as TestsUtil from 'oae-tests';
 
-const AuthenticationAPI = require('oae-authentication');
-const { AuthenticationConstants } = require('oae-authentication/lib/constants');
-const AuthenticationTestUtil = require('oae-authentication/lib/test/util');
-const { LoginId } = require('oae-authentication/lib/model');
+import * as AuthenticationAPI from 'oae-authentication';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants';
+import * as AuthenticationTestUtil from 'oae-authentication/lib/test/util';
+import { LoginId } from 'oae-authentication/lib/model';
 
 describe('Authentication', () => {
   // Rest context that can be used for anonymous requests on the cambridge tenant
@@ -130,8 +130,8 @@ describe('Authentication', () => {
       let count = 0;
 
       /*!
-             * Callback for the create user requests
-             */
+       * Callback for the create user requests
+       */
       const checkComplete = function() {
         count++;
         // Make sure both calls to createUser have returned

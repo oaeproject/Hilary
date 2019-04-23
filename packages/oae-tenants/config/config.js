@@ -13,11 +13,11 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
 
-const Fields = require('oae-config/lib/fields');
-const TZ = require('oae-util/lib/tz');
+import * as Fields from 'oae-config/lib/fields';
+import * as TZ from 'oae-util/lib/tz';
 
 // Get an object that we can pass in the config List field as the set of options that should be
 // presented to the user. We add in the offset in the displayname of each element
@@ -43,8 +43,7 @@ const timezoneConfigValues = _.chain(TZ.getZones())
 
     const sign = timezone.offset > 0 ? '-' : '+';
     const offsetHoursStr = offsetHours < 10 ? '0' + offsetHours.toString() : offsetHours.toString();
-    const offsetMinutesStr =
-      offsetMinutes < 10 ? '0' + offsetMinutes.toString() : offsetMinutes.toString();
+    const offsetMinutesStr = offsetMinutes < 10 ? '0' + offsetMinutes.toString() : offsetMinutes.toString();
 
     let offsetLabel = 'GMT';
     if (timezone.offset !== 0) {
@@ -58,7 +57,7 @@ const timezoneConfigValues = _.chain(TZ.getZones())
   })
   .value();
 
-module.exports = {
+const result = {
   title: 'OAE Tenant Module',
   instance: {
     name: 'Instance Information',
@@ -88,12 +87,10 @@ module.exports = {
     name: 'Tenant Admin Action',
     description: 'Actions a tenant admin is allowed to do',
     elements: {
-      allowStop: new Fields.Bool(
-        'Stop tenant',
-        'Allow a tenant admin to stop the tenant server',
-        false,
-        { tenantOverride: false, suppress: true }
-      )
+      allowStop: new Fields.Bool('Stop tenant', 'Allow a tenant admin to stop the tenant server', false, {
+        tenantOverride: false,
+        suppress: true
+      })
     }
   },
   tenantprivacy: {
@@ -110,13 +107,9 @@ module.exports = {
     name: 'Tenant Timezone',
     description: 'Specifies the tenant timezone',
     elements: {
-      timezone: new Fields.List(
-        'Tenant Timezone',
-        'Tenant timezone',
-        'Etc/UTC',
-        timezoneConfigValues,
-        { suppress: true }
-      )
+      timezone: new Fields.List('Tenant Timezone', 'Tenant timezone', 'Etc/UTC', timezoneConfigValues, {
+        suppress: true
+      })
     }
   },
   guests: {
@@ -129,3 +122,4 @@ module.exports = {
     }
   }
 };
+export const { title, instance, actions, tenantprivacy, timezone, guests } = result;

@@ -13,15 +13,13 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const ConfigTestsUtil = require('oae-config/lib/test/util');
-const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
-const TestsUtil = require('oae-tests/lib/util');
-
-const FollowingTestsUtil = require('oae-following/lib/test/util');
+import * as ConfigTestsUtil from 'oae-config/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests/lib/util';
+import * as FollowingTestsUtil from 'oae-following/lib/test/util';
 
 describe('Following', () => {
   let globalAdminOnTenantRestContext = null;
@@ -38,24 +36,19 @@ describe('Following', () => {
     gtAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.gt.host);
 
     // Authenticate the global admin into a tenant so we can perform user-tenant requests with a global admin to test their access
-    RestAPI.Admin.loginOnTenant(
-      TestsUtil.createGlobalAdminRestContext(),
-      'localhost',
-      null,
-      (err, ctx) => {
-        assert.ok(!err);
-        globalAdminOnTenantRestContext = ctx;
-        return callback();
-      }
-    );
+    RestAPI.Admin.loginOnTenant(TestsUtil.createGlobalAdminRestContext(), 'localhost', null, (err, ctx) => {
+      assert.ok(!err);
+      globalAdminOnTenantRestContext = ctx;
+      return callback();
+    });
   });
 
   /*!
-     * Ensure that the given feeds have the same users (by id) and in the same order
-     *
-     * @param  {User[]}     oneFeedUsers    One feed of users to compare with
-     * @param  {User[]}     otherFeedUsers  The other feed of users to compare with
-     */
+   * Ensure that the given feeds have the same users (by id) and in the same order
+   *
+   * @param  {User[]}     oneFeedUsers    One feed of users to compare with
+   * @param  {User[]}     otherFeedUsers  The other feed of users to compare with
+   */
   const _assertFeedsEqual = function(oneFeedUsers, otherFeedUsers) {
     assert.ok(oneFeedUsers);
     assert.ok(otherFeedUsers);
@@ -76,35 +69,23 @@ describe('Following', () => {
       const user = _.values(testUsers)[0];
 
       // Verify clean empty response
-      RestAPI.Following.getFollowers(
-        user.restContext,
-        user.user.id,
-        null,
-        null,
-        (err, response) => {
+      RestAPI.Following.getFollowers(user.restContext, user.user.id, null, null, (err, response) => {
+        assert.ok(!err);
+        assert.ok(response);
+        assert.ok(response.results);
+        assert.strictEqual(response.results.length, 0);
+        assert.ok(!response.nextToken);
+
+        // Verify clean empty response again
+        RestAPI.Following.getFollowing(user.restContext, user.user.id, null, null, (err, response) => {
           assert.ok(!err);
           assert.ok(response);
           assert.ok(response.results);
           assert.strictEqual(response.results.length, 0);
           assert.ok(!response.nextToken);
-
-          // Verify clean empty response again
-          RestAPI.Following.getFollowing(
-            user.restContext,
-            user.user.id,
-            null,
-            null,
-            (err, response) => {
-              assert.ok(!err);
-              assert.ok(response);
-              assert.ok(response.results);
-              assert.strictEqual(response.results.length, 0);
-              assert.ok(!response.nextToken);
-              return callback();
-            }
-          );
-        }
-      );
+          return callback();
+        });
+      });
     });
   });
 
@@ -151,98 +132,63 @@ describe('Following', () => {
       const publicUser = _.values(testUsers)[2];
       const bert = _.values(testUsers)[3];
 
-      RestAPI.User.updateUser(
-        privateUser.restContext,
-        privateUser.user.id,
-        { visibility: 'private' },
-        err => {
+      RestAPI.User.updateUser(privateUser.restContext, privateUser.user.id, { visibility: 'private' }, err => {
+        assert.ok(!err);
+
+        RestAPI.User.updateUser(loggedinUser.restContext, loggedinUser.user.id, { visibility: 'loggedin' }, err => {
           assert.ok(!err);
 
-          RestAPI.User.updateUser(
-            loggedinUser.restContext,
-            loggedinUser.user.id,
-            { visibility: 'loggedin' },
-            err => {
-              assert.ok(!err);
-
-              // Verify anonymous can only see public user feeds
-              FollowingTestsUtil.assertNoFollowFeedAccess(
-                camAnonymousRestContext,
-                [privateUser.user.id, loggedinUser.user.id],
-                401,
-                () => {
-                  FollowingTestsUtil.assertHasFollowFeedAccess(
-                    camAnonymousRestContext,
-                    [publicUser.user.id],
-                    () => {
-                      // Verify gt admin can only see public user feeds
-                      FollowingTestsUtil.assertNoFollowFeedAccess(
-                        gtAdminRestContext,
-                        [privateUser.user.id, loggedinUser.user.id],
-                        401,
-                        () => {
-                          FollowingTestsUtil.assertHasFollowFeedAccess(
-                            gtAdminRestContext,
-                            [publicUser.user.id],
-                            () => {
-                              // Verify bert can see only public and loggedin user feeds
-                              FollowingTestsUtil.assertNoFollowFeedAccess(
-                                bert.restContext,
-                                [privateUser.user.id],
-                                401,
-                                () => {
-                                  FollowingTestsUtil.assertHasFollowFeedAccess(
-                                    bert.restContext,
-                                    [publicUser.user.id, loggedinUser.user.id],
-                                    () => {
-                                      // Verify private user can see all feeds
-                                      FollowingTestsUtil.assertHasFollowFeedAccess(
-                                        privateUser.restContext,
-                                        [
-                                          publicUser.user.id,
-                                          loggedinUser.user.id,
-                                          privateUser.user.id
-                                        ],
-                                        () => {
-                                          // Verify cam admin can see all feeds
-                                          FollowingTestsUtil.assertHasFollowFeedAccess(
-                                            camAdminRestContext,
-                                            [
-                                              publicUser.user.id,
-                                              loggedinUser.user.id,
-                                              privateUser.user.id
-                                            ],
-                                            () => {
-                                              // Verify global admin can see all feeds
-                                              FollowingTestsUtil.assertHasFollowFeedAccess(
-                                                globalAdminOnTenantRestContext,
-                                                [
-                                                  publicUser.user.id,
-                                                  loggedinUser.user.id,
-                                                  privateUser.user.id
-                                                ],
-                                                callback
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
+          // Verify anonymous can only see public user feeds
+          FollowingTestsUtil.assertNoFollowFeedAccess(
+            camAnonymousRestContext,
+            [privateUser.user.id, loggedinUser.user.id],
+            401,
+            () => {
+              FollowingTestsUtil.assertHasFollowFeedAccess(camAnonymousRestContext, [publicUser.user.id], () => {
+                // Verify gt admin can only see public user feeds
+                FollowingTestsUtil.assertNoFollowFeedAccess(
+                  gtAdminRestContext,
+                  [privateUser.user.id, loggedinUser.user.id],
+                  401,
+                  () => {
+                    FollowingTestsUtil.assertHasFollowFeedAccess(gtAdminRestContext, [publicUser.user.id], () => {
+                      // Verify bert can see only public and loggedin user feeds
+                      FollowingTestsUtil.assertNoFollowFeedAccess(bert.restContext, [privateUser.user.id], 401, () => {
+                        FollowingTestsUtil.assertHasFollowFeedAccess(
+                          bert.restContext,
+                          [publicUser.user.id, loggedinUser.user.id],
+                          () => {
+                            // Verify private user can see all feeds
+                            FollowingTestsUtil.assertHasFollowFeedAccess(
+                              privateUser.restContext,
+                              [publicUser.user.id, loggedinUser.user.id, privateUser.user.id],
+                              () => {
+                                // Verify cam admin can see all feeds
+                                FollowingTestsUtil.assertHasFollowFeedAccess(
+                                  camAdminRestContext,
+                                  [publicUser.user.id, loggedinUser.user.id, privateUser.user.id],
+                                  () => {
+                                    // Verify global admin can see all feeds
+                                    FollowingTestsUtil.assertHasFollowFeedAccess(
+                                      globalAdminOnTenantRestContext,
+                                      [publicUser.user.id, loggedinUser.user.id, privateUser.user.id],
+                                      callback
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      });
+                    });
+                  }
+                );
+              });
             }
           );
-        }
-      );
+        });
+      });
     });
   });
 
@@ -256,53 +202,29 @@ describe('Following', () => {
       const bert = _.values(testUsers)[0];
 
       // Verify a non-valid id
-      RestAPI.Following.getFollowers(
-        bert.restContext,
-        'not-a-valid-id',
-        null,
-        null,
-        (err, response) => {
+      RestAPI.Following.getFollowers(bert.restContext, 'not-a-valid-id', null, null, (err, response) => {
+        assert.ok(err);
+        assert.strictEqual(err.code, 400);
+
+        // Verify a resource id that is not a user
+        RestAPI.Following.getFollowers(bert.restContext, 'g:not-a:user-id', null, null, (err, response) => {
           assert.ok(err);
           assert.strictEqual(err.code, 400);
 
-          // Verify a resource id that is not a user
-          RestAPI.Following.getFollowers(
-            bert.restContext,
-            'g:not-a:user-id',
-            null,
-            null,
-            (err, response) => {
-              assert.ok(err);
-              assert.strictEqual(err.code, 400);
+          // Verify a non-existing user
+          RestAPI.Following.getFollowers(bert.restContext, 'u:cam:nonExistentUserId', null, null, (err, response) => {
+            assert.ok(err);
+            assert.strictEqual(err.code, 404);
 
-              // Verify a non-existing user
-              RestAPI.Following.getFollowers(
-                bert.restContext,
-                'u:cam:nonExistentUserId',
-                null,
-                null,
-                (err, response) => {
-                  assert.ok(err);
-                  assert.strictEqual(err.code, 404);
-
-                  // Sanity check a valid fetch
-                  RestAPI.Following.getFollowers(
-                    bert.restContext,
-                    bert.user.id,
-                    null,
-                    null,
-                    (err, response) => {
-                      assert.ok(!err);
-                      assert.ok(response);
-                      return callback();
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
+            // Sanity check a valid fetch
+            RestAPI.Following.getFollowers(bert.restContext, bert.user.id, null, null, (err, response) => {
+              assert.ok(!err);
+              assert.ok(response);
+              return callback();
+            });
+          });
+        });
+      });
     });
   });
 
@@ -316,53 +238,29 @@ describe('Following', () => {
       const bert = _.values(testUsers)[0];
 
       // Verify a non-valid id
-      RestAPI.Following.getFollowing(
-        bert.restContext,
-        'not-a-valid-id',
-        null,
-        null,
-        (err, response) => {
+      RestAPI.Following.getFollowing(bert.restContext, 'not-a-valid-id', null, null, (err, response) => {
+        assert.ok(err);
+        assert.strictEqual(err.code, 400);
+
+        // Verify a resource id that is not a user
+        RestAPI.Following.getFollowing(bert.restContext, 'g:not-a:user-id', null, null, (err, response) => {
           assert.ok(err);
           assert.strictEqual(err.code, 400);
 
-          // Verify a resource id that is not a user
-          RestAPI.Following.getFollowing(
-            bert.restContext,
-            'g:not-a:user-id',
-            null,
-            null,
-            (err, response) => {
-              assert.ok(err);
-              assert.strictEqual(err.code, 400);
+          // Verify a non-existing user
+          RestAPI.Following.getFollowing(bert.restContext, 'u:cam:nonExistentUserId', null, null, (err, response) => {
+            assert.ok(err);
+            assert.strictEqual(err.code, 404);
 
-              // Verify a non-existing user
-              RestAPI.Following.getFollowing(
-                bert.restContext,
-                'u:cam:nonExistentUserId',
-                null,
-                null,
-                (err, response) => {
-                  assert.ok(err);
-                  assert.strictEqual(err.code, 404);
-
-                  // Sanity check a valid fetch
-                  RestAPI.Following.getFollowing(
-                    bert.restContext,
-                    bert.user.id,
-                    null,
-                    null,
-                    (err, response) => {
-                      assert.ok(!err);
-                      assert.ok(response);
-                      return callback();
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
+            // Sanity check a valid fetch
+            RestAPI.Following.getFollowing(bert.restContext, bert.user.id, null, null, (err, response) => {
+              assert.ok(!err);
+              assert.ok(response);
+              return callback();
+            });
+          });
+        });
+      });
     });
   });
 
@@ -392,23 +290,17 @@ describe('Following', () => {
             assert.strictEqual(err.code, 404);
 
             // Ensure no following took place
-            RestAPI.Following.getFollowing(
-              bert.restContext,
-              bert.user.id,
-              null,
-              null,
-              (err, response) => {
-                assert.ok(response);
-                assert.ok(response.results);
-                assert.strictEqual(response.results.length, 0);
+            RestAPI.Following.getFollowing(bert.restContext, bert.user.id, null, null, (err, response) => {
+              assert.ok(response);
+              assert.ok(response.results);
+              assert.strictEqual(response.results.length, 0);
 
-                // Sanity check inputs
-                RestAPI.Following.follow(bert.restContext, simon.user.id, err => {
-                  assert.ok(!err);
-                  return callback();
-                });
-              }
-            );
+              // Sanity check inputs
+              RestAPI.Following.follow(bert.restContext, simon.user.id, err => {
+                assert.ok(!err);
+                return callback();
+              });
+            });
           });
         });
       });
@@ -421,74 +313,58 @@ describe('Following', () => {
   it('verify follow authorization', callback => {
     TestsUtil.setupMultiTenantPrivacyEntities((publicTenant0, publicTenant1, privateTenant0) => {
       // Ensure a user cannot follow themself
-      RestAPI.Following.follow(
-        publicTenant0.publicUser.restContext,
-        publicTenant0.publicUser.user.id,
-        err => {
-          assert.ok(err);
-          assert.strictEqual(err.code, 400);
+      RestAPI.Following.follow(publicTenant0.publicUser.restContext, publicTenant0.publicUser.user.id, err => {
+        assert.ok(err);
+        assert.strictEqual(err.code, 400);
 
-          // Ensure a user cannot follow a public user from an external private tenant
-          RestAPI.Following.follow(
-            publicTenant0.publicUser.restContext,
-            privateTenant0.publicUser.user.id,
-            err => {
+        // Ensure a user cannot follow a public user from an external private tenant
+        RestAPI.Following.follow(publicTenant0.publicUser.restContext, privateTenant0.publicUser.user.id, err => {
+          assert.ok(err);
+          assert.strictEqual(err.code, 401);
+
+          // Ensure a user cannot follow a loggedin user from an external public tenant
+          RestAPI.Following.follow(publicTenant0.publicUser.restContext, publicTenant1.loggedinUser.user.id, err => {
+            assert.ok(err);
+            assert.strictEqual(err.code, 401);
+
+            // Ensure a user cannot follow a private user from an external public tenant
+            RestAPI.Following.follow(publicTenant0.publicUser.restContext, publicTenant1.privateUser.user.id, err => {
               assert.ok(err);
               assert.strictEqual(err.code, 401);
 
-              // Ensure a user cannot follow a loggedin user from an external public tenant
-              RestAPI.Following.follow(
+              // Verify that the publicTenant0 public user is still not following anyone
+              RestAPI.Following.getFollowing(
                 publicTenant0.publicUser.restContext,
-                publicTenant1.loggedinUser.user.id,
-                err => {
-                  assert.ok(err);
-                  assert.strictEqual(err.code, 401);
+                publicTenant0.publicUser.user.id,
+                null,
+                null,
+                (err, response) => {
+                  assert.ok(!err);
+                  assert.ok(response);
+                  assert.ok(response.results);
+                  assert.strictEqual(response.results.length, 0);
 
-                  // Ensure a user cannot follow a private user from an external public tenant
+                  // Sanity check can follow public user from external public tenant
                   RestAPI.Following.follow(
                     publicTenant0.publicUser.restContext,
-                    publicTenant1.privateUser.user.id,
+                    publicTenant1.publicUser.user.id,
                     err => {
-                      assert.ok(err);
-                      assert.strictEqual(err.code, 401);
-
-                      // Verify that the publicTenant0 public user is still not following anyone
-                      RestAPI.Following.getFollowing(
-                        publicTenant0.publicUser.restContext,
+                      assert.ok(!err);
+                      return FollowingTestsUtil.assertFollows(
                         publicTenant0.publicUser.user.id,
-                        null,
-                        null,
-                        (err, response) => {
-                          assert.ok(!err);
-                          assert.ok(response);
-                          assert.ok(response.results);
-                          assert.strictEqual(response.results.length, 0);
-
-                          // Sanity check can follow public user from external public tenant
-                          RestAPI.Following.follow(
-                            publicTenant0.publicUser.restContext,
-                            publicTenant1.publicUser.user.id,
-                            err => {
-                              assert.ok(!err);
-                              return FollowingTestsUtil.assertFollows(
-                                publicTenant0.publicUser.user.id,
-                                publicTenant0.publicUser.restContext,
-                                publicTenant1.publicUser.user.id,
-                                publicTenant1.publicUser.restContext,
-                                callback
-                              );
-                            }
-                          );
-                        }
+                        publicTenant0.publicUser.restContext,
+                        publicTenant1.publicUser.user.id,
+                        publicTenant1.publicUser.restContext,
+                        callback
                       );
                     }
                   );
                 }
               );
-            }
-          );
-        }
-      );
+            });
+          });
+        });
+      });
     });
   });
 
@@ -498,47 +374,39 @@ describe('Following', () => {
   it('verify unfollow authorization', callback => {
     TestsUtil.setupMultiTenantPrivacyEntities((publicTenant0, publicTenant1, privateTenant0) => {
       // Perform a follow from publicTenant0 to publicTenant1
-      RestAPI.Following.follow(
-        publicTenant0.publicUser.restContext,
-        publicTenant1.publicUser.user.id,
-        err => {
-          assert.ok(!err);
+      RestAPI.Following.follow(publicTenant0.publicUser.restContext, publicTenant1.publicUser.user.id, err => {
+        assert.ok(!err);
 
-          // Now make publicTenant1 private
-          ConfigTestsUtil.updateConfigAndWait(
-            TestsUtil.createGlobalAdminRestContext(),
-            publicTenant1.tenant.alias,
-            { 'oae-tenants/tenantprivacy/tenantprivate': true },
-            err => {
+        // Now make publicTenant1 private
+        ConfigTestsUtil.updateConfigAndWait(
+          TestsUtil.createGlobalAdminRestContext(),
+          publicTenant1.tenant.alias,
+          { 'oae-tenants/tenantprivacy/tenantprivate': true },
+          err => {
+            assert.ok(!err);
+
+            // Now make sure we can unfollow the user in the newly private tenant
+            RestAPI.Following.unfollow(publicTenant0.publicUser.restContext, publicTenant1.publicUser.user.id, err => {
               assert.ok(!err);
 
-              // Now make sure we can unfollow the user in the newly private tenant
-              RestAPI.Following.unfollow(
+              // Ensure that the following user is not following anyone anymore
+              RestAPI.Following.getFollowing(
                 publicTenant0.publicUser.restContext,
-                publicTenant1.publicUser.user.id,
-                err => {
+                publicTenant0.publicUser.user.id,
+                null,
+                null,
+                (err, response) => {
                   assert.ok(!err);
-
-                  // Ensure that the following user is not following anyone anymore
-                  RestAPI.Following.getFollowing(
-                    publicTenant0.publicUser.restContext,
-                    publicTenant0.publicUser.user.id,
-                    null,
-                    null,
-                    (err, response) => {
-                      assert.ok(!err);
-                      assert.ok(response);
-                      assert.ok(response.results);
-                      assert.strictEqual(response.results.length, 0);
-                      return callback();
-                    }
-                  );
+                  assert.ok(response);
+                  assert.ok(response.results);
+                  assert.strictEqual(response.results.length, 0);
+                  return callback();
                 }
               );
-            }
-          );
-        }
-      );
+            });
+          }
+        );
+      });
     });
   });
 
@@ -595,56 +463,44 @@ describe('Following', () => {
       // Make the follower follow all the 9 following users
       FollowingTestsUtil.followAll(follower.restContext, followingUserIds, () => {
         // Get the natural following order
-        RestAPI.Following.getFollowing(
-          follower.restContext,
-          follower.user.id,
-          null,
-          9,
-          (err, response) => {
+        RestAPI.Following.getFollowing(follower.restContext, follower.user.id, null, 9, (err, response) => {
+          assert.ok(!err);
+          assert.strictEqual(response.results.length, 9);
+
+          const followingUsers = response.results;
+
+          // Get the first 2, ensure we were restricted by the limit
+          RestAPI.Following.getFollowing(follower.restContext, follower.user.id, null, 2, (err, response) => {
             assert.ok(!err);
-            assert.strictEqual(response.results.length, 9);
+            _assertFeedsEqual(response.results, followingUsers.slice(0, 2));
 
-            const followingUsers = response.results;
-
-            // Get the first 2, ensure we were restricted by the limit
+            // Get the next 2, ensure it is the next 2-item-slice of the following array
             RestAPI.Following.getFollowing(
               follower.restContext,
               follower.user.id,
-              null,
+              response.nextToken,
               2,
               (err, response) => {
                 assert.ok(!err);
-                _assertFeedsEqual(response.results, followingUsers.slice(0, 2));
+                _assertFeedsEqual(response.results, followingUsers.slice(2, 4));
 
-                // Get the next 2, ensure it is the next 2-item-slice of the following array
+                // Now overflow the list
                 RestAPI.Following.getFollowing(
                   follower.restContext,
                   follower.user.id,
                   response.nextToken,
-                  2,
+                  8,
                   (err, response) => {
                     assert.ok(!err);
-                    _assertFeedsEqual(response.results, followingUsers.slice(2, 4));
-
-                    // Now overflow the list
-                    RestAPI.Following.getFollowing(
-                      follower.restContext,
-                      follower.user.id,
-                      response.nextToken,
-                      8,
-                      (err, response) => {
-                        assert.ok(!err);
-                        assert.ok(!response.nextToken);
-                        _assertFeedsEqual(response.results, followingUsers.slice(4));
-                        return callback();
-                      }
-                    );
+                    assert.ok(!response.nextToken);
+                    _assertFeedsEqual(response.results, followingUsers.slice(4));
+                    return callback();
                   }
                 );
               }
             );
-          }
-        );
+          });
+        });
       });
     });
   });
@@ -664,56 +520,44 @@ describe('Following', () => {
       // Make the follower follow all the 9 following users
       FollowingTestsUtil.followByAll(followed.user.id, followers, () => {
         // Get the natural following order
-        RestAPI.Following.getFollowers(
-          followed.restContext,
-          followed.user.id,
-          null,
-          9,
-          (err, response) => {
+        RestAPI.Following.getFollowers(followed.restContext, followed.user.id, null, 9, (err, response) => {
+          assert.ok(!err);
+          assert.strictEqual(response.results.length, 9);
+
+          const followerUsers = response.results;
+
+          // Get the first 2, ensure we were restricted by the limit
+          RestAPI.Following.getFollowers(followed.restContext, followed.user.id, null, 2, (err, response) => {
             assert.ok(!err);
-            assert.strictEqual(response.results.length, 9);
+            _assertFeedsEqual(response.results, followerUsers.slice(0, 2));
 
-            const followerUsers = response.results;
-
-            // Get the first 2, ensure we were restricted by the limit
+            // Get the next 2, ensure it is the next 2-item-slice of the following array
             RestAPI.Following.getFollowers(
               followed.restContext,
               followed.user.id,
-              null,
+              response.nextToken,
               2,
               (err, response) => {
                 assert.ok(!err);
-                _assertFeedsEqual(response.results, followerUsers.slice(0, 2));
+                _assertFeedsEqual(response.results, followerUsers.slice(2, 4));
 
-                // Get the next 2, ensure it is the next 2-item-slice of the following array
+                // Now overflow the list
                 RestAPI.Following.getFollowers(
                   followed.restContext,
                   followed.user.id,
                   response.nextToken,
-                  2,
+                  8,
                   (err, response) => {
                     assert.ok(!err);
-                    _assertFeedsEqual(response.results, followerUsers.slice(2, 4));
-
-                    // Now overflow the list
-                    RestAPI.Following.getFollowers(
-                      followed.restContext,
-                      followed.user.id,
-                      response.nextToken,
-                      8,
-                      (err, response) => {
-                        assert.ok(!err);
-                        assert.ok(!response.nextToken);
-                        _assertFeedsEqual(response.results, followerUsers.slice(4));
-                        return callback();
-                      }
-                    );
+                    assert.ok(!response.nextToken);
+                    _assertFeedsEqual(response.results, followerUsers.slice(4));
+                    return callback();
                   }
                 );
               }
             );
-          }
-        );
+          });
+        });
       });
     });
   });

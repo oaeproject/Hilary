@@ -13,10 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const OAE = require('oae-util/lib/oae');
-const OaeUtil = require('oae-util/lib/util');
-
-const FollowingAPI = require('oae-following');
+import * as OAE from 'oae-util/lib/oae';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as FollowingAPI from 'oae-following';
 
 /**
  * @REST getFollowingUserIdFollowers
@@ -36,19 +35,13 @@ const FollowingAPI = require('oae-following');
  */
 OAE.tenantRouter.on('get', '/api/following/:userId/followers', (req, res) => {
   const limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
-  FollowingAPI.getFollowers(
-    req.ctx,
-    req.params.userId,
-    req.query.start,
-    limit,
-    (err, followers, nextToken) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-
-      return res.status(200).send({ results: followers, nextToken });
+  FollowingAPI.getFollowers(req.ctx, req.params.userId, req.query.start, limit, (err, followers, nextToken) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    return res.status(200).send({ results: followers, nextToken });
+  });
 });
 
 /**
@@ -69,19 +62,13 @@ OAE.tenantRouter.on('get', '/api/following/:userId/followers', (req, res) => {
  */
 OAE.tenantRouter.on('get', '/api/following/:userId/following', (req, res) => {
   const limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
-  FollowingAPI.getFollowing(
-    req.ctx,
-    req.params.userId,
-    req.query.start,
-    limit,
-    (err, following, nextToken) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-
-      return res.status(200).send({ results: following, nextToken });
+  FollowingAPI.getFollowing(req.ctx, req.params.userId, req.query.start, limit, (err, following, nextToken) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    return res.status(200).send({ results: following, nextToken });
+  });
 });
 
 /**

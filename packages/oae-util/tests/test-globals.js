@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
 describe('Globals', () => {
   describe('Underscore', () => {

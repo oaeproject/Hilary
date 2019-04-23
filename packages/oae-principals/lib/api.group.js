@@ -13,29 +13,33 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
-const ShortId = require('shortid');
+import util from 'util';
+import _ from 'underscore';
+import ShortId from 'shortid';
 
-const AuthzAPI = require('oae-authz');
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const AuthzInvitations = require('oae-authz/lib/invitations');
-const AuthzPermissions = require('oae-authz/lib/permissions');
-const AuthzUtil = require('oae-authz/lib/util');
-const Config = require('oae-config/lib/api').config('oae-principals');
-const LibraryAPI = require('oae-library');
-const log = require('oae-logger').logger('oae-principals');
-const MessageBoxAPI = require('oae-messagebox');
-const OaeUtil = require('oae-util/lib/util');
-const ResourceActions = require('oae-resource/lib/actions');
-const Signature = require('oae-util/lib/signature');
-const { Validator } = require('oae-authz/lib/validator');
+import { logger } from 'oae-logger';
+import { setUpConfig } from 'oae-config';
 
-const { PrincipalsConstants } = require('./constants');
-const PrincipalsDAO = require('./internal/dao');
-const PrincipalsMembersLibrary = require('./libraries/members');
-const PrincipalsEmitter = require('./internal/emitter');
-const PrincipalsUtil = require('./util');
+import * as AuthzAPI from 'oae-authz';
+import * as AuthzInvitations from 'oae-authz/lib/invitations';
+import * as AuthzPermissions from 'oae-authz/lib/permissions';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as LibraryAPI from 'oae-library';
+import * as MessageBoxAPI from 'oae-messagebox';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as ResourceActions from 'oae-resource/lib/actions';
+import * as Signature from 'oae-util/lib/signature';
+import { Validator } from 'oae-authz/lib/validator';
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import * as PrincipalsDAO from './internal/dao';
+import * as PrincipalsMembersLibrary from './libraries/members';
+import PrincipalsEmitter from './internal/emitter';
+import * as PrincipalsUtil from './util';
+
+import { PrincipalsConstants } from './constants';
+
+const log = logger('oae-principals');
+const Config = setUpConfig('oae-principals');
 
 /**
  * Get the basic profile for a group.
@@ -75,6 +79,7 @@ const getFullGroupProfile = function(ctx, groupId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (group.deleted) {
       return callback({ code: 404, msg: util.format("Couldn't find principal: %s", groupId) });
     }
@@ -84,6 +89,7 @@ const getFullGroupProfile = function(ctx, groupId, callback) {
       if (err) {
         return callback(err);
       }
+
       if (!permissions.canView) {
         return callback({ code: 401, msg: 'You do not have access to this group' });
       }
@@ -115,6 +121,7 @@ const getFullGroupProfile = function(ctx, groupId, callback) {
             if (err) {
               return callback(err);
             }
+
             if (createdBy) {
               group.createdBy = createdBy;
             }
@@ -139,6 +146,7 @@ const getFullGroupProfile = function(ctx, groupId, callback) {
                   if (err) {
                     return callback(err);
                   }
+
                   return callback(null, group);
                 });
               } else {
@@ -178,6 +186,7 @@ const getMembersLibrary = function(ctx, groupId, start, limit, callback) {
     if (err) {
       return callback(err);
     }
+
     if (group.deleted) {
       return callback({ code: 404, msg: util.format("Couldn't find principal: %s", groupId) });
     }
@@ -263,6 +272,7 @@ const _getMembersLibrary = function(ctx, group, hasRole, start, limit, callback)
       if (err) {
         return callback(err);
       }
+
       if (hasRole) {
         // When there is an explicit role, we always have access and can see the private library
         hasAccess = true;
@@ -297,6 +307,7 @@ const _getMembersLibrary = function(ctx, group, hasRole, start, limit, callback)
                   role: memberEntry.role
                 };
               }
+
               return result;
             })
             .compact()
@@ -334,6 +345,7 @@ const getMembershipsLibrary = function(ctx, principalId, start, limit, callback)
     if (err) {
       return callback(err);
     }
+
     if (principal.deleted) {
       return callback({ code: 404, msg: util.format("Couldn't find principal: %s", principalId) });
     }
@@ -342,6 +354,7 @@ const getMembershipsLibrary = function(ctx, principalId, start, limit, callback)
       if (err) {
         return callback(err);
       }
+
       if (!hasAccess) {
         return callback({ code: 401, msg: 'You do not have access to this memberships library' });
       }
@@ -403,6 +416,7 @@ const _getMembershipsLibrary = function(ctx, principalId, visibility, start, lim
 
           // Otherwise we can return back to the caller
         }
+
         // Get the exact amount of items
         const pagedItems = _items.slice(0, limit);
 
@@ -456,6 +470,7 @@ const getRecentGroupsForUserId = function(ctx, principalId, limit, callback) {
     if (err) {
       return callback(err);
     }
+
     if (principal.deleted) {
       return callback({ code: 404, msg: util.format("Couldn't find user: %s", principalId) });
     }
@@ -480,6 +495,7 @@ const _getRecentGroupsForUserId = function(ctx, principalId, limit, callback) {
     if (err) {
       return callback(err);
     }
+
     const sorted = _.sortBy(items, 'latestVisit')
       .reverse()
       .slice(0, 5);
@@ -545,6 +561,7 @@ const setGroupMembers = function(ctx, groupId, changes, callback) {
     if (err) {
       return callback(err);
     }
+
     if (group.deleted) {
       return callback({ code: 404, msg: util.format("Couldn't find principal: %s", groupId) });
     }
@@ -553,6 +570,7 @@ const setGroupMembers = function(ctx, groupId, changes, callback) {
       if (err) {
         return callback(err);
       }
+
       if (_.isEmpty(memberChangeInfo.changes)) {
         return callback();
       }
@@ -603,6 +621,7 @@ const leaveGroup = function(ctx, groupId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (group.deleted) {
       return callback({ code: 404, msg: util.format('Group not found: %s', group.id) });
     }
@@ -651,6 +670,7 @@ const joinGroup = function(ctx, groupId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (group.deleted) {
       return callback({ code: 404, msg: util.format("Couldn't find principal: %s", groupId) });
     }
@@ -862,6 +882,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
     if (err) {
       return callback(err);
     }
+
     if (oldStorageGroup.deleted) {
       return callback({ code: 404, msg: util.format("Couldn't find principal: %s", groupId) });
     }
@@ -969,6 +990,7 @@ const restoreGroup = function(ctx, groupId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!canRestore) {
       return callback({ code: 401, msg: 'You are not authorized to restore this group' });
     }
@@ -1005,6 +1027,7 @@ const canRestoreGroup = function(ctx, groupId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!ctx.user().isAdmin(group.tenant.alias)) {
       // Only the global or tenant admin can restore a group
       return callback(null, false);
@@ -1078,6 +1101,7 @@ const _canManageAnyGroups = function(ctx, groupIds, callback) {
         // Try the next group
         return _canManageAnyGroups(ctx, groupIds, callback);
       }
+
       if (err) {
         // A system error occurred
         return callback(err);
@@ -1098,6 +1122,7 @@ const _validateJoinGroupRequest = function(ctx, groupId, callback) {
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
+
   return callback();
 };
 
@@ -1223,6 +1248,7 @@ const _validateUpdateJoinGroupByRequest = function(ctx, joinRequest, callback) {
       .check(role, { code: 400, msg: role + ' is not a recognized role group' })
       .isIn(PrincipalsConstants.role.ALL_PRIORITY);
   }
+
   validator.check(principalId, { code: 400, msg: 'Must specify a valid principalId' }).isPrincipalId();
   validator
     .check(status, { code: 400, msg: status + ' is not a recognized request status' })
@@ -1277,6 +1303,7 @@ const updateJoinGroupByRequest = function(ctx, joinRequest, callback) {
           }
         });
       }
+
       return notifyOfJoinRequestDecision(ctx, { groupId, principalId, status }, callback);
     });
   });
@@ -1292,6 +1319,7 @@ const notifyOfJoinRequestDecision = function(ctx, joinRequest, callback) {
     if (err) {
       return callback(err);
     }
+
     PrincipalsDAO.getPrincipal(principalId, (err, requester) => {
       if (err) {
         return callback(err);
@@ -1303,7 +1331,7 @@ const notifyOfJoinRequestDecision = function(ctx, joinRequest, callback) {
   });
 };
 
-module.exports = {
+export {
   getGroup,
   getFullGroupProfile,
   getMembersLibrary,

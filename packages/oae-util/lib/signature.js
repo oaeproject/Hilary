@@ -13,12 +13,15 @@
  * permissions and limitations under the License.
  */
 
-const crypto = require('crypto');
-const util = require('util');
-const _ = require('underscore');
+import crypto from 'crypto';
+import util from 'util';
+import _ from 'underscore';
 
-const log = require('oae-logger').logger('signature');
-const OaeUtil = require('oae-util/lib/util');
+import { logger } from 'oae-logger';
+
+import * as OaeUtil from 'oae-util/lib/util';
+
+const log = logger('signature');
 
 let signKey = null;
 
@@ -200,7 +203,7 @@ const _createResourceData = function(ctx, resourceId) {
   return { userId, resourceId };
 };
 
-module.exports = {
+export {
   init,
   sign,
   verify,

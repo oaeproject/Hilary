@@ -13,17 +13,17 @@
  * permissions and limitations under the License.
  */
 
-const AuthzAPI = require('oae-authz');
+import * as AuthzAPI from 'oae-authz';
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const AuthzInvitationsUtil = require('oae-authz/lib/invitations/util');
-const AuthzModel = require('oae-authz/lib/model');
-const AuthzUtil = require('oae-authz/lib/util');
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import * as AuthzInvitationsUtil from 'oae-authz/lib/invitations/util';
+import * as AuthzModel from 'oae-authz/lib/model';
+import * as AuthzUtil from 'oae-authz/lib/util';
 
-const TenantsAPI = require('oae-tenants');
-const TenantsUtil = require('oae-tenants/lib/util');
+import * as TenantsAPI from 'oae-tenants';
+import * as TenantsUtil from 'oae-tenants/lib/util';
 
 /**
  * Determine which of all potential permissions a user has
@@ -111,10 +111,12 @@ const canManage = function(ctx, resource, callback) {
       if (err) {
         return callback(err);
       }
+
       if (implicitRole === AuthzConstants.role.MANAGER) {
         // We have an implicit manager role (e.g., we are an administrator), succeed
         return callback();
       }
+
       if (AuthzUtil.isUserId(resource.id)) {
         // It is not possible to have an explicit role on a user, short-circuit here
         return callback(permissionErr);
@@ -125,6 +127,7 @@ const canManage = function(ctx, resource, callback) {
         if (err) {
           return callback(err);
         }
+
         if (!hasRole) {
           return callback(permissionErr);
         }
@@ -158,11 +161,13 @@ const canManageMessage = function(ctx, parentResource, message, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!permissions.canInteract) {
       // If the user cannot interact, they cannot manage the message even if they were the
       // author
       return callback(permissionErr);
     }
+
     if (ctx.user().id !== message.createdBy && !permissions.canManage) {
       // The user cannot delete the message if they weren't the author and if they can't
       // manage the parent resource
@@ -198,15 +203,18 @@ const canView = function(ctx, resource, callback) {
       if (err) {
         return callback(err);
       }
+
       if (implicitRole) {
         // We have an implicit access, no reason to try and find an explicit access because we
         // can atleast view
         return callback();
       }
+
       if (!user) {
         // Anonymous user with no implicit access cannot view
         return callback(permissionErr);
       }
+
       if (AuthzUtil.isUserId(resource.id)) {
         // Users can't have explicit access, therefore we can short-circuit here
         return callback(permissionErr);
@@ -217,6 +225,7 @@ const canView = function(ctx, resource, callback) {
         if (err) {
           return callback(err);
         }
+
         if (!hasAnyRole) {
           return callback(permissionErr);
         }
@@ -240,6 +249,7 @@ const canEdit = function(ctx, resource, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!permissions.canEdit) {
       return callback({
         code: 401,
@@ -277,6 +287,7 @@ const canShare = function(ctx, resource, targets, role, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!permissions.canShare) {
       return callback({
         code: 401,
@@ -294,6 +305,7 @@ const canShare = function(ctx, resource, targets, role, callback) {
       if (err) {
         return callback(err);
       }
+
       if (permissions.canManage) {
         // If we can manage the resource we don't need to check that the user in context can
         // extend the explicit access of the resource outside the set visibility
@@ -374,6 +386,7 @@ const canJoin = function(ctx, resource, callback) {
       msg: 'The current user does not have access to join this resource'
     });
   }
+
   if (resource.joinable !== AuthzConstants.joinable.YES) {
     return callback({ code: 401, msg: 'The resource being joined is not joinable' });
   }
@@ -398,6 +411,7 @@ const canJoin = function(ctx, resource, callback) {
       if (err) {
         return callback(err);
       }
+
       if (_.isEmpty(memberChangeInfo.members.added)) {
         return callback({
           code: 400,
@@ -437,6 +451,7 @@ const canRemoveRole = function(ctx, principal, resource, callback) {
         msg: 'The current user does not have access to remove this principal'
       });
     }
+
     if (err) {
       return callback(err);
     }
@@ -452,12 +467,14 @@ const canRemoveRole = function(ctx, principal, resource, callback) {
       if (err) {
         return callback(err);
       }
+
       if (_.isEmpty(memberChangeInfo.members.removed)) {
         return callback({
           code: 400,
           msg: 'The principal being removed is not currently a member of the resource'
         });
       }
+
       if (
         !_.chain(memberChangeInfo.roles.after)
           .values()
@@ -508,6 +525,7 @@ const canSetRoles = function(ctx, resource, targetRoles, callback) {
         if (err) {
           return callback(err);
         }
+
         if (
           !_.isEmpty(memberChangeInfo.changes) &&
           !_.chain(memberChangeInfo.roles.after)
@@ -569,6 +587,7 @@ const canInteract = function(ctx, resources, callback) {
   if (!_.isArray(resources)) {
     return canInteract(ctx, _.compact([resources]), callback);
   }
+
   if (_.isEmpty(resources)) {
     return callback();
   }
@@ -699,6 +718,7 @@ const _validateRoleChanges = function(ctx, resource, targetRoles, opts, callback
           // Contextualize the error a bit better than the generic `canInteract` error
           return callback(_.extend({ invalidPrincipals: err.invalidResources }, interactionErr));
         }
+
         if (err) {
           return callback(err);
         }
@@ -738,12 +758,14 @@ const _canInteract = function(ctx, resource, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!canInteract) {
       if (!user) {
         // Anonymous users will not have an explicit role on anything, so we can
         // short-circuit
         return callback(permissionErr);
       }
+
       if ((!resource.id && resource.email) || AuthzUtil.isUserId(resource.id)) {
         // If the target resource is a user (local or invited by email address) then we
         // cannot have an explicit role. So short-circuit
@@ -761,6 +783,7 @@ const _canInteract = function(ctx, resource, callback) {
       if (err) {
         return callback(err);
       }
+
       if (!hasAnyRole) {
         return callback(permissionErr);
       }
@@ -856,7 +879,7 @@ const _emailToResource = function(email) {
   return result;
 };
 
-module.exports = {
+export {
   resolveEffectivePermissions,
   canManage,
   canManageMessage,

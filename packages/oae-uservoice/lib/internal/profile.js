@@ -14,7 +14,7 @@
  */
 
 const { AuthzConstants } = require('oae-authz/lib/constants');
-const PrincipalsConfig = require('oae-config').config('oae-principals');
+const PrincipalsConfig = require('oae-config').setUpConfig('oae-principals');
 
 const UservoiceLocales = require('./locales');
 

@@ -13,31 +13,35 @@
  * permissions and limitations under the License.
  */
 
-const fs = require('fs');
-const path = require('path');
-const url = require('url');
-const util = require('util');
-const _ = require('underscore');
-const $ = require('cheerio');
-const Globalize = require('globalize');
-const less = require('less');
-const marked = require('marked');
-const PropertiesParser = require('properties-parser');
-const readdirp = require('readdirp');
-const watch = require('watch');
+import fs from 'fs';
+import path from 'path';
+import url from 'url';
+import util from 'util';
+import _ from 'underscore';
+import $ from 'cheerio';
 
-const ConfigAPI = require('oae-config');
-const ContentUtil = require('oae-content/lib/internal/util');
-const EmitterAPI = require('oae-emitter');
-const Sanitization = require('oae-util/lib/sanitization');
-const TZ = require('oae-util/lib/tz');
-const { Validator } = require('oae-util/lib/validator');
-const log = require('oae-logger').logger('oae-ui');
+import Globalize from 'globalize';
+import less from 'less';
+import marked from 'marked';
+import PropertiesParser from 'properties-parser';
+import readdirp from 'readdirp';
+import watch from 'watch';
 
-const { UIConstants } = require('./constants');
+import * as ConfigAPI from 'oae-config';
+
+import * as ContentUtil from 'oae-content/lib/internal/util';
+import * as EmitterAPI from 'oae-emitter';
+import * as Sanitization from 'oae-util/lib/sanitization';
+import * as TZ from 'oae-util/lib/tz';
+import { Validator } from 'oae-util/lib/validator';
+import { logger } from 'oae-logger';
+
+import { UIConstants } from './constants';
+
+const log = logger('oae-ui');
 
 // The Config object for the UI module.
-const uiConfig = ConfigAPI.config('oae-ui');
+const uiConfig = ConfigAPI.setUpConfig('oae-ui');
 
 // The cached skin variables
 let cachedSkinVariables = null;
@@ -127,10 +131,7 @@ ConfigAPI.eventEmitter.on('update', tenantAlias => {
   // Don't delete it from the cache just yet as we might still be serving requests.
   _generateSkin(tenantAlias, err => {
     if (err) {
-      log().error(
-        { err, tenantAlias },
-        'Could not re-cache the tenant skin after a config update.'
-      );
+      log().error({ err, tenantAlias }, 'Could not re-cache the tenant skin after a config update.');
     }
 
     emitter.emit('skinParsed');
@@ -217,11 +218,9 @@ const cacheWidgetManifests = function() {
         widgetManifestCache[widgetId] = JSON.parse(widgetManifest);
       } catch (error) {
         widgetManifestCache[widgetId] = {};
-        log().error(
-          { err: error, widgetId, path: entry.fullPath },
-          'Could not parse the widget manifest file'
-        );
+        log().error({ err: error, widgetId, path: entry.fullPath }, 'Could not parse the widget manifest file');
       }
+
       widgetManifestCache[widgetId].id = widgetId;
       widgetManifestCache[widgetId].path = entry.parentDir + '/';
     })
@@ -265,15 +264,12 @@ const getStaticBatch = function(files, callback) {
   files = _.uniq(files);
   // Make sure that all provided filenames are real strings
   for (let i = 0; i < files.length; i++) {
-    validator
-      .check(files[i], { code: 400, msg: 'A valid file path needs to be provided' })
-      .notEmpty();
+    validator.check(files[i], { code: 400, msg: 'A valid file path needs to be provided' }).notEmpty();
     // Make sure that only absolute paths are allowed. All paths that contain a '../' have the potential of
     // exposing private server files
-    validator
-      .check(files[i], { code: 400, msg: 'Only absolute paths are allowed' })
-      .notContains('../');
+    validator.check(files[i], { code: 400, msg: 'Only absolute paths are allowed' }).notContains('../');
   }
+
   validator.check(files.length, { code: 400, msg: 'At least one file must be provided' }).min(1);
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
@@ -389,6 +385,7 @@ const getSkin = function(ctx, callback) {
   if (cachedSkins[tenantAlias]) {
     return callback(null, cachedSkins[tenantAlias]);
   }
+
   _generateSkin(tenantAlias, callback);
 };
 
@@ -431,6 +428,7 @@ const getSkinVariables = function(ctx, tenantAlias, callback) {
     if (err) {
       return callback(err);
     }
+
     // Get the values for this tenant.
     const tenantVariables = _getTenantSkinVariableValues(tenantAlias);
 
@@ -488,9 +486,7 @@ const getSkinVariables = function(ctx, tenantAlias, callback) {
       };
       // Make sure that the subsection exists
       const section = sections[variable.section.name];
-      section.subsections[variable.subsection.name] = section.subsections[
-        variable.subsection.name
-      ] || {
+      section.subsections[variable.subsection.name] = section.subsections[variable.subsection.name] || {
         name: variable.subsection.name,
         index: variable.subsection.index,
         variables: []
@@ -664,11 +660,7 @@ const _cacheSkinVariables = function(callback) {
       let subsectionMatch = null;
 
       // Section declaration
-      if (
-        rule.value &&
-        typeof rule.value === 'string' &&
-        (sectionMatch = rule.value.match(sectionRegex))
-      ) {
+      if (rule.value && typeof rule.value === 'string' && (sectionMatch = rule.value.match(sectionRegex))) {
         // Get the name of this section.
         section = sectionMatch[1];
         sections.push(section);
@@ -692,12 +684,7 @@ const _cacheSkinVariables = function(callback) {
         // This should be defined in the previous rule.
         const docRule = tree.rules[i - 1];
         let description = 'TODO';
-        if (
-          docRule &&
-          docRule.value &&
-          typeof docRule.value === 'string' &&
-          docRule.value.substring(0, 2) === '/*'
-        ) {
+        if (docRule && docRule.value && typeof docRule.value === 'string' && docRule.value.substring(0, 2) === '/*') {
           description = docRule.value.replace('/* ', '').replace('*/', '');
         }
 
@@ -711,6 +698,7 @@ const _cacheSkinVariables = function(callback) {
           // If (/-color$/.test(name)) {
           type = UIConstants.variables.types.COLOR;
         }
+
         if (name.endsWith('-url')) {
           // If (/-url$/.test(name)) {
           type = UIConstants.variables.types.URL;
@@ -789,6 +777,7 @@ const _getTenantSkinVariableValues = function(tenantAlias) {
   if (!variables || !_.isObject(variables)) {
     return {};
   }
+
   return variables;
 };
 
@@ -844,11 +833,7 @@ const _replaceOptimizedPaths = function(skinVariables) {
       const variableMetadata = cachedSkinVariables[key];
 
       // Try to apply optimized paths if the variable is a valid URL
-      if (
-        variableMetadata &&
-        variableMetadata.type === UIConstants.variables.types.URL &&
-        urlRegex.test(value)
-      ) {
+      if (variableMetadata && variableMetadata.type === UIConstants.variables.types.URL && urlRegex.test(value)) {
         // Strip out the enclosing quotes
         const url = value.replace(urlRegex, '$1').trim();
         if (hashes[url]) {
@@ -877,6 +862,7 @@ const uploadLogoFile = function(ctx, file, tenantAlias, callback) {
   if (!ctx.user() || !ctx.user().isAdmin(tenantAlias)) {
     return callback({ code: 401, msg: 'Only administrators can upload new logos for tenants' });
   }
+
   const extension = file.name.split('.').pop();
   if (!extension.match(/(gif|jpe?g|png)$/i)) {
     return callback({ code: 500, msg: 'File has an invalid mime type' });
@@ -889,6 +875,7 @@ const uploadLogoFile = function(ctx, file, tenantAlias, callback) {
     if (err) {
       return callback(err);
     }
+
     const signedUrl = ContentUtil.getSignedDownloadUrl(ctx, uri, -1, -1);
     return callback(null, signedUrl);
   });
@@ -1079,6 +1066,7 @@ const renderTemplate = function(template, data, locale) {
             if (text && href && href !== '#') {
               return util.format('%s (%s)', text, href);
             }
+
             return $(this);
           });
         }
@@ -1114,6 +1102,7 @@ const renderTemplate = function(template, data, locale) {
         if (text.length > maxChars) {
           text = text.substring(0, maxChars) + '...';
         }
+
         return text;
       },
 
@@ -1256,11 +1245,13 @@ const renderTemplate = function(template, data, locale) {
 
           // If the link already has `http` in it (e.g., twitter profile pics) we return as-is
         }
+
         if (link.indexOf('http') === 0) {
           return link;
 
           // Otherwise we prefix it with the base url
         }
+
         return baseUrl + link;
       },
 
@@ -1327,6 +1318,7 @@ const compileTemplate = function(template) {
     if (fs.existsSync(path)) {
       return fs.readFileSync(path, 'utf8');
     }
+
     log().warn({ path }, 'Could not find an underscore template');
     return '';
   });
@@ -1402,7 +1394,7 @@ const _uiRequire = function(path) {
   return require(uiDirectory + path);
 };
 
-module.exports = {
+export {
   emitter,
   init,
   getWidgetManifests,

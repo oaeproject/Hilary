@@ -13,20 +13,21 @@
  * permissions and limitations under the License.
  */
 
-const log = require('oae-logger').logger('oae-jitsi-init');
+import { logger } from 'oae-logger';
 
-const MeetingSearch = require('./search');
+import * as MeetingSearch from './search';
+// Register the activity functionality
+// eslint-disable-next-line no-unused-vars
+import * as activity from './activity';
 
-module.exports = function(config, callback) {
+// Register the library functionality
+// eslint-disable-next-line no-unused-vars
+import * as library from './library';
+
+const log = logger('oae-jitsi-init');
+
+export function init(config, callback) {
   log().info('Initializing the oae-jitsi module');
 
-  // Register the activity functionality
-  // eslint-disable-next-line no-unused-vars
-  const activity = require('./activity');
-
-  // Register the library functionality
-  // eslint-disable-next-line no-unused-vars
-  const library = require('./library');
-
   return MeetingSearch.init(callback);
-};
+}

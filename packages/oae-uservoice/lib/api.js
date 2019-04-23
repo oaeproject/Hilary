@@ -19,7 +19,7 @@ const UservoiceSSO = require('uservoice-sso');
 const log = require('oae-logger').logger('oae-uservoice-api');
 const OaeUtil = require('oae-util/lib/util');
 
-const UservoiceConfig = require('oae-config').config('oae-uservoice');
+const UservoiceConfig = require('oae-config').setUpConfig('oae-uservoice');
 const UservoiceProfile = require('./internal/profile');
 
 const TIME_FIVE_MINUTES_IN_SECONDS = 15 * 60;

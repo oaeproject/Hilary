@@ -13,14 +13,17 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const request = require('request');
+import util from 'util';
+import request from 'request';
 
-const log = require('oae-logger').logger('oae-preview-processor');
-const PreviewConfig = require('oae-config').config('oae-preview-processor');
+import { logger } from 'oae-logger';
+import { setUpConfig } from 'oae-config';
 
-const LinkProcessorUtil = require('oae-preview-processor/lib/processors/link/util');
-const PreviewUtil = require('oae-preview-processor/lib/util');
+import * as LinkProcessorUtil from 'oae-preview-processor/lib/processors/link/util';
+import * as PreviewUtil from 'oae-preview-processor/lib/util';
+
+const log = logger('oae-preview-processor');
+const PreviewConfig = setUpConfig('oae-preview-processor');
 
 // A regular expression that can be used to check if a URL points to a specific photo
 const REGEX_PHOTO = /^http(s)?:\/\/(www\.)?flickr\.com\/photos\/([-_a-zA-Z0-9@]+)\/(\d+)/;
@@ -69,13 +72,10 @@ const test = function(ctx, contentObj, callback) {
   }
 
   // Only allow URLs that are on the Flickr domain
-  if (
-    REGEX_PHOTO.test(contentObj.link) ||
-    REGEX_SHORT_PHOTO.test(contentObj.link) ||
-    REGEX_SET.test(contentObj.link)
-  ) {
+  if (REGEX_PHOTO.test(contentObj.link) || REGEX_SHORT_PHOTO.test(contentObj.link) || REGEX_SET.test(contentObj.link)) {
     return callback(null, 10);
   }
+
   return callback(null, -1);
 };
 
@@ -84,17 +84,18 @@ const test = function(ctx, contentObj, callback) {
  */
 const generatePreviews = function(ctx, contentObj, callback) {
   /*!
-     * Downloads a thumbnail from flickr and processes it
-     *
-     * @param  {Object}     err     An error object coming from the metadata fetchers
-     * @param  {Object}     opts    The object with metadata that we can use to fetch the image and/or a displayname and a description
-     * @param  {Boolean}    ignore  If this value is set to `true` we'll ignore the picture
-     * @api private
-     */
+   * Downloads a thumbnail from flickr and processes it
+   *
+   * @param  {Object}     err     An error object coming from the metadata fetchers
+   * @param  {Object}     opts    The object with metadata that we can use to fetch the image and/or a displayname and a description
+   * @param  {Boolean}    ignore  If this value is set to `true` we'll ignore the picture
+   * @api private
+   */
   const handleDownload = function(err, opts, ignore) {
     if (err) {
       return callback(err);
     }
+
     if (ignore) {
       return callback(null, true);
     }
@@ -148,6 +149,7 @@ const _getFlickrPhoto = function(ctx, id, callback) {
       log().error({ err, body }, 'An unexpected error occurred getting a Flickr photo');
       return callback(err);
     }
+
     if (response.statusCode !== 200) {
       err = { code: response.statusCode, msg: body };
       log().error({ err }, 'An unexpected error occurred getting a Flickr photo');
@@ -201,6 +203,7 @@ const _getFlickrSet = function(ctx, id, callback) {
       log().error({ err, body }, 'An unexpected error occurred getting a Flickr photo set');
       return callback(err);
     }
+
     if (response.statusCode !== 200) {
       err = { code: response.statusCode, msg: body };
       log().error({ err }, 'An unexpected error occurred getting a Flickr photo set');
@@ -224,12 +227,7 @@ const _getFlickrSet = function(ctx, id, callback) {
     return callback(null, {
       displayName: info.photoset.title._content,
       description: info.photoset.description._content,
-      imageUrl: _getImageUrl(
-        info.photoset.farm,
-        info.photoset.server,
-        info.photoset.primary,
-        info.photoset.secret
-      )
+      imageUrl: _getImageUrl(info.photoset.farm, info.photoset.server, info.photoset.primary, info.photoset.secret)
     });
   });
 };
@@ -274,6 +272,7 @@ const _getType = function(url) {
   if (match) {
     return { type: 'photo', id: match[4] };
   }
+
   match = url.match(REGEX_SHORT_PHOTO);
   if (match) {
     return { type: 'photo', id: _base58Decode(match[2]) };
@@ -327,9 +326,4 @@ const _base58Decode = function(s) {
   return val;
 };
 
-module.exports = {
-  setApiUrl,
-  setImageUrl,
-  test,
-  generatePreviews
-};
+export { setApiUrl, setImageUrl, test, generatePreviews };

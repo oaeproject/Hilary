@@ -13,14 +13,14 @@
  * permissions and limitations under the License.
  */
 
-const FollowingSearch = require('oae-following/lib/search');
+import * as FollowingSearch from 'oae-following/lib/search';
 
 // Bind some plugins
-// eslint-disable-next-line no-unused-vars
-const activity = require('oae-following/lib/activity');
-// eslint-disable-next-line no-unused-vars
-const principals = require('oae-following/lib/principals');
+// eslint-disable-next-line no-unused-vars, import/namespace
+import * as activity from 'oae-following/lib/activity';
+// eslint-disable-next-line no-unused-vars, import/namespace
+import * as principals from 'oae-following/lib/principals';
 
-module.exports = function(config, callback) {
+export function init(config, callback) {
   return FollowingSearch.init(callback);
-};
+}

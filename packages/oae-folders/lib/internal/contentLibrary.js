@@ -14,12 +14,14 @@
  */
 
 /* eslint-disable unicorn/filename-case */
-const _ = require('underscore');
+import _ from 'underscore';
 
-const LibraryAPI = require('oae-library');
-const log = require('oae-logger').logger('oae-folders-contentlibrary');
+import * as LibraryAPI from 'oae-library';
+import { logger } from 'oae-logger';
 
-const { FoldersConstants } = require('../constants');
+import { FoldersConstants } from '../constants';
+
+const log = logger('oae-folders-contentlibrary');
 
 /**
  * Get the ids of the content items in the content library of a folder
@@ -115,11 +117,7 @@ const remove = function(folder, contentItems, callback) {
  * @param  {Object}         callback.err    An error that occurred, if any
  */
 const purge = function(folder, callback) {
-  LibraryAPI.Index.purge(
-    FoldersConstants.library.CONTENT_LIBRARY_INDEX_NAME,
-    folder.groupId,
-    callback
-  );
+  LibraryAPI.Index.purge(FoldersConstants.library.CONTENT_LIBRARY_INDEX_NAME, folder.groupId, callback);
 };
 
 /**
@@ -178,9 +176,4 @@ const _remove = function(folder, contentItems, callback) {
   LibraryAPI.Index.remove(FoldersConstants.library.CONTENT_LIBRARY_INDEX_NAME, entries, callback);
 };
 
-module.exports = {
-  list,
-  insert,
-  remove,
-  purge
-};
+export { list, insert, remove, purge };

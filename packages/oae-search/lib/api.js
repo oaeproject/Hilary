@@ -13,17 +13,19 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
+import { logger } from 'oae-logger';
 
-const EmitterAPI = require('oae-emitter');
-const log = require('oae-logger').logger('oae-search');
-const TaskQueue = require('oae-util/lib/taskqueue');
-const { Validator } = require('oae-util/lib/validator');
+import * as EmitterAPI from 'oae-emitter';
+import * as TaskQueue from 'oae-util/lib/taskqueue';
+import * as SearchUtil from 'oae-search/lib/util';
 
-const { SearchConstants } = require('oae-search/lib/constants');
-const { SearchResult } = require('oae-search/lib/model');
-const SearchUtil = require('oae-search/lib/util');
-const client = require('./internal/elasticsearch');
+import { Validator } from 'oae-util/lib/validator';
+import { SearchConstants } from 'oae-search/lib/constants';
+import { SearchResult } from 'oae-search/lib/model';
+import * as client from './internal/elasticsearch';
+
+const log = logger('oae-search');
 
 // Holds the currently configured index to which we will perform all requested operations, as per
 // the `config.search.index` configuration object in config.js
@@ -125,6 +127,7 @@ const registerSearchDocumentTransformer = function(typeName, transformer) {
   if (searchDocumentTransformers[typeName]) {
     throw new Error('Document transformer for type ' + typeName + ' already exists');
   }
+
   searchDocumentTransformers[typeName] = transformer;
 };
 
@@ -145,6 +148,7 @@ const registerSearchDocumentProducer = function(typeName, producer) {
   if (searchDocumentProducers[typeName]) {
     throw new Error('Document producer for type ' + typeName + ' already exists');
   }
+
   searchDocumentProducers[typeName] = producer;
 };
 
@@ -175,6 +179,7 @@ const registerSearch = function(typeName, queryBuilder, postProcessor) {
   if (searches[typeName]) {
     throw new Error('Search type ' + typeName + ' already exists');
   }
+
   searches[typeName] = {
     queryBuilder,
     postProcessor:
@@ -197,6 +202,7 @@ const registerReindexAllHandler = function(handlerId, handler) {
   if (reindexAllHandlers[handlerId]) {
     throw new Error('Reindex-all handler with id ' + handlerId + ' already exists');
   }
+
   reindexAllHandlers[handlerId] = handler;
 };
 
@@ -326,6 +332,7 @@ const search = function(ctx, searchType, opts, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!queryData) {
       return callback(null, new SearchResult(0, []));
     }
@@ -509,6 +516,7 @@ const _ensureSearchSchema = function(callback, _names) {
       return _ensureSearchSchema(callback, _.keys(childSearchDocuments));
     });
   }
+
   if (_.isEmpty(_names)) {
     return callback();
   }
@@ -578,6 +586,7 @@ const _handleReindexAllTask = function(data, callback) {
         // Do nothing, we've already returned to the caller
         return;
       }
+
       if (err) {
         complete = true;
         return callback(err);
@@ -690,6 +699,7 @@ const _deleteAll = function(deletes, callback) {
   if (del.deleteType === 'id') {
     return client.del(del.documentType, del.id, _handleDocumentsDeleted);
   }
+
   if (del.deleteType === 'query') {
     const query = { query: del.query };
     return client.deleteByQuery(del.documentType, query, null, _handleDocumentsDeleted);
@@ -767,6 +777,7 @@ const _handleIndexDocumentTask = function(data, callback) {
       if (_.isEmpty(allDocs)) {
         return callback();
       }
+
       if (allDocs.length > 1) {
         const ops = SearchUtil.createBulkIndexOperations(allDocs);
         client.bulk(ops, err => {
@@ -791,7 +802,7 @@ const _handleIndexDocumentTask = function(data, callback) {
         delete doc.id;
         delete doc._parent;
 
-        client.index(doc._type, id, doc, opts, err => {
+        client.runIndex(doc._type, id, doc, opts, err => {
           if (err) {
             log().error({ err, id, doc, opts }, 'Error indexing a document');
           } else {
@@ -899,8 +910,8 @@ const _produceAllChildDocuments = function(resourceChildrenToIndex, callback, _d
   }
 };
 
-module.exports = {
-  emitter: SearchAPI,
+export {
+  SearchAPI as emitter,
   registerSearchDocumentTransformer,
   registerSearchDocumentProducer,
   registerSearch,

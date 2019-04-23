@@ -13,18 +13,21 @@
  * permissions and limitations under the License.
  */
 
-const LDAPStrategy = require('passport-ldapauth').Strategy;
+import passport from 'passport-ldapauth';
 
-const ConfigAPI = require('oae-config');
-const { Context } = require('oae-context');
-const log = require('oae-logger').logger('oae-authentication');
+import * as ConfigAPI from 'oae-config';
+import { Context } from 'oae-context';
+import { logger } from 'oae-logger';
 
-const AuthenticationAPI = require('oae-authentication');
+import * as AuthenticationAPI from 'oae-authentication';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants';
 
-const AuthenticationConfig = ConfigAPI.config('oae-authentication');
-const { AuthenticationConstants } = require('oae-authentication/lib/constants');
+const LDAPStrategy = passport.Strategy;
+const log = logger('oae-authentication');
 
-module.exports = function() {
+const AuthenticationConfig = ConfigAPI.setUpConfig('oae-authentication');
+
+export default function() {
   const strategy = {};
 
   /**
@@ -86,6 +89,7 @@ module.exports = function() {
           opts.emailVerified = true;
         }
       }
+
       if (mapLocale) {
         opts.locale = profile[mapLocale];
       }
@@ -106,4 +110,4 @@ module.exports = function() {
 
   // Register our strategy.
   AuthenticationAPI.registerStrategy(AuthenticationConstants.providers.LDAP, strategy);
-};
+}

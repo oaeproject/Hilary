@@ -13,13 +13,12 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
 
-const { Validator } = require('oae-util/lib/validator');
-
-const TenantNetworksDAO = require('./internal/dao.networks');
-const TenantsAPI = require('./api');
+import { Validator } from 'oae-util/lib/validator';
+import * as TenantNetworksDAO from './internal/dao.networks';
+import * as TenantsAPI from './api';
 
 /**
  * Create a tenant network
@@ -38,9 +37,7 @@ const createTenantNetwork = function(ctx, displayName, callback) {
       msg: 'Must be a global administrator user to create a tenant network'
     })
     .isGlobalAdministratorUser(ctx);
-  validator
-    .check(displayName, { code: 400, msg: 'A tenant network must contain a display name' })
-    .notEmpty();
+  validator.check(displayName, { code: 400, msg: 'A tenant network must contain a display name' }).notEmpty();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -108,9 +105,7 @@ const updateTenantNetwork = function(ctx, id, displayName, callback) {
     })
     .isGlobalAdministratorUser(ctx);
   validator.check(id, { code: 400, msg: 'Must specify a tenant network id' }).notEmpty();
-  validator
-    .check(displayName, { code: 400, msg: 'A tenant network must contain a display name' })
-    .notEmpty();
+  validator.check(displayName, { code: 400, msg: 'A tenant network must contain a display name' }).notEmpty();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
@@ -159,12 +154,8 @@ const addTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callback)
       msg: 'Must be a global administrator user to update a tenant network'
     })
     .isGlobalAdministratorUser(ctx);
-  validator
-    .check(tenantNetworkId, { code: 400, msg: 'Must specify a tenant network id' })
-    .notEmpty();
-  validator
-    .check(tenantAliases, { code: 400, msg: 'Must specify a list of tenant aliases to add' })
-    .notNull();
+  validator.check(tenantNetworkId, { code: 400, msg: 'Must specify a tenant network id' }).notEmpty();
+  validator.check(tenantAliases, { code: 400, msg: 'Must specify a list of tenant aliases to add' }).notNull();
   validator
     .check(tenantAliases.length, {
       code: 400,
@@ -203,12 +194,8 @@ const removeTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callba
       msg: 'Must be a global administrator user to update a tenant network'
     })
     .isGlobalAdministratorUser(ctx);
-  validator
-    .check(tenantNetworkId, { code: 400, msg: 'Must specify a tenant network id' })
-    .notEmpty();
-  validator
-    .check(tenantAliases, { code: 400, msg: 'Must specify a list of tenant aliases to remove' })
-    .notNull();
+  validator.check(tenantNetworkId, { code: 400, msg: 'Must specify a tenant network id' }).notEmpty();
+  validator.check(tenantAliases, { code: 400, msg: 'Must specify a list of tenant aliases to remove' }).notNull();
   validator
     .check(tenantAliases.length, {
       code: 400,
@@ -222,7 +209,7 @@ const removeTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callba
   return TenantNetworksDAO.removeTenantAliases(tenantNetworkId, tenantAliases, callback);
 };
 
-module.exports = {
+export {
   createTenantNetwork,
   getTenantNetworks,
   updateTenantNetwork,

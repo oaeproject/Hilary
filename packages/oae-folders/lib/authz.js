@@ -13,14 +13,15 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const AuthzAPI = require('oae-authz');
-const AuthzPermissions = require('oae-authz/lib/permissions');
-const AuthzUtil = require('oae-authz/lib/util');
-const log = require('oae-logger').logger('folders-authz');
+import * as AuthzAPI from 'oae-authz';
+import * as AuthzPermissions from 'oae-authz/lib/permissions';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import { logger } from 'oae-logger';
+import * as FoldersDAO from './internal/dao';
 
-const FoldersDAO = require('./internal/dao');
+const log = logger('folders-authz');
 
 /**
  * Determine if the user invoking the current request is allowed to add content items to a given
@@ -101,8 +102,4 @@ const getContentInFolder = function(folder, callback) {
   });
 };
 
-module.exports = {
-  getFoldersForContent,
-  canAddItemsToFolder,
-  getContentInFolder
-};
+export { getFoldersForContent, canAddItemsToFolder, getContentInFolder };

@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
 
 /// ///////////////
 // GLOBAL UTILS //
@@ -23,7 +23,7 @@ const _ = require('underscore');
 // Include some global utilities and extensions (e.g., underscore mixins). See the directory
 // `oae-util/lib/internal/globals` for all the global definitions
 // eslint-disable-next-line import/no-unassigned-import
-require('./internal/globals');
+import * as globals from './internal/globals';
 
 /// ////////////////
 // OAEUTIL UTILS //
@@ -40,9 +40,11 @@ const castToBoolean = function(value) {
   if (value === 'true' || value === '1') {
     return true;
   }
+
   if (value === 'false' || value === '0') {
     return false;
   }
+
   return value;
 };
 
@@ -63,9 +65,11 @@ const getNumberParam = function(val, defaultVal, minimum, maximum) {
   if ((minimum || minimum === 0) && val < minimum) {
     val = minimum;
   }
+
   if ((maximum || maximum === 0) && val > maximum) {
     val = maximum;
   }
+
   return val;
 };
 
@@ -116,8 +120,8 @@ const isUnspecified = function(val) {
  * @param  {...Object}  args            The arguments for the provided method. The final argument should always be the `callback` method that needs to be invoked if `isNecessary` is false. It can be the same callback method invoked if the method is executed.
  */
 const invokeIfNecessary = function(...args) {
-  let isNecessary = args[0];
-  let method = args[1];
+  const isNecessary = args[0];
+  const method = args[1];
   if (!isNecessary) {
     return _.last(args)();
   }
@@ -146,18 +150,13 @@ const toArray = function(val) {
   if (!val) {
     return [];
   }
+
   // Underscore doesn't wrap primitive values
   if (typeof val === 'number' || typeof val === 'string' || val instanceof Date) {
     return [val];
   }
+
   return _.toArray(val);
 };
 
-module.exports = {
-  castToBoolean,
-  getNumberParam,
-  isUnspecified,
-  invokeIfNecessary,
-  getNodeModulesDir,
-  toArray
-};
+export { castToBoolean, getNumberParam, isUnspecified, invokeIfNecessary, getNodeModulesDir, toArray };

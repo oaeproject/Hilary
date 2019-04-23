@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-const { AuthzConstants } = require('oae-authz/lib/constants');
+import { AuthzConstants } from 'oae-authz/lib/constants';
 
 const DiscussionsConstants = {};
 
@@ -56,4 +56,4 @@ DiscussionsConstants.search = {
   MAPPING_DISCUSSION_MESSAGE: 'discussion_message'
 };
 
-module.exports = { DiscussionsConstants };
+export { DiscussionsConstants };

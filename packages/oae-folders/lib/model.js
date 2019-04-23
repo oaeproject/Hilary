@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
+import util from 'util';
 
-const AuthzUtil = require('oae-authz/lib/util');
+import * as AuthzUtil from 'oae-authz/lib/util';
 
 /**
  * A model object that represents a folder
@@ -60,4 +60,4 @@ const Folder = function(
   return that;
 };
 
-module.exports = { Folder };
+export { Folder };

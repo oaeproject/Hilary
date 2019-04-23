@@ -5,6 +5,7 @@
       "script": "app.js",
       "cwd": "/opt/current",
       "watch": true,
+      "node_args": "-r esm",
       "instances": 1,
       "exec_mode": "cluster",
       "log_file": "/var/log/Hilary/hilary.log",

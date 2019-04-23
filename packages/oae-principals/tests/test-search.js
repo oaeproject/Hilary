@@ -12,15 +12,14 @@
  * or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert'
+import _ from 'underscore'
 
-const ElasticSearch = require('oae-search/lib/internal/elasticsearch');
-const RestAPI = require('oae-rest');
-const SearchAPI = require('oae-search');
-const { SearchConstants } = require('oae-search/lib/constants');
-const SearchTestsUtil = require('oae-search/lib/test/util');
-const TestsUtil = require('oae-tests');
+import * as ElasticSearch from 'oae-search/lib/internal/elasticsearch';
+import * as RestAPI from 'oae-rest';
+import * as SearchAPI from 'oae-search';
+import * as SearchTestsUtil from 'oae-search/lib/test/util';
+import * as TestsUtil from 'oae-tests';
 
 describe('Search', () => {
   // REST contexts we can use to do REST requests

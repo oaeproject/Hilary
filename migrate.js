@@ -14,14 +14,12 @@
  * permissions and limitations under the License.
  */
 
-const path = require('path');
 const optimist = require('optimist');
 
-const log = require('oae-logger').logger();
+const { runMigrations } = require('./etc/migration/migration-runner');
+const { config } = require('./config');
 
-const config = require(path.join(__dirname, 'config.js'));
-const dbConfig = config.config.cassandra;
-const migrationRunner = require(path.join(__dirname, 'etc/migration/migration_runner.js'));
+const dbConfig = config.cassandra;
 
 const { argv } = optimist
   .usage('$0 [--keyspace <keyspace>]')
@@ -37,9 +35,7 @@ if (argv.help) {
 dbConfig.keyspace = argv.keyspace === true ? dbConfig.keyspace : argv.keyspace;
 
 const execute = function() {
-  log().info('Running migrations for keyspace ' + dbConfig.keyspace + '...');
-  migrationRunner.runMigrations(dbConfig, () => {
-    log().info('All done.');
+  runMigrations(dbConfig, () => {
     process.exit(0);
   });
 };

@@ -13,8 +13,10 @@
  * permissions and limitations under the License.
  */
 
-const redis = require('redis');
-const log = require('oae-logger').logger('oae-redis');
+import redis from 'redis';
+import { logger } from 'oae-logger';
+
+const log = logger('oae-redis');
 
 let client = null;
 let isDown = false;
@@ -31,6 +33,7 @@ const init = function(redisConfig, callback) {
     if (err) {
       return callback(err);
     }
+
     client = _client;
     return callback();
   });
@@ -44,9 +47,11 @@ const _selectIndex = function(client, _config, callback) {
       log().error({ err }, "Couldn't select the redis DB index '%s'", dbIndex);
       return callback(err);
     }
+
     return callback(null, client);
   });
 };
+
 /**
  * Creates a redis connection from a defined set of configuration.
  *
@@ -76,6 +81,7 @@ const createClient = function(_config, callback) {
     if (isDown) {
       log().error('Reconnected to redis \\o/');
     }
+
     isDown = false;
   });
 
@@ -92,9 +98,11 @@ const _authenticateRedis = (client, _config, callback) => {
         log().error({ err }, "Couldn't authenticate with redis.");
         return callback(err);
       }
+
       _selectIndex(client, _config, callback);
     });
   }
+
   _selectIndex(client, _config, callback);
 };
 
@@ -112,17 +120,19 @@ const getClient = function() {
  * @param  {Object}   callback.err   An error that occurred, if any
  */
 const flush = function(callback) {
-  client.flushdb([], err => {
+  const done = err => {
     if (err) {
       return callback({ code: 500, msg: err });
     }
-    return callback();
-  });
+
+    callback();
+  };
+
+  if (client) {
+    client.flushdb([], done);
+  } else {
+    done('Unable to flush redis. Try initializing it first.');
+  }
 };
 
-module.exports = {
-  createClient,
-  getClient,
-  flush,
-  init
-};
+export { createClient, getClient, flush, init };

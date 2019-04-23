@@ -13,11 +13,11 @@
  * permissions and limitations under the License.
  */
 
-const TelemetryAPI = require('oae-telemetry');
+import * as TelemetryAPI from 'oae-telemetry';
 
 /**
  * Initializes the TelemetryAPI so it can begin publishing metric data.
  */
-module.exports = function(config, callback) {
+export function init(config, callback) {
   TelemetryAPI.init(config.telemetry, callback);
-};
+}

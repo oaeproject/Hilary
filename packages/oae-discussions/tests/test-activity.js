@@ -14,19 +14,15 @@
  */
 
 /* eslint-disable no-unused-vars */
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const AuthzUtil = require('oae-authz/lib/util');
-const PreviewConstants = require('oae-preview-processor/lib/constants');
-const PrincipalsTestUtil = require('oae-principals/lib/test/util');
-const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
-const Sanitization = require('oae-util/lib/sanitization');
-const TestsUtil = require('oae-tests');
-
-const ActivityTestsUtil = require('oae-activity/lib/test/util');
-const EmailTestsUtil = require('oae-email/lib/test/util');
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
+import * as EmailTestsUtil from 'oae-email/lib/test/util';
 
 describe('Discussion Activity', () => {
   // Rest contexts that can be used performing rest requests
@@ -157,10 +153,7 @@ describe('Discussion Activity', () => {
                             (err, activityStream) => {
                               assert.ok(!err);
                               const entity = activityStream.items[0];
-                              assert.strictEqual(
-                                entity['oae:activityType'],
-                                'discussion-update-visibility'
-                              );
+                              assert.strictEqual(entity['oae:activityType'], 'discussion-update-visibility');
                               assert.strictEqual(entity.verb, 'update');
                               callback();
                             }
@@ -260,12 +253,9 @@ describe('Discussion Activity', () => {
                               assert.strictEqual(entity.object.objectType, 'collection');
                               assert.ok(entity.object['oae:collection']);
                               assert.strictEqual(entity.object['oae:collection'].length, 2);
-                              const originalMessage = _.find(
-                                entity.object['oae:collection'],
-                                activityMessage => {
-                                  return activityMessage['oae:id'] === message.id;
-                                }
-                              );
+                              const originalMessage = _.find(entity.object['oae:collection'], activityMessage => {
+                                return activityMessage['oae:id'] === message.id;
+                              });
                               assert.ok(originalMessage);
                               assert.strictEqual(originalMessage['oae:id'], message.id);
                               assert.strictEqual(originalMessage.content, message.body);
@@ -275,23 +265,14 @@ describe('Discussion Activity', () => {
                                 global.oaeTests.tenants.cam.alias
                               );
 
-                              const reply = _.find(
-                                entity.object['oae:collection'],
-                                activityMessage => {
-                                  return activityMessage['oae:id'] === nicosMessage.id;
-                                }
-                              );
+                              const reply = _.find(entity.object['oae:collection'], activityMessage => {
+                                return activityMessage['oae:id'] === nicosMessage.id;
+                              });
                               assert.ok(reply);
                               assert.strictEqual(reply['oae:id'], nicosMessage.id);
-                              assert.strictEqual(
-                                reply['oae:messageBoxId'],
-                                nicosMessage.messageBoxId
-                              );
+                              assert.strictEqual(reply['oae:messageBoxId'], nicosMessage.messageBoxId);
                               assert.strictEqual(reply['oae:threadKey'], nicosMessage.threadKey);
-                              assert.strictEqual(
-                                reply['oae:tenant'].alias,
-                                global.oaeTests.tenants.cam.alias
-                              );
+                              assert.strictEqual(reply['oae:tenant'].alias, global.oaeTests.tenants.cam.alias);
                               assert.strictEqual(reply.content, nicosMessage.body);
                               assert.strictEqual(reply.published, nicosMessage.created);
                               assert.strictEqual(reply.author['oae:id'], nico.user.id);
@@ -300,12 +281,9 @@ describe('Discussion Activity', () => {
 
                               // Verify both actors are present
                               assert.strictEqual(entity.actor.objectType, 'collection');
-                              const simonEntity = _.find(
-                                entity.actor['oae:collection'],
-                                userEntity => {
-                                  return userEntity['oae:id'] === simon.user.id;
-                                }
-                              );
+                              const simonEntity = _.find(entity.actor['oae:collection'], userEntity => {
+                                return userEntity['oae:id'] === simon.user.id;
+                              });
                               assert.ok(simonEntity);
                               assert.strictEqual(simonEntity['oae:id'], simon.user.id);
                               assert.strictEqual(
@@ -316,12 +294,9 @@ describe('Discussion Activity', () => {
                                   AuthzUtil.getResourceFromId(simon.user.id).resourceId
                               );
 
-                              const nicoEntity = _.find(
-                                entity.actor['oae:collection'],
-                                userEntity => {
-                                  return userEntity['oae:id'] === nico.user.id;
-                                }
-                              );
+                              const nicoEntity = _.find(entity.actor['oae:collection'], userEntity => {
+                                return userEntity['oae:id'] === nico.user.id;
+                              });
                               assert.ok(nicoEntity);
                               assert.strictEqual(nicoEntity['oae:id'], nico.user.id);
                               assert.strictEqual(
@@ -353,113 +328,81 @@ describe('Discussion Activity', () => {
      * Test that verifies that a message activity is routed to the managers and recent contributers their notification stream of a private discussion item
      */
     it('verify message activity is routed to the managers and recent contributers notification stream of a private discussion', callback => {
-      TestsUtil.generateTestUsers(
-        camAdminRestContext,
-        4,
-        (err, users, simon, nico, bert, stuart) => {
-          assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestContext, 4, (err, users, simon, nico, bert, stuart) => {
+        assert.ok(!err);
 
-          RestAPI.Discussions.createDiscussion(
-            simon.restContext,
-            'Something something discussworthy',
-            'Start discussing this sweet topic',
-            'private',
-            [nico.user.id],
-            [bert.user.id, stuart.user.id],
-            (err, discussion) => {
+        RestAPI.Discussions.createDiscussion(
+          simon.restContext,
+          'Something something discussworthy',
+          'Start discussing this sweet topic',
+          'private',
+          [nico.user.id],
+          [bert.user.id, stuart.user.id],
+          (err, discussion) => {
+            assert.ok(!err);
+
+            RestAPI.Discussions.createMessage(bert.restContext, discussion.id, 'Message A', null, (err, message) => {
               assert.ok(!err);
 
-              RestAPI.Discussions.createMessage(
-                bert.restContext,
-                discussion.id,
-                'Message A',
-                null,
-                (err, message) => {
+              // Assert that the managers got it
+              ActivityTestsUtil.collectAndGetNotificationStream(simon.restContext, null, (err, activityStream) => {
+                assert.ok(!err);
+                assert.ok(
+                  _.find(activityStream.items, activity => {
+                    return activity['oae:activityType'] === 'discussion-message';
+                  })
+                );
+
+                ActivityTestsUtil.collectAndGetNotificationStream(nico.restContext, null, (err, activityStream) => {
                   assert.ok(!err);
+                  assert.ok(
+                    _.find(activityStream.items, activity => {
+                      return activity['oae:activityType'] === 'discussion-message';
+                    })
+                  );
 
-                  // Assert that the managers got it
-                  ActivityTestsUtil.collectAndGetNotificationStream(
-                    simon.restContext,
+                  // Create another message and assert that both the managers and the recent contributers get a notification
+                  RestAPI.Discussions.createMessage(
+                    nico.restContext,
+                    discussion.id,
+                    'Message A',
                     null,
-                    (err, activityStream) => {
+                    (err, message) => {
                       assert.ok(!err);
-                      assert.ok(
-                        _.find(activityStream.items, activity => {
-                          return activity['oae:activityType'] === 'discussion-message';
-                        })
-                      );
 
+                      // Because Bert made a message previously, he should get a notification as well
                       ActivityTestsUtil.collectAndGetNotificationStream(
-                        nico.restContext,
+                        bert.restContext,
                         null,
                         (err, activityStream) => {
                           assert.ok(!err);
-                          assert.ok(
-                            _.find(activityStream.items, activity => {
-                              return activity['oae:activityType'] === 'discussion-message';
-                            })
-                          );
+                          const messageActivities = _.filter(activityStream.items, activity => {
+                            return activity['oae:activityType'] === 'discussion-message';
+                          });
+                          assert.ok(messageActivities.length, 2);
 
-                          // Create another message and assert that both the managers and the recent contributers get a notification
-                          RestAPI.Discussions.createMessage(
+                          // Sanity-check that the managers got it as well
+                          ActivityTestsUtil.collectAndGetNotificationStream(
                             nico.restContext,
-                            discussion.id,
-                            'Message A',
                             null,
-                            (err, message) => {
+                            (err, activityStream) => {
                               assert.ok(!err);
+                              const messageActivities = _.filter(activityStream.items, activity => {
+                                return activity['oae:activityType'] === 'discussion-message';
+                              });
+                              assert.ok(messageActivities.length, 2);
 
-                              // Because Bert made a message previously, he should get a notification as well
                               ActivityTestsUtil.collectAndGetNotificationStream(
-                                bert.restContext,
+                                simon.restContext,
                                 null,
                                 (err, activityStream) => {
                                   assert.ok(!err);
-                                  const messageActivities = _.filter(
-                                    activityStream.items,
-                                    activity => {
-                                      return activity['oae:activityType'] === 'discussion-message';
-                                    }
-                                  );
+                                  const messageActivities = _.filter(activityStream.items, activity => {
+                                    return activity['oae:activityType'] === 'discussion-message';
+                                  });
                                   assert.ok(messageActivities.length, 2);
 
-                                  // Sanity-check that the managers got it as well
-                                  ActivityTestsUtil.collectAndGetNotificationStream(
-                                    nico.restContext,
-                                    null,
-                                    (err, activityStream) => {
-                                      assert.ok(!err);
-                                      const messageActivities = _.filter(
-                                        activityStream.items,
-                                        activity => {
-                                          return (
-                                            activity['oae:activityType'] === 'discussion-message'
-                                          );
-                                        }
-                                      );
-                                      assert.ok(messageActivities.length, 2);
-
-                                      ActivityTestsUtil.collectAndGetNotificationStream(
-                                        simon.restContext,
-                                        null,
-                                        (err, activityStream) => {
-                                          assert.ok(!err);
-                                          const messageActivities = _.filter(
-                                            activityStream.items,
-                                            activity => {
-                                              return (
-                                                activity['oae:activityType'] ===
-                                                'discussion-message'
-                                              );
-                                            }
-                                          );
-                                          assert.ok(messageActivities.length, 2);
-
-                                          return callback();
-                                        }
-                                      );
-                                    }
-                                  );
+                                  return callback();
                                 }
                               );
                             }
@@ -468,12 +411,12 @@ describe('Discussion Activity', () => {
                       );
                     }
                   );
-                }
-              );
-            }
-          );
-        }
-      );
+                });
+              });
+            });
+          }
+        );
+      });
     });
   });
 
@@ -551,34 +494,29 @@ describe('Discussion Activity', () => {
             assert.ok(discussion);
 
             // Simon shares the discussion with nicolaas
-            RestAPI.Discussions.shareDiscussion(
-              simon.restContext,
-              discussion.id,
-              [nico.user.id],
-              err => {
-                assert.ok(!err);
+            RestAPI.Discussions.shareDiscussion(simon.restContext, discussion.id, [nico.user.id], err => {
+              assert.ok(!err);
 
-                // Collect the activities
-                ActivityTestsUtil.collectAndGetActivityStream(
-                  simon.restContext,
-                  simon.user.id,
-                  null,
-                  (err, activityStream) => {
-                    assert.ok(!err);
+              // Collect the activities
+              ActivityTestsUtil.collectAndGetActivityStream(
+                simon.restContext,
+                simon.user.id,
+                null,
+                (err, activityStream) => {
+                  assert.ok(!err);
 
-                    // Verify the discussion-share activity is the newest one in the feed
-                    const activity = activityStream.items[0];
-                    assert.ok(activity);
-                    assert.strictEqual(activity['oae:activityType'], 'discussion-share');
-                    assert.strictEqual(activity.actor['oae:id'], simon.user.id);
-                    assert.strictEqual(activity.object['oae:id'], discussion.id);
-                    assert.strictEqual(activity.target['oae:id'], nico.user.id);
+                  // Verify the discussion-share activity is the newest one in the feed
+                  const activity = activityStream.items[0];
+                  assert.ok(activity);
+                  assert.strictEqual(activity['oae:activityType'], 'discussion-share');
+                  assert.strictEqual(activity.actor['oae:id'], simon.user.id);
+                  assert.strictEqual(activity.object['oae:id'], discussion.id);
+                  assert.strictEqual(activity.target['oae:id'], nico.user.id);
 
-                    return callback();
-                  }
-                );
-              }
-            );
+                  return callback();
+                }
+              );
+            });
           }
         );
       });
@@ -607,34 +545,29 @@ describe('Discussion Activity', () => {
             memberUpdates[branden.user.id] = 'member';
 
             // Simon shares the discussion with Branden
-            RestAPI.Discussions.updateDiscussionMembers(
-              simon.restContext,
-              discussion.id,
-              memberUpdates,
-              err => {
-                assert.ok(!err);
+            RestAPI.Discussions.updateDiscussionMembers(simon.restContext, discussion.id, memberUpdates, err => {
+              assert.ok(!err);
 
-                // Collect the activities
-                ActivityTestsUtil.collectAndGetActivityStream(
-                  simon.restContext,
-                  simon.user.id,
-                  null,
-                  (err, activityStream) => {
-                    assert.ok(!err);
+              // Collect the activities
+              ActivityTestsUtil.collectAndGetActivityStream(
+                simon.restContext,
+                simon.user.id,
+                null,
+                (err, activityStream) => {
+                  assert.ok(!err);
 
-                    // Verify the discussion-share activity is the newest one in the feed
-                    const activity = activityStream.items[0];
-                    assert.ok(activity);
-                    assert.strictEqual(activity['oae:activityType'], 'discussion-share');
-                    assert.strictEqual(activity.actor['oae:id'], simon.user.id);
-                    assert.strictEqual(activity.object['oae:id'], discussion.id);
-                    assert.strictEqual(activity.target['oae:id'], branden.user.id);
+                  // Verify the discussion-share activity is the newest one in the feed
+                  const activity = activityStream.items[0];
+                  assert.ok(activity);
+                  assert.strictEqual(activity['oae:activityType'], 'discussion-share');
+                  assert.strictEqual(activity.actor['oae:id'], simon.user.id);
+                  assert.strictEqual(activity.object['oae:id'], discussion.id);
+                  assert.strictEqual(activity.target['oae:id'], branden.user.id);
 
-                    return callback();
-                  }
-                );
-              }
-            );
+                  return callback();
+                }
+              );
+            });
           }
         );
       });
@@ -662,33 +595,28 @@ describe('Discussion Activity', () => {
             // Simon promotes Branden to manager
             const memberUpdates = {};
             memberUpdates[branden.user.id] = 'manager';
-            RestAPI.Discussions.updateDiscussionMembers(
-              simon.restContext,
-              discussion.id,
-              memberUpdates,
-              err => {
-                assert.ok(!err);
+            RestAPI.Discussions.updateDiscussionMembers(simon.restContext, discussion.id, memberUpdates, err => {
+              assert.ok(!err);
 
-                // Verify the discussion-update-member-role activity is present
-                ActivityTestsUtil.collectAndGetActivityStream(
-                  simon.restContext,
-                  simon.user.id,
-                  null,
-                  (err, activityStream) => {
-                    assert.ok(!err);
-                    ActivityTestsUtil.assertActivity(
-                      activityStream.items[0],
-                      'discussion-update-member-role',
-                      'update',
-                      simon.user.id,
-                      branden.user.id,
-                      discussion.id
-                    );
-                    return callback();
-                  }
-                );
-              }
-            );
+              // Verify the discussion-update-member-role activity is present
+              ActivityTestsUtil.collectAndGetActivityStream(
+                simon.restContext,
+                simon.user.id,
+                null,
+                (err, activityStream) => {
+                  assert.ok(!err);
+                  ActivityTestsUtil.assertActivity(
+                    activityStream.items[0],
+                    'discussion-update-member-role',
+                    'update',
+                    simon.user.id,
+                    branden.user.id,
+                    discussion.id
+                  );
+                  return callback();
+                }
+              );
+            });
           }
         );
       });
@@ -715,33 +643,28 @@ describe('Discussion Activity', () => {
             assert.ok(discussion);
 
             // Nicolaas adds the discussion to his library
-            RestAPI.Discussions.shareDiscussion(
-              nico.restContext,
-              discussion.id,
-              [nico.user.id],
-              err => {
-                assert.ok(!err);
+            RestAPI.Discussions.shareDiscussion(nico.restContext, discussion.id, [nico.user.id], err => {
+              assert.ok(!err);
 
-                // Collect the activities
-                ActivityTestsUtil.collectAndGetActivityStream(
-                  nico.restContext,
-                  nico.user.id,
-                  null,
-                  (err, activityStream) => {
-                    assert.ok(!err);
+              // Collect the activities
+              ActivityTestsUtil.collectAndGetActivityStream(
+                nico.restContext,
+                nico.user.id,
+                null,
+                (err, activityStream) => {
+                  assert.ok(!err);
 
-                    // Verify the discussion-share activity is the newest one in the feed
-                    const activity = activityStream.items[0];
-                    assert.ok(activity);
-                    assert.strictEqual(activity['oae:activityType'], 'discussion-add-to-library');
-                    assert.strictEqual(activity.actor['oae:id'], nico.user.id);
-                    assert.strictEqual(activity.object['oae:id'], discussion.id);
+                  // Verify the discussion-share activity is the newest one in the feed
+                  const activity = activityStream.items[0];
+                  assert.ok(activity);
+                  assert.strictEqual(activity['oae:activityType'], 'discussion-add-to-library');
+                  assert.strictEqual(activity.actor['oae:id'], nico.user.id);
+                  assert.strictEqual(activity.object['oae:id'], discussion.id);
 
-                    return callback();
-                  }
-                );
-              }
-            );
+                  return callback();
+                }
+              );
+            });
           }
         );
       });
@@ -754,114 +677,96 @@ describe('Discussion Activity', () => {
      * are appropriately scrubbed.
      */
     it('verify discussion message email and privacy', callback => {
-      TestsUtil.generateTestUsers(
-        camAdminRestContext,
-        3,
-        (err, users, mrvisser, simong, nicolaas) => {
-          assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, mrvisser, simong, nicolaas) => {
+        assert.ok(!err);
 
-          // Simon is private and mrvisser is public
-          const simongUpdate = {
-            visibility: 'private',
-            publicAlias: 'swappedFromPublicAlias'
-          };
+        // Simon is private and mrvisser is public
+        const simongUpdate = {
+          visibility: 'private',
+          publicAlias: 'swappedFromPublicAlias'
+        };
 
-          // Update Simon
-          PrincipalsTestUtil.assertUpdateUserSucceeds(
-            simong.restContext,
-            simong.user.id,
-            simongUpdate,
-            () => {
-              // Create the discussion
-              RestAPI.Discussions.createDiscussion(
-                mrvisser.restContext,
-                'A talk',
-                'about computers',
-                'public',
-                [],
-                [],
-                (err, discussion) => {
+        // Update Simon
+        PrincipalsTestUtil.assertUpdateUserSucceeds(simong.restContext, simong.user.id, simongUpdate, () => {
+          // Create the discussion
+          RestAPI.Discussions.createDiscussion(
+            mrvisser.restContext,
+            'A talk',
+            'about computers',
+            'public',
+            [],
+            [],
+            (err, discussion) => {
+              assert.ok(!err);
+
+              // Post a new message
+              RestAPI.Discussions.createMessage(
+                simong.restContext,
+                discussion.id,
+                '<script>Nice discussion.</script>\n\nWould read again',
+                null,
+                (err, simongMessage) => {
                   assert.ok(!err);
 
-                  // Post a new message
-                  RestAPI.Discussions.createMessage(
-                    simong.restContext,
-                    discussion.id,
-                    '<script>Nice discussion.</script>\n\nWould read again',
-                    null,
-                    (err, simongMessage) => {
-                      assert.ok(!err);
+                  EmailTestsUtil.collectAndFetchAllEmails(emails => {
+                    // There should be exactly one email, the one sent to mrvisser (manager of discussion receives discussion-message notification)
+                    assert.strictEqual(emails.length, 1);
 
-                      EmailTestsUtil.collectAndFetchAllEmails(emails => {
-                        // There should be exactly one email, the one sent to mrvisser (manager of discussion receives discussion-message notification)
-                        assert.strictEqual(emails.length, 1);
+                    const stringEmail = JSON.stringify(emails[0]);
+                    const email = emails[0];
 
-                        const stringEmail = JSON.stringify(emails[0]);
-                        const email = emails[0];
+                    // Sanity check that the email is to mrvisser
+                    assert.strictEqual(email.to[0].address, mrvisser.user.email);
 
-                        // Sanity check that the email is to mrvisser
-                        assert.strictEqual(email.to[0].address, mrvisser.user.email);
+                    // Ensure that the subject of the email contains the poster's name
+                    assert.notStrictEqual(email.subject.indexOf('swappedFromPublicAlias'), -1);
 
-                        // Ensure that the subject of the email contains the poster's name
-                        assert.notStrictEqual(email.subject.indexOf('swappedFromPublicAlias'), -1);
+                    // Ensure some data expected to be in the email is there
+                    assert.notStrictEqual(stringEmail.indexOf(simong.restContext.hostHeader), -1);
+                    assert.notStrictEqual(stringEmail.indexOf(discussion.profilePath), -1);
+                    assert.notStrictEqual(stringEmail.indexOf(discussion.displayName), -1);
 
-                        // Ensure some data expected to be in the email is there
-                        assert.notStrictEqual(
-                          stringEmail.indexOf(simong.restContext.hostHeader),
-                          -1
-                        );
-                        assert.notStrictEqual(stringEmail.indexOf(discussion.profilePath), -1);
-                        assert.notStrictEqual(stringEmail.indexOf(discussion.displayName), -1);
+                    // Ensure simong's private info is nowhere to be found
+                    assert.strictEqual(stringEmail.indexOf(simong.user.displayName), -1);
+                    assert.strictEqual(stringEmail.indexOf(simong.user.email), -1);
+                    assert.strictEqual(stringEmail.indexOf(simong.user.locale), -1);
 
-                        // Ensure simong's private info is nowhere to be found
-                        assert.strictEqual(stringEmail.indexOf(simong.user.displayName), -1);
-                        assert.strictEqual(stringEmail.indexOf(simong.user.email), -1);
-                        assert.strictEqual(stringEmail.indexOf(simong.user.locale), -1);
+                    // The email should contain the public alias
+                    assert.notStrictEqual(stringEmail.indexOf('swappedFromPublicAlias'), -1);
 
-                        // The email should contain the public alias
-                        assert.notStrictEqual(stringEmail.indexOf('swappedFromPublicAlias'), -1);
+                    // The message should have escaped the HTML content in the original message
+                    assert.strictEqual(stringEmail.indexOf('<script>Nice discussion.</script>'), -1);
 
-                        // The message should have escaped the HTML content in the original message
-                        assert.strictEqual(
-                          stringEmail.indexOf('<script>Nice discussion.</script>'),
-                          -1
-                        );
+                    // The new line characters should've been converted into paragraphs
+                    assert.notStrictEqual(stringEmail.indexOf('Would read again</p>'), -1);
 
-                        // The new line characters should've been converted into paragraphs
-                        assert.notStrictEqual(stringEmail.indexOf('Would read again</p>'), -1);
+                    // Send a message as nicolaas and ensure the recent commenter, simong receives an email about it
+                    RestAPI.Discussions.createMessage(
+                      nicolaas.restContext,
+                      discussion.id,
+                      'I have a computer, too',
+                      null,
+                      (err, nicolaasMessage) => {
+                        assert.ok(!err);
 
-                        // Send a message as nicolaas and ensure the recent commenter, simong receives an email about it
-                        RestAPI.Discussions.createMessage(
-                          nicolaas.restContext,
-                          discussion.id,
-                          'I have a computer, too',
-                          null,
-                          (err, nicolaasMessage) => {
-                            assert.ok(!err);
+                        EmailTestsUtil.collectAndFetchAllEmails(emails => {
+                          // There should be 2 emails this time, one to the manager and one to the recent commenter, simong
+                          assert.strictEqual(emails.length, 2);
 
-                            EmailTestsUtil.collectAndFetchAllEmails(emails => {
-                              // There should be 2 emails this time, one to the manager and one to the recent commenter, simong
-                              assert.strictEqual(emails.length, 2);
-
-                              const emailAddresses = [
-                                emails[0].to[0].address,
-                                emails[1].to[0].address
-                              ];
-                              assert.ok(_.contains(emailAddresses, simong.user.email));
-                              assert.ok(_.contains(emailAddresses, mrvisser.user.email));
-                              return callback();
-                            });
-                          }
-                        );
-                      });
-                    }
-                  );
+                          const emailAddresses = [emails[0].to[0].address, emails[1].to[0].address];
+                          assert.ok(_.contains(emailAddresses, simong.user.email));
+                          assert.ok(_.contains(emailAddresses, mrvisser.user.email));
+                          return callback();
+                        });
+                      }
+                    );
+                  });
                 }
               );
             }
           );
-        }
-      );
+        });
+      });
     });
 
     /**
@@ -879,52 +784,47 @@ describe('Discussion Activity', () => {
         };
 
         // Update Simon
-        PrincipalsTestUtil.assertUpdateUserSucceeds(
-          simong.restContext,
-          simong.user.id,
-          simongUpdate,
-          () => {
-            // Create the link, sharing it with mrvisser during the creation step. We will ensure he gets an email about it
-            RestAPI.Discussions.createDiscussion(
-              simong.restContext,
-              'A talk',
-              'not about computers',
-              'public',
-              [],
-              [mrvisser.user.id],
-              (err, discussion) => {
-                assert.ok(!err);
+        PrincipalsTestUtil.assertUpdateUserSucceeds(simong.restContext, simong.user.id, simongUpdate, () => {
+          // Create the link, sharing it with mrvisser during the creation step. We will ensure he gets an email about it
+          RestAPI.Discussions.createDiscussion(
+            simong.restContext,
+            'A talk',
+            'not about computers',
+            'public',
+            [],
+            [mrvisser.user.id],
+            (err, discussion) => {
+              assert.ok(!err);
 
-                // Mrvisser should get an email, with simong's information scrubbed
-                EmailTestsUtil.collectAndFetchAllEmails(emails => {
-                  // There should be exactly one email, the one sent to mrvisser
-                  assert.strictEqual(emails.length, 1);
+              // Mrvisser should get an email, with simong's information scrubbed
+              EmailTestsUtil.collectAndFetchAllEmails(emails => {
+                // There should be exactly one email, the one sent to mrvisser
+                assert.strictEqual(emails.length, 1);
 
-                  const stringEmail = JSON.stringify(emails[0]);
-                  const email = emails[0];
+                const stringEmail = JSON.stringify(emails[0]);
+                const email = emails[0];
 
-                  // Sanity check that the email is to mrvisser
-                  assert.strictEqual(email.to[0].address, mrvisser.user.email);
+                // Sanity check that the email is to mrvisser
+                assert.strictEqual(email.to[0].address, mrvisser.user.email);
 
-                  // Ensure some data expected to be in the email is there
-                  assert.notStrictEqual(stringEmail.indexOf(simong.restContext.hostHeader), -1);
-                  assert.notStrictEqual(stringEmail.indexOf(discussion.profilePath), -1);
-                  assert.notStrictEqual(stringEmail.indexOf(discussion.displayName), -1);
+                // Ensure some data expected to be in the email is there
+                assert.notStrictEqual(stringEmail.indexOf(simong.restContext.hostHeader), -1);
+                assert.notStrictEqual(stringEmail.indexOf(discussion.profilePath), -1);
+                assert.notStrictEqual(stringEmail.indexOf(discussion.displayName), -1);
 
-                  // Ensure simong's private info is nowhere to be found
-                  assert.strictEqual(stringEmail.indexOf(simong.user.displayName), -1);
-                  assert.strictEqual(stringEmail.indexOf(simong.user.email), -1);
-                  assert.strictEqual(stringEmail.indexOf(simong.user.locale), -1);
+                // Ensure simong's private info is nowhere to be found
+                assert.strictEqual(stringEmail.indexOf(simong.user.displayName), -1);
+                assert.strictEqual(stringEmail.indexOf(simong.user.email), -1);
+                assert.strictEqual(stringEmail.indexOf(simong.user.locale), -1);
 
-                  // The email should contain the public alias
-                  assert.notStrictEqual(stringEmail.indexOf('swappedFromPublicAlias'), -1);
+                // The email should contain the public alias
+                assert.notStrictEqual(stringEmail.indexOf('swappedFromPublicAlias'), -1);
 
-                  return callback();
-                });
-              }
-            );
-          }
-        );
+                return callback();
+              });
+            }
+          );
+        });
       });
     });
 
@@ -943,66 +843,53 @@ describe('Discussion Activity', () => {
         };
 
         // Update Simon
-        PrincipalsTestUtil.assertUpdateUserSucceeds(
-          simong.restContext,
-          simong.user.id,
-          simongUpdate,
-          () => {
-            // Create the link, then share it with mrvisser. We will ensure that mrvisser gets the email about the share
-            RestAPI.Discussions.createDiscussion(
-              simong.restContext,
-              'A talk',
-              'about the moon',
-              'public',
-              [],
-              [],
-              (err, discussion) => {
-                assert.ok(!err);
+        PrincipalsTestUtil.assertUpdateUserSucceeds(simong.restContext, simong.user.id, simongUpdate, () => {
+          // Create the link, then share it with mrvisser. We will ensure that mrvisser gets the email about the share
+          RestAPI.Discussions.createDiscussion(
+            simong.restContext,
+            'A talk',
+            'about the moon',
+            'public',
+            [],
+            [],
+            (err, discussion) => {
+              assert.ok(!err);
 
-                // Collect the createLink activity
-                EmailTestsUtil.collectAndFetchAllEmails(emails => {
-                  RestAPI.Discussions.shareDiscussion(
-                    simong.restContext,
-                    discussion.id,
-                    [mrvisser.user.id],
-                    err => {
-                      assert.ok(!err);
+              // Collect the createLink activity
+              EmailTestsUtil.collectAndFetchAllEmails(emails => {
+                RestAPI.Discussions.shareDiscussion(simong.restContext, discussion.id, [mrvisser.user.id], err => {
+                  assert.ok(!err);
 
-                      // Mrvisser should get an email, with simong's information scrubbed
-                      EmailTestsUtil.collectAndFetchAllEmails(emails => {
-                        // There should be exactly one email, the one sent to mrvisser
-                        assert.strictEqual(emails.length, 1);
+                  // Mrvisser should get an email, with simong's information scrubbed
+                  EmailTestsUtil.collectAndFetchAllEmails(emails => {
+                    // There should be exactly one email, the one sent to mrvisser
+                    assert.strictEqual(emails.length, 1);
 
-                        const stringEmail = JSON.stringify(emails[0]);
-                        const email = emails[0];
+                    const stringEmail = JSON.stringify(emails[0]);
+                    const email = emails[0];
 
-                        // Sanity check that the email is to mrvisser
-                        assert.strictEqual(email.to[0].address, mrvisser.user.email);
+                    // Sanity check that the email is to mrvisser
+                    assert.strictEqual(email.to[0].address, mrvisser.user.email);
 
-                        // Ensure some data expected to be in the email is there
-                        assert.notStrictEqual(
-                          stringEmail.indexOf(simong.restContext.hostHeader),
-                          -1
-                        );
-                        assert.notStrictEqual(stringEmail.indexOf(discussion.profilePath), -1);
-                        assert.notStrictEqual(stringEmail.indexOf(discussion.displayName), -1);
+                    // Ensure some data expected to be in the email is there
+                    assert.notStrictEqual(stringEmail.indexOf(simong.restContext.hostHeader), -1);
+                    assert.notStrictEqual(stringEmail.indexOf(discussion.profilePath), -1);
+                    assert.notStrictEqual(stringEmail.indexOf(discussion.displayName), -1);
 
-                        // Ensure simong's private info is nowhere to be found
-                        assert.strictEqual(stringEmail.indexOf(simong.user.displayName), -1);
-                        assert.strictEqual(stringEmail.indexOf(simong.user.email), -1);
-                        assert.strictEqual(stringEmail.indexOf(simong.user.locale), -1);
+                    // Ensure simong's private info is nowhere to be found
+                    assert.strictEqual(stringEmail.indexOf(simong.user.displayName), -1);
+                    assert.strictEqual(stringEmail.indexOf(simong.user.email), -1);
+                    assert.strictEqual(stringEmail.indexOf(simong.user.locale), -1);
 
-                        // The email should contain the public alias
-                        assert.notStrictEqual(stringEmail.indexOf('swappedFromPublicAlias'), -1);
-                        return callback();
-                      });
-                    }
-                  );
+                    // The email should contain the public alias
+                    assert.notStrictEqual(stringEmail.indexOf('swappedFromPublicAlias'), -1);
+                    return callback();
+                  });
                 });
-              }
-            );
-          }
-        );
+              });
+            }
+          );
+        });
       });
     });
   });

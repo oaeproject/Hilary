@@ -13,17 +13,19 @@
  * permissions and limitations under the License.
  */
 
-const fs = require('fs');
-const util = require('util');
-const gm = require('gm');
-const request = require('request');
-const _ = require('underscore');
+import fs from 'fs';
+import util from 'util';
+import PreviewConstants from 'oae-preview-processor/lib/constants';
+import gm from 'gm';
+import request from 'request';
+import _ from 'underscore';
 
-const ImageUtil = require('oae-util/lib/image');
-const IO = require('oae-util/lib/io');
-const log = require('oae-logger').logger('oae-preview-processor');
+import * as ImageUtil from 'oae-util/lib/image';
+import * as IO from 'oae-util/lib/io';
 
-const PreviewConstants = require('oae-preview-processor/lib/constants');
+import { logger } from 'oae-logger';
+
+const log = logger('oae-preview-processor');
 
 /**
  * Downloads a file that is not located on the OAE server and stores it on disk.
@@ -161,10 +163,7 @@ const _resizeImages = function(ctx, path, sizes, callback) {
   gm(path).size((err, sourceSize) => {
     if (err) {
       called = true;
-      log().error(
-        { err, path, contentId: ctx.content.id },
-        'Could not retrieve the size for this image.'
-      );
+      log().error({ err, path, contentId: ctx.content.id }, 'Could not retrieve the size for this image.');
       return callback({ code: 500, msg: err.message });
     }
 
@@ -229,13 +228,8 @@ const _resize = function(ctx, path, size, callback) {
     // If we're dealing with a GIF, we use the first frame
     inputPath = path + '[0]';
   }
-  log().trace(
-    { contentId: ctx.contentId },
-    'Resizing image %s to %s x %s',
-    inputPath,
-    size.width,
-    size.height
-  );
+
+  log().trace({ contentId: ctx.contentId }, 'Resizing image %s to %s x %s', inputPath, size.width, size.height);
   ImageUtil.resizeImage(inputPath, size, (err, file) => {
     if (err) {
       return callback(err);
@@ -304,6 +298,7 @@ const _cropThumbnail = function(ctx, path, cropMode, callback) {
         if (err) {
           return callback(err);
         }
+
         if (!thumbnailPath) {
           // If we weren't able to generate the thumbnail, that means the source image is too small. There is no point in trying to render the large rectangle
           return callback();
@@ -332,6 +327,7 @@ const _cropThumbnail = function(ctx, path, cropMode, callback) {
             if (widePath) {
               ctx.addPreview(widePath, 'wide');
             }
+
             callback();
           }
         );
@@ -429,7 +425,4 @@ const _cropIntelligently = function(ctx, path, width, height, opts, filename, ca
   });
 };
 
-module.exports = {
-  downloadRemoteFile,
-  generatePreviewsFromImage
-};
+export { downloadRemoteFile, generatePreviewsFromImage };

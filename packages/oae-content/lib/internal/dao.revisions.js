@@ -13,14 +13,14 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
 
-const Cassandra = require('oae-util/lib/cassandra');
-const OaeUtil = require('oae-util/lib/util');
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as OaeUtil from 'oae-util/lib/util';
 
-const { Revision } = require('oae-content/lib/model');
-const ContentPreviewsDAO = require('./dao.previews');
+import { Revision } from 'oae-content/lib/model';
+import * as ContentPreviewsDAO from './dao.previews';
 
 /// ////////////
 // Retrieval //
@@ -55,6 +55,7 @@ const getRevisions = function(contentId, start, limit, opts, callback) {
       if (err) {
         return callback(err);
       }
+
       if (_.isEmpty(rows)) {
         return callback(null, []);
       }
@@ -136,6 +137,7 @@ const getAllRevisionsForContent = function(contentIds, callback) {
       if (err) {
         return callback(err);
       }
+
       if (_.isEmpty(rows)) {
         return callback(null, {});
       }
@@ -178,20 +180,17 @@ const getAllRevisionsForContent = function(contentIds, callback) {
  * @param  {Revision}   callback.revision   The retrieved revision
  */
 const getRevision = function(revisionId, callback) {
-  Cassandra.runQuery(
-    'SELECT * FROM "Revisions" WHERE "revisionId" = ?',
-    [revisionId],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
-      }
-      if (_.isEmpty(rows)) {
-        return callback({ code: 404, msg: "Couldn't find revision: " + revisionId });
-      }
-
-      return callback(null, _rowToRevision(rows[0]));
+  Cassandra.runQuery('SELECT * FROM "Revisions" WHERE "revisionId" = ?', [revisionId], (err, rows) => {
+    if (err) {
+      return callback(err);
     }
-  );
+
+    if (_.isEmpty(rows)) {
+      return callback({ code: 404, msg: "Couldn't find revision: " + revisionId });
+    }
+
+    return callback(null, _rowToRevision(rows[0]));
+  });
 };
 
 /// ////////////
@@ -241,10 +240,7 @@ const createRevision = function(revisionId, contentId, createdBy, revisionProper
             return callback(err);
           }
 
-          return callback(
-            null,
-            new Revision(contentId, revisionId, values.createdBy, values.created, values)
-          );
+          return callback(null, new Revision(contentId, revisionId, values.createdBy, values.created, values));
         }
       );
     });
@@ -294,10 +290,4 @@ const _rowToRevision = function(row) {
   return new Revision(hash.contentId, hash.revisionId, hash.createdBy, hash.created, hash);
 };
 
-module.exports = {
-  getRevisions,
-  getMultipleRevisions,
-  getAllRevisionsForContent,
-  getRevision,
-  createRevision
-};
+export { getRevisions, getMultipleRevisions, getAllRevisionsForContent, getRevision, createRevision };

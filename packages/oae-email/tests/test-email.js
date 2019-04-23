@@ -13,21 +13,15 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const fs = require('fs');
-const util = require('util');
-const _ = require('underscore');
+import assert from 'assert';
+import util from 'util';
+import _ from 'underscore';
 
-const ActivityTestsUtil = require('oae-activity/lib/test/util');
-const ConfigTestUtil = require('oae-config/lib/test/util');
-const log = require('oae-logger').logger('test-activity');
-const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
-const TestsUtil = require('oae-tests');
-
-const EmailAPI = require('oae-email');
-const EmailConfig = require('oae-config').config('oae-email');
-const EmailTestsUtil = require('oae-email/lib/test/util');
+import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
+import * as EmailAPI from 'oae-email';
+import * as EmailTestsUtil from 'oae-email/lib/test/util';
 
 describe('Emails', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user
@@ -103,91 +97,56 @@ describe('Emails', () => {
           mrvisser.user.email = 'blah blah blah';
 
           // Verify error when there is invalid email
-          EmailTestsUtil.sendEmail(
-            'oae-email',
-            'test',
-            mrvisser.user,
-            null,
-            null,
-            (err, message) => {
+          EmailTestsUtil.sendEmail('oae-email', 'test', mrvisser.user, null, null, (err, message) => {
+            assert.ok(err);
+            assert.strictEqual(err.code, 400);
+
+            // Verify error when there is no user
+            EmailTestsUtil.sendEmail('oae-email', 'test', null, null, null, (err, message) => {
               assert.ok(err);
               assert.strictEqual(err.code, 400);
 
-              // Verify error when there is no user
-              EmailTestsUtil.sendEmail('oae-email', 'test', null, null, null, (err, message) => {
+              mrvisser.user.email = 'my.email@my.email.com';
+
+              // Verify error when there is no module
+              EmailTestsUtil.sendEmail(null, 'test', mrvisser.user, null, null, (err, message) => {
                 assert.ok(err);
                 assert.strictEqual(err.code, 400);
 
-                mrvisser.user.email = 'my.email@my.email.com';
+                // Verify error when there is no template id
+                EmailTestsUtil.sendEmail('oae-email', null, mrvisser.user, null, null, (err, message) => {
+                  assert.ok(err);
+                  assert.strictEqual(err.code, 400);
 
-                // Verify error when there is no module
-                EmailTestsUtil.sendEmail(
-                  null,
-                  'test',
-                  mrvisser.user,
-                  null,
-                  null,
-                  (err, message) => {
+                  // Verify error with non-existent module
+                  EmailTestsUtil.sendEmail('oae-non-existent', 'test', mrvisser.user, null, null, (err, message) => {
                     assert.ok(err);
-                    assert.strictEqual(err.code, 400);
+                    assert.strictEqual(err.code, 500);
 
-                    // Verify error when there is no template id
+                    // Verify error with non-existent template id
                     EmailTestsUtil.sendEmail(
                       'oae-email',
-                      null,
+                      'TemplateDoesNotExist',
                       mrvisser.user,
                       null,
                       null,
                       (err, message) => {
                         assert.ok(err);
-                        assert.strictEqual(err.code, 400);
+                        assert.strictEqual(err.code, 500);
 
-                        // Verify error with non-existent module
-                        EmailTestsUtil.sendEmail(
-                          'oae-non-existent',
-                          'test',
-                          mrvisser.user,
-                          null,
-                          null,
-                          (err, message) => {
-                            assert.ok(err);
-                            assert.strictEqual(err.code, 500);
-
-                            // Verify error with non-existent template id
-                            EmailTestsUtil.sendEmail(
-                              'oae-email',
-                              'TemplateDoesNotExist',
-                              mrvisser.user,
-                              null,
-                              null,
-                              (err, message) => {
-                                assert.ok(err);
-                                assert.strictEqual(err.code, 500);
-
-                                // Sanity check
-                                EmailTestsUtil.sendEmail(
-                                  'oae-email',
-                                  'test',
-                                  mrvisser.user,
-                                  null,
-                                  null,
-                                  (err, message) => {
-                                    assert.ok(!err);
-                                    assert.ok(message);
-                                    return callback();
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
+                        // Sanity check
+                        EmailTestsUtil.sendEmail('oae-email', 'test', mrvisser.user, null, null, (err, message) => {
+                          assert.ok(!err);
+                          assert.ok(message);
+                          return callback();
+                        });
                       }
                     );
-                  }
-                );
+                  });
+                });
               });
-            }
-          );
+            });
+          });
         });
       });
     });
@@ -208,39 +167,25 @@ describe('Emails', () => {
         nico.user.locale = 'fr_FR';
 
         // Verify mrvisser gets the email
-        EmailTestsUtil.sendEmail(
-          'oae-email',
-          'test_locale',
-          mrvisser.user,
-          null,
-          null,
-          (err, message) => {
+        EmailTestsUtil.sendEmail('oae-email', 'test_locale', mrvisser.user, null, null, (err, message) => {
+          assert.ok(!err);
+          const mrvisserMessage = message;
+          assert.ok(mrvisserMessage.subject);
+          assert.ok(mrvisserMessage.text);
+
+          // Verify nico gets the email
+          EmailTestsUtil.sendEmail('oae-email', 'test_locale', nico.user, null, null, (err, message) => {
             assert.ok(!err);
-            const mrvisserMessage = message;
-            assert.ok(mrvisserMessage.subject);
-            assert.ok(mrvisserMessage.text);
+            const nicoMessage = message;
+            assert.ok(nicoMessage.subject);
+            assert.ok(nicoMessage.text);
 
-            // Verify nico gets the email
-            EmailTestsUtil.sendEmail(
-              'oae-email',
-              'test_locale',
-              nico.user,
-              null,
-              null,
-              (err, message) => {
-                assert.ok(!err);
-                const nicoMessage = message;
-                assert.ok(nicoMessage.subject);
-                assert.ok(nicoMessage.text);
-
-                // Because of the locale difference, the subject and body of the mails should be different
-                assert.notStrictEqual(mrvisserMessage.subject, nicoMessage.subject);
-                assert.notStrictEqual(mrvisserMessage.text, nicoMessage.text);
-                return callback();
-              }
-            );
-          }
-        );
+            // Because of the locale difference, the subject and body of the mails should be different
+            assert.notStrictEqual(mrvisserMessage.subject, nicoMessage.subject);
+            assert.notStrictEqual(mrvisserMessage.text, nicoMessage.text);
+            return callback();
+          });
+        });
       });
     });
 
@@ -256,19 +201,12 @@ describe('Emails', () => {
         mrvisser.user.email = 'mrvisser@email.address.com';
 
         // Verify error when there is no meta template
-        EmailTestsUtil.sendEmail(
-          'oae-email',
-          'TestNoMeta',
-          mrvisser.user,
-          null,
-          null,
-          (err, message) => {
-            assert.ok(err);
-            assert.strictEqual(err.code, 500);
-            assert.strictEqual(err.msg.indexOf('No email metadata'), 0);
-            return callback();
-          }
-        );
+        EmailTestsUtil.sendEmail('oae-email', 'TestNoMeta', mrvisser.user, null, null, (err, message) => {
+          assert.ok(err);
+          assert.strictEqual(err.code, 500);
+          assert.strictEqual(err.msg.indexOf('No email metadata'), 0);
+          return callback();
+        });
       });
     });
 
@@ -283,19 +221,12 @@ describe('Emails', () => {
         mrvisser.user.email = 'mrvisser@email.address.com';
 
         // Verify error when there is no email
-        EmailTestsUtil.sendEmail(
-          'oae-email',
-          'test_meta_only',
-          mrvisser.user,
-          null,
-          null,
-          (err, message) => {
-            assert.ok(err);
-            assert.strictEqual(err.code, 500);
-            assert.strictEqual(err.msg.indexOf('No email content'), 0);
-            return callback();
-          }
-        );
+        EmailTestsUtil.sendEmail('oae-email', 'test_meta_only', mrvisser.user, null, null, (err, message) => {
+          assert.ok(err);
+          assert.strictEqual(err.code, 500);
+          assert.strictEqual(err.msg.indexOf('No email content'), 0);
+          return callback();
+        });
       });
     });
 
@@ -310,74 +241,41 @@ describe('Emails', () => {
         mrvisser.user.email = 'mrvisser@email.address.com';
 
         // Verify HTML only
-        EmailTestsUtil.sendEmail(
-          'oae-email',
-          'test_html_only',
-          mrvisser.user,
-          null,
-          null,
-          (err, message) => {
+        EmailTestsUtil.sendEmail('oae-email', 'test_html_only', mrvisser.user, null, null, (err, message) => {
+          assert.ok(!err);
+
+          assert.strictEqual(message.from[0].name, 'Cambridge University Test');
+          assert.strictEqual(message.from[0].address, util.format('noreply@%s', mrvisser.restContext.hostHeader));
+          assert.strictEqual(message.subject, 'test html only');
+          assert.strictEqual(message.to[0].address, mrvisser.user.email);
+          assert.strictEqual(message.html, '<html><body><b>test html only</b></body></html>');
+          assert.strictEqual(message.text, 'test html only');
+
+          // Verify text only
+          EmailTestsUtil.sendEmail('oae-email', 'test_txt_only', mrvisser.user, null, null, (err, message) => {
             assert.ok(!err);
 
             assert.strictEqual(message.from[0].name, 'Cambridge University Test');
-            assert.strictEqual(
-              message.from[0].address,
-              util.format('noreply@%s', mrvisser.restContext.hostHeader)
-            );
-            assert.strictEqual(message.subject, 'test html only');
+            assert.strictEqual(message.from[0].address, util.format('noreply@%s', mrvisser.restContext.hostHeader));
+            assert.strictEqual(message.subject, 'test txt only');
             assert.strictEqual(message.to[0].address, mrvisser.user.email);
-            assert.strictEqual(message.html, '<html><body><b>test html only</b></body></html>');
-            assert.strictEqual(message.text, 'test html only');
+            assert.ok(!message.html);
+            assert.strictEqual(message.text, '**test txt only**');
 
-            // Verify text only
-            EmailTestsUtil.sendEmail(
-              'oae-email',
-              'test_txt_only',
-              mrvisser.user,
-              null,
-              null,
-              (err, message) => {
-                assert.ok(!err);
+            // Verify contents with both html and text
+            EmailTestsUtil.sendEmail('oae-email', 'test_html_and_txt', mrvisser.user, null, null, (err, message) => {
+              assert.ok(!err);
 
-                assert.strictEqual(message.from[0].name, 'Cambridge University Test');
-                assert.strictEqual(
-                  message.from[0].address,
-                  util.format('noreply@%s', mrvisser.restContext.hostHeader)
-                );
-                assert.strictEqual(message.subject, 'test txt only');
-                assert.strictEqual(message.to[0].address, mrvisser.user.email);
-                assert.ok(!message.html);
-                assert.strictEqual(message.text, '**test txt only**');
-
-                // Verify contents with both html and text
-                EmailTestsUtil.sendEmail(
-                  'oae-email',
-                  'test_html_and_txt',
-                  mrvisser.user,
-                  null,
-                  null,
-                  (err, message) => {
-                    assert.ok(!err);
-
-                    assert.strictEqual(message.from[0].name, 'Cambridge University Test');
-                    assert.strictEqual(
-                      message.from[0].address,
-                      util.format('noreply@%s', mrvisser.restContext.hostHeader)
-                    );
-                    assert.strictEqual(message.subject, 'test html and txt');
-                    assert.strictEqual(message.to[0].address, mrvisser.user.email);
-                    assert.strictEqual(
-                      message.html,
-                      '<html><body><b>test html and text</b></body></html>'
-                    );
-                    assert.strictEqual(message.text, '**test html and txt**');
-                    return callback();
-                  }
-                );
-              }
-            );
-          }
-        );
+              assert.strictEqual(message.from[0].name, 'Cambridge University Test');
+              assert.strictEqual(message.from[0].address, util.format('noreply@%s', mrvisser.restContext.hostHeader));
+              assert.strictEqual(message.subject, 'test html and txt');
+              assert.strictEqual(message.to[0].address, mrvisser.user.email);
+              assert.strictEqual(message.html, '<html><body><b>test html and text</b></body></html>');
+              assert.strictEqual(message.text, '**test html and txt**');
+              return callback();
+            });
+          });
+        });
       });
     });
 
@@ -489,10 +387,7 @@ describe('Emails', () => {
                       (err, message) => {
                         assert.ok(err);
                         assert.strictEqual(err.code, 500);
-                        assert.strictEqual(
-                          err.msg.indexOf('Could not parse a suitable content template'),
-                          0
-                        );
+                        assert.strictEqual(err.msg.indexOf('Could not parse a suitable content template'), 0);
                         return callback();
                       }
                     );
@@ -515,19 +410,12 @@ describe('Emails', () => {
         const mrvisser = _.values(users)[0];
         mrvisser.user.email = 'mrvisser@email.address.com';
 
-        EmailTestsUtil.sendEmail(
-          'oae-email',
-          'test_shared',
-          mrvisser.user,
-          {},
-          null,
-          (err, message) => {
-            assert.ok(!err);
-            assert.strictEqual(message.subject, 'foo');
-            assert.strictEqual(message.text, 'bar');
-            return callback();
-          }
-        );
+        EmailTestsUtil.sendEmail('oae-email', 'test_shared', mrvisser.user, {}, null, (err, message) => {
+          assert.ok(!err);
+          assert.strictEqual(message.subject, 'foo');
+          assert.strictEqual(message.text, 'bar');
+          return callback();
+        });
       });
     });
 
@@ -538,19 +426,12 @@ describe('Emails', () => {
       TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, mrvisser) => {
         assert.ok(!err);
 
-        EmailTestsUtil.sendEmail(
-          'oae-email',
-          'test_include',
-          mrvisser.user,
-          {},
-          null,
-          (err, message) => {
-            assert.ok(!err);
-            assert.ok(message.html);
-            assert.ok(message.html.indexOf('<p\n style="background-color: red;">') > -1);
-            return callback();
-          }
-        );
+        EmailTestsUtil.sendEmail('oae-email', 'test_include', mrvisser.user, {}, null, (err, message) => {
+          assert.ok(!err);
+          assert.ok(message.html);
+          assert.ok(message.html.indexOf('<p\n style="background-color: red;">') > -1);
+          return callback();
+        });
       });
     });
   });
@@ -637,10 +518,7 @@ describe('Emails', () => {
                         assert.ok(messages);
                         assert.ok(messages.length);
                         assert.strictEqual(messages[0].to[0].address, coenego.user.email);
-                        assert.strictEqual(
-                          messages[0].from[0].name,
-                          global.oaeTests.tenants.cam.displayName
-                        );
+                        assert.strictEqual(messages[0].from[0].name, global.oaeTests.tenants.cam.displayName);
                         assert.strictEqual(
                           messages[0].from[0].address,
                           util.format('noreply@%s', global.oaeTests.tenants.cam.host)
@@ -651,105 +529,80 @@ describe('Emails', () => {
                           // eslint-disable-next-line no-template-curly-in-string
                           'oae-email/general/fromName': 'OAE for ${tenant}'
                         };
-                        ConfigTestUtil.updateConfigAndWait(
-                          camAdminRestContext,
-                          null,
-                          config,
-                          err => {
-                            assert.ok(!err);
+                        ConfigTestUtil.updateConfigAndWait(camAdminRestContext, null, config, err => {
+                          assert.ok(!err);
 
-                            // Create a comment with the simong user. The coenego user will receive an email
-                            RestAPI.Content.createComment(
-                              simong.restContext,
-                              link.id,
-                              'I am going to share this with all my friends!',
-                              null,
-                              (err, comment) => {
-                                assert.ok(!err);
-                                assert.ok(comment);
+                          // Create a comment with the simong user. The coenego user will receive an email
+                          RestAPI.Content.createComment(
+                            simong.restContext,
+                            link.id,
+                            'I am going to share this with all my friends!',
+                            null,
+                            (err, comment) => {
+                              assert.ok(!err);
+                              assert.ok(comment);
 
-                                // Assert that coenego receives an email with `"OAE for Cambridge University Test" <noreply@cambridge.oae.com>`
-                                EmailTestsUtil.collectAndFetchAllEmails(messages => {
-                                  assert.ok(messages);
-                                  assert.ok(messages.length);
-                                  assert.strictEqual(messages[0].to[0].address, coenego.user.email);
-                                  assert.strictEqual(
-                                    messages[0].from[0].name,
-                                    'OAE for ' + global.oaeTests.tenants.cam.displayName
-                                  );
-                                  assert.strictEqual(
-                                    messages[0].from[0].address,
-                                    util.format('noreply@%s', global.oaeTests.tenants.cam.host)
-                                  );
+                              // Assert that coenego receives an email with `"OAE for Cambridge University Test" <noreply@cambridge.oae.com>`
+                              EmailTestsUtil.collectAndFetchAllEmails(messages => {
+                                assert.ok(messages);
+                                assert.ok(messages.length);
+                                assert.strictEqual(messages[0].to[0].address, coenego.user.email);
+                                assert.strictEqual(
+                                  messages[0].from[0].name,
+                                  'OAE for ' + global.oaeTests.tenants.cam.displayName
+                                );
+                                assert.strictEqual(
+                                  messages[0].from[0].address,
+                                  util.format('noreply@%s', global.oaeTests.tenants.cam.host)
+                                );
 
-                                  // Sanity check that the from header can be configured on a global level
-                                  configToClear = [
-                                    'oae-email/general/fromAddress',
-                                    'oae-email/general/fromName'
-                                  ];
-                                  RestAPI.Config.clearConfig(
-                                    camAdminRestContext,
-                                    null,
-                                    configToClear,
-                                    err => {
-                                      assert.ok(!err);
-                                      const globalAdminRestContext = TestsUtil.createGlobalAdminRestContext();
-                                      config = {
-                                        'oae-email/general/fromName':
-                                          // eslint-disable-next-line no-template-curly-in-string
-                                          'The glorious OAE for ${tenant}'
-                                      };
-                                      ConfigTestUtil.updateConfigAndWait(
-                                        globalAdminRestContext,
-                                        null,
-                                        config,
-                                        err => {
-                                          assert.ok(!err);
+                                // Sanity check that the from header can be configured on a global level
+                                configToClear = ['oae-email/general/fromAddress', 'oae-email/general/fromName'];
+                                RestAPI.Config.clearConfig(camAdminRestContext, null, configToClear, err => {
+                                  assert.ok(!err);
+                                  const globalAdminRestContext = TestsUtil.createGlobalAdminRestContext();
+                                  config = {
+                                    'oae-email/general/fromName':
+                                      // eslint-disable-next-line no-template-curly-in-string
+                                      'The glorious OAE for ${tenant}'
+                                  };
+                                  ConfigTestUtil.updateConfigAndWait(globalAdminRestContext, null, config, err => {
+                                    assert.ok(!err);
 
-                                          // Create a comment with the simong user. The coenego user will receive an email
-                                          RestAPI.Content.createComment(
-                                            simong.restContext,
-                                            link.id,
-                                            'I am going to share this with all my friends!',
-                                            null,
-                                            (err, comment) => {
-                                              assert.ok(!err);
-                                              assert.ok(comment);
+                                    // Create a comment with the simong user. The coenego user will receive an email
+                                    RestAPI.Content.createComment(
+                                      simong.restContext,
+                                      link.id,
+                                      'I am going to share this with all my friends!',
+                                      null,
+                                      (err, comment) => {
+                                        assert.ok(!err);
+                                        assert.ok(comment);
 
-                                              // Assert that coenego receives an email with `"The glorious OAE for Cambridge University Test" <noreply@cambridge.oae.com>`
-                                              EmailTestsUtil.collectAndFetchAllEmails(messages => {
-                                                assert.ok(messages);
-                                                assert.ok(messages.length);
-                                                assert.strictEqual(
-                                                  messages[0].to[0].address,
-                                                  coenego.user.email
-                                                );
-                                                assert.strictEqual(
-                                                  messages[0].from[0].name,
-                                                  'The glorious OAE for ' +
-                                                    global.oaeTests.tenants.cam.displayName
-                                                );
-                                                assert.strictEqual(
-                                                  messages[0].from[0].address,
-                                                  util.format(
-                                                    'noreply@%s',
-                                                    global.oaeTests.tenants.cam.host
-                                                  )
-                                                );
-
-                                                return callback();
-                                              });
-                                            }
+                                        // Assert that coenego receives an email with `"The glorious OAE for Cambridge University Test" <noreply@cambridge.oae.com>`
+                                        EmailTestsUtil.collectAndFetchAllEmails(messages => {
+                                          assert.ok(messages);
+                                          assert.ok(messages.length);
+                                          assert.strictEqual(messages[0].to[0].address, coenego.user.email);
+                                          assert.strictEqual(
+                                            messages[0].from[0].name,
+                                            'The glorious OAE for ' + global.oaeTests.tenants.cam.displayName
                                           );
-                                        }
-                                      );
-                                    }
-                                  );
+                                          assert.strictEqual(
+                                            messages[0].from[0].address,
+                                            util.format('noreply@%s', global.oaeTests.tenants.cam.host)
+                                          );
+
+                                          return callback();
+                                        });
+                                      }
+                                    );
+                                  });
                                 });
-                              }
-                            );
-                          }
-                        );
+                              });
+                            }
+                          );
+                        });
                       });
                     }
                   );
@@ -864,45 +717,38 @@ describe('Emails', () => {
               assert.ok(message);
 
               // Re-using the same hash should result in test failure
-              EmailTestsUtil.sendEmail(
-                'oae-email',
-                'test',
-                simong.user,
-                null,
-                { hash: 'u:cam:simong#123456' },
-                err => {
-                  assert.ok(err);
-                  assert.strictEqual(err.code, 403);
+              EmailTestsUtil.sendEmail('oae-email', 'test', simong.user, null, { hash: 'u:cam:simong#123456' }, err => {
+                assert.ok(err);
+                assert.strictEqual(err.code, 403);
 
-                  // Re-using the same hash, but with the same mail should result in a failure
-                  // We generate a "different" mail by passing in a data object
-                  EmailTestsUtil.sendEmail(
-                    'oae-email',
-                    'test',
-                    simong.user,
-                    { data: 'test' },
-                    { hash: 'u:cam:simong#123456' },
-                    err => {
-                      assert.ok(err);
-                      assert.strictEqual(err.code, 403);
+                // Re-using the same hash, but with the same mail should result in a failure
+                // We generate a "different" mail by passing in a data object
+                EmailTestsUtil.sendEmail(
+                  'oae-email',
+                  'test',
+                  simong.user,
+                  { data: 'test' },
+                  { hash: 'u:cam:simong#123456' },
+                  err => {
+                    assert.ok(err);
+                    assert.strictEqual(err.code, 403);
 
-                      // Using another hash (but otherwise the same mail) should work
-                      EmailTestsUtil.sendEmail(
-                        'oae-email',
-                        'test',
-                        simong.user,
-                        null,
-                        { hash: 'u:cam:mrvisser#000000' },
-                        (err, message) => {
-                          assert.ok(!err);
-                          assert.ok(message);
-                          return callback();
-                        }
-                      );
-                    }
-                  );
-                }
-              );
+                    // Using another hash (but otherwise the same mail) should work
+                    EmailTestsUtil.sendEmail(
+                      'oae-email',
+                      'test',
+                      simong.user,
+                      null,
+                      { hash: 'u:cam:mrvisser#000000' },
+                      (err, message) => {
+                        assert.ok(!err);
+                        assert.ok(message);
+                        return callback();
+                      }
+                    );
+                  }
+                );
+              });
             }
           );
         });
@@ -930,18 +776,11 @@ describe('Emails', () => {
             assert.strictEqual(err.code, 403);
 
             // Sanity check that sending out a different email works
-            EmailTestsUtil.sendEmail(
-              'oae-email',
-              'test',
-              simong.user,
-              { data: 'test' },
-              null,
-              err => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 403);
-                return callback();
-              }
-            );
+            EmailTestsUtil.sendEmail('oae-email', 'test', simong.user, { data: 'test' }, null, err => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 403);
+              return callback();
+            });
           });
         });
       });
@@ -1008,29 +847,15 @@ describe('Emails', () => {
             assert.ok(message);
 
             // Sanity-check we cannot send it twice
-            EmailTestsUtil.sendEmail(
-              'oae-email',
-              'test',
-              simong.user,
-              null,
-              null,
-              (err, message) => {
+            EmailTestsUtil.sendEmail('oae-email', 'test', simong.user, null, null, (err, message) => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 403);
+              EmailTestsUtil.sendEmail('oae-email', 'test', nico.user, null, null, (err, message) => {
                 assert.ok(err);
                 assert.strictEqual(err.code, 403);
-                EmailTestsUtil.sendEmail(
-                  'oae-email',
-                  'test',
-                  nico.user,
-                  null,
-                  null,
-                  (err, message) => {
-                    assert.ok(err);
-                    assert.strictEqual(err.code, 403);
-                    return callback();
-                  }
-                );
-              }
-            );
+                return callback();
+              });
+            });
           });
         });
       });
@@ -1051,52 +876,45 @@ describe('Emails', () => {
           // The user needs an email address
           simong.user.email = TestsUtil.generateTestEmailAddress();
 
-          EmailTestsUtil.sendEmail(
-            'oae-email',
-            'test',
-            simong.user,
-            null,
-            { hash: _uniqueHash() },
-            (err, message) => {
-              assert.ok(!err);
-              EmailTestsUtil.sendEmail(
-                'oae-email',
-                'test',
-                simong.user,
-                null,
-                { hash: _uniqueHash() },
-                (err, message) => {
-                  assert.ok(!err);
-                  EmailTestsUtil.sendEmail(
-                    'oae-email',
-                    'test',
-                    simong.user,
-                    null,
-                    { hash: _uniqueHash() },
-                    (err, message) => {
-                      assert.ok(err);
-                      assert.strictEqual(err.code, 403);
+          EmailTestsUtil.sendEmail('oae-email', 'test', simong.user, null, { hash: _uniqueHash() }, (err, message) => {
+            assert.ok(!err);
+            EmailTestsUtil.sendEmail(
+              'oae-email',
+              'test',
+              simong.user,
+              null,
+              { hash: _uniqueHash() },
+              (err, message) => {
+                assert.ok(!err);
+                EmailTestsUtil.sendEmail(
+                  'oae-email',
+                  'test',
+                  simong.user,
+                  null,
+                  { hash: _uniqueHash() },
+                  (err, message) => {
+                    assert.ok(err);
+                    assert.strictEqual(err.code, 403);
 
-                      // If we wait longer than the throttle timespan, we should be able to send an e-mail to this user
-                      setTimeout(() => {
-                        EmailTestsUtil.sendEmail(
-                          'oae-email',
-                          'test',
-                          simong.user,
-                          null,
-                          { hash: _uniqueHash() },
-                          (err, message) => {
-                            assert.ok(!err);
-                            return callback();
-                          }
-                        );
-                      }, 2250);
-                    }
-                  );
-                }
-              );
-            }
-          );
+                    // If we wait longer than the throttle timespan, we should be able to send an e-mail to this user
+                    setTimeout(() => {
+                      EmailTestsUtil.sendEmail(
+                        'oae-email',
+                        'test',
+                        simong.user,
+                        null,
+                        { hash: _uniqueHash() },
+                        (err, message) => {
+                          assert.ok(!err);
+                          return callback();
+                        }
+                      );
+                    }, 2250);
+                  }
+                );
+              }
+            );
+          });
         });
       });
     });

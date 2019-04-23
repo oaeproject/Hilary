@@ -13,18 +13,20 @@
  * permissions and limitations under the License.
  */
 
-const crypto = require('crypto');
-const url = require('url');
-const util = require('util');
-const _ = require('underscore');
-const cookieParser = require('cookie-parser');
-const cookieSession = require('cookie-session');
-const MobileDetect = require('mobile-detect');
-const passport = require('passport');
+import crypto from 'crypto';
+import url from 'url';
+import util from 'util';
+import _ from 'underscore';
+import cookieParser from 'cookie-parser';
+import cookieSession from 'cookie-session';
+import MobileDetect from 'mobile-detect';
+import passport from 'passport';
+import { Context } from 'oae-context';
+import { logger } from 'oae-logger';
+import * as TenantsUtil from 'oae-tenants/lib/util';
+import { getOrCreateUser } from 'oae-authentication';
 
-const { Context } = require('oae-context');
-const log = require('oae-logger').logger('oae-authentication');
-const TenantsUtil = require('oae-tenants/lib/util');
+const log = logger('oae-authentication');
 
 /**
  * Setup the necessary authentication middleware
@@ -159,12 +161,7 @@ const logAuthenticationSuccess = function(req, authInfo, strategyName) {
 
   log().info(
     data,
-    util.format(
-      'Login for "%s" to tenant "%s" from "%s"',
-      user.id,
-      tenantAlias,
-      req.headers['x-forwarded-for']
-    )
+    util.format('Login for "%s" to tenant "%s" from "%s"', user.id, tenantAlias, req.headers['x-forwarded-for'])
   );
 };
 
@@ -186,12 +183,14 @@ const handlePassportError = function(req, res, next) {
 
         // If someone tried to sign in with a disabled strategy
       }
+
       if (err.message && err.message.indexOf('Unknown authentication strategy') === 0) {
         log().warn({ host: req.hostname }, 'Authentication attempt with disabled strategy');
         return res.redirect('/?authentication=disabled');
 
         // Generic error
       }
+
       log().error({ err, host: req.hostname }, 'An error occurred during login');
       return res.redirect('/?authentication=error');
     }
@@ -284,15 +283,7 @@ const handleExternalGetOrCreateUser = function(
   // Require the AuthenticationAPI inline to avoid cross-dependency issues
   // during initialization
   const ctx = new Context(req.tenant);
-  return require('oae-authentication').getOrCreateUser(
-    ctx,
-    authProvider,
-    externalId,
-    providerProperties,
-    displayName,
-    opts,
-    callback
-  );
+  return getOrCreateUser(ctx, authProvider, externalId, providerProperties, displayName, opts, callback);
 };
 
 /**
@@ -315,15 +306,13 @@ const handleExternalCallback = function(strategyId, req, res, next) {
     if (err) {
       return errorHandler(err);
     }
+
     if (!user) {
       // The user's credentials didn't check out. This would rarely occur in a
       // normal situation as external auth providers don't usually redirect with
       // bad parameters in the request, so somebody is probably tampering with it.
       // We bail out immediately
-      log().warn(
-        { challenges, status },
-        'Possible tampering of external callback request detected'
-      );
+      log().warn({ challenges, status }, 'Possible tampering of external callback request detected');
       return res.redirect('/?authentication=failed&reason=tampering');
     }
 
@@ -430,6 +419,7 @@ const renderTemplate = function(template, data) {
     if (data[variableName]) {
       return data[variableName];
     }
+
     return '';
   });
   return result;
@@ -450,7 +440,7 @@ const _getRequestInvitationInfo = function(req) {
   return _.pick(parsedRedirectUrl.query, 'invitationToken', 'invitationEmail');
 };
 
-module.exports = {
+export {
   setupAuthMiddleware,
   hashAndComparePassword,
   hashPassword,

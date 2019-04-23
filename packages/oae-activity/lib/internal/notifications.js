@@ -13,18 +13,21 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const Counter = require('oae-util/lib/counter');
-const log = require('oae-logger').logger('oae-activity-notifications');
-const { PrincipalsConstants } = require('oae-principals/lib/constants');
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
+import Counter from 'oae-util/lib/counter';
+import { logger } from 'oae-logger';
+import { PrincipalsConstants } from 'oae-principals/lib/constants';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const ActivityUtil = require('oae-activity/lib/util');
-const ActivityEmitter = require('./emitter');
-const ActivityDAO = require('./dao');
-const ActivityAggregator = require('./aggregator');
+import { ActivityConstants } from 'oae-activity/lib/constants';
+import * as ActivityUtil from 'oae-activity/lib/util';
+import ActivityEmitter from './emitter';
+
+import * as ActivityDAO from './dao';
+import * as ActivityAggregator from './aggregator';
+
+const log = logger('oae-activity-notifications');
 
 // Tracks the handling of notifications for synchronization to determine when there are no
 // notifications being processed
@@ -52,10 +55,7 @@ ActivityEmitter.on(ActivityConstants.events.DELIVERED_ACTIVITIES, deliveredActiv
   // All users receiving notifications will have their "notifications unread" counter incremented
   incrementNotificationsUnread(userIdsIncrBy, err => {
     if (err) {
-      log().error(
-        { err: new Error(err.msg), userIdsIncrBy },
-        'Could not mark notifications as unread'
-      );
+      log().error({ err: new Error(err.msg), userIdsIncrBy }, 'Could not mark notifications as unread');
     }
 
     // Our async operation is over, decrement the counter
@@ -98,10 +98,7 @@ const markNotificationsRead = function(user, callback) {
 
       // Reset the aggregator for this user his notification stream. New notifications will not aggregate
       // with older notifications which will make it clearer to the user which activity is the new one
-      const notificationActivityStreamId = ActivityUtil.createActivityStreamId(
-        user.id,
-        'notification'
-      );
+      const notificationActivityStreamId = ActivityUtil.createActivityStreamId(user.id, 'notification');
       ActivityAggregator.resetAggregationForActivityStreams([notificationActivityStreamId]);
 
       // By clearing a user's email activity stream when he marks his notifications as read,
@@ -128,14 +125,14 @@ const markNotificationsRead = function(user, callback) {
  */
 const incrementNotificationsUnread = function(userIdIncrs, callback) {
   /*!
-     * First update the cached new notification counts, then update Cassandra. Some very clear drawbacks here but
-     * are considered acceptable:
-     *
-     *  1.  If 2 nodes increment and then persist to cassandra, and the first incr wins into cassandra, counts are
-     *      off by 1. The next time a notification comes around it will be fixed.
-     *  2.  If Redis is completely flushed or crashes with no disk storage, kiss all your counts good-bye. Will not
-     *      become accurate again for a user until they "mark as read".
-     */
+   * First update the cached new notification counts, then update Cassandra. Some very clear drawbacks here but
+   * are considered acceptable:
+   *
+   *  1.  If 2 nodes increment and then persist to cassandra, and the first incr wins into cassandra, counts are
+   *      off by 1. The next time a notification comes around it will be fixed.
+   *  2.  If Redis is completely flushed or crashes with no disk storage, kiss all your counts good-bye. Will not
+   *      become accurate again for a user until they "mark as read".
+   */
   ActivityDAO.incrementNotificationsUnreadCounts(userIdIncrs, (err, newValues) => {
     if (err) {
       return callback(err);
@@ -149,10 +146,10 @@ const incrementNotificationsUnread = function(userIdIncrs, callback) {
     }
 
     /*!
-         * Determines when the process of updating all principal counts in cassandra is complete.
-         *
-         * @param  {Object}     err     An error that occurred, if any.
-         */
+     * Determines when the process of updating all principal counts in cassandra is complete.
+     *
+     * @param  {Object}     err     An error that occurred, if any.
+     */
     const _monitorUpdatePrincipal = function(err) {
       if (complete) {
         // Nothing to do.
@@ -170,11 +167,7 @@ const incrementNotificationsUnread = function(userIdIncrs, callback) {
 
     // Update all principal profiles with the new count
     _.each(newValues, (newValue, userId) => {
-      PrincipalsDAO.updatePrincipal(
-        userId,
-        { notificationsUnread: newValue.toString() },
-        _monitorUpdatePrincipal
-      );
+      PrincipalsDAO.updatePrincipal(userId, { notificationsUnread: newValue.toString() }, _monitorUpdatePrincipal);
     });
   });
 };
@@ -190,8 +183,4 @@ const whenNotificationsEmpty = function(handler) {
   notificationsCounter.whenZero(handler);
 };
 
-module.exports = {
-  markNotificationsRead,
-  incrementNotificationsUnread,
-  whenNotificationsEmpty
-};
+export { markNotificationsRead, incrementNotificationsUnread, whenNotificationsEmpty };

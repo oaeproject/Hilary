@@ -1,4 +1,4 @@
-const Cassandra = require('oae-util/lib/cassandra');
+import { runQuery, createColumnFamilies } from 'oae-util/lib/cassandra';
 
 /**
  * Ensure that the all of the principal-related schemas are created. If they already exist, this method will not
@@ -10,7 +10,7 @@ const Cassandra = require('oae-util/lib/cassandra');
  */
 const ensureSchema = function(callback) {
   // Both user and group information will be stored inside of the Principals CF
-  Cassandra.createColumnFamilies(
+  createColumnFamilies(
     {
       Principals:
         'CREATE TABLE "Principals" ("principalId" text PRIMARY KEY, "tenantAlias" text, "displayName" text, "description" text, "email" text, "emailPreference" text, "visibility" text, "joinable" text, "lastModified" text, "locale" text, "publicAlias" text, "largePictureUri" text, "mediumPictureUri" text, "smallPictureUri" text, "admin:global" text, "admin:tenant" text, "notificationsUnread" text, "notificationsLastRead" text, "acceptedTC" text, "createdBy" text, "created" timestamp, "deleted" timestamp)',
@@ -32,11 +32,11 @@ const ensureSchema = function(callback) {
         'CREATE TABLE "GroupJoinRequestsByGroup" ("groupId" text, "principalId" text, "created_at" text, "updated_at" text, "status" text, PRIMARY KEY ("groupId", "principalId"))'
     },
     () => {
-      Cassandra.runQuery('CREATE INDEX IF NOT EXISTS ON "Principals" ("tenantAlias")', [], () => {
+      runQuery('CREATE INDEX IF NOT EXISTS ON "Principals" ("tenantAlias")', [], () => {
         return callback();
       });
     }
   );
 };
 
-module.exports = { ensureSchema };
+export { ensureSchema };

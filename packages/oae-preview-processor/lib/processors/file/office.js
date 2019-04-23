@@ -13,16 +13,18 @@
  * permissions and limitations under the License.
  */
 
-const { exec } = require('child_process');
-const fs = require('fs');
-const Path = require('path');
-const util = require('util');
+import { exec } from 'child_process';
+import fs from 'fs';
+import Path from 'path';
+import util from 'util';
+import PreviewConstants from 'oae-preview-processor/lib/constants';
 
-const log = require('oae-logger').logger('oae-preview-processor');
+import { logger } from 'oae-logger';
 
-const PDFProcessor = require('oae-preview-processor/lib/processors/file/pdf');
-const PreviewConstants = require('oae-preview-processor/lib/constants');
-const TempFile = require('oae-util/lib/tempfile');
+import * as PDFProcessor from 'oae-preview-processor/lib/processors/file/pdf';
+import * as TempFile from 'oae-util/lib/tempfile';
+
+const log = logger('oae-preview-processor');
 
 let _sofficeBinary = null;
 let _timeout = null;
@@ -41,8 +43,7 @@ const init = function(config, callback) {
   if (!config || !config.binary || !config.timeout) {
     return callback({
       code: 400,
-      msg:
-        'Missing configuration for the Office Preview Processor, required fields are `binary` and `timeout`.'
+      msg: 'Missing configuration for the Office Preview Processor, required fields are `binary` and `timeout`.'
     });
   }
 
@@ -96,10 +97,7 @@ const init = function(config, callback) {
  * @borrows Interface.test as Office.test
  */
 const test = function(ctx, contentObj, callback) {
-  if (
-    contentObj.resourceSubType === 'file' &&
-    PreviewConstants.TYPES.OFFICE.indexOf(ctx.revision.mime) !== -1
-  ) {
+  if (contentObj.resourceSubType === 'file' && PreviewConstants.TYPES.OFFICE.indexOf(ctx.revision.mime) !== -1) {
     callback(null, 10);
   } else {
     callback(null, -1);
@@ -150,10 +148,7 @@ const _convertToPdf = function(ctx, path, callback) {
   log().trace({ contentId: ctx.contentId }, 'Executing %s', cmd);
   exec(cmd, { timeout: _timeout }, (err, stdout, stderr) => {
     if (err) {
-      log().error(
-        { err, contentId: ctx.contentId, stdout, stderr },
-        'Could not convert the file to PDF.'
-      );
+      log().error({ err, contentId: ctx.contentId, stdout, stderr }, 'Could not convert the file to PDF.');
       return callback({ code: 500, msg: 'Could not convert the file to PDF.' });
     }
 
@@ -167,10 +162,7 @@ const _convertToPdf = function(ctx, path, callback) {
     // ex: http://askubuntu.com/questions/226295/libreoffice-command-line-conversion-no-output-file
     fs.stat(pdfPath, err => {
       if (err) {
-        log().error(
-          { contentId: ctx.contentId },
-          'Could not convert the file to PDF. Office failed silently'
-        );
+        log().error({ contentId: ctx.contentId }, 'Could not convert the file to PDF. Office failed silently');
         return callback({
           code: 500,
           msg: 'Unable to convert the office file to pdf. Office failed silently.'
@@ -182,8 +174,4 @@ const _convertToPdf = function(ctx, path, callback) {
   });
 };
 
-module.exports = {
-  init,
-  test,
-  generatePreviews
-};
+export { init, test, generatePreviews };

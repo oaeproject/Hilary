@@ -13,14 +13,13 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const ConfigTestUtil = require('oae-config/lib/test/util');
-const { Context } = require('oae-context');
-const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
-const TestsUtil = require('oae-tests');
+import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
+import { RestContext } from 'oae-rest/lib/model';
 
 describe('Terms and Conditions', () => {
   // Rest context that can be used every time we need to make a request as a global admin
@@ -44,23 +43,13 @@ describe('Terms and Conditions', () => {
    * Function that will disable and clear the Terms and Conditions after each test
    */
   afterEach(callback => {
-    ConfigTestUtil.clearConfigAndWait(
-      camAdminRestContext,
-      null,
-      ['oae-principals/termsAndConditions/enabled'],
-      err => {
+    ConfigTestUtil.clearConfigAndWait(camAdminRestContext, null, ['oae-principals/termsAndConditions/enabled'], err => {
+      assert.ok(!err);
+      ConfigTestUtil.clearConfigAndWait(camAdminRestContext, null, ['oae-principals/termsAndConditions/text'], err => {
         assert.ok(!err);
-        ConfigTestUtil.clearConfigAndWait(
-          camAdminRestContext,
-          null,
-          ['oae-principals/termsAndConditions/text'],
-          err => {
-            assert.ok(!err);
-            return callback();
-          }
-        );
-      }
-    );
+        return callback();
+      });
+    });
   });
 
   /**
@@ -105,10 +94,7 @@ describe('Terms and Conditions', () => {
         enableAndSetTC(camAdminRestContext, 'default', 'legalese', true, () => {
           // Not passing in acceptedTC: true should result in a 400
           const username = TestsUtil.generateRandomText(5);
-          const email = TestsUtil.generateTestEmailAddress(
-            null,
-            global.oaeTests.tenants.cam.emailDomains[0]
-          );
+          const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
           RestAPI.User.createUser(
             anonymousCamRestContext,
             username,
@@ -203,169 +189,126 @@ describe('Terms and Conditions', () => {
               assert.ok(data.needsToAcceptTC);
 
               // Verify there is nothing in this user's library
-              RestAPI.Content.getLibrary(
-                mrvisser.restContext,
-                mrvisser.user.id,
-                null,
-                10,
-                (err, library) => {
+              RestAPI.Content.getLibrary(mrvisser.restContext, mrvisser.user.id, null, 10, (err, library) => {
+                assert.ok(!err);
+                assert.strictEqual(library.results.length, 0);
+
+                // Accept the Terms and Conditions for the cam tenant.
+                RestAPI.User.acceptTermsAndConditions(mrvisser.restContext, mrvisser.user.id, err => {
                   assert.ok(!err);
-                  assert.strictEqual(library.results.length, 0);
 
-                  // Accept the Terms and Conditions for the cam tenant.
-                  RestAPI.User.acceptTermsAndConditions(
-                    mrvisser.restContext,
-                    mrvisser.user.id,
-                    err => {
-                      assert.ok(!err);
+                  RestAPI.User.getMe(mrvisser.restContext, (err, data) => {
+                    assert.ok(!err);
+                    assert.ok(!data.needsToAcceptTC);
 
-                      RestAPI.User.getMe(mrvisser.restContext, (err, data) => {
+                    // Verify that it is now possible to perform POST requests
+                    RestAPI.Content.createLink(
+                      mrvisser.restContext,
+                      'Yahoo',
+                      'Yahoo',
+                      'public',
+                      'http://uk.yahoo.com',
+                      [],
+                      [],
+                      [],
+                      (err, createdLink) => {
                         assert.ok(!err);
-                        assert.ok(!data.needsToAcceptTC);
+                        RestAPI.Content.getLibrary(mrvisser.restContext, mrvisser.user.id, null, 10, (err, library) => {
+                          assert.ok(!err);
+                          assert.strictEqual(library.results.length, 1);
 
-                        // Verify that it is now possible to perform POST requests
-                        RestAPI.Content.createLink(
-                          mrvisser.restContext,
-                          'Yahoo',
-                          'Yahoo',
-                          'public',
-                          'http://uk.yahoo.com',
-                          [],
-                          [],
-                          [],
-                          (err, createdLink) => {
-                            assert.ok(!err);
-                            RestAPI.Content.getLibrary(
-                              mrvisser.restContext,
-                              mrvisser.user.id,
-                              null,
-                              10,
-                              (err, library) => {
-                                assert.ok(!err);
-                                assert.strictEqual(library.results.length, 1);
+                          // Update the Terms and Conditions, ensuring we wait long enough to get a new timestamp
+                          setTimeout(enableAndSetTC, 500, camAdminRestContext, 'default', 'new legalese', true, () => {
+                            // Mrvisser needs to re-accept the Terms and Conditions before he can continue working on the system
+                            RestAPI.User.getMe(mrvisser.restContext, (err, data) => {
+                              assert.ok(!err);
+                              assert.ok(data.needsToAcceptTC);
 
-                                // Update the Terms and Conditions, ensuring we wait long enough to get a new timestamp
-                                setTimeout(
-                                  enableAndSetTC,
-                                  500,
-                                  camAdminRestContext,
-                                  'default',
-                                  'new legalese',
-                                  true,
-                                  () => {
-                                    // Mrvisser needs to re-accept the Terms and Conditions before he can continue working on the system
-                                    RestAPI.User.getMe(mrvisser.restContext, (err, data) => {
-                                      assert.ok(!err);
-                                      assert.ok(data.needsToAcceptTC);
+                              RestAPI.Content.createLink(
+                                mrvisser.restContext,
+                                'Yahoo',
+                                'Yahoo',
+                                'public',
+                                'http://uk.yahoo.com',
+                                [],
+                                [],
+                                [],
+                                (err, link) => {
+                                  assert.ok(err);
+                                  assert.strictEqual(err.code, 419);
+                                  assert.ok(!link);
 
-                                      RestAPI.Content.createLink(
-                                        mrvisser.restContext,
-                                        'Yahoo',
-                                        'Yahoo',
-                                        'public',
-                                        'http://uk.yahoo.com',
-                                        [],
-                                        [],
-                                        [],
-                                        (err, link) => {
-                                          assert.ok(err);
-                                          assert.strictEqual(err.code, 419);
-                                          assert.ok(!link);
+                                  // DELETEs should not be possible
+                                  RestAPI.Content.deleteContent(mrvisser.restContext, createdLink.id, err => {
+                                    assert.ok(err);
+                                    assert.strictEqual(err.code, 419);
 
-                                          // DELETEs should not be possible
-                                          RestAPI.Content.deleteContent(
+                                    // Sanity check that re-accepting it, allows mrvisser to perform POST requests again
+                                    setTimeout(
+                                      RestAPI.User.acceptTermsAndConditions,
+                                      200,
+                                      mrvisser.restContext,
+                                      mrvisser.user.id,
+                                      err => {
+                                        assert.ok(!err);
+                                        setTimeout(RestAPI.User.getMe, 1000, mrvisser.restContext, (err, data) => {
+                                          assert.ok(!err);
+                                          assert.ok(!data.needsToAcceptTC);
+
+                                          // Verify that the user is now able to perform POST requests
+                                          RestAPI.Content.createLink(
                                             mrvisser.restContext,
-                                            createdLink.id,
-                                            err => {
-                                              assert.ok(err);
-                                              assert.strictEqual(err.code, 419);
-
-                                              // Sanity check that re-accepting it, allows mrvisser to perform POST requests again
-                                              setTimeout(
-                                                RestAPI.User.acceptTermsAndConditions,
-                                                200,
+                                            'Yahoo',
+                                            'Yahoo',
+                                            'public',
+                                            'http://uk.yahoo.com',
+                                            [],
+                                            [],
+                                            [],
+                                            (err, link) => {
+                                              assert.ok(!err);
+                                              RestAPI.Content.getLibrary(
                                                 mrvisser.restContext,
                                                 mrvisser.user.id,
-                                                err => {
+                                                null,
+                                                10,
+                                                (err, library) => {
                                                   assert.ok(!err);
-                                                  setTimeout(
-                                                    RestAPI.User.getMe,
-                                                    1000,
-                                                    mrvisser.restContext,
-                                                    (err, data) => {
-                                                      assert.ok(!err);
-                                                      assert.ok(!data.needsToAcceptTC);
+                                                  assert.strictEqual(library.results.length, 2);
 
-                                                      // Verify that the user is now able to perform POST requests
-                                                      RestAPI.Content.createLink(
-                                                        mrvisser.restContext,
-                                                        'Yahoo',
-                                                        'Yahoo',
-                                                        'public',
-                                                        'http://uk.yahoo.com',
-                                                        [],
-                                                        [],
-                                                        [],
-                                                        (err, link) => {
-                                                          assert.ok(!err);
-                                                          RestAPI.Content.getLibrary(
-                                                            mrvisser.restContext,
-                                                            mrvisser.user.id,
-                                                            null,
-                                                            10,
-                                                            (err, library) => {
-                                                              assert.ok(!err);
-                                                              assert.strictEqual(
-                                                                library.results.length,
-                                                                2
-                                                              );
-
-                                                              // DELETEs should be possible
-                                                              RestAPI.Content.deleteContent(
-                                                                mrvisser.restContext,
-                                                                link.id,
-                                                                err => {
-                                                                  assert.ok(!err);
-                                                                  RestAPI.Content.getLibrary(
-                                                                    mrvisser.restContext,
-                                                                    mrvisser.user.id,
-                                                                    null,
-                                                                    10,
-                                                                    (err, library) => {
-                                                                      assert.ok(!err);
-                                                                      assert.strictEqual(
-                                                                        library.results.length,
-                                                                        1
-                                                                      );
-                                                                      callback();
-                                                                    }
-                                                                  );
-                                                                }
-                                                              );
-                                                            }
-                                                          );
-                                                        }
-                                                      );
-                                                    }
-                                                  );
+                                                  // DELETEs should be possible
+                                                  RestAPI.Content.deleteContent(mrvisser.restContext, link.id, err => {
+                                                    assert.ok(!err);
+                                                    RestAPI.Content.getLibrary(
+                                                      mrvisser.restContext,
+                                                      mrvisser.user.id,
+                                                      null,
+                                                      10,
+                                                      (err, library) => {
+                                                        assert.ok(!err);
+                                                        assert.strictEqual(library.results.length, 1);
+                                                        callback();
+                                                      }
+                                                    );
+                                                  });
                                                 }
                                               );
                                             }
                                           );
-                                        }
-                                      );
-                                    });
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      });
-                    }
-                  );
-                }
-              );
+                                        });
+                                      }
+                                    );
+                                  });
+                                }
+                              );
+                            });
+                          });
+                        });
+                      }
+                    );
+                  });
+                });
+              });
             });
           }
         );
@@ -416,76 +359,59 @@ describe('Terms and Conditions', () => {
               [],
               (err, link) => {
                 assert.ok(!err);
-                RestAPI.Content.getLibrary(
-                  mrvisser.restContext,
-                  mrvisser.user.id,
-                  null,
-                  10,
-                  (err, library) => {
+                RestAPI.Content.getLibrary(mrvisser.restContext, mrvisser.user.id, null, 10, (err, library) => {
+                  assert.ok(!err);
+                  assert.strictEqual(library.results.length, 1);
+
+                  // Verify that mrvisser is able to perform DELETE requests without having accepted the Terms and Conditions
+                  RestAPI.Content.deleteContent(mrvisser.restContext, link.id, err => {
                     assert.ok(!err);
-                    assert.strictEqual(library.results.length, 1);
-
-                    // Verify that mrvisser is able to perform DELETE requests without having accepted the Terms and Conditions
-                    RestAPI.Content.deleteContent(mrvisser.restContext, link.id, err => {
+                    RestAPI.Content.getLibrary(mrvisser.restContext, mrvisser.user.id, null, 10, (err, library) => {
                       assert.ok(!err);
-                      RestAPI.Content.getLibrary(
-                        mrvisser.restContext,
-                        mrvisser.user.id,
-                        null,
-                        10,
-                        (err, library) => {
+                      assert.strictEqual(library.results.length, 0);
+
+                      // Demote mrvisser to a normal user
+                      RestAPI.User.setTenantAdmin(camAdminRestContext, mrvisser.user.id, false, err => {
+                        assert.ok(!err);
+
+                        // Because mrvisser hasn't accepted the Terms and Conditions yet, he cannot interact with the system
+                        // When the user tries to *do* anything, he needs to accept the Terms and Conditions
+                        RestAPI.User.getMe(mrvisser.restContext, (err, data) => {
                           assert.ok(!err);
-                          assert.strictEqual(library.results.length, 0);
+                          assert.ok(data.needsToAcceptTC);
+                          RestAPI.Content.createLink(
+                            mrvisser.restContext,
+                            'Yahoo',
+                            'Yahoo',
+                            'public',
+                            'http://uk.yahoo.com',
+                            [],
+                            [],
+                            [],
+                            (err, link) => {
+                              assert.ok(err);
+                              assert.strictEqual(err.code, 419);
+                              assert.ok(!link);
 
-                          // Demote mrvisser to a normal user
-                          RestAPI.User.setTenantAdmin(
-                            camAdminRestContext,
-                            mrvisser.user.id,
-                            false,
-                            err => {
-                              assert.ok(!err);
-
-                              // Because mrvisser hasn't accepted the Terms and Conditions yet, he cannot interact with the system
-                              // When the user tries to *do* anything, he needs to accept the Terms and Conditions
-                              RestAPI.User.getMe(mrvisser.restContext, (err, data) => {
-                                assert.ok(!err);
-                                assert.ok(data.needsToAcceptTC);
-                                RestAPI.Content.createLink(
-                                  mrvisser.restContext,
-                                  'Yahoo',
-                                  'Yahoo',
-                                  'public',
-                                  'http://uk.yahoo.com',
-                                  [],
-                                  [],
-                                  [],
-                                  (err, link) => {
-                                    assert.ok(err);
-                                    assert.strictEqual(err.code, 419);
-                                    assert.ok(!link);
-
-                                    // Verify nothing extra got added to the library
-                                    RestAPI.Content.getLibrary(
-                                      mrvisser.restContext,
-                                      mrvisser.user.id,
-                                      null,
-                                      10,
-                                      (err, library) => {
-                                        assert.ok(!err);
-                                        assert.strictEqual(library.results.length, 0);
-                                        callback();
-                                      }
-                                    );
-                                  }
-                                );
-                              });
+                              // Verify nothing extra got added to the library
+                              RestAPI.Content.getLibrary(
+                                mrvisser.restContext,
+                                mrvisser.user.id,
+                                null,
+                                10,
+                                (err, library) => {
+                                  assert.ok(!err);
+                                  assert.strictEqual(library.results.length, 0);
+                                  callback();
+                                }
+                              );
                             }
                           );
-                        }
-                      );
+                        });
+                      });
                     });
-                  }
-                );
+                  });
+                });
               }
             );
           });
@@ -513,30 +439,18 @@ describe('Terms and Conditions', () => {
             assert.strictEqual(err.code, 401);
 
             // Anonymous users can't accept anything
-            RestAPI.User.acceptTermsAndConditions(
-              anonymousCamRestContext,
-              mrvisser.user.id,
-              err => {
-                assert.strictEqual(err.code, 401);
+            RestAPI.User.acceptTermsAndConditions(anonymousCamRestContext, mrvisser.user.id, err => {
+              assert.strictEqual(err.code, 401);
 
-                // Some basic validation
-                RestAPI.User.acceptTermsAndConditions(
-                  mrvisser.restContext,
-                  'not a user id',
-                  err => {
-                    assert.strictEqual(err.code, 400);
-                    RestAPI.User.acceptTermsAndConditions(
-                      mrvisser.restContext,
-                      'g:camtest:not-a-user-id',
-                      err => {
-                        assert.strictEqual(err.code, 400);
-                        callback();
-                      }
-                    );
-                  }
-                );
-              }
-            );
+              // Some basic validation
+              RestAPI.User.acceptTermsAndConditions(mrvisser.restContext, 'not a user id', err => {
+                assert.strictEqual(err.code, 400);
+                RestAPI.User.acceptTermsAndConditions(mrvisser.restContext, 'g:camtest:not-a-user-id', err => {
+                  assert.strictEqual(err.code, 400);
+                  callback();
+                });
+              });
+            });
           });
         });
       });
@@ -575,30 +489,22 @@ describe('Terms and Conditions', () => {
                     assert.strictEqual(data.text, 'British English legalese');
 
                     // If a locale is specialized for which no Terms and Conditions is available, the default Terms and Conditions should be returned
-                    RestAPI.User.getTermsAndConditions(
-                      mrvisser.restContext,
-                      'fr_FR',
-                      (err, data) => {
-                        assert.ok(!err);
-                        assert.strictEqual(data.text, 'Default legalese');
+                    RestAPI.User.getTermsAndConditions(mrvisser.restContext, 'fr_FR', (err, data) => {
+                      assert.ok(!err);
+                      assert.strictEqual(data.text, 'Default legalese');
 
-                        // Create an anonymous request context that sends an `Accept-Language: en_CA` header
-                        // to verify that is picked up if no other options are present
-                        const acceptLanguageRestContext = new RestContext('http://localhost:2001', {
-                          hostHeader: global.oaeTests.tenants.cam.host,
-                          additionalHeaders: { 'Accept-Language': 'en-gb' }
-                        });
-                        RestAPI.User.getTermsAndConditions(
-                          acceptLanguageRestContext,
-                          null,
-                          (err, data) => {
-                            assert.ok(!err);
-                            assert.strictEqual(data.text, 'British English legalese');
-                            return callback();
-                          }
-                        );
-                      }
-                    );
+                      // Create an anonymous request context that sends an `Accept-Language: en_CA` header
+                      // to verify that is picked up if no other options are present
+                      const acceptLanguageRestContext = new RestContext('http://localhost:2001', {
+                        hostHeader: global.oaeTests.tenants.cam.host,
+                        additionalHeaders: { 'Accept-Language': 'en-gb' }
+                      });
+                      RestAPI.User.getTermsAndConditions(acceptLanguageRestContext, null, (err, data) => {
+                        assert.ok(!err);
+                        assert.strictEqual(data.text, 'British English legalese');
+                        return callback();
+                      });
+                    });
                   });
                 });
               });
@@ -616,38 +522,26 @@ describe('Terms and Conditions', () => {
     // Set a Terms and Conditions
     enableAndSetTC(camAdminRestContext, 'default', 'Default legalese', true, () => {
       // Get the Terms and Conditions
-      setTimeout(
-        RestAPI.User.getTermsAndConditions,
-        200,
-        anonymousCamRestContext,
-        null,
-        (err, firstTC) => {
-          assert.ok(!err);
-          assert.strictEqual(firstTC.text, 'Default legalese');
-          assert.ok(firstTC.lastUpdate);
-          assert.ok(firstTC.lastUpdate <= Date.now());
-          assert.ok(firstTC.lastUpdate > 0);
+      setTimeout(RestAPI.User.getTermsAndConditions, 200, anonymousCamRestContext, null, (err, firstTC) => {
+        assert.ok(!err);
+        assert.strictEqual(firstTC.text, 'Default legalese');
+        assert.ok(firstTC.lastUpdate);
+        assert.ok(firstTC.lastUpdate <= Date.now());
+        assert.ok(firstTC.lastUpdate > 0);
 
-          // Update the Terms and Conditions
-          enableAndSetTC(camAdminRestContext, 'default', 'Other legalese', true, () => {
-            setTimeout(
-              RestAPI.User.getTermsAndConditions,
-              200,
-              anonymousCamRestContext,
-              null,
-              (err, updatedTC) => {
-                assert.ok(!err);
-                assert.strictEqual(updatedTC.text, 'Other legalese');
-                assert.ok(updatedTC.lastUpdate);
-                assert.ok(updatedTC.lastUpdate <= Date.now());
-                assert.ok(updatedTC.lastUpdate > 0);
-                assert.ok(updatedTC.lastUpdate > firstTC.lastUpdate);
-                callback();
-              }
-            );
+        // Update the Terms and Conditions
+        enableAndSetTC(camAdminRestContext, 'default', 'Other legalese', true, () => {
+          setTimeout(RestAPI.User.getTermsAndConditions, 200, anonymousCamRestContext, null, (err, updatedTC) => {
+            assert.ok(!err);
+            assert.strictEqual(updatedTC.text, 'Other legalese');
+            assert.ok(updatedTC.lastUpdate);
+            assert.ok(updatedTC.lastUpdate <= Date.now());
+            assert.ok(updatedTC.lastUpdate > 0);
+            assert.ok(updatedTC.lastUpdate > firstTC.lastUpdate);
+            callback();
           });
-        }
-      );
+        });
+      });
     });
   });
 
@@ -675,15 +569,11 @@ describe('Terms and Conditions', () => {
             assert.ok(_.isObject(config['oae-principals'].termsAndConditions.text));
 
             // Global admins should be able to see it
-            RestAPI.Config.getTenantConfig(
-              globalAdminRestContext,
-              global.oaeTests.tenants.cam.alias,
-              (err, config) => {
-                assert.ok(!err);
-                assert.ok(_.isObject(config['oae-principals'].termsAndConditions.text));
-                return callback();
-              }
-            );
+            RestAPI.Config.getTenantConfig(globalAdminRestContext, global.oaeTests.tenants.cam.alias, (err, config) => {
+              assert.ok(!err);
+              assert.ok(_.isObject(config['oae-principals'].termsAndConditions.text));
+              return callback();
+            });
           });
         });
       });

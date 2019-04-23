@@ -13,21 +13,25 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
 
-const log = require('oae-logger').logger('oae-activity-aggregator');
-const Telemetry = require('oae-telemetry').telemetry('activity');
+import { logger } from 'oae-logger';
+import { telemetry } from 'oae-telemetry';
 
-const { Activity } = require('oae-activity/lib/model');
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const { ActivityEntity } = require('oae-activity/lib/model');
-const ActivityUtil = require('oae-activity/lib/util');
-const ActivityRegistry = require('./registry');
-const ActivitySystemConfig = require('./config');
-const ActivityEmitter = require('./emitter');
-const ActivityDAO = require('./dao');
-const ActivityBuckets = require('./buckets');
+import { Activity } from 'oae-activity/lib/model';
+import { ActivityConstants } from 'oae-activity/lib/constants';
+import { ActivityEntity } from 'oae-activity/lib/model';
+import * as ActivityUtil from 'oae-activity/lib/util';
+import * as ActivityRegistry from './registry';
+import * as ActivitySystemConfig from './config';
+import ActivityEmitter from './emitter';
+import * as ActivityDAO from './dao';
+import * as ActivityBuckets from './buckets';
+
+const log = logger('oae-activity-aggregator');
+
+const Telemetry = telemetry('activity');
 
 // Used in an aggregate key to denote that there was no entity provided for an activity. This differs from an empty string in that
 // an empty string is used when the aggregate does not pivot on that entity.
@@ -150,6 +154,7 @@ const _collectBucket = function(bucketNumber, callback) {
     if (err) {
       return callback(err);
     }
+
     if (numToDelete === 0) {
       // No more to process, so stop and report that we're empty
       return callback(null, true);
@@ -206,52 +211,52 @@ const _collectBucket = function(bucketNumber, callback) {
             }
 
             /*!
-                         * Step #7:
-                         *
-                         * Here we choose which aggregates need to be wrapped up into an activity and delivered to the activity stream. This is
-                         * rather difficult to get right. These are the rules implemented below:
-                         *
-                         *  For a given activity:
-                         *
-                         *  1.  If a matching multi-aggregate exists for an activity, it will "claim" the activity for that stream and redeliver
-                         *      the updated aggregate, while deleting the old version of the activity. If more than one multi-aggregate matches
-                         *      the activity, all matching multi-aggregates are redelivered. This is to support the situation where:
-                         *
-                         *          Aggregate #1: "Branden followed Simon and Bert"
-                         *          Aggregate #2: "Nicolaas and Stuart followed Stephen"
-                         *
-                         *      Now, when Branden follows Stephen, both of those "multi-aggregates" will claim this activity, as such:
-                         *
-                         *          Aggregate #1': "Branden followed Simon, Bert and Stephen"
-                         *          Aggregate #2': "Nicolaas, Stuart and Branden followed Stephen"
-                         *
-                         * 2.   For all activities that haven't been claimed, if a single-aggregate exists for an activity, it will "claim" the
-                         *      activity for that stream and redeliver the updated aggregate, while deleting the old version of the activity. If
-                         *      more than one single-aggregate matches the activity, all matching single-aggregates are redelivered. This is to
-                         *      support the situation where:
-                         *
-                         *          Aggregate #1: "Branden followed Simon"
-                         *          Aggregate #2: "Nicolaas followed Stephen"
-                         *
-                         *      Now, when Branden followed Stephen, both of those "single-aggregates" will claim this activity and become "multi-
-                         *      aggregates", as such:
-                         *
-                         *          Aggregate #1: "Branden followed Simon and Stephen"
-                         *          Aggregate #2: "Nicolaas and Branden followed Stephen"
-                         *
-                         * 3.   An activity is only delivered for an inactive aggregate if the activity was not "claimed" for the route by an
-                         *      active single- or multi-aggregate. This would make sure that we don't redeliver an active aggregate, AND deliver
-                         *      a new single-aggregate (e.g., "Branden shared Syllabus with OAE Team") for the same route.
-                         *
-                         * 4.   If no active aggregates claim an activity, and there are multiple inactive aggregates (e.g., the activity type has
-                         *      multiple "pivot points"), then one single activity is delivered for all of them. This is necessary to ensure that
-                         *      the "lastActivityId" is recorded properly for both aggregates, so if either of those inactive aggregates become
-                         *      active later (i.e., another activity comes along and matches it), the previous activity can be properly deleted by
-                         *      either of the aggregates.
-                         *
-                         *  FIXMEMAYBE: https://github.com/oaeproject/Hilary/pull/650#issuecomment-23865585
-                         *
-                         */
+             * Step #7:
+             *
+             * Here we choose which aggregates need to be wrapped up into an activity and delivered to the activity stream. This is
+             * rather difficult to get right. These are the rules implemented below:
+             *
+             *  For a given activity:
+             *
+             *  1.  If a matching multi-aggregate exists for an activity, it will "claim" the activity for that stream and redeliver
+             *      the updated aggregate, while deleting the old version of the activity. If more than one multi-aggregate matches
+             *      the activity, all matching multi-aggregates are redelivered. This is to support the situation where:
+             *
+             *          Aggregate #1: "Branden followed Simon and Bert"
+             *          Aggregate #2: "Nicolaas and Stuart followed Stephen"
+             *
+             *      Now, when Branden follows Stephen, both of those "multi-aggregates" will claim this activity, as such:
+             *
+             *          Aggregate #1': "Branden followed Simon, Bert and Stephen"
+             *          Aggregate #2': "Nicolaas, Stuart and Branden followed Stephen"
+             *
+             * 2.   For all activities that haven't been claimed, if a single-aggregate exists for an activity, it will "claim" the
+             *      activity for that stream and redeliver the updated aggregate, while deleting the old version of the activity. If
+             *      more than one single-aggregate matches the activity, all matching single-aggregates are redelivered. This is to
+             *      support the situation where:
+             *
+             *          Aggregate #1: "Branden followed Simon"
+             *          Aggregate #2: "Nicolaas followed Stephen"
+             *
+             *      Now, when Branden followed Stephen, both of those "single-aggregates" will claim this activity and become "multi-
+             *      aggregates", as such:
+             *
+             *          Aggregate #1: "Branden followed Simon and Stephen"
+             *          Aggregate #2: "Nicolaas and Branden followed Stephen"
+             *
+             * 3.   An activity is only delivered for an inactive aggregate if the activity was not "claimed" for the route by an
+             *      active single- or multi-aggregate. This would make sure that we don't redeliver an active aggregate, AND deliver
+             *      a new single-aggregate (e.g., "Branden shared Syllabus with OAE Team") for the same route.
+             *
+             * 4.   If no active aggregates claim an activity, and there are multiple inactive aggregates (e.g., the activity type has
+             *      multiple "pivot points"), then one single activity is delivered for all of them. This is necessary to ensure that
+             *      the "lastActivityId" is recorded properly for both aggregates, so if either of those inactive aggregates become
+             *      active later (i.e., another activity comes along and matches it), the previous activity can be properly deleted by
+             *      either of the aggregates.
+             *
+             *  FIXMEMAYBE: https://github.com/oaeproject/Hilary/pull/650#issuecomment-23865585
+             *
+             */
 
             // Keeps track of all aggregate keys that should actually be delivered. Not all potential aggregates get delivered
             // because other aggregates may take priority or they may be duplicates of existing activities
@@ -286,13 +291,12 @@ const _collectBucket = function(bucketNumber, callback) {
 
                 // Mark this to be delivered and assign it an activity id
                 aggregatesToDeliver[aggregateKey] = true;
-                aggregate[
-                  ActivityConstants.properties.OAE_ACTIVITY_ID
-                ] = ActivityDAO.createActivityId(aggregate.published);
+                aggregate[ActivityConstants.properties.OAE_ACTIVITY_ID] = ActivityDAO.createActivityId(
+                  aggregate.published
+                );
 
                 // Mark these activities for this route as being claimed by an active aggregate
-                claimedRouteActivities[aggregate.route] =
-                  claimedRouteActivities[aggregate.route] || {};
+                claimedRouteActivities[aggregate.route] = claimedRouteActivities[aggregate.route] || {};
                 _.each(aggregate.activityIds, activityId => {
                   claimedRouteActivities[aggregate.route][activityId] = true;
                 });
@@ -306,8 +310,7 @@ const _collectBucket = function(bucketNumber, callback) {
                   // but NOT with activities already delivered to the feed, it means multiple activities
                   // were launched in quick successesion (content-create for example) that could be aggregated
                   // into one single activity. This increments the number of new activities for this route by 1
-                  numNewActivitiesByRoute[aggregate.route] =
-                    numNewActivitiesByRoute[aggregate.route] || 0;
+                  numNewActivitiesByRoute[aggregate.route] = numNewActivitiesByRoute[aggregate.route] || 0;
                   numNewActivitiesByRoute[aggregate.route]++;
                 }
               }
@@ -323,20 +326,18 @@ const _collectBucket = function(bucketNumber, callback) {
               // have already been claimed as multi-aggregates
               const activityId = aggregate.activityIds[0];
               const isClaimed =
-                claimedRouteActivities[aggregate.route] &&
-                claimedRouteActivities[aggregate.route][activityId];
+                claimedRouteActivities[aggregate.route] && claimedRouteActivities[aggregate.route][activityId];
               if (!isClaimed && activeAggregates[aggregateKey]) {
                 const status = statusByAggregateKey[aggregateKey];
 
                 // Mark this to be delivered and assign it an activity id
                 aggregatesToDeliver[aggregateKey] = true;
-                aggregate[
-                  ActivityConstants.properties.OAE_ACTIVITY_ID
-                ] = ActivityDAO.createActivityId(aggregate.published);
+                aggregate[ActivityConstants.properties.OAE_ACTIVITY_ID] = ActivityDAO.createActivityId(
+                  aggregate.published
+                );
 
                 // Mark these activities for this route as being claimed by an active aggregate
-                claimedRouteActivities[aggregate.route] =
-                  claimedRouteActivities[aggregate.route] || {};
+                claimedRouteActivities[aggregate.route] = claimedRouteActivities[aggregate.route] || {};
                 _.each(aggregate.activityIds, activityId => {
                   claimedRouteActivities[aggregate.route][activityId] = true;
                 });
@@ -360,8 +361,7 @@ const _collectBucket = function(bucketNumber, callback) {
               const activityId = aggregate.activityIds[0];
 
               const isClaimed =
-                claimedRouteActivities[aggregate.route] &&
-                claimedRouteActivities[aggregate.route][activityId];
+                claimedRouteActivities[aggregate.route] && claimedRouteActivities[aggregate.route][activityId];
               if (!isClaimed) {
                 // If this route has not received an aggregate, then we deliver the non-active one(s). In the event that
                 // there are multiple non-active aggregates, a duplicate activity will not be fired because we flatten and
@@ -375,8 +375,7 @@ const _collectBucket = function(bucketNumber, callback) {
                 // track of whether an activity already incremented the notification count
                 const flattenedActivity = _flattenActivity(aggregate);
                 if (!incrementedForActivities[flattenedActivity]) {
-                  numNewActivitiesByRoute[aggregate.route] =
-                    numNewActivitiesByRoute[aggregate.route] || 0;
+                  numNewActivitiesByRoute[aggregate.route] = numNewActivitiesByRoute[aggregate.route] || 0;
                   numNewActivitiesByRoute[aggregate.route]++;
                   incrementedForActivities[flattenedActivity] = true;
                 }
@@ -416,10 +415,10 @@ const _collectBucket = function(bucketNumber, callback) {
                 if (visitedActivities[flattenedActivity]) {
                   // We assign the previous activity id to the aggregate so that we can update the aggregate status to know that
                   // any new activities for this aggregate should replace its existing activity
-                  aggregate[ActivityConstants.properties.OAE_ACTIVITY_ID] =
-                    visitedActivities[flattenedActivity];
+                  aggregate[ActivityConstants.properties.OAE_ACTIVITY_ID] = visitedActivities[flattenedActivity];
                   return;
                 }
+
                 // This activity is not a duplicate, assign and record a new activityId
                 activityId = ActivityDAO.createActivityId(aggregate.published);
                 aggregate[ActivityConstants.properties.OAE_ACTIVITY_ID] = activityId;
@@ -430,8 +429,7 @@ const _collectBucket = function(bucketNumber, callback) {
                 const object = createActivityEntity(_.values(aggregate.objects));
                 const target = createActivityEntity(_.values(aggregate.targets));
 
-                activityStreamUpdates[aggregate.route] =
-                  activityStreamUpdates[aggregate.route] || {};
+                activityStreamUpdates[aggregate.route] = activityStreamUpdates[aggregate.route] || {};
                 activityStreamUpdates[aggregate.route][activityId] = new Activity(
                   activityType,
                   activityId,
@@ -484,8 +482,7 @@ const _collectBucket = function(bucketNumber, callback) {
 
                     if (!activeAggregates[aggregateKey]) {
                       // This aggregate was not previously active, so mark its creation date at the beginning of the first activity
-                      statusUpdatesByActivityStreamId[aggregate.route][aggregateKey].created =
-                        aggregate.published;
+                      statusUpdatesByActivityStreamId[aggregate.route][aggregateKey].created = aggregate.published;
                     }
 
                     // Mark the last activity for each aggregate. This ensures that when a new activity gets added to the aggregate, we can
@@ -505,28 +502,21 @@ const _collectBucket = function(bucketNumber, callback) {
                     // Fire an event that we have successfully delivered these individual activities
                     const deliveredActivityInfos = {};
                     _.each(routedActivities, routedActivity => {
-                      const activityStream = ActivityUtil.parseActivityStreamId(
-                        routedActivity.route
-                      );
+                      const activityStream = ActivityUtil.parseActivityStreamId(routedActivity.route);
                       const { streamType, resourceId } = activityStream;
                       deliveredActivityInfos[resourceId] = deliveredActivityInfos[resourceId] || {};
-                      deliveredActivityInfos[resourceId][streamType] = deliveredActivityInfos[
-                        resourceId
-                      ][streamType] || {
+                      deliveredActivityInfos[resourceId][streamType] = deliveredActivityInfos[resourceId][
+                        streamType
+                      ] || {
                         numNewActivities: numNewActivitiesByRoute[routedActivity.route] || 0,
                         activities: []
                       };
 
-                      deliveredActivityInfos[resourceId][streamType].activities.push(
-                        routedActivity.activity
-                      );
+                      deliveredActivityInfos[resourceId][streamType].activities.push(routedActivity.activity);
                     });
 
                     if (!_.isEmpty(deliveredActivityInfos)) {
-                      ActivityEmitter.emit(
-                        ActivityConstants.events.DELIVERED_ACTIVITIES,
-                        deliveredActivityInfos
-                      );
+                      ActivityEmitter.emit(ActivityConstants.events.DELIVERED_ACTIVITIES, deliveredActivityInfos);
                     }
 
                     Telemetry.appendDuration('collection.time', collectionStart);
@@ -643,12 +633,7 @@ const createAggregates = function(routedActivities) {
       // that already match. It helps us deliver an aggregate right away to the route, rather than accidentally delivering
       // individual activities from within a batch
       if (!aggregates[aggregateKey]) {
-        aggregates[aggregateKey] = new ActivityAggregate(
-          activityType,
-          route,
-          activity.verb,
-          activity.published
-        );
+        aggregates[aggregateKey] = new ActivityAggregate(activityType, route, activity.verb, activity.published);
       }
 
       const aggregate = aggregates[aggregateKey];
@@ -722,6 +707,7 @@ const _createPivotKey = function(entity, pivotSpec) {
     );
     return '';
   }
+
   return key;
 };
 
@@ -739,9 +725,7 @@ const _createPivotKey = function(entity, pivotSpec) {
  * @api private
  */
 const _contributesNewEntity = function(aggregate, actorKey, objectKey, targetKey) {
-  return (
-    !aggregate.actors[actorKey] || !aggregate.objects[objectKey] || !aggregate.targets[targetKey]
-  );
+  return !aggregate.actors[actorKey] || !aggregate.objects[objectKey] || !aggregate.targets[targetKey];
 };
 
 /**
@@ -774,10 +758,12 @@ const createActivityEntity = function(entities) {
   if (!entities) {
     return undefined;
   }
+
   // eslint-disable-next-line unicorn/explicit-length-check
   if (!entities.length) {
     return undefined;
   }
+
   if (entities.length === 1) {
     return entities[0];
   }
@@ -890,44 +876,44 @@ const ActivityAggregate = function(activityType, route, verb, published) {
   that.targets = {};
 
   /*!
-     * Update the existing (if any) actor in the aggregate with the given actor. If the actor did not exist on the aggregate it will
-     * be added.
-     *
-     * @param  {String}     actorKey    The unique key of the actor object
-     * @param  {Object}     actor       The actor object to update
-     */
+   * Update the existing (if any) actor in the aggregate with the given actor. If the actor did not exist on the aggregate it will
+   * be added.
+   *
+   * @param  {String}     actorKey    The unique key of the actor object
+   * @param  {Object}     actor       The actor object to update
+   */
   that.updateActor = function(actorKey, actor) {
     that.actors[actorKey] = actor;
   };
 
   /*!
-     * Update the existing (if any) object in the aggregate with the given object. If the object did not exist on the aggregate it
-     * will be added.
-     *
-     * @param  {String}     objectKey   The unique key of the object object
-     * @param  {Object}     object      The object object to update
-     */
+   * Update the existing (if any) object in the aggregate with the given object. If the object did not exist on the aggregate it
+   * will be added.
+   *
+   * @param  {String}     objectKey   The unique key of the object object
+   * @param  {Object}     object      The object object to update
+   */
   that.updateObject = function(objectKey, object) {
     that.objects[objectKey] = object;
   };
 
   /*!
-     * Update the existing (if any) target in the aggregate with the given target. If the target did not exist on the aggregate it
-     * will be added.
-     *
-     * @param  {String}     targetKey   The unique key of the target target
-     * @param  {Object}     target      The target target to update
-     */
+   * Update the existing (if any) target in the aggregate with the given target. If the target did not exist on the aggregate it
+   * will be added.
+   *
+   * @param  {String}     targetKey   The unique key of the target target
+   * @param  {Object}     target      The target target to update
+   */
   that.updateTarget = function(targetKey, target) {
     that.targets[targetKey] = target;
   };
 
   /*!
-     * Add the given hash of actors to the given collection of actors. If any actors in the given set are already contained, they
-     * are not added/updated to the current set of actors.
-     *
-     * @param  {Object}     actors  An object, keyed by the unique entity key, whose value is the actor to add to the current set of actors
-     */
+   * Add the given hash of actors to the given collection of actors. If any actors in the given set are already contained, they
+   * are not added/updated to the current set of actors.
+   *
+   * @param  {Object}     actors  An object, keyed by the unique entity key, whose value is the actor to add to the current set of actors
+   */
   that.addActors = function(actors) {
     if (actors) {
       that.actors = _.extend(actors, that.actors);
@@ -935,11 +921,11 @@ const ActivityAggregate = function(activityType, route, verb, published) {
   };
 
   /*!
-     * Add the given hash of objects to the given collection of objects. If any objects in the given set are already contained, they
-     * are not added/updated to the current set of objects.
-     *
-     * @param  {Object}     objects  An object, keyed by the unique entity key, whose value is the object to add to the current set of objects
-     */
+   * Add the given hash of objects to the given collection of objects. If any objects in the given set are already contained, they
+   * are not added/updated to the current set of objects.
+   *
+   * @param  {Object}     objects  An object, keyed by the unique entity key, whose value is the object to add to the current set of objects
+   */
   that.addObjects = function(objects) {
     if (objects) {
       that.objects = _.extend(objects, that.objects);
@@ -947,11 +933,11 @@ const ActivityAggregate = function(activityType, route, verb, published) {
   };
 
   /*!
-     * Add the given hash of targets to the given collection of targets. If any targets in the given set are already contained, they
-     * are not added/updated to the current set of targets.
-     *
-     * @param  {Object}    targets  An object, keyed by the unique entity key, whose value is the target to add to the current set of targets
-     */
+   * Add the given hash of targets to the given collection of targets. If any targets in the given set are already contained, they
+   * are not added/updated to the current set of targets.
+   *
+   * @param  {Object}    targets  An object, keyed by the unique entity key, whose value is the target to add to the current set of targets
+   */
   that.addTargets = function(targets) {
     if (targets) {
       that.targets = _.extend(targets, that.targets);
@@ -961,9 +947,4 @@ const ActivityAggregate = function(activityType, route, verb, published) {
   return that;
 };
 
-module.exports = {
-  resetAggregationForActivityStreams,
-  collectAllBuckets,
-  createAggregates,
-  createActivityEntity
-};
+export { resetAggregationForActivityStreams, collectAllBuckets, createAggregates, createActivityEntity };

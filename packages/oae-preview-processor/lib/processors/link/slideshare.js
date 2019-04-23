@@ -13,13 +13,15 @@
  * permissions and limitations under the License.
  */
 
-const slideshare = require('slideshare');
+import slideshare from 'slideshare';
+import { logger } from 'oae-logger';
+import { setUpConfig } from 'oae-config';
 
-const log = require('oae-logger').logger('oae-preview-processor');
-const PreviewConfig = require('oae-config').config('oae-preview-processor');
+import * as LinkProcessorUtil from 'oae-preview-processor/lib/processors/link/util';
+import * as PreviewUtil from 'oae-preview-processor/lib/util';
 
-const LinkProcessorUtil = require('oae-preview-processor/lib/processors/link/util');
-const PreviewUtil = require('oae-preview-processor/lib/util');
+const log = logger('oae-preview-processor');
+const PreviewConfig = setUpConfig('oae-preview-processor');
 
 // Regular expression that will be used to check if the provided URL is a SlideShare URL
 const SLIDES_REGEX = /^http(s)?:\/\/(www\.)?slideshare\.net\/(\w+)\/(\w+)/;
@@ -55,6 +57,7 @@ const test = function(ctx, contentObj, callback) {
   if (SLIDES_REGEX.test(contentObj.link)) {
     return callback(null, 10);
   }
+
   return callback(null, -1);
 };
 
@@ -70,14 +73,12 @@ const generatePreviews = function(ctx, contentObj, callback) {
   ss.api_url = apiUrl;
   ss.getSlideshowByURL(contentObj.link, response => {
     if (!response || response.SlideShareServiceError) {
-      log().error(
-        { err: response.SlideShareServiceError },
-        'Failed to interact with the SlideShare API'
-      );
+      log().error({ err: response.SlideShareServiceError }, 'Failed to interact with the SlideShare API');
       return callback({ code: 500, msg: 'Failed to interact with the SlideShare API' });
 
       // Ignore this image if it has no thumbnail
     }
+
     if (!response.Slideshow || !response.Slideshow.ThumbnailURL) {
       return callback(null, true);
     }
@@ -92,6 +93,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
     if (result.Title && result.Title.length > 0) {
       opts.displayName = result.Title[0];
     }
+
     if (result.Description && result.Description.length > 0) {
       opts.description = result.Description[0];
     }
@@ -122,8 +124,4 @@ const _getConfig = function() {
   };
 };
 
-module.exports = {
-  setApiURL,
-  test,
-  generatePreviews
-};
+export { setApiURL, test, generatePreviews };

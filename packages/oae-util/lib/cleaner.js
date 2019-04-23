@@ -13,12 +13,14 @@
  * permissions and limitations under the License.
  */
 
-const fs = require('fs');
-const path = require('path');
-const _ = require('underscore');
+import fs from 'fs';
+import path from 'path';
+import _ from 'underscore';
 
-const EmitterAPI = require('oae-emitter');
-const log = require('oae-logger').logger('oae-cleaner');
+import * as EmitterAPI from 'oae-emitter';
+import { logger } from 'oae-logger';
+
+const log = logger('oae-cleaner');
 
 const cleaners = {};
 
@@ -28,7 +30,7 @@ const cleaners = {};
  * * `cleaned(directory)` - A clean cycle just finished on a directory. The `directory` is provided as an event parameter.
  */
 const Cleaner = new EmitterAPI.EventEmitter();
-module.exports.emitter = Cleaner;
+export { Cleaner as emitter };
 
 /**
  * Starts a cleaning job.
@@ -103,6 +105,7 @@ const checkFile = function(path, time, callback) {
 
       // If we get an error that is not a "no such file"-error, something is probably wrong
     }
+
     if (err) {
       log().error({ err, path }, 'Could not get the metadata for a file.');
       return callback(err);
@@ -110,16 +113,14 @@ const checkFile = function(path, time, callback) {
 
     // Only try to unlink file resources that have expired
     if (stats && stats.isFile() && stats.atime.getTime() < time) {
-      log().info(
-        { path, lastModified: stats.atime.getTime(), expires: time },
-        'Deleting expired temporary file.'
-      );
+      log().info({ path, lastModified: stats.atime.getTime(), expires: time }, 'Deleting expired temporary file.');
       fs.unlink(path, err => {
         // Only report the error if it's not a "no such file"-error
         if (err && err.code !== 'ENOENT') {
           log().error({ err, path }, 'Could not delete an expired temporary file.');
           return callback(err);
         }
+
         callback();
       });
     } else {
@@ -152,8 +153,4 @@ const checkFiles = function(paths, time, callback) {
   });
 };
 
-module.exports = {
-  emitter: Cleaner,
-  start,
-  stop
-};
+export { start, stop };

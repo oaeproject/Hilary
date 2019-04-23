@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const OaeUtil = require('oae-util/lib/util');
+import * as OaeUtil from 'oae-util/lib/util';
 
-const AuthzInvitationsDAO = require('oae-authz/lib/invitations/dao');
-const AuthzModel = require('oae-authz/lib/model');
-const AuthzUtil = require('oae-authz/lib/util');
+import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
+import * as AuthzModel from 'oae-authz/lib/model';
+import * as AuthzUtil from 'oae-authz/lib/util';
 
 /**
  * Given an authz resource id and proposed email role changes, compute the EmailChangeInfo object
@@ -57,6 +57,4 @@ const computeInvitationRolesAfterChanges = function(authzResourceId, changes, op
   );
 };
 
-module.exports = {
-  computeInvitationRolesAfterChanges
-};
+export { computeInvitationRolesAfterChanges };

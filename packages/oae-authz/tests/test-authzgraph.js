@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import AuthzGraph from 'oae-authz/lib/internal/graph';
 
-const AuthzGraph = require('oae-authz/lib/internal/graph');
+import _ from 'underscore';
 
 describe('Authz Graph', () => {
   /**
@@ -194,45 +194,15 @@ describe('Authz Graph', () => {
     graph.addEdge('e', 'i');
 
     // Verify that the inbound and outbound traversals are depth first and does not repeat
-    assert.deepStrictEqual(_.pluck(graph.traverseIn('a'), 'id'), [
-      'a',
-      'i',
-      'h',
-      'g',
-      'f',
-      'e',
-      'd',
-      'c',
-      'b'
-    ]);
-    assert.deepStrictEqual(_.pluck(graph.traverseOut('a'), 'id'), [
-      'a',
-      'b',
-      'c',
-      'd',
-      'e',
-      'f',
-      'g',
-      'h',
-      'i'
-    ]);
+    assert.deepStrictEqual(_.pluck(graph.traverseIn('a'), 'id'), ['a', 'i', 'h', 'g', 'f', 'e', 'd', 'c', 'b']);
+    assert.deepStrictEqual(_.pluck(graph.traverseOut('a'), 'id'), ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']);
 
     // Verify that if we delete the circular graph edges from the vowels, it still finds
     // some different paths around
     graph.removeEdge('d', 'e');
     graph.removeEdge('h', 'i');
     assert.deepStrictEqual(_.pluck(graph.traverseIn('a'), 'id'), ['a', 'i', 'e']);
-    assert.deepStrictEqual(_.pluck(graph.traverseOut('a'), 'id'), [
-      'a',
-      'b',
-      'c',
-      'd',
-      'e',
-      'f',
-      'g',
-      'h',
-      'i'
-    ]);
+    assert.deepStrictEqual(_.pluck(graph.traverseOut('a'), 'id'), ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']);
 
     // Delete 'e', ensure paths are broken pretty good
     graph.removeNode('e');

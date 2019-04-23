@@ -20,4 +20,4 @@ ResourceConstants.events = {
   INVITED: 'invited'
 };
 
-module.exports = { ResourceConstants };
+export { ResourceConstants };

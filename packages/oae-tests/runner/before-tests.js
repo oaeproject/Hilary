@@ -13,7 +13,14 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable unicorn/filename-case */
+import * as TestsUtil from 'oae-tests/lib/util';
+import { logger } from 'oae-logger';
+import nock from 'nock';
+
+const log = logger('before-tests');
+
+const DEFAULT_TIMEOUT = 60000;
+
 // eslint-disable-next-line no-unused-vars
 const { argv } = require('optimist')
   .usage('Run the Hilary tests.\nUsage: $0')
@@ -23,10 +30,6 @@ const { argv } = require('optimist')
 // Set our bootstrapping log level before loading other modules that will use logging
 process.env.OAE_BOOTSTRAP_LOG_LEVEL = 'trace';
 process.env.OAE_BOOTSTRAP_LOG_FILE = './tests.log';
-
-const log = require('oae-logger').logger('before-tests');
-
-const TestsUtil = require('oae-tests/lib/util');
 
 // Determine whether or not we should drop the keyspace before the test. In cases
 // where we want to set up the schema by another means (e.g., to test unit tests
@@ -39,7 +42,7 @@ before(function(callback) {
   // Create the configuration for the test
   const config = TestsUtil.createInitialTestConfig();
 
-  this.timeout(config.test.timeout || 60000);
+  this.timeout(config.test.timeout || DEFAULT_TIMEOUT);
 
   TestsUtil.setUpBeforeTests(config, dropKeyspaceBeforeTest, callback);
 });
@@ -50,8 +53,6 @@ beforeEach(function(callback) {
 });
 
 afterEach(function(callback) {
-  const nock = require('nock');
-
   // Ensure we don't mess with the HTTP stack by accident
   nock.enableNetConnect();
 

@@ -13,12 +13,25 @@
  * permissions and limitations under the License.
  */
 
+import { config } from '../../config';
+
 const fs = require('fs');
 const path = require('path');
 const { promisify } = require('util');
-const async = require('async');
+const PrettyStream = require('bunyan-prettystream');
+const { eachSeries } = require('async');
 
-const log = require('oae-logger').logger();
+const LogAPI = require('oae-logger');
+
+const _createLogger = function(config) {
+  const prettyLog = new PrettyStream();
+  prettyLog.pipe(process.stdout);
+  config.log.streams[0].stream = prettyLog;
+  LogAPI.refreshLogConfiguration(config.log);
+  return LogAPI.logger();
+};
+
+const log = _createLogger(config);
 
 const readFolderContents = promisify(fs.readdir);
 const checkIfExists = promisify(fs.stat);
@@ -40,15 +53,17 @@ const lookForMigrations = async function(allModules) {
         if (migrateFileExists.isFile()) {
           migrationsToRun.push({ name: eachModule, file: migrationFilePath });
         }
-      } catch (e) {
+      } catch (error) {
         log().warn('Skipping ' + eachModule);
       }
     }
   }
+
   return migrationsToRun;
 };
 
 const runMigrations = async function(dbConfig, callback) {
+  log().info('Running migrations for keyspace ' + dbConfig.keyspace + '...');
   const data = {};
 
   try {
@@ -62,7 +77,7 @@ const runMigrations = async function(dbConfig, callback) {
       })
       .then(() => {
         require(path.join(PACKAGES_FOLDER, 'oae-util', LIB_FOLDER, 'cassandra.js')).init(dbConfig, () => {
-          async.eachSeries(
+          eachSeries(
             data.allMigrationsToRun,
             (eachMigration, done) => {
               log().info(`Updating schema for ${eachMigration.name}`);
@@ -73,15 +88,16 @@ const runMigrations = async function(dbConfig, callback) {
                 log().error({ err }, 'Error running migration.');
                 callback(err);
               }
+
               log().info('Migrations complete');
               callback();
             }
           );
         });
       });
-  } catch (e) {
-    log().error({ err: e }, 'Error running migration.');
-    callback(e);
+  } catch (error) {
+    log().error({ err: error }, 'Error running migration.');
+    callback(error);
   }
 };
 

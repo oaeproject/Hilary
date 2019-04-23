@@ -13,16 +13,16 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
 
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const ActivityModel = require('oae-activity/lib/model');
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
-const PrincipalsUtil = require('oae-principals/lib/util');
+import * as ActivityModel from 'oae-activity/lib/model';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as PrincipalsUtil from 'oae-principals/lib/util';
+import { ActivityConstants } from 'oae-activity/lib/constants';
+import * as MessageBoxAPI from './api';
 
-const MessageBoxAPI = require('./api');
-const { MessageBoxConstants } = require('./constants');
+import { MessageBoxConstants } from './constants';
 
 /**
  * Creates a bare activity entity that is appropriate for a message.
@@ -38,6 +38,7 @@ const createPersistentMessageActivityEntity = function(message, callback) {
     if (err) {
       return callback(err);
     }
+
     message.createdBy = createdByUser;
 
     const context = {};
@@ -47,6 +48,7 @@ const createPersistentMessageActivityEntity = function(message, callback) {
         if (err) {
           return callback(err);
         }
+
         if (_.isEmpty(messages) || !messages[0]) {
           return callback({ code: 404, msg: 'The message could not be found' });
         }
@@ -106,13 +108,7 @@ const _createPersistentMessageActivityEntity = function(message, context) {
  */
 const transformPersistentMessageActivityEntity = function(ctx, entity, profilePath, urlFormat) {
   const context = entity.messageContext || {};
-  const transformedEntity = _transformMessageActivityEntity(
-    ctx,
-    entity,
-    entity.message,
-    urlFormat,
-    profilePath
-  );
+  const transformedEntity = _transformMessageActivityEntity(ctx, entity, entity.message, urlFormat, profilePath);
 
   // Transform the parent if there is one
   if (context.parent) {
@@ -149,11 +145,7 @@ const _transformMessageActivityEntity = function(ctx, entity, message, urlFormat
   opts.url = profilePath;
   opts.content = message.body;
 
-  opts.author = PrincipalsUtil.transformPersistentUserActivityEntity(
-    ctx,
-    message.createdBy.id,
-    message.createdBy
-  );
+  opts.author = PrincipalsUtil.transformPersistentUserActivityEntity(ctx, message.createdBy.id, message.createdBy);
   opts.published = message.created;
 
   opts.ext = {};
@@ -180,7 +172,7 @@ const transformPersistentMessageActivityEntityToInternal = function(ctx, message
   return message;
 };
 
-module.exports = {
+export {
   createPersistentMessageActivityEntity,
   transformPersistentMessageActivityEntity,
   transformPersistentMessageActivityEntityToInternal

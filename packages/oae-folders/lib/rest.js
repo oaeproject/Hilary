@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const { AuthzConstants } = require('oae-authz/lib/constants');
-const OAE = require('oae-util/lib/oae');
-const OaeUtil = require('oae-util/lib/util');
+import { AuthzConstants } from 'oae-authz/lib/constants';
+import * as OAE from 'oae-util/lib/oae';
+import * as OaeUtil from 'oae-util/lib/util';
 
-const FoldersAPI = require('oae-folders');
+import * as FoldersAPI from 'oae-folders';
 
 /**
  * @REST postFolder
@@ -168,19 +168,14 @@ OAE.tenantRouter.on('post', '/api/folder/:folderId', (req, res) => {
  * @HttpResponse                    401                 You're not allowed to update this folder
  */
 OAE.tenantRouter.on('post', '/api/folder/:folderId/contentvisibility', (req, res) => {
-  FoldersAPI.updateFolderContentVisibility(
-    req.ctx,
-    req.params.folderId,
-    req.body.visibility,
-    (err, failedContent) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-
-      const data = { failedContent };
-      return res.status(200).send(data);
+  FoldersAPI.updateFolderContentVisibility(req.ctx, req.params.folderId, req.body.visibility, (err, failedContent) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    const data = { failedContent };
+    return res.status(200).send(data);
+  });
 });
 
 /**
@@ -288,19 +283,13 @@ OAE.tenantRouter.on('post', '/api/folder/:folderId/members', (req, res) => {
  */
 OAE.tenantRouter.on('get', '/api/folder/:folderId/members', (req, res) => {
   const limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
-  FoldersAPI.getFolderMembers(
-    req.ctx,
-    req.params.folderId,
-    req.query.start,
-    limit,
-    (err, members, nextToken) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-
-      return res.status(200).send({ results: members, nextToken });
+  FoldersAPI.getFolderMembers(req.ctx, req.params.folderId, req.query.start, limit, (err, members, nextToken) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    return res.status(200).send({ results: members, nextToken });
+  });
 });
 
 /**
@@ -374,19 +363,13 @@ OAE.tenantRouter.on('post', '/api/folder/:folderId/invitations/:email/resend', (
  */
 OAE.tenantRouter.on('get', '/api/folder/library/:principalId', (req, res) => {
   const limit = OaeUtil.getNumberParam(req.query.limit, 12, 1, 25);
-  FoldersAPI.getFoldersLibrary(
-    req.ctx,
-    req.params.principalId,
-    req.query.start,
-    limit,
-    (err, results, nextToken) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-
-      return res.status(200).send({ results, nextToken });
+  FoldersAPI.getFoldersLibrary(req.ctx, req.params.principalId, req.query.start, limit, (err, results, nextToken) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    return res.status(200).send({ results, nextToken });
+  });
 });
 
 /**
@@ -526,19 +509,13 @@ OAE.tenantRouter.on('get', '/api/folder/:folderId/library', (req, res) => {
  */
 OAE.tenantRouter.on('get', '/api/folder/:folderId/messages', (req, res) => {
   const limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
-  FoldersAPI.getMessages(
-    req.ctx,
-    req.params.folderId,
-    req.query.start,
-    limit,
-    (err, messages, nextToken) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-
-      return res.status(200).send({ results: messages, nextToken });
+  FoldersAPI.getMessages(req.ctx, req.params.folderId, req.query.start, limit, (err, messages, nextToken) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    return res.status(200).send({ results: messages, nextToken });
+  });
 });
 
 /**
@@ -564,19 +541,13 @@ OAE.tenantRouter.on('get', '/api/folder/:folderId/messages', (req, res) => {
  * @HttpResponse                404                 Could not find the specified folder
  */
 OAE.tenantRouter.on('post', '/api/folder/:folderId/messages', (req, res) => {
-  FoldersAPI.createMessage(
-    req.ctx,
-    req.params.folderId,
-    req.body.body,
-    req.body.replyTo,
-    (err, message) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
-      }
-
-      return res.status(200).send(message);
+  FoldersAPI.createMessage(req.ctx, req.params.folderId, req.body.body, req.body.replyTo, (err, message) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    return res.status(200).send(message);
+  });
 });
 
 /**

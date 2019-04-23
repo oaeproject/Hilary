@@ -23,11 +23,9 @@
  * @return {Object}     schema                  The resource members schema object
  *         {String[]}   schema.direct_members   A multi-value field that holds the direct member ids of the parent resource
  */
-module.exports = {
-  // eslint-disable-next-line camelcase
-  direct_members: {
-    type: 'string',
-    store: 'no',
-    index: 'not_analyzed'
-  }
+// eslint-disable-next-line camelcase
+export const direct_members = {
+  type: 'string',
+  store: 'no',
+  index: 'not_analyzed'
 };

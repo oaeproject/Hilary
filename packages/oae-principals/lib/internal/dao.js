@@ -13,21 +13,25 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const { sanitize } = require('validator');
-const AuthzDelete = require('oae-authz/lib/delete');
-const AuthzUtil = require('oae-authz/lib/util');
-const Cassandra = require('oae-util/lib/cassandra');
-const log = require('oae-logger').logger('principals-dao');
-const OaeUtil = require('oae-util/lib/util');
-const Redis = require('oae-util/lib/redis');
-const { Validator } = require('oae-authz/lib/validator');
-const _ = require('underscore');
+import util from 'util';
+import _ from 'underscore';
+import { logger } from 'oae-logger';
+import { setUpConfig } from 'oae-config';
 
-const { Group } = require('oae-principals/lib/model');
-const PrincipalsConfig = require('oae-config').config('oae-principals');
-const { User } = require('oae-principals/lib/model');
-const { PrincipalsConstants } = require('../constants');
+import * as AuthzDelete from 'oae-authz/lib/delete';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as Redis from 'oae-util/lib/redis';
+
+import { sanitize } from 'validator';
+import { Group } from 'oae-principals/lib/model';
+import { Validator } from 'oae-authz/lib/validator';
+import { User } from 'oae-principals/lib/model';
+import { PrincipalsConstants } from '../constants';
+
+const log = logger('principals-dao');
+const PrincipalsConfig = setUpConfig('oae-principals');
 
 const RESTRICTED_FIELDS = ['acceptedTC', 'admin:tenant', 'admin:global', 'deleted'];
 
@@ -178,6 +182,7 @@ const getExistingPrincipals = function(principalIds, fields, callback) {
     if (err) {
       return callback(err);
     }
+
     if (_.keys(principalsById).length !== principalIds.length) {
       return callback({ code: 400, msg: 'One or more provided principals did not exist' });
     }
@@ -209,6 +214,7 @@ const getPrincipals = function(principalIds, fields, callback) {
         // even if it is just a listing of 1 principal (e.g., a library of 1 item)
         return callback(null, {});
       }
+
       if (err) {
         return callback(err);
       }
@@ -423,6 +429,7 @@ const getEmailToken = function(userId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(rows)) {
       return callback({ code: 404, msg: 'No email token found for the given user id' });
     }
@@ -723,6 +730,7 @@ const _isEmailAddressUpdate = function(principalId, profileFields, callback) {
     if (err) {
       return callback(err);
     }
+
     if (user.email !== profileFields.email) {
       return callback(null, true, user.email);
     }
@@ -745,6 +753,7 @@ const _getPrincipalFromCassandra = function(principalId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(rows)) {
       return callback({ code: 404, msg: "Couldn't find principal: " + principalId });
     }
@@ -817,6 +826,7 @@ const _getUserFromRedis = function(userId, callback) {
       // Since we also push updates into redis, use the user id as a slug to ensure that the user doesn't exist in
       // cache by virtue of an upsert
     }
+
     if (!hash || !hash.principalId) {
       return callback({ code: 404, msg: 'Principal not found in redis' });
     }
@@ -974,6 +984,7 @@ const getVisitedGroups = function(userId, callback) {
   if (isUser(userId)) {
     return _getVisitedGroupsFromCassandra(userId, callback);
   }
+
   return callback({ code: 404, msg: "Couldn't find user: " + userId });
 };
 
@@ -991,6 +1002,7 @@ const _getVisitedGroupsFromCassandra = function(userId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(rows)) {
       return callback(null, []);
     }
@@ -1020,6 +1032,7 @@ const getAllUsersForTenant = function(tenantAlias, callback) {
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(rows)) {
       return callback(null, []);
     }
@@ -1102,6 +1115,7 @@ const getJoinGroupRequest = function(groupId, principalId, callback) {
       if (err) {
         return callback(err);
       }
+
       if (_.isEmpty(row)) {
         return callback();
       }
@@ -1124,6 +1138,7 @@ const getJoinGroupRequests = function(groupId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(rows)) {
       return callback();
     }
@@ -1136,7 +1151,7 @@ const getJoinGroupRequests = function(groupId, callback) {
   });
 };
 
-module.exports = {
+export {
   createUser,
   createGroup,
   getPrincipal,

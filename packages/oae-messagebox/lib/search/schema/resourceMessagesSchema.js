@@ -23,11 +23,9 @@
  */
 
 /* eslint-disable unicorn/filename-case */
-module.exports = {
-  body: {
-    type: 'string',
-    store: 'no',
-    index: 'analyzed',
-    analyzer: 'message'
-  }
+export const body = {
+  type: 'string',
+  store: 'no',
+  index: 'analyzed',
+  analyzer: 'message'
 };

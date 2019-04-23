@@ -1,4 +1,5 @@
-const Cassandra = require('oae-util/lib/cassandra');
+import async from 'async';
+import { createColumnFamilies, runQuery } from 'oae-util/lib/cassandra';
 
 /**
  * Ensure that the all of the content-related schemas are created. If they already exist, this method will not do anything
@@ -8,7 +9,7 @@ const Cassandra = require('oae-util/lib/cassandra');
  * @api private
  */
 const ensureSchema = function(callback) {
-  Cassandra.createColumnFamilies(
+  createColumnFamilies(
     {
       Content:
         'CREATE TABLE "Content" ("contentId" text PRIMARY KEY, "tenantAlias" text, "visibility" text, "displayName" text, "description" text, "resourceSubType" text, "createdBy" text, "created" text, "lastModified" text, "latestRevisionId" text, "uri" text, "previews" text, "status" text, "largeUri" text, "mediumUri" text, "smallUri" text, "thumbnailUri" text, "wideUri" text, "etherpadGroupId" text, "etherpadPadId" text, "filename" text, "link" text, "mime" text, "size" text)',
@@ -19,8 +20,23 @@ const ensureSchema = function(callback) {
       RevisionByContent:
         'CREATE TABLE "RevisionByContent" ("contentId" text, "created" text, "revisionId" text, PRIMARY KEY ("contentId", "created")) WITH COMPACT STORAGE'
     },
-    callback
+    () => {
+      const queries = [
+        { cql: 'ALTER TABLE "Content" ADD "ethercalcRoomId" text;', parameters: [] },
+        { cql: 'ALTER TABLE "Revisions" ADD "ethercalcSnapshot" text;', parameters: [] },
+        { cql: 'ALTER TABLE "Revisions" ADD "ethercalcHtml" text;', parameters: [] }
+      ];
+      async.eachSeries(
+        queries,
+        (eachQuery, done) => {
+          runQuery(eachQuery.cql, eachQuery.parameters, done);
+        },
+        () => {
+          callback();
+        }
+      );
+    }
   );
 };
 
-module.exports = { ensureSchema };
+export { ensureSchema };

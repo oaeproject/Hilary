@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
+import assert from 'assert';
 
-const tz = require('oae-util/lib/tz');
+import * as tz from 'oae-util/lib/tz';
 
 describe('TZ', () => {
   describe('#getTimeZoneFromRails()', () => {
@@ -24,10 +24,7 @@ describe('TZ', () => {
      */
     it('verify proper rails conversion', () => {
       assert.strictEqual(tz.getTimezoneFromRails('Brussels'), 'Europe/Brussels');
-      assert.strictEqual(
-        tz.getTimezoneFromRails('Pacific Time (US & Canada)'),
-        'America/Los_Angeles'
-      );
+      assert.strictEqual(tz.getTimezoneFromRails('Pacific Time (US & Canada)'), 'America/Los_Angeles');
     });
   });
 

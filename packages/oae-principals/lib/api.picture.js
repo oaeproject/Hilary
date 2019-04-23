@@ -13,22 +13,25 @@
  * permissions and limitations under the License.
  */
 
-const fs = require('fs');
-const util = require('util');
-const _ = require('underscore');
-const mime = require('mime');
+import fs from 'fs';
+import util from 'util';
+import _ from 'underscore';
+import mime from 'mime';
 
-const AuthzPermissions = require('oae-authz/lib/permissions');
-const ContentUtil = require('oae-content/lib/internal/util');
-const ImageUtil = require('oae-util/lib/image');
-const log = require('oae-logger').logger('oae-principals-shared');
-const { Validator } = require('oae-util/lib/validator');
+import { logger } from 'oae-logger';
 
-const GroupAPI = require('./api.group');
-const { PrincipalsConstants } = require('./constants');
-const PrincipalsDAO = require('./internal/dao');
-const PrincipalsEmitter = require('./internal/emitter');
-const PrincipalsUtil = require('./util');
+import * as AuthzPermissions from 'oae-authz/lib/permissions';
+import * as ContentUtil from 'oae-content/lib/internal/util';
+import * as ImageUtil from 'oae-util/lib/image';
+import { Validator } from 'oae-util/lib/validator';
+import * as GroupAPI from './api.group';
+import * as PrincipalsDAO from './internal/dao';
+import PrincipalsEmitter from './internal/emitter';
+import * as PrincipalsUtil from './util';
+
+import { PrincipalsConstants } from './constants';
+
+const log = logger('oae-principals-shared');
 
 /**
  * Store the large picture for a principal that can be re-used later on
@@ -57,17 +60,14 @@ const storePicture = function(ctx, principalId, file, callback) {
   validator
     .check(null, { code: 401, msg: 'You have to be logged in to be able to update a picture' })
     .isLoggedInUser(ctx);
-  validator
-    .check(principalId, { code: 400, msg: 'A principal ID must be provided' })
-    .isPrincipalId();
+  validator.check(principalId, { code: 400, msg: 'A principal ID must be provided' }).isPrincipalId();
   validator.check(file, { code: 400, msg: 'A file must be provided' }).notNull();
   if (file) {
     validator.check(file.size, { code: 400, msg: 'Missing size on the file object.' }).notEmpty();
-    validator
-      .check(file.size, { code: 400, msg: 'The size of a picture has an upper limit of 10MB.' })
-      .max(10485760);
+    validator.check(file.size, { code: 400, msg: 'The size of a picture has an upper limit of 10MB.' }).max(10485760);
     validator.check(file.name, { code: 400, msg: 'Missing name on the file object.' }).notEmpty();
   }
+
   if (validator.hasErrors()) {
     return _cleanupOnError(validator.getFirstError(), file, callback);
   }
@@ -86,9 +86,7 @@ const storePicture = function(ctx, principalId, file, callback) {
     file.type = mime.getType(file.name);
 
     // Only images can be uploaded
-    if (
-      !_.contains(['image/jpg', 'image/jpeg', 'image/gif', 'image/png', 'image/bmp'], file.type)
-    ) {
+    if (!_.contains(['image/jpg', 'image/jpeg', 'image/gif', 'image/png', 'image/bmp'], file.type)) {
       return callback({ code: 400, msg: 'Only images are accepted files' });
     }
 
@@ -130,19 +128,14 @@ const _storeLargePicture = function(ctx, principalId, file, callback) {
 
       // Store the oriented file
       const options = _getProfilePictureStorageOptions(principalId, Date.now(), 'large', '.jpg');
-      ContentUtil.getStorageBackend(ctx).store(
-        ctx.tenant().alias,
-        convertedFile,
-        options,
-        (err, largePictureUri) => {
-          if (err) {
-            return _cleanupOnError(err, convertedFile, callback);
-          }
-
-          // By this point the temp file has been removed from disk, no need to clean up in error cases below
-          return PrincipalsDAO.updatePrincipal(principalId, { largePictureUri }, callback);
+      ContentUtil.getStorageBackend(ctx).store(ctx.tenant().alias, convertedFile, options, (err, largePictureUri) => {
+        if (err) {
+          return _cleanupOnError(err, convertedFile, callback);
         }
-      );
+
+        // By this point the temp file has been removed from disk, no need to clean up in error cases below
+        return PrincipalsDAO.updatePrincipal(principalId, { largePictureUri }, callback);
+      });
     });
   });
 };
@@ -175,9 +168,7 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
   validator
     .check(null, { code: 401, msg: 'You have to be logged in to be able to update a picture' })
     .isLoggedInUser(ctx);
-  validator
-    .check(principalId, { code: 400, msg: 'A principal id must be provided' })
-    .isPrincipalId();
+  validator.check(principalId, { code: 400, msg: 'A principal id must be provided' }).isPrincipalId();
   validator.check(x, { code: 400, msg: 'The x value must be a positive integer' }).isInt();
   validator.check(x, { code: 400, msg: 'The x value must be a positive integer' }).min(0);
   validator.check(y, { code: 400, msg: 'The y value must be a positive integer' }).isInt();
@@ -198,6 +189,7 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
     if (err) {
       return callback(err);
     }
+
     if (!principal.picture.largeUri) {
       return callback({ code: 400, msg: 'This principal has no large picture' });
     }
@@ -215,6 +207,7 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
         // Return the full user profile
         return PrincipalsUtil.getPrincipal(ctx, principalId, callback);
       }
+
       // Emit an event indicating that a group's picture has been set
       PrincipalsEmitter.emit(PrincipalsConstants.events.SET_GROUP_PICTURE, ctx, principal);
 
@@ -271,6 +264,7 @@ const _generateSizes = function(ctx, principal, x, y, width, callback) {
           if (err) {
             return callback(err);
           }
+
           if (removalError) {
             return callback(removalError);
           }
@@ -299,11 +293,7 @@ const _storeCroppedPictures = function(ctx, principal, files, callback) {
   const now = Date.now();
 
   // Get the the small image
-  let key = util.format(
-    '%sx%s',
-    PrincipalsConstants.picture.size.SMALL,
-    PrincipalsConstants.picture.size.SMALL
-  );
+  let key = util.format('%sx%s', PrincipalsConstants.picture.size.SMALL, PrincipalsConstants.picture.size.SMALL);
   const smallImage = files[key];
 
   // Store the image with a correct filename. We explicitly add a correct extension as nginx uses it
@@ -320,11 +310,7 @@ const _storeCroppedPictures = function(ctx, principal, files, callback) {
     }
 
     // Get the medium image, determine the correct extension and store it
-    key = util.format(
-      '%sx%s',
-      PrincipalsConstants.picture.size.MEDIUM,
-      PrincipalsConstants.picture.size.MEDIUM
-    );
+    key = util.format('%sx%s', PrincipalsConstants.picture.size.MEDIUM, PrincipalsConstants.picture.size.MEDIUM);
     const mediumImage = files[key];
 
     options = _getProfilePictureStorageOptions(
@@ -355,13 +341,7 @@ const _storeCroppedPictures = function(ctx, principal, files, callback) {
  * @param  {Group|User}  callback.principal  The updated principal object
  * @api private
  */
-const _saveCroppedPictureUris = function(
-  ctx,
-  principal,
-  smallPictureUri,
-  mediumPictureUri,
-  callback
-) {
+const _saveCroppedPictureUris = function(ctx, principal, smallPictureUri, mediumPictureUri, callback) {
   // Apply the updates to the `principal` object
   const profileFields = { smallPictureUri, mediumPictureUri };
   PrincipalsDAO.updatePrincipal(principal.id, profileFields, err => {
@@ -377,19 +357,9 @@ const _saveCroppedPictureUris = function(
 
       // Fire the appropriate update event, depending if the principal is a user or a group
       if (PrincipalsUtil.isUser(principal.id)) {
-        PrincipalsEmitter.emit(
-          PrincipalsConstants.events.UPDATED_USER,
-          ctx,
-          newPrincipal,
-          principal
-        );
+        PrincipalsEmitter.emit(PrincipalsConstants.events.UPDATED_USER, ctx, newPrincipal, principal);
       } else {
-        PrincipalsEmitter.emit(
-          PrincipalsConstants.events.UPDATED_GROUP,
-          ctx,
-          newPrincipal,
-          principal
-        );
+        PrincipalsEmitter.emit(PrincipalsConstants.events.UPDATED_GROUP, ctx, newPrincipal, principal);
       }
 
       return callback(null, newPrincipal);
@@ -477,7 +447,4 @@ const _cleanupOnError = function(error, file, callback) {
   }
 };
 
-module.exports = {
-  storePicture,
-  generateSizes
-};
+export { storePicture, generateSizes };

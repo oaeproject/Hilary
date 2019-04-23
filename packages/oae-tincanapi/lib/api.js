@@ -13,20 +13,23 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
-const request = require('request');
+import ActivityEmitter from 'oae-activity/lib/internal/emitter';
 
-const ActivityAPI = require('oae-activity');
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const ConfigAPI = require('oae-config');
-const log = require('oae-logger').logger('oae-doc');
-const TenantsAPI = require('oae-tenants');
-const TenantsUtil = require('oae-tenants/lib/util');
+import _ from 'underscore';
+import request from 'request';
+import { logger } from 'oae-logger';
+import * as TenantsAPI from 'oae-tenants';
+import * as TenantsUtil from 'oae-tenants/lib/util';
 
-const { TinCanAPIConstants } = require('./constants');
-const TinCanModel = require('./model');
+import { ActivityConstants } from 'oae-activity/lib/constants';
+import { setUpConfig } from 'oae-config';
+import { TinCanAPIConstants } from './constants';
 
-const TinCanConfig = ConfigAPI.config('oae-tincanapi');
+import * as TinCanModel from './model';
+
+const log = logger('oae-doc');
+
+const TinCanConfig = setUpConfig('oae-tincanapi');
 
 let config = null;
 
@@ -42,7 +45,7 @@ const initializeTinCanAPI = function(_config, callback) {
   config = _config;
 
   // Listen for OAE activities that are taking place
-  ActivityAPI.emitter.on(ActivityConstants.events.ROUTED_ACTIVITIES, _processActivities);
+  ActivityEmitter.on(ActivityConstants.events.ROUTED_ACTIVITIES, _processActivities);
 
   callback();
 };
@@ -65,10 +68,7 @@ const _processActivities = function(routedActivities) {
       // A triggered activity can end up as multiple routed activities (one for the actor, one for the target, one for each follower, ...)
       // We only need to send a single statement per triggered activity and only for the actor.
       // We can do this by only sending a statement if the activityStreamId we're dealing with is the same as the activity's actor
-      if (
-        activity.actor[ActivityConstants.properties.OAE_ID] === resourceId &&
-        streamType === 'activity'
-      ) {
+      if (activity.actor[ActivityConstants.properties.OAE_ID] === resourceId && streamType === 'activity') {
         // Verify that a valid activity object has been provided
         if (!activity.object[activity.object.objectType]) {
           return;
@@ -82,9 +82,7 @@ const _processActivities = function(routedActivities) {
         tenantStatements[tenantAlias] = tenantStatements[tenantAlias] || [];
 
         // Construct the actor's profile link
-        const homePage =
-          TenantsUtil.getBaseUrl(TenantsAPI.getTenant(tenantAlias)) +
-          activity.actor.user.profilePath;
+        const homePage = TenantsUtil.getBaseUrl(TenantsAPI.getTenant(tenantAlias)) + activity.actor.user.profilePath;
 
         // Fill the actor, verb and object objects
         const actor = new TinCanModel.TinCanActor(activity.actor.user.displayName, homePage);
@@ -174,7 +172,4 @@ const sendStatementsToLRS = function(statements, tenantAlias) {
   }
 };
 
-module.exports = {
-  initializeTinCanAPI,
-  sendActivitiesToLRS: sendStatementsToLRS
-};
+export { initializeTinCanAPI, sendStatementsToLRS as sendActivitiesToLRS };

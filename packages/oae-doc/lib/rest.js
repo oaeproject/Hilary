@@ -13,11 +13,9 @@
  * permissions and limitations under the License.
  */
 
-var OAE = require('oae-util/lib/oae');
-var Swagger = require('oae-util/lib/swagger');
-
-var DocAPI = require('./api');
-
+import * as OAE from 'oae-util/lib/oae';
+import * as Swagger from 'oae-util/lib/swagger';
+import { getModuleDocumentation, getModules } from './api';
 
 /**
  * @REST getDocType
@@ -32,13 +30,14 @@ var DocAPI = require('./api');
  * @HttpResponse             200          List of documentation modules available
  * @HttpResponse             400          Invalid or missing module type. Accepted values are "backend" and "frontend"
  */
-var _getDocModulesByType = function(req, res) {
-    DocAPI.getModules(req.params.type, function(err, modules) {
-        if (err) {
-            return res.status(err.code).send(err.msg);
-        }
-        res.status(200).send(modules);
-    });
+const _getDocModulesByType = function(req, res) {
+  getModules(req.params.type, function(err, modules) {
+    if (err) {
+      return res.status(err.code).send(err.msg);
+    }
+
+    res.status(200).send(modules);
+  });
 };
 
 OAE.tenantRouter.on('get', '/api/doc/:type', _getDocModulesByType);
@@ -60,13 +59,14 @@ OAE.globalAdminRouter.on('get', '/api/doc/:type', _getDocModulesByType);
  * @HttpResponse             400          Missing module id
  * @HttpResponse             404          No documentation for this module was found
  */
-var _getDocModule = function(req, res) {
-    DocAPI.getModuleDocumentation(req.params.module, req.params.type, function(err, docs) {
-        if (err) {
-            return res.status(err.code).send(err.msg);
-        }
-        res.status(200).send(docs);
-    });
+const _getDocModule = function(req, res) {
+  getModuleDocumentation(req.params.module, req.params.type, function(err, docs) {
+    if (err) {
+      return res.status(err.code).send(err.msg);
+    }
+
+    res.status(200).send(docs);
+  });
 };
 
 OAE.tenantRouter.on('get', '/api/doc/:type/:module', _getDocModule);
@@ -85,10 +85,10 @@ OAE.globalAdminRouter.on('get', '/api/doc/:type/:module', _getDocModule);
  * @HttpResponse             200          Swagger resource listing available
  */
 OAE.tenantRouter.on('get', '/api/swagger', function(req, res) {
-    return res.status(200).send(Swagger.getResources(req.ctx));
+  return res.status(200).send(Swagger.getResources(req.ctx));
 });
 OAE.globalAdminRouter.on('get', '/api/swagger', function(req, res) {
-    return res.status(200).send(Swagger.getResources(req.ctx));
+  return res.status(200).send(Swagger.getResources(req.ctx));
 });
 
 /**
@@ -105,9 +105,8 @@ OAE.globalAdminRouter.on('get', '/api/swagger', function(req, res) {
  * @HttpResponse             200          Swagger api declaration available
  */
 OAE.tenantRouter.on('get', '/api/swagger/:id', function(req, res) {
-    return res.status(200).send(Swagger.getApi(req.ctx, req.params.id));
+  return res.status(200).send(Swagger.getApi(req.ctx, req.params.id));
 });
 OAE.globalAdminRouter.on('get', '/api/swagger/:id', function(req, res) {
-    return res.status(200).send(Swagger.getApi(req.ctx, req.params.id));
+  return res.status(200).send(Swagger.getApi(req.ctx, req.params.id));
 });
-

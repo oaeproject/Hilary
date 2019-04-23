@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const AuthzUtil = require('oae-authz/lib/util');
-const TenantsAPI = require('oae-tenants');
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as TenantsAPI from 'oae-tenants';
 
 /**
  * The Group model.
@@ -36,7 +36,7 @@ const TenantsAPI = require('oae-tenants');
  * @param  {String}     [opts.mediumPictureUri]     The uri of the medium picture. It will be made available at user.picture.mediumUri
  * @param  {String}     [opts.largePictureUri]      The uri of the large picture. It will be made available at user.picture.largeUri
  */
-module.exports.Group = function(tenantAlias, id, displayName, opts) {
+export const Group = function(tenantAlias, id, displayName, opts) {
   opts = opts || {};
   const { resourceId } = AuthzUtil.getResourceFromId(id);
 

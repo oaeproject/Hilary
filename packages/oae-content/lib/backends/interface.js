@@ -31,7 +31,7 @@
  * @param  {Object}      callback.err            An error object (if any)
  * @param  {String}      callback.uri            A URI that can be used to retrieve the filebody.
  */
-  // eslint-disable-next-line no-unused-vars
+// eslint-disable-next-line no-unused-vars
 const store = function(tenantAlias, file, options, callback) {};
 
 /**
@@ -45,7 +45,7 @@ const store = function(tenantAlias, file, options, callback) {};
  * @param  {Object}      callback.err        An error that occurred, if any
  * @param  {TempFile}    callback.file       A tempfile that holds the data of the requested file. It's up to the callers to remove this file!
  */
-  // eslint-disable-next-line no-unused-vars
+// eslint-disable-next-line no-unused-vars
 const get = function(tenantAlias, uri, callback) {};
 
 /**
@@ -57,7 +57,7 @@ const get = function(tenantAlias, uri, callback) {};
  * @param  {Object}      callback.err       An error object (if any)
  * @param  {TempFile}    callback.file      A tempfile that holds the data of the requested file. It's up to the callers to remove this file!
  */
-  // eslint-disable-next-line no-unused-vars
+// eslint-disable-next-line no-unused-vars
 const remove = function(tenantAlias, uri, callback) {};
 
 /**
@@ -67,12 +67,7 @@ const remove = function(tenantAlias, uri, callback) {};
  * @param  {Content}            uri             A URI that identifies the filebody
  * @return {DownloadStrategy}                   The download strategy that specifies how to download this resource
  */
-  // eslint-disable-next-line no-unused-vars
+// eslint-disable-next-line no-unused-vars
 const getDownloadStrategy = function(tenantAlias, uri) {};
 
-module.exports = {
-  store,
-  get,
-  remove,
-  getDownloadStrategy
-};
+export { store, get, remove, getDownloadStrategy };

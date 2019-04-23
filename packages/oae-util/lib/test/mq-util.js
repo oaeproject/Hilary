@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const Counter = require('oae-util/lib/counter');
-const MQ = require('oae-util/lib/mq');
+import Counter from 'oae-util/lib/counter';
+import * as MQ from 'oae-util/lib/mq';
 
 // Track when counts for a particular type of task return to 0
 const queueCounters = {};
@@ -88,6 +88,4 @@ const _decrement = function(name, count) {
   queueCounters[name].decr(count);
 };
 
-module.exports = {
-  whenTasksEmpty
-};
+export { whenTasksEmpty };

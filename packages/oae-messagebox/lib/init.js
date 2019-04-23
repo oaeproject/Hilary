@@ -13,6 +13,6 @@
  * permissions and limitations under the License.
  */
 
-module.exports = function(config, callback) {
+export function init(config, callback) {
   return callback();
-};
+}

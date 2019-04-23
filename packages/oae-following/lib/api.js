@@ -13,18 +13,18 @@
  * permissions and limitations under the License.
  */
 
-const _ = require('underscore');
+import _ from 'underscore';
 
-const AuthzUtil = require('oae-authz/lib/util');
-const EmitterAPI = require('oae-emitter');
-const OaeUtil = require('oae-util/lib/util');
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
-const PrincipalsUtil = require('oae-principals/lib/util');
-const { Validator } = require('oae-authz/lib/validator');
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as EmitterAPI from 'oae-emitter';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as PrincipalsUtil from 'oae-principals/lib/util';
+import * as FollowingAuthz from 'oae-following/lib/authz';
 
-const FollowingAuthz = require('oae-following/lib/authz');
-const { FollowingConstants } = require('oae-following/lib/constants');
-const FollowingDAO = require('./internal/dao');
+import { Validator } from 'oae-authz/lib/validator';
+import { FollowingConstants } from 'oae-following/lib/constants';
+import * as FollowingDAO from './internal/dao';
 
 /**
  * ### Events
@@ -87,21 +87,13 @@ const getFollowers = function(ctx, userId, start, limit, callback) {
             }
 
             // Emit an event indicating that the followers for a user have been retrieved
-            FollowingAPI.emit(
-              FollowingConstants.events.GET_FOLLOWERS,
-              ctx,
-              userId,
-              start,
-              limit,
-              users,
-              err => {
-                if (err) {
-                  return callback(err);
-                }
-
-                return callback(null, users, nextToken);
+            FollowingAPI.emit(FollowingConstants.events.GET_FOLLOWERS, ctx, userId, start, limit, users, err => {
+              if (err) {
+                return callback(err);
               }
-            );
+
+              return callback(null, users, nextToken);
+            });
           });
         });
       });
@@ -161,21 +153,13 @@ const getFollowing = function(ctx, userId, start, limit, callback) {
             }
 
             // Emit an event indicating that the followed users for a user have been retrieved
-            FollowingAPI.emit(
-              FollowingConstants.events.GET_FOLLOWING,
-              ctx,
-              userId,
-              start,
-              limit,
-              users,
-              err => {
-                if (err) {
-                  return callback(err);
-                }
-
-                return callback(null, users, nextToken);
+            FollowingAPI.emit(FollowingConstants.events.GET_FOLLOWING, ctx, userId, start, limit, users, err => {
+              if (err) {
+                return callback(err);
               }
-            );
+
+              return callback(null, users, nextToken);
+            });
           });
         });
       });
@@ -193,9 +177,7 @@ const getFollowing = function(ctx, userId, start, limit, callback) {
  */
 const follow = function(ctx, followedUserId, callback) {
   const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'You must be authenticated to follow a user' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'You must be authenticated to follow a user' }).isLoggedInUser(ctx);
   validator
     .check(followedUserId, {
       code: 400,
@@ -222,6 +204,7 @@ const follow = function(ctx, followedUserId, callback) {
         if (err) {
           return callback(err);
         }
+
         if (following[followedUserId]) {
           // The user is already following the target user, so we don't
           // have to do anything
@@ -234,13 +217,7 @@ const follow = function(ctx, followedUserId, callback) {
             return callback(err);
           }
 
-          return FollowingAPI.emit(
-            FollowingConstants.events.FOLLOW,
-            ctx,
-            ctx.user(),
-            followedUser,
-            callback
-          );
+          return FollowingAPI.emit(FollowingConstants.events.FOLLOW, ctx, ctx.user(), followedUser, callback);
         });
       });
     });
@@ -257,9 +234,7 @@ const follow = function(ctx, followedUserId, callback) {
  */
 const unfollow = function(ctx, unfollowedUserId, callback) {
   const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'You must be authenticated to unfollow a user' })
-    .isLoggedInUser(ctx);
+  validator.check(null, { code: 401, msg: 'You must be authenticated to unfollow a user' }).isLoggedInUser(ctx);
   validator
     .check(unfollowedUserId, {
       code: 400,
@@ -276,13 +251,7 @@ const unfollow = function(ctx, unfollowedUserId, callback) {
       return callback(err);
     }
 
-    return FollowingAPI.emit(
-      FollowingConstants.events.UNFOLLOW,
-      ctx,
-      ctx.user(),
-      unfollowedUserId,
-      callback
-    );
+    return FollowingAPI.emit(FollowingConstants.events.UNFOLLOW, ctx, ctx.user(), unfollowedUserId, callback);
   });
 };
 
@@ -316,10 +285,4 @@ const _expandUserIds = function(ctx, userIds, callback) {
   });
 };
 
-module.exports = {
-  emitter: FollowingAPI,
-  getFollowers,
-  getFollowing,
-  follow,
-  unfollow
-};
+export { FollowingAPI as emitter, getFollowers, getFollowing, follow, unfollow };

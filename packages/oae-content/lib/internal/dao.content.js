@@ -13,19 +13,28 @@
  * permissions and limitations under the License.
  */
 
-const util = require('util');
-const _ = require('underscore');
+import util from 'util';
+import {
+  isResourceACollabDoc,
+  isResourceACollabSheet,
+  isResourceALink,
+  isResourceAFile
+} from 'oae-content/lib/backends/util';
 
-const AuthzAPI = require('oae-authz');
-const AuthzUtil = require('oae-authz/lib/util');
-const Cassandra = require('oae-util/lib/cassandra');
-const LibraryAPI = require('oae-library');
-const log = require('oae-logger').logger('content-dao');
-const OaeUtil = require('oae-util/lib/util');
+import _ from 'underscore';
 
-const { Content } = require('oae-content/lib/model');
-const { ContentConstants } = require('oae-content/lib/constants');
-const RevisionsDAO = require('./dao.revisions');
+import * as AuthzAPI from 'oae-authz';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as Cassandra from 'oae-util/lib/cassandra';
+import * as LibraryAPI from 'oae-library';
+import { logger } from 'oae-logger';
+import * as OaeUtil from 'oae-util/lib/util';
+
+import { Content } from 'oae-content/lib/model';
+import { ContentConstants } from 'oae-content/lib/constants';
+import * as RevisionsDAO from './dao.revisions';
+
+const log = logger('content-dao');
 
 /// ////////////
 // Retrieval //
@@ -44,6 +53,7 @@ const getContent = function(contentId, callback) {
     if (err) {
       return callback(err);
     }
+
     if (_.isEmpty(rows)) {
       return callback({ code: 404, msg: "Couldn't find content: " + contentId }, null);
     }
@@ -126,7 +136,7 @@ const getAllContentMembers = function(contentId, callback) {
  * @param  {String}         contentId                   The id of the piece of content
  * @param  {String}         revisionId                  The id of the first revision
  * @param  {String}         createdBy                   The id of the user who is creating the content item
- * @param  {String}         resourceSubType             The content type. Possible values are "file", "collabdoc" and "link"
+ * @param  {String}         resourceSubType             The content type. Possible values are "file", "collabdoc", "collabsheet" and "link"
  * @param  {String}         displayName                 The display name for the piece of content
  * @param  {String}         description                 The description of the piece of content [optional]
  * @param  {String}         visibility                  The visibility setting for the piece of content. Possible values are "public", "loggedin" and "private" [optional]
@@ -232,17 +242,18 @@ const updateContent = function(contentObj, profileUpdates, librariesUpdate, call
 
     // In case the revision ID has changed
     if (newContentObj.resourceSubType === 'file') {
-      newContentObj.downloadPath =
-        '/api/content/' + newContentObj.id + '/download/' + newContentObj.latestRevisionId;
+      newContentObj.downloadPath = '/api/content/' + newContentObj.id + '/download/' + newContentObj.latestRevisionId;
     }
 
     if (!librariesUpdate) {
       return callback(null, newContentObj);
     }
+
     _updateContentLibraries(newContentObj, oldLastModified, newContentObj.lastModified, [], err => {
       if (err) {
         return callback(err);
       }
+
       callback(null, newContentObj);
     });
   });
@@ -267,6 +278,7 @@ const deleteContent = function(contentObj, callback) {
       if (err) {
         return callback(err);
       }
+
       if (_.isEmpty(members)) {
         return callback(null, []);
       }
@@ -289,25 +301,21 @@ const deleteContent = function(contentObj, callback) {
         }
 
         // Simply remove this item from all member libraries
-        LibraryAPI.Index.remove(
-          ContentConstants.library.CONTENT_LIBRARY_INDEX_NAME,
-          libraryRemoveEntries,
-          err => {
-            if (err) {
-              // If there was an error updating libraries here, the permissions were still changed, so we should not return an error. Just log it.
-              log().warn(
-                {
-                  err,
-                  contentObj,
-                  libraryRemoveEntries
-                },
-                'Failed to update user libraries after updating content permissions.'
-              );
-            }
-
-            return callback(null, members);
+        LibraryAPI.Index.remove(ContentConstants.library.CONTENT_LIBRARY_INDEX_NAME, libraryRemoveEntries, err => {
+          if (err) {
+            // If there was an error updating libraries here, the permissions were still changed, so we should not return an error. Just log it.
+            log().warn(
+              {
+                err,
+                contentObj,
+                libraryRemoveEntries
+              },
+              'Failed to update user libraries after updating content permissions.'
+            );
           }
-        );
+
+          return callback(null, members);
+        });
       });
     });
   });
@@ -381,23 +389,16 @@ const iterateAll = function(properties, batchSize, onEach, callback) {
   }
 
   /*!
-     * Handles each batch from the cassandra iterateAll method.
-     *
-     * @see Cassandra#iterateAll
-     */
+   * Handles each batch from the cassandra iterateAll method.
+   *
+   * @see Cassandra#iterateAll
+   */
   const _iterateAllOnEach = function(rows, done) {
     // Convert the rows to a hash and delegate action to the caller onEach method
     return onEach(_.map(rows, Cassandra.rowToHash), done);
   };
 
-  Cassandra.iterateAll(
-    properties,
-    'Content',
-    'contentId',
-    { batchSize },
-    _iterateAllOnEach,
-    callback
-  );
+  Cassandra.iterateAll(properties, 'Content', 'contentId', { batchSize }, _iterateAllOnEach, callback);
 };
 
 /**
@@ -422,19 +423,13 @@ const updateContentLibraries = function(contentObj, removedMembers, callback) {
     }
 
     // Update the libraries.
-    _updateContentLibraries(
-      contentObj,
-      oldLastModified,
-      newContentObj.lastModified,
-      removedMembers,
-      err => {
-        if (err) {
-          return callback(err, newContentObj);
-        }
-
-        return callback(null, newContentObj);
+    _updateContentLibraries(contentObj, oldLastModified, newContentObj.lastModified, removedMembers, err => {
+      if (err) {
+        return callback(err, newContentObj);
       }
-    );
+
+      return callback(null, newContentObj);
+    });
   });
 };
 
@@ -448,13 +443,7 @@ const updateContentLibraries = function(contentObj, removedMembers, callback) {
  * @param  {Function}   [callback]          Standard callback function
  * @param  {Object}     [callback.err]      Error object containing the error message
  */
-const _updateContentLibraries = function(
-  contentObj,
-  oldLastModified,
-  newLastModified,
-  removedMembers,
-  callback
-) {
+const _updateContentLibraries = function(contentObj, oldLastModified, newLastModified, removedMembers, callback) {
   // Grab all the current members.
   getAllContentMembers(contentObj.id, (err, members) => {
     if (err) {
@@ -474,11 +463,7 @@ const _updateContentLibraries = function(
           resource: contentObj
         };
       });
-      return LibraryAPI.Index.insert(
-        ContentConstants.library.CONTENT_LIBRARY_INDEX_NAME,
-        insertEntries,
-        callback
-      );
+      return LibraryAPI.Index.insert(ContentConstants.library.CONTENT_LIBRARY_INDEX_NAME, insertEntries, callback);
     }
 
     // Collect any library index update operations from the member ids that are not removal
@@ -558,15 +543,17 @@ const _rowToContent = function(row) {
     hash.latestRevisionId,
     hash.previews
   );
-  if (contentObj.resourceSubType === 'file') {
+  if (isResourceAFile(contentObj.resourceSubType)) {
     contentObj.filename = hash.filename;
     contentObj.size = hash.size ? parseInt(hash.size, 10) : 0;
     contentObj.mime = hash.mime;
-  } else if (contentObj.resourceSubType === 'link') {
+  } else if (isResourceALink(contentObj.resourceSubType)) {
     contentObj.link = hash.link;
-  } else if (contentObj.resourceSubType === 'collabdoc') {
+  } else if (isResourceACollabDoc(contentObj.resourceSubType)) {
     contentObj.etherpadGroupId = hash.etherpadGroupId;
     contentObj.etherpadPadId = hash.etherpadPadId;
+  } else if (isResourceACollabSheet(contentObj.resourceSubType)) {
+    contentObj.ethercalcRoomId = hash.ethercalcRoomId;
   }
 
   return contentObj;
@@ -590,7 +577,7 @@ const _parsePreviews = function(hash) {
   }
 };
 
-module.exports = {
+export {
   getContent,
   getMultipleContentItems,
   getAllContentMembers,

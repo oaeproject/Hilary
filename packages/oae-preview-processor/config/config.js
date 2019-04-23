@@ -13,51 +13,49 @@
  * permissions and limitations under the License.
  */
 
-const Fields = require('oae-config/lib/fields');
+import * as Fields from 'oae-config/lib/fields';
 
-module.exports = {
-  title: 'OAE Preview Processor Module',
-  slideshare: {
-    name: 'SlideShare configuration',
-    description: 'Configuration for the SlideShare retriever',
-    elements: {
-      apikey: new Fields.Text('API Key', 'The SlideShare API key', '', {
-        tenantOverride: false,
-        suppress: true,
-        globalAdminOnly: true
-      }),
-      sharedsecret: new Fields.Text('Shared Secret', 'The SlideShare shared secret', '', {
-        tenantOverride: false,
-        suppress: true,
-        globalAdminOnly: true
-      })
-    }
-  },
-  flickr: {
-    name: 'Flickr configuration',
-    description: 'Configuration for the Flickr retriever',
-    elements: {
-      apikey: new Fields.Text('API Key', 'The Flickr API key', '', {
-        tenantOverride: false,
-        suppress: true,
-        globalAdminOnly: true
-      }),
-      apisecret: new Fields.Text('API Secret', 'The Flickr API secret', '', {
-        tenantOverride: false,
-        suppress: true,
-        globalAdminOnly: true
-      })
-    }
-  },
-  youtube: {
-    name: 'YouTube configuration',
-    description: 'Configuration for the YouTube retriever',
-    elements: {
-      key: new Fields.Text('Key', 'The YouTube server key', '', {
-        tenantOverride: false,
-        suppress: true,
-        globalAdminOnly: true
-      })
-    }
+export const title = 'OAE Preview Processor Module';
+export const slideshare = {
+  name: 'SlideShare configuration',
+  description: 'Configuration for the SlideShare retriever',
+  elements: {
+    apikey: new Fields.Text('API Key', 'The SlideShare API key', '', {
+      tenantOverride: false,
+      suppress: true,
+      globalAdminOnly: true
+    }),
+    sharedsecret: new Fields.Text('Shared Secret', 'The SlideShare shared secret', '', {
+      tenantOverride: false,
+      suppress: true,
+      globalAdminOnly: true
+    })
+  }
+};
+export const flickr = {
+  name: 'Flickr configuration',
+  description: 'Configuration for the Flickr retriever',
+  elements: {
+    apikey: new Fields.Text('API Key', 'The Flickr API key', '', {
+      tenantOverride: false,
+      suppress: true,
+      globalAdminOnly: true
+    }),
+    apisecret: new Fields.Text('API Secret', 'The Flickr API secret', '', {
+      tenantOverride: false,
+      suppress: true,
+      globalAdminOnly: true
+    })
+  }
+};
+export const youtube = {
+  name: 'YouTube configuration',
+  description: 'Configuration for the YouTube retriever',
+  elements: {
+    key: new Fields.Text('Key', 'The YouTube server key', '', {
+      tenantOverride: false,
+      suppress: true,
+      globalAdminOnly: true
+    })
   }
 };

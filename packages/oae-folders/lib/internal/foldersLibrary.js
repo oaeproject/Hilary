@@ -14,15 +14,17 @@
  */
 
 /* eslint-disable unicorn/filename-case */
-const _ = require('underscore');
-const { Long } = require('cassandra-driver').types;
+import _ from 'underscore'
+import { types } from "cassandra-driver";
 
-const LibraryAPI = require('oae-library');
-const OaeUtil = require('oae-util/lib/util');
-const log = require('oae-logger').logger('oae-folders-contentLibrary');
+import * as LibraryAPI from 'oae-library'
+import * as OaeUtil from 'oae-util/lib/util'
+import { logger } from "oae-logger";
 
-const { FoldersConstants } = require('../constants');
-const FoldersDAO = require('./dao');
+import { FoldersConstants } from '../constants'
+import * as FoldersDAO from './dao'
+const { Long } = types;
+const log = logger('oae-folders-contentLibrary');;
 
 /**
  * Get the ids of the folders in the folders library of a specified user or group
@@ -138,37 +140,31 @@ const update = function(principalIds, folder, oldLastModified, callback) {
 
   // If the caller specified we should "touch" the folder, we simply update its last modified
   // timestamp before updating the library indices
-  OaeUtil.invokeIfNecessary(
-    touchFolder,
-    FoldersDAO.updateFolder,
-    folder,
-    {},
-    (err, updatedFolder) => {
+  OaeUtil.invokeIfNecessary(touchFolder, FoldersDAO.updateFolder, folder, {}, (err, updatedFolder) => {
+    if (err) {
+      return callback(err);
+    }
+
+    folder = updatedFolder || folder;
+
+    const entries = _.map(principalIds, principalId => {
+      return {
+        id: principalId,
+        oldRank: oldLastModified,
+        newRank: folder.lastModified,
+        resource: folder
+      };
+    });
+
+    // Update the library entries for the provided principal ids
+    LibraryAPI.Index.update(FoldersConstants.library.FOLDERS_LIBRARY_INDEX_NAME, entries, err => {
       if (err) {
         return callback(err);
       }
 
-      folder = updatedFolder || folder;
-
-      const entries = _.map(principalIds, principalId => {
-        return {
-          id: principalId,
-          oldRank: oldLastModified,
-          newRank: folder.lastModified,
-          resource: folder
-        };
-      });
-
-      // Update the library entries for the provided principal ids
-      LibraryAPI.Index.update(FoldersConstants.library.FOLDERS_LIBRARY_INDEX_NAME, entries, err => {
-        if (err) {
-          return callback(err);
-        }
-
-        return callback(null, folder);
-      });
-    }
-  );
+      return callback(null, folder);
+    });
+  });
 };
 
 /**
@@ -210,9 +206,4 @@ const remove = function(principalIds, folder, callback) {
   LibraryAPI.Index.remove(FoldersConstants.library.FOLDERS_LIBRARY_INDEX_NAME, entries, callback);
 };
 
-module.exports = {
-  list,
-  insert,
-  update,
-  remove
-};
+export { list, insert, update, remove };

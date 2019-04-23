@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const RestAPI = require('oae-rest');
-const SearchTestsUtil = require('oae-search/lib/test/util');
-const TestsUtil = require('oae-tests');
+import * as RestAPI from 'oae-rest';
+import * as SearchTestsUtil from 'oae-search/lib/test/util';
+import * as TestsUtil from 'oae-tests';
 
 describe('Library Search', () => {
   // REST contexts we can use to do REST requests
@@ -50,68 +50,62 @@ describe('Library Search', () => {
         [],
         (err, content) => {
           assert.ok(!err);
-          RestAPI.Content.createComment(
-            simon.restContext,
-            content.id,
-            'abcdefghi',
-            null,
-            (err, comment) => {
-              assert.ok(!err);
+          RestAPI.Content.createComment(simon.restContext, content.id, 'abcdefghi', null, (err, comment) => {
+            assert.ok(!err);
 
-              // Keep in mind that messages are analyzed with an edgengram analyzer with its
-              // minimum set to 5. As tokenisation is letter based, we can't really generate
-              // a test string or use an md5 hash as those are probably not going to contain
-              // substrings of 5 characters
-              SearchTestsUtil.searchAll(
-                simon.restContext,
-                'content-library',
-                [simon.user.id],
-                { q: 'abcdefghijklmn' },
-                (err, results) => {
-                  assert.ok(!err);
-                  assert.ok(_.find(results.results, { id: content.id }));
+            // Keep in mind that messages are analyzed with an edgengram analyzer with its
+            // minimum set to 5. As tokenisation is letter based, we can't really generate
+            // a test string or use an md5 hash as those are probably not going to contain
+            // substrings of 5 characters
+            SearchTestsUtil.searchAll(
+              simon.restContext,
+              'content-library',
+              [simon.user.id],
+              { q: 'abcdefghijklmn' },
+              (err, results) => {
+                assert.ok(!err);
+                assert.ok(_.find(results.results, { id: content.id }));
 
-                  // Create a discussion with a message on it
-                  RestAPI.Discussions.createDiscussion(
-                    simon.restContext,
-                    'A talk',
-                    'about the moon',
-                    'public',
-                    [],
-                    [],
-                    (err, discussion) => {
-                      assert.ok(!err);
-                      RestAPI.Discussions.createMessage(
-                        simon.restContext,
-                        discussion.id,
-                        'stuvwxyz',
-                        null,
-                        (err, message) => {
-                          assert.ok(!err);
+                // Create a discussion with a message on it
+                RestAPI.Discussions.createDiscussion(
+                  simon.restContext,
+                  'A talk',
+                  'about the moon',
+                  'public',
+                  [],
+                  [],
+                  (err, discussion) => {
+                    assert.ok(!err);
+                    RestAPI.Discussions.createMessage(
+                      simon.restContext,
+                      discussion.id,
+                      'stuvwxyz',
+                      null,
+                      (err, message) => {
+                        assert.ok(!err);
 
-                          // Keep in mind that messages are analyzed with an edgengram analyzer with its
-                          // minimum set to 5. As tokenisation is letter based, we can't really generate
-                          // a test string or use an md5 hash as those are probably not going to contain
-                          // substrings of 5 characters
-                          SearchTestsUtil.searchAll(
-                            simon.restContext,
-                            'discussion-library',
-                            [simon.user.id],
-                            { q: 'stuvwxyz' },
-                            (err, results) => {
-                              assert.ok(!err);
-                              assert.ok(_.find(results.results, { id: discussion.id }));
-                              return callback();
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
+                        // Keep in mind that messages are analyzed with an edgengram analyzer with its
+                        // minimum set to 5. As tokenisation is letter based, we can't really generate
+                        // a test string or use an md5 hash as those are probably not going to contain
+                        // substrings of 5 characters
+                        SearchTestsUtil.searchAll(
+                          simon.restContext,
+                          'discussion-library',
+                          [simon.user.id],
+                          { q: 'stuvwxyz' },
+                          (err, results) => {
+                            assert.ok(!err);
+                            assert.ok(_.find(results.results, { id: discussion.id }));
+                            return callback();
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          });
         }
       );
     });
@@ -122,29 +116,17 @@ describe('Library Search', () => {
      * Test that verifies only valid principal ids return results
      */
     it('verify the principal id gets validated', callback => {
-      SearchTestsUtil.searchAll(
-        camAdminRestContext,
-        'content-library',
-        [''],
-        null,
-        (err, results) => {
+      SearchTestsUtil.searchAll(camAdminRestContext, 'content-library', [''], null, (err, results) => {
+        assert.strictEqual(err.code, 400);
+        assert.ok(!results);
+
+        SearchTestsUtil.searchAll(camAdminRestContext, 'content-library', ['invalid-user-id'], null, (err, results) => {
           assert.strictEqual(err.code, 400);
           assert.ok(!results);
 
-          SearchTestsUtil.searchAll(
-            camAdminRestContext,
-            'content-library',
-            ['invalid-user-id'],
-            null,
-            (err, results) => {
-              assert.strictEqual(err.code, 400);
-              assert.ok(!results);
-
-              return callback();
-            }
-          );
-        }
-      );
+          return callback();
+        });
+      });
     });
 
     /**

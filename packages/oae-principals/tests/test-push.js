@@ -13,17 +13,15 @@
  * permissions and limitations under the License.
  */
 
-const assert = require('assert');
-const fs = require('fs');
-const _ = require('underscore');
+import assert from 'assert';
+import _ from 'underscore';
 
-const { ActivityConstants } = require('oae-activity/lib/constants');
-const ActivityTestsUtil = require('oae-activity/lib/test/util');
-const RestAPI = require('oae-rest');
-const { RestContext } = require('oae-rest/lib/model');
-const TestsUtil = require('oae-tests');
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
+import * as RestAPI from 'oae-rest';
+import * as TestsUtil from 'oae-tests';
 
-const { PrincipalsConstants } = require('oae-principals/lib/constants');
+import { ActivityConstants } from 'oae-activity/lib/constants';
+import { PrincipalsConstants } from 'oae-principals/lib/constants';
 
 describe('Group Push', () => {
   // Rest contexts that can be used performing rest requests
@@ -34,9 +32,7 @@ describe('Group Push', () => {
    * Function that will fill up the tenant admin and anymous rest contexts
    */
   before(callback => {
-    localAdminRestContext = TestsUtil.createTenantAdminRestContext(
-      global.oaeTests.tenants.localhost.host
-    );
+    localAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.localhost.host);
     anonymousRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
     callback();
   });
@@ -85,70 +81,48 @@ describe('Group Push', () => {
                       assert.strictEqual(err.code, 400);
 
                       // Ensure we get a 401 error with an invalid token
-                      client.subscribe(
-                        group.id,
-                        'activity',
-                        { signature: group.signature.signature },
-                        null,
-                        err => {
+                      client.subscribe(group.id, 'activity', { signature: group.signature.signature }, null, err => {
+                        assert.strictEqual(err.code, 401);
+                        client.subscribe(group.id, 'activity', { expires: group.signature.expires }, null, err => {
                           assert.strictEqual(err.code, 401);
                           client.subscribe(
                             group.id,
                             'activity',
-                            { expires: group.signature.expires },
+                            {
+                              expires: Date.now() + 10000,
+                              signature: 'foo',
+                              lastModified: Date.now()
+                            },
                             null,
                             err => {
                               assert.strictEqual(err.code, 401);
-                              client.subscribe(
-                                group.id,
-                                'activity',
-                                {
-                                  expires: Date.now() + 10000,
-                                  signature: 'foo',
-                                  lastModified: Date.now()
-                                },
-                                null,
-                                err => {
+
+                              // Simon should not be able to use a signature that was generated for Branden
+                              RestAPI.Group.getGroup(branden.restContext, group.id, (err, groupForBranden) => {
+                                assert.ok(!err);
+                                client.subscribe(group.id, 'activity', groupForBranden.signature, null, err => {
                                   assert.strictEqual(err.code, 401);
 
-                                  // Simon should not be able to use a signature that was generated for Branden
-                                  RestAPI.Group.getGroup(
-                                    branden.restContext,
+                                  // Sanity check
+                                  client.subscribe(
                                     group.id,
-                                    (err, groupForBranden) => {
+                                    'activity',
+                                    {
+                                      expires: group.signature.expires,
+                                      signature: group.signature.signature
+                                    },
+                                    null,
+                                    err => {
                                       assert.ok(!err);
-                                      client.subscribe(
-                                        group.id,
-                                        'activity',
-                                        groupForBranden.signature,
-                                        null,
-                                        err => {
-                                          assert.strictEqual(err.code, 401);
-
-                                          // Sanity check
-                                          client.subscribe(
-                                            group.id,
-                                            'activity',
-                                            {
-                                              expires: group.signature.expires,
-                                              signature: group.signature.signature
-                                            },
-                                            null,
-                                            err => {
-                                              assert.ok(!err);
-                                              return callback();
-                                            }
-                                          );
-                                        }
-                                      );
+                                      return callback();
                                     }
                                   );
-                                }
-                              );
+                                });
+                              });
                             }
                           );
-                        }
-                      );
+                        });
+                      });
                     });
                   });
                 });
@@ -247,34 +221,29 @@ describe('Group Push', () => {
                 assert.ok(!err);
 
                 // Route and deliver activities
-                ActivityTestsUtil.collectAndGetActivityStream(
-                  contexts.simon.restContext,
-                  null,
-                  null,
-                  () => {
-                    // Register for some streams
-                    const data = {
-                      authentication: {
-                        userId: contexts.simon.user.id,
-                        tenantAlias: simonFull.tenant.alias,
-                        signature: simonFull.signature
-                      },
-                      streams: [
-                        {
-                          resourceId: group.id,
-                          streamType: 'activity',
-                          token: group.signature
-                        }
-                      ]
-                    };
+                ActivityTestsUtil.collectAndGetActivityStream(contexts.simon.restContext, null, null, () => {
+                  // Register for some streams
+                  const data = {
+                    authentication: {
+                      userId: contexts.simon.user.id,
+                      tenantAlias: simonFull.tenant.alias,
+                      signature: simonFull.signature
+                    },
+                    streams: [
+                      {
+                        resourceId: group.id,
+                        streamType: 'activity',
+                        token: group.signature
+                      }
+                    ]
+                  };
 
-                    ActivityTestsUtil.getFullySetupPushClient(data, client => {
-                      setTimeout(() => {
-                        callback(contexts, group, client);
-                      }, 2000);
-                    });
-                  }
-                );
+                  ActivityTestsUtil.getFullySetupPushClient(data, client => {
+                    setTimeout(() => {
+                      callback(contexts, group, client);
+                    }, 2000);
+                  });
+                });
               });
             }
           );
@@ -288,14 +257,9 @@ describe('Group Push', () => {
     it('verify updates trigger a push notification', callback => {
       setupFixture((contexts, group, client) => {
         // Trigger an update
-        RestAPI.Group.updateGroup(
-          contexts.branden.restContext,
-          group.id,
-          { displayName: 'Laaike whatevs' },
-          err => {
-            assert.ok(!err);
-          }
-        );
+        RestAPI.Group.updateGroup(contexts.branden.restContext, group.id, { displayName: 'Laaike whatevs' }, err => {
+          assert.ok(!err);
+        });
 
         client.on('message', message => {
           if (message.resourceId === group.id && message.streamType === 'activity') {
@@ -322,14 +286,9 @@ describe('Group Push', () => {
     it('verify visibility updates trigger a push notification', callback => {
       setupFixture((contexts, group, client) => {
         // Trigger an update
-        RestAPI.Group.updateGroup(
-          contexts.branden.restContext,
-          group.id,
-          { visibility: 'loggedin' },
-          err => {
-            assert.ok(!err);
-          }
-        );
+        RestAPI.Group.updateGroup(contexts.branden.restContext, group.id, { visibility: 'loggedin' }, err => {
+          assert.ok(!err);
+        });
 
         client.on('message', message => {
           ActivityTestsUtil.assertActivity(
@@ -358,10 +317,7 @@ describe('Group Push', () => {
 
         // We should receive 2 messages. One for adding Nico to the group and one for changing his role
         client.on('message', message => {
-          if (
-            message.activities[0]['oae:activityType'] ===
-            PrincipalsConstants.activity.ACTIVITY_GROUP_ADD_MEMBER
-          ) {
+          if (message.activities[0]['oae:activityType'] === PrincipalsConstants.activity.ACTIVITY_GROUP_ADD_MEMBER) {
             ActivityTestsUtil.assertActivity(
               message.activities[0],
               PrincipalsConstants.activity.ACTIVITY_GROUP_ADD_MEMBER,
@@ -372,8 +328,7 @@ describe('Group Push', () => {
             );
             addedActivityReceived = true;
           } else if (
-            message.activities[0]['oae:activityType'] ===
-            PrincipalsConstants.activity.ACTIVITY_GROUP_UPDATE_MEMBER_ROLE
+            message.activities[0]['oae:activityType'] === PrincipalsConstants.activity.ACTIVITY_GROUP_UPDATE_MEMBER_ROLE
           ) {
             ActivityTestsUtil.assertActivity(
               message.activities[0],
@@ -398,31 +353,16 @@ describe('Group Push', () => {
           assert.ok(!err);
 
           // Route and deliver activities
-          ActivityTestsUtil.collectAndGetActivityStream(
-            contexts.simon.restContext,
-            null,
-            null,
-            () => {
-              // Changing nico's role to a manager should result in a message on the socket as well
-              membersToAdd[contexts.nico.user.id] = 'manager';
-              RestAPI.Group.setGroupMembers(
-                contexts.branden.restContext,
-                group.id,
-                membersToAdd,
-                err => {
-                  assert.ok(!err);
+          ActivityTestsUtil.collectAndGetActivityStream(contexts.simon.restContext, null, null, () => {
+            // Changing nico's role to a manager should result in a message on the socket as well
+            membersToAdd[contexts.nico.user.id] = 'manager';
+            RestAPI.Group.setGroupMembers(contexts.branden.restContext, group.id, membersToAdd, err => {
+              assert.ok(!err);
 
-                  // Route and deliver activities
-                  ActivityTestsUtil.collectAndGetActivityStream(
-                    contexts.simon.restContext,
-                    null,
-                    null,
-                    () => {}
-                  );
-                }
-              );
-            }
-          );
+              // Route and deliver activities
+              ActivityTestsUtil.collectAndGetActivityStream(contexts.simon.restContext, null, null, () => {});
+            });
+          });
         });
       });
     });

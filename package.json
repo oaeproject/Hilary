@@ -48,7 +48,7 @@
     "immutable": "^4.0.0-rc.12",
     "jszip": "^3.2.1",
     "juice": "^5.2.0",
-    "less": "1.7.5",
+    "less": "3.9.0",
     "locale": "^0.1.0",
     "lunr": "1.0.0",
     "mailparser": "0.6.2",

@@ -37,7 +37,7 @@ jobs:
             printf "\nconfig.search.hosts[0].host = 'oae-elasticsearch';" >> config.js
             printf "\nconfig.mq.connection.host = ['oae-rabbitmq'];" >> config.js
             printf "\nconfig.etherpad.hosts[0].host = 'oae-etherpad';" >> config.js
-            printf "\nconfig.ethercalc.host = 'oae-ethercalc';" >> config.js
+            printf "\nconfig.ethercalc[0].host = 'oae-ethercalc';" >> config.js
             printf "\nconfig.previews.enabled = true;" >> config.js
             printf "\nconfig.email.debug = false;" >> config.js
             printf "\nconfig.email.transport = 'sendmail';" >> config.js

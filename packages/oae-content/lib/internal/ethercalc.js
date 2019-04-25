@@ -258,8 +258,9 @@ const joinRoom = function(ctx, contentObj, callback) {
  */
 // eslint-disable-next-line no-unused-vars
 const getRoomUrl = function(contentObj, userId, language) {
+  const randomServerIndex = Math.floor(Math.random() * ethercalcServers.length);
   return url.format({
-    pathname: '/ethercalc/' + contentObj.ethercalcRoomId,
+    pathname: `/ethercalc/${randomServerIndex}/${contentObj.ethercalcRoomId}`,
     query: {
       author: userId,
       content: contentObj.id

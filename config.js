@@ -440,12 +440,14 @@ config.etherpad = {
  * @param  {String}     host            The hostname or IP address on which Hilary will be accessing the Ethercalc API.
  * @param  {Number}     port            The port number on which Hilary will be accessing the ethercalc API.
  */
-config.ethercalc = {
-  host: LOCALHOST,
-  port: 8000,
-  protocol: 'http',
-  timeout: 2500
-};
+config.ethercalc = [
+  {
+    host: LOCALHOST,
+    port: 8000,
+    protocol: 'http',
+    timeout: 2500
+  }
+];
 /**
  * `config.tincanapi`
  *

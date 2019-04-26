@@ -1683,11 +1683,14 @@ describe('Preview processor', () => {
         return callback();
       }
 
-      _createContentAndWait('link', 'https://vimeo.com/17085981', null, (restCtx, content) => {
+      _createContentAndWait('link', 'https://vimeo.com/187081215', null, (restCtx, content) => {
         assert.strictEqual(content.previews.status, 'done');
         // Verify the displayName and description are set.
-        assert.strictEqual(content.displayName, 'Cambridge Montage');
-        assert.strictEqual(content.description, 'A brief look at the world of Cambridge University');
+        assert.strictEqual(content.displayName, 'Frasonismo');
+        assert.strictEqual(
+          content.description,
+          'Referência a "frasonismo" no "the big picture" da RTP1 a 12 de Outubro de 2016'
+        );
         // Ensure we have a thumbnail url.
         assert.strictEqual(content.previews.thumbnailUrl.indexOf('/api/download/signed'), 0);
         _verifySignedUriDownload(restCtx, content.previews.thumbnailUrl, () => {

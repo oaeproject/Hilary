@@ -123,7 +123,7 @@
     "selectn": "^1.1.2",
     "shortid": "^2.2.8",
     "slideshare": "git://github.com/oaeproject/node-slideshare",
-    "snyk": "^1.143.1",
+    "snyk": "^1.153.0",
     "sockjs": "^0.3.19",
     "strftime": "^0.10.0",
     "temp": "^0.9.0",
@@ -165,7 +165,8 @@
     "dev-server": "nodemon app.js | npx bunyan",
     "snyk-protect": "snyk protect",
     "lint": "xo --prettier --quiet '**/*.js'",
-    "test-with-coverage": "npx nyc --reporter=lcov npm test && cat ./coverage/lcov.info | codacy-coverage"
+    "test-with-coverage": "npx nyc --reporter=lcov npm test && cat ./coverage/lcov.info | codacy-coverage",
+    "prepare": "npm run snyk-protect"
   },
   "xo": {
     "prettier": true,

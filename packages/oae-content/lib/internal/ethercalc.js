@@ -26,7 +26,7 @@ import * as ContentDAO from './dao';
 const log = logger('ethercalc');
 
 let ethercalcConfig = null;
-let ethercalc = null;
+let ethercalcServers = null;
 
 const SOCIAL_CALC_FORMAT_BEGIN_LINE = 'socialcalc:version:1.0';
 const SOCIAL_CALC_FORMAT_END_LINE = '--SocialCalcSpreadsheetControlSave--';
@@ -40,14 +40,17 @@ const TABLE_ELEMENT = 'table';
  * @param  {Object}  _ethercalcConfig    The ethercalc config from config.js
  */
 const refreshConfiguration = function(_ethercalcConfig) {
-  // Remember this config.
   ethercalcConfig = _ethercalcConfig;
-  ethercalc = new EthercalcClient(
-    ethercalcConfig.host,
-    ethercalcConfig.port,
-    ethercalcConfig.protocol,
-    ethercalcConfig.timeout
-  );
+  ethercalcServers = _ethercalcConfig.map(eachConfig => {
+    return {
+      config: eachConfig,
+      client: new EthercalcClient(eachConfig.host, eachConfig.port, eachConfig.protocol, eachConfig.timeout)
+    };
+  });
+};
+
+const _pickARandomServer = () => {
+  return ethercalcServers[Math.floor(Math.random() * ethercalcServers.length)];
 };
 
 /**
@@ -68,10 +71,11 @@ const getConfig = function() {
  * @param  {Object}     callback.snapshot               A snapshot containing data for new Ethercalc room
  */
 const createRoom = function(content, callback) {
+  const someEthercalcServer = _pickARandomServer();
   const { contentId } = content;
   let roomId = null;
   log().trace({ contentId }, 'Creating Ethercalc room');
-  ethercalc
+  someEthercalcServer.client
     .createRoom()
     .then(data => {
       // Ethercalc returns the relative path so strip out starting /
@@ -81,7 +85,7 @@ const createRoom = function(content, callback) {
     })
     .catch(error => {
       log().error(
-        { err: error, contentId, ethercalcRoomId: roomId, ethercalc: ethercalcConfig.host },
+        { err: error, contentId, ethercalcRoomId: roomId, ethercalc: someEthercalcServer.config.host },
         'Could not create Ethercalc room'
       );
       return callback(error);
@@ -96,8 +100,10 @@ const createRoom = function(content, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const deleteRoom = function(roomId, callback) {
-  log().trace({ roomId, ethercalc: ethercalcConfig.host }, 'Deleting Ethercalc room');
-  ethercalc
+  const someEthercalcServer = _pickARandomServer();
+  log().trace({ roomId, ethercalc: someEthercalcServer.config.host }, 'Deleting Ethercalc room');
+
+  someEthercalcServer.client
     .deleteRoom(roomId)
     .then(deleted => {
       if (deleted) {
@@ -112,7 +118,10 @@ const deleteRoom = function(roomId, callback) {
       return callback({ code: 500, msg: 'Could not delete Ethercalc room' });
     })
     .catch(error => {
-      log().error({ err: error, roomId, ethercalc: ethercalcConfig.host }, 'Could not delete Ethercalc room');
+      log().error(
+        { err: error, roomId, ethercalc: someEthercalcServer.config.host },
+        'Could not delete Ethercalc room'
+      );
       return callback(error);
     });
 };
@@ -126,19 +135,26 @@ const deleteRoom = function(roomId, callback) {
  * @param  {String}     callback.html   The HTML for this room
  */
 const getHTML = function(roomId, callback) {
-  log().trace({ roomId, ethercalc: ethercalcConfig.host }, 'Getting Ethercalc room as HTML');
-  ethercalc
+  const someEthercalcServer = _pickARandomServer();
+  log().trace({ roomId, ethercalc: someEthercalcServer.config.host }, 'Getting Ethercalc room as HTML');
+  someEthercalcServer.client
     .getHTML(roomId)
     .then(html => {
       if (!_isHtmlDocument(html)) {
-        log().error({ roomId, ethercalc: ethercalcConfig.host }, 'Ethercalc sheet contents are not valid HTML');
+        log().error(
+          { roomId, ethercalc: someEthercalcServer.config.host },
+          'Ethercalc sheet contents are not valid HTML'
+        );
         return callback({ code: 500, msg: 'Ethercalc sheet contents are not valid HTML' });
       }
 
       return callback(null, html);
     })
     .catch(error => {
-      log().error({ err: error, roomId, ethercalc: ethercalcConfig.host }, 'Could not grab the HTML from ethercalc');
+      log().error(
+        { err: error, roomId, ethercalc: someEthercalcServer.config.host },
+        'Could not grab the HTML from ethercalc'
+      );
       return callback({ code: 500, msg: 'Could not grab the HTML from ethercalc' });
     });
 };
@@ -152,24 +168,25 @@ const getHTML = function(roomId, callback) {
  * @param  {String}     callback.data   This room in socialcalc format
  */
 const getRoom = function(roomId, callback) {
-  log().trace({ roomId, ethercalc: ethercalcConfig.host }, 'Getting Ethercalc room in socialcalc format');
-  ethercalc
+  const someEthercalcServer = _pickARandomServer();
+  log().trace({ roomId, ethercalc: someEthercalcServer.config.host }, 'Getting Ethercalc room in socialcalc format');
+  someEthercalcServer.client
     .getRoom(roomId)
     .then(data => {
       if (!_isSCDocument(data)) {
         log().error(
-          { roomId, ethercalc: ethercalcConfig.host },
+          { roomId, ethercalc: someEthercalcServer.config.host },
           'Ethercalc sheet contents are not in correct socialcalc format'
         );
         return callback({ code: 500, msg: 'Ethercalc sheet contents are not in correct socialcalc format' });
       }
 
-      log().trace({ roomId, ethercalc: ethercalcConfig.host }, 'Fetched ethercalc room');
+      log().trace({ roomId, ethercalc: someEthercalcServer.config.host }, 'Fetched ethercalc room');
       return callback(null, data);
     })
     .catch(error => {
       log().error(
-        { err: error, roomId, ethercalc: ethercalcConfig.host },
+        { err: error, roomId, ethercalc: someEthercalcServer.config.host },
         'Could not fetch Ethercalc room in socialcalc format'
       );
       return callback({ code: 500, msg: 'Could not fetch Ethercalc room in socialcalc format' });
@@ -185,9 +202,10 @@ const getRoom = function(roomId, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const setSheetContents = function(roomId, snapshot, callback) {
-  log().trace({ roomId, snapshot, ethercalc: ethercalcConfig.host }, 'Setting Ethercalc contents');
+  const someEthercalcServer = _pickARandomServer();
+  log().trace({ roomId, snapshot, ethercalc: someEthercalcServer.config.host }, 'Setting Ethercalc contents');
 
-  ethercalc
+  someEthercalcServer.client
     .overwrite(roomId, snapshot, 'socialcalc')
     // eslint-disable-next-line no-unused-vars
     .then(response => {
@@ -195,7 +213,7 @@ const setSheetContents = function(roomId, snapshot, callback) {
     })
     .catch(error => {
       log().error(
-        { err: error, roomId, ethercalc: ethercalcConfig.host },
+        { err: error, roomId, ethercalc: someEthercalcServer.config.host },
         'Could not set sheet contents on the Ethercalc instance'
       );
       return callback({ code: 500, msg: 'Could not set sheet contents on the Ethercalc instance' });
@@ -223,6 +241,7 @@ const joinRoom = function(ctx, contentObj, callback) {
   // Get the language for the current user.
   const language = user.locale ? _.first(user.locale.split('_')) : 'en';
   const url = getRoomUrl(contentObj, user.id, language);
+
   return callback(null, { url });
 };
 
@@ -239,11 +258,9 @@ const joinRoom = function(ctx, contentObj, callback) {
  */
 // eslint-disable-next-line no-unused-vars
 const getRoomUrl = function(contentObj, userId, language) {
+  const randomServerIndex = Math.floor(Math.random() * ethercalcServers.length);
   return url.format({
-    protocol: ethercalcConfig.protocol,
-    hostname: ethercalcConfig.host,
-    port: ethercalcConfig.port,
-    pathname: contentObj.ethercalcRoomId,
+    pathname: `/ethercalc/${randomServerIndex}/${contentObj.ethercalcRoomId}`,
     query: {
       author: userId,
       content: contentObj.id

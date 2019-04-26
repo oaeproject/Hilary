@@ -1,5 +1,5 @@
 # Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
-version: v1.8.0
+version: v1.13.3
 ignore: {}
 # patches apply the minimum changes required to fix a vulnerability
 patch:
@@ -14,3 +14,51 @@ patch:
   'npm:marked:20170112':
     - marked:
         patched: '2017-11-07T10:24:54.317Z'
+  'npm:mime:20170907':
+    - ethercalc-client > ethercalc > zappajs > express > send > mime:
+        patched: '2019-04-23T13:09:34.786Z'
+    - ethercalc-client > ethercalc > zappajs > express > connect > serve-static > send > mime:
+        patched: '2019-04-23T13:09:34.786Z'
+  'npm:ms:20151024':
+    - ethercalc-client > ethercalc > zappajs > express > send > ms:
+        patched: '2019-04-23T13:09:34.786Z'
+    - ethercalc-client > ethercalc > zappajs > express > debug > ms:
+        patched: '2019-04-23T13:09:34.786Z'
+    - ethercalc-client > ethercalc > zappajs > express > connect > connect-timeout > ms:
+        patched: '2019-04-23T13:09:34.786Z'
+    - ethercalc-client > ethercalc > zappajs > express > connect > debug > ms:
+        patched: '2019-04-23T13:09:34.786Z'
+    - ethercalc-client > ethercalc > zappajs > express > send > debug > ms:
+        patched: '2019-04-23T13:09:34.786Z'
+    - ethercalc-client > ethercalc > zappajs > express > connect > connect-timeout > debug > ms:
+        patched: '2019-04-23T13:09:34.786Z'
+    - ethercalc-client > ethercalc > zappajs > express > connect > method-override > debug > ms:
+        patched: '2019-04-23T13:09:34.786Z'
+    - ethercalc-client > ethercalc > zappajs > express > connect > finalhandler > debug > ms:
+        patched: '2019-04-23T13:09:34.786Z'
+    - ethercalc-client > ethercalc > zappajs > express > connect > express-session > debug > ms:
+        patched: '2019-04-23T13:09:34.786Z'
+    - ethercalc-client > ethercalc > zappajs > express > connect > serve-static > send > ms:
+        patched: '2019-04-23T13:09:34.786Z'
+    - ethercalc-client > ethercalc > zappajs > express > connect > compression > debug > ms:
+        patched: '2019-04-23T13:09:34.786Z'
+    - ethercalc-client > ethercalc > zappajs > express > connect > serve-static > send > debug > ms:
+        patched: '2019-04-23T13:09:34.786Z'
+  'npm:negotiator:20160616':
+    - ethercalc-client > ethercalc > zappajs > express > connect > compression > accepts > negotiator:
+        patched: '2019-04-23T13:09:34.786Z'
+    - ethercalc-client > ethercalc > zappajs > express > connect > errorhandler > accepts > negotiator:
+        patched: '2019-04-23T13:09:34.786Z'
+    - ethercalc-client > ethercalc > zappajs > express > connect > serve-index > accepts > negotiator:
+        patched: '2019-04-23T13:09:34.786Z'
+  'npm:send:20140912':
+    - ethercalc-client > ethercalc > zappajs > express > send:
+        patched: '2019-04-23T13:09:34.786Z'
+  'npm:uglify-js:20151024':
+    - ethercalc-client > ethercalc > zappajs > uglify-js:
+        patched: '2019-04-23T13:09:34.786Z'
+  'npm:ws:20160920':
+    - ethercalc-client > ethercalc > zappajs > socket.io > engine.io > ws:
+        patched: '2019-04-23T13:09:34.786Z'
+    - ethercalc-client > ethercalc > zappajs > socket.io > socket.io-client > engine.io-client > ws:
+        patched: '2019-04-23T13:09:34.786Z'

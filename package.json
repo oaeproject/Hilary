@@ -165,7 +165,8 @@
     "dev-server": "nodemon app.js | npx bunyan",
     "snyk-protect": "snyk protect",
     "lint": "xo --prettier --quiet '**/*.js'",
-    "test-with-coverage": "npx nyc --reporter=lcov npm test && cat ./coverage/lcov.info | codacy-coverage"
+    "test-with-coverage": "npx nyc --reporter=lcov npm test && cat ./coverage/lcov.info | codacy-coverage",
+    "prepare": "npm run snyk-protect"
   },
   "xo": {
     "prettier": true,

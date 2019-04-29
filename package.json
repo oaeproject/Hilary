@@ -41,7 +41,6 @@
     "esm": "3.2.20",
     "ethercalc-client": "https://github.com/oaeproject/ethercalc-client.git",
     "etherpad-lite-client": "^0.8.0",
-    "expand-url": "^0.1.3",
     "express": "4.16.4",
     "globalize": "0.1.1",
     "gm": "^1.23.0",

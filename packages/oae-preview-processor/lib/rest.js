@@ -14,7 +14,7 @@
  */
 
 import _ from 'underscore';
-import urlExpander from 'expand-url';
+import { tall } from 'tall';
 
 import * as OAE from 'oae-util/lib/oae';
 
@@ -118,16 +118,16 @@ OAE.tenantRouter.on('post', '/api/content/:contentId/revision/:revisionId/reproc
  * @HttpResponse                200             The long URL
  * @HttpResponse                500             The URL could not be expanded
  */
-OAE.tenantRouter.on('get', '/api/longurl/expand', (req, res) => {
+OAE.tenantRouter.on('get', '/api/longurl/expand', async (req, res) => {
   const url = decodeURIComponent(req.query.url);
-  urlExpander.expand(url, (err, longUrl) => {
-    if (err) {
-      return res.status(500).send(err.message);
-    }
 
+  try {
+    const unshortenedUrl = await tall(url);
     const data = {
-      'long-url': longUrl
+      'long-url': unshortenedUrl
     };
     return res.status(200).send(data);
-  });
+  } catch (err) {
+    return res.status(500).send(err.message);
+  }
 });

@@ -86,36 +86,46 @@ describe('Authentication', () => {
             assert.ok(err);
 
             // Log in with the wrong password
-            RestAPI.Authentication.login(user.restContext, user.restContext.username, 'wrong-password', err => {
-              assert.ok(err);
+            RestAPI.Authentication.login(
+              user.restContext,
+              user.restContext.username,
+              'wrong-password',
+              err => {
+                assert.ok(err);
 
-              // Log in with the correct password
-              RestAPI.Authentication.login(user.restContext, user.restContext.username, 'password', err => {
-                assert.ok(!err);
-
-                // Verify that we are actually logged in
-                RestAPI.User.getMe(user.restContext, (err, meObj) => {
-                  assert.ok(!err);
-                  assert.ok(meObj);
-                  assert.strictEqual(meObj.id, user.user.id);
-
-                  // Logout
-                  RestAPI.Authentication.logout(user.restContext, (err, body, response) => {
+                // Log in with the correct password
+                RestAPI.Authentication.login(
+                  user.restContext,
+                  user.restContext.username,
+                  'password',
+                  err => {
                     assert.ok(!err);
-                    assert.strictEqual(response.statusCode, 302);
-                    assert.strictEqual(response.headers.location, '/');
 
-                    // Verify that we are now logged out
+                    // Verify that we are actually logged in
                     RestAPI.User.getMe(user.restContext, (err, meObj) => {
                       assert.ok(!err);
                       assert.ok(meObj);
-                      assert.strictEqual(meObj.anon, true);
-                      return callback();
+                      assert.strictEqual(meObj.id, user.user.id);
+
+                      // Logout
+                      RestAPI.Authentication.logout(user.restContext, (err, body, response) => {
+                        assert.ok(!err);
+                        assert.strictEqual(response.statusCode, 302);
+                        assert.strictEqual(response.headers.location, '/');
+
+                        // Verify that we are now logged out
+                        RestAPI.User.getMe(user.restContext, (err, meObj) => {
+                          assert.ok(!err);
+                          assert.ok(meObj);
+                          assert.strictEqual(meObj.anon, true);
+                          return callback();
+                        });
+                      });
                     });
-                  });
-                });
-              });
-            });
+                  }
+                );
+              }
+            );
           });
         });
       });
@@ -151,16 +161,38 @@ describe('Authentication', () => {
 
       // Create a test user
       const userId = TestsUtil.generateTestUserId();
-      const email1 = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
-      const email2 = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
-      RestAPI.User.createUser(camAdminRestContext, userId, 'password', 'Test User', email1, {}, (err, createdUser) => {
-        err1 = err;
-        checkComplete();
-      });
-      RestAPI.User.createUser(camAdminRestContext, userId, 'password', 'Test User', email2, {}, (err, createdUser) => {
-        err2 = err;
-        checkComplete();
-      });
+      const email1 = TestsUtil.generateTestEmailAddress(
+        null,
+        global.oaeTests.tenants.cam.emailDomains[0]
+      );
+      const email2 = TestsUtil.generateTestEmailAddress(
+        null,
+        global.oaeTests.tenants.cam.emailDomains[0]
+      );
+      RestAPI.User.createUser(
+        camAdminRestContext,
+        userId,
+        'password',
+        'Test User',
+        email1,
+        {},
+        (err, createdUser) => {
+          err1 = err;
+          checkComplete();
+        }
+      );
+      RestAPI.User.createUser(
+        camAdminRestContext,
+        userId,
+        'password',
+        'Test User',
+        email2,
+        {},
+        (err, createdUser) => {
+          err2 = err;
+          checkComplete();
+        }
+      );
     });
 
     /**
@@ -173,11 +205,16 @@ describe('Authentication', () => {
         assert.strictEqual(err.code, 401);
 
         // Try to log in as a non-existing user
-        RestAPI.Authentication.login(anonymousCamRestContext, 'u:cam:non-existing-user', 'password', err => {
-          assert.ok(err);
-          assert.strictEqual(err.code, 401);
-          return callback();
-        });
+        RestAPI.Authentication.login(
+          anonymousCamRestContext,
+          'u:cam:non-existing-user',
+          'password',
+          err => {
+            assert.ok(err);
+            assert.strictEqual(err.code, 401);
+            return callback();
+          }
+        );
       });
     });
 
@@ -190,18 +227,32 @@ describe('Authentication', () => {
         assert.ok(!err);
 
         // Verify that we cannot login on tenant B
-        const anonymousGtRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.gt.host);
-        RestAPI.Authentication.login(anonymousGtRestContext, user.restContext.username, 'password', err => {
-          assert.ok(err);
-          assert.strictEqual(err.code, 401);
+        const anonymousGtRestContext = TestsUtil.createTenantRestContext(
+          global.oaeTests.tenants.gt.host
+        );
+        RestAPI.Authentication.login(
+          anonymousGtRestContext,
+          user.restContext.username,
+          'password',
+          err => {
+            assert.ok(err);
+            assert.strictEqual(err.code, 401);
 
-          // Verify that we can login on tenant A
-          const anonymousCamRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-          RestAPI.Authentication.login(anonymousCamRestContext, user.restContext.username, 'password', err => {
-            assert.ok(!err);
-            return callback();
-          });
-        });
+            // Verify that we can login on tenant A
+            const anonymousCamRestContext = TestsUtil.createTenantRestContext(
+              global.oaeTests.tenants.cam.host
+            );
+            RestAPI.Authentication.login(
+              anonymousCamRestContext,
+              user.restContext.username,
+              'password',
+              err => {
+                assert.ok(!err);
+                return callback();
+              }
+            );
+          }
+        );
       });
     });
 
@@ -240,49 +291,60 @@ describe('Authentication', () => {
               );
 
               // Wait for the strategies to be refreshed then continue
-              AuthenticationAPI.emitter.once(AuthenticationConstants.events.REFRESHED_STRATEGIES, tenant => {
-                // Verify local authentication fails
-                RestAPI.Authentication.login(
-                  jack.restContext,
-                  jack.restContext.username,
-                  'password',
-                  (err, body, response) => {
-                    assert.ok(!err);
-                    assert.strictEqual(response.statusCode, 302);
-                    assert.strictEqual(response.headers.location, '/?authentication=disabled');
-
-                    // Ensure the user is still anonymous
-                    RestAPI.User.getMe(jack.restContext, (err, me) => {
+              AuthenticationAPI.emitter.once(
+                AuthenticationConstants.events.REFRESHED_STRATEGIES,
+                tenant => {
+                  // Verify local authentication fails
+                  RestAPI.Authentication.login(
+                    jack.restContext,
+                    jack.restContext.username,
+                    'password',
+                    (err, body, response) => {
                       assert.ok(!err);
-                      assert.strictEqual(me.anon, true);
+                      assert.strictEqual(response.statusCode, 302);
+                      assert.strictEqual(response.headers.location, '/?authentication=disabled');
 
-                      // Re-enable local authentication
-                      ConfigTestUtil.updateConfigAndWait(
-                        camAdminRestContext,
-                        null,
-                        { 'oae-authentication/local/enabled': true },
-                        err => {
-                          assert.ok(!err);
-                        }
-                      );
+                      // Ensure the user is still anonymous
+                      RestAPI.User.getMe(jack.restContext, (err, me) => {
+                        assert.ok(!err);
+                        assert.strictEqual(me.anon, true);
 
-                      // Wait for the strategies to be refreshed then continue
-                      AuthenticationAPI.emitter.once(AuthenticationConstants.events.REFRESHED_STRATEGIES, tenant => {
-                        // Verify authentication succeeds now
-                        RestAPI.Authentication.login(jack.restContext, jack.restContext.username, 'password', err => {
-                          assert.ok(!err);
-
-                          RestAPI.User.getMe(jack.restContext, (err, me) => {
+                        // Re-enable local authentication
+                        ConfigTestUtil.updateConfigAndWait(
+                          camAdminRestContext,
+                          null,
+                          { 'oae-authentication/local/enabled': true },
+                          err => {
                             assert.ok(!err);
-                            assert.strictEqual(me.id, jack.user.id);
-                            return callback();
-                          });
-                        });
+                          }
+                        );
+
+                        // Wait for the strategies to be refreshed then continue
+                        AuthenticationAPI.emitter.once(
+                          AuthenticationConstants.events.REFRESHED_STRATEGIES,
+                          tenant => {
+                            // Verify authentication succeeds now
+                            RestAPI.Authentication.login(
+                              jack.restContext,
+                              jack.restContext.username,
+                              'password',
+                              err => {
+                                assert.ok(!err);
+
+                                RestAPI.User.getMe(jack.restContext, (err, me) => {
+                                  assert.ok(!err);
+                                  assert.strictEqual(me.id, jack.user.id);
+                                  return callback();
+                                });
+                              }
+                            );
+                          }
+                        );
                       });
-                    });
-                  }
-                );
-              });
+                    }
+                  );
+                }
+              );
             });
           });
         });
@@ -481,30 +543,39 @@ describe('Authentication', () => {
 
                     // Try changing passwords for a user with no local strategy
                     const twitterTestUserId = TestsUtil.generateTestUserId();
-                    const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
+                    const email = TestsUtil.generateTestEmailAddress(
+                      null,
+                      global.oaeTests.tenants.cam.emailDomains[0]
+                    );
                     const ctx = new Context(global.oaeTests.tenants.cam);
                     const loginId = new LoginId(
                       ctx.tenant().alias,
                       AuthenticationConstants.providers.TWITTER,
                       twitterTestUserId
                     );
-                    AuthenticationAPI.createUser(ctx, loginId, 'Twitter User', { email }, (err, userObj) => {
-                      assert.ok(!err);
-                      assert.ok(userObj);
+                    AuthenticationAPI.createUser(
+                      ctx,
+                      loginId,
+                      'Twitter User',
+                      { email },
+                      (err, userObj) => {
+                        assert.ok(!err);
+                        assert.ok(userObj);
 
-                      RestAPI.Authentication.changePassword(
-                        camAdminRestContext,
-                        userObj.id,
-                        'password',
-                        'totally-new-password',
-                        err => {
-                          assert.ok(err);
-                          assert.strictEqual(err.code, 400);
+                        RestAPI.Authentication.changePassword(
+                          camAdminRestContext,
+                          userObj.id,
+                          'password',
+                          'totally-new-password',
+                          err => {
+                            assert.ok(err);
+                            assert.strictEqual(err.code, 400);
 
-                          return callback();
-                        }
-                      );
-                    });
+                            return callback();
+                          }
+                        );
+                      }
+                    );
                   }
                 );
               }
@@ -527,62 +598,68 @@ describe('Authentication', () => {
         const userId = me.id;
 
         // Set their password to something different
-        RestAPI.Authentication.changePassword(globalAdminRestContext, userId, prevPassword, newPassword, err => {
-          assert.ok(!err);
-
-          // Logout and verify they can log in with the new password
-          RestAPI.Authentication.logout(globalAdminRestContext, (err, body, response) => {
+        RestAPI.Authentication.changePassword(
+          globalAdminRestContext,
+          userId,
+          prevPassword,
+          newPassword,
+          err => {
             assert.ok(!err);
-            assert.strictEqual(response.statusCode, 302);
-            assert.strictEqual(response.headers.location, '/');
 
-            RestAPI.User.getMe(globalAdminRestContext, (err, me) => {
+            // Logout and verify they can log in with the new password
+            RestAPI.Authentication.logout(globalAdminRestContext, (err, body, response) => {
               assert.ok(!err);
-              assert.strictEqual(me.anon, true);
-              globalAdminRestContext.userPassword = newPassword;
+              assert.strictEqual(response.statusCode, 302);
+              assert.strictEqual(response.headers.location, '/');
 
-              RestAPI.Authentication.login(
-                globalAdminRestContext,
-                globalAdminRestContext.username,
-                globalAdminRestContext.userPassword,
-                err => {
-                  assert.ok(!err);
+              RestAPI.User.getMe(globalAdminRestContext, (err, me) => {
+                assert.ok(!err);
+                assert.strictEqual(me.anon, true);
+                globalAdminRestContext.userPassword = newPassword;
 
-                  // Verify they indeed logged in successfully
-                  RestAPI.User.getMe(globalAdminRestContext, (err, me) => {
+                RestAPI.Authentication.login(
+                  globalAdminRestContext,
+                  globalAdminRestContext.username,
+                  globalAdminRestContext.userPassword,
+                  err => {
                     assert.ok(!err);
-                    assert.strictEqual(me.id, userId);
 
-                    // Change the password back to avoid messing up following tests
-                    RestAPI.Authentication.changePassword(
-                      globalAdminRestContext,
-                      userId,
-                      newPassword,
-                      prevPassword,
-                      err => {
-                        assert.ok(!err);
+                    // Verify they indeed logged in successfully
+                    RestAPI.User.getMe(globalAdminRestContext, (err, me) => {
+                      assert.ok(!err);
+                      assert.strictEqual(me.id, userId);
 
-                        // Make a broken password change request as global admin
-                        RestAPI.Authentication.changePassword(
-                          globalAdminRestContext,
-                          'notARealUserID',
-                          'password',
-                          'new-pass',
-                          err => {
-                            assert.ok(err);
-                            assert.strictEqual(err.code, 400);
+                      // Change the password back to avoid messing up following tests
+                      RestAPI.Authentication.changePassword(
+                        globalAdminRestContext,
+                        userId,
+                        newPassword,
+                        prevPassword,
+                        err => {
+                          assert.ok(!err);
 
-                            return callback();
-                          }
-                        );
-                      }
-                    );
-                  });
-                }
-              );
+                          // Make a broken password change request as global admin
+                          RestAPI.Authentication.changePassword(
+                            globalAdminRestContext,
+                            'notARealUserID',
+                            'password',
+                            'new-pass',
+                            err => {
+                              assert.ok(err);
+                              assert.strictEqual(err.code, 400);
+
+                              return callback();
+                            }
+                          );
+                        }
+                      );
+                    });
+                  }
+                );
+              });
             });
-          });
-        });
+          }
+        );
       });
     });
   });
@@ -600,7 +677,10 @@ describe('Authentication', () => {
         assert.strictEqual(err.code, 404);
 
         // Create a user with this login id
-        const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
+        const email = TestsUtil.generateTestEmailAddress(
+          null,
+          global.oaeTests.tenants.cam.emailDomains[0]
+        );
         RestAPI.User.createUser(
           camAdminRestContext,
           username,
@@ -617,85 +697,97 @@ describe('Authentication', () => {
               assert.ok(!err);
 
               // Verify that the username exists, even if we change the text case
-              RestAPI.Authentication.exists(anonymousCamRestContext, username.toLowerCase(), err => {
-                assert.ok(!err);
-                RestAPI.Authentication.exists(anonymousCamRestContext, username.toUpperCase(), err => {
+              RestAPI.Authentication.exists(
+                anonymousCamRestContext,
+                username.toLowerCase(),
+                err => {
                   assert.ok(!err);
+                  RestAPI.Authentication.exists(
+                    anonymousCamRestContext,
+                    username.toUpperCase(),
+                    err => {
+                      assert.ok(!err);
 
-                  // Verify that the username is still available on different tenants
-                  RestAPI.Authentication.exists(anonymousGtRestContext, username, err => {
-                    assert.ok(err);
-                    assert.strictEqual(err.code, 404);
-
-                    // Go through the same steps for creating users through the global admin tenant
-                    username = TestsUtil.generateTestUserId();
-
-                    // Verify that the username doesn't exist yet
-                    RestAPI.Authentication.existsOnTenant(
-                      globalAdminRestContext,
-                      global.oaeTests.tenants.cam.alias,
-                      username,
-                      err => {
+                      // Verify that the username is still available on different tenants
+                      RestAPI.Authentication.exists(anonymousGtRestContext, username, err => {
                         assert.ok(err);
                         assert.strictEqual(err.code, 404);
 
-                        // Create a user with this login id
-                        const email = TestsUtil.generateTestEmailAddress(
-                          null,
-                          global.oaeTests.tenants.cam.emailDomains[0]
-                        );
-                        RestAPI.User.createUserOnTenant(
+                        // Go through the same steps for creating users through the global admin tenant
+                        username = TestsUtil.generateTestUserId();
+
+                        // Verify that the username doesn't exist yet
+                        RestAPI.Authentication.existsOnTenant(
                           globalAdminRestContext,
                           global.oaeTests.tenants.cam.alias,
                           username,
-                          'password',
-                          'Test User',
-                          email,
-                          { visibility: 'public' },
-                          (err, createdUser) => {
-                            assert.ok(!err);
-                            assert.ok(createdUser);
+                          err => {
+                            assert.ok(err);
+                            assert.strictEqual(err.code, 404);
 
-                            // Verify that the username exists
-                            RestAPI.Authentication.existsOnTenant(
+                            // Create a user with this login id
+                            const email = TestsUtil.generateTestEmailAddress(
+                              null,
+                              global.oaeTests.tenants.cam.emailDomains[0]
+                            );
+                            RestAPI.User.createUserOnTenant(
                               globalAdminRestContext,
                               global.oaeTests.tenants.cam.alias,
                               username,
-                              err => {
+                              'password',
+                              'Test User',
+                              email,
+                              { visibility: 'public' },
+                              (err, createdUser) => {
                                 assert.ok(!err);
+                                assert.ok(createdUser);
 
-                                // Verify that the username exists, even if we change the text case
+                                // Verify that the username exists
                                 RestAPI.Authentication.existsOnTenant(
                                   globalAdminRestContext,
                                   global.oaeTests.tenants.cam.alias,
-                                  username.toLowerCase(),
+                                  username,
                                   err => {
                                     assert.ok(!err);
+
+                                    // Verify that the username exists, even if we change the text case
                                     RestAPI.Authentication.existsOnTenant(
                                       globalAdminRestContext,
                                       global.oaeTests.tenants.cam.alias,
-                                      username.toUpperCase(),
+                                      username.toLowerCase(),
                                       err => {
                                         assert.ok(!err);
+                                        RestAPI.Authentication.existsOnTenant(
+                                          globalAdminRestContext,
+                                          global.oaeTests.tenants.cam.alias,
+                                          username.toUpperCase(),
+                                          err => {
+                                            assert.ok(!err);
 
-                                        // Verify that the username is still available on different tenants
-                                        RestAPI.Authentication.exists(anonymousGtRestContext, username, err => {
-                                          assert.ok(err);
-                                          assert.strictEqual(err.code, 404);
+                                            // Verify that the username is still available on different tenants
+                                            RestAPI.Authentication.exists(
+                                              anonymousGtRestContext,
+                                              username,
+                                              err => {
+                                                assert.ok(err);
+                                                assert.strictEqual(err.code, 404);
 
-                                          // Verify that the username is still available on the global admin tenant
-                                          RestAPI.Authentication.existsOnTenant(
-                                            globalAdminRestContext,
-                                            'admin',
-                                            username,
-                                            err => {
-                                              assert.ok(err);
-                                              assert.strictEqual(err.code, 404);
+                                                // Verify that the username is still available on the global admin tenant
+                                                RestAPI.Authentication.existsOnTenant(
+                                                  globalAdminRestContext,
+                                                  'admin',
+                                                  username,
+                                                  err => {
+                                                    assert.ok(err);
+                                                    assert.strictEqual(err.code, 404);
 
-                                              return callback();
-                                            }
-                                          );
-                                        });
+                                                    return callback();
+                                                  }
+                                                );
+                                              }
+                                            );
+                                          }
+                                        );
                                       }
                                     );
                                   }
@@ -704,11 +796,11 @@ describe('Authentication', () => {
                             );
                           }
                         );
-                      }
-                    );
-                  });
-                });
-              });
+                      });
+                    }
+                  );
+                }
+              );
             });
           }
         );
@@ -740,7 +832,10 @@ describe('Authentication', () => {
     it('verify getOrCreateUser', callback => {
       const externalId = TestsUtil.generateTestUserId();
       const ctx = new Context(global.oaeTests.tenants.cam);
-      const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
+      const email = TestsUtil.generateTestEmailAddress(
+        null,
+        global.oaeTests.tenants.cam.emailDomains[0]
+      );
 
       AuthenticationAPI.getOrCreateUser(
         ctx,
@@ -781,7 +876,10 @@ describe('Authentication', () => {
      */
     it('verify create without login id', callback => {
       const ctx = new Context(global.oaeTests.tenants.cam);
-      const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
+      const email = TestsUtil.generateTestEmailAddress(
+        null,
+        global.oaeTests.tenants.cam.emailDomains[0]
+      );
       AuthenticationAPI.createUser(ctx, undefined, 'Branden Visser', { email }, (err, userObj) => {
         assert.ok(err);
         assert.strictEqual(err.code, 400);
@@ -795,7 +893,10 @@ describe('Authentication', () => {
     it('verify create without tenant alias', callback => {
       const ctx = new Context(global.oaeTests.tenants.cam);
       const username = TestsUtil.generateTestUserId();
-      const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
+      const email = TestsUtil.generateTestEmailAddress(
+        null,
+        global.oaeTests.tenants.cam.emailDomains[0]
+      );
       const loginId = new LoginId(undefined, AuthenticationConstants.providers.LOCAL, username, {
         password: 'password'
       });
@@ -812,7 +913,10 @@ describe('Authentication', () => {
     it('verify create without provider', callback => {
       const ctx = new Context(global.oaeTests.tenants.cam);
       const username = TestsUtil.generateTestUserId();
-      const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
+      const email = TestsUtil.generateTestEmailAddress(
+        null,
+        global.oaeTests.tenants.cam.emailDomains[0]
+      );
       const loginId = new LoginId(ctx.tenant().alias, undefined, username, {
         password: 'password'
       });
@@ -828,10 +932,18 @@ describe('Authentication', () => {
      */
     it('verify create without external id', callback => {
       const ctx = new Context(global.oaeTests.tenants.cam);
-      const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
-      const loginId = new LoginId(ctx.tenant().alias, AuthenticationConstants.providers.LOCAL, undefined, {
-        password: 'password'
-      });
+      const email = TestsUtil.generateTestEmailAddress(
+        null,
+        global.oaeTests.tenants.cam.emailDomains[0]
+      );
+      const loginId = new LoginId(
+        ctx.tenant().alias,
+        AuthenticationConstants.providers.LOCAL,
+        undefined,
+        {
+          password: 'password'
+        }
+      );
       AuthenticationAPI.createUser(ctx, loginId, 'Branden Visser', { email }, (err, userObj) => {
         assert.ok(err);
         assert.strictEqual(err.code, 400);
@@ -845,10 +957,18 @@ describe('Authentication', () => {
     it('verify create with empty display name', callback => {
       const ctx = new Context(global.oaeTests.tenants.cam);
       const username = TestsUtil.generateTestUserId();
-      const loginId = new LoginId(ctx.tenant().alias, AuthenticationConstants.providers.LOCAL, username, {
-        password: '12345'
-      });
-      const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
+      const loginId = new LoginId(
+        ctx.tenant().alias,
+        AuthenticationConstants.providers.LOCAL,
+        username,
+        {
+          password: '12345'
+        }
+      );
+      const email = TestsUtil.generateTestEmailAddress(
+        null,
+        global.oaeTests.tenants.cam.emailDomains[0]
+      );
 
       // Test with `undefined` display name
       AuthenticationAPI.createUser(ctx, loginId, undefined, { email }, (err, userObj) => {
@@ -876,16 +996,27 @@ describe('Authentication', () => {
     it('verify create with invalid email address', callback => {
       const ctx = new Context(global.oaeTests.tenants.cam);
       const username = TestsUtil.generateTestUserId();
-      const loginId = new LoginId(ctx.tenant().alias, AuthenticationConstants.providers.LOCAL, username, {
-        password: '12345'
-      });
+      const loginId = new LoginId(
+        ctx.tenant().alias,
+        AuthenticationConstants.providers.LOCAL,
+        username,
+        {
+          password: '12345'
+        }
+      );
 
       // Test with an invalid email address
-      AuthenticationAPI.createUser(ctx, loginId, 'Test', { email: 'not an email address' }, (err, userObj) => {
-        assert.ok(err);
-        assert.strictEqual(err.code, 400);
-        return callback();
-      });
+      AuthenticationAPI.createUser(
+        ctx,
+        loginId,
+        'Test',
+        { email: 'not an email address' },
+        (err, userObj) => {
+          assert.ok(err);
+          assert.strictEqual(err.code, 400);
+          return callback();
+        }
+      );
     });
 
     /**
@@ -894,8 +1025,15 @@ describe('Authentication', () => {
     it('verify create local without password', callback => {
       const ctx = new Context(global.oaeTests.tenants.cam);
       const username = TestsUtil.generateTestUserId();
-      const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
-      const loginId = new LoginId(ctx.tenant().alias, AuthenticationConstants.providers.LOCAL, username);
+      const email = TestsUtil.generateTestEmailAddress(
+        null,
+        global.oaeTests.tenants.cam.emailDomains[0]
+      );
+      const loginId = new LoginId(
+        ctx.tenant().alias,
+        AuthenticationConstants.providers.LOCAL,
+        username
+      );
       AuthenticationAPI.createUser(ctx, loginId, 'Branden Visser', { email }, (err, userObj) => {
         assert.ok(err);
         assert.strictEqual(err.code, 400);
@@ -909,10 +1047,18 @@ describe('Authentication', () => {
     it('verify create local with short password', callback => {
       const ctx = new Context(global.oaeTests.tenants.cam);
       const username = TestsUtil.generateTestUserId();
-      const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
-      const loginId = new LoginId(ctx.tenant().alias, AuthenticationConstants.providers.LOCAL, username, {
-        password: '12345'
-      });
+      const email = TestsUtil.generateTestEmailAddress(
+        null,
+        global.oaeTests.tenants.cam.emailDomains[0]
+      );
+      const loginId = new LoginId(
+        ctx.tenant().alias,
+        AuthenticationConstants.providers.LOCAL,
+        username,
+        {
+          password: '12345'
+        }
+      );
       AuthenticationAPI.createUser(ctx, loginId, 'Branden Visser', { email }, (err, userObj) => {
         assert.ok(err);
         assert.strictEqual(err.code, 400);
@@ -925,12 +1071,20 @@ describe('Authentication', () => {
      */
     it('verify create user with local loginId', callback => {
       const ctx = new Context(global.oaeTests.tenants.cam);
-      const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
+      const email = TestsUtil.generateTestEmailAddress(
+        null,
+        global.oaeTests.tenants.cam.emailDomains[0]
+      );
       const username = TestsUtil.generateTestUserId();
       const userRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-      const loginId = new LoginId(ctx.tenant().alias, AuthenticationConstants.providers.LOCAL, username, {
-        password: 'password'
-      });
+      const loginId = new LoginId(
+        ctx.tenant().alias,
+        AuthenticationConstants.providers.LOCAL,
+        username,
+        {
+          password: 'password'
+        }
+      );
       AuthenticationAPI.createUser(ctx, loginId, 'Branden Visser', { email }, (err, userObj) => {
         assert.ok(!err);
         assert.ok(userObj);
@@ -956,12 +1110,19 @@ describe('Authentication', () => {
     it('verify create user with non-local loginId', callback => {
       const ctx = new Context(global.oaeTests.tenants.cam);
       const username = TestsUtil.generateTestUserId();
-      const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
+      const email = TestsUtil.generateTestEmailAddress(
+        null,
+        global.oaeTests.tenants.cam.emailDomains[0]
+      );
       const userRestContext = new RestContext(global.oaeTests.tenants.cam.baseUrl, {
         username,
         userPassword: 'password'
       });
-      const loginId = new LoginId(ctx.tenant().alias, AuthenticationConstants.providers.TWITTER, username);
+      const loginId = new LoginId(
+        ctx.tenant().alias,
+        AuthenticationConstants.providers.TWITTER,
+        username
+      );
       AuthenticationAPI.createUser(ctx, loginId, 'Branden Visser', { email }, (err, userObj) => {
         assert.ok(!err);
         assert.ok(userObj);
@@ -986,16 +1147,24 @@ describe('Authentication', () => {
     it('verify creating a user fails if the local login id is already taken', callback => {
       const ctx = new Context(global.oaeTests.tenants.cam);
       const username = TestsUtil.generateTestUserId();
-      const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
+      const email = TestsUtil.generateTestEmailAddress(
+        null,
+        global.oaeTests.tenants.cam.emailDomains[0]
+      );
       const userRestContext = new RestContext(global.oaeTests.tenants.cam.baseUrl, {
         username,
         userPassword: 'password'
       });
 
       // Create the user with the login id
-      const loginId = new LoginId(ctx.tenant().alias, AuthenticationConstants.providers.LOCAL, username, {
-        password: 'password'
-      });
+      const loginId = new LoginId(
+        ctx.tenant().alias,
+        AuthenticationConstants.providers.LOCAL,
+        username,
+        {
+          password: 'password'
+        }
+      );
       AuthenticationAPI.createUser(ctx, loginId, 'Branden Visser', { email }, (err, userObj) => {
         assert.ok(!err);
 
@@ -1349,93 +1518,101 @@ describe('Authentication', () => {
       };
 
       // Ensure a username is required
-      RestAPI.User.createTenantAdminUser(camAdminRestContext, null, password, displayName, email, opts, (err, user) => {
-        assert.ok(err);
-        assert.strictEqual(err.code, 400);
+      RestAPI.User.createTenantAdminUser(
+        camAdminRestContext,
+        null,
+        password,
+        displayName,
+        email,
+        opts,
+        (err, user) => {
+          assert.ok(err);
+          assert.strictEqual(err.code, 400);
 
-        // Ensure a password is required
-        RestAPI.User.createTenantAdminUser(
-          camAdminRestContext,
-          username,
-          null,
-          displayName,
-          email,
-          opts,
-          (err, user) => {
-            assert.ok(err);
-            assert.strictEqual(err.code, 400);
+          // Ensure a password is required
+          RestAPI.User.createTenantAdminUser(
+            camAdminRestContext,
+            username,
+            null,
+            displayName,
+            email,
+            opts,
+            (err, user) => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 400);
 
-            // Ensure a displayName is required
-            RestAPI.User.createTenantAdminUser(
-              camAdminRestContext,
-              username,
-              password,
-              null,
-              email,
-              opts,
-              (err, user) => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 400);
+              // Ensure a displayName is required
+              RestAPI.User.createTenantAdminUser(
+                camAdminRestContext,
+                username,
+                password,
+                null,
+                email,
+                opts,
+                (err, user) => {
+                  assert.ok(err);
+                  assert.strictEqual(err.code, 400);
 
-                // Ensure a valid email is required
-                RestAPI.User.createTenantAdminUser(
-                  globalAdminRestContext,
-                  username,
-                  password,
-                  displayName,
-                  null,
-                  opts,
-                  (err, user) => {
-                    assert.ok(err);
-                    assert.strictEqual(err.code, 400);
-                    RestAPI.User.createTenantAdminUser(
-                      globalAdminRestContext,
-                      username,
-                      password,
-                      displayName,
-                      'Not an email',
-                      opts,
-                      (err, user) => {
-                        assert.ok(err);
-                        assert.strictEqual(err.code, 400);
+                  // Ensure a valid email is required
+                  RestAPI.User.createTenantAdminUser(
+                    globalAdminRestContext,
+                    username,
+                    password,
+                    displayName,
+                    null,
+                    opts,
+                    (err, user) => {
+                      assert.ok(err);
+                      assert.strictEqual(err.code, 400);
+                      RestAPI.User.createTenantAdminUser(
+                        globalAdminRestContext,
+                        username,
+                        password,
+                        displayName,
+                        'Not an email',
+                        opts,
+                        (err, user) => {
+                          assert.ok(err);
+                          assert.strictEqual(err.code, 400);
 
-                        // Ensure target tenant cannot be the global admin tenant by requesting with the global administrator
-                        RestAPI.User.createTenantAdminUser(
-                          globalAdminRestContext,
-                          username,
-                          password,
-                          displayName,
-                          email,
-                          opts,
-                          (err, user) => {
-                            assert.ok(err);
-                            assert.strictEqual(err.code, 400);
+                          // Ensure target tenant cannot be the global admin tenant by requesting with the global administrator
+                          RestAPI.User.createTenantAdminUser(
+                            globalAdminRestContext,
+                            username,
+                            password,
+                            displayName,
+                            email,
+                            opts,
+                            (err, user) => {
+                              assert.ok(err);
+                              assert.strictEqual(err.code, 400);
 
-                            // Sanity check we can create one with these parameters
-                            RestAPI.User.createTenantAdminUser(
-                              camAdminRestContext,
-                              username,
-                              password,
-                              displayName,
-                              email,
-                              opts,
-                              (err, user) => {
-                                assert.ok(!err);
+                              // Sanity check we can create one with these parameters
+                              RestAPI.User.createTenantAdminUser(
+                                camAdminRestContext,
+                                username,
+                                password,
+                                displayName,
+                                email,
+                                opts,
+                                (err, user) => {
+                                  assert.ok(!err);
 
-                                return callback();
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
-      });
+                                  return callback();
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
     });
   });
 
@@ -1492,80 +1669,101 @@ describe('Authentication', () => {
 
       // Ensure anonymous on cam tenant cannot create a global admin user. We expect a 404 because the endpoint is
       // only mounted on the global tenant
-      RestAPI.User.createGlobalAdminUser(anonymousCamRestContext, userId, userId, userId, email, {}, (err, user) => {
-        assert.ok(err);
+      RestAPI.User.createGlobalAdminUser(
+        anonymousCamRestContext,
+        userId,
+        userId,
+        userId,
+        email,
+        {},
+        (err, user) => {
+          assert.ok(err);
 
-        // Note that this technically hits the "update user" endpoint with user id "createGlobalAdmin". The mistake can be so subtle in
-        // an API that we'll still verify this to ensure the mistake can't ever result in an accepted request if APIs are refactored
-        assert.strictEqual(err.code, 400);
-        assert.ok(!user);
+          // Note that this technically hits the "update user" endpoint with user id "createGlobalAdmin". The mistake can be so subtle in
+          // an API that we'll still verify this to ensure the mistake can't ever result in an accepted request if APIs are refactored
+          assert.strictEqual(err.code, 400);
+          assert.ok(!user);
 
-        // Ensure anonymous on global admin tenant cannot create a global admin user
-        RestAPI.User.createGlobalAdminUser(
-          anonymousGlobalRestContext,
-          userId,
-          userId,
-          userId,
-          email,
-          {},
-          (err, user) => {
-            assert.ok(err);
-            assert.strictEqual(err.code, 401);
-            assert.ok(!user);
-
-            // Ensure tenant admin on cam tenant cannot create a global admin user. We expect a 404 because the endpoint is
-            // only mounted on the global tenant
-            RestAPI.User.createGlobalAdminUser(camAdminRestContext, userId, userId, userId, email, {}, (err, user) => {
+          // Ensure anonymous on global admin tenant cannot create a global admin user
+          RestAPI.User.createGlobalAdminUser(
+            anonymousGlobalRestContext,
+            userId,
+            userId,
+            userId,
+            email,
+            {},
+            (err, user) => {
               assert.ok(err);
-
-              // Note that this technically hits the "update user" endpoint with user id "createGlobalAdmin". The mistake can be so subtle in
-              // an API that we'll still verify this to ensure the mistake can't ever result in an accepted request if APIs are refactored
-              assert.strictEqual(err.code, 400);
+              assert.strictEqual(err.code, 401);
               assert.ok(!user);
 
-              const testGlobalUserRestContext = TestsUtil.createGlobalRestContext();
+              // Ensure tenant admin on cam tenant cannot create a global admin user. We expect a 404 because the endpoint is
+              // only mounted on the global tenant
+              RestAPI.User.createGlobalAdminUser(
+                camAdminRestContext,
+                userId,
+                userId,
+                userId,
+                email,
+                {},
+                (err, user) => {
+                  assert.ok(err);
 
-              // Ensure that the credentials do not authenticate a value global administrator
-              RestAPI.Authentication.login(testGlobalUserRestContext, userId, userId, err => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 401);
+                  // Note that this technically hits the "update user" endpoint with user id "createGlobalAdmin". The mistake can be so subtle in
+                  // an API that we'll still verify this to ensure the mistake can't ever result in an accepted request if APIs are refactored
+                  assert.strictEqual(err.code, 400);
+                  assert.ok(!user);
 
-                // Verify the context was not authenticated
-                RestAPI.User.getMe(testGlobalUserRestContext, (err, me) => {
-                  assert.ok(!err);
-                  assert.ok(me.anon);
+                  const testGlobalUserRestContext = TestsUtil.createGlobalRestContext();
 
-                  // Sanity check that we can create the user and authenticate its context
-                  RestAPI.User.createGlobalAdminUser(
-                    globalAdminRestContext,
-                    userId,
-                    userId,
-                    userId,
-                    email,
-                    {},
-                    (err, user) => {
+                  // Ensure that the credentials do not authenticate a value global administrator
+                  RestAPI.Authentication.login(testGlobalUserRestContext, userId, userId, err => {
+                    assert.ok(err);
+                    assert.strictEqual(err.code, 401);
+
+                    // Verify the context was not authenticated
+                    RestAPI.User.getMe(testGlobalUserRestContext, (err, me) => {
                       assert.ok(!err);
-                      assert.ok(user);
-                      assert.strictEqual(user.displayName, userId);
+                      assert.ok(me.anon);
 
-                      RestAPI.Authentication.login(testGlobalUserRestContext, userId, userId, err => {
-                        assert.ok(!err);
-
-                        RestAPI.User.getMe(testGlobalUserRestContext, (err, me) => {
+                      // Sanity check that we can create the user and authenticate its context
+                      RestAPI.User.createGlobalAdminUser(
+                        globalAdminRestContext,
+                        userId,
+                        userId,
+                        userId,
+                        email,
+                        {},
+                        (err, user) => {
                           assert.ok(!err);
-                          assert.strictEqual(me.displayName, userId);
+                          assert.ok(user);
+                          assert.strictEqual(user.displayName, userId);
 
-                          return callback();
-                        });
-                      });
-                    }
-                  );
-                });
-              });
-            });
-          }
-        );
-      });
+                          RestAPI.Authentication.login(
+                            testGlobalUserRestContext,
+                            userId,
+                            userId,
+                            err => {
+                              assert.ok(!err);
+
+                              RestAPI.User.getMe(testGlobalUserRestContext, (err, me) => {
+                                assert.ok(!err);
+                                assert.strictEqual(me.displayName, userId);
+
+                                return callback();
+                              });
+                            }
+                          );
+                        }
+                      );
+                    });
+                  });
+                }
+              );
+            }
+          );
+        }
+      );
     });
 
     /**
@@ -1576,22 +1774,23 @@ describe('Authentication', () => {
       const email = TestsUtil.generateTestEmailAddress();
 
       // Ensure you cannot create a global admin user without a username
-      RestAPI.User.createGlobalAdminUser(globalAdminRestContext, null, username, username, email, {}, (err, user) => {
-        assert.ok(err);
-        assert.strictEqual(err.code, 400);
-        assert.ok(!user);
-
-        // Ensure you cannot create a global admin user without a password
-        RestAPI.User.createGlobalAdminUser(globalAdminRestContext, username, null, username, email, {}, (err, user) => {
+      RestAPI.User.createGlobalAdminUser(
+        globalAdminRestContext,
+        null,
+        username,
+        username,
+        email,
+        {},
+        (err, user) => {
           assert.ok(err);
           assert.strictEqual(err.code, 400);
           assert.ok(!user);
 
-          // Ensure you cannot create a global admin user with a password that is too short
+          // Ensure you cannot create a global admin user without a password
           RestAPI.User.createGlobalAdminUser(
             globalAdminRestContext,
             username,
-            'a',
+            null,
             username,
             email,
             {},
@@ -1600,12 +1799,12 @@ describe('Authentication', () => {
               assert.strictEqual(err.code, 400);
               assert.ok(!user);
 
-              // Ensure you cannot create a global admin user without a displayName
+              // Ensure you cannot create a global admin user with a password that is too short
               RestAPI.User.createGlobalAdminUser(
                 globalAdminRestContext,
                 username,
+                'a',
                 username,
-                null,
                 email,
                 {},
                 (err, user) => {
@@ -1613,73 +1812,93 @@ describe('Authentication', () => {
                   assert.strictEqual(err.code, 400);
                   assert.ok(!user);
 
-                  // Ensure you cannot create a global admin user without a valid email address
+                  // Ensure you cannot create a global admin user without a displayName
                   RestAPI.User.createGlobalAdminUser(
                     globalAdminRestContext,
                     username,
                     username,
                     null,
-                    null,
+                    email,
                     {},
                     (err, user) => {
                       assert.ok(err);
                       assert.strictEqual(err.code, 400);
                       assert.ok(!user);
+
+                      // Ensure you cannot create a global admin user without a valid email address
                       RestAPI.User.createGlobalAdminUser(
                         globalAdminRestContext,
                         username,
                         username,
                         null,
-                        'not an email',
+                        null,
                         {},
                         (err, user) => {
                           assert.ok(err);
                           assert.strictEqual(err.code, 400);
                           assert.ok(!user);
+                          RestAPI.User.createGlobalAdminUser(
+                            globalAdminRestContext,
+                            username,
+                            username,
+                            null,
+                            'not an email',
+                            {},
+                            (err, user) => {
+                              assert.ok(err);
+                              assert.strictEqual(err.code, 400);
+                              assert.ok(!user);
 
-                          // Ensure the global admin still cannot be authenticated
-                          const testGlobalUserRestContext = TestsUtil.createGlobalRestContext();
+                              // Ensure the global admin still cannot be authenticated
+                              const testGlobalUserRestContext = TestsUtil.createGlobalRestContext();
 
-                          // Ensure that the credentials do not authenticate a valid global administrator
-                          RestAPI.Authentication.login(testGlobalUserRestContext, username, username, err => {
-                            assert.ok(err);
-                            assert.strictEqual(err.code, 401);
-
-                            // Verify the context was not authenticated
-                            RestAPI.User.getMe(testGlobalUserRestContext, (err, me) => {
-                              assert.ok(!err);
-                              assert.ok(me.anon);
-
-                              // Sanity check the user can be created through the REST endpoints
-                              RestAPI.User.createGlobalAdminUser(
-                                globalAdminRestContext,
+                              // Ensure that the credentials do not authenticate a valid global administrator
+                              RestAPI.Authentication.login(
+                                testGlobalUserRestContext,
                                 username,
                                 username,
-                                username,
-                                email,
-                                {},
-                                (err, user) => {
-                                  assert.ok(!err);
-                                  assert.ok(user);
+                                err => {
+                                  assert.ok(err);
+                                  assert.strictEqual(err.code, 401);
 
-                                  // Ensure when we try and create one with the same loginId, we get a 400 error
-                                  RestAPI.User.createGlobalAdminUser(
-                                    globalAdminRestContext,
-                                    username,
-                                    username,
-                                    username,
-                                    email,
-                                    {},
-                                    (err, secondUser) => {
-                                      assert.ok(err);
-                                      assert.strictEqual(err.code, 400);
-                                      return callback();
-                                    }
-                                  );
+                                  // Verify the context was not authenticated
+                                  RestAPI.User.getMe(testGlobalUserRestContext, (err, me) => {
+                                    assert.ok(!err);
+                                    assert.ok(me.anon);
+
+                                    // Sanity check the user can be created through the REST endpoints
+                                    RestAPI.User.createGlobalAdminUser(
+                                      globalAdminRestContext,
+                                      username,
+                                      username,
+                                      username,
+                                      email,
+                                      {},
+                                      (err, user) => {
+                                        assert.ok(!err);
+                                        assert.ok(user);
+
+                                        // Ensure when we try and create one with the same loginId, we get a 400 error
+                                        RestAPI.User.createGlobalAdminUser(
+                                          globalAdminRestContext,
+                                          username,
+                                          username,
+                                          username,
+                                          email,
+                                          {},
+                                          (err, secondUser) => {
+                                            assert.ok(err);
+                                            assert.strictEqual(err.code, 400);
+                                            return callback();
+                                          }
+                                        );
+                                      }
+                                    );
+                                  });
                                 }
                               );
-                            });
-                          });
+                            }
+                          );
                         }
                       );
                     }
@@ -1688,8 +1907,8 @@ describe('Authentication', () => {
               );
             }
           );
-        });
-      });
+        }
+      );
     });
 
     /**
@@ -1700,27 +1919,35 @@ describe('Authentication', () => {
       const email = TestsUtil.generateTestEmailAddress();
 
       // Create a global admin user
-      RestAPI.User.createGlobalAdminUser(globalAdminRestContext, userId, userId, userId, email, {}, (err, user) => {
-        assert.ok(!err);
-
-        // Log them in
-        const createdGlobalAdminRestContext = TestsUtil.createGlobalRestContext();
-        RestAPI.Authentication.login(createdGlobalAdminRestContext, userId, userId, err => {
+      RestAPI.User.createGlobalAdminUser(
+        globalAdminRestContext,
+        userId,
+        userId,
+        userId,
+        email,
+        {},
+        (err, user) => {
           assert.ok(!err);
 
-          // Ensure the `isGlobalAdmin` flag on the user is true
-          RestAPI.User.getMe(createdGlobalAdminRestContext, (err, me) => {
+          // Log them in
+          const createdGlobalAdminRestContext = TestsUtil.createGlobalRestContext();
+          RestAPI.Authentication.login(createdGlobalAdminRestContext, userId, userId, err => {
             assert.ok(!err);
-            assert.strictEqual(me.isGlobalAdmin, true);
-            assert.ok(!me.isTenantAdmin);
 
-            // The global admin user should be created as private
-            assert.strictEqual(me.visibility, 'private');
+            // Ensure the `isGlobalAdmin` flag on the user is true
+            RestAPI.User.getMe(createdGlobalAdminRestContext, (err, me) => {
+              assert.ok(!err);
+              assert.strictEqual(me.isGlobalAdmin, true);
+              assert.ok(!me.isTenantAdmin);
 
-            return callback();
+              // The global admin user should be created as private
+              assert.strictEqual(me.visibility, 'private');
+
+              return callback();
+            });
           });
-        });
-      });
+        }
+      );
     });
   });
 
@@ -1751,9 +1978,14 @@ describe('Authentication', () => {
 
         // Associate a login id to the user, with no tenant
         const ctx = new Context(global.oaeTests.tenants.cam, user.user);
-        const loginId = new LoginId(undefined, AuthenticationConstants.providers.LOCAL, user.user.id, {
-          password: 'password'
-        });
+        const loginId = new LoginId(
+          undefined,
+          AuthenticationConstants.providers.LOCAL,
+          user.user.id,
+          {
+            password: 'password'
+          }
+        );
         AuthenticationAPI.associateLoginId(ctx, loginId, user.user.id, err => {
           assert.ok(err);
           assert.strictEqual(err.code, 400);
@@ -1792,9 +2024,14 @@ describe('Authentication', () => {
         assert.ok(!err);
         const userId = TestsUtil.generateTestUserId();
         ctx = new Context(global.oaeTests.tenants.cam, user);
-        const loginId = new LoginId(ctx.tenant().alias, AuthenticationConstants.providers.LOCAL, undefined, {
-          password: 'password'
-        });
+        const loginId = new LoginId(
+          ctx.tenant().alias,
+          AuthenticationConstants.providers.LOCAL,
+          undefined,
+          {
+            password: 'password'
+          }
+        );
 
         // Associate a login id to the user, with no external id
         AuthenticationAPI.associateLoginId(ctx, loginId, user.id, err => {
@@ -1815,9 +2052,14 @@ describe('Authentication', () => {
         assert.ok(!err);
         const userId = TestsUtil.generateTestUserId();
         ctx = new Context(global.oaeTests.tenants.cam, user);
-        const loginId = new LoginId(ctx.tenant().alias, AuthenticationConstants.providers.LOCAL, userId, {
-          password: 'password'
-        });
+        const loginId = new LoginId(
+          ctx.tenant().alias,
+          AuthenticationConstants.providers.LOCAL,
+          userId,
+          {
+            password: 'password'
+          }
+        );
 
         // Associate a login id to the user, with no user id
         AuthenticationAPI.associateLoginId(ctx, loginId, undefined, err => {
@@ -1838,7 +2080,11 @@ describe('Authentication', () => {
         assert.ok(!err);
         const userId = TestsUtil.generateTestUserId();
         ctx = new Context(global.oaeTests.tenants.cam, user);
-        const loginId = new LoginId(ctx.tenant().alias, AuthenticationConstants.providers.LOCAL, userId);
+        const loginId = new LoginId(
+          ctx.tenant().alias,
+          AuthenticationConstants.providers.LOCAL,
+          userId
+        );
 
         // Associate a login id to the user, with no password
         AuthenticationAPI.associateLoginId(ctx, loginId, user.id, err => {
@@ -1859,9 +2105,14 @@ describe('Authentication', () => {
         assert.ok(!err);
         const userId = TestsUtil.generateTestUserId();
         ctx = new Context(global.oaeTests.tenants.cam, user);
-        const loginId = new LoginId(ctx.tenant().alias, AuthenticationConstants.providers.LOCAL, userId, {
-          password: '12345'
-        });
+        const loginId = new LoginId(
+          ctx.tenant().alias,
+          AuthenticationConstants.providers.LOCAL,
+          userId,
+          {
+            password: '12345'
+          }
+        );
 
         // Associate a login id to the user, with short password
         AuthenticationAPI.associateLoginId(ctx, loginId, user.id, err => {
@@ -1882,9 +2133,14 @@ describe('Authentication', () => {
         assert.ok(!err);
         const userId = TestsUtil.generateTestUserId();
         ctx = new Context(global.oaeTests.tenants.cam, user);
-        const loginId = new LoginId(ctx.tenant().alias, AuthenticationConstants.providers.LOCAL, userId, {
-          password: 'password'
-        });
+        const loginId = new LoginId(
+          ctx.tenant().alias,
+          AuthenticationConstants.providers.LOCAL,
+          userId,
+          {
+            password: 'password'
+          }
+        );
 
         // Associate a login id to the user
         AuthenticationAPI.associateLoginId(ctx, loginId, user.id, err => {
@@ -2018,9 +2274,14 @@ describe('Authentication', () => {
           // Associate a login id to the user
           AuthenticationAPI.associateLoginId(
             bertCtx,
-            new LoginId(ctx.tenant().alias, AuthenticationConstants.providers.LOCAL, mrvisserUsername, {
-              password: 'password'
-            }),
+            new LoginId(
+              ctx.tenant().alias,
+              AuthenticationConstants.providers.LOCAL,
+              mrvisserUsername,
+              {
+                password: 'password'
+              }
+            ),
             mrvisser.id,
             err => {
               assert.ok(err);
@@ -2135,29 +2396,39 @@ describe('Authentication', () => {
         (err, mrvisser) => {
           assert.ok(!err);
 
-          AuthenticationAPI.createUser(adminCtx, bertLoginId, 'Bert Pareyn', { email: bertEmail }, (err, bert) => {
-            assert.ok(!err);
+          AuthenticationAPI.createUser(
+            adminCtx,
+            bertLoginId,
+            'Bert Pareyn',
+            { email: bertEmail },
+            (err, bert) => {
+              assert.ok(!err);
 
-            AuthenticationAPI.associateLoginId(
-              adminCtx,
-              new LoginId(adminCtx.tenant().alias, AuthenticationConstants.providers.TWITTER, mrvisserUsername),
-              bert.id,
-              err => {
-                assert.ok(!err);
-
-                AuthenticationAPI.getUserIdFromLoginId(
+              AuthenticationAPI.associateLoginId(
+                adminCtx,
+                new LoginId(
                   adminCtx.tenant().alias,
                   AuthenticationConstants.providers.TWITTER,
-                  mrvisserUsername,
-                  (err, userId) => {
-                    assert.ok(!err);
-                    assert.strictEqual(userId, bert.id);
-                    return callback();
-                  }
-                );
-              }
-            );
-          });
+                  mrvisserUsername
+                ),
+                bert.id,
+                err => {
+                  assert.ok(!err);
+
+                  AuthenticationAPI.getUserIdFromLoginId(
+                    adminCtx.tenant().alias,
+                    AuthenticationConstants.providers.TWITTER,
+                    mrvisserUsername,
+                    (err, userId) => {
+                      assert.ok(!err);
+                      assert.strictEqual(userId, bert.id);
+                      return callback();
+                    }
+                  );
+                }
+              );
+            }
+          );
         }
       );
     });
@@ -2191,12 +2462,21 @@ describe('Authentication', () => {
       const tenant = global.oaeTests.tenants.cam;
       const adminCtx = TestsUtil.createTenantAdminContext(tenant);
       const mrvisserUsername = TestsUtil.generateTestUserId();
-      const mrvisserLoginId = new LoginId(tenant.alias, AuthenticationConstants.providers.TWITTER, mrvisserUsername);
+      const mrvisserLoginId = new LoginId(
+        tenant.alias,
+        AuthenticationConstants.providers.TWITTER,
+        mrvisserUsername
+      );
       const mrvisserEmail = TestsUtil.generateTestEmailAddress();
       const bertUsername = TestsUtil.generateTestUserId();
-      const bertLoginId = new LoginId(tenant.alias, AuthenticationConstants.providers.LOCAL, bertUsername, {
-        password: 'password'
-      });
+      const bertLoginId = new LoginId(
+        tenant.alias,
+        AuthenticationConstants.providers.LOCAL,
+        bertUsername,
+        {
+          password: 'password'
+        }
+      );
       const bertEmail = TestsUtil.generateTestEmailAddress();
       AuthenticationAPI.createUser(
         adminCtx,
@@ -2206,31 +2486,41 @@ describe('Authentication', () => {
         (err, mrvisser) => {
           assert.ok(!err);
 
-          AuthenticationAPI.createUser(adminCtx, bertLoginId, 'Bert Pareyn', { email: bertEmail }, (err, bert) => {
-            assert.ok(!err);
-            const bertCtx = new Context(tenant, bert);
+          AuthenticationAPI.createUser(
+            adminCtx,
+            bertLoginId,
+            'Bert Pareyn',
+            { email: bertEmail },
+            (err, bert) => {
+              assert.ok(!err);
+              const bertCtx = new Context(tenant, bert);
 
-            AuthenticationAPI.associateLoginId(
-              bertCtx,
-              new LoginId(tenant.alias, AuthenticationConstants.providers.TWITTER, mrvisserUsername),
-              bert.id,
-              err => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 401);
-
-                AuthenticationAPI.getUserIdFromLoginId(
+              AuthenticationAPI.associateLoginId(
+                bertCtx,
+                new LoginId(
                   tenant.alias,
                   AuthenticationConstants.providers.TWITTER,
-                  mrvisserUsername,
-                  (err, userId) => {
-                    assert.ok(!err);
-                    assert.strictEqual(userId, mrvisser.id);
-                    return callback();
-                  }
-                );
-              }
-            );
-          });
+                  mrvisserUsername
+                ),
+                bert.id,
+                err => {
+                  assert.ok(err);
+                  assert.strictEqual(err.code, 401);
+
+                  AuthenticationAPI.getUserIdFromLoginId(
+                    tenant.alias,
+                    AuthenticationConstants.providers.TWITTER,
+                    mrvisserUsername,
+                    (err, userId) => {
+                      assert.ok(!err);
+                      assert.strictEqual(userId, mrvisser.id);
+                      return callback();
+                    }
+                  );
+                }
+              );
+            }
+          );
         }
       );
     });
@@ -2269,12 +2559,15 @@ describe('Authentication', () => {
      * are refreshed.
      */
     it('verify the refresh strategy event is fired with a tenant when strategies are refreshed', callback => {
-      AuthenticationAPI.emitter.once(AuthenticationConstants.events.REFRESHED_STRATEGIES, tenant => {
-        assert.ok(tenant);
-        assert.ok(tenant.alias);
-        assert.strictEqual(tenant.alias, global.oaeTests.tenants.cam.alias);
-        return callback();
-      });
+      AuthenticationAPI.emitter.once(
+        AuthenticationConstants.events.REFRESHED_STRATEGIES,
+        tenant => {
+          assert.ok(tenant);
+          assert.ok(tenant.alias);
+          assert.strictEqual(tenant.alias, global.oaeTests.tenants.cam.alias);
+          return callback();
+        }
+      );
 
       // Refresh and propagate to the event binding above
       AuthenticationAPI.refreshStrategies(global.oaeTests.tenants.cam);
@@ -2297,53 +2590,74 @@ describe('Authentication', () => {
           assert.strictEqual(response.statusCode, 302);
           assert.strictEqual(response.headers.location, '/');
           // Check that a password secret can be retrieved
-          RestAPI.Authentication.getResetPasswordSecret(anonymousCamRestContext, username, (err, body, response) => {
-            assert.ok(!err);
-            const loginId = new LoginId(global.oaeTests.tenants.cam.alias, 'local', username);
-            // Ensure secret is saved correctly in db
-            Cassandra.runQuery(
-              'SELECT "secret" FROM "AuthenticationLoginId" WHERE "loginId" = ?',
-              [loginId.tenantAlias + ':' + loginId.provider + ':' + loginId.externalId],
-              (err, rows) => {
-                assert.ok(!err);
-                const secret = rows[0].get('secret');
-                // Check that an empty password can't be set
-                let newPassword = '';
-                RestAPI.Authentication.resetPassword(anonymousCamRestContext, username, secret, newPassword, err => {
-                  assert.ok(err);
-                  assert.strictEqual(err.code, 400);
-                  // Check that a password under 6 char long can't be set
-                  newPassword = 'inval';
-                  RestAPI.Authentication.resetPassword(anonymousCamRestContext, username, secret, newPassword, err => {
-                    assert.ok(err);
-                    assert.strictEqual(err.code, 400);
-                    // Check that a valid new password can be set
-                    newPassword = 'newPassword';
-                    RestAPI.Authentication.resetPassword(
-                      anonymousCamRestContext,
-                      username,
-                      secret,
-                      newPassword,
-                      err => {
-                        assert.ok(!err);
-                        // Check user can login with new password
-                        RestAPI.Authentication.login(anonymousCamRestContext, username, newPassword, err => {
-                          assert.ok(!err);
-                          // Verify that we are actually logged in
-                          RestAPI.User.getMe(user.restContext, (err, meObj) => {
-                            assert.ok(!err);
-                            assert.ok(meObj);
-                            assert.strictEqual(meObj.id, user.id);
-                            callback();
-                          });
-                        });
-                      }
-                    );
-                  });
-                });
-              }
-            );
-          });
+          RestAPI.Authentication.getResetPasswordSecret(
+            anonymousCamRestContext,
+            username,
+            (err, body, response) => {
+              assert.ok(!err);
+              const loginId = new LoginId(global.oaeTests.tenants.cam.alias, 'local', username);
+              // Ensure secret is saved correctly in db
+              Cassandra.runQuery(
+                'SELECT "secret" FROM "AuthenticationLoginId" WHERE "loginId" = ?',
+                [loginId.tenantAlias + ':' + loginId.provider + ':' + loginId.externalId],
+                (err, rows) => {
+                  assert.ok(!err);
+                  const secret = rows[0].get('secret');
+                  // Check that an empty password can't be set
+                  let newPassword = '';
+                  RestAPI.Authentication.resetPassword(
+                    anonymousCamRestContext,
+                    username,
+                    secret,
+                    newPassword,
+                    err => {
+                      assert.ok(err);
+                      assert.strictEqual(err.code, 400);
+                      // Check that a password under 6 char long can't be set
+                      newPassword = 'inval';
+                      RestAPI.Authentication.resetPassword(
+                        anonymousCamRestContext,
+                        username,
+                        secret,
+                        newPassword,
+                        err => {
+                          assert.ok(err);
+                          assert.strictEqual(err.code, 400);
+                          // Check that a valid new password can be set
+                          newPassword = 'newPassword';
+                          RestAPI.Authentication.resetPassword(
+                            anonymousCamRestContext,
+                            username,
+                            secret,
+                            newPassword,
+                            err => {
+                              assert.ok(!err);
+                              // Check user can login with new password
+                              RestAPI.Authentication.login(
+                                anonymousCamRestContext,
+                                username,
+                                newPassword,
+                                err => {
+                                  assert.ok(!err);
+                                  // Verify that we are actually logged in
+                                  RestAPI.User.getMe(user.restContext, (err, meObj) => {
+                                    assert.ok(!err);
+                                    assert.ok(meObj);
+                                    assert.strictEqual(meObj.id, user.id);
+                                    callback();
+                                  });
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
         });
       });
     });

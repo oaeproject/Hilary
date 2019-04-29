@@ -36,13 +36,6 @@ describe('Long url', () => {
     // Ensure we can still perform regular HTTP requests during our tests
     nock.enableNetConnect();
 
-    // The first request redirects to HTTPS
-    nock('http://youtu.be')
-      .head('/FYWLiGOBy1k')
-      .reply(301, 'OK', {
-        location: 'https://youtu.be/FYWLiGOBy1k'
-      });
-
     // The second request redirects to the full page
     nock('https://youtu.be')
       .get('/FYWLiGOBy1k')

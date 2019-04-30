@@ -42,7 +42,7 @@
     "ethercalc-client": "https://github.com/oaeproject/ethercalc-client.git",
     "etherpad-lite-client": "^0.8.0",
     "express": "4.16.4",
-    "globalize": "0.1.1",
+    "globalize": "1.4.2",
     "gm": "^1.23.0",
     "immutable": "^4.0.0-rc.12",
     "jszip": "^3.2.1",

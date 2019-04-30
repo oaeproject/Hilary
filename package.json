@@ -60,7 +60,7 @@
     "node-esapi": "^0.0.1",
     "node-fetch": "^2.3.0",
     "nodegit": "^0.24.1",
-    "nodemailer": "2.4.1",
+    "nodemailer": "6.1.1",
     "nodemailer-html-to-text": "^3.0.0",
     "nodemailer-sendmail-transport": "^1.0.2",
     "nodemailer-stub-transport": "^1.1.0",

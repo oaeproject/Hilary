@@ -112,7 +112,7 @@
     "properties-parser": "^0.3.1",
     "rails-timezone": "^1.0.0",
     "range_check": "^1.4.0",
-    "readdirp": "^2.1.0",
+    "readdirp": "^3.0.1",
     "recaptcha": "^1.2.1",
     "redback": "^0.5.1",
     "redis": "^2.8.0",

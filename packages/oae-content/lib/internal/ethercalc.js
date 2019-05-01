@@ -160,6 +160,39 @@ const getHTML = function(roomId, callback) {
 };
 
 /**
+ * Get the JSON for a room
+ *
+ * @param  {String}     roomId          The id for which the JSON should be retrieved from ethercalc
+ * @param  {Function}   callback        Standard callback function
+ * @param  {Object}     callback.err    An error that occurred, if any
+ * @param  {String}     callback.html   The JSON for this room
+ */
+const getJSON = function(roomId, callback) {
+  const someEthercalcServer = _pickARandomServer();
+  log().trace({ roomId, ethercalc: someEthercalcServer.config.host }, 'Getting Ethercalc room as JSON');
+  someEthercalcServer.client
+    .getJSON(roomId)
+    .then(json => {
+      if (json) {
+        return callback(null, json);
+      } else {
+        log().error(
+          { roomId, ethercalc: someEthercalcServer.config.host },
+          'Ethercalc sheet contents are not valid JSON'
+        );
+        return callback({ code: 500, msg: 'Ethercalc sheet contents are not valid JSON' });
+      }
+    })
+    .catch(error => {
+      log().error(
+        { err: error, roomId, ethercalc: someEthercalcServer.config.host },
+        'Could not grab the JSON from ethercalc'
+      );
+      return callback({ code: 500, msg: 'Could not grab the JSON from ethercalc' });
+    });
+};
+
+/**
  * Fetch an ethercalc room
  *
  * @param  {String}     roomId          The content id for which the HTML should be retrieved from ethercalc
@@ -197,7 +230,7 @@ const getRoom = function(roomId, callback) {
  * Set the contents for a room
  *
  * @param  {String}     roomId          The content id for which the HTML should be set in ethercalc
- * @param  {String}     snapshot        The data that should be used for the ethercalc room in SC format
+ * @param  {String}     snapshot        The data that should be used for the ethercalc room in CSV format
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
@@ -206,10 +239,10 @@ const setSheetContents = function(roomId, snapshot, callback) {
   log().trace({ roomId, snapshot, ethercalc: someEthercalcServer.config.host }, 'Setting Ethercalc contents');
 
   someEthercalcServer.client
-    .overwrite(roomId, snapshot, 'socialcalc')
+    .overwrite(roomId, snapshot, 'csv')
     // eslint-disable-next-line no-unused-vars
     .then(response => {
-      return callback(null);
+      return callback(null, response);
     })
     .catch(error => {
       log().error(
@@ -375,6 +408,7 @@ export {
   createRoom,
   deleteRoom,
   getHTML,
+  getJSON,
   getRoom,
   setSheetContents,
   joinRoom,

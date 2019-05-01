@@ -802,7 +802,8 @@ describe('Content Activity', () => {
      * Test that verifies that an activity is generated regardless of whether there was an update to a is collaborative document since the last revision
      */
     it('verify an activity is generated regardless of whether there was an update to a is collaborative document since the last revision', callback => {
-      ContentTestUtil.createCollabDoc(camAdminRestContext, 2, 2, (contentObj, users, simon, nico) => {
+      ContentTestUtil.createCollabDoc(camAdminRestContext, 2, 2, (err, collabdocData) => {
+        const [contentObj, users, simon, nico] = collabdocData;
         // Set some text in the pad
         const etherpadClient = Etherpad.getClient(contentObj.id);
         const args = {

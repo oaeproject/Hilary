@@ -50,7 +50,7 @@
     "less": "1.7.5",
     "locale": "^0.1.0",
     "lunr": "1.0.0",
-    "mailparser": "0.6.2",
+    "mailparser": "2.7.0",
     "make-dir": "^3.0.0",
     "marked": "^0.6.1",
     "mime": "^2.0.3",

@@ -62,3 +62,6 @@ patch:
         patched: '2019-04-23T13:09:34.786Z'
     - ethercalc-client > ethercalc > zappajs > socket.io > socket.io-client > engine.io-client > ws:
         patched: '2019-04-23T13:09:34.786Z'
+  SNYK-JS-AXIOS-174505:
+    - ethercalc-client > axios:
+        patched: '2019-05-07T04:57:50.437Z'

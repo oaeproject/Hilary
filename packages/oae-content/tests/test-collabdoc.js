@@ -338,7 +338,8 @@ describe('Collaborative documents', () => {
    */
   it('verify the correct HTML is retrieved when publishing', callback => {
     // Create a test user and collaborative document where the user has joined the document
-    ContentTestUtil.createCollabDoc(camAdminRestContext, 1, 1, (contentObj, users, simon) => {
+    ContentTestUtil.createCollabDoc(camAdminRestContext, 1, 1, (err, collabdocData) => {
+      const [contentObj, users, simon] = collabdocData;
       // Verify there is no HTML present yet
       getContentWithLatestRevision(simon.restContext, contentObj.id, (contentObj, revision) => {
         assert.ok(!contentObj.latestRevision.etherpadHtml);
@@ -382,7 +383,8 @@ describe('Collaborative documents', () => {
    * Test that verifies that documents that are published, can be searched on.
    */
   it('verify that published collaborative documents are searchable', callback => {
-    ContentTestUtil.createCollabDoc(camAdminRestContext, 1, 1, (contentObj, users, simon) => {
+    ContentTestUtil.createCollabDoc(camAdminRestContext, 1, 1, (err, collabdocData) => {
+      const [contentObj, users, simon] = collabdocData;
       // Do some edits in etherpad
       editAndPublish(
         simon,
@@ -416,7 +418,8 @@ describe('Collaborative documents', () => {
    * Test that verifies that published documents can be restored.
    */
   it('verify that published collaborative documents are restorable', callback => {
-    ContentTestUtil.createCollabDoc(camAdminRestContext, 1, 1, (contentObj, users, simon) => {
+    ContentTestUtil.createCollabDoc(camAdminRestContext, 1, 1, (err, collabdocData) => {
+      const [contentObj, users, simon] = collabdocData;
       const texts = [
         "Always do sober what you said you'd do drunk. That will teach you to keep your mouth shut.",
         'Bill Gates is a very rich man today... and do you want to know why? The answer is one word: versions.',
@@ -464,7 +467,8 @@ describe('Collaborative documents', () => {
    * Test that verifies that restoring collaborative documents is access scoped
    */
   it('verify that restoring collaborative documents is access scoped', callback => {
-    ContentTestUtil.createCollabDoc(camAdminRestContext, 1, 1, (contentObj, users, simon) => {
+    ContentTestUtil.createCollabDoc(camAdminRestContext, 1, 1, (err, collabdocData) => {
+      const [contentObj, users, simon] = collabdocData;
       TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, branden) => {
         assert.ok(!err);
 
@@ -558,7 +562,9 @@ describe('Collaborative documents', () => {
    */
   it('verify etherpad document starts with empty document', callback => {
     // Create a collaborative document to test with
-    ContentTestUtil.createCollabDoc(camAdminRestContext, 1, 1, (content, users, simon) => {
+    ContentTestUtil.createCollabDoc(camAdminRestContext, 1, 1, (err, collabdocData) => {
+      const [content, users, simon] = collabdocData;
+
       // Ensure the content of the etherpad starts as empty
       Etherpad.getHTML(content.id, content.etherpadPadId, (err, html) => {
         assert.ok(!err);
@@ -573,7 +579,9 @@ describe('Collaborative documents', () => {
    * without change
    */
   it('verify publishing unchanged etherpad document results in no new revisions', callback => {
-    ContentTestUtil.createCollabDoc(camAdminRestContext, 1, 1, (contentObj, users, simon) => {
+    ContentTestUtil.createCollabDoc(camAdminRestContext, 1, 1, (err, collabdocData) => {
+      const [contentObj, users, simon] = collabdocData;
+
       // Publish the document with no changes made to it
       ContentTestUtil.publishCollabDoc(contentObj.id, simon.user.id, () => {
         // Ensure it only has 1 revision, the initial one
@@ -610,7 +618,9 @@ describe('Collaborative documents', () => {
    * Test that verifies that an empty revision can be restored
    */
   it('verify empty revisions can be restored', callback => {
-    ContentTestUtil.createCollabDoc(camAdminRestContext, 1, 1, (contentObj, users, simon) => {
+    ContentTestUtil.createCollabDoc(camAdminRestContext, 1, 1, (err, collabdocData) => {
+      const [contentObj, users, simon] = collabdocData;
+
       // Generate an empty revision
       ContentTestUtil.publishCollabDoc(contentObj.id, simon.user.id, () => {
         // Generate a revision with some text in. This is done so we can assert that

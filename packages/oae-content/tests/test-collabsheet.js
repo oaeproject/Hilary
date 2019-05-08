@@ -209,7 +209,8 @@ describe('Collaborative spreadsheets', function() {
    */
   it('verify ethercalc spreadsheet starts with empty spreadsheet', function(callback) {
     // Create a collaborative spreadsheet to test with
-    ContentTestUtil.createCollabsheet(camAdminRestContext, 1, 1, function(content, users, simon) {
+    ContentTestUtil.createCollabsheet(camAdminRestContext, 1, 1, (err, collabsheet) => {
+      const [content, users, simon] = collabsheet;
       // Ensure the content of the ethercalc starts as empty
       Ethercalc.getHTML(content.ethercalcRoomId, function(err, html) {
         assert.ok(!err);

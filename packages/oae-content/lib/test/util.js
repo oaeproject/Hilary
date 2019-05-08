@@ -19,6 +19,7 @@ import _ from 'underscore';
 import ShortId from 'shortid';
 import async from 'async';
 
+import { setSheetContents, getJSON } from 'oae-content/lib/internal/ethercalc';
 import * as AuthzTestUtil from 'oae-authz/lib/test/util';
 import * as MqTestUtil from 'oae-util/lib/test/mq-util';
 import * as LibraryTestUtil from 'oae-library/lib/test/util';
@@ -776,15 +777,16 @@ const _createContentWithVisibility = function(restCtx, visibility, callback) {
  * Create a set of test users and a collaborative document.
  * The `nrOfJoinedUsers` specifies how many users should join the document
  *
- * @param  {RestContext}    adminRestContext        An administrator rest context that can be used to create the users
- * @param  {Number}         nrOfUsers               The number of users that should be created
- * @param  {Number}         nrOfJoinedUsers         The number of users that should be joined in the document. These will be the first `nrOfJoinedUsers` of the users hash
- * @param  {Function}       callback                Standard callback function
- * @param  {Object}         callback.err            An error that occurred, if any
- * @param  {Content}        callback.contentObj     The created collaborative document
- * @param  {Object}         callback.users          The created users
- * @param  {Object}         callback.user1          An object containing the user profile and a rest context for the first user of the set of users that was created
- * @param  {Object}         callback.user..         An object containing the user profile and a rest context for the next user of the set of users that was created
+ * @param  {RestContext}    adminRestContext            An administrator rest context that can be used to create the users
+ * @param  {Number}         nrOfUsers                   The number of users that should be created
+ * @param  {Number}         nrOfJoinedUsers             The number of users that should be joined in the document. These will be the first `nrOfJoinedUsers` of the users hash
+ * @param  {Function}       callback                    Standard callback function
+ * @param  {Object}         callback.err                An error that occurred, if any
+ * @param  {Object}         callback.array              An array to include the following data below
+ * @param  {Content}        callback.array.contentObj   The created collaborative document
+ * @param  {Object}         callback.array.users        The created users
+ * @param  {Object}         callback.array.user1        An object containing the user profile and a rest context for the first user of the set of users that was created
+ * @param  {Object}         callback.data.user..        An object containing the user profile and a rest context for the next user of the set of users that was created
  */
 const createCollabDoc = function(adminRestContext, nrOfUsers, nrOfJoinedUsers, callback) {
   TestsUtil.generateTestUsers(adminRestContext, nrOfUsers, (err, users) => {
@@ -808,14 +810,13 @@ const createCollabDoc = function(adminRestContext, nrOfUsers, nrOfJoinedUsers, c
         assert.ok(!err);
 
         // Create a function that will get executed once each user has joined the document
-        const callCallback = _.after(nrOfJoinedUsers, () => {
-          const callbackArgs = _.union([contentObj, users], userValues);
-          return callback.apply(callback, callbackArgs);
+        const done = _.after(nrOfJoinedUsers, () => {
+          return callback(null, _.union([contentObj, users], userValues));
         });
 
         // If no user should join the document we can return immediately
         if (nrOfJoinedUsers === 0) {
-          return callCallback();
+          return done();
         }
 
         // Join the collab doc for `nrOfJoinedUsers` users
@@ -824,7 +825,7 @@ const createCollabDoc = function(adminRestContext, nrOfUsers, nrOfJoinedUsers, c
           // eslint-disable-next-line no-unused-vars
           RestAPI.Content.joinCollabDoc(restCtx, contentObj.id, (err, data) => {
             assert.ok(!err);
-            callCallback();
+            done();
           });
         };
 
@@ -864,60 +865,109 @@ const publishCollabDoc = function(contentId, userId, callback) {
  * @param  {RestContext}    adminRestContext        An administrator rest context that can be used to create the users
  * @param  {Number}         nrOfUsers               The number of users that should be created
  * @param  {Number}         nrOfJoinedUsers         The number of users that should be joined in the spreadsheet. These will be the first `nrOfJoinedUsers` of the users hash
- * @param  {Function}       callback                Standard callback function
- * @param  {Object}         callback.err            An error that occurred, if any
- * @param  {Content}        callback.contentObj     The created collaborative spreadsheet
- * @param  {Object}         callback.users          The created users
- * @param  {Object}         callback.user1          An object containing the user profile and a rest context for the first user of the set of users that was created
- * @param  {Object}         callback.user..         An object containing the user profile and a rest context for the next user of the set of users that was created
+ * @param  {Function}       callback                    Standard callback function
+ * @param  {Object}         callback.err                An error that occurred, if any
+ * @param  {Object}         callback.array               An object to include the following data below
+ * @param  {Content}        callback.array.contentObj    The created collaborative spreadsheet
+ * @param  {Object}         callback.array.users         The created users
+ * @param  {Object}         callback.array.user1         An object containing the user profile and a rest context for the first user of the set of users that was created
+ * @param  {Object}         callback.user..             An object containing the user profile and a rest context for the next user of the set of users that was created
  */
 const createCollabsheet = function(adminRestContext, nrOfUsers, nrOfJoinedUsers, callback) {
   TestsUtil.generateTestUsers(adminRestContext, nrOfUsers, function(err, users) {
     assert.ok(!err);
 
+    const VISIBILITY_PUBLIC = 'public';
     const userIds = _.keys(users);
     const userValues = _.values(users);
 
     // Create a collaborative document where all the users are managers
-    const name = TestsUtil.generateTestUserId('collabdoc');
+    const name = TestsUtil.generateTestUserId('collabsheet');
+
     RestAPI.Content.createCollabsheet(
       userValues[0].restContext,
       name,
       'description',
-      'public',
+      VISIBILITY_PUBLIC,
       userIds,
       [],
       [],
       [],
-      function(err, contentObj) {
+      function(err, content) {
         assert.ok(!err);
 
         const restContexts = _.pluck(userValues, 'restContext');
         async.each(
           restContexts,
           (eachUserToJoin, exit) => {
-            RestAPI.Content.joinCollabDoc(eachUserToJoin, contentObj.id, function(err, data) {
-              if (err) {
-                exit(err);
-              }
+            RestAPI.Content.joinCollabDoc(eachUserToJoin, content.id, (err, data) => {
+              if (err) exit(err);
 
               assert.ok(!err);
               exit(null, data);
             });
           },
           err => {
-            if (err) {
-              callback(err);
-            }
-
-            const callbackArgs = _.union([contentObj, users], userValues);
-
-            return callback.apply(callback, callbackArgs);
+            if (err) callback(err);
+            return callback(null, _.union([content, users], userValues));
           }
         );
       }
     );
   });
+};
+
+/**
+ * Edit a spreadsheet
+ *
+ * @param {Object}        editor                  The user making that edit
+ * @param {Object}        collabsheet             The collaborative spreadsheet
+ * @oaran {Content}       content                 The content to write on the spreadsheet
+ * @param {Function}      callback                Standard callback function
+ * @param {Object}        callback.err            An  error that occurred, if any
+ * @param {Object}        callback.jsonExport     The content of the spreadsheet in JSON format
+ */
+const editAndPublishCollabSheet = (editor, collabsheet, content, callback) => {
+  setSheetContents(collabsheet.ethercalcRoomId, content, err => {
+    assert.ok(!err);
+
+    getJSON(collabsheet.ethercalcRoomId, (err, jsonExport) => {
+      assert.ok(!err);
+      return callback(null, jsonExport);
+    });
+  });
+};
+
+/**
+ * Create a collaborative spreadsheet.
+ *
+ * @param  {Object}    		  creator                     A user that can be used to create the spreadsheet
+ * @param  {Function}       callback                    Standard callback function
+ * @param  {Object}         callback.err                An error that occurred, if any
+ * @param  {Content}        callback.contentObj     		The created collaborative spreadsheet
+ */
+const createCollabsheetForUser = function(creator, callback) {
+  const name = TestsUtil.generateTestUserId('collabsheet');
+  RestAPI.Content.createCollabsheet(
+    creator.restContext,
+    name,
+    'description',
+    'public',
+    creator.userId,
+    [],
+    [],
+    [],
+    function(err, contentObj) {
+      assert.ok(!err);
+
+      RestAPI.Content.joinCollabDoc(creator.restContext, contentObj.id, function(err, data) {
+        if (err) callback(err);
+
+        assert.ok(!err);
+        return callback(null, contentObj);
+      });
+    }
+  );
 };
 
 /**
@@ -951,5 +1001,7 @@ export {
   generateTestLinks,
   publishCollabDoc,
   createCollabDoc,
-  createCollabsheet
+  createCollabsheet,
+  createCollabsheetForUser,
+  editAndPublishCollabSheet
 };

@@ -20,11 +20,28 @@ import util from 'util';
 import _ from 'underscore';
 import dateFormat from 'dateformat';
 
-import * as ContentsTestUtil from 'oae-content/lib/test/util';
+import {
+  publishCollabDoc,
+  createCollabDoc,
+  createCollabsheetForUser,
+  assertCreateLinkSucceeds,
+  createCollabsheet,
+  editAndPublishCollabSheet
+} from 'oae-content/lib/test/util';
 import * as Etherpad from 'oae-content/lib/internal/etherpad';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 import PrincipalsAPI from 'oae-principals';
+
+const DEFAULT_SNAPSHOT = 'snapshot=';
+const TO_STRING = 'string';
+const SOME_NAME = 'name';
+const SOME_DESCRIPTION = 'description';
+const EXPORT_CONTENT_SCOPE = 'content';
+const EXPORT_SHARED_SCOPE = 'shared';
+
+const PUBLIC = 'public';
+const PRIVATE = 'private';
 
 describe('Export data', () => {
   // Rest contexts that can be used to make requests as different types of users
@@ -40,6 +57,31 @@ describe('Export data', () => {
    */
   const _getPictureStream = () => {
     return fs.createReadStream(util.format('%s/data/restroom.jpg', __dirname));
+  };
+
+  /**
+   * @return {Array} An array with the contents of the extracted data
+   * @api private
+   */
+  const parseExtractedContent = extractedData => {
+    const lines = extractedData.split('\n');
+    const element = [];
+
+    _.each(lines, (line, i) => {
+      element[i] = line
+        .split(': ')
+        .reverse()
+        .shift();
+    });
+    return element;
+  };
+
+  /**
+   * @return    {String}      the input to transform
+   * @api private
+   */
+  const _commafy = string => {
+    return string.split('  ').join(', ');
   };
 
   /**
@@ -99,7 +141,7 @@ describe('Export data', () => {
       _setEtherpadText(user.user.id, contentObj, texts[done], err => {
         assert.ok(!err);
 
-        ContentsTestUtil.publishCollabDoc(contentObj.id, user.user.id, () => {
+        publishCollabDoc(contentObj.id, user.user.id, () => {
           done++;
           doEditAndPublish();
         });
@@ -155,7 +197,7 @@ describe('Export data', () => {
                 // Verify the personal data on the zip file
                 zip
                   .file('personal_data.txt')
-                  .async('string')
+                  .async(TO_STRING)
                   .then(content => {
                     const lines = content.split('\n');
                     const element = [];
@@ -197,9 +239,9 @@ describe('Export data', () => {
         // Create one new discussion
         RestAPI.Discussions.createDiscussion(
           brecke.restContext,
-          'name',
-          'description',
-          'public',
+          SOME_NAME,
+          SOME_DESCRIPTION,
+          PUBLIC,
           null,
           null,
           (err, discussion) => {
@@ -208,9 +250,9 @@ describe('Export data', () => {
             // Create one new discussion with the same name
             RestAPI.Discussions.createDiscussion(
               brecke.restContext,
-              'name',
-              'description',
-              'public',
+              SOME_NAME,
+              SOME_DESCRIPTION,
+              PUBLIC,
               null,
               null,
               (err, secondDiscussion) => {
@@ -219,22 +261,22 @@ describe('Export data', () => {
                 // Create one new discussion with the same name
                 RestAPI.Discussions.createDiscussion(
                   brecke.restContext,
-                  'name',
-                  'description',
-                  'public',
+                  SOME_NAME,
+                  SOME_DESCRIPTION,
+                  PUBLIC,
                   null,
                   null,
                   (err, thirdDiscussion) => {
                     assert.ok(!err);
 
                     // Export data using 'content' export type
-                    PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, 'content', (err, zip) => {
+                    PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, (err, zip) => {
                       assert.ok(!err);
 
                       // Verify the personal data on the zip file
                       zip
                         .file('discussion_data/' + discussion.displayName + '.txt')
-                        .async('string')
+                        .async(TO_STRING)
                         .then(zipDiscussion => {
                           const lines = zipDiscussion.split('\n');
                           const element = [];
@@ -251,7 +293,7 @@ describe('Export data', () => {
                           // Verify the personal data on the zip file
                           zip
                             .file('discussion_data/' + discussion.displayName + '.txt')
-                            .async('string')
+                            .async(TO_STRING)
                             .then(zipDiscussion => {
                               const lines = zipDiscussion.split('\n');
                               const element = [];
@@ -268,7 +310,7 @@ describe('Export data', () => {
                               // Verify the personal data on the zip file
                               zip
                                 .file('discussion_data/' + discussion.displayName + '(1).txt')
-                                .async('string')
+                                .async(TO_STRING)
                                 .then(zipDiscussion => {
                                   const lines = zipDiscussion.split('\n');
                                   const element = [];
@@ -285,7 +327,7 @@ describe('Export data', () => {
                                   // Verify the personal data on the zip file
                                   zip
                                     .file('discussion_data/' + discussion.displayName + '(2).txt')
-                                    .async('string')
+                                    .async(TO_STRING)
                                     .then(zipDiscussion => {
                                       const lines = zipDiscussion.split('\n');
                                       const element = [];
@@ -317,7 +359,7 @@ describe('Export data', () => {
     /**
      * Test that will get the correct content data (collabdoc, link, uploaded file)
      */
-    it('verify get content data (collabdoc, link, uploaded file)', callback => {
+    it('verify get content data (collabdoc, collabsheet, link, uploaded file)', callback => {
       /**
        * Return a profile picture stream
        *
@@ -329,7 +371,11 @@ describe('Export data', () => {
       };
 
       // Generate user in cam tenant
-      ContentsTestUtil.createCollabDoc(camAdminRestContext, 1, 1, (collabdoc, users, brecke) => {
+      createCollabDoc(camAdminRestContext, 1, 1, (err, collabdocData) => {
+        assert.ok(!err);
+
+        const [collabdoc, users, brecke] = collabdocData;
+
         brecke.restContext.tenant = function() {
           return brecke.user.tenant;
         };
@@ -338,93 +384,100 @@ describe('Export data', () => {
           return brecke.user;
         };
 
-        ContentsTestUtil.assertCreateLinkSucceeds(
-          brecke.restContext,
-          'name',
-          '',
-          'private',
-          'http://google.com',
-          [],
-          [],
-          [],
-          link => {
-            assert.ok(link);
+        createCollabsheetForUser(brecke, (err, collabsheet) => {
+          assert.ok(!err);
+          assertCreateLinkSucceeds(
+            brecke.restContext,
+            SOME_NAME,
+            '',
+            PRIVATE,
+            'http://google.com',
+            [],
+            [],
+            [],
+            link => {
+              assert.ok(link);
 
-            // Give one of the users a profile picture
-            const cropArea = { x: 0, y: 0, width: 50, height: 50 };
-            RestAPI.User.uploadPicture(brecke.restContext, brecke.user.id, getPictureStream, cropArea, err => {
-              assert.ok(!err);
-
-              // Get the object
-              PrincipalsAPI.exportContentData(brecke.restContext, brecke.user.id, 'content', (err, data) => {
+              // Give one of the users a profile picture
+              const cropArea = { x: 0, y: 0, width: 50, height: 50 };
+              RestAPI.User.uploadPicture(brecke.restContext, brecke.user.id, getPictureStream, cropArea, err => {
                 assert.ok(!err);
 
-                // Export data using 'content' export type
-                PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, 'content', (err, zip) => {
-                  assert.ok(!err);
+                // Get the object
+                PrincipalsAPI.collectDataToExport(
+                  brecke.restContext,
+                  brecke.user.id,
+                  EXPORT_CONTENT_SCOPE,
+                  (err, data) => {
+                    assert.ok(!err);
 
-                  // Verify the personal data on the zip file
-                  zip
-                    .file('link_data/' + link.displayName + '.txt')
-                    .async('string')
-                    .then(zipLink => {
-                      const lines = zipLink.split('\n');
-                      const element = [];
-
-                      _.each(lines, (line, i) => {
-                        element[i] = line
-                          .split(': ')
-                          .reverse()
-                          .shift();
-                      });
-
-                      assert.strictEqual(link.displayName, element[0]);
-                      assert.strictEqual(link.profilePath, element[1]);
-                      assert.strictEqual('http://google.com', element[2]);
-                      assert.strictEqual(link.visibility, element[3]);
-                      assert.strictEqual(link.tenant.displayName, element[4]);
+                    // Export data using 'content' export type
+                    PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, (err, zip) => {
+                      assert.ok(!err);
 
                       // Verify the personal data on the zip file
                       zip
-                        .file('collabdoc_data/' + collabdoc.displayName + '.txt')
-                        .async('string')
-                        .then(zipCollabdoc => {
-                          const lines = zipCollabdoc.split('\n');
-                          const element = [];
+                        .file('link_data/' + link.displayName + '.txt')
+                        .async(TO_STRING)
+                        .then(extractedZipData => {
+                          const contentChunks = parseExtractedContent(extractedZipData);
 
-                          _.each(lines, (line, i) => {
-                            element[i] = line
-                              .split(': ')
-                              .reverse()
-                              .shift();
-                          });
+                          assert.strictEqual(link.displayName, contentChunks[0]);
+                          assert.strictEqual(link.profilePath, contentChunks[1]);
+                          assert.strictEqual('http://google.com', contentChunks[2]);
+                          assert.strictEqual(link.visibility, contentChunks[3]);
+                          assert.strictEqual(link.tenant.displayName, contentChunks[4]);
 
-                          assert.strictEqual(collabdoc.displayName, element[0]);
-                          assert.strictEqual(collabdoc.profilePath, element[1]);
-                          assert.strictEqual(collabdoc.visibility, element[2]);
-                          assert.strictEqual(collabdoc.tenant.displayName, element[3]);
-                          assert.strictEqual('undefined', element[4]);
-
-                          // Verify the personal data on the zip file
+                          // Verify the collabdoc data on the zip file
                           zip
-                            .file('large.jpg')
-                            .async('uint8array')
-                            .then(zipPicture => {
-                              assert.ok(zipPicture);
+                            .file('collabdoc_data/' + collabdoc.displayName + '.txt')
+                            .async(TO_STRING)
+                            .then(extractedZip => {
+                              const contentChunks = parseExtractedContent(extractedZip);
 
-                              // Compare the object with the zip content
-                              assert.strictEqual(zipCollabdoc, data.collabdocData[0].text);
-                              assert.strictEqual(zipLink, data.linkData[0].text);
+                              assert.strictEqual(extractedZip, data.collabdocs[0].text);
+                              assert.strictEqual(collabdoc.displayName, contentChunks[0]);
+                              assert.strictEqual(collabdoc.profilePath, contentChunks[1]);
+                              assert.strictEqual(collabdoc.visibility, contentChunks[2]);
+                              assert.strictEqual(collabdoc.tenant.displayName, contentChunks[3]);
+                              assert.strictEqual('undefined', contentChunks[4]);
 
-                              return callback();
+                              // Verify the collabsheet data on the zip file
+                              zip
+                                .file('collabsheet_data/' + collabsheet.displayName + '.txt')
+                                .async(TO_STRING)
+                                .then(extractedZip => {
+                                  const contentChunks = parseExtractedContent(extractedZip);
+
+                                  assert.strictEqual(extractedZip, data.collabsheets[0].text);
+                                  assert.strictEqual(collabsheet.displayName, contentChunks[0]);
+                                  assert.strictEqual(collabsheet.profilePath, contentChunks[1]);
+                                  assert.strictEqual(collabsheet.visibility, contentChunks[2]);
+                                  assert.strictEqual(collabsheet.tenant.displayName, contentChunks[3]);
+                                  assert.strictEqual(DEFAULT_SNAPSHOT, contentChunks[4]);
+
+                                  // Verify the personal data on the zip file
+                                  zip
+                                    .file('large.jpg')
+                                    .async('uint8array')
+                                    .then(zipPicture => {
+                                      assert.ok(zipPicture);
+
+                                      // Compare the object with the zip content
+                                      assert.strictEqual(extractedZipData, data.links[0].text);
+
+                                      return callback();
+                                    });
+                                });
                             });
                         });
                     });
-                });
+                  }
+                );
               });
-            });
-          }
-        );
+            }
+          );
+        });
       });
     });
 
@@ -447,26 +500,26 @@ describe('Export data', () => {
         // Create one new discussion
         RestAPI.Discussions.createDiscussion(
           brecke.restContext,
-          'name',
-          'description',
-          'public',
+          SOME_NAME,
+          SOME_DESCRIPTION,
+          PUBLIC,
           null,
           null,
           (err, discussion) => {
             assert.ok(!err);
 
             // Get the object
-            PrincipalsAPI.exportContentData(brecke.restContext, brecke.user.id, 'content', (err, data) => {
+            PrincipalsAPI.collectDataToExport(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, (err, data) => {
               assert.ok(!err);
 
               // Export data using 'content' export type
-              PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, 'content', (err, zip) => {
+              PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, (err, zip) => {
                 assert.ok(!err);
 
                 // Verify the personal data on the zip file
                 zip
                   .file('discussion_data/' + discussion.displayName + '.txt')
-                  .async('string')
+                  .async(TO_STRING)
                   .then(zipDiscussion => {
                     const lines = zipDiscussion.split('\n');
                     const element = [];
@@ -485,7 +538,7 @@ describe('Export data', () => {
                     assert.strictEqual(discussion.tenant.displayName, element[4]);
 
                     // Compare the object with the zip content
-                    assert.strictEqual(zipDiscussion, data.discussionData[0].text);
+                    assert.strictEqual(zipDiscussion, data.discussions[0].text);
 
                     return callback();
                   });
@@ -515,8 +568,8 @@ describe('Export data', () => {
         // Create one new meeting
         RestAPI.MeetingsJitsi.createMeeting(
           brecke.restContext,
-          'name',
-          'description',
+          SOME_NAME,
+          SOME_DESCRIPTION,
           false,
           false,
           'public',
@@ -526,17 +579,17 @@ describe('Export data', () => {
             assert.ok(!err);
 
             // Get the object
-            PrincipalsAPI.exportContentData(brecke.restContext, brecke.user.id, 'content', (err, data) => {
+            PrincipalsAPI.collectDataToExport(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, (err, data) => {
               assert.ok(!err);
 
               // Export data using 'content' export type
-              PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, 'content', (err, zip) => {
+              PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, (err, zip) => {
                 assert.ok(!err);
 
                 // Verify the personal data on the zip file
                 zip
                   .file('meeting_data/' + meeting.displayName + '.txt')
-                  .async('string')
+                  .async(TO_STRING)
                   .then(zipMeeting => {
                     const lines = zipMeeting.split('\n');
                     const element = [];
@@ -555,7 +608,7 @@ describe('Export data', () => {
                     assert.strictEqual(meeting.tenant.displayName, element[4]);
 
                     // Compare the object with the zip content
-                    assert.strictEqual(zipMeeting, data.meetingData[0].text);
+                    assert.strictEqual(zipMeeting, data.meetings[0].text);
 
                     return callback();
                   });
@@ -593,18 +646,18 @@ describe('Export data', () => {
         // Create one new meeting
         RestAPI.MeetingsJitsi.createMeeting(
           simon.restContext,
-          'name',
-          'description',
+          SOME_NAME,
+          SOME_DESCRIPTION,
           false,
           false,
-          'public',
+          PUBLIC,
           [],
           [brecke.user.id],
           (err, meeting) => {
             assert.ok(!err);
 
             // Export the data using 'shared' export type
-            PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, 'shared', (err, zip) => {
+            PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_SHARED_SCOPE, (err, zip) => {
               assert.ok(!err);
 
               // Verify the personal data on the zip file
@@ -646,10 +699,10 @@ describe('Export data', () => {
         RestAPI.MeetingsJitsi.createMeeting(
           brecke.restContext,
           'breckeMeeting',
-          'description',
+          SOME_DESCRIPTION,
           false,
           false,
-          'public',
+          PUBLIC,
           [],
           [],
           (err, breckeMeeting) => {
@@ -667,7 +720,7 @@ describe('Export data', () => {
                 'description',
                 false,
                 false,
-                'public',
+                PUBLIC,
                 [],
                 [brecke.user.id],
                 (err, simonMeeting) => {
@@ -679,7 +732,7 @@ describe('Export data', () => {
                     assert.ok(!zip.files['meeting_data/simonMeeting.txt']);
 
                     // Export content data and verify we don't get the shared content
-                    PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, 'content', (err, zip) => {
+                    PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, (err, zip) => {
                       assert.ok(!err);
                       assert.ok(!zip.files['meeting_data/SimonMeeting.txt']);
 
@@ -699,7 +752,8 @@ describe('Export data', () => {
      */
     it('verify get the correct data inside a collabdoc', callback => {
       // Generate user in cam tenant
-      ContentsTestUtil.createCollabDoc(camAdminRestContext, 1, 1, (collabdoc, users, brecke) => {
+      createCollabDoc(camAdminRestContext, 1, 1, (err, collabdocData) => {
+        const [collabdoc, users, brecke] = collabdocData;
         brecke.restContext.tenant = function() {
           return brecke.user.tenant;
         };
@@ -714,29 +768,65 @@ describe('Export data', () => {
         // Do some edits in etherpad
         _editAndPublish(brecke, collabdoc, [text], () => {
           // Export the 'content' data
-          PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, 'content', (err, zip) => {
+          PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, (err, zip) => {
             assert.ok(!err);
 
             // Verify the personal data on the zip file
             zip
               .file('collabdoc_data/' + collabdoc.displayName + '.txt')
-              .async('string')
-              .then(zipCollabdoc => {
-                const lines = zipCollabdoc.split('\n');
-                const element = [];
-
-                _.each(lines, (line, i) => {
-                  element[i] = line
-                    .split(': ')
-                    .reverse()
-                    .shift();
-                });
+              .async(TO_STRING)
+              .then(extractedZip => {
+                const contentChunks = parseExtractedContent(extractedZip);
+                const spreadsheetContent = contentChunks[4];
 
                 // Get etharpad text and compare it
                 _getEtherpadText(collabdoc, (err, data) => {
-                  assert.ok(element[4].includes(text));
+                  assert.ok(spreadsheetContent.includes(text));
                   return callback();
                 });
+              });
+          });
+        });
+      });
+    });
+
+    /**
+     * Test that verify we get the text inside a collabsheet file
+     */
+    it('verify get the correct data inside a collabsheet', callback => {
+      createCollabsheet(camAdminRestContext, 1, 1, (err, collabsheetData) => {
+        const [collabdoc, users, brecke] = collabsheetData;
+
+        brecke.restContext.tenant = () => {
+          return brecke.user.tenant;
+        };
+
+        brecke.restContext.user = () => {
+          return brecke.user;
+        };
+
+        const text =
+          'Most modern calendars mar the sweet simplicity of our lives by reminding us that each day that passes is the anniversary of some perfectly uninteresting event';
+        const textToCSV = text.split(' ').join(', ');
+
+        // Here we are not testing the API but instead editing through the driver diirectly
+        editAndPublishCollabSheet(brecke, collabdoc, textToCSV, (err, contentInJSON) => {
+          assert.ok(!err);
+          PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, (err, zip) => {
+            assert.ok(!err);
+
+            zip
+              .file('collabsheet_data/' + collabdoc.displayName + '.txt')
+              .async(TO_STRING)
+              .then(extractedZip => {
+                const contentChunks = parseExtractedContent(extractedZip);
+                const spreadsheetContent = contentChunks[4];
+
+                // Get ethercalc text and compare it
+                assert.strictEqual(contentInJSON[0].join(), _commafy(spreadsheetContent));
+                assert.strictEqual(textToCSV, _commafy(spreadsheetContent));
+                assert.strictEqual(textToCSV, contentInJSON[0].join());
+                return callback();
               });
           });
         });
@@ -752,7 +842,8 @@ describe('Export data', () => {
         assert.ok(!err);
 
         // Generate user and content in cam tenant
-        ContentsTestUtil.createCollabDoc(camAdminRestContext, 1, 1, (collabdoc, users, brecke) => {
+        createCollabDoc(camAdminRestContext, 1, 1, (err, collabdocData) => {
+          const [collabdoc, users, brecke] = collabdocData;
           brecke.restContext.tenant = function() {
             return brecke.user.tenant;
           };
@@ -783,13 +874,13 @@ describe('Export data', () => {
                 assert.ok(!err);
 
                 // Export the 'content' data
-                PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, 'content', (err, zip) => {
+                PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, (err, zip) => {
                   assert.ok(!err);
 
                   // Verify the collabdoc data on the zip file
                   zip
                     .file('collabdoc_data/' + collabdoc.displayName + '.txt')
-                    .async('string')
+                    .async(TO_STRING)
                     .then(zipCollabdoc => {
                       const lines = zipCollabdoc.split('\n');
                       const element = [];

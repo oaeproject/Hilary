@@ -23,9 +23,14 @@ import dateFormat from 'dateformat';
 import jszip from 'jszip';
 import ShortId from 'shortid';
 
+import { getJSON } from 'oae-content/lib/internal/ethercalc';
 import { getTenantSkinVariables } from 'oae-ui';
 import * as AuthzUtil from 'oae-authz/lib/util';
-import * as ContentAPI from 'oae-content';
+import {
+  getContentLibraryItems,
+  getComments as getCommentsForContent,
+  getRevision as getContentRevision
+} from 'oae-content';
 import * as ContentUtil from 'oae-content/lib/internal/util';
 import * as DiscussionsAPI from 'oae-discussions';
 import * as EmailAPI from 'oae-email';
@@ -217,9 +222,7 @@ const createUser = function(ctx, tenantAlias, displayName, opts, callback) {
  */
 const _createUser = function(ctx, user, email, callback) {
   PrincipalsDAO.createUser(user, err => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     // Emit an event indicating a user account has been created
     PrincipalsEmitter.emit(PrincipalsConstants.events.CREATED_USER, ctx, user);
@@ -228,9 +231,7 @@ const _createUser = function(ctx, user, email, callback) {
     const hasUnverifiedEmail = email && !user.email;
 
     OaeUtil.invokeIfNecessary(hasUnverifiedEmail, _sendEmailToken, ctx, user, email, null, err => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       return callback(null, user);
     });
@@ -378,9 +379,7 @@ const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, 
            * @param  {Object}     err     An error object that can be returned by the updateUser call
            */
           const finishImportUser = function(err) {
-            if (err) {
-              log().error({ err, externalId }, 'Failed to import user');
-            }
+            if (err) log().error({ err, externalId }, 'Failed to import user');
 
             if (_.isEmpty(data)) {
               log(ctx).info(
@@ -422,11 +421,9 @@ const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, 
             displayName,
             opts,
             (err, user, loginId, created) => {
-              if (err) {
-                return finishImportUser(err);
+              if (err) return finishImportUser(err);
 
-                // If the user already existed it's possible that we need to update it
-              }
+              // If the user already existed it's possible that we need to update it
 
               if (created) {
                 finishImportUser();
@@ -503,9 +500,7 @@ const _cleanUpCSVFile = function(userCSV, callback) {
     fs.stat(userCSV.path, (err, exists) => {
       if (exists) {
         fs.unlink(userCSV.path, err => {
-          if (err) {
-            log().warn({ err, file: userCSV }, 'Could not remove the user import CSV file');
-          }
+          if (err) log().warn({ err, file: userCSV }, 'Could not remove the user import CSV file');
 
           callback();
         });
@@ -603,9 +598,7 @@ const updateUser = function(ctx, userId, profileFields, callback) {
 
   // Only update existing users
   PrincipalsDAO.getPrincipal(userId, (err, oldUser) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     if (oldUser.deleted) {
       return callback({ code: 404, msg: util.format("Couldn't find principal: ", oldUser.id) });
@@ -625,15 +618,11 @@ const updateUser = function(ctx, userId, profileFields, callback) {
     }
 
     _updateUser(ctx, oldUser, profileFields, (err, newUser) => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       // If the email address changed but isn't verified, we have to send a verification email
       OaeUtil.invokeIfNecessary(isEmailChange, _sendEmailToken, ctx, newUser, newEmailAddress, null, err => {
-        if (err) {
-          return callback(err);
-        }
+        if (err) return callback(err);
 
         return getUser(ctx, userId, callback);
       });
@@ -655,9 +644,7 @@ const updateUser = function(ctx, userId, profileFields, callback) {
  */
 const _updateUser = function(ctx, oldUser, profileFields, callback) {
   PrincipalsDAO.updatePrincipal(oldUser.id, profileFields, err => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     // Emit an event indicating the user has been updated
     const newUser = PrincipalsUtil.createUpdatedUser(oldUser, profileFields);
@@ -684,9 +671,7 @@ const deleteUser = function(ctx, userId, callback) {
 
   // Check if the user has permission to delete the user
   canDeleteUser(ctx, userId, (err, canDelete, user) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     if (!canDelete) {
       return callback({ code: 401, msg: 'You are not authorized to delete this user' });
@@ -694,9 +679,7 @@ const deleteUser = function(ctx, userId, callback) {
 
     // Mark the user as deleted
     PrincipalsDAO.deletePrincipal(userId, err => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       // Notify consumers that a user has been deleted
       return PrincipalsEmitter.emit(PrincipalsConstants.events.DELETED_USER, ctx, user, callback);
@@ -718,23 +701,17 @@ const deleteUser = function(ctx, userId, callback) {
  */
 const deleteOrRestoreUsersByTenancy = function(ctx, tenantAlias, disableUsers, callback) {
   getAllUsersForTenant(ctx, tenantAlias, (err, users) => {
-    if (err) {
-      callback(err);
-    }
+    if (err) callback(err);
 
     if (disableUsers) {
       _deletePrincipals(users, (err, users) => {
-        if (err) {
-          callback(err);
-        }
+        if (err) callback(err);
 
         callback(null, users);
       });
     } else {
       _restorePrincipals(users, (err, users) => {
-        if (err) {
-          callback(err);
-        }
+        if (err) callback(err);
 
         callback(null, users);
       });
@@ -767,9 +744,7 @@ const getAllUsersForTenant = function(ctx, tenantAlias, callback) {
   }
 
   PrincipalsDAO.getAllUsersForTenant(tenantAlias, (err, users) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     if (_.isEmpty(users)) {
       log().info('No users found for tenant %s', tenantAlias);
@@ -849,9 +824,7 @@ const restoreUser = function(ctx, userId, callback) {
   }
 
   canRestoreUser(ctx, userId, (err, canRestore, user) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     if (!canRestore) {
       return callback({ code: 401, msg: 'You are not authorized to restore this user' });
@@ -859,9 +832,7 @@ const restoreUser = function(ctx, userId, callback) {
 
     // Unmark the user as deleted
     PrincipalsDAO.restorePrincipal(userId, err => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       // Notify consumers that a user has been restored
       return PrincipalsEmitter.emit(PrincipalsConstants.events.RESTORED_USER, ctx, user, callback);
@@ -885,9 +856,7 @@ const canDeleteUser = function(ctx, userId, callback) {
   }
 
   PrincipalsDAO.getPrincipal(userId, (err, user) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     if (ctx.user().id !== userId && !ctx.user().isAdmin(user.tenant.alias)) {
       // Only an admin or the user themself can delete a user
@@ -914,9 +883,7 @@ const canRestoreUser = function(ctx, userId, callback) {
   }
 
   PrincipalsDAO.getPrincipal(userId, (err, user) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     if (!ctx.user().isAdmin(user.tenant.alias)) {
       // Only an admin can restore a user
@@ -965,9 +932,7 @@ const getFullUserProfile = function(ctx, userId, callback) {
 
   // Get and validate the basic user profile to decorate
   getUser(ctx, userId, (err, user) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     if (user.deleted) {
       return callback({ code: 404, msg: util.format("Couldn't find principal: ", userId) });
@@ -1077,9 +1042,7 @@ const getMe = function(ctx, callback) {
 
   // If the user is authenticated we get their profile
   getUser(ctx, ctx.user().id, (err, data) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     // Overwrite the `tenant` value with our object that contains whether the tenant is private
     data.tenant = tenant;
@@ -1165,9 +1128,7 @@ const _setAdmin = function(ctx, adminType, isAdmin, principalId, callback) {
 
   // Double-check that this user exists
   getUser(ctx, principalId, (err, user) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     if (user.deleted) {
       return callback({ code: 404, msg: util.format("Couldn't find principal: ", principalId) });
@@ -1192,9 +1153,7 @@ const _sendEmailToken = function(ctx, user, email, token, callback) {
   callback =
     callback ||
     function(err) {
-      if (err) {
-        log().error({ err, userId: user.id }, 'Unable to send a user a verification email');
-      }
+      if (err) log().error({ err, userId: user.id }, 'Unable to send a user a verification email');
     };
 
   // Generate a token if none was specified
@@ -1202,9 +1161,7 @@ const _sendEmailToken = function(ctx, user, email, token, callback) {
 
   // Store the token
   PrincipalsDAO.storeEmailToken(user.id, email, token, err => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     // The EmailAPI expects a user to have a verified email address. As this is not the case
     // when sending an email token, we send in a patched user object
@@ -1259,15 +1216,11 @@ const resendEmailToken = function(ctx, userId, callback) {
 
   // Get the email token for the user
   PrincipalsDAO.getEmailToken(userId, (err, email, persistedToken) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     // Get the user object
     PrincipalsDAO.getPrincipal(userId, (err, user) => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       // Send the email token
       return _sendEmailToken(ctx, user, email, persistedToken, callback);
@@ -1310,15 +1263,11 @@ const verifyEmail = function(ctx, userId, token, callback) {
 
   // Get the user object as we need to know the old email address so we can take it out of the mapping
   PrincipalsDAO.getPrincipal(userId, (err, user) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     // Ensure the token is correct
     PrincipalsDAO.getEmailToken(userId, (err, email, persistedToken) => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       if (persistedToken !== token) {
         return callback({ code: 401, msg: 'Wrong token' });
@@ -1326,9 +1275,7 @@ const verifyEmail = function(ctx, userId, token, callback) {
 
       // Set the email address
       PrincipalsUtil.verifyEmailAddress(ctx, user, email, (err, updatedUser) => {
-        if (err) {
-          return callback(err);
-        }
+        if (err) return callback(err);
 
         return callback(null, updatedUser);
       });
@@ -1369,9 +1316,7 @@ const getEmailToken = function(ctx, userId, callback) {
   // Check if there's a token and return the email address if there is one
   // eslint-disable-next-line no-unused-vars
   PrincipalsDAO.getEmailToken(userId, (err, email, persistedToken) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     return callback(null, email);
   });
@@ -1406,15 +1351,11 @@ const deleteEmailToken = function(ctx, userId, callback) {
 
   // Check if there is a token
   getEmailToken(ctx, userId, err => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     // Delete the email token
     PrincipalsDAO.deleteEmailToken(userId, err => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       // Emit an event that an email token has been deleted
       PrincipalsEmitter.emit(PrincipalsConstants.events.DELETED_EMAIL_TOKEN, ctx, userId, errs => {
@@ -1456,11 +1397,8 @@ const exportData = function(ctx, userId, exportType, callback) {
     return callback(validator.getFirstError());
   }
 
-  // Export data
   PrincipalsDAO.getPrincipal(userId, (err, principal) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     const personalDetails =
       'Personal id : ' +
@@ -1472,24 +1410,18 @@ const exportData = function(ctx, userId, exportType, callback) {
 
     // Get profile picture if exist
     _extractProfilePicture(ctx, principal, (err, profilePicture) => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       // Get personal data
-      exportContentData(ctx, userId, exportType, (err, data) => {
-        if (err) {
-          return callback(err);
-        }
+      collectDataToExport(ctx, userId, exportType, (err, data) => {
+        if (err) return callback(err);
 
         // Create an object by assembling all personal data
         _assemblePersonalData(personalDetails, profilePicture, data, (err, personalData) => {
-          if (err) {
-            return callback(err);
-          }
+          if (err) return callback(err);
 
           // Convert an object to a zip file
-          _objectToZipFile(personalData, (err, zipFile) => {
+          _zipData(personalData, (err, zipFile) => {
             if (err) {
               log().error({ err, displayName: principal.displayName }, 'An error occurred while creating the zip file');
               return callback(err);
@@ -1539,43 +1471,19 @@ const _extractProfilePicture = function(ctx, principal, callback) {
  * @param  {Objetc}     callback.personalData       Object contain all the data
  */
 const _assemblePersonalData = function(personalDetails, profilePicture, data, callback) {
-  const personalData = {};
+  const personalData = { personalDetails, profilePicture };
 
-  async.series(
-    [
-      function(callback) {
-        personalData.personalDetails = personalDetails;
-        personalData.profilePicture = profilePicture;
+  if (data) {
+    const dataTypes = ['uploads', 'links', 'collabdocs', 'collabsheets', 'meetings', 'discussions'];
 
-        if (data) {
-          if (data.uploadData) {
-            personalData.upload = data.uploadData;
-          }
-
-          if (data.linkData) {
-            personalData.link = data.linkData;
-          }
-
-          if (data.collabdocData) {
-            personalData.collabdoc = data.collabdocData;
-          }
-
-          if (data.meetingData) {
-            personalData.meeting = data.meetingData;
-          }
-
-          if (data.discussionData) {
-            personalData.discussion = data.discussionData;
-          }
-        }
-
-        callback();
+    dataTypes.forEach(dataType => {
+      if (data[dataType]) {
+        personalData[dataType] = data[dataType];
       }
-    ],
-    () => {
-      return callback(null, personalData);
-    }
-  );
+    });
+  }
+
+  return callback(null, personalData);
 };
 
 /**
@@ -1588,16 +1496,14 @@ const _assemblePersonalData = function(personalDetails, profilePicture, data, ca
  * @param  {Object}     callback.err            An error that occurred, if any
  * @param  {Objetc}     callback.data           Object contain all the data
  */
-const exportContentData = function(ctx, userId, exportType, callback) {
+const collectDataToExport = function(ctx, userId, exportType, callback) {
   if (exportType === PrincipalsConstants.exportType.PERSONAL_DATA) {
     return callback();
   }
 
   // Get contents library
-  ContentAPI.getContentLibraryItems(ctx, userId, null, null, (err, contents) => {
-    if (err) {
-      return callback(err);
-    }
+  getContentLibraryItems(ctx, userId, null, null, (err, contents) => {
+    if (err) return callback(err);
 
     // Remove all content that was not created by the user
     if (exportType === PrincipalsConstants.exportType.CONTENT_DATA) {
@@ -1613,64 +1519,55 @@ const exportContentData = function(ctx, userId, exportType, callback) {
 
     // Get uploaded files
     _getUploadedFiles(ctx, contentsSplited.file, (err, uploadData) => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       // Convert links into txt file
       _linkToTxt(ctx, contentsSplited.link, (err, linkData) => {
-        if (err) {
-          return callback(err);
-        }
+        if (err) return callback(err);
 
         // Convert collabdocs into txt file
         _collabdocToTxt(ctx, contentsSplited.collabdoc, (err, collabdocData) => {
-          if (err) {
-            return callback(err);
-          }
+          if (err) return callback(err);
 
-          // Get meetings library
-          MeetingsAPI.Meetings.getMeetingsLibrary(ctx, userId, null, null, (err, meetings) => {
-            if (err) {
-              return callback(err);
-            }
+          _collabsheetToCSV(ctx, contentsSplited.collabsheet, (err, collabsheetData) => {
+            if (err) return callback(err);
 
-            if (exportType === PrincipalsConstants.exportType.CONTENT_DATA) {
-              meetings = _.reject(meetings, meeting => {
-                return meeting.createdBy !== userId;
-              });
-            }
+            // Get meetings library
+            MeetingsAPI.Meetings.getMeetingsLibrary(ctx, userId, null, null, (err, meetings) => {
+              if (err) return callback(err);
 
-            // Convert meetings into txt file
-            _meetingToTxt(ctx, meetings, (err, meetingData) => {
-              if (err) {
-                return callback(err);
+              if (exportType === PrincipalsConstants.exportType.CONTENT_DATA) {
+                meetings = _.reject(meetings, meeting => {
+                  return meeting.createdBy !== userId;
+                });
               }
 
-              // Get discussions library
-              DiscussionsAPI.Discussions.getDiscussionsLibrary(ctx, userId, null, null, (err, discussions) => {
-                if (err) {
-                  return callback(err);
-                }
+              // Convert meetings into txt file
+              _meetingToTxt(ctx, meetings, (err, meetingData) => {
+                if (err) return callback(err);
 
-                if (exportType === PrincipalsConstants.exportType.CONTENT_DATA) {
-                  discussions = _.reject(discussions, discussion => {
-                    return discussion.createdBy !== userId;
-                  });
-                }
+                // Get discussions library
+                DiscussionsAPI.Discussions.getDiscussionsLibrary(ctx, userId, null, null, (err, discussions) => {
+                  if (err) return callback(err);
 
-                // Convert meetings into txt file
-                _discussionToTxt(ctx, discussions, (err, discussionData) => {
-                  if (err) {
-                    return callback(err);
+                  if (exportType === PrincipalsConstants.exportType.CONTENT_DATA) {
+                    discussions = _.reject(discussions, discussion => {
+                      return discussion.createdBy !== userId;
+                    });
                   }
 
-                  return callback(null, {
-                    uploadData,
-                    linkData,
-                    collabdocData,
-                    meetingData,
-                    discussionData
+                  // Convert meetings into txt file
+                  _discussionToTxt(ctx, discussions, (err, discussionData) => {
+                    if (err) return callback(err);
+
+                    return callback(null, {
+                      uploads: uploadData,
+                      links: linkData,
+                      collabdocs: collabdocData,
+                      collabsheets: collabsheetData,
+                      meetings: meetingData,
+                      discussions: discussionData
+                    });
                   });
                 });
               });
@@ -1729,6 +1626,52 @@ const _getUploadedFiles = function(ctx, uploadedFiles, callback) {
   return callback(null, uploadData);
 };
 
+const _collabsheetToCSV = function(ctx, collabsheets, callback) {
+  if (_.isEmpty(collabsheets)) return callback();
+
+  let txtCollabsheet = '';
+  const collabsheetData = [];
+
+  async.eachSeries(
+    collabsheets,
+    (eachSheet, callback) => {
+      getCommentsForContent(ctx, eachSheet.id, null, null, (err, comments) => {
+        if (err) return callback(err);
+
+        getContentRevision(ctx, eachSheet.id, eachSheet.latestRevisionId, (err, latestRevision) => {
+          if (err) return callback(err);
+
+          getJSON(eachSheet.ethercalcRoomId, (err, jsonExport) => {
+            if (err) return callback(err);
+
+            txtCollabsheet = `Collabsheet name: ${eachSheet.displayName}
+            Collabsheet path: ${eachSheet.profilePath}
+            Collabsheet visibility: ${eachSheet.visibility}
+            Tenant name: ${eachSheet.tenant.displayName}
+            Content of the document: ${jsonExport[0].join(' ')}\n`;
+
+            _attachCommentsToTxt(txtCollabsheet, comments, (err, exportedContentWithComments) => {
+              if (err) return callback(err);
+
+              _escapeFilename(eachSheet.displayName, (err, fileName) => {
+                if (err) return callback(err);
+
+                collabsheetData.push({ text: exportedContentWithComments, title: fileName + '.txt' });
+                callback();
+              });
+            });
+          });
+        });
+      });
+    },
+    err => {
+      if (err) return callback(err);
+
+      return callback(null, collabsheetData);
+    }
+  );
+};
+
 /**
  * Get information about collabdocs
  *
@@ -1749,15 +1692,11 @@ const _collabdocToTxt = function(ctx, collabdocs, callback) {
   async.eachSeries(
     collabdocs,
     (collabdoc, callback) => {
-      ContentAPI.getComments(ctx, collabdoc.id, null, null, (err, messages) => {
-        if (err) {
-          return callback(err);
-        }
+      getCommentsForContent(ctx, collabdoc.id, null, null, (err, messages) => {
+        if (err) return callback(err);
 
-        ContentAPI.getRevision(ctx, collabdoc.id, collabdoc.latestRevisionId, (err, revision) => {
-          if (err) {
-            return callback(err);
-          }
+        getContentRevision(ctx, collabdoc.id, collabdoc.latestRevisionId, (err, revision) => {
+          if (err) return callback(err);
 
           txtCollabdoc =
             'Collabdoc name: ' +
@@ -1772,15 +1711,11 @@ const _collabdocToTxt = function(ctx, collabdocs, callback) {
             revision.etherpadHtml +
             '\n\n';
 
-          _getMessages(txtCollabdoc, messages, (err, txtCollabdocWithMessages) => {
-            if (err) {
-              return callback(err);
-            }
+          _attachCommentsToTxt(txtCollabdoc, messages, (err, txtCollabdocWithMessages) => {
+            if (err) return callback(err);
 
-            _clearName(collabdoc.displayName, (err, fileName) => {
-              if (err) {
-                return callback(err);
-              }
+            _escapeFilename(collabdoc.displayName, (err, fileName) => {
+              if (err) return callback(err);
 
               collabdocData.push({ text: txtCollabdocWithMessages, title: fileName + '.txt' });
               callback();
@@ -1790,9 +1725,7 @@ const _collabdocToTxt = function(ctx, collabdocs, callback) {
       });
     },
     err => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       return callback(null, collabdocData);
     }
@@ -1819,10 +1752,8 @@ const _linkToTxt = function(ctx, links, callback) {
   async.eachSeries(
     links,
     (link, callback) => {
-      ContentAPI.getComments(ctx, link.id, null, null, (err, messages) => {
-        if (err) {
-          return callback(err);
-        }
+      getCommentsForContent(ctx, link.id, null, null, (err, messages) => {
+        if (err) return callback(err);
 
         txtLink =
           'Link name : ' +
@@ -1837,15 +1768,11 @@ const _linkToTxt = function(ctx, links, callback) {
           link.tenant.displayName +
           '\n\n';
 
-        _getMessages(txtLink, messages, (err, txtLinkWithMessages) => {
-          if (err) {
-            return callback(err);
-          }
+        _attachCommentsToTxt(txtLink, messages, (err, txtLinkWithMessages) => {
+          if (err) return callback(err);
 
-          _clearName(link.displayName, (err, fileName) => {
-            if (err) {
-              return callback(err);
-            }
+          _escapeFilename(link.displayName, (err, fileName) => {
+            if (err) return callback(err);
 
             linkData.push({ text: txtLinkWithMessages, title: fileName + '.txt' });
             callback();
@@ -1854,9 +1781,7 @@ const _linkToTxt = function(ctx, links, callback) {
       });
     },
     err => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       return callback(null, linkData);
     }
@@ -1884,9 +1809,7 @@ const _meetingToTxt = function(ctx, meetings, callback) {
     meetings,
     (meeting, callback) => {
       MeetingsAPI.Meetings.getMessages(ctx, meeting.id, null, null, (err, messages) => {
-        if (err) {
-          return callback(err);
-        }
+        if (err) return callback(err);
 
         txtMeeting =
           'Meeting name : ' +
@@ -1902,15 +1825,11 @@ const _meetingToTxt = function(ctx, meetings, callback) {
           meeting.tenant.displayName +
           '\n\n';
 
-        _getMessages(txtMeeting, messages, (err, txtMeetingWithMessages) => {
-          if (err) {
-            return callback(err);
-          }
+        _attachCommentsToTxt(txtMeeting, messages, (err, txtMeetingWithMessages) => {
+          if (err) return callback(err);
 
-          _clearName(meeting.displayName, (err, fileName) => {
-            if (err) {
-              return callback(err);
-            }
+          _escapeFilename(meeting.displayName, (err, fileName) => {
+            if (err) return callback(err);
 
             meetingData.push({ text: txtMeetingWithMessages, title: fileName + '.txt' });
             callback();
@@ -1919,9 +1838,7 @@ const _meetingToTxt = function(ctx, meetings, callback) {
       });
     },
     err => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       return callback(null, meetingData);
     }
@@ -1949,9 +1866,7 @@ const _discussionToTxt = function(ctx, discussions, callback) {
     discussions,
     (discussion, callback) => {
       DiscussionsAPI.Discussions.getMessages(ctx, discussion.id, null, null, (err, messages) => {
-        if (err) {
-          return callback(err);
-        }
+        if (err) return callback(err);
 
         txtDiscussion =
           'Discussion name : ' +
@@ -1967,15 +1882,11 @@ const _discussionToTxt = function(ctx, discussions, callback) {
           discussion.tenant.displayName +
           '\n';
 
-        _getMessages(txtDiscussion, messages, (err, txtDiscussionWithMessages) => {
-          if (err) {
-            return callback(err);
-          }
+        _attachCommentsToTxt(txtDiscussion, messages, (err, txtDiscussionWithMessages) => {
+          if (err) return callback(err);
 
-          _clearName(discussion.displayName, (err, fileName) => {
-            if (err) {
-              return callback(err);
-            }
+          _escapeFilename(discussion.displayName, (err, fileName) => {
+            if (err) return callback(err);
 
             discussionData.push({ text: txtDiscussionWithMessages, title: fileName + '.txt' });
             callback();
@@ -1984,9 +1895,7 @@ const _discussionToTxt = function(ctx, discussions, callback) {
       });
     },
     err => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       return callback(null, discussionData);
     }
@@ -2002,7 +1911,7 @@ const _discussionToTxt = function(ctx, discussions, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {String}     callback.txt        Comments as String
  */
-const _getMessages = function(txt, messages, callback) {
+const _attachCommentsToTxt = function(txt, messages, callback) {
   if (_.isEmpty(messages)) {
     return callback(null, txt);
   }
@@ -2031,14 +1940,14 @@ const _getMessages = function(txt, messages, callback) {
 };
 
 /**
- * Clear resources name. The objectif is to remove characters that can disrupt the creation of the zip
+ * Clear the resource's name. The goal is to remove characters that can disrupt the creation of the zip
  *
  * @param  {String}     nameResource        The name of the resource to rewrite
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {String}     callback.fileName   New file name
  */
-const _clearName = function(nameResource, callback) {
+const _escapeFilename = function(nameResource, callback) {
   if (_.isEmpty(nameResource)) {
     return callback(null, 'no_name');
   }
@@ -2059,24 +1968,20 @@ const _clearName = function(nameResource, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {String}     callback.jszip      Zip object contain all personal data
  */
-const _objectToZipFile = function(personalData, callback) {
+const _zipData = function(personalData, callback) {
   const zipFile = new jszip(); // eslint-disable-line new-cap
 
   const compressPersonalData = callback => {
     if (personalData.personalDetails) {
       zipFile.file('personal_data.txt', personalData.personalDetails);
-      return callback();
     }
-
     return callback();
   };
 
   const compressProfilePicture = callback => {
     if (personalData.profilePicture) {
       fs.readFile(personalData.profilePicture.path, (err, data) => {
-        if (err) {
-          return callback(err);
-        }
+        if (err) return callback(err);
 
         zipFile.file(personalData.profilePicture.imageName, data, { base64: false, binary: true });
         return callback();
@@ -2087,16 +1992,14 @@ const _objectToZipFile = function(personalData, callback) {
   };
 
   const compressUploadedData = callback => {
-    if (personalData.upload) {
+    if (personalData.uploads) {
       const uploadFolder = zipFile.folder('upload_data');
 
       async.eachSeries(
-        personalData.upload,
+        personalData.uploads,
         (uploadedFile, callback) => {
           fs.readFile(uploadedFile.path, (err, data) => {
-            if (err) {
-              return callback(err);
-            }
+            if (err) return callback(err);
 
             const fileExt = uploadedFile.title.split('.').pop();
             const text = uploadedFile.title.split('.');
@@ -2108,23 +2011,19 @@ const _objectToZipFile = function(personalData, callback) {
           });
         },
         err => {
-          if (err) {
-            return callback(err);
-          }
-
+          if (err) return callback(err);
           return callback();
         }
       );
-    } else {
-      return callback();
     }
+    return callback();
   };
 
   const compressCollabDocs = callback => {
-    if (personalData.collabdoc) {
+    if (personalData.collabdocs) {
       const collabdocFolder = zipFile.folder('collabdoc_data');
 
-      _.each(personalData.collabdoc, collabdoc => {
+      _.each(personalData.collabdocs, collabdoc => {
         const fileExt = collabdoc.title.split('.').pop();
         const text = collabdoc.title.split('.');
         const fileName = text.slice(0, text.length - 1).join('.');
@@ -2132,18 +2031,33 @@ const _objectToZipFile = function(personalData, callback) {
 
         collabdocFolder.file(newName, collabdoc.text);
       });
+    }
 
-      return callback();
+    return callback();
+  };
+
+  const compressCollabSheets = callback => {
+    if (personalData.collabsheets) {
+      const collabsheetFolder = zipFile.folder('collabsheet_data');
+
+      _.each(personalData.collabsheets, collabsheet => {
+        const fileExt = collabsheet.title.split('.').pop();
+        const text = collabsheet.title.split('.');
+        const fileName = text.slice(0, text.length - 1).join('.');
+        const newName = _getNewFileName(fileExt, fileName, collabsheetFolder);
+
+        collabsheetFolder.file(newName, collabsheet.text);
+      });
     }
 
     return callback();
   };
 
   const compressLinks = callback => {
-    if (personalData.link) {
+    if (personalData.links) {
       const linkFolder = zipFile.folder('link_data');
 
-      _.each(personalData.link, link => {
+      _.each(personalData.links, link => {
         const fileExt = link.title.split('.').pop();
         const text = link.title.split('.');
         const fileName = text.slice(0, text.length - 1).join('.');
@@ -2151,18 +2065,16 @@ const _objectToZipFile = function(personalData, callback) {
 
         linkFolder.file(newName, link.text);
       });
-
-      return callback();
     }
 
     return callback();
   };
 
   const compressMeetings = callback => {
-    if (personalData.meeting) {
+    if (personalData.meetings) {
       const meetingFolder = zipFile.folder('meeting_data');
 
-      _.each(personalData.meeting, meeting => {
+      _.each(personalData.meetings, meeting => {
         const fileExt = meeting.title.split('.').pop();
         const text = meeting.title.split('.');
         const fileName = text.slice(0, text.length - 1).join('.');
@@ -2170,18 +2082,16 @@ const _objectToZipFile = function(personalData, callback) {
 
         meetingFolder.file(newName, meeting.text);
       });
-
-      return callback();
     }
 
     return callback();
   };
 
   const compressDiscussions = callback => {
-    if (personalData.discussion) {
+    if (personalData.discussions) {
       const discussionFolder = zipFile.folder('discussion_data');
 
-      _.each(personalData.discussion, discussion => {
+      _.each(personalData.discussions, discussion => {
         const fileExt = discussion.title.split('.').pop();
         const text = discussion.title.split('.');
         const fileName = text.slice(0, text.length - 1).join('.');
@@ -2189,8 +2099,6 @@ const _objectToZipFile = function(personalData, callback) {
 
         discussionFolder.file(newName, discussion.text);
       });
-
-      return callback();
     }
 
     return callback();
@@ -2202,14 +2110,13 @@ const _objectToZipFile = function(personalData, callback) {
       compressProfilePicture,
       compressUploadedData,
       compressCollabDocs,
+      compressCollabSheets,
       compressLinks,
       compressMeetings,
       compressDiscussions
     ],
     err => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       return callback(null, zipFile);
     }
@@ -2270,5 +2177,5 @@ export {
   getEmailToken,
   deleteEmailToken,
   exportData,
-  exportContentData
+  collectDataToExport
 };

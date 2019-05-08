@@ -584,9 +584,7 @@ const createCollabSheet = function(ctx, displayName, description, visibility, ad
   const revisionId = _generateRevisionId(contentId);
 
   Ethercalc.createRoom(contentId, function(err, roomId) {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     _createContent(
       ctx,
@@ -601,9 +599,7 @@ const createCollabSheet = function(ctx, displayName, description, visibility, ad
       { ethercalcRoomId: roomId },
       {},
       function(err, content, revision, memberChangeInfo) {
-        if (err) {
-          return callback(err);
-        }
+        if (err) return callback(err);
 
         content.ethercalcRoomId = roomId;
 
@@ -615,9 +611,7 @@ const createCollabSheet = function(ctx, displayName, description, visibility, ad
           memberChangeInfo,
           folders,
           function(err) {
-            if (err) {
-              return callback(_.first(err));
-            }
+            if (err) return callback(_.first(err));
 
             return callback(null, content);
           }
@@ -1015,9 +1009,7 @@ const ethercalcPublish = function(data, callback) {
     };
 
   ContentDAO.Ethercalc.hasUserEditedSpreadsheet(data.contentId, data.userId, function(err, hasEdited) {
-    if (err) {
-      callback(err);
-    }
+    if (err) callback(err);
 
     if (!hasEdited) {
       // No edits have been made
@@ -1172,30 +1164,22 @@ const joinCollabDoc = function(ctx, contentId, callback) {
 
   // Check if we have access to this piece of content.
   _canEdit(ctx, contentId, (err, contentObj) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     if (ContentUtils.isResourceACollabDoc(contentObj.resourceSubType)) {
       // Join the pad
       Etherpad.joinPad(ctx, contentObj, (err, data) => {
-        if (err) {
-          return callback(err);
-        }
+        if (err) return callback(err);
 
         ContentDAO.Etherpad.saveAuthorId(data.author.authorID, ctx.user().id, err => {
-          if (err) {
-            return callback(err);
-          }
+          if (err) return callback(err);
 
           return callback(null, { url: data.url });
         });
       });
     } else if (ContentUtils.isResourceACollabSheet(contentObj.resourceSubType)) {
       Ethercalc.joinRoom(ctx, contentObj, function(err, data) {
-        if (err) {
-          return callback(err);
-        }
+        if (err) return callback(err);
 
         callback(null, data);
       });

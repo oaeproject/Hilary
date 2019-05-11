@@ -882,39 +882,42 @@ describe('Export data', () => {
                     .file('collabdoc_data/' + collabdoc.displayName + '.txt')
                     .async(TO_STRING)
                     .then(zipCollabdoc => {
-                      const lines = zipCollabdoc.split('\n');
-                      const element = [];
+                      try {
+                        const lines = zipCollabdoc.split('\n');
+                        const element = [];
 
-                      _.each(lines, (line, i) => {
-                        element[i] = line.split(': ');
-                      });
+                        _.each(lines, (line, i) => {
+                          element[i] = line.split(': ');
+                        });
 
-                      // Get the creation date
-                      const messageCreatedComment = dateFormat(
-                        new Date(parseInt(comment.created)), // eslint-disable-line radix
-                        'dd-mm-yyyy, h:MM:ss TT'
-                      );
-                      const messageCreatedAnotherComment = dateFormat(
-                        new Date(parseInt(comment.created)), // eslint-disable-line radix
-                        'dd-mm-yyyy, h:MM:ss TT'
-                      );
+                        // Get the creation date
+                        const messageCreatedComment = dateFormat(
+                          new Date(parseInt(comment.created)), // eslint-disable-line radix
+                          'dd-mm-yyyy, h:MM:ss TT'
+                        );
+                        const messageCreatedAnotherComment = dateFormat(
+                          new Date(parseInt(comment.created)), // eslint-disable-line radix
+                          'dd-mm-yyyy, h:MM:ss TT'
+                        );
 
-                      // Get the message level
-                      const levelComment = element[8][1].split(' ');
-                      const levelAnotherComment = element[7][1].split(' ');
+                        // Get the message level
+                        const levelComment = element[8][1].split(' ');
+                        const levelAnotherComment = element[7][1].split(' ');
 
-                      // Verify if the comment and the author of the comment are the same
-                      assert.strictEqual(element[8][3], comment.body);
-                      assert.ok(element[8][2].includes(comment.createdBy.publicAlias));
-                      assert.strictEqual(levelComment[1], comment.level.toString());
-                      assert.ok(element[8][0].includes(messageCreatedComment));
+                        // Verify if the comment and the author of the comment are the same
+                        assert.strictEqual(element[8][3], comment.body);
+                        assert.ok(element[8][2].includes(comment.createdBy.publicAlias));
+                        assert.strictEqual(levelComment[1], comment.level.toString());
+                        assert.ok(element[8][0].includes(messageCreatedComment));
 
-                      // Verify if the comment and the author of the comment are the same
-                      assert.strictEqual(element[7][3], anotherComment.body);
-                      assert.ok(element[7][2].includes(anotherComment.createdBy.publicAlias));
-                      assert.strictEqual(levelAnotherComment[1], anotherComment.level.toString());
-                      assert.ok(element[7][0].includes(messageCreatedAnotherComment));
-
+                        // Verify if the comment and the author of the comment are the same
+                        assert.strictEqual(element[7][3], anotherComment.body);
+                        assert.ok(element[7][2].includes(anotherComment.createdBy.publicAlias));
+                        assert.strictEqual(levelAnotherComment[1], anotherComment.level.toString());
+                        assert.ok(element[7][0].includes(messageCreatedAnotherComment));
+                      } catch (error) {
+                        console.log(error);
+                      }
                       return callback();
                     });
                 });

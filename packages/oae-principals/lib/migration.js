@@ -13,7 +13,7 @@ const ensureSchema = function(callback) {
   createColumnFamilies(
     {
       Principals:
-        'CREATE TABLE "Principals" ("principalId" text PRIMARY KEY, "tenantAlias" text, "displayName" text, "description" text, "email" text, "emailPreference" text, "visibility" text, "joinable" text, "lastModified" text, "locale" text, "publicAlias" text, "largePictureUri" text, "mediumPictureUri" text, "smallPictureUri" text, "admin:global" text, "admin:tenant" text, "notificationsUnread" text, "notificationsLastRead" text, "acceptedTC" text, "createdBy" text, "created" timestamp, "deleted" timestamp)',
+        'CREATE TABLE "Principals" ("principalId" text PRIMARY KEY, "tenantAlias" text, "displayName" text, "description" text, "email" text, "emailPreference" text, "visibility" text, "joinable" text, "lastModified" text, "locale" text, "publicAlias" text, "largePictureUri" text, "mediumPictureUri" text, "smallPictureUri" text, "admin:global" text, "admin:tenant" text, "notificationsUnread" text, "notificationsLastRead" text, "acceptedTC" text, "createdBy" text, "created" timestamp, "deleted" timestamp, "isUserArchive" text)',
 
       // Map an email address to user ids. An e-mail address can be used by *multiple* users
       PrincipalsByEmail:
@@ -29,7 +29,13 @@ const ensureSchema = function(callback) {
 
       // Track requests to join groups
       GroupJoinRequestsByGroup:
-        'CREATE TABLE "GroupJoinRequestsByGroup" ("groupId" text, "principalId" text, "created_at" text, "updated_at" text, "status" text, PRIMARY KEY ("groupId", "principalId"))'
+        'CREATE TABLE "GroupJoinRequestsByGroup" ("groupId" text, "principalId" text, "created_at" text, "updated_at" text, "status" text, PRIMARY KEY ("groupId", "principalId"))',
+      // Map the tenant alias and the id archive
+      ArchiveByTenant: 'CREATE TABLE "ArchiveByTenant" ("tenantAlias" text PRIMARY KEY, "archiveId" text)',
+
+      // Map the archive id, principal id and the resource id belonging to the principal
+      DataArchive:
+        'CREATE TABLE "DataArchive" ("archiveId" text, "principalId" text, "resourceId" text, "deletionDate" text, PRIMARY KEY ("archiveId", "principalId"))'
     },
     () => {
       runQuery('CREATE INDEX IF NOT EXISTS ON "Principals" ("tenantAlias")', [], () => {

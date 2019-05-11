@@ -45,11 +45,11 @@ import { Context } from 'oae-context';
 import { Validator } from 'oae-util/lib/validator';
 import { AuthenticationConstants } from 'oae-authentication/lib/constants';
 import { AuthzConstants } from 'oae-authz/lib/constants';
+import * as UserDeletionUtil from 'oae-principals/lib/definitive-deletion';
 import * as PrincipalsDAO from './internal/dao';
 import PrincipalsEmitter from './internal/emitter';
 import * as PrincipalsTermsAndConditionsAPI from './api.termsAndConditions';
 import * as PrincipalsUtil from './util';
-
 import { PrincipalsConstants } from './constants';
 import { User } from './model';
 
@@ -150,6 +150,7 @@ const createUser = function(ctx, tenantAlias, displayName, opts, callback) {
   opts.publicAlias = opts.publicAlias || displayName;
   opts.acceptedTC = opts.acceptedTC || false;
   opts.emailPreference = opts.emailPreference || PrincipalsConfig.getValue(tenantAlias, 'user', 'emailPreference');
+  opts.isUserArchive = opts.isUserArchive || null;
 
   const validator = new Validator();
   validator.check(displayName, { code: 400, msg: 'A display name must be provided' }).notEmpty();
@@ -190,7 +191,8 @@ const createUser = function(ctx, tenantAlias, displayName, opts, callback) {
     smallPictureUri: opts.smallPictureUri,
     mediumPictureUri: opts.mediumPictureUri,
     largePictureUri: opts.largePictureUri,
-    acceptedTC: 0
+    acceptedTC: 0,
+    isUserArchive: opts.isUserArchive
   });
 
   // Only add the email address if it's been verified
@@ -655,6 +657,33 @@ const _updateUser = function(ctx, oldUser, profileFields, callback) {
 };
 
 /**
+ * Determine if the user in context can delete the specified user
+ *
+ * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {String}     userId              The id of the user being deleted
+ * @param  {Function}   callback            Standard callback function
+ * @param  {Object}     callback.err        An error that occurred, if any
+ * @param  {Boolean}    callback.canDelete  Indicates whether or not the current user can delete the specified user
+ * @param  {User}       callback.user       The user that was fetched to perform the checks. Will not be specified if the authorization fails
+ */
+const canDeleteUser = function(ctx, userId, callback) {
+  if (!ctx.user()) {
+    return callback(null, false);
+  }
+
+  PrincipalsDAO.getPrincipal(userId, (err, user) => {
+    if (err) return callback(err);
+
+    if (ctx.user().id !== userId && !ctx.user().isAdmin(user.tenant.alias)) {
+      // Only an admin or the user themself can delete a user
+      return callback(null, false);
+    }
+
+    return callback(null, true, user);
+  });
+};
+
+/**
  * Delete a user
  *
  * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
@@ -670,19 +699,41 @@ const deleteUser = function(ctx, userId, callback) {
   }
 
   // Check if the user has permission to delete the user
-  canDeleteUser(ctx, userId, (err, canDelete, user) => {
+  canDeleteUser(ctx, userId, (err, canDelete) => {
     if (err) return callback(err);
 
     if (!canDelete) {
       return callback({ code: 401, msg: 'You are not authorized to delete this user' });
     }
 
-    // Mark the user as deleted
-    PrincipalsDAO.deletePrincipal(userId, err => {
-      if (err) return callback(err);
+    PrincipalsDAO.getPrincipalSkipCache(userId, function(err, user) {
+      if (err) {
+        return callback(err);
+      }
 
-      // Notify consumers that a user has been deleted
-      return PrincipalsEmitter.emit(PrincipalsConstants.events.DELETED_USER, ctx, user, callback);
+      // Get and/or create archiveUser
+      UserDeletionUtil.fetchOrCloneFromUser(ctx, user, function(err, archiveUser) {
+        if (err) {
+          return callback(err);
+        }
+
+        if (user.isUserArchive === 'true' || archiveUser.archiveId === user.id) {
+          return callback({ code: 401, msg: "This user can't be deleted" });
+        }
+
+        UserDeletionUtil.transferUsersDataToCloneUser(ctx, user, archiveUser, function(err) {
+          if (err) {
+            return callback(err);
+          }
+
+          PrincipalsDAO.deletePrincipal(userId, err => {
+            if (err) return callback(err);
+
+            // Notify consumers that a user has been deleted
+            return PrincipalsEmitter.emit(PrincipalsConstants.events.DELETED_USER, ctx, user, callback);
+          });
+        });
+      });
     });
   });
 };
@@ -776,7 +827,6 @@ const _deletePrincipals = function(usersToDelete, afterDeleted) {
         transformed(null, eachUser);
       });
     },
-    // eslint-disable-next-line no-unused-vars
     (err, results) => {
       afterDeleted(null, results);
     }
@@ -801,7 +851,6 @@ const _restorePrincipals = function(usersToRestore, afterRestored) {
         transformed(null, eachUser);
       });
     },
-    // eslint-disable-next-line no-unused-vars
     (err, results) => {
       afterRestored(null, results);
     }
@@ -837,33 +886,6 @@ const restoreUser = function(ctx, userId, callback) {
       // Notify consumers that a user has been restored
       return PrincipalsEmitter.emit(PrincipalsConstants.events.RESTORED_USER, ctx, user, callback);
     });
-  });
-};
-
-/**
- * Determine if the user in context can delete the specified user
- *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
- * @param  {String}     userId              The id of the user being deleted
- * @param  {Function}   callback            Standard callback function
- * @param  {Object}     callback.err        An error that occurred, if any
- * @param  {Boolean}    callback.canDelete  Indicates whether or not the current user can delete the specified user
- * @param  {User}       callback.user       The user that was fetched to perform the checks. Will not be specified if the authorization fails
- */
-const canDeleteUser = function(ctx, userId, callback) {
-  if (!ctx.user()) {
-    return callback(null, false);
-  }
-
-  PrincipalsDAO.getPrincipal(userId, (err, user) => {
-    if (err) return callback(err);
-
-    if (ctx.user().id !== userId && !ctx.user().isAdmin(user.tenant.alias)) {
-      // Only an admin or the user themself can delete a user
-      return callback(null, false);
-    }
-
-    return callback(null, true, user);
   });
 };
 
@@ -1638,7 +1660,7 @@ const _collabsheetToCSV = function(ctx, collabsheets, callback) {
       getCommentsForContent(ctx, eachSheet.id, null, null, (err, comments) => {
         if (err) return callback(err);
 
-        getContentRevision(ctx, eachSheet.id, eachSheet.latestRevisionId, (err, latestRevision) => {
+        getContentRevision(ctx, eachSheet.id, eachSheet.latestRevisionId, (err /* latestRevision */) => {
           if (err) return callback(err);
 
           getJSON(eachSheet.ethercalcRoomId, (err, jsonExport) => {
@@ -1975,6 +1997,7 @@ const _zipData = function(personalData, callback) {
     if (personalData.personalDetails) {
       zipFile.file('personal_data.txt', personalData.personalDetails);
     }
+
     return callback();
   };
 
@@ -2016,6 +2039,7 @@ const _zipData = function(personalData, callback) {
         }
       );
     }
+
     return callback();
   };
 
@@ -2161,11 +2185,11 @@ export {
   createUser,
   importUsers,
   updateUser,
+  canDeleteUser,
   deleteUser,
   deleteOrRestoreUsersByTenancy,
   getAllUsersForTenant,
   restoreUser,
-  canDeleteUser,
   canRestoreUser,
   getUser,
   getFullUserProfile,

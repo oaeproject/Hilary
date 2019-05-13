@@ -29,7 +29,6 @@ import * as OaeUtil from 'oae-util/lib/util';
  * @param  {Boolean}    [options.globalAdminOnly]   Whether or not this config element is only available to global admin users. Defaults to `false`
  * @api private
  */
-// eslint-disable-next-line max-params
 const BaseField = function(type, name, description, defaultValue, options) {
   options = options || {};
   const field = {
@@ -129,7 +128,6 @@ const InternationalizableText = function(name, description, defaultValue, option
  * @param  {Boolean}    [options.suppress]          Whether or not this config element can be retrieved by regular users. Defaults to `false`
  * @param  {Boolean}    [options.globalAdminOnly]   Whether or not this config element is only available to global admin users. Defaults to `false`
  */
-// eslint-disable-next-line max-params
 const Radio = function(name, description, defaultValue, group, options) {
   const field = new BaseField('radio', name, description, defaultValue, options);
   field.group = group;
@@ -148,7 +146,6 @@ const Radio = function(name, description, defaultValue, group, options) {
  * @param  {Boolean}    [options.suppress]          Whether or not this config element can be retrieved by regular users. Defaults to `false`
  * @param  {Boolean}    [options.globalAdminOnly]   Whether or not this config element is only available to global admin users. Defaults to `false`
  */
-// eslint-disable-next-line max-params
 const List = function(name, description, defaultValue, list, options) {
   const field = new BaseField('list', name, description, defaultValue, options);
   field.list = list;

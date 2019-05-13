@@ -33,7 +33,6 @@ const updateConfigAndWait = function(restCtx, tenantAlias, configUpdate, callbac
       return callback(err);
     }
 
-    // eslint-disable-next-line no-use-before-define
     return whenConfigUpdated(callback);
   });
 };
@@ -51,7 +50,6 @@ const clearConfigAndWait = function(restCtx, tenantAlias, configFields, callback
       return callback(err);
     }
 
-    // eslint-disable-next-line no-use-before-define
     return whenConfigUpdated(callback);
   });
 };

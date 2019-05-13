@@ -543,7 +543,6 @@ const _deserializeConfigValue = function(element, value) {
  * @return {Boolean}                    Returns `true` if the user is allowed to update the configuration value, `false` if not allowed
  * @api private
  */
-// eslint-disable-next-line max-params
 const _canUpdateConfigValue = function(ctx, tenantAlias, moduleId, feature, element) {
   const configElement = _element(moduleId, feature, element);
   if (!configElement) {

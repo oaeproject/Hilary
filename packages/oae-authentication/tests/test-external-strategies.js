@@ -34,6 +34,7 @@ import * as AuthenticationTestUtil from 'oae-authentication/lib/test/util';
 import { setUpConfig } from 'oae-config/lib/api';
 import * as ShibbolethAPI from 'oae-authentication/lib/strategies/shibboleth/api';
 
+const DUMMY_BASE = 'http://localhost';
 const Config = setUpConfig('oae-authentication');
 
 describe('Authentication', () => {
@@ -179,7 +180,7 @@ describe('Authentication', () => {
         request(options, (err, res, body) => {
           assert.ok(!err);
           assert.strictEqual(res.statusCode, 302);
-          assert.strictEqual(url.parse(res.headers.location).hostname, host);
+          assert.strictEqual(new URL(res.headers.location).hostname, host);
 
           return done();
         });
@@ -372,8 +373,8 @@ describe('Authentication', () => {
               'http://%s/api/auth/google/callback',
               global.oaeTests.tenants.localhost.host
             );
-            let parsedUrl = url.parse(response.headers.location, true);
-            assert.strictEqual(parsedUrl.query.redirect_uri, redirectUri);
+            let parsedUrl = new URL(response.headers.location);
+            assert.strictEqual(parsedUrl.searchParams.get('redirect_uri'), redirectUri);
 
             // Update the localhost tenant (and ensure that it's truly different, otherwise this test is useless)
             const tenantUpdate = { host: '127.0.0.1:2001' };
@@ -409,8 +410,8 @@ describe('Authentication', () => {
                     'http://%s/api/auth/google/callback',
                     tenantUpdate.host
                   );
-                  parsedUrl = url.parse(response.headers.location, true);
-                  assert.strictEqual(parsedUrl.query.redirect_uri, redirectUri);
+                  parsedUrl = new URL(response.headers.location);
+                  assert.strictEqual(parsedUrl.searchParams.get('redirect_uri'), redirectUri);
                   return done();
                 });
               }
@@ -618,13 +619,13 @@ describe('Authentication', () => {
           assert.strictEqual(response.statusCode, 302);
 
           // Assert we're redirected to the proper CAS endpoint
-          const casLocation = url.parse(response.headers.location, true);
+          const casLocation = new URL(response.headers.location);
           assert.strictEqual(casLocation.hostname, 'localhost');
           assert.strictEqual(parseInt(casLocation.port, 10), port);
           assert.strictEqual(casLocation.pathname, '/cas/login');
-          assert.ok(casLocation.query);
+          assert.ok(casLocation.search);
           assert.strictEqual(
-            casLocation.query.service,
+            casLocation.searchParams.get('service'),
             'http://localhost:2001/api/auth/cas/callback'
           );
 
@@ -641,13 +642,13 @@ describe('Authentication', () => {
                 assert.strictEqual(response.statusCode, 302);
 
                 // Assert we're redirected to the proper CAS endpoint
-                const casLocation = url.parse(response.headers.location, true);
+                const casLocation = new URL(response.headers.location);
                 assert.strictEqual(casLocation.hostname, 'localhost');
                 assert.strictEqual(parseInt(casLocation.port, 10), port);
                 assert.strictEqual(casLocation.pathname, '/cas/login/something/foo');
-                assert.ok(casLocation.query);
+                assert.ok(casLocation.search);
                 assert.strictEqual(
-                  casLocation.query.service,
+                  casLocation.searchParams.get('service'),
                   'http://localhost:2001/api/auth/cas/callback'
                 );
                 return callback();
@@ -1041,7 +1042,7 @@ describe('Authentication', () => {
         global.oaeTests.tenants.localhost.host
       );
       tenantRestContext.followRedirect = false;
-      // tenantRestContext.followAllRedirects = false;
+      // TenantRestContext.followAllRedirects = false;
       // tenantRestContext.followOriginalHttpMethod = false;
       RestAPI.Authentication.shibbolethTenantRedirect(
         tenantRestContext,
@@ -1052,37 +1053,50 @@ describe('Authentication', () => {
 
           // Assert we're redirected to the SP host
           const spHost = ShibbolethAPI.getSPHost();
-          const location = url.parse(response.headers.location, true);
+          const location = new URL(response.headers.location);
           assert.strictEqual(location.host, spHost);
           assert.strictEqual(location.pathname, '/api/auth/shibboleth/sp');
 
           // Assert that we pass in the correct parameters
-          assert.ok(location.query);
-          assert.strictEqual(location.query.tenantAlias, global.oaeTests.tenants.localhost.alias);
-          assert.ok(location.query.signature);
-          assert.ok(location.query.expires);
+          assert.ok(location.search);
+          assert.strictEqual(
+            location.searchParams.get('tenantAlias'),
+            global.oaeTests.tenants.localhost.alias
+          );
+          assert.ok(location.searchParams.get('signature'));
+          assert.ok(location.searchParams.get('expires'));
 
           // Assert we can use this parameters with our SP and that it redirects us to the login handler
           const spRestContext = TestsUtil.createTenantRestContext(spHost);
           spRestContext.followRedirect = false;
-          // spRestContext.followAllRedirects = false;
+          // SpRestContext.followAllRedirects = false;
           // spRestContext.followOriginalHttpMethod = false;
-          const params = location.query;
+
+          // debug
+          console.log(location.searchParams);
+          console.log(TestsUtil.objectifySearchParams(location.searchParams));
+
           RestAPI.Authentication.shibbolethSPRedirect(
             spRestContext,
-            params,
+            TestsUtil.objectifySearchParams(location.searchParams),
             (err, body, response) => {
               assert.ok(!err);
               assert.strictEqual(response.statusCode, 302);
 
               // Assert we're redirected to the proper Shibboleth handler
-              const location = url.parse(response.headers.location, true);
+              const location = new URL(response.headers.location, DUMMY_BASE);
               assert.strictEqual(location.pathname, '/Shibboleth.sso/Login');
 
               // Assert that we pass in the entity ID of the IdP and a target where the user should be redirected back to
-              assert.ok(location.query);
-              assert.strictEqual(location.query.entityID, 'https://idp.example.com/shibboleth');
-              assert.strictEqual(location.query.target, '/api/auth/shibboleth/sp/returned');
+              assert.ok(location.search);
+              assert.strictEqual(
+                location.searchParams.get('entityID'),
+                'https://idp.example.com/shibboleth'
+              );
+              assert.strictEqual(
+                location.searchParams.get('target'),
+                '/api/auth/shibboleth/sp/returned'
+              );
 
               return callback(tenantRestContext, spRestContext);
             }
@@ -1118,21 +1132,20 @@ describe('Authentication', () => {
           assert.strictEqual(response.statusCode, 302);
 
           // Assert that we're redirected back to the tenant
-          const location = url.parse(response.headers.location, true);
+          const location = new URL(response.headers.location);
           assert.strictEqual(location.host, global.oaeTests.tenants.localhost.host);
           assert.strictEqual(location.pathname, '/api/auth/shibboleth/callback');
 
           // Assert that the user id of the created user is present
-          assert.ok(location.query);
-          assert.ok(location.query.userId);
-          assert.ok(location.query.signature);
-          assert.ok(location.query.expires);
+          assert.ok(location.search);
+          assert.ok(location.searchParams.get('userId'));
+          assert.ok(location.searchParams.get('signature'));
+          assert.ok(location.searchParams.get('expires'));
 
           // We arrive back at our tenant
-          const params = location.query;
           RestAPI.Authentication.shibbolethTenantCallback(
             tenantRestContext,
-            params,
+            TestsUtil.objectifySearchParams(location.searchParams),
             (err, body, response) => {
               assert.ok(!err);
 

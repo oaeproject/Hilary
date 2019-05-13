@@ -343,11 +343,6 @@ describe('Principals Activity', () => {
       return fs.createReadStream(file);
     };
 
-    // TODO
-    const _objectifySearchParams = params => {
-      return { uri: params.get('uri'), signature: params.get('signature'), hash: params.get('hash') };
-    };
-
     /**
      * Test that verifies the contents of the full group and user activity entity models.
      */
@@ -477,7 +472,7 @@ describe('Principals Activity', () => {
                             anonymousGtRestContext,
                             signedDownloadUrl.pathname,
                             'GET',
-                            _objectifySearchParams(signedDownloadUrl.searchParams),
+                            TestsUtil.objectifySearchParams(signedDownloadUrl.searchParams),
                             (err, body, response) => {
                               assert.ok(!err);
                               assert.strictEqual(response.statusCode, 204);
@@ -487,7 +482,7 @@ describe('Principals Activity', () => {
                                 anonymousGtRestContext,
                                 signedDownloadUrl.pathname,
                                 'GET',
-                                _objectifySearchParams(signedDownloadUrl.searchParams),
+                                TestsUtil.objectifySearchParams(signedDownloadUrl.searchParams),
                                 (err, body, response) => {
                                   assert.ok(!err);
                                   assert.strictEqual(response.statusCode, 204);
@@ -504,7 +499,7 @@ describe('Principals Activity', () => {
                                     anonymousGtRestContext,
                                     signedDownloadUrl.pathname,
                                     'GET',
-                                    _objectifySearchParams(signedDownloadUrl.searchParams),
+                                    TestsUtil.objectifySearchParams(signedDownloadUrl.searchParams),
                                     (err, body, response) => {
                                       assert.ok(!err);
                                       assert.strictEqual(response.statusCode, 204);
@@ -514,7 +509,7 @@ describe('Principals Activity', () => {
                                         anonymousGtRestContext,
                                         signedDownloadUrl.pathname,
                                         'GET',
-                                        _objectifySearchParams(signedDownloadUrl.searchParams),
+                                        TestsUtil.objectifySearchParams(signedDownloadUrl.searchParams),
                                         (err, body, response) => {
                                           assert.ok(!err);
                                           assert.strictEqual(response.statusCode, 204);

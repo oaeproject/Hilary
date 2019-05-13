@@ -13,9 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import _ from 'underscore';
-import { User } from 'oae-principals/lib/model.user.js';
-import { Group } from 'oae-principals/lib/model.group.js';
+import { User } from 'oae-principals/lib/model.user';
+import { Group } from 'oae-principals/lib/model.group';
 
 // Expose the user and group model.
 export { User, Group };

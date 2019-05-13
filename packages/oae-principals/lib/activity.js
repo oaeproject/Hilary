@@ -326,32 +326,28 @@ emitter.on(PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP, function(ctx, group
 /*!
  * Fire the request-group-join activity when someone has been rejected to join a group
  */
-emitter.on(
-  PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP_REJECTED,
-  // eslint-disable-next-line no-unused-vars
-  (ctx, group, requester) => {
-    const now = Date.now();
-    const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
-      user: ctx.user()
-    });
-    const objectResource = new ActivityModel.ActivitySeedResource('user', requester.id, {
-      requester
-    });
-    const targetResource = new ActivityModel.ActivitySeedResource('group', group.id, { group });
+emitter.on(PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP_REJECTED, (ctx, group, requester) => {
+  const now = Date.now();
+  const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
+    user: ctx.user()
+  });
+  const objectResource = new ActivityModel.ActivitySeedResource('user', requester.id, {
+    requester
+  });
+  const targetResource = new ActivityModel.ActivitySeedResource('group', group.id, { group });
 
-    ActivityAPI.postActivity(
-      ctx,
-      new ActivityModel.ActivitySeed(
-        PrincipalsConstants.activity.ACTIVITY_REQUEST_TO_JOIN_GROUP_REJECTED,
-        now,
-        ActivityConstants.verbs.REJECT,
-        actorResource,
-        objectResource,
-        targetResource
-      )
-    );
-  }
-);
+  ActivityAPI.postActivity(
+    ctx,
+    new ActivityModel.ActivitySeed(
+      PrincipalsConstants.activity.ACTIVITY_REQUEST_TO_JOIN_GROUP_REJECTED,
+      now,
+      ActivityConstants.verbs.REJECT,
+      actorResource,
+      objectResource,
+      targetResource
+    )
+  );
+});
 
 /// ////////////////////////
 // ACTIVITY ENTITY TYPES //

@@ -343,6 +343,11 @@ describe('Principals Activity', () => {
       return fs.createReadStream(file);
     };
 
+    // TODO
+    const _objectifySearchParams = params => {
+      return { uri: params.get('uri'), signature: params.get('signature'), hash: params.get('hash') };
+    };
+
     /**
      * Test that verifies the contents of the full group and user activity entity models.
      */
@@ -465,22 +470,24 @@ describe('Principals Activity', () => {
                           assert.ok(target.image);
 
                           // Ensure the standard image for the public user and group can be downloaded right now by even an anonymous user on another tenant
-                          let signedDownloadUrl = url.parse(publicUserActivityEntity.image.url, true);
+                          const DUMMY_BASE = 'http://localhost';
+                          let signedDownloadUrl = new URL(publicUserActivityEntity.image.url, DUMMY_BASE);
+
                           RestUtil.performRestRequest(
                             anonymousGtRestContext,
                             signedDownloadUrl.pathname,
                             'GET',
-                            signedDownloadUrl.query,
+                            _objectifySearchParams(signedDownloadUrl.searchParams),
                             (err, body, response) => {
                               assert.ok(!err);
                               assert.strictEqual(response.statusCode, 204);
 
-                              signedDownloadUrl = url.parse(target.image.url, true);
+                              signedDownloadUrl = new URL(target.image.url, DUMMY_BASE);
                               RestUtil.performRestRequest(
                                 anonymousGtRestContext,
                                 signedDownloadUrl.pathname,
                                 'GET',
-                                signedDownloadUrl.query,
+                                _objectifySearchParams(signedDownloadUrl.searchParams),
                                 (err, body, response) => {
                                   assert.ok(!err);
                                   assert.strictEqual(response.statusCode, 204);
@@ -492,22 +499,22 @@ describe('Principals Activity', () => {
                                   };
 
                                   // Ensure the standard image for the public user and group can still be downloaded by even an anonymous user on another tenant
-                                  signedDownloadUrl = url.parse(publicUserActivityEntity.image.url, true);
+                                  signedDownloadUrl = new URL(publicUserActivityEntity.image.url, DUMMY_BASE);
                                   RestUtil.performRestRequest(
                                     anonymousGtRestContext,
                                     signedDownloadUrl.pathname,
                                     'GET',
-                                    signedDownloadUrl.query,
+                                    _objectifySearchParams(signedDownloadUrl.searchParams),
                                     (err, body, response) => {
                                       assert.ok(!err);
                                       assert.strictEqual(response.statusCode, 204);
 
-                                      signedDownloadUrl = url.parse(target.image.url, true);
+                                      signedDownloadUrl = new URL(target.image.url, DUMMY_BASE);
                                       RestUtil.performRestRequest(
                                         anonymousGtRestContext,
                                         signedDownloadUrl.pathname,
                                         'GET',
-                                        signedDownloadUrl.query,
+                                        _objectifySearchParams(signedDownloadUrl.searchParams),
                                         (err, body, response) => {
                                           assert.ok(!err);
                                           assert.strictEqual(response.statusCode, 204);

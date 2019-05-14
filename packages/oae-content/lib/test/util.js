@@ -960,7 +960,7 @@ const createCollabsheetForUser = function(creator, callback) {
     function(err, contentObj) {
       assert.ok(!err);
 
-      RestAPI.Content.joinCollabDoc(creator.restContext, contentObj.id, function(err, data) {
+      RestAPI.Content.joinCollabDoc(creator.restContext, contentObj.id, function(err /* data */) {
         if (err) callback(err);
 
         assert.ok(!err);

@@ -30,7 +30,6 @@ import * as BackendUtil from './util';
 /**
  * @borrows Interface.store as Remote.store
  */
-// eslint-disable-next-line no-unused-vars
 const store = function(tenantAlias, file, options, callback) {
   callback({ code: 501, msg: 'Not implemented' });
 };

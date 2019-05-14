@@ -928,5 +928,6 @@ export {
   createMessage,
   deleteMessage,
   getMeetingsLibrary,
-  removeMeetingFromLibrary
+  removeMeetingFromLibrary,
+  getMeeting
 };

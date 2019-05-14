@@ -96,13 +96,13 @@ const _initializeFrontendDocs = function(uiConfig, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _initializeBackendDocs = function(modules, callback) {
-  if (_.isEmpty(modules)) {
+const _initializeBackendDocs = function(backendModules, callback) {
+  if (_.isEmpty(backendModules)) {
     return callback();
   }
 
   // Shift off a module to parse its docs
-  const module = modules.shift();
+  const module = backendModules.shift();
   const dir = OaeUtil.getNodeModulesDir() + module + '/lib';
   _parseDocs(dir, null, (err, docs) => {
     if (err) {
@@ -111,7 +111,7 @@ const _initializeBackendDocs = function(modules, callback) {
 
     // Cache the doc info in memory and recurse
     cachedDocs.backend[module] = docs;
-    return _initializeBackendDocs(modules, callback);
+    return _initializeBackendDocs(backendModules, callback);
   });
 };
 

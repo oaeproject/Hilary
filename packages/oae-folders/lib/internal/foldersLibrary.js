@@ -14,17 +14,18 @@
  */
 
 /* eslint-disable unicorn/filename-case */
-import _ from 'underscore'
-import { types } from "cassandra-driver";
+import _ from 'underscore';
+import { types } from 'cassandra-driver';
 
-import * as LibraryAPI from 'oae-library'
-import * as OaeUtil from 'oae-util/lib/util'
-import { logger } from "oae-logger";
+import * as LibraryAPI from 'oae-library';
+import * as OaeUtil from 'oae-util/lib/util';
+import { logger } from 'oae-logger';
 
-import { FoldersConstants } from '../constants'
-import * as FoldersDAO from './dao'
+import { FoldersConstants } from '../constants';
+import * as FoldersDAO from './dao';
+
 const { Long } = types;
-const log = logger('oae-folders-contentLibrary');;
+const log = logger('oae-folders-contentLibrary');
 
 /**
  * Get the ids of the folders in the folders library of a specified user or group
@@ -39,7 +40,6 @@ const log = logger('oae-folders-contentLibrary');;
  * @param  {String[]}       callback.folderIds      The folder ids in the specified library
  * @param  {String}         callback.nextToken      The token to use for the `start` parameter for the next invocation to get the next page of results. If `null`, indicates that there are no more items to list
  */
-// eslint-disable-next-line no-unused-vars */
 const list = function(principal, visibility, opts, callback) {
   LibraryAPI.Index.list(
     FoldersConstants.library.FOLDERS_LIBRARY_INDEX_NAME,

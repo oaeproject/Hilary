@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable no-unused-vars */
 import assert from 'assert';
 import fs from 'fs';
 import path from 'path';
@@ -60,6 +59,7 @@ describe('Discussions', () => {
             if (discussionRows) {
               numDiscussionsOrig += discussionRows.length;
             }
+
             return done();
           },
           err => {
@@ -92,6 +92,7 @@ describe('Discussions', () => {
                         }
                       });
                     }
+
                     return done();
                   },
                   err => {
@@ -420,121 +421,93 @@ describe('Discussions', () => {
             assert.ok(!err);
 
             // Verify not a valid discussion id
-            RestAPI.Discussions.updateDiscussion(
-              user.restContext,
-              'not-a-valid-id',
-              updates,
-              (err, discussion) => {
+            RestAPI.Discussions.updateDiscussion(user.restContext, 'not-a-valid-id', updates, (err, discussion) => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 400);
+              assert.ok(!discussion);
+
+              // Verify no fields to update
+              RestAPI.Discussions.updateDiscussion(user.restContext, createdDiscussion.id, {}, (err, discussion) => {
                 assert.ok(err);
                 assert.strictEqual(err.code, 400);
                 assert.ok(!discussion);
 
-                // Verify no fields to update
+                // Verify invalid visibility value
                 RestAPI.Discussions.updateDiscussion(
                   user.restContext,
                   createdDiscussion.id,
-                  {},
+                  { visibility: 'not-a-visibility' },
                   (err, discussion) => {
                     assert.ok(err);
                     assert.strictEqual(err.code, 400);
                     assert.ok(!discussion);
 
-                    // Verify invalid visibility value
+                    // Verify an invalid field name
                     RestAPI.Discussions.updateDiscussion(
                       user.restContext,
                       createdDiscussion.id,
-                      { visibility: 'not-a-visibility' },
+                      { 'not-a-valid-field': 'loggedin' },
                       (err, discussion) => {
                         assert.ok(err);
                         assert.strictEqual(err.code, 400);
                         assert.ok(!discussion);
 
-                        // Verify an invalid field name
+                        // Verify with a displayName that is longer than the maximum allowed size
+                        const longDisplayName = TestsUtil.generateRandomText(100);
                         RestAPI.Discussions.updateDiscussion(
                           user.restContext,
                           createdDiscussion.id,
-                          { 'not-a-valid-field': 'loggedin' },
+                          { displayName: longDisplayName },
                           (err, discussion) => {
                             assert.ok(err);
                             assert.strictEqual(err.code, 400);
+                            assert.ok(err.msg.indexOf('1000') > 0);
                             assert.ok(!discussion);
 
-                            // Verify with a displayName that is longer than the maximum allowed size
-                            const longDisplayName = TestsUtil.generateRandomText(100);
+                            // Verify with a description that is longer than the maximum allowed size
+                            const longDescription = TestsUtil.generateRandomText(1000);
                             RestAPI.Discussions.updateDiscussion(
                               user.restContext,
                               createdDiscussion.id,
-                              { displayName: longDisplayName },
+                              { description: longDescription },
                               (err, discussion) => {
                                 assert.ok(err);
                                 assert.strictEqual(err.code, 400);
-                                assert.ok(err.msg.indexOf('1000') > 0);
-                                assert.ok(!discussion);
+                                assert.ok(err.msg.indexOf('10000') > 0);
 
-                                // Verify with a description that is longer than the maximum allowed size
-                                const longDescription = TestsUtil.generateRandomText(1000);
+                                // Verify with an empty description
                                 RestAPI.Discussions.updateDiscussion(
                                   user.restContext,
                                   createdDiscussion.id,
-                                  { description: longDescription },
+                                  { description: '' },
                                   (err, discussion) => {
                                     assert.ok(err);
                                     assert.strictEqual(err.code, 400);
-                                    assert.ok(err.msg.indexOf('10000') > 0);
 
-                                    // Verify with an empty description
-                                    RestAPI.Discussions.updateDiscussion(
+                                    // Verify the discussion has not changed
+                                    RestAPI.Discussions.getDiscussion(
                                       user.restContext,
                                       createdDiscussion.id,
-                                      { description: '' },
-                                      (err, discussion) => {
-                                        assert.ok(err);
-                                        assert.strictEqual(err.code, 400);
+                                      (err, discussionProfile) => {
+                                        assert.ok(!err);
+                                        assert.strictEqual(discussionProfile.displayName, displayName);
+                                        assert.strictEqual(discussionProfile.description, description);
+                                        assert.strictEqual(discussionProfile.visibility, visibility);
+                                        assert.strictEqual(discussionProfile.created, discussionProfile.lastModified);
 
-                                        // Verify the discussion has not changed
-                                        RestAPI.Discussions.getDiscussion(
+                                        // Now do a real update as a sanity check
+                                        RestAPI.Discussions.updateDiscussion(
                                           user.restContext,
                                           createdDiscussion.id,
-                                          (err, discussionProfile) => {
+                                          updates,
+                                          (err, discussion) => {
                                             assert.ok(!err);
-                                            assert.strictEqual(
-                                              discussionProfile.displayName,
-                                              displayName
-                                            );
-                                            assert.strictEqual(
-                                              discussionProfile.description,
-                                              description
-                                            );
-                                            assert.strictEqual(
-                                              discussionProfile.visibility,
-                                              visibility
-                                            );
-                                            assert.strictEqual(
-                                              discussionProfile.created,
-                                              discussionProfile.lastModified
-                                            );
-
-                                            // Now do a real update as a sanity check
-                                            RestAPI.Discussions.updateDiscussion(
-                                              user.restContext,
-                                              createdDiscussion.id,
-                                              updates,
-                                              (err, discussion) => {
-                                                assert.ok(!err);
-                                                assert.strictEqual(
-                                                  discussion.displayName,
-                                                  updates.displayName
-                                                );
-                                                assert.strictEqual(
-                                                  discussion.description,
-                                                  updates.description
-                                                );
-                                                assert.ok(discussion.canShare);
-                                                assert.ok(discussion.canPost);
-                                                assert.ok(discussion.isManager);
-                                                return callback();
-                                              }
-                                            );
+                                            assert.strictEqual(discussion.displayName, updates.displayName);
+                                            assert.strictEqual(discussion.description, updates.description);
+                                            assert.ok(discussion.canShare);
+                                            assert.ok(discussion.canPost);
+                                            assert.ok(discussion.isManager);
+                                            return callback();
                                           }
                                         );
                                       }
@@ -549,8 +522,8 @@ describe('Discussions', () => {
                     );
                   }
                 );
-              }
-            );
+              });
+            });
           }
         );
       });
@@ -613,17 +586,12 @@ describe('Discussions', () => {
                     assert.strictEqual(discussion.displayName, updates.displayName);
                     assert.strictEqual(discussion.description, updates.description);
                     assert.strictEqual(discussion.visibility, 'private');
-                    assert.ok(
-                      parseInt(discussion.created, 10) < parseInt(discussion.lastModified, 10)
-                    );
+                    assert.ok(parseInt(discussion.created, 10) < parseInt(discussion.lastModified, 10));
                     assert.ok(discussion.created);
                     assert.ok(discussion.lastModified);
                     assert.ok(discussion.tenant);
                     assert.strictEqual(discussion.tenant.alias, publicTenant.tenant.alias);
-                    assert.strictEqual(
-                      discussion.tenant.displayName,
-                      publicTenant.tenant.displayName
-                    );
+                    assert.strictEqual(discussion.tenant.displayName, publicTenant.tenant.displayName);
                     return callback();
                   }
                 );
@@ -688,18 +656,9 @@ describe('Discussions', () => {
                           publicTenant.publicDiscussion.id,
                           (err, discussion) => {
                             assert.ok(!err);
-                            assert.strictEqual(
-                              discussion.displayName,
-                              publicTenant.publicDiscussion.displayName
-                            );
-                            assert.strictEqual(
-                              discussion.description,
-                              publicTenant.publicDiscussion.description
-                            );
-                            assert.strictEqual(
-                              discussion.visibility,
-                              publicTenant.publicDiscussion.visibility
-                            );
+                            assert.strictEqual(discussion.displayName, publicTenant.publicDiscussion.displayName);
+                            assert.strictEqual(discussion.description, publicTenant.publicDiscussion.description);
+                            assert.strictEqual(discussion.visibility, publicTenant.publicDiscussion.visibility);
 
                             // Verify the manager can update
                             const permissionChange = {};
@@ -725,18 +684,9 @@ describe('Discussions', () => {
                                       publicTenant.publicDiscussion.id,
                                       (err, discussion) => {
                                         assert.ok(!err);
-                                        assert.strictEqual(
-                                          discussion.displayName,
-                                          updates.displayName
-                                        );
-                                        assert.strictEqual(
-                                          discussion.description,
-                                          updates.description
-                                        );
-                                        assert.strictEqual(
-                                          discussion.visibility,
-                                          updates.visibility
-                                        );
+                                        assert.strictEqual(discussion.displayName, updates.displayName);
+                                        assert.strictEqual(discussion.description, updates.description);
+                                        assert.strictEqual(discussion.visibility, updates.visibility);
                                         return callback();
                                       }
                                     );
@@ -812,58 +762,50 @@ describe('Discussions', () => {
                           assert.strictEqual(items.results.length, 2);
 
                           // Delete one of the discussions
-                          RestAPI.Discussions.deleteDiscussion(
-                            branden.restContext,
-                            discussion.id,
-                            err => {
-                              assert.ok(!err);
+                          RestAPI.Discussions.deleteDiscussion(branden.restContext, discussion.id, err => {
+                            assert.ok(!err);
 
-                              // Ensure the discussion is removed from Branden's library
-                              RestAPI.Discussions.getDiscussionsLibrary(
-                                branden.restContext,
-                                branden.user.id,
-                                null,
-                                null,
-                                (err, items) => {
+                            // Ensure the discussion is removed from Branden's library
+                            RestAPI.Discussions.getDiscussionsLibrary(
+                              branden.restContext,
+                              branden.user.id,
+                              null,
+                              null,
+                              (err, items) => {
+                                assert.ok(!err);
+                                assert.strictEqual(items.results.length, 1);
+                                assert.strictEqual(items.results[0].id, discussion2.id);
+
+                                // Purge Branden's library and ensure the deleted one is not there. This ensures
+                                // the authz association does not have inconsistent association data
+                                LibraryAPI.Index.purge('discussions:discussions', branden.user.id, err => {
                                   assert.ok(!err);
-                                  assert.strictEqual(items.results.length, 1);
-                                  assert.strictEqual(items.results[0].id, discussion2.id);
-
-                                  // Purge Branden's library and ensure the deleted one is not there. This ensures
-                                  // the authz association does not have inconsistent association data
-                                  LibraryAPI.Index.purge(
-                                    'discussions:discussions',
+                                  RestAPI.Discussions.getDiscussionsLibrary(
+                                    branden.restContext,
                                     branden.user.id,
-                                    err => {
+                                    null,
+                                    null,
+                                    (err, items) => {
                                       assert.ok(!err);
-                                      RestAPI.Discussions.getDiscussionsLibrary(
-                                        branden.restContext,
-                                        branden.user.id,
-                                        null,
-                                        null,
-                                        (err, items) => {
-                                          assert.ok(!err);
-                                          assert.strictEqual(items.results.length, 1);
-                                          assert.strictEqual(items.results[0].id, discussion2.id);
+                                      assert.strictEqual(items.results.length, 1);
+                                      assert.strictEqual(items.results[0].id, discussion2.id);
 
-                                          // Sanity check the discussion is actually deleted
-                                          RestAPI.Discussions.getDiscussion(
-                                            branden.restContext,
-                                            discussion.id,
-                                            (err, discussion) => {
-                                              assert.strictEqual(err.code, 404);
-                                              assert.ok(!discussion);
-                                              return callback();
-                                            }
-                                          );
+                                      // Sanity check the discussion is actually deleted
+                                      RestAPI.Discussions.getDiscussion(
+                                        branden.restContext,
+                                        discussion.id,
+                                        (err, discussion) => {
+                                          assert.strictEqual(err.code, 404);
+                                          assert.ok(!discussion);
+                                          return callback();
                                         }
                                       );
                                     }
                                   );
-                                }
-                              );
-                            }
-                          );
+                                });
+                              }
+                            );
+                          });
                         }
                       );
                     });
@@ -895,51 +837,35 @@ describe('Discussions', () => {
             assert.ok(!err);
 
             // Ensure the discussion can be fetched
-            RestAPI.Discussions.getDiscussion(
-              branden.restContext,
-              discussion.id,
-              (err, fetchedDiscussion) => {
-                assert.ok(!err);
-                assert.ok(discussion);
-                assert.strictEqual(fetchedDiscussion.id, discussion.id);
+            RestAPI.Discussions.getDiscussion(branden.restContext, discussion.id, (err, fetchedDiscussion) => {
+              assert.ok(!err);
+              assert.ok(discussion);
+              assert.strictEqual(fetchedDiscussion.id, discussion.id);
 
-                // Verify Simon cannot delete the discussion (as he's not the manager)
-                RestAPI.Discussions.deleteDiscussion(simon.restContext, discussion.id, err => {
-                  assert.strictEqual(err.code, 401);
+              // Verify Simon cannot delete the discussion (as he's not the manager)
+              RestAPI.Discussions.deleteDiscussion(simon.restContext, discussion.id, err => {
+                assert.strictEqual(err.code, 401);
 
-                  // Ensure the discussion can still be fetched
-                  RestAPI.Discussions.getDiscussion(
-                    branden.restContext,
-                    discussion.id,
-                    (err, fetchedDiscussion) => {
-                      assert.ok(!err);
-                      assert.ok(discussion);
-                      assert.strictEqual(fetchedDiscussion.id, discussion.id);
+                // Ensure the discussion can still be fetched
+                RestAPI.Discussions.getDiscussion(branden.restContext, discussion.id, (err, fetchedDiscussion) => {
+                  assert.ok(!err);
+                  assert.ok(discussion);
+                  assert.strictEqual(fetchedDiscussion.id, discussion.id);
 
-                      // Ensure Branden can delete it
-                      RestAPI.Discussions.deleteDiscussion(
-                        branden.restContext,
-                        discussion.id,
-                        err => {
-                          assert.ok(!err);
+                  // Ensure Branden can delete it
+                  RestAPI.Discussions.deleteDiscussion(branden.restContext, discussion.id, err => {
+                    assert.ok(!err);
 
-                          // Ensure the discussion can no longer be fetched
-                          RestAPI.Discussions.getDiscussion(
-                            branden.restContext,
-                            discussion.id,
-                            (err, discussion) => {
-                              assert.strictEqual(err.code, 404);
-                              assert.ok(!discussion);
-                              return callback();
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
+                    // Ensure the discussion can no longer be fetched
+                    RestAPI.Discussions.getDiscussion(branden.restContext, discussion.id, (err, discussion) => {
+                      assert.strictEqual(err.code, 404);
+                      assert.ok(!discussion);
+                      return callback();
+                    });
+                  });
                 });
-              }
-            );
+              });
+            });
           }
         );
       });
@@ -983,448 +909,350 @@ describe('Discussions', () => {
           /// /////////////////////////////
 
           // Ensure getDiscussion validation
-          RestAPI.Discussions.getDiscussion(
-            publicTenant.anonymousRestContext,
-            'not-a-valid-id',
-            err => {
-              assert.ok(err);
-              assert.strictEqual(err.code, 400);
+          RestAPI.Discussions.getDiscussion(publicTenant.anonymousRestContext, 'not-a-valid-id', err => {
+            assert.ok(err);
+            assert.strictEqual(err.code, 400);
 
-              // Ensure anonymous user cannot see the full profile of loggedin and private
-              RestAPI.Discussions.getDiscussion(
-                publicTenant.anonymousRestContext,
-                publicTenant.privateDiscussion.id,
-                err => {
-                  assert.ok(err);
-                  assert.strictEqual(err.code, 401);
+            // Ensure anonymous user cannot see the full profile of loggedin and private
+            RestAPI.Discussions.getDiscussion(
+              publicTenant.anonymousRestContext,
+              publicTenant.privateDiscussion.id,
+              err => {
+                assert.ok(err);
+                assert.strictEqual(err.code, 401);
 
-                  RestAPI.Discussions.getDiscussion(
-                    publicTenant.anonymousRestContext,
-                    publicTenant.loggedinDiscussion.id,
-                    err => {
-                      assert.ok(err);
-                      assert.strictEqual(err.code, 401);
+                RestAPI.Discussions.getDiscussion(
+                  publicTenant.anonymousRestContext,
+                  publicTenant.loggedinDiscussion.id,
+                  err => {
+                    assert.ok(err);
+                    assert.strictEqual(err.code, 401);
 
-                      // Verify they can see public
-                      RestAPI.Discussions.getDiscussion(
-                        publicTenant.anonymousRestContext,
-                        publicTenant.publicDiscussion.id,
-                        (err, discussion) => {
-                          assert.ok(!err);
+                    // Verify they can see public
+                    RestAPI.Discussions.getDiscussion(
+                      publicTenant.anonymousRestContext,
+                      publicTenant.publicDiscussion.id,
+                      (err, discussion) => {
+                        assert.ok(!err);
 
-                          // Basic info
-                          assert.strictEqual(discussion.id, discussion.id);
-                          assert.strictEqual(discussion.displayName, discussion.displayName);
-                          assert.strictEqual(discussion.description, discussion.description);
-                          assert.strictEqual(discussion.visibility, discussion.visibility);
-                          assert.strictEqual(discussion.created, discussion.lastModified);
-                          assert.strictEqual(discussion.created, discussion.created);
-                          assert.ok(discussion.tenant);
-                          assert.strictEqual(discussion.tenant.alias, publicTenant.tenant.alias);
-                          assert.strictEqual(
-                            discussion.tenant.displayName,
-                            publicTenant.tenant.displayName
-                          );
+                        // Basic info
+                        assert.strictEqual(discussion.id, discussion.id);
+                        assert.strictEqual(discussion.displayName, discussion.displayName);
+                        assert.strictEqual(discussion.description, discussion.description);
+                        assert.strictEqual(discussion.visibility, discussion.visibility);
+                        assert.strictEqual(discussion.created, discussion.lastModified);
+                        assert.strictEqual(discussion.created, discussion.created);
+                        assert.ok(discussion.tenant);
+                        assert.strictEqual(discussion.tenant.alias, publicTenant.tenant.alias);
+                        assert.strictEqual(discussion.tenant.displayName, publicTenant.tenant.displayName);
 
-                          // Access info
-                          assert.ok(!discussion.isManager);
-                          assert.ok(!discussion.canPost);
-                          assert.ok(!discussion.canShare);
+                        // Access info
+                        assert.ok(!discussion.isManager);
+                        assert.ok(!discussion.canPost);
+                        assert.ok(!discussion.canShare);
 
-                          /// ////////////////////////////
-                          // LOGGEDIN SAME-TENANT USER //
-                          /// ////////////////////////////
+                        /// ////////////////////////////
+                        // LOGGEDIN SAME-TENANT USER //
+                        /// ////////////////////////////
 
-                          // Ensure loggedin user cannot see the full profile of private
-                          RestAPI.Discussions.getDiscussion(
-                            publicTenant.publicUser.restContext,
-                            publicTenant.privateDiscussion.id,
-                            err => {
-                              assert.ok(err);
-                              assert.strictEqual(err.code, 401);
+                        // Ensure loggedin user cannot see the full profile of private
+                        RestAPI.Discussions.getDiscussion(
+                          publicTenant.publicUser.restContext,
+                          publicTenant.privateDiscussion.id,
+                          err => {
+                            assert.ok(err);
+                            assert.strictEqual(err.code, 401);
 
-                              // Loggedin user can see the profile of logged, and they can post and share on it
-                              RestAPI.Discussions.getDiscussion(
-                                publicTenant.publicUser.restContext,
-                                publicTenant.loggedinDiscussion.id,
-                                (err, discussion) => {
-                                  assert.ok(!err);
+                            // Loggedin user can see the profile of logged, and they can post and share on it
+                            RestAPI.Discussions.getDiscussion(
+                              publicTenant.publicUser.restContext,
+                              publicTenant.loggedinDiscussion.id,
+                              (err, discussion) => {
+                                assert.ok(!err);
 
-                                  // Basic info
-                                  assert.strictEqual(discussion.id, discussion.id);
-                                  assert.strictEqual(
-                                    discussion.displayName,
-                                    discussion.displayName
-                                  );
-                                  assert.strictEqual(
-                                    discussion.description,
-                                    discussion.description
-                                  );
-                                  assert.strictEqual(discussion.visibility, discussion.visibility);
-                                  assert.strictEqual(discussion.created, discussion.lastModified);
-                                  assert.strictEqual(discussion.created, discussion.created);
-                                  assert.ok(discussion.tenant);
-                                  assert.strictEqual(
-                                    discussion.tenant.alias,
-                                    publicTenant.tenant.alias
-                                  );
-                                  assert.strictEqual(
-                                    discussion.tenant.displayName,
-                                    publicTenant.tenant.displayName
-                                  );
+                                // Basic info
+                                assert.strictEqual(discussion.id, discussion.id);
+                                assert.strictEqual(discussion.displayName, discussion.displayName);
+                                assert.strictEqual(discussion.description, discussion.description);
+                                assert.strictEqual(discussion.visibility, discussion.visibility);
+                                assert.strictEqual(discussion.created, discussion.lastModified);
+                                assert.strictEqual(discussion.created, discussion.created);
+                                assert.ok(discussion.tenant);
+                                assert.strictEqual(discussion.tenant.alias, publicTenant.tenant.alias);
+                                assert.strictEqual(discussion.tenant.displayName, publicTenant.tenant.displayName);
 
-                                  // Access info
-                                  assert.ok(!discussion.isManager);
-                                  assert.ok(discussion.canPost);
-                                  assert.ok(discussion.canShare);
+                                // Access info
+                                assert.ok(!discussion.isManager);
+                                assert.ok(discussion.canPost);
+                                assert.ok(discussion.canShare);
 
-                                  // Verify they can see, share, post on public
-                                  RestAPI.Discussions.getDiscussion(
-                                    publicTenant.publicUser.restContext,
-                                    publicTenant.publicDiscussion.id,
-                                    (err, discussion) => {
-                                      assert.ok(!err);
+                                // Verify they can see, share, post on public
+                                RestAPI.Discussions.getDiscussion(
+                                  publicTenant.publicUser.restContext,
+                                  publicTenant.publicDiscussion.id,
+                                  (err, discussion) => {
+                                    assert.ok(!err);
 
-                                      // Basic info
-                                      assert.strictEqual(discussion.id, discussion.id);
-                                      assert.strictEqual(
-                                        discussion.displayName,
-                                        discussion.displayName
-                                      );
-                                      assert.strictEqual(
-                                        discussion.description,
-                                        discussion.description
-                                      );
-                                      assert.strictEqual(
-                                        discussion.visibility,
-                                        discussion.visibility
-                                      );
-                                      assert.strictEqual(
-                                        discussion.created,
-                                        discussion.lastModified
-                                      );
-                                      assert.strictEqual(discussion.created, discussion.created);
-                                      assert.ok(discussion.tenant);
-                                      assert.strictEqual(
-                                        discussion.tenant.alias,
-                                        publicTenant.tenant.alias
-                                      );
-                                      assert.strictEqual(
-                                        discussion.tenant.displayName,
-                                        publicTenant.tenant.displayName
-                                      );
+                                    // Basic info
+                                    assert.strictEqual(discussion.id, discussion.id);
+                                    assert.strictEqual(discussion.displayName, discussion.displayName);
+                                    assert.strictEqual(discussion.description, discussion.description);
+                                    assert.strictEqual(discussion.visibility, discussion.visibility);
+                                    assert.strictEqual(discussion.created, discussion.lastModified);
+                                    assert.strictEqual(discussion.created, discussion.created);
+                                    assert.ok(discussion.tenant);
+                                    assert.strictEqual(discussion.tenant.alias, publicTenant.tenant.alias);
+                                    assert.strictEqual(discussion.tenant.displayName, publicTenant.tenant.displayName);
 
-                                      // Access info
-                                      assert.ok(!discussion.isManager);
-                                      assert.ok(discussion.canPost);
-                                      assert.ok(discussion.canShare);
+                                    // Access info
+                                    assert.ok(!discussion.isManager);
+                                    assert.ok(discussion.canPost);
+                                    assert.ok(discussion.canShare);
 
-                                      /// /////////////////////
-                                      // MEMBER SAME-TENANT //
-                                      /// /////////////////////
+                                    /// /////////////////////
+                                    // MEMBER SAME-TENANT //
+                                    /// /////////////////////
 
-                                      // Share private discussion with the loggedin user
-                                      RestAPI.Discussions.shareDiscussion(
-                                        publicTenant.adminRestContext,
-                                        publicTenant.privateDiscussion.id,
-                                        [publicTenant.loggedinUser.user.id],
-                                        err => {
-                                          assert.ok(!err);
+                                    // Share private discussion with the loggedin user
+                                    RestAPI.Discussions.shareDiscussion(
+                                      publicTenant.adminRestContext,
+                                      publicTenant.privateDiscussion.id,
+                                      [publicTenant.loggedinUser.user.id],
+                                      err => {
+                                        assert.ok(!err);
 
-                                          // Loggedin user can now view, and post on discussion, but still cannot share
-                                          RestAPI.Discussions.getDiscussion(
-                                            publicTenant.loggedinUser.restContext,
-                                            publicTenant.privateDiscussion.id,
-                                            (err, discussion) => {
-                                              assert.ok(!err);
+                                        // Loggedin user can now view, and post on discussion, but still cannot share
+                                        RestAPI.Discussions.getDiscussion(
+                                          publicTenant.loggedinUser.restContext,
+                                          publicTenant.privateDiscussion.id,
+                                          (err, discussion) => {
+                                            assert.ok(!err);
 
-                                              // Basic info
-                                              assert.strictEqual(discussion.id, discussion.id);
-                                              assert.strictEqual(
-                                                discussion.displayName,
-                                                discussion.displayName
-                                              );
-                                              assert.strictEqual(
-                                                discussion.description,
-                                                discussion.description
-                                              );
-                                              assert.strictEqual(
-                                                discussion.visibility,
-                                                discussion.visibility
-                                              );
-                                              assert.strictEqual(
-                                                discussion.created,
-                                                discussion.lastModified
-                                              );
-                                              assert.strictEqual(
-                                                discussion.created,
-                                                discussion.created
-                                              );
-                                              assert.ok(discussion.tenant);
-                                              assert.strictEqual(
-                                                discussion.tenant.alias,
-                                                publicTenant.tenant.alias
-                                              );
-                                              assert.strictEqual(
-                                                discussion.tenant.displayName,
-                                                publicTenant.tenant.displayName
-                                              );
+                                            // Basic info
+                                            assert.strictEqual(discussion.id, discussion.id);
+                                            assert.strictEqual(discussion.displayName, discussion.displayName);
+                                            assert.strictEqual(discussion.description, discussion.description);
+                                            assert.strictEqual(discussion.visibility, discussion.visibility);
+                                            assert.strictEqual(discussion.created, discussion.lastModified);
+                                            assert.strictEqual(discussion.created, discussion.created);
+                                            assert.ok(discussion.tenant);
+                                            assert.strictEqual(discussion.tenant.alias, publicTenant.tenant.alias);
+                                            assert.strictEqual(
+                                              discussion.tenant.displayName,
+                                              publicTenant.tenant.displayName
+                                            );
 
-                                              // Access info
-                                              assert.ok(!discussion.isManager);
-                                              assert.ok(discussion.canPost);
-                                              assert.ok(!discussion.canShare);
+                                            // Access info
+                                            assert.ok(!discussion.isManager);
+                                            assert.ok(discussion.canPost);
+                                            assert.ok(!discussion.canShare);
 
-                                              /// //////////////////////
-                                              // MANAGER SAME-TENANT //
-                                              /// //////////////////////
+                                            /// //////////////////////
+                                            // MANAGER SAME-TENANT //
+                                            /// //////////////////////
 
-                                              // Make public user manager
-                                              const permissionChanges = {};
-                                              permissionChanges[publicTenant.loggedinUser.user.id] =
-                                                'manager';
-                                              RestAPI.Discussions.updateDiscussionMembers(
-                                                publicTenant.adminRestContext,
-                                                publicTenant.privateDiscussion.id,
-                                                permissionChanges,
-                                                err => {
-                                                  assert.ok(!err);
+                                            // Make public user manager
+                                            const permissionChanges = {};
+                                            permissionChanges[publicTenant.loggedinUser.user.id] = 'manager';
+                                            RestAPI.Discussions.updateDiscussionMembers(
+                                              publicTenant.adminRestContext,
+                                              publicTenant.privateDiscussion.id,
+                                              permissionChanges,
+                                              err => {
+                                                assert.ok(!err);
 
-                                                  // Loggedin user can now view, share, and post on private discussion
-                                                  RestAPI.Discussions.getDiscussion(
-                                                    publicTenant.loggedinUser.restContext,
-                                                    publicTenant.privateDiscussion.id,
-                                                    (err, discussion) => {
-                                                      assert.ok(!err);
+                                                // Loggedin user can now view, share, and post on private discussion
+                                                RestAPI.Discussions.getDiscussion(
+                                                  publicTenant.loggedinUser.restContext,
+                                                  publicTenant.privateDiscussion.id,
+                                                  (err, discussion) => {
+                                                    assert.ok(!err);
 
-                                                      // Basic info
-                                                      assert.strictEqual(
-                                                        discussion.id,
-                                                        discussion.id
-                                                      );
-                                                      assert.strictEqual(
-                                                        discussion.displayName,
-                                                        discussion.displayName
-                                                      );
-                                                      assert.strictEqual(
-                                                        discussion.description,
-                                                        discussion.description
-                                                      );
-                                                      assert.strictEqual(
-                                                        discussion.visibility,
-                                                        discussion.visibility
-                                                      );
-                                                      assert.strictEqual(
-                                                        discussion.created,
-                                                        discussion.lastModified
-                                                      );
-                                                      assert.strictEqual(
-                                                        discussion.created,
-                                                        discussion.created
-                                                      );
-                                                      assert.ok(discussion.tenant);
-                                                      assert.strictEqual(
-                                                        discussion.tenant.alias,
-                                                        publicTenant.tenant.alias
-                                                      );
-                                                      assert.strictEqual(
-                                                        discussion.tenant.displayName,
-                                                        publicTenant.tenant.displayName
-                                                      );
+                                                    // Basic info
+                                                    assert.strictEqual(discussion.id, discussion.id);
+                                                    assert.strictEqual(discussion.displayName, discussion.displayName);
+                                                    assert.strictEqual(discussion.description, discussion.description);
+                                                    assert.strictEqual(discussion.visibility, discussion.visibility);
+                                                    assert.strictEqual(discussion.created, discussion.lastModified);
+                                                    assert.strictEqual(discussion.created, discussion.created);
+                                                    assert.ok(discussion.tenant);
+                                                    assert.strictEqual(
+                                                      discussion.tenant.alias,
+                                                      publicTenant.tenant.alias
+                                                    );
+                                                    assert.strictEqual(
+                                                      discussion.tenant.displayName,
+                                                      publicTenant.tenant.displayName
+                                                    );
 
-                                                      // Access info
-                                                      assert.ok(discussion.isManager);
-                                                      assert.ok(discussion.canPost);
-                                                      assert.ok(discussion.canShare);
+                                                    // Access info
+                                                    assert.ok(discussion.isManager);
+                                                    assert.ok(discussion.canPost);
+                                                    assert.ok(discussion.canShare);
 
-                                                      /// /////////////////////////////////////////
-                                                      // ADMIN USER FROM EXTERNAL PUBLIC TENANT //
-                                                      /// /////////////////////////////////////////
+                                                    /// /////////////////////////////////////////
+                                                    // ADMIN USER FROM EXTERNAL PUBLIC TENANT //
+                                                    /// /////////////////////////////////////////
 
-                                                      // Ensure cross-tenant user cannot see the full profile of loggedin and private
-                                                      RestAPI.Discussions.getDiscussion(
-                                                        publicTenant1.adminRestContext,
-                                                        publicTenant.privateDiscussion.id,
-                                                        err => {
-                                                          assert.ok(err);
-                                                          assert.strictEqual(err.code, 401);
+                                                    // Ensure cross-tenant user cannot see the full profile of loggedin and private
+                                                    RestAPI.Discussions.getDiscussion(
+                                                      publicTenant1.adminRestContext,
+                                                      publicTenant.privateDiscussion.id,
+                                                      err => {
+                                                        assert.ok(err);
+                                                        assert.strictEqual(err.code, 401);
 
-                                                          RestAPI.Discussions.getDiscussion(
-                                                            publicTenant1.adminRestContext,
-                                                            publicTenant.loggedinDiscussion.id,
-                                                            err => {
-                                                              assert.ok(err);
-                                                              assert.strictEqual(err.code, 401);
+                                                        RestAPI.Discussions.getDiscussion(
+                                                          publicTenant1.adminRestContext,
+                                                          publicTenant.loggedinDiscussion.id,
+                                                          err => {
+                                                            assert.ok(err);
+                                                            assert.strictEqual(err.code, 401);
 
-                                                              // Verify they can see, share and post on public discussions (both are public tenants)
-                                                              RestAPI.Discussions.getDiscussion(
-                                                                publicTenant1.adminRestContext,
-                                                                publicTenant.publicDiscussion.id,
-                                                                (err, discussion) => {
-                                                                  assert.ok(!err);
+                                                            // Verify they can see, share and post on public discussions (both are public tenants)
+                                                            RestAPI.Discussions.getDiscussion(
+                                                              publicTenant1.adminRestContext,
+                                                              publicTenant.publicDiscussion.id,
+                                                              (err, discussion) => {
+                                                                assert.ok(!err);
 
-                                                                  // Basic info
-                                                                  assert.strictEqual(
-                                                                    discussion.id,
-                                                                    discussion.id
-                                                                  );
-                                                                  assert.strictEqual(
-                                                                    discussion.displayName,
-                                                                    discussion.displayName
-                                                                  );
-                                                                  assert.strictEqual(
-                                                                    discussion.description,
-                                                                    discussion.description
-                                                                  );
-                                                                  assert.strictEqual(
-                                                                    discussion.visibility,
-                                                                    discussion.visibility
-                                                                  );
-                                                                  assert.strictEqual(
-                                                                    discussion.created,
-                                                                    discussion.lastModified
-                                                                  );
-                                                                  assert.strictEqual(
-                                                                    discussion.created,
-                                                                    discussion.created
-                                                                  );
-                                                                  assert.ok(discussion.tenant);
-                                                                  assert.strictEqual(
-                                                                    discussion.tenant.alias,
-                                                                    publicTenant.tenant.alias
-                                                                  );
-                                                                  assert.strictEqual(
-                                                                    discussion.tenant.displayName,
-                                                                    publicTenant.tenant.displayName
-                                                                  );
+                                                                // Basic info
+                                                                assert.strictEqual(discussion.id, discussion.id);
+                                                                assert.strictEqual(
+                                                                  discussion.displayName,
+                                                                  discussion.displayName
+                                                                );
+                                                                assert.strictEqual(
+                                                                  discussion.description,
+                                                                  discussion.description
+                                                                );
+                                                                assert.strictEqual(
+                                                                  discussion.visibility,
+                                                                  discussion.visibility
+                                                                );
+                                                                assert.strictEqual(
+                                                                  discussion.created,
+                                                                  discussion.lastModified
+                                                                );
+                                                                assert.strictEqual(
+                                                                  discussion.created,
+                                                                  discussion.created
+                                                                );
+                                                                assert.ok(discussion.tenant);
+                                                                assert.strictEqual(
+                                                                  discussion.tenant.alias,
+                                                                  publicTenant.tenant.alias
+                                                                );
+                                                                assert.strictEqual(
+                                                                  discussion.tenant.displayName,
+                                                                  publicTenant.tenant.displayName
+                                                                );
 
-                                                                  // Access info
-                                                                  assert.ok(!discussion.isManager);
-                                                                  assert.ok(discussion.canPost);
-                                                                  assert.ok(discussion.canShare);
+                                                                // Access info
+                                                                assert.ok(!discussion.isManager);
+                                                                assert.ok(discussion.canPost);
+                                                                assert.ok(discussion.canShare);
 
-                                                                  /// //////////////////////////////////////////
-                                                                  // ADMIN USER FROM EXTERNAL PRIVATE TENANT //
-                                                                  /// //////////////////////////////////////////
+                                                                /// //////////////////////////////////////////
+                                                                // ADMIN USER FROM EXTERNAL PRIVATE TENANT //
+                                                                /// //////////////////////////////////////////
 
-                                                                  // Ensure cross-tenant user cannot see the full profile of loggedin and private
-                                                                  RestAPI.Discussions.getDiscussion(
-                                                                    privateTenant1.adminRestContext,
-                                                                    publicTenant.privateDiscussion
-                                                                      .id,
-                                                                    err => {
-                                                                      assert.ok(err);
-                                                                      assert.strictEqual(
-                                                                        err.code,
-                                                                        401
-                                                                      );
+                                                                // Ensure cross-tenant user cannot see the full profile of loggedin and private
+                                                                RestAPI.Discussions.getDiscussion(
+                                                                  privateTenant1.adminRestContext,
+                                                                  publicTenant.privateDiscussion.id,
+                                                                  err => {
+                                                                    assert.ok(err);
+                                                                    assert.strictEqual(err.code, 401);
 
-                                                                      RestAPI.Discussions.getDiscussion(
-                                                                        privateTenant1.adminRestContext,
-                                                                        publicTenant
-                                                                          .loggedinDiscussion.id,
-                                                                        err => {
-                                                                          assert.ok(err);
-                                                                          assert.strictEqual(
-                                                                            err.code,
-                                                                            401
-                                                                          );
+                                                                    RestAPI.Discussions.getDiscussion(
+                                                                      privateTenant1.adminRestContext,
+                                                                      publicTenant.loggedinDiscussion.id,
+                                                                      err => {
+                                                                        assert.ok(err);
+                                                                        assert.strictEqual(err.code, 401);
 
-                                                                          // Verify they can see the public discussion, but cannot post or share because the tenant is private
-                                                                          RestAPI.Discussions.getDiscussion(
-                                                                            privateTenant1.adminRestContext,
-                                                                            publicTenant
-                                                                              .publicDiscussion.id,
-                                                                            (err, discussion) => {
-                                                                              assert.ok(!err);
+                                                                        // Verify they can see the public discussion, but cannot post or share because the tenant is private
+                                                                        RestAPI.Discussions.getDiscussion(
+                                                                          privateTenant1.adminRestContext,
+                                                                          publicTenant.publicDiscussion.id,
+                                                                          (err, discussion) => {
+                                                                            assert.ok(!err);
 
-                                                                              // Basic info
-                                                                              assert.strictEqual(
-                                                                                discussion.id,
-                                                                                discussion.id
-                                                                              );
-                                                                              assert.strictEqual(
-                                                                                discussion.displayName,
-                                                                                discussion.displayName
-                                                                              );
-                                                                              assert.strictEqual(
-                                                                                discussion.description,
-                                                                                discussion.description
-                                                                              );
-                                                                              assert.strictEqual(
-                                                                                discussion.visibility,
-                                                                                discussion.visibility
-                                                                              );
-                                                                              assert.strictEqual(
-                                                                                discussion.created,
-                                                                                discussion.lastModified
-                                                                              );
-                                                                              assert.strictEqual(
-                                                                                discussion.created,
-                                                                                discussion.created
-                                                                              );
-                                                                              assert.ok(
-                                                                                discussion.tenant
-                                                                              );
-                                                                              assert.strictEqual(
-                                                                                discussion.tenant
-                                                                                  .alias,
-                                                                                publicTenant.tenant
-                                                                                  .alias
-                                                                              );
-                                                                              assert.strictEqual(
-                                                                                discussion.tenant
-                                                                                  .displayName,
-                                                                                publicTenant.tenant
-                                                                                  .displayName
-                                                                              );
+                                                                            // Basic info
+                                                                            assert.strictEqual(
+                                                                              discussion.id,
+                                                                              discussion.id
+                                                                            );
+                                                                            assert.strictEqual(
+                                                                              discussion.displayName,
+                                                                              discussion.displayName
+                                                                            );
+                                                                            assert.strictEqual(
+                                                                              discussion.description,
+                                                                              discussion.description
+                                                                            );
+                                                                            assert.strictEqual(
+                                                                              discussion.visibility,
+                                                                              discussion.visibility
+                                                                            );
+                                                                            assert.strictEqual(
+                                                                              discussion.created,
+                                                                              discussion.lastModified
+                                                                            );
+                                                                            assert.strictEqual(
+                                                                              discussion.created,
+                                                                              discussion.created
+                                                                            );
+                                                                            assert.ok(discussion.tenant);
+                                                                            assert.strictEqual(
+                                                                              discussion.tenant.alias,
+                                                                              publicTenant.tenant.alias
+                                                                            );
+                                                                            assert.strictEqual(
+                                                                              discussion.tenant.displayName,
+                                                                              publicTenant.tenant.displayName
+                                                                            );
 
-                                                                              // Access info
-                                                                              assert.ok(
-                                                                                !discussion.isManager
-                                                                              );
-                                                                              assert.ok(
-                                                                                !discussion.canPost
-                                                                              );
-                                                                              assert.ok(
-                                                                                !discussion.canShare
-                                                                              );
+                                                                            // Access info
+                                                                            assert.ok(!discussion.isManager);
+                                                                            assert.ok(!discussion.canPost);
+                                                                            assert.ok(!discussion.canShare);
 
-                                                                              return callback();
-                                                                            }
-                                                                          );
-                                                                        }
-                                                                      );
-                                                                    }
-                                                                  );
-                                                                }
-                                                              );
-                                                            }
-                                                          );
-                                                        }
-                                                      );
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
+                                                                            return callback();
+                                                                          }
+                                                                        );
+                                                                      }
+                                                                    );
+                                                                  }
+                                                                );
+                                                              }
+                                                            );
+                                                          }
+                                                        );
+                                                      }
+                                                    );
+                                                  }
+                                                );
+                                              }
+                                            );
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          });
         }
       );
     });
@@ -1452,55 +1280,33 @@ describe('Discussions', () => {
               assert.ok(!err);
 
               // Verify anonymous user gets a scrubbed createdBy object
-              RestAPI.Discussions.getDiscussion(
-                publicTenant.anonymousRestContext,
-                discussion.id,
-                (err, discussion) => {
-                  assert.ok(!err);
+              RestAPI.Discussions.getDiscussion(publicTenant.anonymousRestContext, discussion.id, (err, discussion) => {
+                assert.ok(!err);
 
-                  // Display name should have been swapped out for the publicAlias
-                  assert.ok(discussion.createdBy);
-                  assert.strictEqual(discussion.createdBy.id, publicTenant.loggedinUser.user.id);
-                  assert.strictEqual(
-                    discussion.createdBy.displayName,
-                    publicTenant.loggedinUser.user.publicAlias
-                  );
+                // Display name should have been swapped out for the publicAlias
+                assert.ok(discussion.createdBy);
+                assert.strictEqual(discussion.createdBy.id, publicTenant.loggedinUser.user.id);
+                assert.strictEqual(discussion.createdBy.displayName, publicTenant.loggedinUser.user.publicAlias);
 
-                  // Verify authenticated user gets a full createdBy object
-                  RestAPI.Discussions.getDiscussion(
-                    publicTenant.publicUser.restContext,
-                    discussion.id,
-                    (err, discussion) => {
-                      assert.ok(!err);
+                // Verify authenticated user gets a full createdBy object
+                RestAPI.Discussions.getDiscussion(
+                  publicTenant.publicUser.restContext,
+                  discussion.id,
+                  (err, discussion) => {
+                    assert.ok(!err);
 
-                      assert.ok(discussion.createdBy);
-                      assert.strictEqual(
-                        discussion.createdBy.id,
-                        publicTenant.loggedinUser.user.id
-                      );
-                      assert.strictEqual(
-                        discussion.createdBy.tenant.alias,
-                        publicTenant.tenant.alias
-                      );
-                      assert.strictEqual(
-                        discussion.createdBy.tenant.displayName,
-                        publicTenant.tenant.displayName
-                      );
-                      assert.strictEqual(
-                        discussion.createdBy.displayName,
-                        publicTenant.loggedinUser.user.displayName
-                      );
-                      assert.ok(!discussion.createdBy.publicAlias);
-                      assert.strictEqual(
-                        discussion.createdBy.visibility,
-                        publicTenant.loggedinUser.user.visibility
-                      );
-                      assert.strictEqual(discussion.createdBy.resourceType, 'user');
-                      return callback();
-                    }
-                  );
-                }
-              );
+                    assert.ok(discussion.createdBy);
+                    assert.strictEqual(discussion.createdBy.id, publicTenant.loggedinUser.user.id);
+                    assert.strictEqual(discussion.createdBy.tenant.alias, publicTenant.tenant.alias);
+                    assert.strictEqual(discussion.createdBy.tenant.displayName, publicTenant.tenant.displayName);
+                    assert.strictEqual(discussion.createdBy.displayName, publicTenant.loggedinUser.user.displayName);
+                    assert.ok(!discussion.createdBy.publicAlias);
+                    assert.strictEqual(discussion.createdBy.visibility, publicTenant.loggedinUser.user.visibility);
+                    assert.strictEqual(discussion.createdBy.resourceType, 'user');
+                    return callback();
+                  }
+                );
+              });
             }
           );
         }
@@ -1557,44 +1363,20 @@ describe('Discussions', () => {
                         if (member.profile.id === publicTenant.loggedinUser.user.id) {
                           hadPublicUser = true;
                           assert.strictEqual(member.role, 'member');
-                          assert.strictEqual(
-                            member.profile.tenant.alias,
-                            publicTenant.tenant.alias
-                          );
-                          assert.strictEqual(
-                            member.profile.tenant.displayName,
-                            publicTenant.tenant.displayName
-                          );
-                          assert.strictEqual(
-                            member.profile.displayName,
-                            publicTenant.loggedinUser.user.publicAlias
-                          );
-                          assert.strictEqual(
-                            member.profile.visibility,
-                            publicTenant.loggedinUser.user.visibility
-                          );
+                          assert.strictEqual(member.profile.tenant.alias, publicTenant.tenant.alias);
+                          assert.strictEqual(member.profile.tenant.displayName, publicTenant.tenant.displayName);
+                          assert.strictEqual(member.profile.displayName, publicTenant.loggedinUser.user.publicAlias);
+                          assert.strictEqual(member.profile.visibility, publicTenant.loggedinUser.user.visibility);
                           assert.ok(!member.profile.profilePath);
                           assert.ok(!member.profile.publicAlias);
                           assert.strictEqual(member.profile.resourceType, 'user');
                         } else if (member.profile.id === publicTenant.privateUser.user.id) {
                           hadLoggedinUser = true;
                           assert.strictEqual(member.role, 'member');
-                          assert.strictEqual(
-                            member.profile.tenant.alias,
-                            publicTenant.tenant.alias
-                          );
-                          assert.strictEqual(
-                            member.profile.tenant.displayName,
-                            publicTenant.tenant.displayName
-                          );
-                          assert.strictEqual(
-                            member.profile.displayName,
-                            publicTenant.privateUser.user.publicAlias
-                          );
-                          assert.strictEqual(
-                            member.profile.visibility,
-                            publicTenant.privateUser.user.visibility
-                          );
+                          assert.strictEqual(member.profile.tenant.alias, publicTenant.tenant.alias);
+                          assert.strictEqual(member.profile.tenant.displayName, publicTenant.tenant.displayName);
+                          assert.strictEqual(member.profile.displayName, publicTenant.privateUser.user.publicAlias);
+                          assert.strictEqual(member.profile.visibility, publicTenant.privateUser.user.visibility);
                           assert.ok(!member.profile.profilePath);
                           assert.ok(!member.profile.publicAlias);
                           assert.strictEqual(member.profile.resourceType, 'user');
@@ -1622,44 +1404,23 @@ describe('Discussions', () => {
                             if (member.profile.id === publicTenant.loggedinUser.user.id) {
                               hadPublicUser = true;
                               assert.strictEqual(member.role, 'member');
-                              assert.strictEqual(
-                                member.profile.tenant.alias,
-                                publicTenant.tenant.alias
-                              );
-                              assert.strictEqual(
-                                member.profile.tenant.displayName,
-                                publicTenant.tenant.displayName
-                              );
+                              assert.strictEqual(member.profile.tenant.alias, publicTenant.tenant.alias);
+                              assert.strictEqual(member.profile.tenant.displayName, publicTenant.tenant.displayName);
                               assert.strictEqual(
                                 member.profile.displayName,
                                 publicTenant.loggedinUser.user.displayName
                               );
-                              assert.strictEqual(
-                                member.profile.visibility,
-                                publicTenant.loggedinUser.user.visibility
-                              );
+                              assert.strictEqual(member.profile.visibility, publicTenant.loggedinUser.user.visibility);
                               assert.ok(member.profile.profilePath);
                               assert.ok(!member.profile.publicAlias);
                               assert.strictEqual(member.profile.resourceType, 'user');
                             } else if (member.profile.id === publicTenant.privateUser.user.id) {
                               hadLoggedinUser = true;
                               assert.strictEqual(member.role, 'member');
-                              assert.strictEqual(
-                                member.profile.tenant.alias,
-                                publicTenant.tenant.alias
-                              );
-                              assert.strictEqual(
-                                member.profile.tenant.displayName,
-                                publicTenant.tenant.displayName
-                              );
-                              assert.strictEqual(
-                                member.profile.displayName,
-                                publicTenant.privateUser.user.publicAlias
-                              );
-                              assert.strictEqual(
-                                member.profile.visibility,
-                                publicTenant.privateUser.user.visibility
-                              );
+                              assert.strictEqual(member.profile.tenant.alias, publicTenant.tenant.alias);
+                              assert.strictEqual(member.profile.tenant.displayName, publicTenant.tenant.displayName);
+                              assert.strictEqual(member.profile.displayName, publicTenant.privateUser.user.publicAlias);
+                              assert.strictEqual(member.profile.visibility, publicTenant.privateUser.user.visibility);
                               assert.ok(!member.profile.profilePath);
                               assert.ok(!member.profile.publicAlias);
                               assert.strictEqual(member.profile.resourceType, 'user');
@@ -1710,84 +1471,78 @@ describe('Discussions', () => {
             assert.ok(!err);
 
             // Get the first 3 members
-            RestAPI.Discussions.getDiscussionMembers(
-              simon.restContext,
-              discussion.id,
-              null,
-              3,
-              (err, members) => {
-                assert.ok(!err);
-                assert.strictEqual(members.results.length, 3);
-                assert.ok(members.nextToken);
+            RestAPI.Discussions.getDiscussionMembers(simon.restContext, discussion.id, null, 3, (err, members) => {
+              assert.ok(!err);
+              assert.strictEqual(members.results.length, 3);
+              assert.ok(members.nextToken);
 
-                const seenMembers = [];
-                _.each(members.results, member => {
-                  seenMembers.push(member.profile.id);
-                });
+              const seenMembers = [];
+              _.each(members.results, member => {
+                seenMembers.push(member.profile.id);
+              });
 
-                // Get the next 3 members
-                RestAPI.Discussions.getDiscussionMembers(
-                  simon.restContext,
-                  discussion.id,
-                  members.nextToken,
-                  3,
-                  (err, members) => {
-                    assert.ok(!err);
-                    assert.strictEqual(members.results.length, 3);
-                    assert.ok(members.nextToken);
+              // Get the next 3 members
+              RestAPI.Discussions.getDiscussionMembers(
+                simon.restContext,
+                discussion.id,
+                members.nextToken,
+                3,
+                (err, members) => {
+                  assert.ok(!err);
+                  assert.strictEqual(members.results.length, 3);
+                  assert.ok(members.nextToken);
 
-                    // Verify we haven't seen any of these members
-                    _.each(members.results, member => {
-                      assert.ok(!_.contains(seenMembers, member.profile.id));
-                    });
+                  // Verify we haven't seen any of these members
+                  _.each(members.results, member => {
+                    assert.ok(!_.contains(seenMembers, member.profile.id));
+                  });
 
-                    // Add these set of members to the 'seen' members list
-                    _.each(members.results, member => {
-                      seenMembers.push(member.profile.id);
-                    });
+                  // Add these set of members to the 'seen' members list
+                  _.each(members.results, member => {
+                    seenMembers.push(member.profile.id);
+                  });
 
-                    // Get another page of members
-                    RestAPI.Discussions.getDiscussionMembers(
-                      simon.restContext,
-                      discussion.id,
-                      members.nextToken,
-                      3,
-                      (err, members) => {
-                        assert.ok(!err);
-                        assert.strictEqual(members.results.length, 3);
-                        assert.ok(members.nextToken);
+                  // Get another page of members
+                  RestAPI.Discussions.getDiscussionMembers(
+                    simon.restContext,
+                    discussion.id,
+                    members.nextToken,
+                    3,
+                    (err, members) => {
+                      assert.ok(!err);
+                      assert.strictEqual(members.results.length, 3);
+                      assert.ok(members.nextToken);
 
-                        // Verify we haven't seen any of these members
-                        _.each(members.results, member => {
-                          assert.ok(!_.contains(seenMembers, member.profile.id));
-                        });
+                      // Verify we haven't seen any of these members
+                      _.each(members.results, member => {
+                        assert.ok(!_.contains(seenMembers, member.profile.id));
+                      });
 
-                        // Add these set of members to the 'seen' members list
-                        _.each(members.results, member => {
-                          seenMembers.push(member.profile.id);
-                        });
+                      // Add these set of members to the 'seen' members list
+                      _.each(members.results, member => {
+                        seenMembers.push(member.profile.id);
+                      });
 
-                        // Get the last member
-                        RestAPI.Discussions.getDiscussionMembers(
-                          simon.restContext,
-                          discussion.id,
-                          members.nextToken,
-                          3,
-                          (err, members) => {
-                            assert.ok(!err);
-                            assert.strictEqual(members.results.length, 1);
+                      // Get the last member
+                      RestAPI.Discussions.getDiscussionMembers(
+                        simon.restContext,
+                        discussion.id,
+                        members.nextToken,
+                        3,
+                        (err, members) => {
+                          assert.ok(!err);
+                          assert.strictEqual(members.results.length, 1);
 
-                            // There are no further results, nextToken should be null
-                            assert.ok(!members.nextToken);
-                            callback();
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
+                          // There are no further results, nextToken should be null
+                          assert.ok(!members.nextToken);
+                          callback();
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            });
           }
         );
       });
@@ -1817,15 +1572,10 @@ describe('Discussions', () => {
 
               const update = {};
               update[bert.user.id] = 'manager';
-              RestAPI.Discussions.updateDiscussionMembers(
-                nico.restContext,
-                discussion.id,
-                update,
-                err => {
-                  assert.strictEqual(err.code, 401);
-                  callback();
-                }
-              );
+              RestAPI.Discussions.updateDiscussionMembers(nico.restContext, discussion.id, update, err => {
+                assert.strictEqual(err.code, 401);
+                callback();
+              });
             }
           );
         });
@@ -1864,15 +1614,10 @@ describe('Discussions', () => {
 
                 const update = {};
                 update[groupObj.id] = 'manager';
-                RestAPI.Discussions.updateDiscussionMembers(
-                  nico.restContext,
-                  discussion.id,
-                  update,
-                  err => {
-                    assert.strictEqual(err.code, 401);
-                    callback();
-                  }
-                );
+                RestAPI.Discussions.updateDiscussionMembers(nico.restContext, discussion.id, update, err => {
+                  assert.strictEqual(err.code, 401);
+                  callback();
+                });
               }
             );
           }
@@ -1921,27 +1666,15 @@ describe('Discussions', () => {
         assert.ok(!err);
         user = _.values(user)[0];
 
-        RestAPI.Discussions.getDiscussionsLibrary(
-          user.restContext,
-          'not-a-valid-id',
-          null,
-          null,
-          (err, items) => {
-            assert.ok(err);
-            assert.strictEqual(err.code, 400);
+        RestAPI.Discussions.getDiscussionsLibrary(user.restContext, 'not-a-valid-id', null, null, (err, items) => {
+          assert.ok(err);
+          assert.strictEqual(err.code, 400);
 
-            RestAPI.Discussions.getDiscussionsLibrary(
-              user.restContext,
-              user.user.id,
-              null,
-              null,
-              (err, items) => {
-                assert.ok(!err);
-                return callback();
-              }
-            );
-          }
-        );
+          RestAPI.Discussions.getDiscussionsLibrary(user.restContext, user.user.id, null, null, (err, items) => {
+            assert.ok(!err);
+            return callback();
+          });
+        });
       });
     });
 
@@ -1972,24 +1705,12 @@ describe('Discussions', () => {
 
                   const discussion = items.results[0];
                   assert.strictEqual(discussion.tenant.alias, publicTenant.tenant.alias);
-                  assert.strictEqual(
-                    discussion.tenant.displayName,
-                    publicTenant.tenant.displayName
-                  );
+                  assert.strictEqual(discussion.tenant.displayName, publicTenant.tenant.displayName);
                   assert.strictEqual(discussion.id, publicTenant.publicDiscussion.id);
                   assert.strictEqual(discussion.createdBy, publicTenant.publicDiscussion.createdBy);
-                  assert.strictEqual(
-                    discussion.displayName,
-                    publicTenant.publicDiscussion.displayName
-                  );
-                  assert.strictEqual(
-                    discussion.description,
-                    publicTenant.publicDiscussion.description
-                  );
-                  assert.strictEqual(
-                    discussion.visibility,
-                    publicTenant.publicDiscussion.visibility
-                  );
+                  assert.strictEqual(discussion.displayName, publicTenant.publicDiscussion.displayName);
+                  assert.strictEqual(discussion.description, publicTenant.publicDiscussion.description);
+                  assert.strictEqual(discussion.visibility, publicTenant.publicDiscussion.visibility);
                   assert.strictEqual(discussion.created, publicTenant.publicDiscussion.created);
                   assert.ok(discussion.lastModified);
                   return callback();
@@ -2069,10 +1790,7 @@ describe('Discussions', () => {
                                 null,
                                 (err, items) => {
                                   assert.ok(!err);
-                                  _assertContainsItem(
-                                    items.results,
-                                    publicTenant.publicDiscussion.id
-                                  );
+                                  _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
 
                                   // Verify cross-tenant admin can see it
                                   RestAPI.Discussions.getDiscussionsLibrary(
@@ -2082,10 +1800,7 @@ describe('Discussions', () => {
                                     null,
                                     (err, items) => {
                                       assert.ok(!err);
-                                      _assertContainsItem(
-                                        items.results,
-                                        publicTenant.publicDiscussion.id
-                                      );
+                                      _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
 
                                       /// /////////////////////////////////////////////////////
                                       // VERIFY LOGGEDIN DISCUSSION VISIBILITY IN LIBRARIES //
@@ -2117,10 +1832,7 @@ describe('Discussions', () => {
                                                 null,
                                                 (err, items) => {
                                                   assert.ok(!err);
-                                                  _assertContainsItem(
-                                                    items.results,
-                                                    publicTenant.publicDiscussion.id
-                                                  );
+                                                  _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
 
                                                   // Verify own user can see it
                                                   RestAPI.Discussions.getDiscussionsLibrary(
@@ -2179,10 +1891,8 @@ describe('Discussions', () => {
                                                                   /// ////////////////////////////////////////////////////
 
                                                                   DiscussionsTestsUtil.assertUpdateDiscussionSucceeds(
-                                                                    publicTenant.publicUser
-                                                                      .restContext,
-                                                                    publicTenant.publicDiscussion
-                                                                      .id,
+                                                                    publicTenant.publicUser.restContext,
+                                                                    publicTenant.publicDiscussion.id,
                                                                     { visibility: 'private' },
                                                                     () => {
                                                                       assert.ok(!err);
@@ -2190,120 +1900,81 @@ describe('Discussions', () => {
                                                                       // Verify anonymous user cannot see it
                                                                       RestAPI.Discussions.getDiscussionsLibrary(
                                                                         publicTenant.anonymousRestContext,
-                                                                        publicTenant.publicUser.user
-                                                                          .id,
+                                                                        publicTenant.publicUser.user.id,
                                                                         null,
                                                                         null,
                                                                         (err, items) => {
                                                                           assert.ok(!err);
                                                                           _assertDoesNotContainItem(
                                                                             items.results,
-                                                                            publicTenant
-                                                                              .publicDiscussion.id
+                                                                            publicTenant.publicDiscussion.id
                                                                           );
                                                                           // Verify authenticated user cannot see it
                                                                           RestAPI.Discussions.getDiscussionsLibrary(
-                                                                            publicTenant
-                                                                              .loggedinUser
-                                                                              .restContext,
-                                                                            publicTenant.publicUser
-                                                                              .user.id,
+                                                                            publicTenant.loggedinUser.restContext,
+                                                                            publicTenant.publicUser.user.id,
                                                                             null,
                                                                             null,
                                                                             (err, items) => {
                                                                               assert.ok(!err);
                                                                               _assertDoesNotContainItem(
                                                                                 items.results,
-                                                                                publicTenant
-                                                                                  .publicDiscussion
-                                                                                  .id
+                                                                                publicTenant.publicDiscussion.id
                                                                               );
 
                                                                               // Verify own user can see it
                                                                               RestAPI.Discussions.getDiscussionsLibrary(
-                                                                                publicTenant
-                                                                                  .publicUser
-                                                                                  .restContext,
-                                                                                publicTenant
-                                                                                  .publicUser.user
-                                                                                  .id,
+                                                                                publicTenant.publicUser.restContext,
+                                                                                publicTenant.publicUser.user.id,
                                                                                 null,
                                                                                 null,
                                                                                 (err, items) => {
                                                                                   assert.ok(!err);
                                                                                   _assertContainsItem(
                                                                                     items.results,
-                                                                                    publicTenant
-                                                                                      .publicDiscussion
-                                                                                      .id
+                                                                                    publicTenant.publicDiscussion.id
                                                                                   );
                                                                                   // Verify cross-tenant user cannot see it
                                                                                   RestAPI.Discussions.getDiscussionsLibrary(
-                                                                                    publicTenant1
-                                                                                      .publicUser
+                                                                                    publicTenant1.publicUser
                                                                                       .restContext,
-                                                                                    publicTenant
-                                                                                      .publicUser
-                                                                                      .user.id,
+                                                                                    publicTenant.publicUser.user.id,
                                                                                     null,
                                                                                     null,
-                                                                                    (
-                                                                                      err,
-                                                                                      items
-                                                                                    ) => {
-                                                                                      assert.ok(
-                                                                                        !err
-                                                                                      );
+                                                                                    (err, items) => {
+                                                                                      assert.ok(!err);
                                                                                       _assertDoesNotContainItem(
                                                                                         items.results,
-                                                                                        publicTenant
-                                                                                          .publicDiscussion
-                                                                                          .id
+                                                                                        publicTenant.publicDiscussion.id
                                                                                       );
 
                                                                                       // Verify cross-tenant anonymous cannot see it
                                                                                       RestAPI.Discussions.getDiscussionsLibrary(
                                                                                         publicTenant1.anonymousRestContext,
-                                                                                        publicTenant
-                                                                                          .publicUser
-                                                                                          .user.id,
+                                                                                        publicTenant.publicUser.user.id,
                                                                                         null,
                                                                                         null,
-                                                                                        (
-                                                                                          err,
-                                                                                          items
-                                                                                        ) => {
-                                                                                          assert.ok(
-                                                                                            !err
-                                                                                          );
+                                                                                        (err, items) => {
+                                                                                          assert.ok(!err);
                                                                                           _assertDoesNotContainItem(
                                                                                             items.results,
                                                                                             publicTenant
-                                                                                              .publicDiscussion
-                                                                                              .id
+                                                                                              .publicDiscussion.id
                                                                                           );
 
                                                                                           // Verify cross-tenant admin cannot see it
                                                                                           RestAPI.Discussions.getDiscussionsLibrary(
                                                                                             publicTenant1.adminRestContext,
-                                                                                            publicTenant
-                                                                                              .publicUser
-                                                                                              .user
+                                                                                            publicTenant.publicUser.user
                                                                                               .id,
                                                                                             null,
                                                                                             null,
-                                                                                            (
-                                                                                              err,
-                                                                                              items
-                                                                                            ) => {
-                                                                                              assert.ok(
-                                                                                                !err
-                                                                                              );
+                                                                                            (err, items) => {
+                                                                                              assert.ok(!err);
                                                                                               _assertDoesNotContainItem(
                                                                                                 items.results,
                                                                                                 publicTenant
-                                                                                                  .publicDiscussion
-                                                                                                  .id
+                                                                                                  .publicDiscussion.id
                                                                                               );
                                                                                               return callback();
                                                                                             }
@@ -2413,14 +2084,8 @@ describe('Discussions', () => {
                                 (err, items) => {
                                   assert.ok(!err);
                                   assert.strictEqual(items.results.length, 2);
-                                  _assertContainsItem(
-                                    items.results,
-                                    publicTenant.publicDiscussion.id
-                                  );
-                                  _assertContainsItem(
-                                    items.results,
-                                    publicTenant.loggedinDiscussion.id
-                                  );
+                                  _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
+                                  _assertContainsItem(items.results, publicTenant.loggedinDiscussion.id);
 
                                   // Verify member gets private library
                                   RestAPI.Discussions.getDiscussionsLibrary(
@@ -2431,18 +2096,9 @@ describe('Discussions', () => {
                                     (err, items) => {
                                       assert.ok(!err);
                                       assert.strictEqual(items.results.length, 3);
-                                      _assertContainsItem(
-                                        items.results,
-                                        publicTenant.publicDiscussion.id
-                                      );
-                                      _assertContainsItem(
-                                        items.results,
-                                        publicTenant.loggedinDiscussion.id
-                                      );
-                                      _assertContainsItem(
-                                        items.results,
-                                        publicTenant.privateDiscussion.id
-                                      );
+                                      _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
+                                      _assertContainsItem(items.results, publicTenant.loggedinDiscussion.id);
+                                      _assertContainsItem(items.results, publicTenant.privateDiscussion.id);
 
                                       // Verify authenticated cross-tenant user gets public library
                                       RestAPI.Discussions.getDiscussionsLibrary(
@@ -2453,10 +2109,7 @@ describe('Discussions', () => {
                                         (err, items) => {
                                           assert.ok(!err);
                                           assert.strictEqual(items.results.length, 1);
-                                          _assertContainsItem(
-                                            items.results,
-                                            publicTenant.publicDiscussion.id
-                                          );
+                                          _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
 
                                           // Verify admin gets private library
                                           RestAPI.Discussions.getDiscussionsLibrary(
@@ -2467,18 +2120,9 @@ describe('Discussions', () => {
                                             (err, items) => {
                                               assert.ok(!err);
                                               assert.strictEqual(items.results.length, 3);
-                                              _assertContainsItem(
-                                                items.results,
-                                                publicTenant.publicDiscussion.id
-                                              );
-                                              _assertContainsItem(
-                                                items.results,
-                                                publicTenant.loggedinDiscussion.id
-                                              );
-                                              _assertContainsItem(
-                                                items.results,
-                                                publicTenant.privateDiscussion.id
-                                              );
+                                              _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
+                                              _assertContainsItem(items.results, publicTenant.loggedinDiscussion.id);
+                                              _assertContainsItem(items.results, publicTenant.privateDiscussion.id);
 
                                               return callback();
                                             }
@@ -2529,53 +2173,33 @@ describe('Discussions', () => {
             assert.ok(!err);
 
             // Verify cannot share with invalid discussion id
-            RestAPI.Discussions.shareDiscussion(
-              user1.restContext,
-              'not-a-valid-id',
-              [user2.user.id],
-              err => {
+            RestAPI.Discussions.shareDiscussion(user1.restContext, 'not-a-valid-id', [user2.user.id], err => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 400);
+
+              // Verify cannoy share with no target users
+              RestAPI.Discussions.shareDiscussion(user1.restContext, discussion.id, [], err => {
                 assert.ok(err);
                 assert.strictEqual(err.code, 400);
 
-                // Verify cannoy share with no target users
-                RestAPI.Discussions.shareDiscussion(user1.restContext, discussion.id, [], err => {
+                RestAPI.Discussions.shareDiscussion(user1.restContext, discussion.id, null, err => {
                   assert.ok(err);
                   assert.strictEqual(err.code, 400);
 
-                  RestAPI.Discussions.shareDiscussion(
-                    user1.restContext,
-                    discussion.id,
-                    null,
-                    err => {
-                      assert.ok(err);
-                      assert.strictEqual(err.code, 400);
+                  // Verify cannot share with invalid target
+                  RestAPI.Discussions.shareDiscussion(user1.restContext, discussion.id, ['not-a-valid-id'], err => {
+                    assert.ok(err);
+                    assert.strictEqual(err.code, 400);
 
-                      // Verify cannot share with invalid target
-                      RestAPI.Discussions.shareDiscussion(
-                        user1.restContext,
-                        discussion.id,
-                        ['not-a-valid-id'],
-                        err => {
-                          assert.ok(err);
-                          assert.strictEqual(err.code, 400);
-
-                          // Sanity check
-                          RestAPI.Discussions.shareDiscussion(
-                            user1.restContext,
-                            discussion.id,
-                            [user2.user.id],
-                            err => {
-                              assert.ok(!err);
-                              return callback();
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
+                    // Sanity check
+                    RestAPI.Discussions.shareDiscussion(user1.restContext, discussion.id, [user2.user.id], err => {
+                      assert.ok(!err);
+                      return callback();
+                    });
+                  });
                 });
-              }
-            );
+              });
+            });
           }
         );
       });
@@ -2773,10 +2397,7 @@ describe('Discussions', () => {
                                                         null,
                                                         (err, items) => {
                                                           assert.ok(!err);
-                                                          assert.strictEqual(
-                                                            items.results.length,
-                                                            2
-                                                          );
+                                                          assert.strictEqual(items.results.length, 2);
                                                           _assertContainsItem(
                                                             items.results,
                                                             publicTenant.loggedinDiscussion.id
@@ -2865,84 +2486,69 @@ describe('Discussions', () => {
             assert.ok(!err);
 
             // Verify invalid discussion id
-            RestAPI.Discussions.updateDiscussionMembers(
-              user1.restContext,
-              'not-a-valid-id',
-              user2Update,
-              err => {
+            RestAPI.Discussions.updateDiscussionMembers(user1.restContext, 'not-a-valid-id', user2Update, err => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 400);
+
+              // Verify null update
+              RestAPI.Discussions.updateDiscussionMembers(user1.restContext, discussion.id, null, err => {
                 assert.ok(err);
                 assert.strictEqual(err.code, 400);
 
-                // Verify null update
-                RestAPI.Discussions.updateDiscussionMembers(
-                  user1.restContext,
-                  discussion.id,
-                  null,
-                  err => {
-                    assert.ok(err);
-                    assert.strictEqual(err.code, 400);
+                // Verify no updates
+                RestAPI.Discussions.updateDiscussionMembers(user1.restContext, discussion.id, {}, err => {
+                  assert.ok(err);
+                  assert.strictEqual(err.code, 400);
 
-                    // Verify no updates
-                    RestAPI.Discussions.updateDiscussionMembers(
-                      user1.restContext,
-                      discussion.id,
-                      {},
-                      err => {
-                        assert.ok(err);
-                        assert.strictEqual(err.code, 400);
+                  // Verify invalid member id
+                  RestAPI.Discussions.updateDiscussionMembers(
+                    user1.restContext,
+                    discussion.id,
+                    { 'not-a-valid-id': 'member' },
+                    err => {
+                      assert.ok(err);
+                      assert.strictEqual(err.code, 400);
 
-                        // Verify invalid member id
-                        RestAPI.Discussions.updateDiscussionMembers(
-                          user1.restContext,
-                          discussion.id,
-                          { 'not-a-valid-id': 'member' },
-                          err => {
-                            assert.ok(err);
-                            assert.strictEqual(err.code, 400);
+                      // Verify invalid role
+                      user2Update[user2.user.id] = 'not-a-valid-role';
+                      RestAPI.Discussions.updateDiscussionMembers(
+                        user1.restContext,
+                        discussion.id,
+                        user2Update,
+                        err => {
+                          assert.ok(err);
+                          assert.strictEqual(err.code, 400);
 
-                            // Verify invalid role
-                            user2Update[user2.user.id] = 'not-a-valid-role';
-                            RestAPI.Discussions.updateDiscussionMembers(
-                              user1.restContext,
-                              discussion.id,
-                              user2Update,
-                              err => {
-                                assert.ok(err);
-                                assert.strictEqual(err.code, 400);
+                          // Verify the user is not a member
+                          user2Update[user2.user.id] = 'member';
+                          RestAPI.Discussions.getDiscussionMembers(
+                            user1.restContext,
+                            discussion.id,
+                            null,
+                            null,
+                            (err, members) => {
+                              assert.ok(!err);
+                              assert.strictEqual(members.results.length, 1);
 
-                                // Verify the user is not a member
-                                user2Update[user2.user.id] = 'member';
-                                RestAPI.Discussions.getDiscussionMembers(
-                                  user1.restContext,
-                                  discussion.id,
-                                  null,
-                                  null,
-                                  (err, members) => {
-                                    assert.ok(!err);
-                                    assert.strictEqual(members.results.length, 1);
-
-                                    // Sanity check the inputs for success
-                                    RestAPI.Discussions.updateDiscussionMembers(
-                                      user1.restContext,
-                                      discussion.id,
-                                      user2Update,
-                                      err => {
-                                        assert.ok(!err);
-                                        return callback();
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
+                              // Sanity check the inputs for success
+                              RestAPI.Discussions.updateDiscussionMembers(
+                                user1.restContext,
+                                discussion.id,
+                                user2Update,
+                                err => {
+                                  assert.ok(!err);
+                                  return callback();
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                });
+              });
+            });
           }
         );
       });
@@ -3058,17 +2664,11 @@ describe('Discussions', () => {
                                               let hadPublicUser = false;
                                               let hadLoggedinUser = false;
                                               _.each(items.results, result => {
-                                                if (
-                                                  result.profile.id ===
-                                                  publicTenant.publicUser.user.id
-                                                ) {
+                                                if (result.profile.id === publicTenant.publicUser.user.id) {
                                                   // Ensure the public user is now a manager
                                                   hadPublicUser = true;
                                                   assert.strictEqual(result.role, 'manager');
-                                                } else if (
-                                                  result.profile.id ===
-                                                  publicTenant.loggedinUser.user.id
-                                                ) {
+                                                } else if (result.profile.id === publicTenant.loggedinUser.user.id) {
                                                   // Ensure the loggedin user is just a member
                                                   hadLoggedinUser = true;
                                                   assert.strictEqual(result.role, 'member');
@@ -3183,11 +2783,7 @@ describe('Discussions', () => {
                                             publicTenant.loggedinDiscussion.id,
                                             err => {
                                               assert.ok(err);
-                                              assert.strictEqual(
-                                                err.code,
-                                                401,
-                                                JSON.stringify(err)
-                                              );
+                                              assert.strictEqual(err.code, 401, JSON.stringify(err));
 
                                               // 3.2 Make sure it is still there
                                               RestAPI.Discussions.getDiscussionsLibrary(
@@ -3234,8 +2830,7 @@ describe('Discussions', () => {
 
                                                               // Try and remove it with a manager user. Should succeed
                                                               RestAPI.Discussions.removeDiscussionFromLibrary(
-                                                                publicTenant.loggedinUser
-                                                                  .restContext,
+                                                                publicTenant.loggedinUser.restContext,
                                                                 group.id,
                                                                 publicTenant.loggedinDiscussion.id,
                                                                 err => {
@@ -3243,10 +2838,8 @@ describe('Discussions', () => {
 
                                                                   // Share an item with the group again
                                                                   RestAPI.Discussions.shareDiscussion(
-                                                                    publicTenant.publicUser
-                                                                      .restContext,
-                                                                    publicTenant.loggedinDiscussion
-                                                                      .id,
+                                                                    publicTenant.publicUser.restContext,
+                                                                    publicTenant.loggedinDiscussion.id,
                                                                     [group.id],
                                                                     err => {
                                                                       assert.ok(!err);
@@ -3255,8 +2848,7 @@ describe('Discussions', () => {
                                                                       RestAPI.Discussions.removeDiscussionFromLibrary(
                                                                         publicTenant.adminRestContext,
                                                                         group.id,
-                                                                        publicTenant
-                                                                          .loggedinDiscussion.id,
+                                                                        publicTenant.loggedinDiscussion.id,
                                                                         err => {
                                                                           assert.ok(!err);
 
@@ -3264,15 +2856,10 @@ describe('Discussions', () => {
                                                                           RestAPI.Discussions.removeDiscussionFromLibrary(
                                                                             publicTenant.adminRestContext,
                                                                             group.id,
-                                                                            publicTenant
-                                                                              .loggedinDiscussion
-                                                                              .id,
+                                                                            publicTenant.loggedinDiscussion.id,
                                                                             err => {
                                                                               assert.ok(err);
-                                                                              assert.ok(
-                                                                                err.code,
-                                                                                400
-                                                                              );
+                                                                              assert.ok(err.code, 400);
                                                                               return callback();
                                                                             }
                                                                           );
@@ -3337,51 +2924,31 @@ describe('Discussions', () => {
             assert.ok(!err);
 
             // Try and make user1 remove it from their library, they shouldn't as they are only manager
-            RestAPI.Discussions.removeDiscussionFromLibrary(
-              user1.restContext,
-              user1.user.id,
-              discussion.id,
-              err => {
+            RestAPI.Discussions.removeDiscussionFromLibrary(user1.restContext, user1.user.id, discussion.id, err => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 400);
+
+              // Try and demote user1 to member when they are the only manager
+              const makeUserMember = {};
+              makeUserMember[user1.user.id] = 'member';
+              RestAPI.Discussions.updateDiscussionMembers(camAdminRestCtx, discussion.id, makeUserMember, err => {
                 assert.ok(err);
                 assert.strictEqual(err.code, 400);
 
-                // Try and demote user1 to member when they are the only manager
-                const makeUserMember = {};
-                makeUserMember[user1.user.id] = 'member';
-                RestAPI.Discussions.updateDiscussionMembers(
-                  camAdminRestCtx,
-                  discussion.id,
-                  makeUserMember,
-                  err => {
-                    assert.ok(err);
-                    assert.strictEqual(err.code, 400);
+                // Make user2 manager so we can test demoting user1 now
+                const makeUser2Manager = {};
+                makeUser2Manager[user2.user.id] = 'manager';
+                RestAPI.Discussions.updateDiscussionMembers(user1.restContext, discussion.id, makeUser2Manager, err => {
+                  assert.ok(!err);
 
-                    // Make user2 manager so we can test demoting user1 now
-                    const makeUser2Manager = {};
-                    makeUser2Manager[user2.user.id] = 'manager';
-                    RestAPI.Discussions.updateDiscussionMembers(
-                      user1.restContext,
-                      discussion.id,
-                      makeUser2Manager,
-                      err => {
-                        assert.ok(!err);
-
-                        // Admin should now be able to demote user1 since there is another manager
-                        RestAPI.Discussions.updateDiscussionMembers(
-                          camAdminRestCtx,
-                          discussion.id,
-                          makeUserMember,
-                          err => {
-                            assert.ok(!err);
-                            return callback();
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
+                  // Admin should now be able to demote user1 since there is another manager
+                  RestAPI.Discussions.updateDiscussionMembers(camAdminRestCtx, discussion.id, makeUserMember, err => {
+                    assert.ok(!err);
+                    return callback();
+                  });
+                });
+              });
+            });
           }
         );
       });
@@ -3395,36 +2962,31 @@ describe('Discussions', () => {
         assert.ok(!err);
         user = _.values(user)[0];
 
-        RestAPI.Discussions.removeDiscussionFromLibrary(
-          user.restContext,
-          user.user.id,
-          'not-a-valid-id',
-          err => {
-            assert.ok(err);
-            assert.strictEqual(err.code, 400, JSON.stringify(err, null, 4));
+        RestAPI.Discussions.removeDiscussionFromLibrary(user.restContext, user.user.id, 'not-a-valid-id', err => {
+          assert.ok(err);
+          assert.strictEqual(err.code, 400, JSON.stringify(err, null, 4));
 
-            RestAPI.Discussions.removeDiscussionFromLibrary(
-              user.restContext,
-              'not-a-valid-id',
-              'd:cam:somenonexistent',
-              err => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 400);
+          RestAPI.Discussions.removeDiscussionFromLibrary(
+            user.restContext,
+            'not-a-valid-id',
+            'd:cam:somenonexistent',
+            err => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 400);
 
-                RestAPI.Discussions.removeDiscussionFromLibrary(
-                  user.restContext,
-                  user.user.id,
-                  'd:cam:somenonexistent',
-                  err => {
-                    assert.ok(err);
-                    assert.strictEqual(err.code, 404);
-                    return callback();
-                  }
-                );
-              }
-            );
-          }
-        );
+              RestAPI.Discussions.removeDiscussionFromLibrary(
+                user.restContext,
+                user.user.id,
+                'd:cam:somenonexistent',
+                err => {
+                  assert.ok(err);
+                  assert.strictEqual(err.code, 404);
+                  return callback();
+                }
+              );
+            }
+          );
+        });
       });
     });
 
@@ -3462,127 +3024,117 @@ describe('Discussions', () => {
                 assert.ok(!err);
 
                 // List the feed to seed the library with the given data
-                RestAPI.Discussions.getDiscussionsLibrary(
-                  user.restContext,
-                  user.user.id,
-                  null,
-                  null,
-                  (err, items) => {
-                    assert.ok(!err);
-                    assert.strictEqual(items.results.length, 2);
+                RestAPI.Discussions.getDiscussionsLibrary(user.restContext, user.user.id, null, null, (err, items) => {
+                  assert.ok(!err);
+                  assert.strictEqual(items.results.length, 2);
 
-                    // Revert the discussion2 lastModified to over an hour ago so we can induce a duplicate
-                    const oldLastModified = discussion2.lastModified - 1 * 60 * 61 * 1000;
-                    DiscussionsDAO.updateDiscussion(
-                      discussion2,
-                      { lastModified: oldLastModified },
-                      (err, discussion2) => {
-                        assert.ok(!err);
+                  // Revert the discussion2 lastModified to over an hour ago so we can induce a duplicate
+                  const oldLastModified = discussion2.lastModified - 1 * 60 * 61 * 1000;
+                  DiscussionsDAO.updateDiscussion(
+                    discussion2,
+                    { lastModified: oldLastModified },
+                    (err, discussion2) => {
+                      assert.ok(!err);
 
-                        // Post a message to force it to update the lastModified. This will cause a duplicate because we tampered with the lastModified
-                        RestAPI.Discussions.createMessage(
-                          user.restContext,
-                          discussion2.id,
-                          'My message',
-                          null,
-                          (err, message) => {
-                            assert.ok(!err);
-                            LibraryAPI.Index.whenUpdatesComplete(() => {
-                              // At this point we will have 3 items in our library index. 2 for discussion2 and one for discssion1. Now we page to observe
-                              // the auto-repair. Since the library update happens asynchronously to the message, we need to try several times to jam it
-                              // through.
+                      // Post a message to force it to update the lastModified. This will cause a duplicate because we tampered with the lastModified
+                      RestAPI.Discussions.createMessage(
+                        user.restContext,
+                        discussion2.id,
+                        'My message',
+                        null,
+                        (err, message) => {
+                          assert.ok(!err);
+                          LibraryAPI.Index.whenUpdatesComplete(() => {
+                            // At this point we will have 3 items in our library index. 2 for discussion2 and one for discssion1. Now we page to observe
+                            // the auto-repair. Since the library update happens asynchronously to the message, we need to try several times to jam it
+                            // through.
 
-                              /*!
-                               * Continue checking the library feed until the tries run out. When the feed reaches a state where it is inconsistent
-                               * (i.e., a fetch of 2 items only returns 1, and there are more to fetch), then we proceed to fetch the feed until it
-                               * has become consistent again (i.e., the fetch of 2 items once again returns exactly 2 items)
-                               *
-                               * If this fails, it means the feed has not become inconsistent. What gives?
-                               *
-                               * @param  {Number}     triesLeft   The number of tries to perform
-                               */
-                              const _checkDuplicatedFeed = function(triesLeft) {
-                                if (triesLeft === 0) {
-                                  // Fail if we have run out of tries
-                                  assert.fail(
-                                    'The library did not incur a duplicate within a certain amount of tries'
-                                  );
-                                }
+                            /*!
+                             * Continue checking the library feed until the tries run out. When the feed reaches a state where it is inconsistent
+                             * (i.e., a fetch of 2 items only returns 1, and there are more to fetch), then we proceed to fetch the feed until it
+                             * has become consistent again (i.e., the fetch of 2 items once again returns exactly 2 items)
+                             *
+                             * If this fails, it means the feed has not become inconsistent. What gives?
+                             *
+                             * @param  {Number}     triesLeft   The number of tries to perform
+                             */
+                            const _checkDuplicatedFeed = function(triesLeft) {
+                              if (triesLeft === 0) {
+                                // Fail if we have run out of tries
+                                assert.fail('The library did not incur a duplicate within a certain amount of tries');
+                              }
 
-                                // The first time, we set a limit 2, we should end up with only 1. Because the one duplicate was filtered out
-                                RestAPI.Discussions.getDiscussionsLibrary(
-                                  user.restContext,
-                                  user.user.id,
-                                  null,
-                                  2,
-                                  (err, items) => {
-                                    assert.ok(!err);
+                              // The first time, we set a limit 2, we should end up with only 1. Because the one duplicate was filtered out
+                              RestAPI.Discussions.getDiscussionsLibrary(
+                                user.restContext,
+                                user.user.id,
+                                null,
+                                2,
+                                (err, items) => {
+                                  assert.ok(!err);
 
-                                    try {
-                                      assert.strictEqual(items.results.length, 1);
-                                      _assertContainsItem(items.results, discussion2.id);
+                                  try {
+                                    assert.strictEqual(items.results.length, 1);
+                                    _assertContainsItem(items.results, discussion2.id);
 
-                                      // NextToken should be there because there was still 1 item to page through (discussion1)
-                                      assert.ok(items.nextToken);
+                                    // NextToken should be there because there was still 1 item to page through (discussion1)
+                                    assert.ok(items.nextToken);
 
-                                      // We fetch an inconsistent feed, this is good. This fetch, since it was inconsistent should have
-                                      // triggered a repair. Now check the feed until it has been repaired
-                                      return _checkRepairedFeed(10);
-                                    } catch (error) {
-                                      return setTimeout(_checkDuplicatedFeed, 50, triesLeft - 1);
-                                    }
+                                    // We fetch an inconsistent feed, this is good. This fetch, since it was inconsistent should have
+                                    // triggered a repair. Now check the feed until it has been repaired
+                                    return _checkRepairedFeed(10);
+                                  } catch (error) {
+                                    return setTimeout(_checkDuplicatedFeed, 50, triesLeft - 1);
                                   }
-                                );
-                              };
-
-                              /*!
-                               * Continue checking the library feed until it comes consistent.
-                               *
-                               * If this fails, it means the feed never returned to be consistent. What gives?
-                               *
-                               * @param  {Number}     triesLeft   The number of tries to perform
-                               */
-                              const _checkRepairedFeed = function(triesLeft) {
-                                if (triesLeft === 0) {
-                                  assert.fail(
-                                    'The library feed was not auto-repaired within a certain amount of tries.'
-                                  );
                                 }
+                              );
+                            };
 
-                                triesLeft--;
+                            /*!
+                             * Continue checking the library feed until it comes consistent.
+                             *
+                             * If this fails, it means the feed never returned to be consistent. What gives?
+                             *
+                             * @param  {Number}     triesLeft   The number of tries to perform
+                             */
+                            const _checkRepairedFeed = function(triesLeft) {
+                              if (triesLeft === 0) {
+                                assert.fail('The library feed was not auto-repaired within a certain amount of tries.');
+                              }
 
-                                RestAPI.Discussions.getDiscussionsLibrary(
-                                  user.restContext,
-                                  user.user.id,
-                                  null,
-                                  2,
-                                  (err, items) => {
-                                    assert.ok(!err);
+                              triesLeft--;
 
-                                    try {
-                                      assert.strictEqual(items.results.length, 2);
-                                      _assertContainsItem(items.results, discussion2.id);
-                                      _assertContainsItem(items.results, discussion1.id);
+                              RestAPI.Discussions.getDiscussionsLibrary(
+                                user.restContext,
+                                user.user.id,
+                                null,
+                                2,
+                                (err, items) => {
+                                  assert.ok(!err);
 
-                                      // Everything checked out, continue on with the tests!
-                                      return callback();
-                                    } catch (error) {
-                                      // Not in the right state yet. Try again
-                                      return _checkRepairedFeed(triesLeft);
-                                    }
+                                  try {
+                                    assert.strictEqual(items.results.length, 2);
+                                    _assertContainsItem(items.results, discussion2.id);
+                                    _assertContainsItem(items.results, discussion1.id);
+
+                                    // Everything checked out, continue on with the tests!
+                                    return callback();
+                                  } catch (error) {
+                                    // Not in the right state yet. Try again
+                                    return _checkRepairedFeed(triesLeft);
                                   }
-                                );
-                              };
+                                }
+                              );
+                            };
 
-                              // Start the check for an inconsistent feed
-                              _checkDuplicatedFeed(100);
-                            });
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
+                            // Start the check for an inconsistent feed
+                            _checkDuplicatedFeed(100);
+                          });
+                        }
+                      );
+                    }
+                  );
+                });
               }
             );
           }
@@ -3628,70 +3180,64 @@ describe('Discussions', () => {
                 assert.ok(!message);
 
                 // Test no body
-                RestAPI.Discussions.createMessage(
-                  user1.restContext,
-                  discussion.id,
-                  null,
-                  null,
-                  (err, message) => {
-                    assert.ok(err);
-                    assert.strictEqual(err.code, 400);
-                    assert.ok(!message);
+                RestAPI.Discussions.createMessage(user1.restContext, discussion.id, null, null, (err, message) => {
+                  assert.ok(err);
+                  assert.strictEqual(err.code, 400);
+                  assert.ok(!message);
 
-                    // Test invalid reply-to timestamp
-                    RestAPI.Discussions.createMessage(
-                      user1.restContext,
-                      discussion.id,
-                      'This should result in a 400',
-                      'NaN',
-                      (err, message) => {
-                        assert.ok(err);
-                        assert.strictEqual(err.code, 400);
-                        assert.ok(!message);
+                  // Test invalid reply-to timestamp
+                  RestAPI.Discussions.createMessage(
+                    user1.restContext,
+                    discussion.id,
+                    'This should result in a 400',
+                    'NaN',
+                    (err, message) => {
+                      assert.ok(err);
+                      assert.strictEqual(err.code, 400);
+                      assert.ok(!message);
 
-                        // Test non-existing reply-to timestamp
-                        RestAPI.Discussions.createMessage(
-                          user1.restContext,
-                          discussion.id,
-                          'This should result in a 400',
-                          Date.now(),
-                          (err, message) => {
-                            assert.ok(err);
-                            assert.strictEqual(err.code, 400);
-                            assert.ok(!message);
+                      // Test non-existing reply-to timestamp
+                      RestAPI.Discussions.createMessage(
+                        user1.restContext,
+                        discussion.id,
+                        'This should result in a 400',
+                        Date.now(),
+                        (err, message) => {
+                          assert.ok(err);
+                          assert.strictEqual(err.code, 400);
+                          assert.ok(!message);
 
-                            // Test a body that is longer than the maximum allowed size
-                            const body = TestsUtil.generateRandomText(10000);
-                            RestAPI.Discussions.createMessage(
-                              user1.restContext,
-                              discussion.id,
-                              body,
-                              null,
-                              (err, message) => {
-                                assert.ok(err);
-                                assert.strictEqual(err.code, 400);
-                                assert.ok(!message);
+                          // Test a body that is longer than the maximum allowed size
+                          const body = TestsUtil.generateRandomText(10000);
+                          RestAPI.Discussions.createMessage(
+                            user1.restContext,
+                            discussion.id,
+                            body,
+                            null,
+                            (err, message) => {
+                              assert.ok(err);
+                              assert.strictEqual(err.code, 400);
+                              assert.ok(!message);
 
-                                // Sanity check
-                                RestAPI.Discussions.createMessage(
-                                  user1.restContext,
-                                  discussion.id,
-                                  'This should be ok',
-                                  null,
-                                  (err, message) => {
-                                    assert.ok(!err);
-                                    assert.ok(message);
-                                    return callback();
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
+                              // Sanity check
+                              RestAPI.Discussions.createMessage(
+                                user1.restContext,
+                                discussion.id,
+                                'This should be ok',
+                                null,
+                                (err, message) => {
+                                  assert.ok(!err);
+                                  assert.ok(message);
+                                  return callback();
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                });
               }
             );
           }
@@ -3760,20 +3306,14 @@ describe('Discussions', () => {
                           assert.ok(replyMessage);
 
                           // This is the expected replyMessagebox id of the discussion
-                          assert.strictEqual(
-                            replyMessage.id,
-                            messageBoxId + '#' + replyMessage.created
-                          );
+                          assert.strictEqual(replyMessage.id, messageBoxId + '#' + replyMessage.created);
                           assert.strictEqual(replyMessage.messageBoxId, messageBoxId);
                           assert.strictEqual(
                             replyMessage.threadKey,
                             message.created + '#' + replyMessage.created + '|'
                           );
                           assert.strictEqual(replyMessage.body, 'Reply message');
-                          assert.strictEqual(
-                            replyMessage.createdBy.id,
-                            publicTenant.loggedinUser.user.id
-                          );
+                          assert.strictEqual(replyMessage.createdBy.id, publicTenant.loggedinUser.user.id);
                           assert.notStrictEqual(parseInt(replyMessage.created, 10), NaN);
                           assert.strictEqual(replyMessage.level, 1);
                           assert.ok(replyMessage.replyTo, message.created);
@@ -3893,132 +3433,126 @@ describe('Discussions', () => {
 
         // Give one of the users a profile picture
         const cropArea = { x: 0, y: 0, width: 250, height: 250 };
-        RestAPI.User.uploadPicture(
-          bert.restContext,
-          bert.user.id,
-          getPictureStream,
-          cropArea,
-          err => {
-            assert.ok(!err);
+        RestAPI.User.uploadPicture(bert.restContext, bert.user.id, getPictureStream, cropArea, err => {
+          assert.ok(!err);
 
-            // Create a discussion and share it with a user that has no profile picture
-            RestAPI.Discussions.createDiscussion(
-              bert.restContext,
-              'displayName',
-              'description',
-              'public',
-              null,
-              [nicolaas.user.id],
-              (err, discussion) => {
-                assert.ok(!err);
+          // Create a discussion and share it with a user that has no profile picture
+          RestAPI.Discussions.createDiscussion(
+            bert.restContext,
+            'displayName',
+            'description',
+            'public',
+            null,
+            [nicolaas.user.id],
+            (err, discussion) => {
+              assert.ok(!err);
 
-                // Add a message to the discussion as a user with a profile picture
-                RestAPI.Discussions.createMessage(
-                  bert.restContext,
-                  discussion.id,
-                  'Message body 1',
-                  null,
-                  (err, message) => {
-                    assert.ok(!err);
+              // Add a message to the discussion as a user with a profile picture
+              RestAPI.Discussions.createMessage(
+                bert.restContext,
+                discussion.id,
+                'Message body 1',
+                null,
+                (err, message) => {
+                  assert.ok(!err);
 
-                    // Assert that the picture URLs are present
-                    assert.ok(message.createdBy);
-                    assert.ok(message.createdBy.picture);
-                    assert.ok(message.createdBy.picture.small);
-                    assert.ok(message.createdBy.picture.medium);
-                    assert.ok(message.createdBy.picture.large);
+                  // Assert that the picture URLs are present
+                  assert.ok(message.createdBy);
+                  assert.ok(message.createdBy.picture);
+                  assert.ok(message.createdBy.picture.small);
+                  assert.ok(message.createdBy.picture.medium);
+                  assert.ok(message.createdBy.picture.large);
 
-                    // Assert that this works for replies as well
-                    RestAPI.Discussions.createMessage(
-                      bert.restContext,
-                      discussion.id,
-                      'Message body 2',
-                      message.created,
-                      (err, reply) => {
-                        assert.ok(!err);
+                  // Assert that this works for replies as well
+                  RestAPI.Discussions.createMessage(
+                    bert.restContext,
+                    discussion.id,
+                    'Message body 2',
+                    message.created,
+                    (err, reply) => {
+                      assert.ok(!err);
 
-                        // Assert that no picture URLs are present
-                        assert.ok(reply.createdBy);
-                        assert.ok(reply.createdBy.picture);
-                        assert.ok(reply.createdBy.picture.small);
-                        assert.ok(reply.createdBy.picture.medium);
-                        assert.ok(reply.createdBy.picture.large);
+                      // Assert that no picture URLs are present
+                      assert.ok(reply.createdBy);
+                      assert.ok(reply.createdBy.picture);
+                      assert.ok(reply.createdBy.picture.small);
+                      assert.ok(reply.createdBy.picture.medium);
+                      assert.ok(reply.createdBy.picture.large);
 
-                        // Add a message to the discussion as a user with no profile picture
-                        RestAPI.Discussions.createMessage(
-                          nicolaas.restContext,
-                          discussion.id,
-                          'Message body 3',
-                          null,
-                          (err, message) => {
-                            assert.ok(!err);
+                      // Add a message to the discussion as a user with no profile picture
+                      RestAPI.Discussions.createMessage(
+                        nicolaas.restContext,
+                        discussion.id,
+                        'Message body 3',
+                        null,
+                        (err, message) => {
+                          assert.ok(!err);
 
-                            // Assert that no picture URLs are present
-                            assert.ok(message.createdBy);
-                            assert.ok(message.createdBy.picture);
-                            assert.ok(!message.createdBy.picture.small);
-                            assert.ok(!message.createdBy.picture.medium);
-                            assert.ok(!message.createdBy.picture.large);
+                          // Assert that no picture URLs are present
+                          assert.ok(message.createdBy);
+                          assert.ok(message.createdBy.picture);
+                          assert.ok(!message.createdBy.picture.small);
+                          assert.ok(!message.createdBy.picture.medium);
+                          assert.ok(!message.createdBy.picture.large);
 
-                            // Assert that this works for replies as well
-                            RestAPI.Discussions.createMessage(
-                              nicolaas.restContext,
-                              discussion.id,
-                              'Message body 4',
-                              message.created,
-                              (err, reply) => {
-                                assert.ok(!err);
+                          // Assert that this works for replies as well
+                          RestAPI.Discussions.createMessage(
+                            nicolaas.restContext,
+                            discussion.id,
+                            'Message body 4',
+                            message.created,
+                            (err, reply) => {
+                              assert.ok(!err);
 
-                                // Assert that no picture URLs are present
-                                assert.ok(reply.createdBy);
-                                assert.ok(reply.createdBy.picture);
-                                assert.ok(!reply.createdBy.picture.small);
-                                assert.ok(!reply.createdBy.picture.medium);
-                                assert.ok(!reply.createdBy.picture.large);
+                              // Assert that no picture URLs are present
+                              assert.ok(reply.createdBy);
+                              assert.ok(reply.createdBy.picture);
+                              assert.ok(!reply.createdBy.picture.small);
+                              assert.ok(!reply.createdBy.picture.medium);
+                              assert.ok(!reply.createdBy.picture.large);
 
-                                // Assert the profile picture urls are present when retrieving a list of messages
-                                RestAPI.Discussions.getMessages(
-                                  bert.restContext,
-                                  discussion.id,
-                                  null,
-                                  10,
-                                  (err, messages) => {
-                                    assert.ok(!err);
-                                    assert.strictEqual(messages.results.length, 4);
-                                    _.each(messages.results, message => {
-                                      assert.ok(message.createdBy);
-                                      assert.ok(message.createdBy.picture);
-                                      // Verify that the messages have a picture for the user that
-                                      // has a profile picture
-                                      if (message.createdBy.id === bert.user.id) {
-                                        assert.ok(message.createdBy.picture.small);
-                                        assert.ok(message.createdBy.picture.medium);
-                                        assert.ok(message.createdBy.picture.large);
-                                        // Verify that the messages don't have a picture for the user
-                                        // without a profile picture
-                                      } else if (message.createdBy.id === nicolaas.user.id) {
-                                        assert.ok(!message.createdBy.picture.small);
-                                        assert.ok(!message.createdBy.picture.medium);
-                                        assert.ok(!message.createdBy.picture.large);
-                                      } else {
-                                        assert.fail('Unexpected user in messages');
-                                      }
-                                    });
-                                    return callback();
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
+                              // Assert the profile picture urls are present when retrieving a list of messages
+                              RestAPI.Discussions.getMessages(
+                                bert.restContext,
+                                discussion.id,
+                                null,
+                                10,
+                                (err, messages) => {
+                                  assert.ok(!err);
+                                  assert.strictEqual(messages.results.length, 4);
+                                  _.each(messages.results, message => {
+                                    assert.ok(message.createdBy);
+                                    assert.ok(message.createdBy.picture);
+                                    // Verify that the messages have a picture for the user that
+                                    // has a profile picture
+                                    if (message.createdBy.id === bert.user.id) {
+                                      assert.ok(message.createdBy.picture.small);
+                                      assert.ok(message.createdBy.picture.medium);
+                                      assert.ok(message.createdBy.picture.large);
+                                      // Verify that the messages don't have a picture for the user
+                                      // without a profile picture
+                                    } else if (message.createdBy.id === nicolaas.user.id) {
+                                      assert.ok(!message.createdBy.picture.small);
+                                      assert.ok(!message.createdBy.picture.medium);
+                                      assert.ok(!message.createdBy.picture.large);
+                                    } else {
+                                      assert.fail('Unexpected user in messages');
+                                    }
+                                  });
+                                  return callback();
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        });
       });
     });
 
@@ -4048,79 +3582,62 @@ describe('Discussions', () => {
             const lastModified1 = discussion.lastModified;
 
             // Create a discussion to test with
-            RestAPI.Discussions.createMessage(
-              user.restContext,
-              discussion.id,
-              'My message',
-              null,
-              (err, message) => {
+            RestAPI.Discussions.createMessage(user.restContext, discussion.id, 'My message', null, (err, message) => {
+              assert.ok(!err);
+
+              // Ensure lastModified didn't change because it is within the one hour threshold (hopefully)
+              RestAPI.Discussions.getDiscussion(user.restContext, discussion.id, (err, discussion) => {
                 assert.ok(!err);
+                assert.strictEqual(discussion.lastModified, lastModified1);
 
-                // Ensure lastModified didn't change because it is within the one hour threshold (hopefully)
-                RestAPI.Discussions.getDiscussion(
-                  user.restContext,
-                  discussion.id,
-                  (err, discussion) => {
-                    assert.ok(!err);
-                    assert.strictEqual(discussion.lastModified, lastModified1);
+                // Force a naughty update through the DAO of the lastModified to more than an hour ago (threshold duration)
+                const lastModified0 = lastModified1 - 1 * 60 * 61 * 1000;
+                DiscussionsDAO.updateDiscussion(discussion, { lastModified: lastModified0 }, (err, discussion) => {
+                  assert.ok(!err);
+                  assert.strictEqual(discussion.lastModified, lastModified0);
 
-                    // Force a naughty update through the DAO of the lastModified to more than an hour ago (threshold duration)
-                    const lastModified0 = lastModified1 - 1 * 60 * 61 * 1000;
-                    DiscussionsDAO.updateDiscussion(
-                      discussion,
-                      { lastModified: lastModified0 },
-                      (err, discussion) => {
-                        assert.ok(!err);
-                        assert.strictEqual(discussion.lastModified, lastModified0);
+                  // Message again, this time the lastModified should update
+                  RestAPI.Discussions.createMessage(
+                    user.restContext,
+                    discussion.id,
+                    'My message',
+                    null,
+                    (err, message) => {
+                      assert.ok(!err);
 
-                        // Message again, this time the lastModified should update
-                        RestAPI.Discussions.createMessage(
-                          user.restContext,
-                          discussion.id,
-                          'My message',
-                          null,
-                          (err, message) => {
-                            assert.ok(!err);
+                      // Ensure the new lastModified is greater than the original creation one
+                      setTimeout(
+                        RestAPI.Discussions.getDiscussion,
+                        200,
+                        user.restContext,
+                        discussion.id,
+                        (err, discussion) => {
+                          assert.ok(!err);
+                          assert.ok(parseInt(discussion.lastModified, 10) > parseInt(lastModified1, 10));
 
-                            // Ensure the new lastModified is greater than the original creation one
-                            setTimeout(
-                              RestAPI.Discussions.getDiscussion,
-                              200,
-                              user.restContext,
-                              discussion.id,
-                              (err, discussion) => {
-                                assert.ok(!err);
-                                assert.ok(
-                                  parseInt(discussion.lastModified, 10) >
-                                    parseInt(lastModified1, 10)
-                                );
+                          // Note at this time, since the lastModified of the discussion updated under the hood without
+                          // a library update, the library of user should 2 versions of this discussion. Lets see if it
+                          // auto-repairs
 
-                                // Note at this time, since the lastModified of the discussion updated under the hood without
-                                // a library update, the library of user should 2 versions of this discussion. Lets see if it
-                                // auto-repairs
-
-                                // Make sure the library does not have a duplicate
-                                RestAPI.Discussions.getDiscussionsLibrary(
-                                  user.restContext,
-                                  user.user.id,
-                                  null,
-                                  null,
-                                  (err, items) => {
-                                    assert.ok(!err);
-                                    assert.strictEqual(items.results.length, 1);
-                                    return callback();
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
+                          // Make sure the library does not have a duplicate
+                          RestAPI.Discussions.getDiscussionsLibrary(
+                            user.restContext,
+                            user.user.id,
+                            null,
+                            null,
+                            (err, items) => {
+                              assert.ok(!err);
+                              assert.strictEqual(items.results.length, 1);
+                              return callback();
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                });
+              });
+            });
           }
         );
       });
@@ -4150,42 +3667,30 @@ describe('Discussions', () => {
             assert.ok(!err);
 
             // Validate invalid discussion id
-            RestAPI.Discussions.getMessages(
-              user.restContext,
-              'not-a-valid-id',
-              null,
-              null,
-              (err, messages) => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 400);
+            RestAPI.Discussions.getMessages(user.restContext, 'not-a-valid-id', null, null, (err, messages) => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 400);
 
-                // Validate invalid limit
-                // It should default to 10 messages
-                RestAPI.Discussions.getMessages(
-                  user.restContext,
-                  discussion.id,
-                  null,
-                  'not-a-valid-limit',
-                  (err, messages) => {
+              // Validate invalid limit
+              // It should default to 10 messages
+              RestAPI.Discussions.getMessages(
+                user.restContext,
+                discussion.id,
+                null,
+                'not-a-valid-limit',
+                (err, messages) => {
+                  assert.ok(!err);
+                  assert.ok(messages);
+
+                  // Sanity check
+                  RestAPI.Discussions.getMessages(user.restContext, discussion.id, null, null, (err, messages) => {
                     assert.ok(!err);
                     assert.ok(messages);
-
-                    // Sanity check
-                    RestAPI.Discussions.getMessages(
-                      user.restContext,
-                      discussion.id,
-                      null,
-                      null,
-                      (err, messages) => {
-                        assert.ok(!err);
-                        assert.ok(messages);
-                        return callback();
-                      }
-                    );
-                  }
-                );
-              }
-            );
+                    return callback();
+                  });
+                }
+              );
+            });
           }
         );
       });
@@ -4204,12 +3709,7 @@ describe('Discussions', () => {
        * @param  {Boolean}    userScrubbed            Whether or not the createdBy field should have scrubbed user data
        * @throws {Error}                              Throws an assertion error if the data fails assertions
        */
-      const _assertMessageModel = function(
-        messageToTest,
-        messageToTestAgainst,
-        creatorToTestAgainst,
-        userScrubbed
-      ) {
+      const _assertMessageModel = function(messageToTest, messageToTestAgainst, creatorToTestAgainst, userScrubbed) {
         // Verify message model
         assert.strictEqual(messageToTest.id, messageToTestAgainst.id);
         assert.strictEqual(messageToTest.messageBoxId, messageToTestAgainst.messageBoxId);
@@ -4222,10 +3722,7 @@ describe('Discussions', () => {
         // Verify creator model
         assert.ok(messageToTest.createdBy);
         assert.strictEqual(messageToTest.createdBy.tenant.alias, creatorToTestAgainst.tenant.alias);
-        assert.strictEqual(
-          messageToTest.createdBy.tenant.displayName,
-          creatorToTestAgainst.tenant.displayName
-        );
+        assert.strictEqual(messageToTest.createdBy.tenant.displayName, creatorToTestAgainst.tenant.displayName);
         assert.strictEqual(messageToTest.createdBy.visibility, creatorToTestAgainst.visibility);
 
         // Privacy check
@@ -4379,10 +3876,7 @@ describe('Discussions', () => {
                                                         (err, messages) => {
                                                           assert.ok(!err);
                                                           assert.ok(messages);
-                                                          assert.strictEqual(
-                                                            messages.results.length,
-                                                            1
-                                                          );
+                                                          assert.strictEqual(messages.results.length, 1);
 
                                                           // Verify the model of the message, the loggedin user should not be scrubbed
                                                           _assertMessageModel(
@@ -4408,10 +3902,7 @@ describe('Discussions', () => {
                                                                 messages.results[1].threadKey
                                                               );
 
-                                                              assert.strictEqual(
-                                                                messages.results.length,
-                                                                2
-                                                              );
+                                                              assert.strictEqual(messages.results.length, 2);
 
                                                               // Verify the model and ordering of the messages
                                                               _assertMessageModel(
@@ -4436,10 +3927,7 @@ describe('Discussions', () => {
                                                                 (err, messages) => {
                                                                   assert.ok(!err);
                                                                   assert.ok(messages);
-                                                                  assert.strictEqual(
-                                                                    messages.results.length,
-                                                                    1
-                                                                  );
+                                                                  assert.strictEqual(messages.results.length, 1);
                                                                   assert.ok(!messages.nextToken);
 
                                                                   // Verify the model and ordering of the messages
@@ -4507,48 +3995,27 @@ describe('Discussions', () => {
             assert.ok(!err);
 
             // Create message on the discussion to delete
-            RestAPI.Discussions.createMessage(
-              user.restContext,
-              discussion.id,
-              'a message',
-              null,
-              (err, message) => {
-                assert.ok(!err);
+            RestAPI.Discussions.createMessage(user.restContext, discussion.id, 'a message', null, (err, message) => {
+              assert.ok(!err);
 
-                // Validate invalid discussion id
-                RestAPI.Discussions.deleteMessage(
-                  user.restContext,
-                  'not-an-id',
-                  message.created,
-                  err => {
-                    assert.ok(err);
-                    assert.strictEqual(err.code, 400);
+              // Validate invalid discussion id
+              RestAPI.Discussions.deleteMessage(user.restContext, 'not-an-id', message.created, err => {
+                assert.ok(err);
+                assert.strictEqual(err.code, 400);
 
-                    // Validate invalid timestamp
-                    RestAPI.Discussions.deleteMessage(
-                      user.restContext,
-                      discussion.id,
-                      'invalid-created',
-                      err => {
-                        assert.ok(err);
-                        assert.strictEqual(err.code, 400);
+                // Validate invalid timestamp
+                RestAPI.Discussions.deleteMessage(user.restContext, discussion.id, 'invalid-created', err => {
+                  assert.ok(err);
+                  assert.strictEqual(err.code, 400);
 
-                        // Sanity check input
-                        RestAPI.Discussions.deleteMessage(
-                          user.restContext,
-                          discussion.id,
-                          message.created,
-                          err => {
-                            assert.ok(!err);
-                            return callback();
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
+                  // Sanity check input
+                  RestAPI.Discussions.deleteMessage(user.restContext, discussion.id, message.created, err => {
+                    assert.ok(!err);
+                    return callback();
+                  });
+                });
+              });
+            });
           }
         );
       });
@@ -4577,171 +4044,158 @@ describe('Discussions', () => {
       const updates = {};
       updates[managerUser.user.id] = 'manager';
       updates[memberUser.user.id] = 'member';
-      RestAPI.Discussions.updateDiscussionMembers(
-        tenant.adminRestContext,
-        discussion.id,
-        updates,
-        err => {
-          assert.ok(!err);
+      RestAPI.Discussions.updateDiscussionMembers(tenant.adminRestContext, discussion.id, updates, err => {
+        assert.ok(!err);
 
-          // Create a message structure on the discussion
-          RestAPI.Discussions.createMessage(
-            memberUser.restContext,
-            discussion.id,
-            'Message1 parent on public',
-            null,
-            (err, message1) => {
-              assert.ok(!err);
+        // Create a message structure on the discussion
+        RestAPI.Discussions.createMessage(
+          memberUser.restContext,
+          discussion.id,
+          'Message1 parent on public',
+          null,
+          (err, message1) => {
+            assert.ok(!err);
 
-              RestAPI.Discussions.createMessage(
-                memberUser.restContext,
-                discussion.id,
-                'Message1 reply on public',
-                message1.created,
-                (err, replyMessage1) => {
-                  assert.ok(!err);
+            RestAPI.Discussions.createMessage(
+              memberUser.restContext,
+              discussion.id,
+              'Message1 reply on public',
+              message1.created,
+              (err, replyMessage1) => {
+                assert.ok(!err);
 
-                  RestAPI.Discussions.createMessage(
-                    memberUser.restContext,
-                    discussion.id,
-                    'Message2 parent on public',
-                    null,
-                    (err, message2) => {
-                      assert.ok(!err);
+                RestAPI.Discussions.createMessage(
+                  memberUser.restContext,
+                  discussion.id,
+                  'Message2 parent on public',
+                  null,
+                  (err, message2) => {
+                    assert.ok(!err);
 
-                      // Verify that anonymous cannot delete a message
-                      RestAPI.Discussions.deleteMessage(
-                        tenant.anonymousRestContext,
-                        discussion.id,
-                        message1.created,
-                        (err, message) => {
-                          assert.ok(err);
-                          assert.strictEqual(err.code, 401);
-                          assert.ok(!message);
+                    // Verify that anonymous cannot delete a message
+                    RestAPI.Discussions.deleteMessage(
+                      tenant.anonymousRestContext,
+                      discussion.id,
+                      message1.created,
+                      (err, message) => {
+                        assert.ok(err);
+                        assert.strictEqual(err.code, 401);
+                        assert.ok(!message);
 
-                          // Verify that a non-manager and non-creator user can't delete a message
-                          RestAPI.Discussions.deleteMessage(
-                            nonMemberUser.restContext,
-                            discussion.id,
-                            message1.created,
-                            (err, message) => {
-                              assert.ok(err);
-                              assert.strictEqual(err.code, 401);
-                              assert.ok(!message);
+                        // Verify that a non-manager and non-creator user can't delete a message
+                        RestAPI.Discussions.deleteMessage(
+                          nonMemberUser.restContext,
+                          discussion.id,
+                          message1.created,
+                          (err, message) => {
+                            assert.ok(err);
+                            assert.strictEqual(err.code, 401);
+                            assert.ok(!message);
 
-                              // Verify that a manager can delete the message, also verify that the parent message is soft-deleted and its resulting model
-                              RestAPI.Discussions.deleteMessage(
-                                managerUser.restContext,
-                                discussion.id,
-                                message1.created,
-                                (err, message) => {
-                                  assert.ok(!err);
-                                  assert.ok(message);
+                            // Verify that a manager can delete the message, also verify that the parent message is soft-deleted and its resulting model
+                            RestAPI.Discussions.deleteMessage(
+                              managerUser.restContext,
+                              discussion.id,
+                              message1.created,
+                              (err, message) => {
+                                assert.ok(!err);
+                                assert.ok(message);
 
-                                  // Ensure the deleted message model
-                                  assert.strictEqual(message.id, message1.id);
-                                  assert.strictEqual(message.messageBoxId, message1.messageBoxId);
-                                  assert.strictEqual(message.threadKey, message1.threadKey);
-                                  assert.strictEqual(message.created, message1.created);
-                                  assert.strictEqual(message.replyTo, message1.replyTo);
-                                  assert.notStrictEqual(parseInt(message.deleted, 10), NaN);
-                                  assert.ok(
-                                    parseInt(message.deleted, 10) > parseInt(message.created, 10)
-                                  );
-                                  assert.strictEqual(message.level, message1.level);
-                                  assert.ok(!message.body);
-                                  assert.ok(!message.createdBy);
+                                // Ensure the deleted message model
+                                assert.strictEqual(message.id, message1.id);
+                                assert.strictEqual(message.messageBoxId, message1.messageBoxId);
+                                assert.strictEqual(message.threadKey, message1.threadKey);
+                                assert.strictEqual(message.created, message1.created);
+                                assert.strictEqual(message.replyTo, message1.replyTo);
+                                assert.notStrictEqual(parseInt(message.deleted, 10), NaN);
+                                assert.ok(parseInt(message.deleted, 10) > parseInt(message.created, 10));
+                                assert.strictEqual(message.level, message1.level);
+                                assert.ok(!message.body);
+                                assert.ok(!message.createdBy);
 
-                                  // Ensure the deleted message is in the list of messages still, but deleted
-                                  RestAPI.Discussions.getMessages(
-                                    managerUser.restContext,
-                                    discussion.id,
-                                    null,
-                                    null,
-                                    (err, items) => {
-                                      assert.ok(!err);
-                                      assert.ok(items.results.length, 3);
+                                // Ensure the deleted message is in the list of messages still, but deleted
+                                RestAPI.Discussions.getMessages(
+                                  managerUser.restContext,
+                                  discussion.id,
+                                  null,
+                                  null,
+                                  (err, items) => {
+                                    assert.ok(!err);
+                                    assert.ok(items.results.length, 3);
 
-                                      const message = items.results[1];
-                                      assert.strictEqual(message.id, message1.id);
-                                      assert.strictEqual(
-                                        message.messageBoxId,
-                                        message1.messageBoxId
-                                      );
-                                      assert.strictEqual(message.threadKey, message1.threadKey);
-                                      assert.strictEqual(message.created, message1.created);
-                                      assert.strictEqual(message.replyTo, message1.replyTo);
-                                      assert.notStrictEqual(parseInt(message.deleted, 10), NaN);
-                                      assert.ok(
-                                        parseInt(message.deleted, 10) >
-                                          parseInt(message.created, 10)
-                                      );
-                                      assert.strictEqual(message.level, message1.level);
-                                      assert.ok(!message.body);
-                                      assert.ok(!message.createdBy);
+                                    const message = items.results[1];
+                                    assert.strictEqual(message.id, message1.id);
+                                    assert.strictEqual(message.messageBoxId, message1.messageBoxId);
+                                    assert.strictEqual(message.threadKey, message1.threadKey);
+                                    assert.strictEqual(message.created, message1.created);
+                                    assert.strictEqual(message.replyTo, message1.replyTo);
+                                    assert.notStrictEqual(parseInt(message.deleted, 10), NaN);
+                                    assert.ok(parseInt(message.deleted, 10) > parseInt(message.created, 10));
+                                    assert.strictEqual(message.level, message1.level);
+                                    assert.ok(!message.body);
+                                    assert.ok(!message.createdBy);
 
-                                      // Delete the rest of the messages to test hard-deletes. This also tests owner can delete
-                                      RestAPI.Discussions.deleteMessage(
-                                        memberUser.restContext,
-                                        discussion.id,
-                                        replyMessage1.created,
-                                        (err, message) => {
-                                          assert.ok(!err);
-                                          assert.ok(!message);
+                                    // Delete the rest of the messages to test hard-deletes. This also tests owner can delete
+                                    RestAPI.Discussions.deleteMessage(
+                                      memberUser.restContext,
+                                      discussion.id,
+                                      replyMessage1.created,
+                                      (err, message) => {
+                                        assert.ok(!err);
+                                        assert.ok(!message);
 
-                                          // We re-delete this one, but it should actually do a hard delete this time as there are no children
-                                          RestAPI.Discussions.deleteMessage(
-                                            memberUser.restContext,
-                                            discussion.id,
-                                            message1.created,
-                                            (err, message) => {
-                                              assert.ok(!err);
-                                              assert.ok(!message);
+                                        // We re-delete this one, but it should actually do a hard delete this time as there are no children
+                                        RestAPI.Discussions.deleteMessage(
+                                          memberUser.restContext,
+                                          discussion.id,
+                                          message1.created,
+                                          (err, message) => {
+                                            assert.ok(!err);
+                                            assert.ok(!message);
 
-                                              // Perform a hard-delete on this leaf message. This also tests admins can delete
-                                              RestAPI.Discussions.deleteMessage(
-                                                tenant.adminRestContext,
-                                                discussion.id,
-                                                message2.created,
-                                                (err, message) => {
-                                                  assert.ok(!err);
-                                                  assert.ok(!message);
+                                            // Perform a hard-delete on this leaf message. This also tests admins can delete
+                                            RestAPI.Discussions.deleteMessage(
+                                              tenant.adminRestContext,
+                                              discussion.id,
+                                              message2.created,
+                                              (err, message) => {
+                                                assert.ok(!err);
+                                                assert.ok(!message);
 
-                                                  // There should be no more messages in the discussion as they should have all been de-indexed by hard deletes
-                                                  RestAPI.Discussions.getMessages(
-                                                    managerUser.restContext,
-                                                    discussion.id,
-                                                    null,
-                                                    null,
-                                                    (err, items) => {
-                                                      assert.ok(!err);
-                                                      assert.ok(items);
-                                                      assert.strictEqual(items.results.length, 0);
-                                                      return callback();
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
+                                                // There should be no more messages in the discussion as they should have all been de-indexed by hard deletes
+                                                RestAPI.Discussions.getMessages(
+                                                  managerUser.restContext,
+                                                  discussion.id,
+                                                  null,
+                                                  null,
+                                                  (err, items) => {
+                                                    assert.ok(!err);
+                                                    assert.ok(items);
+                                                    assert.strictEqual(items.results.length, 0);
+                                                    return callback();
+                                                  }
+                                                );
+                                              }
+                                            );
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
+      });
     };
 
     /**

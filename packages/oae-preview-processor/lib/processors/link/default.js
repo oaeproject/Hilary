@@ -181,7 +181,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
       }
     };
 
-    const urlParts = url.parse(contentObj.link);
+    const urlParts = new URL(contentObj.link);
 
     // If we previously tried an HTTPS link we can just determine whether the link is embeddable over HTTPS by checking if that request succeeded
     if (urlParts.protocol === 'https:') {

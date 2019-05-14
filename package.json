@@ -176,6 +176,7 @@
     "plugins": [
       "prettier"
     ],
+    "ignores": ["**/processors/file/domstubs.js"],
     "rules": {
       "import/no-extraneous-dependencies": "off",
       "max-params": "off",

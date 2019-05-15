@@ -18,7 +18,6 @@ import util from 'util';
 import ShortId from 'shortid';
 import Counter from 'oae-util/lib/counter';
 import { generateRandomText } from 'oae-tests';
-import * as TestsUtil from 'oae-tests';
 import * as ConfigTestUtil from 'oae-config/lib/test/util';
 import * as RestAPI from 'oae-rest';
 import * as TenantsAPI from 'oae-tenants';
@@ -59,8 +58,8 @@ const generateTestTenants = function(globalAdminRestCtx, numToCreate, callback, 
 
   // Create a tenant with random data
   const alias = generateTestTenantAlias();
-  const description = TestsUtil.generateRandomText();
-  const host = generateTestTenantHost(null, TestsUtil.generateRandomText());
+  const description = generateRandomText();
+  const host = generateTestTenantHost(null, generateRandomText());
   createTenantAndWait(globalAdminRestCtx, alias, description, host, { emailDomains: host }, (err, tenant) => {
     assert.ok(!err);
     _created.push(tenant);

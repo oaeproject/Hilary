@@ -38,7 +38,7 @@
     "dox": "^0.9.0",
     "elasticsearchclient": "^0.5.3",
     "ent": "^2.2.0",
-    "esm": "3.2.20",
+    "esm": "3.2.23",
     "ethercalc-client": "https://github.com/oaeproject/ethercalc-client.git",
     "etherpad-lite-client": "^0.8.0",
     "express": "4.16.4",

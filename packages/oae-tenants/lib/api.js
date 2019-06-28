@@ -135,7 +135,12 @@ const init = function(_serverConfig, callback) {
         active: true
       });
     } else {
-      req.tenant = getTenantByHost(req.headers.host);
+      const referer = req.headers.referer
+        .split('/')
+        .slice(2, 3)
+        .pop();
+      req.tenant = getTenantByHost(referer);
+      // Req.tenant.alias = referer;
     }
 
     // We stop the request if we can't find a tenant associated to the current hostname

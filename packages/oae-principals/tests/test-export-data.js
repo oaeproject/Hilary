@@ -576,7 +576,7 @@ describe('Export data', () => {
                 assert.ok(!err);
 
                 // Verify the personal data on the zip file
-                let zipMeeting = await zip.file('meeting_data/' + meeting.displayName + '.txt').async(TO_STRING);
+                const zipMeeting = await zip.file('meeting_data/' + meeting.displayName + '.txt').async(TO_STRING);
 
                 const lines = zipMeeting.split('\n');
                 const element = [];
@@ -758,7 +758,7 @@ describe('Export data', () => {
             assert.ok(!err);
 
             // Verify the personal data on the zip file
-            let extractedZip = await zip.file('collabdoc_data/' + collabdoc.displayName + '.txt').async(TO_STRING);
+            const extractedZip = await zip.file('collabdoc_data/' + collabdoc.displayName + '.txt').async(TO_STRING);
 
             const contentChunks = parseExtractedContent(extractedZip);
             const spreadsheetContent = contentChunks[4];
@@ -798,7 +798,7 @@ describe('Export data', () => {
           PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, async (err, zip) => {
             assert.ok(!err);
 
-            let extractedZip = await zip.file('collabsheet_data/' + collabdoc.displayName + '.txt').async(TO_STRING);
+            const extractedZip = await zip.file('collabsheet_data/' + collabdoc.displayName + '.txt').async(TO_STRING);
 
             const contentChunks = parseExtractedContent(extractedZip);
             const spreadsheetContent = contentChunks[4];
@@ -858,7 +858,7 @@ describe('Export data', () => {
                   assert.ok(!err);
 
                   // Verify the collabdoc data on the zip file
-                  let zipCollabdoc = await zip
+                  const zipCollabdoc = await zip
                     .file('collabdoc_data/' + collabdoc.displayName + '.txt')
                     .async(TO_STRING);
                   try {
@@ -895,7 +895,7 @@ describe('Export data', () => {
                     assert.strictEqual(levelAnotherComment[1], anotherComment.level.toString());
                     assert.ok(element[7][0].includes(messageCreatedAnotherComment));
                   } catch (error) {
-                    console.log(error);
+                    return callback();
                   }
 
                   return callback();

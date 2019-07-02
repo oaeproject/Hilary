@@ -238,7 +238,7 @@ OAE.registerPreShutdownHandler('mq', null, _destroy);
  * @param  {Object}     exchangeOptions     The options that should be used to declare this exchange. See https://github.com/postwait/node-amqp/#connectionexchangename-options-opencallback for a full list of options
  * @param  {Function}   callback            Standard callback function
  */
-const declareExchange = function(exchangeName, exchangeOptions, callback) {
+const declareExchange = async function(exchangeName, exchangeOptions, callback) {
   if (!exchangeName) {
     log().error({
       exchangeName,
@@ -255,15 +255,14 @@ const declareExchange = function(exchangeName, exchangeOptions, callback) {
     return callback({ code: 400, msg: 'Tried to declare an exchange twice' });
   }
 
-  channel
-    .assertExchange(exchangeName, exchangeOptions.type, exchangeOptions)
-    .then(exchange => {
-      exchanges[exchangeName] = exchange;
-      return callback();
-    })
-    .catch(() => {
-      log().error({ exchangeName, err: new Error('Unable to declare an exchange') });
-    });
+  try {
+    const exchange = await channel.assertExchange(exchangeName, exchangeOptions.type, exchangeOptions);
+
+    exchanges[exchangeName] = exchange;
+    return callback();
+  } catch (error) {
+    log().error({ exchangeName, err: new Error('Unable to declare an exchange') });
+  }
 };
 
 /**
@@ -273,7 +272,7 @@ const declareExchange = function(exchangeName, exchangeOptions, callback) {
  * @param  {Object}     queueOptions        The options that should be used to declare this queue. See https://github.com/postwait/node-amqp/#connectionqueuename-options-opencallback for a full list of options
  * @param  {Function}   callback            Standard callback function
  */
-const declareQueue = function(queueName, queueOptions, callback) {
+const declareQueue = async function(queueName, queueOptions, callback) {
   if (!queueName) {
     log().error({
       queueName,
@@ -288,16 +287,15 @@ const declareQueue = function(queueName, queueOptions, callback) {
     return callback({ code: 400, msg: 'Tried to declare a queue twice' });
   }
 
-  channel
-    .assertQueue(queueName, queueOptions)
-    .then(queue => {
-      log().info({ queueName }, 'Created/Retrieved a RabbitMQ queue');
-      queues[queueName] = { queue };
-      return callback();
-    })
-    .catch(() => {
-      log().error({ queueName, err: new Error('Unable to declare a queue') });
-    });
+  try {
+    const queue = await channel.assertQueue(queueName, queueOptions);
+
+    log().info({ queueName }, 'Created/Retrieved a RabbitMQ queue');
+    queues[queueName] = { queue };
+    return callback();
+  } catch (error) {
+    log().error({ queueName, err: new Error('Unable to declare a queue') });
+  }
 };
 
 /**
@@ -339,44 +337,42 @@ let isWorking = false;
  * A function that will pick RabbitMQ queues of the `queuesToBind` queue and bind them.
  * This function will ensure that at most 1 bind runs at the same time.
  */
-const _processBindQueue = function() {
+const _processBindQueue = async function() {
   // If there is something to do and we're not already doing something we can do some work
   if (queuesToBind.length > 0 && !isWorking) {
     isWorking = true;
 
     const todo = queuesToBind.shift();
-    channel
-      .bindQueue(todo.queueName, todo.exchangeName, todo.routingKey)
-      .then(() => {
-        log().trace(
-          {
-            queueName: todo.queueName,
-            exchangeName: todo.exchangeName,
-            routingKey: todo.routingKey
-          },
-          'Bound a queue to an exchange'
-        );
+    try {
+      await channel.bindQueue(todo.queueName, todo.exchangeName, todo.routingKey);
 
-        const doPurge = purgeQueuesOnStartup && !startupPurgeStatus[todo.queueName];
-        if (doPurge) {
-          // Ensure this queue only gets purged the first time we connect
-          startupPurgeStatus[todo.queueName] = true;
-
-          // Purge the queue before subscribing the handler to it if we are configured to do so.
-          purge(todo.queueName, todo.callback);
-        } else {
-          todo.callback();
-        }
-
-        isWorking = false;
-        _processBindQueue();
-      })
-      .catch(() => {
-        log().error({
+      log().trace(
+        {
           queueName: todo.queueName,
-          err: new Error('Unable to bind queue to an exchange')
-        });
+          exchangeName: todo.exchangeName,
+          routingKey: todo.routingKey
+        },
+        'Bound a queue to an exchange'
+      );
+      const doPurge = purgeQueuesOnStartup && !startupPurgeStatus[todo.queueName];
+      if (doPurge) {
+        // Ensure this queue only gets purged the first time we connect
+        startupPurgeStatus[todo.queueName] = true;
+
+        // Purge the queue before subscribing the handler to it if we are configured to do so.
+        purge(todo.queueName, todo.callback);
+      } else {
+        todo.callback();
+      }
+
+      isWorking = false;
+      _processBindQueue();
+    } catch (error) {
+      log().error({
+        queueName: todo.queueName,
+        err: new Error('Unable to bind queue to an exchange')
       });
+    }
   }
 };
 
@@ -447,7 +443,7 @@ const bindQueueToExchange = function(queueName, exchangeName, routingKey, callba
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const unbindQueueFromExchange = function(queueName, exchangeName, routingKey, callback) {
+const unbindQueueFromExchange = async function(queueName, exchangeName, routingKey, callback) {
   if (!queues[queueName]) {
     log().error({
       queueName,
@@ -485,10 +481,9 @@ const unbindQueueFromExchange = function(queueName, exchangeName, routingKey, ca
   }
 
   // Queues[queueName].queue.unbind(exchangeName, routingKey);
-  channel.unbindQueue(queueName, exchangeName, routingKey, {}).then(() => {
-    log().trace({ queueName, exchangeName, routingKey }, 'Unbound a queue from an exchange');
-    callback();
-  });
+  await channel.unbindQueue(queueName, exchangeName, routingKey, {});
+  log().trace({ queueName, exchangeName, routingKey }, 'Unbound a queue from an exchange');
+  callback();
 };
 
 /**
@@ -628,6 +623,7 @@ const subscribeQueue = function(queueName, subscribeOptions, listener, callback)
       },
       subscribeOptions
     )
+    // eslint-disable-next-line promise/prefer-await-to-then
     .then(ok => {
       if (!ok) {
         log().error({ queueName, err: new Error('Error binding worker for queue') });
@@ -650,7 +646,7 @@ const subscribeQueue = function(queueName, subscribeOptions, listener, callback)
  * @param  {Function}  callback        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any
  */
-const unsubscribeQueue = function(queueName, callback) {
+const unsubscribeQueue = async function(queueName, callback) {
   let queue = queues[queueName];
   if (!queue || !queue.queue) {
     log().warn({
@@ -663,21 +659,20 @@ const unsubscribeQueue = function(queueName, callback) {
   const { consumerTag } = queue;
   queue = queue.queue;
 
-  channel
-    .cancel(consumerTag)
-    .then(ok => {
-      delete queues[queueName];
+  try {
+    const ok = await channel.cancel(consumerTag);
 
-      if (!ok) {
-        log().error({ queueName }, 'An unknown error occurred unsubscribing a queue');
-        return callback({ code: 500, msg: 'An unknown error occurred unsubscribing a queue' });
-      }
+    delete queues[queueName];
 
-      return callback();
-    })
-    .catch(() => {
-      log().error({ queueName, err: new Error('Unable to unsubscribe the queue') });
-    });
+    if (!ok) {
+      log().error({ queueName }, 'An unknown error occurred unsubscribing a queue');
+      return callback({ code: 500, msg: 'An unknown error occurred unsubscribing a queue' });
+    }
+
+    return callback();
+  } catch (error) {
+    log().error({ queueName, err: new Error('Unable to unsubscribe the queue') });
+  }
 };
 
 /**
@@ -808,7 +803,7 @@ const _waitUntilIdle = function(maxWaitMillis, callback) {
  * @param  {Function}   [callback]      Standard callback method
  * @param  {Object}     [callback.err]  An error that occurred purging the queue, if any
  */
-const purge = function(queueName, callback) {
+const purge = async function(queueName, callback) {
   callback =
     callback ||
     function(err) {
@@ -825,21 +820,19 @@ const purge = function(queueName, callback) {
   log().info({ queueName }, 'Purging queue');
   MQ.emit('prePurge', queueName);
 
-  channel
-    .purgeQueue(queueName)
-    .then(data => {
-      if (!data) {
-        log().error({ queueName }, 'Error purging queue');
-        return callback({ code: 500, msg: 'Error purging queue: ' + queueName });
-      }
+  try {
+    const data = await channel.purgeQueue(queueName);
+    if (!data) {
+      log().error({ queueName }, 'Error purging queue');
+      return callback({ code: 500, msg: 'Error purging queue: ' + queueName });
+    }
 
-      MQ.emit('postPurge', queueName, data.messageCount);
+    MQ.emit('postPurge', queueName, data.messageCount);
 
-      return callback();
-    })
-    .catch(() => {
-      log().error({ queueName, err: new Error('Unable to purge queue') });
-    });
+    return callback();
+  } catch (error) {
+    log().error({ queueName, err: new Error('Unable to purge queue') });
+  }
 };
 
 /**

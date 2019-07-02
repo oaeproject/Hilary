@@ -396,9 +396,7 @@ describe('MQ', () => {
                   assert.ok(!err);
 
                   // Submit one more message. If it ends up at our listener the test will fail
-                  MQ.submit(exchangeName, routingKey, data, () => {
-                    
-                  });
+                  MQ.submit(exchangeName, routingKey, data, () => {});
                 });
               });
             });

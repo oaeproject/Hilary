@@ -14,5 +14,5 @@
  */
 
 // Global Underscore.js mixins
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line import/namespace, no-unused-vars
 import * as _ from './globals/underscore';

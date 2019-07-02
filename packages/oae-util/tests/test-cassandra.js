@@ -13,8 +13,6 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable no-unused-vars */
-
 import assert from 'assert';
 import _ from 'underscore';
 
@@ -399,7 +397,6 @@ describe('Utilities', () => {
               numInvoked++;
               // Store the row so we can verify them all later
               assert.strictEqual(rows.length, 1, 'Expected to only get 1 row at a time');
-              // eslint-disable-next-line prefer-destructuring
               allRows[rows[0].get('keyId')] = rows[0];
 
               done();

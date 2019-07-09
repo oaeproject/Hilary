@@ -72,6 +72,8 @@ const VIEWER = 'viewer';
 const MEMBER = 'member';
 const EDITOR = 'editor';
 const DEFAULT_MONTH = 2;
+const TYPE_COLLABDOC = 'collabdoc';
+const TYPE_COLLABSHEET = 'collabsheet';
 
 // Avoid the "Error: global leak detected: r", temporal solution
 Object.defineProperty(global, 'r', {});
@@ -435,9 +437,9 @@ describe('Delete and eliminate users', () => {
         assert.ok(!err);
 
         // Generate collabdocs
-        generateCollabdocs(userToDelete.restContext, PRIVATE_VISIBILITY, 4, (err, collabdocs) => {
+        generateCollabdocs(userToDelete.restContext, PRIVATE_VISIBILITY, 4, TYPE_COLLABDOC, (err, collabdocs) => {
           assert.ok(!err);
-          generateCollabdocs(user.restContext, PRIVATE_VISIBILITY, 2, (err, collabdocUser) => {
+          generateCollabdocs(user.restContext, PRIVATE_VISIBILITY, 2, TYPE_COLLABDOC, (err, collabdocUser) => {
             assert.ok(!err);
 
             // Generate rights collabdocs
@@ -557,6 +559,169 @@ describe('Delete and eliminate users', () => {
                                       });
                                     });
                                   });
+                                });
+                              });
+                            });
+                          });
+                        }
+                      );
+                    });
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+    /**
+     * Test that verifies definitive delation remove user roles on collabdoc
+     */
+    it('Verify if the user role is removed from the collabsheet', callback => {
+      // Generate a deleted user to test with
+      generateTestUsers(camAdminRestContext, 4, (err, users, user, otherUser, userToDelete, userArchive) => {
+        assert.ok(!err);
+
+        // Generate collabdocs
+        generateCollabdocs(userToDelete.restContext, PRIVATE_VISIBILITY, 4, TYPE_COLLABSHEET, (err, collabsheets) => {
+          assert.ok(!err);
+          generateCollabdocs(user.restContext, PRIVATE_VISIBILITY, 2, TYPE_COLLABSHEET, (err, collabsheetUser) => {
+            assert.ok(!err);
+
+            // Generate rights collabdocs
+            generateRightContent(userToDelete, user, MANAGER, collabsheets[0], err => {
+              assert.ok(!err);
+              generateRightContent(userToDelete, user, EDITOR, collabsheets[1], err => {
+                assert.ok(!err);
+                generateRightContent(userToDelete, user, VIEWER, collabsheets[2], err => {
+                  assert.ok(!err);
+                  generateRightContent(user, userToDelete, EDITOR, collabsheetUser[0], err => {
+                    assert.ok(!err);
+                    generateRightContent(user, userToDelete, VIEWER, collabsheetUser[1], err => {
+                      assert.ok(!err);
+
+                      // Delete User
+                      assertDefinitiveDeletionUsersSucceeds(
+                        camAdminRestContext,
+                        userToDelete,
+                        userArchive,
+                        (err, userArchive) => {
+                          assert.ok(!err);
+                          assert.ok(userArchive);
+
+                          // Verify roles
+                          AuthzAPI.hasAnyRole(userToDelete.user.id, collabsheets[0].id, (err, hasRole) => {
+                            assert.strictEqual(hasRole, false);
+                            AuthzAPI.hasAnyRole(userArchive.archiveId, collabsheets[0].id, (err, hasRole) => {
+                              assert.strictEqual(hasRole, false);
+                              AuthzAPI.hasRole(user.user.id, collabsheets[0].id, MANAGER, (err, hasRole) => {
+                                assert.strictEqual(hasRole, true);
+                                AuthzAPI.hasAnyRole(userToDelete.user.id, collabsheets[1].id, (err, hasRole) => {
+                                  assert.strictEqual(hasRole, false);
+                                  AuthzAPI.hasRole(
+                                    userArchive.archiveId,
+                                    collabsheets[1].id,
+                                    MANAGER,
+                                    (err, hasRole) => {
+                                      assert.strictEqual(hasRole, true);
+                                      AuthzAPI.hasRole(user.user.id, collabsheets[1].id, EDITOR, (err, hasRole) => {
+                                        assert.strictEqual(hasRole, true);
+                                        AuthzAPI.hasAnyRole(
+                                          userToDelete.user.id,
+                                          collabsheets[2].id,
+                                          (err, hasRole) => {
+                                            assert.strictEqual(hasRole, false);
+                                            AuthzAPI.hasRole(
+                                              userArchive.archiveId,
+                                              collabsheets[2].id,
+                                              MANAGER,
+                                              (err, hasRole) => {
+                                                assert.strictEqual(hasRole, true);
+                                                AuthzAPI.hasRole(
+                                                  user.user.id,
+                                                  collabsheets[2].id,
+                                                  VIEWER,
+                                                  (err, hasRole) => {
+                                                    assert.strictEqual(hasRole, true);
+                                                    AuthzAPI.hasAnyRole(
+                                                      userToDelete.user.id,
+                                                      collabsheets[3].id,
+                                                      (err, hasRole) => {
+                                                        assert.strictEqual(hasRole, false);
+                                                        AuthzAPI.hasRole(
+                                                          userArchive.archiveId,
+                                                          collabsheets[3].id,
+                                                          MANAGER,
+                                                          (err, hasRole) => {
+                                                            assert.strictEqual(hasRole, true);
+                                                            AuthzAPI.hasAnyRole(
+                                                              user.user.id,
+                                                              collabsheets[3].id,
+                                                              (err, hasRole) => {
+                                                                assert.strictEqual(hasRole, false);
+                                                                AuthzAPI.hasRole(
+                                                                  user.user.id,
+                                                                  collabsheetUser[0].id,
+                                                                  MANAGER,
+                                                                  (err, hasRole) => {
+                                                                    assert.strictEqual(hasRole, true);
+                                                                    AuthzAPI.hasAnyRole(
+                                                                      userToDelete.user.id,
+                                                                      collabsheetUser[0].id,
+                                                                      (err, hasRole) => {
+                                                                        assert.strictEqual(hasRole, false);
+                                                                        AuthzAPI.hasAnyRole(
+                                                                          userArchive.archiveId,
+                                                                          collabsheetUser[0].id,
+                                                                          (err, hasRole) => {
+                                                                            assert.strictEqual(hasRole, false);
+                                                                            AuthzAPI.hasRole(
+                                                                              user.user.id,
+                                                                              collabsheetUser[1].id,
+                                                                              MANAGER,
+                                                                              (err, hasRole) => {
+                                                                                assert.strictEqual(hasRole, true);
+                                                                                AuthzAPI.hasAnyRole(
+                                                                                  userToDelete.user.id,
+                                                                                  collabsheetUser[1].id,
+                                                                                  (err, hasRole) => {
+                                                                                    assert.strictEqual(hasRole, false);
+                                                                                    AuthzAPI.hasAnyRole(
+                                                                                      userArchive.archiveId,
+                                                                                      collabsheetUser[1].id,
+                                                                                      (err, hasRole) => {
+                                                                                        assert.strictEqual(
+                                                                                          hasRole,
+                                                                                          false
+                                                                                        );
+                                                                                        return callback();
+                                                                                      }
+                                                                                    );
+                                                                                  }
+                                                                                );
+                                                                              }
+                                                                            );
+                                                                          }
+                                                                        );
+                                                                      }
+                                                                    );
+                                                                  }
+                                                                );
+                                                              }
+                                                            );
+                                                          }
+                                                        );
+                                                      }
+                                                    );
+                                                  }
+                                                );
+                                              }
+                                            );
+                                          }
+                                        );
+                                      });
+                                    }
+                                  );
                                 });
                               });
                             });
@@ -1018,41 +1183,57 @@ describe('Delete and eliminate users', () => {
                   assert.ok(!err);
                   generateLinks(userToDelete.restContext, PRIVATE_VISIBILITY, 1, (err, link) => {
                     assert.ok(!err);
-                    generateCollabdocs(userToDelete.restContext, PRIVATE_VISIBILITY, 1, (err, collabdoc) => {
-                      assert.ok(!err);
-
-                      // Add element to a list
-                      list.push(group[0].id);
-                      list.push(discussion[0].id);
-                      list.push(meeting[0].id);
-                      list.push(file[0].id);
-                      list.push(link[0].id);
-                      list.push(collabdoc[0].id);
-                      list.push(folder[0].id);
-
-                      // Delete User
-                      assertDefinitiveDeletionUsersSucceeds(
-                        camAdminRestContext,
-                        userToDelete,
-                        userArchive,
-                        (err, userArchive) => {
-                          assert.ok(!err);
-                          assert.ok(userArchive);
-
-                          // Get Data and compare it with the id list
-                          getDataFromArchive(userArchive.archiveId, userToDelete.user.id, (err, elements) => {
-                            const listElementId = [];
-                            elements.resourceId.split(',').forEach(element => {
-                              listElementId.push(element);
-                            });
-
+                    generateCollabdocs(
+                      userToDelete.restContext,
+                      PRIVATE_VISIBILITY,
+                      1,
+                      TYPE_COLLABDOC,
+                      (err, collabdoc) => {
+                        assert.ok(!err);
+                        generateCollabdocs(
+                          userToDelete.restContext,
+                          PRIVATE_VISIBILITY,
+                          1,
+                          TYPE_COLLABSHEET,
+                          (err, collabsheet) => {
                             assert.ok(!err);
-                            assert.deepStrictEqual(list.sort(), listElementId.sort());
-                            return callback();
-                          });
-                        }
-                      );
-                    });
+
+                            // Add element to a list
+                            list.push(group[0].id);
+                            list.push(discussion[0].id);
+                            list.push(meeting[0].id);
+                            list.push(file[0].id);
+                            list.push(link[0].id);
+                            list.push(collabdoc[0].id);
+                            list.push(collabsheet[0].id);
+                            list.push(folder[0].id);
+
+                            // Delete User
+                            assertDefinitiveDeletionUsersSucceeds(
+                              camAdminRestContext,
+                              userToDelete,
+                              userArchive,
+                              (err, userArchive) => {
+                                assert.ok(!err);
+                                assert.ok(userArchive);
+
+                                // Get Data and compare it with the id list
+                                getDataFromArchive(userArchive.archiveId, userToDelete.user.id, (err, elements) => {
+                                  const listElementId = [];
+                                  elements.resourceId.split(',').forEach(element => {
+                                    listElementId.push(element);
+                                  });
+
+                                  assert.ok(!err);
+                                  assert.deepStrictEqual(list.sort(), listElementId.sort());
+                                  return callback();
+                                });
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
                   });
                 });
               });
@@ -1173,39 +1354,49 @@ describe('Delete and eliminate users', () => {
           assert.ok(!err);
           generateLinks(userToDelete.restContext, PRIVATE_VISIBILITY, 1, (err, link) => {
             assert.ok(!err);
-            generateCollabdocs(userToDelete.restContext, PRIVATE_VISIBILITY, 1, (err, collabdoc) => {
+            generateCollabdocs(userToDelete.restContext, PRIVATE_VISIBILITY, 1, TYPE_COLLABDOC, (err, collabdoc) => {
               assert.ok(!err);
-
-              list.push(file[0].id);
-              list.push(link[0].id);
-              list.push(collabdoc[0].id);
-              list.sort();
-
-              // Delete User
-              assertDefinitiveDeletionUsersSucceeds(
-                camAdminRestContext,
-                userToDelete,
-                userArchive,
-                (err, userArchive) => {
+              generateCollabdocs(
+                userToDelete.restContext,
+                PRIVATE_VISIBILITY,
+                1,
+                TYPE_COLLABSHEET,
+                (err, collabsheet) => {
                   assert.ok(!err);
-                  assert.ok(userArchive);
 
-                  // Content is in library
-                  RestAPI.Content.getLibrary(
+                  list.push(file[0].id);
+                  list.push(link[0].id);
+                  list.push(collabdoc[0].id);
+                  list.push(collabsheet[0].id);
+                  list.sort();
+
+                  // Delete User
+                  assertDefinitiveDeletionUsersSucceeds(
                     camAdminRestContext,
-                    userArchive.archiveId,
-                    null,
-                    list.length,
-                    (err, data) => {
+                    userToDelete,
+                    userArchive,
+                    (err, userArchive) => {
                       assert.ok(!err);
-                      const library = [];
-                      data.results.forEach(element => {
-                        library.push(element.id);
-                      });
-                      library.sort();
-                      assert.deepStrictEqual(library, list);
+                      assert.ok(userArchive);
 
-                      return callback();
+                      // Content is in library
+                      RestAPI.Content.getLibrary(
+                        camAdminRestContext,
+                        userArchive.archiveId,
+                        null,
+                        list.length,
+                        (err, data) => {
+                          assert.ok(!err);
+                          const library = [];
+                          data.results.forEach(element => {
+                            library.push(element.id);
+                          });
+                          library.sort();
+                          assert.deepStrictEqual(library, list);
+
+                          return callback();
+                        }
+                      );
                     }
                   );
                 }
@@ -1410,50 +1601,69 @@ describe('Delete and eliminate users', () => {
           assert.ok(!err);
           generateLinks(userToDelete.restContext, PRIVATE_VISIBILITY, 1, (err, link) => {
             assert.ok(!err);
-            generateCollabdocs(userToDelete.restContext, PRIVATE_VISIBILITY, 1, (err, collabdoc) => {
+            generateCollabdocs(userToDelete.restContext, PRIVATE_VISIBILITY, 1, TYPE_COLLABDOC, (err, collabdoc) => {
               assert.ok(!err);
-
-              // Delete User
-              assertDefinitiveDeletionUsersSucceeds(
-                camAdminRestContext,
-                userToDelete,
-                userArchive,
-                (err, resUserArchive) => {
+              generateCollabdocs(
+                userToDelete.restContext,
+                PRIVATE_VISIBILITY,
+                1,
+                TYPE_COLLABSHEET,
+                (err, collabsheet) => {
                   assert.ok(!err);
-                  assert.ok(resUserArchive);
 
-                  // Get Data and compare it with the id list
-                  getDataFromArchive(userArchive.archiveId, userToDelete.user.id, (err, data) => {
-                    assert.ok(!err);
-                    const listContentFromArchive = data.resourceId.split(',');
-                    const listContent = [link[0].id, file[0].id, collabdoc[0].id];
-                    assert.deepStrictEqual(listContentFromArchive.sort(), listContent.sort());
-
-                    eliminateUser(camAdminRestContext, userToDelete.user, resUserArchive.tenantAlias, err => {
+                  // Delete User
+                  assertDefinitiveDeletionUsersSucceeds(
+                    camAdminRestContext,
+                    userToDelete,
+                    userArchive,
+                    (err, resUserArchive) => {
                       assert.ok(!err);
+                      assert.ok(resUserArchive);
 
-                      // Verify roles
-                      AuthzAPI.hasAnyRole(userToDelete.user.id, link[0].id, (err, hasRole) => {
-                        assert.strictEqual(hasRole, false);
-                        AuthzAPI.hasAnyRole(userArchive.archiveId, link[0].id, (err, hasRole) => {
-                          assert.strictEqual(hasRole, false);
-                          AuthzAPI.hasAnyRole(userToDelete.user.id, file[0].id, (err, hasRole) => {
+                      // Get Data and compare it with the id list
+                      getDataFromArchive(userArchive.archiveId, userToDelete.user.id, (err, data) => {
+                        assert.ok(!err);
+                        const listContentFromArchive = data.resourceId.split(',');
+                        const listContent = [link[0].id, file[0].id, collabdoc[0].id, collabsheet[0].id];
+                        assert.deepStrictEqual(listContentFromArchive.sort(), listContent.sort());
+
+                        eliminateUser(camAdminRestContext, userToDelete.user, resUserArchive.tenantAlias, err => {
+                          assert.ok(!err);
+
+                          // Verify roles
+                          AuthzAPI.hasAnyRole(userToDelete.user.id, link[0].id, (err, hasRole) => {
                             assert.strictEqual(hasRole, false);
-                            AuthzAPI.hasAnyRole(userArchive.archiveId, file[0].id, (err, hasRole) => {
+                            AuthzAPI.hasAnyRole(userArchive.archiveId, link[0].id, (err, hasRole) => {
                               assert.strictEqual(hasRole, false);
-                              AuthzAPI.hasAnyRole(userToDelete.user.id, collabdoc[0].id, (err, hasRole) => {
+                              AuthzAPI.hasAnyRole(userToDelete.user.id, file[0].id, (err, hasRole) => {
                                 assert.strictEqual(hasRole, false);
-                                AuthzAPI.hasAnyRole(userArchive.archiveId, collabdoc[0].id, (err, hasRole) => {
+                                AuthzAPI.hasAnyRole(userArchive.archiveId, file[0].id, (err, hasRole) => {
                                   assert.strictEqual(hasRole, false);
-                                  return callback();
+                                  AuthzAPI.hasAnyRole(userToDelete.user.id, collabdoc[0].id, (err, hasRole) => {
+                                    assert.strictEqual(hasRole, false);
+                                    AuthzAPI.hasAnyRole(userToDelete.user.id, collabsheet[0].id, (err, hasRole) => {
+                                      assert.strictEqual(hasRole, false);
+                                      AuthzAPI.hasAnyRole(userArchive.archiveId, collabdoc[0].id, (err, hasRole) => {
+                                        assert.strictEqual(hasRole, false);
+                                        AuthzAPI.hasAnyRole(
+                                          userArchive.archiveId,
+                                          collabsheet[0].id,
+                                          (err, hasRole) => {
+                                            assert.strictEqual(hasRole, false);
+                                            return callback();
+                                          }
+                                        );
+                                      });
+                                    });
+                                  });
                                 });
                               });
                             });
                           });
                         });
                       });
-                    });
-                  });
+                    }
+                  );
                 }
               );
             });
@@ -1610,49 +1820,92 @@ describe('Delete and eliminate users', () => {
           assert.ok(!err);
           generateLinks(userToDelete.restContext, PRIVATE_VISIBILITY, 1, (err, link) => {
             assert.ok(!err);
-            generateCollabdocs(userToDelete.restContext, PRIVATE_VISIBILITY, 1, (err, collabdoc) => {
+            generateCollabdocs(userToDelete.restContext, PRIVATE_VISIBILITY, 1, TYPE_COLLABDOC, (err, collabdoc) => {
               assert.ok(!err);
-
-              // Delete User
-              assertDefinitiveDeletionUsersSucceeds(
-                camAdminRestContext,
-                userToDelete,
-                userArchive,
-                (err, resUserArchive) => {
+              generateCollabdocs(
+                userToDelete.restContext,
+                PRIVATE_VISIBILITY,
+                1,
+                TYPE_COLLABSHEET,
+                (err, collabsheet) => {
                   assert.ok(!err);
-                  assert.ok(resUserArchive);
 
-                  // Generate rights
-                  generateRightContent(userArchive, user, MANAGER, file[0], err => {
-                    assert.ok(!err);
-                    generateRightContent(userArchive, user, MANAGER, link[0], err => {
+                  // Delete User
+                  assertDefinitiveDeletionUsersSucceeds(
+                    camAdminRestContext,
+                    userToDelete,
+                    userArchive,
+                    (err, resUserArchive) => {
                       assert.ok(!err);
-                      generateRightContent(userArchive, user, MANAGER, collabdoc[0], err => {
+                      assert.ok(resUserArchive);
+
+                      // Generate rights
+                      generateRightContent(userArchive, user, MANAGER, file[0], err => {
                         assert.ok(!err);
-
-                        eliminateUser(camAdminRestContext, userToDelete.user, resUserArchive.tenantAlias, err => {
+                        generateRightContent(userArchive, user, MANAGER, link[0], err => {
                           assert.ok(!err);
+                          generateRightContent(userArchive, user, MANAGER, collabdoc[0], err => {
+                            assert.ok(!err);
+                            generateRightContent(userArchive, user, MANAGER, collabsheet[0], err => {
+                              assert.ok(!err);
 
-                          // Check roles
-                          AuthzAPI.hasAnyRole(userToDelete.user.id, file[0].id, (err, hasRole) => {
-                            assert.strictEqual(hasRole, false);
-                            AuthzAPI.hasAnyRole(userArchive.archiveId, file[0].id, (err, hasRole) => {
-                              assert.strictEqual(hasRole, false);
-                              AuthzAPI.hasAnyRole(user.user.id, file[0].id, (err, hasRole) => {
-                                assert.strictEqual(hasRole, true);
-                                AuthzAPI.hasAnyRole(userToDelete.user.id, link[0].id, (err, hasRole) => {
+                              eliminateUser(camAdminRestContext, userToDelete.user, resUserArchive.tenantAlias, err => {
+                                assert.ok(!err);
+
+                                // Check roles
+                                AuthzAPI.hasAnyRole(userToDelete.user.id, file[0].id, (err, hasRole) => {
                                   assert.strictEqual(hasRole, false);
-                                  AuthzAPI.hasAnyRole(userArchive.archiveId, link[0].id, (err, hasRole) => {
+                                  AuthzAPI.hasAnyRole(userArchive.archiveId, file[0].id, (err, hasRole) => {
                                     assert.strictEqual(hasRole, false);
-                                    AuthzAPI.hasAnyRole(user.user.id, link[0].id, (err, hasRole) => {
+                                    AuthzAPI.hasAnyRole(user.user.id, file[0].id, (err, hasRole) => {
                                       assert.strictEqual(hasRole, true);
-                                      AuthzAPI.hasAnyRole(userToDelete.user.id, collabdoc[0].id, (err, hasRole) => {
+                                      AuthzAPI.hasAnyRole(userToDelete.user.id, link[0].id, (err, hasRole) => {
                                         assert.strictEqual(hasRole, false);
-                                        AuthzAPI.hasAnyRole(userArchive.archiveId, collabdoc[0].id, (err, hasRole) => {
+                                        AuthzAPI.hasAnyRole(userArchive.archiveId, link[0].id, (err, hasRole) => {
                                           assert.strictEqual(hasRole, false);
-                                          AuthzAPI.hasAnyRole(user.user.id, collabdoc[0].id, (err, hasRole) => {
+                                          AuthzAPI.hasAnyRole(user.user.id, link[0].id, (err, hasRole) => {
                                             assert.strictEqual(hasRole, true);
-                                            return callback();
+                                            AuthzAPI.hasAnyRole(
+                                              userToDelete.user.id,
+                                              collabdoc[0].id,
+                                              (err, hasRole) => {
+                                                AuthzAPI.hasAnyRole(
+                                                  userToDelete.user.id,
+                                                  collabsheet[0].id,
+                                                  (err, hasRole) => {
+                                                    assert.strictEqual(hasRole, false);
+                                                    AuthzAPI.hasAnyRole(
+                                                      userArchive.archiveId,
+                                                      collabdoc[0].id,
+                                                      (err, hasRole) => {
+                                                        AuthzAPI.hasAnyRole(
+                                                          userArchive.archiveId,
+                                                          collabsheet[0].id,
+                                                          (err, hasRole) => {
+                                                            assert.strictEqual(hasRole, false);
+                                                            AuthzAPI.hasAnyRole(
+                                                              user.user.id,
+                                                              collabdoc[0].id,
+                                                              (err, hasRole) => {
+                                                                assert.strictEqual(hasRole, true);
+                                                                AuthzAPI.hasAnyRole(
+                                                                  user.user.id,
+                                                                  collabsheet[0].id,
+                                                                  (err, hasRole) => {
+                                                                    assert.strictEqual(hasRole, true);
+                                                                    return callback();
+                                                                  }
+                                                                );
+                                                              }
+                                                            );
+                                                          }
+                                                        );
+                                                      }
+                                                    );
+                                                  }
+                                                );
+                                              }
+                                            );
                                           });
                                         });
                                       });
@@ -1664,8 +1917,8 @@ describe('Delete and eliminate users', () => {
                           });
                         });
                       });
-                    });
-                  });
+                    }
+                  );
                 }
               );
             });
@@ -1982,9 +2235,9 @@ describe('Delete and eliminate users', () => {
         assert.ok(!err);
 
         // Generate collabdocs
-        generateCollabdocs(userToDelete.restContext, PRIVATE_VISIBILITY, 4, (err, collabdocs) => {
+        generateCollabdocs(userToDelete.restContext, PRIVATE_VISIBILITY, 4, TYPE_COLLABDOC, (err, collabdocs) => {
           assert.ok(!err);
-          generateCollabdocs(user.restContext, PRIVATE_VISIBILITY, 1, (err, collabdocUser) => {
+          generateCollabdocs(user.restContext, PRIVATE_VISIBILITY, 1, TYPE_COLLABDOC, (err, collabdocUser) => {
             assert.ok(!err);
 
             // Generate rights collabdocs
@@ -1999,6 +2252,64 @@ describe('Delete and eliminate users', () => {
                     generateRightContent(userToDelete, otherUser, VIEWER, collabdocs[1], err => {
                       assert.ok(!err);
                       generateRightContent(userToDelete, otherUser, VIEWER, collabdocs[2], err => {
+                        assert.ok(!err);
+
+                        const list = [];
+                        list.push(otherUser.user.email);
+                        list.push(user.user.email);
+                        list.sort();
+
+                        // Delete User
+                        assertDefinitiveDeletionUsersSucceeds(
+                          camAdminRestContext,
+                          userToDelete,
+                          userArchive,
+                          (err, userArchive, listEmail) => {
+                            assert.ok(!err);
+                            listEmail.sort();
+
+                            // Verify email
+                            assert.deepStrictEqual(listEmail, list);
+                            return callback();
+                          }
+                        );
+                      });
+                    });
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+
+    /**
+     * Test that verifies definitive delation send one email to each users
+     */
+    it('Send e-mail to users who shared collabsheets with the eliminated user', callback => {
+      // Generate a deleted user to test with
+      generateTestUsers(camAdminRestContext, 4, (err, users, user, otherUser, userToDelete, userArchive) => {
+        assert.ok(!err);
+
+        // Generate collabdocs
+        generateCollabdocs(userToDelete.restContext, PRIVATE_VISIBILITY, 4, TYPE_COLLABSHEET, (err, collabsheets) => {
+          assert.ok(!err);
+          generateCollabdocs(user.restContext, PRIVATE_VISIBILITY, 1, TYPE_COLLABSHEET, (err, collabsheetUser) => {
+            assert.ok(!err);
+
+            // Generate rights collabdocs
+            generateRightContent(userToDelete, user, MANAGER, collabsheets[0], err => {
+              assert.ok(!err);
+              generateRightContent(userToDelete, user, EDITOR, collabsheets[1], err => {
+                assert.ok(!err);
+                generateRightContent(userToDelete, user, VIEWER, collabsheets[2], err => {
+                  assert.ok(!err);
+                  generateRightContent(user, userToDelete, EDITOR, collabsheetUser[0], err => {
+                    assert.ok(!err);
+                    generateRightContent(userToDelete, otherUser, VIEWER, collabsheets[1], err => {
+                      assert.ok(!err);
+                      generateRightContent(userToDelete, otherUser, VIEWER, collabsheets[2], err => {
                         assert.ok(!err);
 
                         const list = [];

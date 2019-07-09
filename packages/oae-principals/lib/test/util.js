@@ -43,6 +43,7 @@ import * as DefinitiveDeletionAPI from 'oae-principals/lib/definitive-deletion';
 
 import { emitter } from 'oae-principals';
 import * as PrincipalsDelete from 'oae-principals/lib/delete';
+import { isResourceACollabDoc, isResourceACollabSheet } from 'oae-content/lib/backends/util';
 
 /**
  * Import a batch of users from a CSV file. This function is a test utility function that wraps the REST API call and listens
@@ -2319,24 +2320,30 @@ const assertUserEliminationSucceeds = function(ctx, deletedUser, userArchive, ca
 };
 
 /**
- * Generate collabdocs
+ * Generate collabdocs and collabsheets
  *
- * @param  {restCtx}            restCtx         The REST context to use when create the collabdoc
- * @param  {String}             privacy         The privacy of the collabdoc
+ * @param  {restCtx}            restCtx         The REST context to use when create the collabdoc or collabsheet
+ * @param  {String}             privacy         The privacy of the collabdoc or collabsheet
  * @param  {Function}           callback        Standard callback function
  * @throws {AssertionError}                     Thrown if the request failed
  */
-const generateCollabdocs = function(restCtx, privacy, numToCreate, callback, _created) {
+const generateCollabdocs = function(restCtx, privacy, numToCreate, type, callback, _created) {
   _created = _created || [];
   if (_created.length === numToCreate) {
     return callback(null, _created);
   }
 
-  RestAPI.Content.createCollabDoc(restCtx, 'name', 'description', privacy, [], [], [], [], function(err, collab) {
+  const done = (err, collab) => {
     assert.ok(!err);
     _created.push(collab);
-    return generateCollabdocs(restCtx, privacy, numToCreate, callback, _created);
-  });
+    return generateCollabdocs(restCtx, privacy, numToCreate, type, callback, _created);
+  };
+
+  if (isResourceACollabDoc(type)) {
+    RestAPI.Content.createCollabDoc(restCtx, 'name', 'description', privacy, [], [], [], [], done);
+  } else if (isResourceACollabSheet(type)) {
+    RestAPI.Content.createCollabsheet(restCtx, 'name', 'description', privacy, [], [], [], [], done);
+  }
 };
 
 /**

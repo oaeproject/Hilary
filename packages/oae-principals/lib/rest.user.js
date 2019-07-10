@@ -874,7 +874,11 @@ OAE.tenantRouter.on('get', '/api/user/:userId/export/:exportType', (req, res) =>
     res.setHeader('Content-Type', 'application/zip');
     res.writeHead(200);
 
-    let nodebuffer = await zipFile.generateAsync({ type: 'nodebuffer', platform: process.platform, streamFiles: true });
+    const nodebuffer = await zipFile.generateAsync({
+      type: 'nodebuffer',
+      platform: process.platform,
+      streamFiles: true
+    });
     res.end(nodebuffer);
   });
 });

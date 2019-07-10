@@ -51,9 +51,7 @@ const programUserDeletionTask = function(globalContext, callback) {
 
         // Get list of pricipals which must be deleted
         PrincipalsDAO.getExpiredUser(actualDate, function(err, principalsToDelete) {
-          if (err) {
-            return callback(err);
-          }
+          if (err) return callback(err);
 
           if (_.isEmpty(principalsToDelete)) {
             return;
@@ -62,15 +60,11 @@ const programUserDeletionTask = function(globalContext, callback) {
           async.mapSeries(principalsToDelete, function(principal, callback) {
             // Get the principal
             PrincipalsDAO.getPrincipal(principal.principalId, function(err, principal) {
-              if (err) {
-                return callback(err);
-              }
+              if (err) return callback(err);
 
               // Delete user
               UserDeletionUtil.deleteUser(globalContext, principal, principal.tenant.alias, function(err) {
-                if (err) {
-                  return callback(err);
-                }
+                if (err) return callback(err);
 
                 return callback();
               });

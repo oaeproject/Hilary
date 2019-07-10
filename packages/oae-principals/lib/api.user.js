@@ -707,24 +707,18 @@ const deleteUser = function(ctx, userId, callback) {
     }
 
     PrincipalsDAO.getPrincipalSkipCache(userId, function(err, user) {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       // Get and/or create archiveUser
       UserDeletionUtil.fetchOrCloneFromUser(ctx, user, function(err, archiveUser) {
-        if (err) {
-          return callback(err);
-        }
+        if (err) return callback(err);
 
         if (user.isUserArchive === 'true' || archiveUser.archiveId === user.id) {
           return callback({ code: 401, msg: "This user can't be deleted" });
         }
 
         UserDeletionUtil.transferUsersDataToCloneUser(ctx, user, archiveUser, function(err) {
-          if (err) {
-            return callback(err);
-          }
+          if (err) return callback(err);
 
           PrincipalsDAO.deletePrincipal(userId, err => {
             if (err) return callback(err);

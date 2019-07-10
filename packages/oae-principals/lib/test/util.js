@@ -2491,7 +2491,7 @@ const generateFolders = function(user, privacy, numToCreate, callback, _created)
 };
 
 /**
- * Generate right for a content
+ * Assigns permisssions to content
  *
  * @param  {restCtx}            owner           The ower of the content
  * @param  {Object}             contributor     The user
@@ -2500,7 +2500,7 @@ const generateFolders = function(user, privacy, numToCreate, callback, _created)
  * @param  {Function}           callback        Standard callback function
  * @throws {AssertionError}                     Thrown if the request failed
  */
-const generateRightContent = function(owner, contributor, right, content, callback) {
+const assignPermissionToContent = function(owner, contributor, right, content, callback) {
   const memberUpdates = {};
   memberUpdates[contributor.user.id] = right;
   ContentTestUtil.assertUpdateContentMembersSucceeds(
@@ -2516,24 +2516,7 @@ const generateRightContent = function(owner, contributor, right, content, callba
 };
 
 /**
- * Generate right for a group
- *
- * @param  {restCtx}            owner           The ower of the content
- * @param  {Object}             contributor     The user
- * @param  {String}             right           The right to attribute to the user
- * @param  {Object}             group           The group to update
- * @param  {Function}           callback        Standard callback function
- * @throws {AssertionError}                     Thrown if the request failed
- */
-const generateRightGroup = function(owner, contributor, right, group, callback) {
-  assertJoinGroupSucceeds(owner.restContext, contributor.restContext, group.id, function(err, group) {
-    assert.ok(!err);
-    return callback(err, group);
-  });
-};
-
-/**
- * Generate right for a discussion
+ * Assigns permissions to discussion
  *
  * @param  {restCtx}            owner           The ower of the discussion
  * @param  {Object}             contributor     The user
@@ -2542,7 +2525,7 @@ const generateRightGroup = function(owner, contributor, right, group, callback) 
  * @param  {Function}           callback        Standard callback function
  * @throws {AssertionError}                     Thrown if the request failed
  */
-const generateRightDiscussion = function(owner, contributor, right, discussion, callback) {
+const assignPermissionsToDiscussion = function(owner, contributor, right, discussion, callback) {
   const memberUpdates = {};
   memberUpdates[contributor.user.id] = right;
   DiscussionsTestUtil.assertUpdateDiscussionMembersSucceeds(
@@ -2558,7 +2541,7 @@ const generateRightDiscussion = function(owner, contributor, right, discussion, 
 };
 
 /**
- * Generate right for a meeting
+ * Assigns permissions to meeting
  *
  * @param  {restCtx}            owner           The ower of the meeting
  * @param  {Object}             contributor     The user
@@ -2567,7 +2550,7 @@ const generateRightDiscussion = function(owner, contributor, right, discussion, 
  * @param  {Function}           callback        Standard callback function
  * @throws {AssertionError}                     Thrown if the request failed
  */
-const generateRightMeeting = function(ctx, owner, contributor, right, meeting, callback) {
+const assignPermissionsToMeeting = function(ctx, owner, contributor, right, meeting, callback) {
   const memberUpdates = {};
   memberUpdates[contributor.user.id] = right;
   ctx.user = function() {
@@ -2581,7 +2564,7 @@ const generateRightMeeting = function(ctx, owner, contributor, right, meeting, c
 };
 
 /**
- * Generate right for a folder
+ * Assigns permissions to folder
  *
  * @param  {restCtx}            owner           The ower of the folder
  * @param  {Object}             contributor     The user
@@ -2590,7 +2573,7 @@ const generateRightMeeting = function(ctx, owner, contributor, right, meeting, c
  * @param  {Function}           callback        Standard callback function
  * @throws {AssertionError}                     Thrown if the request failed
  */
-const generateRightFolder = function(owner, contributor, right, folder, callback) {
+const assignPermissionsToFolder = function(owner, contributor, right, folder, callback) {
   const memberUpdates = {};
   memberUpdates[contributor.user.id] = right;
   FolderTestUtil.assertUpdateFolderMembersSucceeds(
@@ -2606,7 +2589,7 @@ const generateRightFolder = function(owner, contributor, right, folder, callback
 };
 
 /**
- * Generate right for a group
+ * Assigns permissions to Group
  *
  * @param  {restCtx}            owner           The ower of the group
  * @param  {Object}             contributor     The user
@@ -2615,7 +2598,7 @@ const generateRightFolder = function(owner, contributor, right, folder, callback
  * @param  {Function}           callback        Standard callback function
  * @throws {AssertionError}                     Thrown if the request failed
  */
-const generateRightsForGroup = function(owner, contributor, right, group, callback) {
+const assignPermissionsToGroup = function(owner, contributor, right, group, callback) {
   owner.restContext.tenant = function() {
     return owner.user.tenant;
   };
@@ -2727,7 +2710,6 @@ export {
   assertUpdateJoinGroupByRequestSucceeds,
   assertUpdateJoinGroupByRequestFails,
   assertDoesNotFollow,
-  generateRightGroup,
   assertUserEliminationSucceeds as assertDefinitiveDeletionUsersSucceeds,
   generateCollabdocs,
   generateFiles,
@@ -2736,9 +2718,9 @@ export {
   generateLinks,
   generateGroups,
   generateFolders,
-  generateRightContent,
-  generateRightFolder,
-  generateRightMeeting,
-  generateRightDiscussion,
-  generateRightsForGroup
+  assignPermissionToContent as generateRightContent,
+  assignPermissionsToFolder as generateRightFolder,
+  assignPermissionsToMeeting as generateRightMeeting,
+  assignPermissionsToDiscussion as generateRightDiscussion,
+  assignPermissionsToGroup as generateRightsForGroup
 };

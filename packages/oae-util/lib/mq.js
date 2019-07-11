@@ -187,9 +187,9 @@ const init = function(mqConfig, callback) {
             'Attempted to set config.mq.purgeQueuesOnStartup to true when in production mode. Ignoring and not purging queues.'
           );
           purgeQueuesOnStartup = false;
+        } else {
+          purgeQueuesOnStartup = true;
         }
-      } else {
-        purgeQueuesOnStartup = true;
       }
 
       return cb();
@@ -356,7 +356,9 @@ const _processBindQueue = function() {
           },
           'Bound a queue to an exchange'
         );
-        if (purgeQueuesOnStartup && !startupPurgeStatus[todo.queueName]) {
+
+        const doPurge = purgeQueuesOnStartup && !startupPurgeStatus[todo.queueName];
+        if (doPurge) {
           // Ensure this queue only gets purged the first time we connect
           startupPurgeStatus[todo.queueName] = true;
 

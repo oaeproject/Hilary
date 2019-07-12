@@ -183,8 +183,8 @@ const _generateThumbnail = function(ctx, path, pagesDir, callback) {
  * @param  {Number} pageNum  The page number
  * @return {String} The file path for the svg file corresponding to the page
  */
-function getFilePathForPage(pagesDir, pageNum) {
-  return path.join(pagesDir, 'page.' + pageNum + '.svg');
+function getFilePathForPage(pagesDir, pageNum, format) {
+  return path.join(pagesDir, 'page.' + pageNum + '.' + format);
 }
 
 /**
@@ -238,14 +238,17 @@ const previewAndIndexEachPage = async function(ctx, pagesDir, pageNum, doc) {
   try {
     const page = await doc.getPage(pageNum);
     const viewport = page.getViewport({ scale: viewportScale });
-    ctx.addPreview(getFilePathForPage(pagesDir, pageNum), 'html');
+    ctx.addPreview(getFilePathForPage(pagesDir, pageNum, 'html'), 'html');
+    ctx.addPreview(getFilePathForPage(pagesDir, pageNum, 'svg'), 'svg');
 
     const opList = await page.getOperatorList();
     const svgGfx = new pdfjsLib.SVGGraphics(page.commonObjs, page.objs);
     svgGfx.embedFonts = true;
 
     const svg = await svgGfx.getSVG(opList, viewport);
-    await writeSvgToFile(svg, getFilePathForPage(pagesDir, pageNum));
+
+    await writeSvgToFile(svg, getFilePathForPage(pagesDir, pageNum, 'html'));
+    await writeSvgToFile(svg, getFilePathForPage(pagesDir, pageNum, 'svg'));
     const content = await page.getTextContent();
 
     // Content contains lots of information about the text layout and

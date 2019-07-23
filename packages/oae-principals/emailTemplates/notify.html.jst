@@ -39,7 +39,7 @@
                     <td>
                         <p>
                             <%= begin %>
-                            <% if (resource.contentWillBeDeleted) { %>
+                            <% if (resource.contentWillBeDeleted.length > 0) { %>
                                 __MSG__EMAIL_DELETED_RESOURCE_BODY__
                             <% }
                             resource.contentWillBeDeleted.forEach(function(deletedResource, j, arrJ) {

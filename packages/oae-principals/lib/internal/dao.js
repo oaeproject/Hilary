@@ -1271,9 +1271,7 @@ const addDataToArchive = function(archiveId, principalId, resourceId, date, call
     'INSERT INTO "DataArchive" ("archiveId", "principalId", "resourceId", "deletionDate") VALUES (?, ?, ?, ?)',
     [archiveId, principalId, stringResource, date],
     function(err) {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       return callback();
     }
@@ -1293,9 +1291,7 @@ const removePrincipalFromDataArchive = function(archiveId, principalId, callback
     'DELETE FROM "DataArchive" WHERE "archiveId" = ? AND "principalId" = ?',
     [archiveId, principalId],
     function(err) {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       return callback();
     }
@@ -1312,9 +1308,7 @@ const removePrincipalFromDataArchive = function(archiveId, principalId, callback
  */
 const getArchivedUser = function(alias, callback) {
   Cassandra.runQuery('SELECT * FROM "ArchiveByTenant" WHERE "tenantAlias" = ?', [alias], function(err, rows) {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     const userArchive = _.map(rows, Cassandra.rowToHash);
     return callback(null, userArchive[0]);
@@ -1331,19 +1325,15 @@ const getArchivedUser = function(alias, callback) {
  */
 const getExpiredUser = function(actualDate, callback) {
   Cassandra.runQuery('SELECT * FROM "DataArchive"', [], function(err, rows) {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
+    if (_.isEmpty(rows)) return callback(null, []);
 
-    if (_.isEmpty(rows)) {
-      return callback(null, []);
-    }
-
-    let users = _.map(rows, Cassandra.rowToHash);
-
-    users = _.filter(users, function(user) {
-      return new Date(user.deletionDate) < actualDate;
-    });
+    const users = _.chain(rows)
+      .map(Cassandra.rowToHash)
+      .filter(user => {
+        return new Date(user.deletionDate) < actualDate;
+      })
+      .value();
     return callback(null, users);
   });
 };
@@ -1360,9 +1350,7 @@ const updateUserArchiveFlag = function(principalId, callback) {
     'UPDATE "Principals" SET "isUserArchive" = ? WHERE "principalId" = ?',
     ['true', principalId],
     function(err) {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       return callback();
     }

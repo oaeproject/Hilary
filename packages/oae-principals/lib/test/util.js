@@ -2284,7 +2284,7 @@ const assertUpdateJoinGroupByRequestFails = function(restCtx, groupId, principal
  * @param  {Function}       callback            Invoked when all groups have been deleted and all assertions have succeeded
  * @throws {AssertionError}                     Thrown if there is an issue deleting the groups or any of the assertions fail
  */
-const assertUserEliminationSucceeds = function(ctx, deletedUser, userArchive, callback) {
+const assertDataIsTransferredToArchiveUser = function(ctx, deletedUser, userArchive, callback) {
   ctx.user = function() {
     return userArchive.user;
   };
@@ -2710,7 +2710,7 @@ export {
   assertUpdateJoinGroupByRequestSucceeds,
   assertUpdateJoinGroupByRequestFails,
   assertDoesNotFollow,
-  assertUserEliminationSucceeds as assertDefinitiveDeletionUsersSucceeds,
+  assertDataIsTransferredToArchiveUser as assertDefinitiveDeletionUsersSucceeds,
   generateCollabdocs,
   generateFiles,
   generateDiscussions,

@@ -14,13 +14,15 @@
  */
 
 import * as _ from 'underscore';
-import * as async from 'async';
+import eachSeries from 'async/eachSeries';
 import { CronJob } from 'cron';
 
+import { logger } from 'oae-logger';
 import { setUpConfig } from 'oae-config';
 import * as UserDeletionUtil from 'oae-principals/lib/definitive-deletion';
 import * as PrincipalsDAO from './internal/dao';
 
+const log = logger('oae-principals');
 const PrincipalsConfig = setUpConfig('oae-principals');
 
 const DEFAULT_TIMEZONE = 'Etc/UTC';
@@ -42,41 +44,54 @@ const programUserDeletionTask = function(globalContext, callback) {
    * Create cron to definitely delete a user
    * Runs every Sunday at 00:00:00 AM.
    */
-  return callback(
-    null,
-    new CronJob(
-      '00 00 00 * * 7',
-      function() {
-        const actualDate = new Date();
+  const job = new CronJob(
+    '00 00 00 * * 6', // '0 */2 * * * *',
+    function() {
+      const actualDate = new Date();
 
-        // Get list of pricipals which must be deleted
-        PrincipalsDAO.getExpiredUser(actualDate, function(err, principalsToDelete) {
-          if (err) return callback(err);
+      // Get list of pricipals which must be deleted
+      PrincipalsDAO.getExpiredUser(actualDate, function(err, principalsToDelete) {
+        if (err) return callback(err);
 
-          if (_.isEmpty(principalsToDelete)) {
-            return;
-          }
+        if (_.isEmpty(principalsToDelete)) return;
 
-          async.mapSeries(principalsToDelete, function(principal, callback) {
-            // Get the principal
-            PrincipalsDAO.getPrincipal(principal.principalId, function(err, principal) {
-              if (err) return callback(err);
+        const errors = [];
+        eachSeries(
+          principalsToDelete,
+          (principal, done) => {
+            PrincipalsDAO.getPrincipal(principal.principalId, (err, principal) => {
+              if (err) {
+                // If the principal does not exist anymore for some reason, skip the rest
+                errors.push(err);
+                return done();
+              }
 
-              // Delete user
-              UserDeletionUtil.deleteUser(globalContext, principal, principal.tenant.alias, function(err) {
-                if (err) return callback(err);
+              const { alias } = principal.tenant;
+              UserDeletionUtil.eliminateUser(globalContext, principal, alias, err => {
+                if (err) {
+                  // If there's been any error, save it and move on
+                  errors.push(err);
+                }
 
-                return callback();
+                done();
               });
             });
-          });
-        });
-      },
-      null,
-      true,
-      timezone
-    )
+          },
+          err => {
+            if (err || errors.length > 0) {
+              log().info({ errors }, 'Errors during user definitive elimination: ');
+            }
+
+            log().info('Exiting cron task...');
+          }
+        );
+      });
+    },
+    null,
+    true,
+    timezone
   );
+  return callback(null, job);
 };
 
 export { programUserDeletionTask };

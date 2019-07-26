@@ -34,9 +34,9 @@ import {
   createGlobalAdminRestContext,
   generateTestUsers
 } from 'oae-tests';
-import { deleteUser as eliminateUser } from 'oae-principals/lib/definitive-deletion';
+import { eliminateUser } from 'oae-principals/lib/definitive-deletion';
 import {
-  assertDefinitiveDeletionUsersSucceeds,
+  assertDefinitiveDeletionUsersSucceeds as assertDataIsTransferredToArchiveUser,
   assertDeleteUserFails,
   uploadAndCropPicture,
   generateLinks,
@@ -123,7 +123,7 @@ describe('Delete and eliminate users', () => {
         assert.ok(!err);
 
         // Delete User - step 1
-        assertDefinitiveDeletionUsersSucceeds(camAdminRestContext, userToDelete, userArchive, (err, resUserArchive) => {
+        assertDataIsTransferredToArchiveUser(camAdminRestContext, userToDelete, userArchive, (err, resUserArchive) => {
           assert.ok(!err);
           assert.ok(resUserArchive);
 
@@ -262,7 +262,7 @@ describe('Delete and eliminate users', () => {
         assert.ok(!err);
 
         // Delete User - step 1
-        assertDefinitiveDeletionUsersSucceeds(camAdminRestContext, userToDelete, userArchive, (err, resUserArchive) => {
+        assertDataIsTransferredToArchiveUser(camAdminRestContext, userToDelete, userArchive, (err, resUserArchive) => {
           assert.ok(!err);
           assert.ok(resUserArchive);
 
@@ -308,7 +308,7 @@ describe('Delete and eliminate users', () => {
               assert.ok(!err);
 
               // Delete User - step 1
-              assertDefinitiveDeletionUsersSucceeds(
+              assertDataIsTransferredToArchiveUser(
                 camAdminRestContext,
                 userToDelete,
                 userArchive,
@@ -375,7 +375,7 @@ describe('Delete and eliminate users', () => {
                   assert.ok(!err);
 
                   // Delete User
-                  assertDefinitiveDeletionUsersSucceeds(
+                  assertDataIsTransferredToArchiveUser(
                     camAdminRestContext,
                     userToDelete,
                     userArchive,
@@ -455,7 +455,7 @@ describe('Delete and eliminate users', () => {
                       assert.ok(!err);
 
                       // Delete User
-                      assertDefinitiveDeletionUsersSucceeds(
+                      assertDataIsTransferredToArchiveUser(
                         camAdminRestContext,
                         userToDelete,
                         userArchive,
@@ -601,7 +601,7 @@ describe('Delete and eliminate users', () => {
                       assert.ok(!err);
 
                       // Delete User
-                      assertDefinitiveDeletionUsersSucceeds(
+                      assertDataIsTransferredToArchiveUser(
                         camAdminRestContext,
                         userToDelete,
                         userArchive,
@@ -761,7 +761,7 @@ describe('Delete and eliminate users', () => {
                   assert.ok(!err);
 
                   // Delete User
-                  assertDefinitiveDeletionUsersSucceeds(
+                  assertDataIsTransferredToArchiveUser(
                     camAdminRestContext,
                     userToDelete,
                     userArchive,
@@ -839,7 +839,7 @@ describe('Delete and eliminate users', () => {
                   assert.ok(!err);
 
                   // Delete User
-                  assertDefinitiveDeletionUsersSucceeds(
+                  assertDataIsTransferredToArchiveUser(
                     camAdminRestContext,
                     userToDelete,
                     userArchive,
@@ -921,7 +921,7 @@ describe('Delete and eliminate users', () => {
                   assert.ok(!err);
 
                   // Delete User
-                  assertDefinitiveDeletionUsersSucceeds(
+                  assertDataIsTransferredToArchiveUser(
                     camAdminRestContext,
                     userToDelete,
                     userArchive,
@@ -1013,7 +1013,7 @@ describe('Delete and eliminate users', () => {
                   assert.ok(!err);
 
                   // Delete User
-                  assertDefinitiveDeletionUsersSucceeds(
+                  assertDataIsTransferredToArchiveUser(
                     camAdminRestContext,
                     userToDelete,
                     userArchive,
@@ -1092,7 +1092,7 @@ describe('Delete and eliminate users', () => {
                   assert.ok(!err);
 
                   // Delete User
-                  assertDefinitiveDeletionUsersSucceeds(
+                  assertDataIsTransferredToArchiveUser(
                     camAdminRestContext,
                     userToDelete,
                     userArchive,
@@ -1209,7 +1209,7 @@ describe('Delete and eliminate users', () => {
                             list.push(folder[0].id);
 
                             // Delete User
-                            assertDefinitiveDeletionUsersSucceeds(
+                            assertDataIsTransferredToArchiveUser(
                               camAdminRestContext,
                               userToDelete,
                               userArchive,
@@ -1258,7 +1258,7 @@ describe('Delete and eliminate users', () => {
           userArchive.archiveId = userArchive.user.id;
 
           // Delete User
-          assertDefinitiveDeletionUsersSucceeds(camAdminRestContext, userToDelete, userArchive, (err, userArchive) => {
+          assertDataIsTransferredToArchiveUser(camAdminRestContext, userToDelete, userArchive, (err, userArchive) => {
             assert.ok(!err);
             assert.ok(userArchive);
 
@@ -1316,7 +1316,7 @@ describe('Delete and eliminate users', () => {
           assert.ok(!err);
 
           // Delete User
-          assertDefinitiveDeletionUsersSucceeds(camAdminRestContext, userToDelete, userArchive, (err, userArchive) => {
+          assertDataIsTransferredToArchiveUser(camAdminRestContext, userToDelete, userArchive, (err, userArchive) => {
             assert.ok(!err);
             assert.ok(userArchive);
 
@@ -1371,7 +1371,7 @@ describe('Delete and eliminate users', () => {
                   list.sort();
 
                   // Delete User
-                  assertDefinitiveDeletionUsersSucceeds(
+                  assertDataIsTransferredToArchiveUser(
                     camAdminRestContext,
                     userToDelete,
                     userArchive,
@@ -1420,7 +1420,7 @@ describe('Delete and eliminate users', () => {
           assert.ok(!err);
 
           // Delete User
-          assertDefinitiveDeletionUsersSucceeds(camAdminRestContext, userToDelete, userArchive, (err, userArchive) => {
+          assertDataIsTransferredToArchiveUser(camAdminRestContext, userToDelete, userArchive, (err, userArchive) => {
             assert.ok(!err);
             assert.ok(userArchive);
 
@@ -1450,7 +1450,7 @@ describe('Delete and eliminate users', () => {
           assert.ok(!err);
 
           // Delete User
-          assertDefinitiveDeletionUsersSucceeds(camAdminRestContext, userToDelete, userArchive, (err, userArchive) => {
+          assertDataIsTransferredToArchiveUser(camAdminRestContext, userToDelete, userArchive, (err, userArchive) => {
             assert.ok(!err);
             assert.ok(userArchive);
 
@@ -1490,7 +1490,7 @@ describe('Delete and eliminate users', () => {
             followed.user.id,
             followed.restContext,
             () => {
-              assertDefinitiveDeletionUsersSucceeds(camAdminRestContext, followed, userArchive, (err, userArchive) => {
+              assertDataIsTransferredToArchiveUser(camAdminRestContext, followed, userArchive, (err, userArchive) => {
                 assert.ok(!err);
                 assert.ok(userArchive);
 
@@ -1526,7 +1526,7 @@ describe('Delete and eliminate users', () => {
             followed.restContext,
             () => {
               // Delete user
-              assertDefinitiveDeletionUsersSucceeds(camAdminRestContext, follower, userArchive, (err, userArchive) => {
+              assertDataIsTransferredToArchiveUser(camAdminRestContext, follower, userArchive, (err, userArchive) => {
                 assert.ok(!err);
                 assert.ok(userArchive);
 
@@ -1557,7 +1557,7 @@ describe('Delete and eliminate users', () => {
           assert.ok(!err);
 
           // Delete User
-          assertDefinitiveDeletionUsersSucceeds(
+          assertDataIsTransferredToArchiveUser(
             camAdminRestContext,
             userToDelete,
             userArchive,
@@ -1612,7 +1612,7 @@ describe('Delete and eliminate users', () => {
                   assert.ok(!err);
 
                   // Delete User
-                  assertDefinitiveDeletionUsersSucceeds(
+                  assertDataIsTransferredToArchiveUser(
                     camAdminRestContext,
                     userToDelete,
                     userArchive,
@@ -1685,7 +1685,7 @@ describe('Delete and eliminate users', () => {
           assert.ok(!err);
 
           // Delete User
-          assertDefinitiveDeletionUsersSucceeds(
+          assertDataIsTransferredToArchiveUser(
             camAdminRestContext,
             userToDelete,
             userArchive,
@@ -1730,7 +1730,7 @@ describe('Delete and eliminate users', () => {
           assert.ok(!err);
 
           // Delete User
-          assertDefinitiveDeletionUsersSucceeds(
+          assertDataIsTransferredToArchiveUser(
             camAdminRestContext,
             userToDelete,
             userArchive,
@@ -1775,7 +1775,7 @@ describe('Delete and eliminate users', () => {
           assert.ok(!err);
 
           // Delete User
-          assertDefinitiveDeletionUsersSucceeds(
+          assertDataIsTransferredToArchiveUser(
             camAdminRestContext,
             userToDelete,
             userArchive,
@@ -1830,8 +1830,8 @@ describe('Delete and eliminate users', () => {
                 (err, collabsheet) => {
                   assert.ok(!err);
 
-                  // Delete User
-                  assertDefinitiveDeletionUsersSucceeds(
+                  // Transfer all permissions on content before elimitating
+                  assertDataIsTransferredToArchiveUser(
                     camAdminRestContext,
                     userToDelete,
                     userArchive,
@@ -1940,7 +1940,7 @@ describe('Delete and eliminate users', () => {
           assert.ok(!err);
 
           // Delete User
-          assertDefinitiveDeletionUsersSucceeds(
+          assertDataIsTransferredToArchiveUser(
             camAdminRestContext,
             userToDelete,
             userArchive,
@@ -1987,7 +1987,7 @@ describe('Delete and eliminate users', () => {
           assert.ok(!err);
 
           // Delete User
-          assertDefinitiveDeletionUsersSucceeds(
+          assertDataIsTransferredToArchiveUser(
             camAdminRestContext,
             userToDelete,
             userArchive,
@@ -2034,7 +2034,7 @@ describe('Delete and eliminate users', () => {
           assert.ok(!err);
 
           // Delete User
-          assertDefinitiveDeletionUsersSucceeds(
+          assertDataIsTransferredToArchiveUser(
             camAdminRestContext,
             userToDelete,
             userArchive,
@@ -2081,7 +2081,7 @@ describe('Delete and eliminate users', () => {
           assert.ok(!err);
 
           // Delete User
-          assertDefinitiveDeletionUsersSucceeds(
+          assertDataIsTransferredToArchiveUser(
             camAdminRestContext,
             userToDelete,
             userArchive,
@@ -2149,7 +2149,7 @@ describe('Delete and eliminate users', () => {
                       list.sort();
 
                       // Delete User
-                      assertDefinitiveDeletionUsersSucceeds(
+                      assertDataIsTransferredToArchiveUser(
                         camAdminRestContext,
                         userToDelete,
                         userArchive,
@@ -2203,7 +2203,7 @@ describe('Delete and eliminate users', () => {
                       list.sort();
 
                       // Delete User
-                      assertDefinitiveDeletionUsersSucceeds(
+                      assertDataIsTransferredToArchiveUser(
                         camAdminRestContext,
                         userToDelete,
                         userArchive,
@@ -2260,7 +2260,7 @@ describe('Delete and eliminate users', () => {
                         list.sort();
 
                         // Delete User
-                        assertDefinitiveDeletionUsersSucceeds(
+                        assertDataIsTransferredToArchiveUser(
                           camAdminRestContext,
                           userToDelete,
                           userArchive,
@@ -2318,7 +2318,7 @@ describe('Delete and eliminate users', () => {
                         list.sort();
 
                         // Delete User
-                        assertDefinitiveDeletionUsersSucceeds(
+                        assertDataIsTransferredToArchiveUser(
                           camAdminRestContext,
                           userToDelete,
                           userArchive,
@@ -2374,7 +2374,7 @@ describe('Delete and eliminate users', () => {
                       list.sort();
 
                       // Delete User
-                      assertDefinitiveDeletionUsersSucceeds(
+                      assertDataIsTransferredToArchiveUser(
                         camAdminRestContext,
                         userToDelete,
                         userArchive,
@@ -2429,7 +2429,7 @@ describe('Delete and eliminate users', () => {
                       list.sort();
 
                       // Delete User
-                      assertDefinitiveDeletionUsersSucceeds(
+                      assertDataIsTransferredToArchiveUser(
                         camAdminRestContext,
                         userToDelete,
                         userArchive,
@@ -2484,7 +2484,7 @@ describe('Delete and eliminate users', () => {
                       list.sort();
 
                       // Delete User
-                      assertDefinitiveDeletionUsersSucceeds(
+                      assertDataIsTransferredToArchiveUser(
                         camAdminRestContext,
                         userToDelete,
                         userArchive,

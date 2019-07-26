@@ -760,75 +760,152 @@ const eliminateUser = (ctx, user, alias, callback) => {
 
     // Get all data from user archive where data belonged to the user removed
     PrincipalsDAO.getDataFromArchive(userArchive.archiveId, user.id, (err, data) => {
-      if (err) return callback(err);
+      if (err) {
+        log().info({ userId: user.id, name: 'oae-principals' }, 'Unable to get data to eliminate, aborting.');
+        return callback(err);
+      }
 
-      // Delete all rights on resources
-      _deleteResourcePermissions(ctx, user, userArchive.archiveId, data, err => {
-        if (err) return callback(err);
+      async.series(
+        {
+          deleteResources(done) {
+            _deleteResourcePermissions(ctx, user, userArchive.archiveId, data, err => {
+              if (err) {
+                log().info(
+                  { userId: user.id, name: 'oae-principals', archiveId: userArchive.archiveId },
+                  'Unable to delete resource permissions, skipping this step.'
+                );
+              }
 
-        // Remove profile picture from file system
-        removeProfilePicture(ctx, user, err => {
-          if (err) return callback(err);
+              done();
+            });
+          },
+          removeProfile(done) {
+            removeProfilePicture(ctx, user, err => {
+              if (err) {
+                log().info(
+                  { userId: user.id, name: 'oae-principals' },
+                  'Unable to delete profile picture, skipping this step.'
+                );
+              }
 
-          // Delete followers and following
-          FollowingAPI.deleteFollowers(ctx, user, err => {
+              done();
+            });
+          },
+          deleteFollowers(done) {
+            FollowingAPI.deleteFollowers(ctx, user, err => {
+              if (err) {
+                log().info(
+                  { userId: user.id, name: 'oae-principals' },
+                  'Unable to delete user followers, skipping this step.'
+                );
+              }
+
+              done();
+            });
+          },
+          deleteFollowing(done) {
+            FollowingAPI.deleteFollowing(ctx, user, err => {
+              if (err) {
+                log().info(
+                  { userId: user.id, name: 'oae-principals' },
+                  'Unable to delete user following, skipping this step.'
+                );
+              }
+
+              done();
+            });
+          },
+          deleteInvitations(done) {
+            AuthzInvitationDAO.deleteInvitationsByEmail(user.email, err => {
+              if (err) {
+                log().info(
+                  { userId: user.id, name: 'oae-principals' },
+                  'Unable to delete invitations, skipping this step.'
+                );
+              }
+
+              done();
+            });
+          },
+          deleteActivity(done) {
+            ActivityAPI.removeActivityStream(ctx, user.id, err => {
+              if (err) {
+                log().info(
+                  { userId: user.id, name: 'oae-principals' },
+                  'Unable to delete user activity streams, skipping this step.'
+                );
+              }
+
+              done();
+            });
+          },
+          removeFromCronTable(done) {
+            PrincipalsDAO.removePrincipalFromDataArchive(userArchive.archiveId, user.id, err => {
+              if (err) {
+                log().info(
+                  { userId: user.id, name: 'oae-principals', archiveId: userArchive.archiveId },
+                  'Unable to remove principal from data archive, skipping this step.'
+                );
+                return callback(err);
+              }
+
+              done();
+            });
+          },
+          isDeleted(done) {
+            // Determine if the principal was already deleted in the authz index before we set them and flip the principals deleted flag
+            AuthzDelete.isDeleted([user.id], (err /* wasDeleted */) => {
+              if (err) {
+                log().info(
+                  { userId: user.id, name: 'oae-principals' },
+                  'Unable to remove principal from authz index, skipping this step.'
+                );
+              }
+
+              done();
+            });
+          }
+        },
+        err => {
+          if (err) {
+            log().info(
+              { userId: user.id, name: 'oae-principals' },
+              'Found some errors while deleting data associated to user, moving on...'
+            );
+          }
+
+          // Get the login to delete the user form the table AuthenticationLoginId
+          require('oae-authentication').getUserLoginIds(ctx, user.id, (err, login) => {
             if (err) return callback(err);
 
-            FollowingAPI.deleteFollowing(ctx, user, err => {
-              if (err) return callback(err);
+            // Set (or re-Set) the principal as deleted in the authz index
+            AuthzDelete.setDeleted(user.id, err => {
+              if (err) {
+                log().info('Unable to delete user from Authz index.');
+                return callback(err);
+              }
 
-              // Delete all Authz invitation
-              AuthzInvitationDAO.deleteInvitationsByEmail(user.email, err => {
+              // Delete a user from the database
+              PrincipalsDAO.fullyDeletePrincipal(user, login, err => {
                 if (err) return callback(err);
 
-                // Delete all activity
-                ActivityAPI.removeActivityStream(ctx, user.id, err => {
+                // Notify that a user has been deleted
+                PrincipalsEmitter.emit(PrincipalsConstants.events.DELETED_USER, ctx, user, err => {
                   if (err) return callback(err);
 
-                  // Remove the principal from the table 'DataArchive'
-                  PrincipalsDAO.removePrincipalFromDataArchive(userArchive.archiveId, user.id, err => {
-                    if (err) return callback(err);
+                  // Notify consumers that a user has been deleted
+                  log().info(
+                    { userId: user.id, name: 'oae-principals' },
+                    'Definitive deletion user with a mapped login id'
+                  );
 
-                    // Determine if the principal was already deleted in the authz index before we set them and flip
-                    // the principals deleted flag
-                    AuthzDelete.isDeleted([user.id], (err /* wasDeleted */) => {
-                      if (err) return callback(err);
-
-                      // Get the login to delete the user form the table AuthenticationLoginId
-                      require('oae-authentication').getUserLoginIds(ctx, user.id, (err, login) => {
-                        if (err) return callback(err);
-
-                        // Set (or re-Set) the principal as deleted in the authz index
-                        AuthzDelete.setDeleted(user.id, err => {
-                          if (err) return callback(err);
-
-                          // Delete a user from the database
-                          PrincipalsDAO.fullyDeletePrincipal(user, login, err => {
-                            if (err) return callback(err);
-
-                            // Notify that a user has been deleted
-                            PrincipalsEmitter.emit(PrincipalsConstants.events.DELETED_USER, ctx, user, err => {
-                              if (err) return callback(err);
-
-                              // Notify consumers that a user has been deleted
-                              log().info(
-                                { userId: user.id, name: 'oae-principals' },
-                                'Definitive deletion user with a mapped login id'
-                              );
-
-                              return callback(null, true);
-                            });
-                          });
-                        });
-                      });
-                    });
-                  });
+                  return callback(null, true);
                 });
               });
             });
           });
-        });
-      });
+        }
+      );
     });
   });
 };
@@ -894,6 +971,7 @@ const _deleteResourcePermissions = (ctx, user, archiveId, data, callback) => {
         // Get type of resource
         let idResource = id;
         const splitId = idResource.split(':');
+        const resourceType = splitId[0];
 
         // If it's a folder get the idGroup
         _ifFolderGetIdGroup(ctx, idResource, splitId[0], (err, idFolder) => {
@@ -904,41 +982,44 @@ const _deleteResourcePermissions = (ctx, user, archiveId, data, callback) => {
           AuthzAPI.getAllAuthzMembers(idResource, (err, memberIdRoles) => {
             if (err) return callback(err);
 
-            let managers = 0;
-            const rolesMember = _.pluck(memberIdRoles, 'role');
+            const doesResourceHaveManagers =
+              _.chain(memberIdRoles)
+                .reject(each => {
+                  return each.id === archiveId;
+                })
+                .pluck('role')
+                .filter(role => {
+                  return role === AuthzConstants.role.MANAGER;
+                })
+                .value().length > 0;
 
-            _.each(rolesMember, role => {
-              if (role === AuthzConstants.role.MANAGER) {
-                managers += 1;
-              }
-            });
-
-            const del = !(managers > 1);
+            // Lets erase only if there are no new managers in the meantime
+            const shouldProceed = !doesResourceHaveManagers;
 
             // Remove the resource with the appropriate method
-            switch (splitId[0]) {
+            switch (resourceType) {
               case CONTENT_PREFIX:
-                _deletePermissionsOnContent(ctx, del, archiveId, idResource, err => {
+                _deletePermissionsOnContent(ctx, shouldProceed, archiveId, idResource, err => {
                   if (err) return callback(err);
                 });
                 break;
               case DISCUSSION_PREFIX:
-                _deletePermissionsOnDiscussion(ctx, del, archiveId, idResource, err => {
+                _deletePermissionsOnDiscussion(ctx, shouldProceed, archiveId, idResource, err => {
                   if (err) return callback(err);
                 });
                 break;
               case FOLDER_PREFIX:
-                _deletePermissionsOnFolder(ctx, del, archiveId, id, err => {
+                _deletePermissionsOnFolder(ctx, shouldProceed, archiveId, id, err => {
                   if (err) return callback(err);
                 });
                 break;
               case GROUP_PREFIX:
-                _deletePermissionsOnGroup(ctx, del, archiveId, idResource, err => {
+                _deletePermissionsOnGroup(ctx, shouldProceed, archiveId, idResource, err => {
                   if (err) return callback(err);
                 });
                 break;
               case MEETING_PREFIX:
-                _deletePermissionsOnMeeting(ctx, del, archiveId, idResource, err => {
+                _deletePermissionsOnMeeting(ctx, shouldProceed, archiveId, idResource, err => {
                   if (err) return callback(err);
                 });
                 break;
@@ -1132,6 +1213,6 @@ const _deletePermissionsOnMeeting = (ctx, del, archiveId, idResource, callback) 
 export {
   transferPermissionsToCloneUser as transferUsersDataToCloneUser,
   removeProfilePicture,
-  eliminateUser as deleteUser,
+  eliminateUser,
   fetchOrCloneFromUser
 };

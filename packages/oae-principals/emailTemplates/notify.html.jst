@@ -50,7 +50,7 @@
                                 <% }
                             });
 
-                            if (resource.userJustLeaving) { %>
+                            if (resource.userJustLeaving.length > 0) { %>
                                 __MSG__EMAIL_LEFT_RESOURCE_BODY__
                             <% }
                             resource.userJustLeaving.forEach(function(leavingUser, j, arrJ) {

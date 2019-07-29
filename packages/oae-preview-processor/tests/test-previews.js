@@ -1722,12 +1722,14 @@ describe('Preview processor', () => {
       }
 
       _createContentAndWait('collabdoc', null, null, (restCtx, content) => {
-        setTimeout(assert.strictEqual, 500, content.previews.status, 'done');
-        // Ensure we have a thumbnail url.
-        assert.strictEqual(content.previews.thumbnailUrl.indexOf('/api/download/signed'), 0);
-        _verifySignedUriDownload(restCtx, content.previews.thumbnailUrl, () => {
-          callback();
-        });
+        setTimeout(() => {
+          assert.strictEqual(content.previews.status, 'done');
+          // Ensure we have a thumbnail url.
+          assert.strictEqual(content.previews.thumbnailUrl.indexOf('/api/download/signed'), 0);
+          _verifySignedUriDownload(restCtx, content.previews.thumbnailUrl, () => {
+            callback();
+          });
+        }, 2000);
       });
     });
 

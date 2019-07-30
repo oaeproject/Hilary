@@ -22,7 +22,7 @@
   "dependencies": {
     "amqp-connection-manager": "^2.3.0",
     "amqplib": "^0.5.1",
-    "async": "^2.1.5",
+    "async": "^3.1.0",
     "awssum": "^1.2.0",
     "awssum-amazon": "^1.4.0",
     "awssum-amazon-s3": "^1.5.0",

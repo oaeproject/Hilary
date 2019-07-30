@@ -14,6 +14,7 @@
  */
 
 import _ from 'underscore';
+import * as async from 'async';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
 import * as LibraryAuthz from 'oae-library/lib/api.authz';
@@ -740,14 +741,10 @@ const postActivity = function(ctx, activitySeed, callback) {
  */
 const _getActivityStream = function(ctx, activityStreamId, start, limit, transformerType, callback) {
   ActivityDAO.getActivities(activityStreamId, start, limit, (err, activities, nextToken) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     ActivityTransformer.transformActivities(ctx, activities, transformerType, err => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       // Emit an event indicating that the activity stream has been retrieved
       ActivityEmitter.emit(
@@ -766,7 +763,52 @@ const _getActivityStream = function(ctx, activityStreamId, start, limit, transfo
   });
 };
 
+/**
+ * Remove principal from activityStream table
+ *
+ * @param  {String}     principalId     The id of the user to delete
+ * @param  {Function}   callback        Standard callback function
+ * @param  {Object}     callback.err    An error that occured, if any
+ */
+const removeActivityStream = function(ctx, principalId, callback) {
+  callback = callback || function() {};
+
+  if (ctx.user().isGlobalAdmin() || ctx.user().isAdmin() || ctx.user().isTenantAdmin()) {
+    const activityTypes = [
+      '#activity',
+      '#email',
+      '#activity#public',
+      '#activity#private',
+      '#activity#loggedin',
+      '#notification'
+    ];
+
+    async.eachSeries(
+      activityTypes,
+      function(activityType, done) {
+        // Get all the activity streams corresponding to the deleted principal
+        ActivityDAO.getActivities(principalId + activityType, null, null, function(err, activities) {
+          if (err) return callback(err);
+
+          // Delete all data in the ActivityStreams table corresponding to the deleted principal
+          ActivityDAO.deleteActivities(activities, function(err) {
+            if (err) return callback(err);
+
+            return done();
+          });
+        });
+      },
+      function() {
+        return callback();
+      }
+    );
+  } else {
+    return callback({ code: 400, msg: 'You must be an admin' });
+  }
+};
+
 export {
+  removeActivityStream,
   refreshConfiguration,
   registerActivityStreamType,
   getRegisteredActivityStreamType,

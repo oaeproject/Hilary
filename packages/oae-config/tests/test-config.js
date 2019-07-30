@@ -1211,11 +1211,7 @@ describe('Configuration', () => {
                                                                                   RestAPI.Config.getTenantConfig(
                                                                                     globalAdminRestContext,
                                                                                     ' ',
-                                                                                    (
-                                                                                      err,
-                                                                                      // eslint-disable-next-line no-unused-vars
-                                                                                      config
-                                                                                    ) => {
+                                                                                    (err, config) => {
                                                                                       assert.ok(err);
                                                                                       assert.strictEqual(err.code, 400);
                                                                                       return callback();

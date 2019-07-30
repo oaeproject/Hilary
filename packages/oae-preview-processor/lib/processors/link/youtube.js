@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-import url from 'url';
 import Youtube from 'youtube-api';
 import { logger } from 'oae-logger';
 import { setUpConfig } from 'oae-config';
@@ -104,11 +103,11 @@ const generatePreviews = function(ctx, contentObj, callback) {
  * @api private
  */
 const _getId = function(link) {
-  const parsedUrl = url.parse(link, true);
+  const parsedUrl = new URL(link);
 
   // The full link has the ID in the `v` query parameter
   if (/(www\.)?youtube\.com$/.test(parsedUrl.hostname)) {
-    return parsedUrl.query.v;
+    return parsedUrl.searchParams.get('v');
 
     // The short link has it as its path
   }

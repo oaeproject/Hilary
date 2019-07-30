@@ -20,6 +20,7 @@ export const user = {
   name: 'Default User Values',
   description: 'Default values for new users',
   elements: {
+    delete: new Fields.Text('Months before deletion', 'Months before the definitive deletion of a user', '2'),
     visibility: new Fields.List('Default Visibility', 'Default visibility for new users', 'public', [
       {
         name: 'Public',

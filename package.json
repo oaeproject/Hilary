@@ -1,12 +1,13 @@
 {
   "name": "Hilary",
   "description": "Open Academic Environment (OAE) Back-end",
-  "version": "15.0.0",
+  "version": "15.2.0",
   "homepage": "http://www.oaeproject.org",
   "author": {
     "name": "The Apereo Foundation",
     "email": "oae@apereo.org"
   },
+  "private": true,
   "repository": {
     "type": "git",
     "url": "git://github.com/oaeproject/Hilary.git"
@@ -15,6 +16,9 @@
     "url": "https://github.com/oaeproject/Hilary/issues"
   },
   "license": "ECL-2.0",
+  "workspaces": [
+    "packages/*"
+  ],
   "dependencies": {
     "amqp-connection-manager": "^2.3.0",
     "amqplib": "^0.5.1",
@@ -33,6 +37,7 @@
     "connect-redis": "^3.4.1",
     "cookie-parser": "^1.4.2",
     "cookie-session": "^1.3.3",
+    "cron": "^1.3.0",
     "csv": "^5.1.1",
     "data-structures": "^1.4.2",
     "dox": "^0.9.0",
@@ -47,6 +52,7 @@
     "immutable": "^4.0.0-rc.12",
     "jszip": "^3.2.1",
     "juice": "^5.2.0",
+    "lerna": "^3.16.2",
     "less": "1.7.5",
     "locale": "^0.1.0",
     "lunr": "1.0.0",
@@ -64,36 +70,6 @@
     "nodemailer-html-to-text": "^3.0.0",
     "nodemailer-sendmail-transport": "^1.0.2",
     "nodemailer-stub-transport": "^1.1.0",
-    "oae-activity": "file:packages/oae-activity",
-    "oae-authentication": "file:packages/oae-authentication",
-    "oae-authz": "file:packages/oae-authz",
-    "oae-config": "file:packages/oae-config",
-    "oae-content": "file:packages/oae-content",
-    "oae-context": "file:packages/oae-context",
-    "oae-discussions": "file:packages/oae-discussions",
-    "oae-doc": "file:packages/oae-doc",
-    "oae-email": "file:packages/oae-email",
-    "oae-emitter": "file:packages/oae-emitter",
-    "oae-folders": "file:packages/oae-folders",
-    "oae-following": "file:packages/oae-following",
-    "oae-google-analytics": "file:packages/oae-google-analytics",
-    "oae-jitsi": "file:packages/oae-jitsi",
-    "oae-library": "file:packages/oae-library",
-    "oae-logger": "file:packages/oae-logger",
-    "oae-lti": "file:packages/oae-lti",
-    "oae-messagebox": "file:packages/oae-messagebox",
-    "oae-preview-processor": "file:packages/oae-preview-processor",
-    "oae-principals": "file:packages/oae-principals",
-    "oae-resource": "file:packages/oae-resource",
-    "oae-rest": "file:packages/oae-rest",
-    "oae-search": "file:packages/oae-search",
-    "oae-telemetry": "file:packages/oae-telemetry",
-    "oae-tenants": "file:packages/oae-tenants",
-    "oae-tests": "file:packages/oae-tests",
-    "oae-tincanapi": "file:packages/oae-tincanapi",
-    "oae-ui": "file:packages/oae-ui",
-    "oae-util": "file:packages/oae-util",
-    "oae-version": "file:packages/oae-version",
     "oauth-sign": "^0.9.0",
     "oauth2orize": "^1.11.0",
     "optimist": "^0.6.1",
@@ -117,7 +93,6 @@
     "redback": "^0.5.1",
     "redis": "^2.8.0",
     "request": "2.88.0",
-    "restjsdoc": "file:packages/restjsdoc",
     "rimraf": "^2.6.2",
     "selectn": "^1.1.2",
     "shortid": "^2.2.8",
@@ -137,10 +112,9 @@
   },
   "devDependencies": {
     "codacy-coverage": "^3.3.0",
-    "eslint": "latest",
-    "eslint-config-prettier": "^4.1.0",
+    "eslint-config-prettier": "4.1.0",
     "eslint-plugin-prettier": "^3.0.1",
-    "mocha": "^6.0.2",
+    "mocha": "^6.1.4",
     "mocha-lcov-reporter": "^1.3.0",
     "nock": "^10.0.6",
     "nodemon": "^1.18.7",
@@ -155,13 +129,13 @@
     "xo": "^0.24.0"
   },
   "engines": {
-    "node": ">=10.13.0"
+    "node": ">=10.16.0"
   },
   "scripts": {
     "test": "mocha -r esm 'node_modules/oae-tests/runner/before-tests.js' 'node_modules/oae-*/tests/**/*.js'",
     "test-module": "func() { mocha -r esm 'node_modules/oae-tests/runner/before-tests.js' 'node_modules/'$1'/tests/**/*.js'; }; func",
     "migrate": "func() { node -r esm 'migrate.js' '--keyspace' $1 ; }; func",
-    "start": "node -r esm app.js | npx bunyan",
+    "server": "node -r esm app.js | npx bunyan",
     "dev-server": "nodemon app.js | npx bunyan",
     "snyk-protect": "snyk protect",
     "lint": "xo --prettier --quiet '**/*.js'",
@@ -175,6 +149,10 @@
     ],
     "plugins": [
       "prettier"
+    ],
+    "ignores": [
+      "**/processors/file/domstubs.js",
+      "**/tests/*.js"
     ],
     "rules": {
       "import/no-extraneous-dependencies": "off",

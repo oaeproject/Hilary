@@ -21,13 +21,12 @@ import async from 'async';
 
 // We have to require the config api inline, as this would
 // otherwise lead to circular require calls
-import { setUpConfig } from 'oae-config';
+import { setUpConfig, eventEmitter } from 'oae-config';
 // We have to require the UI api inline, as this would
 // otherwise lead to circular require calls
 import * as UIAPI from 'oae-ui';
-import * as UserAPI from 'oae-principals/lib/api.user.js';
+import * as UserAPI from 'oae-principals/lib/api.user';
 import * as Cassandra from 'oae-util/lib/cassandra';
-import * as ConfigAPI from 'oae-config';
 import * as EmitterAPI from 'oae-emitter';
 import * as OAE from 'oae-util/lib/oae';
 import * as OaeUtil from 'oae-util/lib/util';
@@ -106,7 +105,7 @@ Pubsub.emitter.on('oae-tenants', message => {
  * Listen for configuration update events. If a tenant is made public or private, we need to update
  * their cached status in the tenantsNotInteractable cache
  */
-ConfigAPI.eventEmitter.on('update', alias => {
+eventEmitter.on('update', alias => {
   return _updateCachedTenant(alias);
 });
 

@@ -153,7 +153,7 @@ describe('Collaborative documents', () => {
         etherpadPadId: 'padId'
       };
       const etherpadUrl = Etherpad.getPadUrl(contentObjC, 'userId', 'sesionId', 'authorId', 'language');
-      const path = url.parse(etherpadUrl).pathname;
+      const path = new URL(etherpadUrl, 'http://localhost').pathname;
       if (!counts[path]) {
         counts[path] = 0;
       }

@@ -555,15 +555,14 @@ describe('Content', () => {
           new Context(tenant, contexts.branden.user),
           'local:2012/12/06/file.doc'
         );
-        // eslint-disable-next-line node/no-deprecated-api
-        const parsedUrl = url.parse(signedDownloadUrl, true);
+        const parsedUrl = new URL(signedDownloadUrl, 'http://localhost');
 
         // Branden should be able to download it because he is super awesome and important (In this case, downloading = 204)
         RestUtil.performRestRequest(
           contexts.branden.restContext,
           '/api/download/signed',
           'GET',
-          parsedUrl.query,
+          TestsUtil.objectifySearchParams(parsedUrl.searchParams),
           (err, body, response) => {
             assert.ok(!err);
             assert.strictEqual(response.statusCode, 204);
@@ -573,7 +572,7 @@ describe('Content', () => {
               contexts.simon.restContext,
               '/api/download/signed',
               'GET',
-              parsedUrl.query,
+              TestsUtil.objectifySearchParams(parsedUrl.searchParams),
               (err, body, response) => {
                 assert.ok(!err);
 
@@ -582,7 +581,7 @@ describe('Content', () => {
                   globalAdminRestContext,
                   '/api/download/signed',
                   'GET',
-                  parsedUrl.query,
+                  TestsUtil.objectifySearchParams(parsedUrl.searchParams),
                   (err, body, response) => {
                     assert.ok(!err);
 
@@ -591,7 +590,7 @@ describe('Content', () => {
                       anonymousRestContext,
                       '/api/download/signed',
                       'GET',
-                      parsedUrl.query,
+                      TestsUtil.objectifySearchParams(parsedUrl.searchParams),
                       (err, body, response) => {
                         assert.ok(!err);
 
@@ -600,7 +599,7 @@ describe('Content', () => {
                           contexts.branden.restContext,
                           '/api/download/signed',
                           'GET',
-                          _.omit(parsedUrl.query, 'uri'),
+                          _.omit(TestsUtil.objectifySearchParams(parsedUrl.searchParams), 'uri'),
                           (err, body, request) => {
                             assert.strictEqual(err.code, 401);
 
@@ -609,7 +608,9 @@ describe('Content', () => {
                               contexts.branden.restContext,
                               '/api/download/signed',
                               'GET',
-                              _.extend({}, parsedUrl.query, { uri: 'blahblahblah' }),
+                              _.extend({}, TestsUtil.objectifySearchParams(parsedUrl.searchParams), {
+                                uri: 'blahblahblah'
+                              }),
                               (err, body, request) => {
                                 assert.strictEqual(err.code, 401);
 
@@ -618,7 +619,7 @@ describe('Content', () => {
                                   contexts.branden.restContext,
                                   '/api/download/signed',
                                   'GET',
-                                  _.omit(parsedUrl.query, 'signature'),
+                                  _.omit(TestsUtil.objectifySearchParams(parsedUrl.searchParams), 'signature'),
                                   (err, body, request) => {
                                     assert.strictEqual(err.code, 401);
 
@@ -627,7 +628,9 @@ describe('Content', () => {
                                       contexts.branden.restContext,
                                       '/api/download/signed',
                                       'GET',
-                                      _.extend({}, parsedUrl.query, { signature: 'ATTACK LOL!!' }),
+                                      _.extend({}, TestsUtil.objectifySearchParams(parsedUrl.searchParams), {
+                                        signature: 'ATTACK LOL!!'
+                                      }),
                                       (err, body, request) => {
                                         assert.strictEqual(err.code, 401);
 
@@ -636,7 +639,7 @@ describe('Content', () => {
                                           contexts.branden.restContext,
                                           '/api/download/signed',
                                           'GET',
-                                          _.omit(parsedUrl.query, 'expires'),
+                                          _.omit(TestsUtil.objectifySearchParams(parsedUrl.searchParams), 'expires'),
                                           (err, body, request) => {
                                             assert.strictEqual(err.code, 401);
 
@@ -645,7 +648,7 @@ describe('Content', () => {
                                               contexts.branden.restContext,
                                               '/api/download/signed',
                                               'GET',
-                                              _.extend({}, parsedUrl.query, {
+                                              _.extend({}, TestsUtil.objectifySearchParams(parsedUrl.searchParams), {
                                                 expires: 2345678901
                                               }),
                                               (err, body, request) => {
@@ -661,7 +664,7 @@ describe('Content', () => {
                                                   contexts.branden.restContext,
                                                   '/api/download/signed',
                                                   'GET',
-                                                  parsedUrl.query,
+                                                  TestsUtil.objectifySearchParams(parsedUrl.searchParams),
                                                   (err, body, response) => {
                                                     assert.strictEqual(err.code, 401);
                                                     return callback();

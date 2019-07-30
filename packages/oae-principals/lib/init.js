@@ -23,30 +23,37 @@ import { Context } from 'oae-context';
 import { User } from 'oae-principals/lib/model';
 
 // Initialize activity capabilities
-// eslint-disable-line no-ununsed-vars
+// eslint-disable-next-line no-unused-vars, import/namespace
 import * as activity from 'oae-principals/lib/activity';
 
 // Initialize search capabilities
-// eslint-disable-line no-ununsed-vars
+// eslint-disable-next-line no-unused-vars, import/namespace
 import * as search from 'oae-principals/lib/search';
 
 // Initialize invitations capabilities
-// eslint-disable-line no-ununsed-vars
+// eslint-disable-next-line no-unused-vars, import/namespace
 import * as invitations from 'oae-principals/lib/invitations';
 
 // Initialize members and memberships library capabilities
-// eslint-disable-line no-ununsed-vars
+// eslint-disable-next-line no-unused-vars
 import * as members from 'oae-principals/lib/libraries/members';
 
-// eslint-disable-line no-ununsed-vars
+// eslint-disable-next-line no-unused-vars, import/namespace
 import * as memberships from 'oae-principals/lib/libraries/memberships';
 
 // Initialize principals delete capabilities
-// eslint-disable-line no-ununsed-vars
+// eslint-disable-next-line no-unused-vars
 import * as deleted from 'oae-principals/lib/delete';
+import * as Cron from './cron';
+
+let globalContext = {};
 
 export function init(config, callback) {
-  return _ensureGlobalAdmin(config, callback);
+  _ensureGlobalAdmin(config, function(err) {
+    if (err) return callback(err);
+
+    return Cron.programUserDeletionTask(globalContext, callback);
+  });
 }
 
 /**
@@ -66,7 +73,8 @@ const _ensureGlobalAdmin = function(config, callback) {
     visibility: AuthzConstants.visibility.PRIVATE,
     isGlobalAdmin: true
   });
-  const globalContext = new Context(globalTenant, globalAdmin);
+
+  globalContext = new Context(globalTenant, globalAdmin);
 
   // Create the global admin user if they don't exist yet with the username "administrator"
   return AuthenticationAPI.getOrCreateGlobalAdminUser(

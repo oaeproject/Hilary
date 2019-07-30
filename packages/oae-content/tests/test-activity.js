@@ -1303,22 +1303,25 @@ describe('Content Activity', () => {
                                               assert.ok(entity['oae:wideImage'].url);
 
                                               // Ensure the standard and wide image can be downloaded right now by even an anonymous user on another tenant
-                                              let signedDownloadUrl = url.parse(entity['oae:wideImage'].url, true);
+                                              let signedDownloadUrl = new URL(
+                                                entity['oae:wideImage'].url,
+                                                'http://localhost'
+                                              );
                                               RestUtil.performRestRequest(
                                                 anonymousGtRestContext,
                                                 signedDownloadUrl.pathname,
                                                 'GET',
-                                                signedDownloadUrl.query,
+                                                TestsUtil.objectifySearchParams(signedDownloadUrl.searchParams),
                                                 (err, body, response) => {
                                                   assert.ok(!err);
                                                   assert.strictEqual(response.statusCode, 204);
 
-                                                  signedDownloadUrl = url.parse(entity.image.url, true);
+                                                  signedDownloadUrl = new URL(entity.image.url, 'http://localhost');
                                                   RestUtil.performRestRequest(
                                                     anonymousGtRestContext,
                                                     signedDownloadUrl.pathname,
                                                     'GET',
-                                                    signedDownloadUrl.query,
+                                                    TestsUtil.objectifySearchParams(signedDownloadUrl.searchParams),
                                                     (err, body, response) => {
                                                       assert.ok(!err);
                                                       assert.strictEqual(response.statusCode, 204);
@@ -1330,22 +1333,30 @@ describe('Content Activity', () => {
                                                       };
 
                                                       // Ensure the standard and wide image can still be downloaded 5y in the future by even an anonymous user on another tenant
-                                                      signedDownloadUrl = url.parse(entity['oae:wideImage'].url, true);
+                                                      signedDownloadUrl = new URL(
+                                                        entity['oae:wideImage'].url,
+                                                        'http://localhost'
+                                                      );
                                                       RestUtil.performRestRequest(
                                                         anonymousGtRestContext,
                                                         signedDownloadUrl.pathname,
                                                         'GET',
-                                                        signedDownloadUrl.query,
+                                                        TestsUtil.objectifySearchParams(signedDownloadUrl.searchParams),
                                                         (err, body, response) => {
                                                           assert.ok(!err);
                                                           assert.strictEqual(response.statusCode, 204);
 
-                                                          signedDownloadUrl = url.parse(entity.image.url, true);
+                                                          signedDownloadUrl = new URL(
+                                                            entity.image.url,
+                                                            'http://localhost'
+                                                          );
                                                           RestUtil.performRestRequest(
                                                             anonymousGtRestContext,
                                                             signedDownloadUrl.pathname,
                                                             'GET',
-                                                            signedDownloadUrl.query,
+                                                            TestsUtil.objectifySearchParams(
+                                                              signedDownloadUrl.searchParams
+                                                            ),
                                                             (err, body, response) => {
                                                               assert.ok(!err);
                                                               assert.strictEqual(response.statusCode, 204);

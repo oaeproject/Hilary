@@ -139,7 +139,7 @@ describe('Tenants Search', () => {
       // Take just the first 3 characters of each field and ensure we get the tenant
       setTimeout(
         SearchTestsUtil.assertSearchSucceeds,
-        200,
+        500,
         anonymousRestContext,
         'tenants',
         null,

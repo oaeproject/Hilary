@@ -864,7 +864,7 @@ OAE.tenantRouter.on('get', '/api/tenants/:tenantAlias/users', _getUsersForTenant
  * @Return      {File}                                      Zip file with all personal data related to a user
  */
 OAE.tenantRouter.on('get', '/api/user/:userId/export/:exportType', (req, res) => {
-  PrincipalsAPI.exportData(req.ctx, req.params.userId, req.params.exportType, (err, zipFile) => {
+  PrincipalsAPI.exportData(req.ctx, req.params.userId, req.params.exportType, async (err, zipFile) => {
     if (err) {
       return res.status(err.code).send(err.msg);
     }
@@ -874,8 +874,11 @@ OAE.tenantRouter.on('get', '/api/user/:userId/export/:exportType', (req, res) =>
     res.setHeader('Content-Type', 'application/zip');
     res.writeHead(200);
 
-    zipFile.generateAsync({ type: 'nodebuffer', platform: process.platform, streamFiles: true }).then(nodebuffer => {
-      res.end(nodebuffer);
+    const nodebuffer = await zipFile.generateAsync({
+      type: 'nodebuffer',
+      platform: process.platform,
+      streamFiles: true
     });
+    res.end(nodebuffer);
   });
 });

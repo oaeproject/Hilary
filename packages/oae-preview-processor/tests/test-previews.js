@@ -417,13 +417,19 @@ describe('Preview processor', () => {
    */
   const _verifySignedUriDownload = function(restContext, downloadUrl, callback) {
     // Verify we can download it.
-    const parsedUrl = url.parse(downloadUrl, true);
-    RestUtil.performRestRequest(restContext, '/api/download/signed', 'GET', parsedUrl.query, (err, body, response) => {
-      assert.ok(!err);
-      assert.strictEqual(response.statusCode, 200);
-      assert.ok(body);
-      return callback(body, response);
-    });
+    const parsedUrl = new URL(downloadUrl, 'http://localhost');
+    RestUtil.performRestRequest(
+      restContext,
+      '/api/download/signed',
+      'GET',
+      TestsUtil.objectifySearchParams(parsedUrl.searchParams),
+      (err, body, response) => {
+        assert.ok(!err);
+        assert.strictEqual(response.statusCode, 200);
+        assert.ok(body);
+        return callback(body, response);
+      }
+    );
   };
 
   describe('Preview generation', () => {
@@ -1716,12 +1722,14 @@ describe('Preview processor', () => {
       }
 
       _createContentAndWait('collabdoc', null, null, (restCtx, content) => {
-        setTimeout(assert.strictEqual, 500, content.previews.status, 'done');
-        // Ensure we have a thumbnail url.
-        assert.strictEqual(content.previews.thumbnailUrl.indexOf('/api/download/signed'), 0);
-        _verifySignedUriDownload(restCtx, content.previews.thumbnailUrl, () => {
-          callback();
-        });
+        setTimeout(() => {
+          assert.strictEqual(content.previews.status, 'done');
+          // Ensure we have a thumbnail url.
+          assert.strictEqual(content.previews.thumbnailUrl.indexOf('/api/download/signed'), 0);
+          _verifySignedUriDownload(restCtx, content.previews.thumbnailUrl, () => {
+            callback();
+          });
+        }, 2000);
       });
     });
 

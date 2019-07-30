@@ -41,6 +41,7 @@ import * as TenantsAPI from 'oae-tenants';
  * @param  {String}     [opts.emailPreference]          The user's email preference. One of {@see PrincipalConstants.emailPreferences}
  * @param  {Boolean}    [opts.isGlobalAdmin]            Whether or not the user is a global admin
  * @param  {Boolean}    [opts.isTenantAdmin]            Whether or not the user is a tenant admin
+ * @param  {Boolean}    [opts.isUserArchive]            Whether or not the user is a user archive
  */
 export const User = function(tenantAlias, id, displayName, email, opts) {
   opts = opts || {};
@@ -76,6 +77,7 @@ export const User = function(tenantAlias, id, displayName, email, opts) {
       largeUri: opts.largePictureUri
     }
   );
+  that.isUserArchive = opts.isUserArchive;
 
   /**
    * Check if a user is a global admin

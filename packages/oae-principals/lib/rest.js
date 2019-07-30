@@ -18,10 +18,10 @@ import locale from 'locale';
 
 import * as OAE from 'oae-util/lib/oae';
 
-// eslint-disable-next-line no-unused-vars
-import * as UserRESTEndpoints from 'oae-principals/lib/rest.user.js';
-// eslint-disable-next-line no-unused-vars
-import * as GroupRESTEndpoints from 'oae-principals/lib/rest.group.js';
+// eslint-disable-next-line no-unused-vars, import/namespace
+import * as UserRESTEndpoints from 'oae-principals/lib/rest.user';
+// eslint-disable-next-line no-unused-vars, import/namespace
+import * as GroupRESTEndpoints from 'oae-principals/lib/rest.group';
 import * as userConfig from '../config/user';
 import PrincipalsAPI from './api';
 

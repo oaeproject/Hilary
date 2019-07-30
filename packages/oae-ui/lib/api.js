@@ -15,7 +15,6 @@
 
 import fs from 'fs';
 import path from 'path';
-import url from 'url';
 import util from 'util';
 import _ from 'underscore';
 import $ from 'cheerio';
@@ -1215,13 +1214,6 @@ const renderTemplate = function(template, data, locale) {
     },
 
     url: {
-      /*!
-       * Take a URL string, and return an object.
-       *
-       * @see http://nodejs.org/docs/latest/api/url.html#url_url_parse_urlstr_parsequerystring_slashesdenotehost
-       */
-      parse: url.parse,
-
       /**
        * Escape all characters except the following: alphabetic, decimal digits, - _ . ! ~ * ' ( )
        *

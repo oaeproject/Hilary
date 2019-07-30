@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable-file camelcase */
+/* eslint-disable camelcase */
 import * as Fields from 'oae-config/lib/fields';
 
 const widths = [

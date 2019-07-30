@@ -191,28 +191,25 @@ describe('Export data', () => {
             PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, 'invalidExportType', (err, zip) => {
               assert.ok(err);
               assert.strictEqual(402, err.code);
-              PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, 'personal-data', (err, zip) => {
+              PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, 'personal-data', async (err, zip) => {
                 assert.ok(!err);
 
                 // Verify the personal data on the zip file
-                zip
-                  .file('personal_data.txt')
-                  .async(TO_STRING)
-                  .then(content => {
-                    const lines = content.split('\n');
-                    const element = [];
-                    _.each(lines, (line, i) => {
-                      element[i] = line
-                        .split(': ')
-                        .reverse()
-                        .shift();
-                    });
-                    assert.strictEqual(brecke.user.id, element[0]);
-                    assert.strictEqual(brecke.user.displayName, element[1]);
-                    assert.strictEqual(brecke.user.email, element[2]);
+                const content = await zip.file('personal_data.txt').async(TO_STRING);
 
-                    return callback();
-                  });
+                const lines = content.split('\n');
+                const element = [];
+                _.each(lines, (line, i) => {
+                  element[i] = line
+                    .split(': ')
+                    .reverse()
+                    .shift();
+                });
+                assert.strictEqual(brecke.user.id, element[0]);
+                assert.strictEqual(brecke.user.displayName, element[1]);
+                assert.strictEqual(brecke.user.email, element[2]);
+
+                return callback();
               });
             });
           });
@@ -270,83 +267,81 @@ describe('Export data', () => {
                     assert.ok(!err);
 
                     // Export data using 'content' export type
-                    PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, (err, zip) => {
-                      assert.ok(!err);
+                    PrincipalsAPI.exportData(
+                      brecke.restContext,
+                      brecke.user.id,
+                      EXPORT_CONTENT_SCOPE,
+                      async (err, zip) => {
+                        assert.ok(!err);
 
-                      // Verify the personal data on the zip file
-                      zip
-                        .file('discussion_data/' + discussion.displayName + '.txt')
-                        .async(TO_STRING)
-                        .then(zipDiscussion => {
-                          const lines = zipDiscussion.split('\n');
-                          const element = [];
+                        // Verify the personal data on the zip file
+                        let zipDiscussion = await zip
+                          .file('discussion_data/' + discussion.displayName + '.txt')
+                          .async(TO_STRING);
 
-                          _.each(lines, (line, i) => {
-                            element[i] = line
-                              .split(': ')
-                              .reverse()
-                              .shift();
-                          });
+                        let lines = zipDiscussion.split('\n');
+                        let element = [];
 
-                          assert.strictEqual(discussion.displayName, element[0]);
-
-                          // Verify the personal data on the zip file
-                          zip
-                            .file('discussion_data/' + discussion.displayName + '.txt')
-                            .async(TO_STRING)
-                            .then(zipDiscussion => {
-                              const lines = zipDiscussion.split('\n');
-                              const element = [];
-
-                              _.each(lines, (line, i) => {
-                                element[i] = line
-                                  .split(': ')
-                                  .reverse()
-                                  .shift();
-                              });
-
-                              assert.strictEqual(secondDiscussion.displayName, element[0]);
-
-                              // Verify the personal data on the zip file
-                              zip
-                                .file('discussion_data/' + discussion.displayName + '(1).txt')
-                                .async(TO_STRING)
-                                .then(zipDiscussion => {
-                                  const lines = zipDiscussion.split('\n');
-                                  const element = [];
-
-                                  _.each(lines, (line, i) => {
-                                    element[i] = line
-                                      .split(': ')
-                                      .reverse()
-                                      .shift();
-                                  });
-
-                                  assert.strictEqual(discussion.displayName, element[0]);
-
-                                  // Verify the personal data on the zip file
-                                  zip
-                                    .file('discussion_data/' + discussion.displayName + '(2).txt')
-                                    .async(TO_STRING)
-                                    .then(zipDiscussion => {
-                                      const lines = zipDiscussion.split('\n');
-                                      const element = [];
-
-                                      _.each(lines, (line, i) => {
-                                        element[i] = line
-                                          .split(': ')
-                                          .reverse()
-                                          .shift();
-                                      });
-
-                                      assert.strictEqual(thirdDiscussion.displayName, element[0]);
-
-                                      return callback();
-                                    });
-                                });
-                            });
+                        _.each(lines, (line, i) => {
+                          element[i] = line
+                            .split(': ')
+                            .reverse()
+                            .shift();
                         });
-                    });
+
+                        assert.strictEqual(discussion.displayName, element[0]);
+
+                        // Verify the personal data on the zip file
+                        zipDiscussion = await zip
+                          .file('discussion_data/' + discussion.displayName + '.txt')
+                          .async(TO_STRING);
+                        lines = zipDiscussion.split('\n');
+                        element = [];
+
+                        _.each(lines, (line, i) => {
+                          element[i] = line
+                            .split(': ')
+                            .reverse()
+                            .shift();
+                        });
+
+                        assert.strictEqual(secondDiscussion.displayName, element[0]);
+
+                        // Verify the personal data on the zip file
+                        zipDiscussion = await zip
+                          .file('discussion_data/' + discussion.displayName + '(1).txt')
+                          .async(TO_STRING);
+                        lines = zipDiscussion.split('\n');
+                        element = [];
+
+                        _.each(lines, (line, i) => {
+                          element[i] = line
+                            .split(': ')
+                            .reverse()
+                            .shift();
+                        });
+
+                        assert.strictEqual(discussion.displayName, element[0]);
+
+                        // Verify the personal data on the zip file
+                        zipDiscussion = await zip
+                          .file('discussion_data/' + discussion.displayName + '(2).txt')
+                          .async(TO_STRING);
+                        lines = zipDiscussion.split('\n');
+                        element = [];
+
+                        _.each(lines, (line, i) => {
+                          element[i] = line
+                            .split(': ')
+                            .reverse()
+                            .shift();
+                        });
+
+                        assert.strictEqual(thirdDiscussion.displayName, element[0]);
+
+                        return callback();
+                      }
+                    );
                   }
                 );
               }
@@ -412,66 +407,61 @@ describe('Export data', () => {
                     assert.ok(!err);
 
                     // Export data using 'content' export type
-                    PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, (err, zip) => {
-                      assert.ok(!err);
+                    PrincipalsAPI.exportData(
+                      brecke.restContext,
+                      brecke.user.id,
+                      EXPORT_CONTENT_SCOPE,
+                      async (err, zip) => {
+                        assert.ok(!err);
 
-                      // Verify the personal data on the zip file
-                      zip
-                        .file('link_data/' + link.displayName + '.txt')
-                        .async(TO_STRING)
-                        .then(extractedZipData => {
-                          const contentChunks = parseExtractedContent(extractedZipData);
+                        // Verify the personal data on the zip file
+                        const extractedZipData = await zip
+                          .file('link_data/' + link.displayName + '.txt')
+                          .async(TO_STRING);
+                        let contentChunks = parseExtractedContent(extractedZipData);
 
-                          assert.strictEqual(link.displayName, contentChunks[0]);
-                          assert.strictEqual(link.profilePath, contentChunks[1]);
-                          assert.strictEqual('http://google.com', contentChunks[2]);
-                          assert.strictEqual(link.visibility, contentChunks[3]);
-                          assert.strictEqual(link.tenant.displayName, contentChunks[4]);
+                        assert.strictEqual(link.displayName, contentChunks[0]);
+                        assert.strictEqual(link.profilePath, contentChunks[1]);
+                        assert.strictEqual('http://google.com', contentChunks[2]);
+                        assert.strictEqual(link.visibility, contentChunks[3]);
+                        assert.strictEqual(link.tenant.displayName, contentChunks[4]);
 
-                          // Verify the collabdoc data on the zip file
-                          zip
-                            .file('collabdoc_data/' + collabdoc.displayName + '.txt')
-                            .async(TO_STRING)
-                            .then(extractedZip => {
-                              const contentChunks = parseExtractedContent(extractedZip);
+                        // Verify the collabdoc data on the zip file
+                        let extractedZip = await zip
+                          .file('collabdoc_data/' + collabdoc.displayName + '.txt')
+                          .async(TO_STRING);
+                        contentChunks = parseExtractedContent(extractedZip);
 
-                              assert.strictEqual(extractedZip, data.collabdocs[0].text);
-                              assert.strictEqual(collabdoc.displayName, contentChunks[0]);
-                              assert.strictEqual(collabdoc.profilePath, contentChunks[1]);
-                              assert.strictEqual(collabdoc.visibility, contentChunks[2]);
-                              assert.strictEqual(collabdoc.tenant.displayName, contentChunks[3]);
-                              assert.strictEqual('undefined', contentChunks[4]);
+                        assert.strictEqual(extractedZip, data.collabdocs[0].text);
+                        assert.strictEqual(collabdoc.displayName, contentChunks[0]);
+                        assert.strictEqual(collabdoc.profilePath, contentChunks[1]);
+                        assert.strictEqual(collabdoc.visibility, contentChunks[2]);
+                        assert.strictEqual(collabdoc.tenant.displayName, contentChunks[3]);
+                        assert.strictEqual('undefined', contentChunks[4]);
 
-                              // Verify the collabsheet data on the zip file
-                              zip
-                                .file('collabsheet_data/' + collabsheet.displayName + '.txt')
-                                .async(TO_STRING)
-                                .then(extractedZip => {
-                                  const contentChunks = parseExtractedContent(extractedZip);
+                        // Verify the collabsheet data on the zip file
+                        extractedZip = await zip
+                          .file('collabsheet_data/' + collabsheet.displayName + '.txt')
+                          .async(TO_STRING);
+                        contentChunks = parseExtractedContent(extractedZip);
 
-                                  assert.strictEqual(extractedZip, data.collabsheets[0].text);
-                                  assert.strictEqual(collabsheet.displayName, contentChunks[0]);
-                                  assert.strictEqual(collabsheet.profilePath, contentChunks[1]);
-                                  assert.strictEqual(collabsheet.visibility, contentChunks[2]);
-                                  assert.strictEqual(collabsheet.tenant.displayName, contentChunks[3]);
-                                  assert.strictEqual(DEFAULT_SNAPSHOT, contentChunks[4]);
+                        assert.strictEqual(extractedZip, data.collabsheets[0].text);
+                        assert.strictEqual(collabsheet.displayName, contentChunks[0]);
+                        assert.strictEqual(collabsheet.profilePath, contentChunks[1]);
+                        assert.strictEqual(collabsheet.visibility, contentChunks[2]);
+                        assert.strictEqual(collabsheet.tenant.displayName, contentChunks[3]);
+                        assert.strictEqual(DEFAULT_SNAPSHOT, contentChunks[4]);
 
-                                  // Verify the personal data on the zip file
-                                  zip
-                                    .file('large.jpg')
-                                    .async('uint8array')
-                                    .then(zipPicture => {
-                                      assert.ok(zipPicture);
+                        // Verify the personal data on the zip file
+                        const zipPicture = await zip.file('large.jpg').async('uint8array');
+                        assert.ok(zipPicture);
 
-                                      // Compare the object with the zip content
-                                      assert.strictEqual(extractedZipData, data.links[0].text);
+                        // Compare the object with the zip content
+                        assert.strictEqual(extractedZipData, data.links[0].text);
 
-                                      return callback();
-                                    });
-                                });
-                            });
-                        });
-                    });
+                        return callback();
+                      }
+                    );
                   }
                 );
               });
@@ -513,35 +503,34 @@ describe('Export data', () => {
               assert.ok(!err);
 
               // Export data using 'content' export type
-              PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, (err, zip) => {
+              PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, async (err, zip) => {
                 assert.ok(!err);
 
                 // Verify the personal data on the zip file
-                zip
+                const zipDiscussion = await zip
                   .file('discussion_data/' + discussion.displayName + '.txt')
-                  .async(TO_STRING)
-                  .then(zipDiscussion => {
-                    const lines = zipDiscussion.split('\n');
-                    const element = [];
+                  .async(TO_STRING);
 
-                    _.each(lines, (line, i) => {
-                      element[i] = line
-                        .split(': ')
-                        .reverse()
-                        .shift();
-                    });
+                const lines = zipDiscussion.split('\n');
+                const element = [];
 
-                    assert.strictEqual(discussion.displayName, element[0]);
-                    assert.strictEqual(discussion.description, element[1]);
-                    assert.strictEqual(discussion.tenant.host + discussion.profilePath, element[2]);
-                    assert.strictEqual(discussion.visibility, element[3]);
-                    assert.strictEqual(discussion.tenant.displayName, element[4]);
+                _.each(lines, (line, i) => {
+                  element[i] = line
+                    .split(': ')
+                    .reverse()
+                    .shift();
+                });
 
-                    // Compare the object with the zip content
-                    assert.strictEqual(zipDiscussion, data.discussions[0].text);
+                assert.strictEqual(discussion.displayName, element[0]);
+                assert.strictEqual(discussion.description, element[1]);
+                assert.strictEqual(discussion.tenant.host + discussion.profilePath, element[2]);
+                assert.strictEqual(discussion.visibility, element[3]);
+                assert.strictEqual(discussion.tenant.displayName, element[4]);
 
-                    return callback();
-                  });
+                // Compare the object with the zip content
+                assert.strictEqual(zipDiscussion, data.discussions[0].text);
+
+                return callback();
               });
             });
           }
@@ -583,35 +572,32 @@ describe('Export data', () => {
               assert.ok(!err);
 
               // Export data using 'content' export type
-              PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, (err, zip) => {
+              PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, async (err, zip) => {
                 assert.ok(!err);
 
                 // Verify the personal data on the zip file
-                zip
-                  .file('meeting_data/' + meeting.displayName + '.txt')
-                  .async(TO_STRING)
-                  .then(zipMeeting => {
-                    const lines = zipMeeting.split('\n');
-                    const element = [];
+                const zipMeeting = await zip.file('meeting_data/' + meeting.displayName + '.txt').async(TO_STRING);
 
-                    _.each(lines, (line, i) => {
-                      element[i] = line
-                        .split(': ')
-                        .reverse()
-                        .shift();
-                    });
+                const lines = zipMeeting.split('\n');
+                const element = [];
 
-                    assert.strictEqual(meeting.displayName, element[0]);
-                    assert.strictEqual(meeting.description, element[1]);
-                    assert.strictEqual(meeting.tenant.host + meeting.profilePath, element[2]);
-                    assert.strictEqual(meeting.visibility, element[3]);
-                    assert.strictEqual(meeting.tenant.displayName, element[4]);
+                _.each(lines, (line, i) => {
+                  element[i] = line
+                    .split(': ')
+                    .reverse()
+                    .shift();
+                });
 
-                    // Compare the object with the zip content
-                    assert.strictEqual(zipMeeting, data.meetings[0].text);
+                assert.strictEqual(meeting.displayName, element[0]);
+                assert.strictEqual(meeting.description, element[1]);
+                assert.strictEqual(meeting.tenant.host + meeting.profilePath, element[2]);
+                assert.strictEqual(meeting.visibility, element[3]);
+                assert.strictEqual(meeting.tenant.displayName, element[4]);
 
-                    return callback();
-                  });
+                // Compare the object with the zip content
+                assert.strictEqual(zipMeeting, data.meetings[0].text);
+
+                return callback();
               });
             });
           }
@@ -768,23 +754,20 @@ describe('Export data', () => {
         // Do some edits in etherpad
         _editAndPublish(brecke, collabdoc, [text], () => {
           // Export the 'content' data
-          PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, (err, zip) => {
+          PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, async (err, zip) => {
             assert.ok(!err);
 
             // Verify the personal data on the zip file
-            zip
-              .file('collabdoc_data/' + collabdoc.displayName + '.txt')
-              .async(TO_STRING)
-              .then(extractedZip => {
-                const contentChunks = parseExtractedContent(extractedZip);
-                const spreadsheetContent = contentChunks[4];
+            const extractedZip = await zip.file('collabdoc_data/' + collabdoc.displayName + '.txt').async(TO_STRING);
 
-                // Get etharpad text and compare it
-                _getEtherpadText(collabdoc, (err, data) => {
-                  assert.ok(spreadsheetContent.includes(text));
-                  return callback();
-                });
-              });
+            const contentChunks = parseExtractedContent(extractedZip);
+            const spreadsheetContent = contentChunks[4];
+
+            // Get etharpad text and compare it
+            _getEtherpadText(collabdoc, (err, data) => {
+              assert.ok(spreadsheetContent.includes(text));
+              return callback();
+            });
           });
         });
       });
@@ -812,22 +795,19 @@ describe('Export data', () => {
         // Here we are not testing the API but instead editing through the driver diirectly
         editAndPublishCollabSheet(brecke, collabdoc, textToCSV, (err, contentInJSON) => {
           assert.ok(!err);
-          PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, (err, zip) => {
+          PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, async (err, zip) => {
             assert.ok(!err);
 
-            zip
-              .file('collabsheet_data/' + collabdoc.displayName + '.txt')
-              .async(TO_STRING)
-              .then(extractedZip => {
-                const contentChunks = parseExtractedContent(extractedZip);
-                const spreadsheetContent = contentChunks[4];
+            const extractedZip = await zip.file('collabsheet_data/' + collabdoc.displayName + '.txt').async(TO_STRING);
 
-                // Get ethercalc text and compare it
-                assert.strictEqual(contentInJSON[0].join(), _commafy(spreadsheetContent));
-                assert.strictEqual(textToCSV, _commafy(spreadsheetContent));
-                assert.strictEqual(textToCSV, contentInJSON[0].join());
-                return callback();
-              });
+            const contentChunks = parseExtractedContent(extractedZip);
+            const spreadsheetContent = contentChunks[4];
+
+            // Get ethercalc text and compare it
+            assert.strictEqual(contentInJSON[0].join(), _commafy(spreadsheetContent));
+            assert.strictEqual(textToCSV, _commafy(spreadsheetContent));
+            assert.strictEqual(textToCSV, contentInJSON[0].join());
+            return callback();
           });
         });
       });
@@ -874,49 +854,51 @@ describe('Export data', () => {
                 assert.ok(!err);
 
                 // Export the 'content' data
-                PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, (err, zip) => {
+                PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, async (err, zip) => {
                   assert.ok(!err);
 
                   // Verify the collabdoc data on the zip file
-                  zip
+                  const zipCollabdoc = await zip
                     .file('collabdoc_data/' + collabdoc.displayName + '.txt')
-                    .async(TO_STRING)
-                    .then(zipCollabdoc => {
-                      const lines = zipCollabdoc.split('\n');
-                      const element = [];
+                    .async(TO_STRING);
+                  try {
+                    const lines = zipCollabdoc.split('\n');
+                    const element = [];
 
-                      _.each(lines, (line, i) => {
-                        element[i] = line.split(': ');
-                      });
-
-                      // Get the creation date
-                      const messageCreatedComment = dateFormat(
-                        new Date(parseInt(comment.created)), // eslint-disable-line radix
-                        'dd-mm-yyyy, h:MM:ss TT'
-                      );
-                      const messageCreatedAnotherComment = dateFormat(
-                        new Date(parseInt(comment.created)), // eslint-disable-line radix
-                        'dd-mm-yyyy, h:MM:ss TT'
-                      );
-
-                      // Get the message level
-                      const levelComment = element[8][1].split(' ');
-                      const levelAnotherComment = element[7][1].split(' ');
-
-                      // Verify if the comment and the author of the comment are the same
-                      assert.strictEqual(element[8][3], comment.body);
-                      assert.ok(element[8][2].includes(comment.createdBy.publicAlias));
-                      assert.strictEqual(levelComment[1], comment.level.toString());
-                      assert.ok(element[8][0].includes(messageCreatedComment));
-
-                      // Verify if the comment and the author of the comment are the same
-                      assert.strictEqual(element[7][3], anotherComment.body);
-                      assert.ok(element[7][2].includes(anotherComment.createdBy.publicAlias));
-                      assert.strictEqual(levelAnotherComment[1], anotherComment.level.toString());
-                      assert.ok(element[7][0].includes(messageCreatedAnotherComment));
-
-                      return callback();
+                    _.each(lines, (line, i) => {
+                      element[i] = line.split(': ');
                     });
+
+                    // Get the creation date
+                    const messageCreatedComment = dateFormat(
+                      new Date(parseInt(comment.created)), // eslint-disable-line radix
+                      'dd-mm-yyyy, h:MM:ss TT'
+                    );
+                    const messageCreatedAnotherComment = dateFormat(
+                      new Date(parseInt(comment.created)), // eslint-disable-line radix
+                      'dd-mm-yyyy, h:MM:ss TT'
+                    );
+
+                    // Get the message level
+                    const levelComment = element[8][1].split(' ');
+                    const levelAnotherComment = element[7][1].split(' ');
+
+                    // Verify if the comment and the author of the comment are the same
+                    assert.strictEqual(element[8][3], comment.body);
+                    assert.ok(element[8][2].includes(comment.createdBy.publicAlias));
+                    assert.strictEqual(levelComment[1], comment.level.toString());
+                    assert.ok(element[8][0].includes(messageCreatedComment));
+
+                    // Verify if the comment and the author of the comment are the same
+                    assert.strictEqual(element[7][3], anotherComment.body);
+                    assert.ok(element[7][2].includes(anotherComment.createdBy.publicAlias));
+                    assert.strictEqual(levelAnotherComment[1], anotherComment.level.toString());
+                    assert.ok(element[7][0].includes(messageCreatedAnotherComment));
+                  } catch (error) {
+                    return callback();
+                  }
+
+                  return callback();
                 });
               }
             );

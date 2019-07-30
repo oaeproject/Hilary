@@ -18,6 +18,7 @@ import _ from 'underscore';
 import { logger } from 'oae-logger';
 import { setUpConfig } from 'oae-config';
 
+import { AuthenticationConstants } from 'oae-authentication/lib/constants';
 import * as AuthzDelete from 'oae-authz/lib/delete';
 import * as AuthzUtil from 'oae-authz/lib/util';
 import * as Cassandra from 'oae-util/lib/cassandra';
@@ -25,9 +26,10 @@ import * as OaeUtil from 'oae-util/lib/util';
 import * as Redis from 'oae-util/lib/redis';
 
 import { sanitize } from 'validator';
-import { Group } from 'oae-principals/lib/model';
+import { Group, User } from 'oae-principals/lib/model';
 import { Validator } from 'oae-authz/lib/validator';
-import { User } from 'oae-principals/lib/model';
+
+import { LoginId } from 'oae-authentication/lib/model';
 import { PrincipalsConstants } from '../constants';
 
 const log = logger('principals-dao');
@@ -57,7 +59,8 @@ const createUser = function(user, callback) {
     smallPictureUri: user.picture.smallUri,
     mediumPictureUri: user.picture.mediumUri,
     largePictureUri: user.picture.largeUri,
-    acceptedTC: user.acceptedTC ? user.acceptedTC.toString() : null
+    acceptedTC: user.acceptedTC ? user.acceptedTC.toString() : null,
+    isUserArchive: user.isUserArchive
   };
   queries.push(Cassandra.constructUpsertCQL('Principals', 'principalId', user.id, values));
 
@@ -153,11 +156,11 @@ const getPrincipal = function(principalId, callback) {
       }
 
       // The user wasn't cached, fetch from the DB
-      return _getPrincipalFromCassandra(principalId, callback);
+      return getPrincipalSkipCache(principalId, callback);
     });
   } else {
     // Get groups from the DB
-    return _getPrincipalFromCassandra(principalId, callback);
+    return getPrincipalSkipCache(principalId, callback);
   }
 };
 
@@ -748,7 +751,7 @@ const _isEmailAddressUpdate = function(principalId, profileFields, callback) {
  * @param  {Group|User}     callback.principal  The requested principal
  * @api private
  */
-const _getPrincipalFromCassandra = function(principalId, callback) {
+const getPrincipalSkipCache = function(principalId, callback) {
   Cassandra.runQuery('SELECT * FROM "Principals" WHERE "principalId" = ?', [principalId], (err, rows) => {
     if (err) {
       return callback(err);
@@ -916,7 +919,8 @@ const _hashToUser = function(hash) {
     notificationsLastRead: OaeUtil.getNumberParam(hash.notificationsLastRead),
     emailPreference: hash.emailPreference || PrincipalsConfig.getValue(hash.tenantAlias, 'user', 'emailPreference'),
     acceptedTC: OaeUtil.getNumberParam(hash.acceptedTC, 0),
-    lastModified: OaeUtil.getNumberParam(hash.lastModified)
+    lastModified: OaeUtil.getNumberParam(hash.lastModified),
+    isUserArchive: hash.isUserArchive
   });
   return user;
 };
@@ -1151,10 +1155,214 @@ const getJoinGroupRequests = function(groupId, callback) {
   });
 };
 
+/**
+ * Permanently delete a user fromm every where in the database
+ *
+ * @param  {Object}     user            The principal to permanently delete
+ * @param  {String}     login           The login of the principal to permanently delete
+ * @param  {Function}   callback        Standard callback function
+ * @param  {Object}     callback.err    An error that occurred, if any
+ */
+const fullyDeletePrincipal = function(user, login, callback) {
+  const queries = [];
+  const deleted = Date.now();
+  const loginId = new LoginId(user.tenant.alias, AuthenticationConstants.providers.LOCAL, login.local);
+
+  // Delete user from table Principals
+  queries.push({ query: 'DELETE FROM "Principals" where "principalId" = ?', parameters: [user.id] });
+
+  // Delete user from table PrincipalsEmailToken
+  queries.push({ query: 'DELETE FROM "PrincipalsEmailToken" WHERE "principalId" = ?', parameters: [user.id] });
+
+  // Delete user from table PrincipalsByEmail
+  queries.push({
+    query: 'DELETE FROM "PrincipalsByEmail" where "email" = ? AND "principalId" = ?',
+    parameters: [user.email, user.id]
+  });
+
+  // Delete user from table AuthenticationUserLoginId
+  queries.push({ query: 'DELETE FROM "AuthenticationUserLoginId" WHERE "userId" = ?', parameters: [user.id] });
+
+  // Delete user from table AuthenticationLoginId
+  if (loginId && loginId.tenantAlias && loginId.provider && loginId.externalId) {
+    queries.push({
+      query: 'DELETE FROM "AuthenticationLoginId" WHERE "loginId" = ?',
+      parameters: [loginId.tenantAlias + ':' + loginId.provider + ':' + loginId.externalId]
+    });
+  }
+
+  Cassandra.runBatchQuery(queries, function(err) {
+    if (err) return callback(err);
+
+    // Update the cache
+    return OaeUtil.invokeIfNecessary(isUser(user.id), _updateCachedUser, user.id, { deleted }, callback);
+  });
+};
+
+/**
+ * Create user Archive
+ *
+ * @param  {String}         alias               The tenant alias
+ * @param  {String}         createdUserId       The user archive id
+ * @param  {Function}       callback            Standard callback function
+ * @param  {Object}         callback.err        An error that occurred, if any
+ * @param  [User]           callback.user       The user archive creates for this tenant
+ */
+const createArchivedUser = function(alias, createdUserId, callback) {
+  // Prepare query
+  const query = 'INSERT INTO "ArchiveByTenant" ("tenantAlias", "archiveId") VALUES (?, ?)';
+  const parameters = [alias, createdUserId];
+
+  // Run query
+  Cassandra.runQuery(query, parameters, function(err) {
+    if (err) {
+      return callback(err);
+    }
+
+    const userArchive = { tenantAlias: alias, archiveId: createdUserId };
+    return callback(null, userArchive);
+  });
+};
+
+/**
+ * Get datas from user archive
+ *
+ * @param  {String}         archiveId           The archive id ot the principal tenant
+ * @param  {String}         principalId         The principal id of the removed user
+ * @param  {Function}       callback            Standard callback function
+ * @param  {Object}         callback.err        An error that occurred, if any
+ * @param  [Id]             callback.datas      The list of id resources that belonged to the user deleted
+ */
+const getDataFromArchive = function(archiveId, principalId, callback) {
+  // Verify if an archive user exist
+  Cassandra.runQuery(
+    'SELECT * FROM "DataArchive" WHERE "archiveId" = ? AND "principalId" = ?',
+    [archiveId, principalId],
+    function(err, rows) {
+      if (err) {
+        return callback(err);
+      }
+
+      if (_.isEmpty(rows)) {
+        return callback({ code: 404, msg: 'Principal not found in DataArchive' });
+      }
+
+      const userArchive = _.map(rows, Cassandra.rowToHash);
+      return callback(null, userArchive[0]);
+    }
+  );
+};
+
+/**
+ * Add datas in user archive
+ *
+ * @param  {String}         archiveId           The archive id ot the principal tenant
+ * @param  {String}         principalId         The principal id of the removed user
+ * @param  {String}         resourceId          The resource id of the removed user
+ * @param  {String}         date                The date after which an archived user is deleted
+ * @param  {Function}       callback            Standard callback function
+ * @param  {Object}         callback.err        An error that occurred, if any
+ * @param  [User]           callback.users      The list of users for the given tenancy
+ */
+const addDataToArchive = function(archiveId, principalId, resourceId, date, callback) {
+  const stringResource = resourceId.join();
+
+  Cassandra.runQuery(
+    'INSERT INTO "DataArchive" ("archiveId", "principalId", "resourceId", "deletionDate") VALUES (?, ?, ?, ?)',
+    [archiveId, principalId, stringResource, date],
+    function(err) {
+      if (err) return callback(err);
+
+      return callback();
+    }
+  );
+};
+
+/**
+ * Remove the principal from the DataArchive
+ *
+ * @param  {String}         archiveId           The archive id ot the principal tenant
+ * @param  {String}         principalId         The principal id of the removed user
+ * @param  {Function}       callback            Standard callback function
+ * @param  {Object}         callback.err        An error that occurred, if any
+ *  */
+const removePrincipalFromDataArchive = function(archiveId, principalId, callback) {
+  Cassandra.runQuery(
+    'DELETE FROM "DataArchive" WHERE "archiveId" = ? AND "principalId" = ?',
+    [archiveId, principalId],
+    function(err) {
+      if (err) return callback(err);
+
+      return callback();
+    }
+  );
+};
+
+/**
+ * Get a user archive from a tenant
+ *
+ * @param  {String}         alias                   The tenant alias
+ * @param  {Function}       callback                Standard callback function
+ * @param  {Object}         callback.err            An error that occurred, if any
+ * @param  {Object}         callback.userArchive    The archive of the tenant
+ */
+const getArchivedUser = function(alias, callback) {
+  Cassandra.runQuery('SELECT * FROM "ArchiveByTenant" WHERE "tenantAlias" = ?', [alias], function(err, rows) {
+    if (err) return callback(err);
+
+    const userArchive = _.map(rows, Cassandra.rowToHash);
+    return callback(null, userArchive[0]);
+  });
+};
+
+/**
+ * Get all expired users
+ *
+ * @param  {Date}           actualDate              The actual date
+ * @param  {Function}       callback                Standard callback function
+ * @param  {Object}         callback.err            An error that occurred, if any
+ * @param  [Object]         callback.users          A list of users
+ */
+const getExpiredUser = function(actualDate, callback) {
+  Cassandra.runQuery('SELECT * FROM "DataArchive"', [], function(err, rows) {
+    if (err) return callback(err);
+    if (_.isEmpty(rows)) return callback(null, []);
+
+    const users = _.chain(rows)
+      .map(Cassandra.rowToHash)
+      .filter(user => {
+        return new Date(user.deletionDate) < actualDate;
+      })
+      .value();
+    return callback(null, users);
+  });
+};
+
+/**
+ * Update the archive user flag. This user will be now considered as a user archive.
+ *
+ * @param  {String}         principalId         The principal id of the removed user
+ * @param  {Function}       callback            Standard callback function
+ * @param  {Object}         callback.err        An error that occurred, if any
+ */
+const updateUserArchiveFlag = function(principalId, callback) {
+  Cassandra.runQuery(
+    'UPDATE "Principals" SET "isUserArchive" = ? WHERE "principalId" = ?',
+    ['true', principalId],
+    function(err) {
+      if (err) return callback(err);
+
+      return callback();
+    }
+  );
+};
+
 export {
+  fullyDeletePrincipal,
   createUser,
   createGroup,
   getPrincipal,
+  getPrincipalSkipCache,
   getExistingPrincipals,
   getPrincipals,
   updatePrincipal,
@@ -1178,5 +1386,12 @@ export {
   createRequestJoinGroup,
   updateJoinGroupByRequest,
   getJoinGroupRequest,
-  getJoinGroupRequests
+  getJoinGroupRequests,
+  createArchivedUser,
+  getDataFromArchive,
+  addDataToArchive,
+  removePrincipalFromDataArchive,
+  getArchivedUser,
+  getExpiredUser,
+  updateUserArchiveFlag
 };

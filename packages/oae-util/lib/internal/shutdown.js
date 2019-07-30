@@ -102,6 +102,7 @@ const _preShutdown = function(defaultTimeoutMillis, callback) {
  */
 const _exit = function() {
   log().info('Exiting.');
+  // eslint-disable-next-line unicorn/no-process-exit
   process.exit();
 };
 

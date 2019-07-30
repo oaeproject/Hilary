@@ -63,7 +63,7 @@ const updateSkinAndWait = function(restCtx, tenantAlias, skinConfig, callback) {
     const err = _.first(args);
     if (err) {
       // Remove this listener, since it may not be invoked and "leak" due to this error
-      UIAPI.removeListener('skinParsed', _updateListener);
+      UIAPI.emitter.removeListener('skinParsed', _updateListener);
       return _callback(err);
     }
 

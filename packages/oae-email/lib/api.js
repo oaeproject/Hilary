@@ -571,7 +571,6 @@ const _sendEmail = function(emailInfo, opts, callback) {
             const mailparser = new MailParser();
             // eslint-disable-next-line camelcase
             mailparser.on('end', email_object => {
-              // eslint-disable-next-line camelcase
               EmailAPI.emit('debugSent', email_object);
               return callback();
             });

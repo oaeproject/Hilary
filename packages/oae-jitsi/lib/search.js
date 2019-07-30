@@ -244,8 +244,7 @@ SearchAPI.registerSearchDocumentTransformer('meeting-jitsi', _transformMeetingDo
 /**
  * When a meeting is created, we must index it and all its potential members
  */
-/* eslint-disable-next-line no-unused-vars */
-MeetingsAPI.emitter.on(MeetingsConstants.events.CREATED_MEETING, (ctx, meeting, members) => {
+MeetingsAPI.emitter.on(MeetingsConstants.events.CREATED_MEETING, (ctx, meeting /* members */) => {
   SearchAPI.postIndexTask('meeting-jitsi', [{ id: meeting.id }], {
     resource: true,
     children: {
@@ -258,8 +257,7 @@ MeetingsAPI.emitter.on(MeetingsConstants.events.CREATED_MEETING, (ctx, meeting, 
 /**
  * When a meeting is updated, we must reindex its resource document
  */
-/* eslint-disable-next-line no-unused-vars */
-MeetingsAPI.emitter.on(MeetingsConstants.events.UPDATED_MEETING, (ctx, meeting, updatedMeeting) => {
+MeetingsAPI.emitter.on(MeetingsConstants.events.UPDATED_MEETING, (ctx, meeting /* updatedMeeting */) => {
   SearchAPI.postIndexTask('meeting-jitsi', [{ id: meeting.id }], {
     resource: true
   });
@@ -303,18 +301,13 @@ MeetingsAPI.emitter.on(MeetingsConstants.events.CREATED_MEETING_MESSAGE, (ctx, m
 /**
  * When a meeting message is deleted, we must delete the child message document
  */
-/* eslint-disable-next-line no-unused-vars */
-MeetingsAPI.emitter.on(
-  MeetingsConstants.events.DELETED_MEETING_MESSAGE,
-  // eslint-disable-next-line no-unused-vars
-  (ctx, message, meeting, deleteType) => {
-    return MessageBoxSearch.deleteMessageSearchDocument(
-      MeetingsConstants.search.MAPPING_MEETING_MESSAGE,
-      meeting.id,
-      message
-    );
-  }
-);
+MeetingsAPI.emitter.on(MeetingsConstants.events.DELETED_MEETING_MESSAGE, (ctx, message, meeting /* deleteType */) => {
+  return MessageBoxSearch.deleteMessageSearchDocument(
+    MeetingsConstants.search.MAPPING_MEETING_MESSAGE,
+    meeting.id,
+    message
+  );
+});
 
 /// //////////////////////
 // REINDEX ALL HANDLER //

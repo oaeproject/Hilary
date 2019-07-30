@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+/* eslint-disable import/no-mutable-exports */
 import { logger } from 'oae-logger';
 import * as Modules from './modules';
 import OaeEmitter from './emitter';

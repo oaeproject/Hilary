@@ -32,7 +32,6 @@ import * as TestsUtil from 'oae-tests/lib/util';
  * @param  {RestContext}    callback.followed.restContext   The rest context of the user following the other
  * @param  {User}           callback.followed.user          The user object representing the user being followed by the other
  */
-// eslint-disable-next-line no-unused-vars
 const createFollowerAndFollowed = function(restCtx, callback) {
   TestsUtil.generateTestUsers(restCtx, 2, (err, testUsers) => {
     const follower = _.values(testUsers)[0];

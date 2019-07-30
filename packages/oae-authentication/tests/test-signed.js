@@ -38,7 +38,9 @@ describe('Authentication', () => {
    */
   before(() => {
     // Instantiate the rest contexts we'll use for these tests
-    anonymousTenantRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.localhost.host);
+    anonymousTenantRestContext = TestsUtil.createTenantRestContext(
+      global.oaeTests.tenants.localhost.host
+    );
     anonymousGlobalRestContext = TestsUtil.createGlobalRestContext();
     globalAdminRestContext = TestsUtil.createGlobalAdminRestContext();
     camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
@@ -63,8 +65,13 @@ describe('Authentication', () => {
      * @param  {Boolean}    isLoggedIn          Whether or not the user should be logged in
      * @param  {Function}   callback            Standard callback function
      */
-    const _performSignedAuthenticationRequest = function(requestInfoUrl, body, isLoggedIn, callback) {
-      const parsedUrl = url.parse(requestInfoUrl);
+    const _performSignedAuthenticationRequest = function(
+      requestInfoUrl,
+      body,
+      isLoggedIn,
+      callback
+    ) {
+      const parsedUrl = new URL(requestInfoUrl, 'http://localhost');
       const restCtx = new RestContext('http://' + global.oaeTests.tenants.localhost.host, {
         hostHeader: parsedUrl.host
       });
@@ -156,33 +163,37 @@ describe('Authentication', () => {
        */
       it('verify parameter validation', callback => {
         // Ensure wen cannot get a signed request with no tenant alias
-        RestAPI.Admin.getSignedTenantAuthenticationRequestInfo(globalAdminRestContext, null, (err, requestInfo) => {
-          assert.ok(err);
-          assert.strictEqual(err.code, 400);
-          assert.ok(!requestInfo);
+        RestAPI.Admin.getSignedTenantAuthenticationRequestInfo(
+          globalAdminRestContext,
+          null,
+          (err, requestInfo) => {
+            assert.ok(err);
+            assert.strictEqual(err.code, 400);
+            assert.ok(!requestInfo);
 
-          // Ensure we cannot get a signed request with a non-existing tenant alias
-          RestAPI.Admin.getSignedTenantAuthenticationRequestInfo(
-            globalAdminRestContext,
-            'some non existing tenant alias',
-            (err, requestInfo) => {
-              assert.ok(err);
-              assert.strictEqual(err.code, 404);
-              assert.ok(!requestInfo);
+            // Ensure we cannot get a signed request with a non-existing tenant alias
+            RestAPI.Admin.getSignedTenantAuthenticationRequestInfo(
+              globalAdminRestContext,
+              'some non existing tenant alias',
+              (err, requestInfo) => {
+                assert.ok(err);
+                assert.strictEqual(err.code, 404);
+                assert.ok(!requestInfo);
 
-              // Sanity check that we can get a signed request with an existing tenant alias
-              RestAPI.Admin.getSignedTenantAuthenticationRequestInfo(
-                globalAdminRestContext,
-                'localhost',
-                (err, requestInfo) => {
-                  assert.ok(!err);
-                  assert.ok(requestInfo);
-                  return callback();
-                }
-              );
-            }
-          );
-        });
+                // Sanity check that we can get a signed request with an existing tenant alias
+                RestAPI.Admin.getSignedTenantAuthenticationRequestInfo(
+                  globalAdminRestContext,
+                  'localhost',
+                  (err, requestInfo) => {
+                    assert.ok(!err);
+                    assert.ok(requestInfo);
+                    return callback();
+                  }
+                );
+              }
+            );
+          }
+        );
       });
     });
 
@@ -232,54 +243,68 @@ describe('Authentication', () => {
                           assert.ok(!requestInfo);
 
                           // Make nico a tenant administrator for the cam tenant
-                          RestAPI.User.setTenantAdmin(camAdminRestContext, nico.user.id, true, err => {
-                            assert.ok(!err);
+                          RestAPI.User.setTenantAdmin(
+                            camAdminRestContext,
+                            nico.user.id,
+                            true,
+                            err => {
+                              assert.ok(!err);
 
-                            // Verify a tenant administrator cannot impersonate another tenant administrator
-                            RestAPI.Admin.getSignedBecomeUserAuthenticationRequestInfo(
-                              camAdminRestContext,
-                              nico.user.id,
-                              (err, requestInfo) => {
-                                assert.ok(err);
-                                assert.strictEqual(err.code, 401);
-                                assert.ok(!requestInfo);
+                              // Verify a tenant administrator cannot impersonate another tenant administrator
+                              RestAPI.Admin.getSignedBecomeUserAuthenticationRequestInfo(
+                                camAdminRestContext,
+                                nico.user.id,
+                                (err, requestInfo) => {
+                                  assert.ok(err);
+                                  assert.strictEqual(err.code, 401);
+                                  assert.ok(!requestInfo);
 
-                                // Verify a global administrator can impersonate a tenant administrator
-                                RestAPI.Admin.getSignedBecomeUserAuthenticationRequestInfo(
-                                  globalAdminRestContext,
-                                  nico.user.id,
-                                  (err, requestInfo) => {
-                                    assert.ok(!err);
-                                    assert.ok(requestInfo);
-                                    assert.strictEqual(requestInfo.body.becomeUserId, nico.user.id);
+                                  // Verify a global administrator can impersonate a tenant administrator
+                                  RestAPI.Admin.getSignedBecomeUserAuthenticationRequestInfo(
+                                    globalAdminRestContext,
+                                    nico.user.id,
+                                    (err, requestInfo) => {
+                                      assert.ok(!err);
+                                      assert.ok(requestInfo);
+                                      assert.strictEqual(
+                                        requestInfo.body.becomeUserId,
+                                        nico.user.id
+                                      );
 
-                                    // Verify a global administrator can impersonate a regular user
-                                    RestAPI.Admin.getSignedBecomeUserAuthenticationRequestInfo(
-                                      globalAdminRestContext,
-                                      mrvisser.user.id,
-                                      (err, requestInfo) => {
-                                        assert.ok(!err);
-                                        assert.ok(requestInfo);
-                                        assert.strictEqual(requestInfo.body.becomeUserId, mrvisser.user.id);
+                                      // Verify a global administrator can impersonate a regular user
+                                      RestAPI.Admin.getSignedBecomeUserAuthenticationRequestInfo(
+                                        globalAdminRestContext,
+                                        mrvisser.user.id,
+                                        (err, requestInfo) => {
+                                          assert.ok(!err);
+                                          assert.ok(requestInfo);
+                                          assert.strictEqual(
+                                            requestInfo.body.becomeUserId,
+                                            mrvisser.user.id
+                                          );
 
-                                        // Verify a tenant administrator can impersonate a regular user (nico was made a tenant administrator earlier in the test)
-                                        RestAPI.Admin.getSignedBecomeUserAuthenticationRequestInfo(
-                                          nico.restContext,
-                                          mrvisser.user.id,
-                                          (err, requestInfo) => {
-                                            assert.ok(!err);
-                                            assert.ok(requestInfo);
-                                            assert.strictEqual(requestInfo.body.becomeUserId, mrvisser.user.id);
-                                            return callback();
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          });
+                                          // Verify a tenant administrator can impersonate a regular user (nico was made a tenant administrator earlier in the test)
+                                          RestAPI.Admin.getSignedBecomeUserAuthenticationRequestInfo(
+                                            nico.restContext,
+                                            mrvisser.user.id,
+                                            (err, requestInfo) => {
+                                              assert.ok(!err);
+                                              assert.ok(requestInfo);
+                                              assert.strictEqual(
+                                                requestInfo.body.becomeUserId,
+                                                mrvisser.user.id
+                                              );
+                                              return callback();
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
                         }
                       );
                     }
@@ -441,31 +466,41 @@ describe('Authentication', () => {
             // Ensure that authentication with this request data works
             _performSignedAuthenticationRequest(requestInfo.url, requestInfo.body, true, () => {
               // Permutations of missing parameters
-              _performSignedAuthenticationRequest(requestInfo.url, _.omit(requestInfo.body, 'userId'), false, () => {
-                _performSignedAuthenticationRequest(requestInfo.url, _.omit(requestInfo.body, 'expires'), false, () => {
+              _performSignedAuthenticationRequest(
+                requestInfo.url,
+                _.omit(requestInfo.body, 'userId'),
+                false,
+                () => {
                   _performSignedAuthenticationRequest(
                     requestInfo.url,
-                    _.omit(requestInfo.body, 'signature'),
+                    _.omit(requestInfo.body, 'expires'),
                     false,
                     () => {
-                      // All parameters are present, but some are invalid
                       _performSignedAuthenticationRequest(
                         requestInfo.url,
-                        _.extend({}, requestInfo.body, { userId: 'u:admin:badid' }),
+                        _.omit(requestInfo.body, 'signature'),
                         false,
                         () => {
+                          // All parameters are present, but some are invalid
                           _performSignedAuthenticationRequest(
                             requestInfo.url,
-                            _.extend({}, requestInfo.body, { expires: 1234567890 }),
+                            _.extend({}, requestInfo.body, { userId: 'u:admin:badid' }),
                             false,
                             () => {
-                              return _performSignedAuthenticationRequest(
+                              _performSignedAuthenticationRequest(
                                 requestInfo.url,
-                                _.extend({}, requestInfo.body, {
-                                  signature: 'bad signature'
-                                }),
+                                _.extend({}, requestInfo.body, { expires: 1234567890 }),
                                 false,
-                                callback
+                                () => {
+                                  return _performSignedAuthenticationRequest(
+                                    requestInfo.url,
+                                    _.extend({}, requestInfo.body, {
+                                      signature: 'bad signature'
+                                    }),
+                                    false,
+                                    callback
+                                  );
+                                }
                               );
                             }
                           );
@@ -473,8 +508,8 @@ describe('Authentication', () => {
                       );
                     }
                   );
-                });
-              });
+                }
+              );
             });
           }
         );
@@ -496,7 +531,12 @@ describe('Authentication', () => {
               return now + 5 * 60 * 1000;
             };
 
-            return _performSignedAuthenticationRequest(requestInfo.url, requestInfo.body, false, callback);
+            return _performSignedAuthenticationRequest(
+              requestInfo.url,
+              requestInfo.body,
+              false,
+              callback
+            );
           }
         );
       });
@@ -550,59 +590,64 @@ describe('Authentication', () => {
               // Ensure the request data can be used to authentication when the body is untampered with
               _performSignedAuthenticationRequest(requestInfo.url, requestInfo.body, true, () => {
                 // Permutations of missing parameters
-                _performSignedAuthenticationRequest(requestInfo.url, _.omit(requestInfo.body, 'userId'), false, () => {
-                  _performSignedAuthenticationRequest(
-                    requestInfo.url,
-                    _.omit(requestInfo.body, 'expires'),
-                    false,
-                    () => {
-                      _performSignedAuthenticationRequest(
-                        requestInfo.url,
-                        _.omit(requestInfo.body, 'signature'),
-                        false,
-                        () => {
-                          _performSignedAuthenticationRequest(
-                            requestInfo.url,
-                            _.omit(requestInfo.body, 'becomeUserId'),
-                            false,
-                            () => {
-                              // Permutations of tampered data
-                              _performSignedAuthenticationRequest(
-                                requestInfo.url,
-                                _.extend(requestInfo.body, { userId: simon.user.id }),
-                                false,
-                                () => {
-                                  _performSignedAuthenticationRequest(
-                                    requestInfo.url,
-                                    _.extend(requestInfo.body, { expires: 1234567890 }),
-                                    false,
-                                    () => {
-                                      _performSignedAuthenticationRequest(
-                                        requestInfo.url,
-                                        _.extend(requestInfo.body, { signature: 'different' }),
-                                        false,
-                                        () => {
-                                          return _performSignedAuthenticationRequest(
-                                            requestInfo.url,
-                                            _.extend(requestInfo.body, {
-                                              becomeUserId: simon.user.id
-                                            }),
-                                            false,
-                                            callback
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                });
+                _performSignedAuthenticationRequest(
+                  requestInfo.url,
+                  _.omit(requestInfo.body, 'userId'),
+                  false,
+                  () => {
+                    _performSignedAuthenticationRequest(
+                      requestInfo.url,
+                      _.omit(requestInfo.body, 'expires'),
+                      false,
+                      () => {
+                        _performSignedAuthenticationRequest(
+                          requestInfo.url,
+                          _.omit(requestInfo.body, 'signature'),
+                          false,
+                          () => {
+                            _performSignedAuthenticationRequest(
+                              requestInfo.url,
+                              _.omit(requestInfo.body, 'becomeUserId'),
+                              false,
+                              () => {
+                                // Permutations of tampered data
+                                _performSignedAuthenticationRequest(
+                                  requestInfo.url,
+                                  _.extend(requestInfo.body, { userId: simon.user.id }),
+                                  false,
+                                  () => {
+                                    _performSignedAuthenticationRequest(
+                                      requestInfo.url,
+                                      _.extend(requestInfo.body, { expires: 1234567890 }),
+                                      false,
+                                      () => {
+                                        _performSignedAuthenticationRequest(
+                                          requestInfo.url,
+                                          _.extend(requestInfo.body, { signature: 'different' }),
+                                          false,
+                                          () => {
+                                            return _performSignedAuthenticationRequest(
+                                              requestInfo.url,
+                                              _.extend(requestInfo.body, {
+                                                becomeUserId: simon.user.id
+                                              }),
+                                              false,
+                                              callback
+                                            );
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
               });
             }
           );
@@ -628,7 +673,12 @@ describe('Authentication', () => {
                 return now + 5 * 60 * 1000;
               };
 
-              return _performSignedAuthenticationRequest(requestInfo.url, requestInfo.body, false, callback);
+              return _performSignedAuthenticationRequest(
+                requestInfo.url,
+                requestInfo.body,
+                false,
+                callback
+              );
             }
           );
         });

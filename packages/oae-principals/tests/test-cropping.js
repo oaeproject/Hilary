@@ -126,7 +126,8 @@ describe('Profile pictures', () => {
    * @api private
    */
   const _getUriFromDownloadUrl = function(downloadUrl) {
-    return querystring.parse(url.parse(downloadUrl).query).uri;
+    const DUMMY_BASE = 'http://localhost';
+    return new URL(downloadUrl, DUMMY_BASE).searchParams.get('uri');
   };
 
   /**

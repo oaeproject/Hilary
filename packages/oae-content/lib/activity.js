@@ -147,7 +147,6 @@ ActivityAPI.registerActivityType(ContentConstants.activity.ACTIVITY_CONTENT_UPDA
 /*!
  * Post either a content-update or content-update-visibility activity when a user updates a content item's metadata.
  */
-// eslint-disable-next-line no-unused-vars
 ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT, (ctx, newContent, oldContent, _) => {
   const millis = Date.now();
   const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {

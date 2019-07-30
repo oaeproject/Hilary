@@ -772,12 +772,18 @@ describe('File previews', () => {
    */
   const _verifySignedDownloadUrl = function(restContext, downloadUrl, callback) {
     // Verify we can download it
-    const parsedUrl = url.parse(downloadUrl, true);
-    RestUtil.performRestRequest(restContext, '/api/download/signed', 'GET', parsedUrl.query, (err, body, response) => {
-      assert.ok(!err);
-      assert.strictEqual(response.statusCode, 204);
-      return callback();
-    });
+    const parsedUrl = new URL(downloadUrl, 'http://localhost');
+    RestUtil.performRestRequest(
+      restContext,
+      '/api/download/signed',
+      'GET',
+      TestsUtil.objectifySearchParams(parsedUrl.searchParams),
+      (err, body, response) => {
+        assert.ok(!err);
+        assert.strictEqual(response.statusCode, 204);
+        return callback();
+      }
+    );
   };
 
   /**

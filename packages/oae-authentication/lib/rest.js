@@ -20,23 +20,23 @@ import * as AuthenticationAPI from 'oae-authentication';
 // AUTHENTICATION PROVIDERS //
 /// ///////////////////////////
 
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line no-unused-vars
 import cas from './strategies/cas/rest';
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line no-unused-vars
 import facebook from './strategies/facebook/rest';
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line no-unused-vars
 import google from './strategies/google/rest';
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line no-unused-vars
 import ldap from './strategies/ldap/rest';
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line no-unused-vars
 import local from './strategies/local/rest';
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line no-unused-vars
 import oauth from './strategies/oauth/rest';
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line no-unused-vars
 import shibb from './strategies/shibboleth/rest';
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line no-unused-vars
 import signed from './strategies/signed/rest';
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line no-unused-vars
 import twitter from './strategies/twitter/rest';
 
 /**
@@ -85,13 +85,19 @@ const _getResetPasswordSecret = function(req, res) {
 OAE.tenantRouter.on('get', '/api/auth/local/reset/secret/:username', _getResetPasswordSecret);
 
 const _resetPassword = function(req, res) {
-  AuthenticationAPI.resetPassword(req.ctx, req.params.username, req.body.secret, req.body.newPassword, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+  AuthenticationAPI.resetPassword(
+    req.ctx,
+    req.params.username,
+    req.body.secret,
+    req.body.newPassword,
+    err => {
+      if (err) {
+        return res.status(err.code).send(err.msg);
+      }
 
-    return res.status(200).end();
-  });
+      return res.status(200).end();
+    }
+  );
 };
 
 /**

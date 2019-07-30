@@ -1351,6 +1351,17 @@ const isIntegrationTest = function() {
   return process.env.OAE_TEST_INTEGRATION !== 'false';
 };
 
+// TODO
+const objectifySearchParams = params => {
+  let result = {};
+  for (const eachKey of params.keys()) {
+    result[eachKey] = params.get(eachKey);
+  }
+
+  return result;
+  // return { uri: params.get('uri'), signature: params.get('signature'), hash: params.get('hash') };
+};
+
 export {
   CONFIG_COOKIE_NAME,
   createTestServer,
@@ -1379,5 +1390,6 @@ export {
   createInitialTestConfig,
   setUpBeforeTests,
   cleanUpAfterTests,
-  isIntegrationTest
+  isIntegrationTest,
+  objectifySearchParams
 };

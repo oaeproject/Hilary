@@ -13,8 +13,6 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable no-unused-vars */
-
 import assert from 'assert';
 import util from 'util';
 import $ from 'cheerio';
@@ -1210,10 +1208,10 @@ describe('Activity Email', () => {
   });
 
   /**
-   * Test that verifies that activity emails are not delivered to users who have deleted their
+   * Test that verifies that activity emails are not delivered to users who have deleted/restored their
    * profiles
    */
-  it('verify email is not delivered to users who have since deleted their profile', callback => {
+  it('verify email is not delivered to users who have since deleted/restored their profile', callback => {
     // Create a user to perform actions (simong) and one to receive emails
     // (mrvisser) through a group
     TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, mrvisser, simong, nico) => {
@@ -1273,8 +1271,8 @@ describe('Activity Email', () => {
                             assert.strictEqual(messages.length, 1);
                             assert.strictEqual(messages[0].headers.to, nico.user.email);
 
-                            // Restore mrvisser and ensure the same action once again results in an email to both
-                            // mrvisser and nico
+                            // Restore mrvisser and ensure email is not sent to mrvisser even if he has
+                            // been restored because he lost all those rights when his profile was deleted
                             PrincipalsTestUtil.assertRestoreUserSucceeds(camAdminRestContext, mrvisser.user.id, () => {
                               ContentTestUtil.assertCreateLinkSucceeds(
                                 simong.restContext,
@@ -1287,15 +1285,15 @@ describe('Activity Email', () => {
                                 null,
                                 link2 => {
                                   EmailTestUtil.collectAndFetchAllEmails(messages => {
-                                    assert.strictEqual(messages.length, 2);
+                                    assert.strictEqual(messages.length, 1);
 
-                                    // Ensure the 2 recipients are mrvisser and nico
-                                    const recipients = _.chain(messages)
+                                    // Ensure only nico gets it this time
+                                    const recipient = _.chain(messages)
                                       .pluck('headers')
                                       .pluck('to')
                                       .value()
                                       .sort();
-                                    assert.deepStrictEqual(recipients, expectedRecipients);
+                                    assert.deepStrictEqual(recipient, [nico.user.email]);
 
                                     return callback();
                                   });

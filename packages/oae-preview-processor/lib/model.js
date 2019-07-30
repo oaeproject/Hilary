@@ -15,7 +15,6 @@
 
 import fs from 'fs';
 import path from 'path';
-import url from 'url';
 import util from 'util';
 import mkdirp from 'mkdirp';
 import rimraf from 'rimraf';
@@ -118,7 +117,7 @@ const PreviewContext = function(config, contentId, revisionId) {
       }
 
       // Parse the URL we should use to authenticate to the tenant
-      const parsedUrl = url.parse(requestInfo.url);
+      const parsedUrl = new URL(requestInfo.url);
 
       // We need to try and use the internally configured host rather than using the external host,
       // so we extract the Host header portion from the suggested URI and replace the connection URI

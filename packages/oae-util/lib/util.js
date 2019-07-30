@@ -22,7 +22,7 @@ import _ from 'underscore';
 
 // Include some global utilities and extensions (e.g., underscore mixins). See the directory
 // `oae-util/lib/internal/globals` for all the global definitions
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line import/namespace, no-unused-vars
 import * as globals from './internal/globals';
 
 /// ////////////////

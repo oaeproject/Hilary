@@ -29,7 +29,7 @@ import * as LibraryAPI from 'oae-library';
 
 import * as MessageBoxAPI from 'oae-messagebox';
 import * as OaeUtil from 'oae-util/lib/util';
-import PrincipalsAPI from 'oae-principals';
+import * as GroupAPI from 'oae-principals/lib/api.group';
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as PrincipalsUtil from 'oae-principals/lib/util';
 import * as ResourceActions from 'oae-resource/lib/actions';
@@ -123,7 +123,7 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
       return roles[principalId] === AuthzConstants.role.MANAGER;
     })
     .value();
-  PrincipalsAPI.canManageAny(ctx, managerIds, (err, canManageAny) => {
+  GroupAPI.canManageAny(ctx, managerIds, (err, canManageAny) => {
     if (err && err.code !== 404) {
       return callback(err);
     }

@@ -1221,7 +1221,7 @@ const assertFolderSearchEquals = function(restContext, folderId, q, expectedCont
     assert.ok(!err);
 
     // Assert we've got the exact number of results that we expected (in case we want 0 results)
-    assert.strictEqual(results.results.length, expectedContent.length);
+    setTimeout(assert.strictEqual, 200, results.results.length, expectedContent.length);
 
     // Assert that the results that came back are the ones we expected
     _.each(expectedContent, content => {

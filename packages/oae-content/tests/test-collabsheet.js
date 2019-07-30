@@ -65,7 +65,7 @@ describe('Collaborative spreadsheets', function() {
           assert.ok(!err);
 
           RestAPI.Content.joinCollabDoc(ctx, link.id, function(err) {
-            assert.equal(err.code, 400);
+            assert.strictEqual(err.code, 400);
 
             RestAPI.Content.createCollabsheet(ctx, 'Test sheet', 'description', 'private', [], [], [], [], function(
               err,
@@ -74,10 +74,10 @@ describe('Collaborative spreadsheets', function() {
               assert.ok(!err);
 
               RestAPI.Content.joinCollabDoc(ctx, ' ', function(err) {
-                assert.equal(err.code, 400);
+                assert.strictEqual(err.code, 400);
 
                 RestAPI.Content.joinCollabDoc(ctx, 'invalid-id', function(err) {
-                  assert.equal(err.code, 400);
+                  assert.strictEqual(err.code, 400);
 
                   // Test collabsheets can be joined
                   RestAPI.Content.joinCollabDoc(ctx, contentObj.id, function(err, data) {
@@ -118,7 +118,7 @@ describe('Collaborative spreadsheets', function() {
 
           // Branden has no access yet, so joining should result in a 401
           RestAPI.Content.joinCollabDoc(brandenCtx, contentObj.id, function(err, data) {
-            assert.equal(err.code, 401);
+            assert.strictEqual(err.code, 401);
             assert.ok(!data);
 
             // Share it with branden, viewers still can't edit(=join) though
@@ -129,7 +129,7 @@ describe('Collaborative spreadsheets', function() {
 
               // Branden can see the spreadsheet, but he cannot join in and start editing it
               RestAPI.Content.joinCollabDoc(brandenCtx, contentObj.id, function(err, data) {
-                assert.equal(err.code, 401);
+                assert.strictEqual(err.code, 401);
                 assert.ok(!data);
 
                 // Now that we make Branden a manager, he should be able to join
@@ -182,7 +182,7 @@ describe('Collaborative spreadsheets', function() {
 
         // Try updating any of the ethercalc properties
         RestAPI.Content.updateContent(simonCtx, contentObj.id, { ethercalcRoomId: 'bleh' }, function(err) {
-          assert.equal(err.code, 400);
+          assert.strictEqual(err.code, 400);
           // Update a regular property
           RestAPI.Content.updateContent(simonCtx, contentObj.id, { displayName: 'bleh' }, function(
             err,
@@ -194,8 +194,8 @@ describe('Collaborative spreadsheets', function() {
             // Double-check the the content item didn't change
             RestAPI.Content.getContent(simonCtx, contentObj.id, function(err, latestContentObj) {
               assert.ok(!err);
-              assert.equal(contentObj.ethercalcGroupId, latestContentObj.ethercalcGroupId);
-              assert.equal(contentObj.ethercalcRoomId, latestContentObj.ethercalcRoomId);
+              assert.strictEqual(contentObj.ethercalcGroupId, latestContentObj.ethercalcGroupId);
+              assert.strictEqual(contentObj.ethercalcRoomId, latestContentObj.ethercalcRoomId);
               return callback();
             });
           });

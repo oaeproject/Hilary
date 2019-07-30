@@ -64,12 +64,13 @@ jobs:
             adduser -u 1000 -G node -s /bin/sh -D node
             chown -R node:node .
             docker cp /root/Hilary oae-hilary:/usr/src
-            docker-compose run --rm oae-hilary 'cd 3akai-ux && npm install'
-            docker-compose run --rm oae-hilary 'npm install'
+            rm yarn.lock
+            docker-compose run --rm oae-hilary 'cd 3akai-ux && npx lerna bootstrap'
+            docker-compose run --rm oae-hilary 'npx lerna bootstrap'
       - run:
           name: Run tests
           command: |
-            docker-compose run --rm oae-hilary "npm run test-with-coverage"
+            docker-compose run --rm oae-hilary "yarn run test-with-coverage"
 workflows:
   version: 2
   test-all:

@@ -17,11 +17,11 @@ import { logger } from 'oae-logger';
 
 import * as MeetingSearch from './search';
 // Register the activity functionality
-// eslint-disable-next-line no-unused-vars
+// eslint-disable-next-line no-unused-vars, import/namespace
 import * as activity from './activity';
 
 // Register the library functionality
-// eslint-disable-next-line no-unused-vars
+// eslint-disable-next-line no-unused-vars, import/namespace
 import * as library from './library';
 
 const log = logger('oae-jitsi-init');

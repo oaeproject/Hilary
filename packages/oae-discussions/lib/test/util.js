@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable no-unused-vars */
 import assert from 'assert';
 import _ from 'underscore';
 

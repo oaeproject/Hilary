@@ -33,8 +33,17 @@ import * as SearchTestUtil from 'oae-search/lib/test/util';
 import * as TestsUtil from 'oae-tests/lib/util';
 import * as AuthzTestUtil from 'oae-authz/lib/test/util';
 
+import * as ContentTestUtil from 'oae-content/lib/test/util';
+import * as DiscussionsTestUtil from 'oae-discussions/lib/test/util';
+import * as FolderTestUtil from 'oae-folders/lib/test/util';
+import * as FollowingDAO from 'oae-following/lib/internal/dao';
+import * as GroupAPI from 'oae-principals/lib/api.group';
+import * as MeetingAPI from 'oae-jitsi/lib/api.meetings';
+import * as DefinitiveDeletionAPI from 'oae-principals/lib/definitive-deletion';
+
 import { emitter } from 'oae-principals';
 import * as PrincipalsDelete from 'oae-principals/lib/delete';
+import { isResourceACollabDoc, isResourceACollabSheet } from 'oae-content/lib/backends/util';
 
 /**
  * Import a batch of users from a CSV file. This function is a test utility function that wraps the REST API call and listens
@@ -1224,7 +1233,6 @@ const assertMembershipsLibrariesEquals = function(restCtx, expectedMemberships, 
   }
 
   const userId = _userIds.shift();
-  // eslint-disable-next-line no-undef
   assertMembershipsLibraryEquals(restCtx, userId, expectedMemberships[userId], () => {
     return assertMembershipsLibrariesEquals(restCtx, expectedMemberships, callback, _userIds);
   });
@@ -2267,6 +2275,368 @@ const assertUpdateJoinGroupByRequestFails = function(restCtx, groupId, principal
   });
 };
 
+/**
+ * Ensure deleting all groups is successful and renders the expected side effects
+ *
+ * @param  {RestContext}    adminRestCtx        An administrator REST context that has administration access to the groups and all their members
+ * @param  {RestContext}    deleterRestCtx      The REST context of the user who will perform the deletes
+ * @param  {String[]}       groupIds            The ids of the groups to delete
+ * @param  {Function}       callback            Invoked when all groups have been deleted and all assertions have succeeded
+ * @throws {AssertionError}                     Thrown if there is an issue deleting the groups or any of the assertions fail
+ */
+const assertDataIsTransferredToArchiveUser = function(ctx, deletedUser, userArchive, callback) {
+  ctx.user = function() {
+    return userArchive.user;
+  };
+
+  ctx.tenant = function() {
+    return userArchive.user.tenant;
+  };
+
+  ctx.user().isAdmin = function() {
+    return true;
+  };
+
+  ctx.tenant = function() {
+    return userArchive.user.tenant;
+  };
+
+  userArchive.archiveId = userArchive.user.id;
+  // Create manual user
+  PrincipalsDAO.createArchivedUser(userArchive.user.tenant.alias, userArchive.user.id, function(
+    err,
+    userArchiveCreated
+  ) {
+    assert.ok(!err);
+    assert.ok(userArchiveCreated);
+    DefinitiveDeletionAPI.transferUsersDataToCloneUser(ctx, deletedUser.user, userArchiveCreated, function(
+      err,
+      listEmail
+    ) {
+      assert.ok(!err);
+      return callback(null, userArchiveCreated, listEmail);
+    });
+  });
+};
+
+/**
+ * Generate collabdocs and collabsheets
+ *
+ * @param  {restCtx}            restCtx         The REST context to use when create the collabdoc or collabsheet
+ * @param  {String}             privacy         The privacy of the collabdoc or collabsheet
+ * @param  {Function}           callback        Standard callback function
+ * @throws {AssertionError}                     Thrown if the request failed
+ */
+const generateCollabdocs = function(restCtx, privacy, numToCreate, type, callback, _created) {
+  _created = _created || [];
+  if (_created.length === numToCreate) {
+    return callback(null, _created);
+  }
+
+  const done = (err, collab) => {
+    assert.ok(!err);
+    _created.push(collab);
+    return generateCollabdocs(restCtx, privacy, numToCreate, type, callback, _created);
+  };
+
+  if (isResourceACollabDoc(type)) {
+    RestAPI.Content.createCollabDoc(restCtx, 'name', 'description', privacy, [], [], [], [], done);
+  } else if (isResourceACollabSheet(type)) {
+    RestAPI.Content.createCollabsheet(restCtx, 'name', 'description', privacy, [], [], [], [], done);
+  }
+};
+
+/**
+ * Generate files
+ *
+ * @param  {restCtx}            restCtx         The REST context to use when create the files
+ * @param  {String}             privacy         The privacy of the files
+ * @param  {Function}           callback        Standard callback function
+ * @throws {AssertionError}                     Thrown if the request failed
+ */
+const generateFiles = function(restCtx, privacy, numToCreate, callback, _created) {
+  _created = _created || [];
+  if (_created.length === numToCreate) {
+    return callback(null, _created);
+  }
+
+  RestAPI.Content.createFile(restCtx, 'name', 'description', privacy, _getPictureStream(), null, null, null, function(
+    err,
+    file
+  ) {
+    assert.ok(!err);
+    _created.push(file);
+    return generateFiles(restCtx, privacy, numToCreate, callback, _created);
+  });
+};
+
+/**
+ * Generate discussions
+ *
+ * @param  {restCtx}            restCtx         The REST context to use when create the discussions
+ * @param  {String}             privacy         The privacy of the discussions
+ * @param  {Function}           callback        Standard callback function
+ * @throws {AssertionError}                     Thrown if the request failed
+ */
+const generateDiscussions = function(restCtx, privacy, numToCreate, callback, _created) {
+  _created = _created || [];
+  if (_created.length === numToCreate) {
+    return callback(null, _created);
+  }
+
+  RestAPI.Discussions.createDiscussion(restCtx, 'name', 'description', privacy, null, null, function(err, discussion) {
+    assert.ok(!err);
+    _created.push(discussion);
+    return generateDiscussions(restCtx, privacy, numToCreate, callback, _created);
+  });
+};
+
+/**
+ * Generate meetings
+ *
+ * @param  {restCtx}            restCtx         The REST context to use when create the meetings
+ * @param  {String}             privacy         The privacy of the meetings
+ * @param  {Function}           callback        Standard callback function
+ * @throws {AssertionError}                     Thrown if the request failed
+ */
+const generateMeetings = function(restCtx, manager, privacy, numToCreate, callback, _created) {
+  _created = _created || [];
+  if (_created.length === numToCreate) {
+    return callback(null, _created);
+  }
+
+  restCtx.tenant = function() {
+    return manager.tenant;
+  };
+
+  restCtx.user = function() {
+    return manager;
+  };
+
+  MeetingAPI.createMeeting(restCtx, 'name', 'description', true, false, privacy, {}, function(err, meeting) {
+    assert.ok(!err);
+    _created.push(meeting);
+    return generateMeetings(restCtx, manager, privacy, numToCreate, callback, _created);
+  });
+};
+
+/**
+ * Generate links
+ *
+ * @param  {restCtx}            restCtx         The REST context to use when create the links
+ * @param  {String}             privacy         The privacy of the links
+ * @param  {Function}           callback        Standard callback function
+ * @throws {AssertionError}                     Thrown if the request failed
+ */
+const generateLinks = function(restCtx, privacy, numToCreate, callback, _created) {
+  _created = _created || [];
+  if (_created.length === numToCreate) {
+    return callback(null, _created);
+  }
+
+  RestAPI.Content.createLink(restCtx, 'name', 'description', privacy, 'google.com', null, null, null, function(
+    err,
+    link
+  ) {
+    assert.ok(!err);
+    _created.push(link);
+    return generateLinks(restCtx, privacy, numToCreate, callback, _created);
+  });
+};
+
+/**
+ * Generate groups
+ *
+ * @param  {restCtx}            restCtx         The REST context to use when create the groups
+ * @param  {String}             privacy         The privacy of the groups
+ * @param  {Function}           callback        Standard callback function
+ * @throws {AssertionError}                     Thrown if the request failed
+ */
+const generateGroups = function(restCtx, privacy, numToCreate, callback, _created) {
+  _created = _created || [];
+  if (_created.length === numToCreate) {
+    return callback(null, _created);
+  }
+
+  RestAPI.Group.createGroup(restCtx, 'Group title', 'Group description', 'public', 'yes', [], [], function(
+    err,
+    groupObj
+  ) {
+    assert.ok(!err);
+    _created.push(groupObj);
+    return generateGroups(restCtx, privacy, numToCreate, callback, _created);
+  });
+};
+
+/**
+ * Generate folders
+ *
+ * @param  {restCtx}            restCtx         The REST context to use when create the folders
+ * @param  {String}             privacy         The privacy of the folders
+ * @param  {Function}           callback        Standard callback function
+ * @throws {AssertionError}                     Thrown if the request failed
+ */
+const generateFolders = function(user, privacy, numToCreate, callback, _created) {
+  _created = _created || [];
+  if (_created.length === numToCreate) {
+    return callback(null, _created);
+  }
+
+  FolderTestUtil.assertCreateFolderSucceeds(user.restContext, 'name', 'description', privacy, [user], [], function(
+    folder
+  ) {
+    _created.push(folder);
+    return generateFolders(user, privacy, numToCreate, callback, _created);
+  });
+};
+
+/**
+ * Assigns permisssions to content
+ *
+ * @param  {restCtx}            owner           The ower of the content
+ * @param  {Object}             contributor     The user
+ * @param  {String}             right           The right to attribute to the user
+ * @param  {Object}             content         The content to update
+ * @param  {Function}           callback        Standard callback function
+ * @throws {AssertionError}                     Thrown if the request failed
+ */
+const assignPermissionToContent = function(owner, contributor, right, content, callback) {
+  const memberUpdates = {};
+  memberUpdates[contributor.user.id] = right;
+  ContentTestUtil.assertUpdateContentMembersSucceeds(
+    owner.restContext,
+    owner.restContext,
+    content.id,
+    memberUpdates,
+    function(err) {
+      assert.ok(!err);
+      return callback(err, content);
+    }
+  );
+};
+
+/**
+ * Assigns permissions to discussion
+ *
+ * @param  {restCtx}            owner           The ower of the discussion
+ * @param  {Object}             contributor     The user
+ * @param  {String}             right           The right to attribute to the user
+ * @param  {Object}             discussion      The discussion to update
+ * @param  {Function}           callback        Standard callback function
+ * @throws {AssertionError}                     Thrown if the request failed
+ */
+const assignPermissionsToDiscussion = function(owner, contributor, right, discussion, callback) {
+  const memberUpdates = {};
+  memberUpdates[contributor.user.id] = right;
+  DiscussionsTestUtil.assertUpdateDiscussionMembersSucceeds(
+    owner.restContext,
+    owner.restContext,
+    discussion.id,
+    memberUpdates,
+    function(err) {
+      assert.ok(!err);
+      return callback(null, discussion);
+    }
+  );
+};
+
+/**
+ * Assigns permissions to meeting
+ *
+ * @param  {restCtx}            owner           The ower of the meeting
+ * @param  {Object}             contributor     The user
+ * @param  {String}             right           The right to attribute to the user
+ * @param  {Object}             meeting         The meeting to update
+ * @param  {Function}           callback        Standard callback function
+ * @throws {AssertionError}                     Thrown if the request failed
+ */
+const assignPermissionsToMeeting = function(ctx, owner, contributor, right, meeting, callback) {
+  const memberUpdates = {};
+  memberUpdates[contributor.user.id] = right;
+  ctx.user = function() {
+    return owner.user;
+  };
+
+  MeetingAPI.setMeetingMembers(ctx, meeting.id, memberUpdates, function(err) {
+    assert.ok(!err);
+    return callback(null, meeting);
+  });
+};
+
+/**
+ * Assigns permissions to folder
+ *
+ * @param  {restCtx}            owner           The ower of the folder
+ * @param  {Object}             contributor     The user
+ * @param  {String}             right           The right to attribute to the user
+ * @param  {Object}             folder          The folder to update
+ * @param  {Function}           callback        Standard callback function
+ * @throws {AssertionError}                     Thrown if the request failed
+ */
+const assignPermissionsToFolder = function(owner, contributor, right, folder, callback) {
+  const memberUpdates = {};
+  memberUpdates[contributor.user.id] = right;
+  FolderTestUtil.assertUpdateFolderMembersSucceeds(
+    owner.restContext,
+    owner.restContext,
+    folder.id,
+    memberUpdates,
+    function(err) {
+      assert.ok(!err);
+      return callback(null, folder);
+    }
+  );
+};
+
+/**
+ * Assigns permissions to Group
+ *
+ * @param  {restCtx}            owner           The ower of the group
+ * @param  {Object}             contributor     The user
+ * @param  {String}             right           The right to attribute to the user
+ * @param  {Object}             group           The group to update
+ * @param  {Function}           callback        Standard callback function
+ * @throws {AssertionError}                     Thrown if the request failed
+ */
+const assignPermissionsToGroup = function(owner, contributor, right, group, callback) {
+  owner.restContext.tenant = function() {
+    return owner.user.tenant;
+  };
+
+  owner.restContext.user = function() {
+    return owner.user;
+  };
+
+  const memberUpdates = {};
+  memberUpdates[contributor.user.id] = right;
+  GroupAPI.setGroupMembers(owner.restContext, group.id, memberUpdates, function(err) {
+    assert.ok(!err);
+    return callback(null, group);
+  });
+};
+
+/**
+ * Ensure that the follower user *does not* follow the followed user
+ *
+ * @param  {String}             followerId      The id of the follower user
+ * @param  {String}             followedId      The id of the expected followed user
+ * @param  {Function}           callback        Standard callback function
+ * @throws {AssertionError}                     Thrown if the request failed
+ */
+const assertDoesNotFollow = function(followerId, followedId, callback) {
+  FollowingDAO.getFollowers(followedId, null, null, function(err, followers) {
+    if (err) {
+      return callback(err);
+    }
+
+    const follower = _.find(followers, function(follower) {
+      return follower === followerId;
+    });
+    assert.ok(!follower);
+    return callback();
+  });
+};
+
 export {
   importUsers,
   addUserToAllGroups,
@@ -2338,5 +2708,19 @@ export {
   assertGetJoinGroupRequestsSucceeds,
   assertGetJoinGroupRequestsFails,
   assertUpdateJoinGroupByRequestSucceeds,
-  assertUpdateJoinGroupByRequestFails
+  assertUpdateJoinGroupByRequestFails,
+  assertDoesNotFollow,
+  assertDataIsTransferredToArchiveUser as assertDefinitiveDeletionUsersSucceeds,
+  generateCollabdocs,
+  generateFiles,
+  generateDiscussions,
+  generateMeetings,
+  generateLinks,
+  generateGroups,
+  generateFolders,
+  assignPermissionToContent as generateRightContent,
+  assignPermissionsToFolder as generateRightFolder,
+  assignPermissionsToMeeting as generateRightMeeting,
+  assignPermissionsToDiscussion as generateRightDiscussion,
+  assignPermissionsToGroup as generateRightsForGroup
 };

@@ -101,7 +101,7 @@ services:
     volumes:
       - ./3akai-ux:/usr/src/Hilary/3akai-ux
       - ../files:/usr/share/files
-      - ./3akai-ux/nginx/nginx.conf.docker:/etc/nginx/nginx.conf
+      - ./3akai-ux/nginx/nginx.docker.conf:/etc/nginx/nginx.conf
       - ./3akai-ux/nginx/mime.conf:/etc/nginx/mime.conf
       - ./3akai-ux/nginx/nginx-selfsigned.crt:/etc/nginx/nginx-selfsigned.crt
       - ./3akai-ux/nginx/nginx-selfsigned.key:/etc/nginx/nginx-selfsigned.key

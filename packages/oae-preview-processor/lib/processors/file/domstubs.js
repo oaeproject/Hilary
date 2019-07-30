@@ -1,4 +1,3 @@
-/* eslint-disable */
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
@@ -6,20 +5,14 @@ function xmlEncode(s) {
   let i = 0;
   let ch;
   s = String(s);
-  while (
-    i < s.length &&
-    (ch = s[i]) !== '&' &&
-    ch !== '<' &&
-    ch !== '"' &&
-    ch !== '\n' &&
-    ch !== '\r' &&
-    ch !== '\t'
-  ) {
+  while (i < s.length && (ch = s[i]) !== '&' && ch !== '<' && ch !== '"' && ch !== '\n' && ch !== '\r' && ch !== '\t') {
     i++;
   }
+
   if (i >= s.length) {
     return s;
   }
+
   let buf = s.substring(0, i);
   while (i < s.length) {
     ch = s[i++];
@@ -47,6 +40,7 @@ function xmlEncode(s) {
         break;
     }
   }
+
   return buf;
 }
 
@@ -71,6 +65,7 @@ DOMElement.prototype = {
     if (name in this.attributes) {
       return this.attributes[name];
     }
+
     return null;
   },
 
@@ -79,6 +74,7 @@ DOMElement.prototype = {
     if (name in this.attributes) {
       return this.attributes[name];
     }
+
     // Slow path - used by test/unit/display_svg_spec.js
     // Assuming that there is only one matching attribute for a given name,
     // across all namespaces.
@@ -90,6 +86,7 @@ DOMElement.prototype = {
         }
       }
     }
+
     return null;
   },
 
@@ -104,7 +101,7 @@ DOMElement.prototype = {
   },
 
   appendChild: function DOMElement_appendChild(element) {
-    const childNodes = this.childNodes;
+    const { childNodes } = this;
     if (!childNodes.includes(element)) {
       childNodes.push(element);
     }
@@ -128,6 +125,7 @@ DOMElement.prototype = {
     while ((chunk = serializer.getNext()) !== null) {
       buf.push(chunk);
     }
+
     return buf.join('');
   },
 
@@ -143,6 +141,7 @@ function DOMElementSerializer(node) {
   this._attributeKeys = null;
   this._childSerializer = null;
 }
+
 DOMElementSerializer.prototype = {
   /**
    * Yields the next chunk in the serialization of the element.
@@ -158,11 +157,9 @@ DOMElementSerializer.prototype = {
       case 1: // Add SVG namespace if this is the root element.
         ++this._state;
         if (node.nodeName === 'svg:svg') {
-          return (
-            ' xmlns:xlink="http://www.w3.org/1999/xlink"' +
-            ' xmlns:svg="http://www.w3.org/2000/svg"'
-          );
+          return ' xmlns:xlink="http://www.w3.org/1999/xlink"' + ' xmlns:svg="http://www.w3.org/2000/svg"';
         }
+
       /* Falls through */
       case 2: // Initialize variables for looping over attributes.
         ++this._state;
@@ -174,6 +171,7 @@ DOMElementSerializer.prototype = {
           const name = this._attributeKeys[this._loopIndex++];
           return ' ' + name + '="' + xmlEncode(node.attributes[name]) + '"';
         }
+
         ++this._state;
         return '>';
       case 4: // Serialize textContent for tspan/style elements.
@@ -181,6 +179,7 @@ DOMElementSerializer.prototype = {
           this._state = 6;
           return xmlEncode(node.textContent);
         }
+
         ++this._state;
         this._loopIndex = 0;
       /* Falls through */
@@ -191,6 +190,7 @@ DOMElementSerializer.prototype = {
           if (value !== null) {
             return value;
           }
+
           const nextChild = node.childNodes[this._loopIndex++];
           if (nextChild) {
             this._childSerializer = new DOMElementSerializer(nextChild);
@@ -200,6 +200,7 @@ DOMElementSerializer.prototype = {
             break;
           }
         }
+
       /* Falls through */
       case 6: // Ending tag.
         ++this._state;
@@ -236,6 +237,7 @@ const document = {
     if (element === 'head') {
       return [this.head || (this.head = new DOMElement('head'))];
     }
+
     return [];
   }
 };
@@ -244,6 +246,7 @@ function Image() {
   this._src = null;
   this.addEventListener('load', null);
 }
+
 Image.prototype = {
   get src() {
     return this._src;
@@ -263,13 +266,14 @@ const exported_symbols = Object.keys(exports);
 
 exports.setStubs = function(namespace) {
   exported_symbols.forEach(key => {
-    // console.assert(!(key in namespace), 'property should not be set: ' + key);
+    // Console.assert(!(key in namespace), 'property should not be set: ' + key);
     namespace[key] = exports[key];
   });
 };
+
 exports.unsetStubs = function(namespace) {
   exported_symbols.forEach(key => {
-    // console.assert(key in namespace, 'property should be set: ' + key);
+    // Console.assert(key in namespace, 'property should be set: ' + key);
     delete namespace[key];
   });
 };

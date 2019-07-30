@@ -19,7 +19,7 @@ import { logger } from 'oae-logger';
 
 import * as Cleaner from 'oae-util/lib/cleaner';
 import * as PreviewAPI from './api';
-// eslint-disable-next-line no-unused-vars
+// eslint-disable-next-line no-unused-vars, import/namespace
 import * as activity from './activity';
 
 const log = logger('oae-preview-processor');

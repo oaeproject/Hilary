@@ -4,11 +4,11 @@
       "name": "Hilary",
       "script": "app.js",
       "cwd": "/opt/current",
-      "watch": true,
+      "watch": ["packages", "config.js", "app.js"],
       "node_args": "-r esm",
       "instances": 1,
       "exec_mode": "cluster",
-      "log_file": "/var/log/Hilary/hilary.log",
+      "ignore_watch": ["node_modules", "test", ".git", "files", "*.log", "tmp"]
       "error_file": "/var/log/Hilary/hilary-err.log",
       "ignore_watch": ["test", ".git", "files", "*.log", "tmp"]
     }

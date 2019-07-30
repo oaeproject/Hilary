@@ -50,7 +50,7 @@ git submodule update
 cd 3akai-ux && git checkout master # because HEAD is detached after pulling submodules by default
 ```
 
-#### Customize the folder paths
+#### Customize the folder paths (optional)
 
 If you accept the following directory structure, `docker-compose` will work out of the box.
 
@@ -86,11 +86,13 @@ nameserver 8.8.4.4
 
 #### Install dependencies
 
-In order to install dependencies for the frontend and the backend, we need to run a one-off command for each:
+In order to install dependencies for the frontend and the backend, we need [lerna](https://lerna.js.org/) installed in order to run a one-off command for each:
 
 ```
-npm install # install dependencies locally for Hilary
-cd 3akai-ux && npm install" # install dependencies for 3akai-ux
+# on Hilary folder
+lerna bootstrap
+# then the same for 3akai-ux
+cd 3akai-ux && lerna bootstrap
 ```
 
 #### Create the SSL Certificate
@@ -117,7 +119,7 @@ Before moving on to the next step, make sure these three files exist otherwise t
 
 #### Setup nginx
 
-Open the file `nginx.conf.docker` and make sure these lines:
+Open the file `nginx.docker.conf` and make sure these lines:
 
 ```
 ...
@@ -152,47 +154,18 @@ server 192.168.1.2:2001; # assuming 192.168.1.2 is the external network IP addre
 Before running the app we need to ensure the schema exists on the database. To achieve that we need to run
 
 ```
-npm run migrate
+yarn run migrate
 ```
 
 If the database settings are correct (`config.js`) then the output should resemble the following:
 
-```
- INFO: Running schema for oae-activity
- INFO: Running schema for oae-authentication
- INFO: Running schema for oae-authz
- INFO: Running schema for oae-config
- INFO: Running schema for oae-content
- INFO: Running schema for oae-discussions
- INFO: Running schema for oae-folders
- INFO: Running schema for oae-following
- INFO: Running schema for oae-jitsi
- INFO: Running schema for oae-library
- INFO: Running schema for oae-lti
- INFO: Running schema for oae-mediacore
- INFO: Running schema for oae-messagebox
- INFO: Running schema for oae-principals
- INFO: Running schema for oae-tenants
- INFO: Migration complete.
-```
+[![asciicast](https://asciinema.org/a/zamBGF5iNPHiIdt3kSSC9153m.svg)](https://asciinema.org/a/zamBGF5iNPHiIdt3kSSC9153m)
 
 #### Run the server and the containers
 
-Now run `docker-compose up -d oae-cassandra oae-redis oae-rabbitmq oae-elasticsearch oae-etherpad` and then `docker-compose logs -f` to check the logs. You may then run `nodemon app.js | npx bunyan` (or `npm start` for short) locally on the terminal to start the server.
+Now run `docker-compose up -d oae-cassandra oae-redis oae-rabbitmq oae-elasticsearch oae-etherpad oae-nginx` and then `docker-compose logs -f` to check the logs for all containers.
 
-### Extra docker utilities
-
-The service names and description are in the `docker-compose.yml` file.
-
-To start and stop all containers at once, run `docker-compose up` and `docker-compose down` respectively. Check `docker-compose` documentation for more information.
-
-If you need to rebuild the `hilary:latest` docker image, try running `docker build -f Dockerfile -t hilary:latest .`.
-
-If you need to tail the logs of a specific server for debugging, try running `docker logs -f oae-cassandra` (for the `oae-cassandra` service).
-
-If you're having network problems, run `docker network inspect bridge` for check container network configuration or `docker inspect oae-hilary` to take a look at `oae-hilary` container details.
-
---
+You may then install `nodemon` and run `yarn run server` locally on the terminal to start the server.
 
 ### Setup
 
@@ -248,13 +221,13 @@ As you see, we already included both `admin.oae.com` and `tenant1.oae.com`, both
 
 When you start the server, all data schemas will be created for you if they don't already exist. A global administrator user and global administration tenant will be ready for you as well. You can use these to create a new user tenant that hosts the actual OAE user interface.
 
-1.  Visit http://admin.oae.com/ (substitute "admin.oae.com" with the administration host you configured in `/etc/hosts`)
-1.  Log in with username and password: `administrator` / `administrator`
-1.  Click the "Tenants" header to open up the actions
-1.  Click "Create tenant"
-1.  Choose an alias (a short, unique 2-5 character alphanumeric string such as "oae"), and a name of your liking.
-1.  For the Host field, use the host you configured for your user tenant in `/etc/hosts` (e.g., "tenant1.oae.com")
-1.  Click "Create new tenant"
+1. Visit http://admin.oae.com/ (substitute "admin.oae.com" with the administration host you configured in `/etc/hosts`)
+2. Log in with username and password: `administrator` / `administrator`
+3. Click the "Tenants" header to open up the actions
+4. Click "Create tenant"
+5. Choose an alias (a short, unique 2-5 character alphanumeric string such as "oae"), and a name of your liking.
+6. For the Host field, use the host you configured for your user tenant in `/etc/hosts` (e.g., "tenant1.oae.com")
+7. Click "Create new tenant"
 
 You can now access the user tenant by their host http://tenant1.oae.com and start creating new users.
 
@@ -268,7 +241,7 @@ We're looking forward to seeing your contributions to the OAE project!
 
 ### Running tests
 
-To run tests just make sure you have installed all dependencies (`npm i`) and run `npm test`. To run tests on a specific module, just append its name as follows: `npm run test-module -- oae-principals`.
+To run tests just make sure you have installed all dependencies (`lerna bootstrap`) and run `yarn run test`. To run tests on a specific module, just append its name as follows: `yarn run test-module -- oae-principals`.
 
 ### Troubleshooting
 

@@ -170,17 +170,16 @@ const getDownloadStrategy = function(tenantAlias, uri) {
  * @param  {String}   dir            The absolute path to the directory that needs to exist
  * @param  {Function} callback       Standard callback function
  * @param  {Object}   callback.err   An error that occurred, if any
+ * @param  {Object}   callback.path  The path of the folder just created
  * @api private
  */
-const _ensureDirectoryExists = function(dir, callback) {
-  makeDir(dir)
-    // eslint-disable-next-line no-unused-vars
-    .then(path => {
-      return callback();
-    })
-    .catch(error => {
-      return callback({ code: 500, msg: error });
-    });
+const _ensureDirectoryExists = async function(dir, callback) {
+  try {
+    const path = await makeDir(dir);
+    return callback(null, path);
+  } catch (error) {
+    return callback({ code: 500, msg: error });
+  }
 };
 
 export { init, getRootDirectory, store, get, remove, getDownloadStrategy };

@@ -14,7 +14,6 @@
  */
 
 import crypto from 'crypto';
-import url from 'url';
 import util from 'util';
 import _ from 'underscore';
 import cookieParser from 'cookie-parser';
@@ -25,6 +24,7 @@ import { Context } from 'oae-context';
 import { logger } from 'oae-logger';
 import * as TenantsUtil from 'oae-tenants/lib/util';
 import { getOrCreateUser } from 'oae-authentication';
+import { objectifySearchParams } from 'oae-tests';
 
 const log = logger('oae-authentication');
 
@@ -161,7 +161,12 @@ const logAuthenticationSuccess = function(req, authInfo, strategyName) {
 
   log().info(
     data,
-    util.format('Login for "%s" to tenant "%s" from "%s"', user.id, tenantAlias, req.headers['x-forwarded-for'])
+    util.format(
+      'Login for "%s" to tenant "%s" from "%s"',
+      user.id,
+      tenantAlias,
+      req.headers['x-forwarded-for']
+    )
   );
 };
 
@@ -283,7 +288,15 @@ const handleExternalGetOrCreateUser = function(
   // Require the AuthenticationAPI inline to avoid cross-dependency issues
   // during initialization
   const ctx = new Context(req.tenant);
-  return getOrCreateUser(ctx, authProvider, externalId, providerProperties, displayName, opts, callback);
+  return getOrCreateUser(
+    ctx,
+    authProvider,
+    externalId,
+    providerProperties,
+    displayName,
+    opts,
+    callback
+  );
 };
 
 /**
@@ -312,7 +325,10 @@ const handleExternalCallback = function(strategyId, req, res, next) {
       // normal situation as external auth providers don't usually redirect with
       // bad parameters in the request, so somebody is probably tampering with it.
       // We bail out immediately
-      log().warn({ challenges, status }, 'Possible tampering of external callback request detected');
+      log().warn(
+        { challenges, status },
+        'Possible tampering of external callback request detected'
+      );
       return res.redirect('/?authentication=failed&reason=tampering');
     }
 
@@ -436,8 +452,12 @@ const renderTemplate = function(template, data) {
  */
 const _getRequestInvitationInfo = function(req) {
   const redirectUrl = validateRedirectUrl(req.cookies.redirectUrl);
-  const parsedRedirectUrl = url.parse(redirectUrl, true);
-  return _.pick(parsedRedirectUrl.query, 'invitationToken', 'invitationEmail');
+  const parsedRedirectUrl = new URL(redirectUrl, 'http://localhost');
+  return _.pick(
+    objectifySearchParams(parsedRedirectUrl.searchParams),
+    'invitationToken',
+    'invitationEmail'
+  );
 };
 
 export {

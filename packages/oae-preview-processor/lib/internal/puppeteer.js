@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable security/detect-non-literal-fs-filename */
 import fs from 'fs';
 import path from 'path';
 import puppeteer from 'puppeteer';
@@ -104,10 +103,7 @@ const getPuppeteerImage = function(url, imgPath, options, callback) {
         const blankPng = path.resolve(__dirname, '../../static/link/blank.png');
         fs.copyFile(blankPng, imgPath, err => {
           if (err) {
-            log().error(
-              { err },
-              'Could not copy blank screenshot file after realising file url is an attachment.'
-            );
+            log().error({ err }, 'Could not copy blank screenshot file after realising file url is an attachment.');
             return callback({ code: 500, msg: err.message });
           }
         });

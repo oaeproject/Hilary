@@ -285,4 +285,60 @@ const _expandUserIds = function(ctx, userIds, callback) {
   });
 };
 
-export { FollowingAPI as emitter, getFollowers, getFollowing, follow, unfollow };
+/**
+ * Remove all following from a user
+ *
+ * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {String}     user            The user to delete
+ * @param  {Function}   callback        Standard callback function
+ * @param  {Object}     callback.err    An error that occured, if any
+ * @api private
+ */
+const deleteFollowing = function(ctx, user, callback) {
+  FollowingDAO.getFollowing(user.id, null, null, function(err, userIdsFollowing) {
+    if (_.isEmpty(userIdsFollowing)) return callback();
+
+    FollowingDAO.deleteFollows(user.id, userIdsFollowing, function(err) {
+      if (err) return callback(err);
+
+      userIdsFollowing.forEach(function(id) {
+        FollowingAPI.emit(FollowingConstants.events.UNFOLLOW, ctx, ctx.user(), id, function(err) {
+          if (err) return callback(err);
+        });
+      });
+      return callback();
+    });
+  });
+};
+
+/**
+ * Remove all followers from a user
+ *
+ * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {String}     user            The user to delete
+ * @param  {Function}   callback        Standard callback function
+ * @param  {Object}     callback.err    An error that occured, if any
+ * @api private
+ */
+const deleteFollowers = function(ctx, user, callback) {
+  FollowingDAO.getFollowers(user.id, null, null, function(err, userIdsFollowers) {
+    if (_.isEmpty(userIdsFollowers)) return callback();
+
+    userIdsFollowers.forEach(function(id) {
+      FollowingDAO.deleteFollows(id, [user.id], function(err) {
+        if (err) return callback(err);
+
+        PrincipalsDAO.getPrincipal(user.id, function(err, userUnfollowed) {
+          if (err) return callback(err);
+
+          FollowingAPI.emit(FollowingConstants.events.UNFOLLOW, ctx, userUnfollowed, user.id, function(err) {
+            if (err) return callback(err);
+          });
+        });
+      });
+    });
+    return callback();
+  });
+};
+
+export { FollowingAPI as emitter, getFollowers, getFollowing, follow, unfollow, deleteFollowing, deleteFollowers };

@@ -15,6 +15,7 @@
 
 import fs from 'fs';
 import Path from 'path';
+import mkdirp from 'mkdirp';
 import PreviewConstants from 'oae-preview-processor/lib/constants';
 import _ from 'underscore';
 import cheerio from 'cheerio';
@@ -172,21 +173,24 @@ const generatePreviews = function(ctx, contentObj, callback) {
  */
 const _writeCollabHtml = function(ctx, collabHtml, type, callback) {
   _getWrappedCollabHtml(ctx, collabHtml, (err, wrappedHtml) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
-    // Write the resulting HTML to a temporary file on disk
-    const collabFilePath = isResourceACollabDoc(type)
-      ? Path.join(ctx.baseDir, '/etherpad.html')
-      : Path.join(ctx.baseDir, '/ethercalc.html');
-    fs.writeFile(collabFilePath, wrappedHtml, err => {
-      if (err) {
-        log().error({ err, contentId: ctx.contentId }, 'Could not write the collaborative file preview HTML to disk');
-        return callback({ code: 500, msg: 'Could not write the collaborative file preview HTML to disk' });
-      }
+    // make sure the dir exists
+    mkdirp(ctx.baseDir, err => {
+      if (err) return callback(err);
 
-      return callback(null, collabFilePath);
+      // Write the resulting HTML to a temporary file on disk
+      const collabFilePath = isResourceACollabDoc(type)
+        ? Path.join(ctx.baseDir, '/etherpad.html')
+        : Path.join(ctx.baseDir, '/ethercalc.html');
+      fs.writeFile(collabFilePath, wrappedHtml, err => {
+        if (err) {
+          log().error({ err, contentId: ctx.contentId }, 'Could not write the collaborative file preview HTML to disk');
+          return callback({ code: 500, msg: 'Could not write the collaborative file preview HTML to disk' });
+        }
+
+        return callback(null, collabFilePath);
+      });
     });
   });
 };

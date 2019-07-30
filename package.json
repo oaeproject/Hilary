@@ -20,7 +20,7 @@
     "packages/*"
   ],
   "dependencies": {
-    "amqp-connection-manager": "^2.3.0",
+    "amqp-connection-manager": "^3.0.0",
     "amqplib": "^0.5.1",
     "async": "^2.1.5",
     "awssum": "^1.2.0",

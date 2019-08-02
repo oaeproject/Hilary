@@ -39,31 +39,11 @@ const sendEmail = function(templateModule, templateId, toUser, data, opts, callb
   MqTestsUtil.whenTasksEmpty(ActivityConstants.mq.TASK_ACTIVITY, () => {
     ActivityAggregator.collectAllBuckets(() => {
       ActivityNotifications.whenNotificationsEmpty(() => {
-        let returned = false;
+        // Send the email, and return the error if one occurs, otherwise the message will be returned
+        EmailAPI.sendEmail(templateModule, templateId, toUser, data, opts, (err, info) => {
+          if (err) return callback(err);
 
-        /*!
-         * Takes care of invoking the callback when the email is "successfully sent".
-         *
-         * @see EmailAPI events
-         */
-        const _handleDebugSent = function(message) {
-          if (!returned) {
-            returned = true;
-            return callback(null, message);
-          }
-        };
-
-        EmailAPI.emitter.once('debugSent', _handleDebugSent);
-
-        // Send the email, and return the error if one occurs, otherwise the mailcomposer message will be
-        // returned by _handleDebugSent
-        EmailAPI.sendEmail(templateModule, templateId, toUser, data, opts, err => {
-          if (!returned && err) {
-            // We errored, the debugSent event *probably* won't be invoked. Unbind it and reply with the error
-            returned = true;
-            EmailAPI.emitter.removeListener('debugSent', _handleDebugSent);
-            return callback(err);
-          }
+          callback(null, info);
         });
       });
     });
@@ -91,8 +71,8 @@ const startCollectingEmail = function(startCallback) {
      * Handle the debugSent event, filling up the messages array with the
      * messages we receive
      */
-    const _handleDebugSent = function(message) {
-      messages.push(message);
+    const _handleDebugSent = function(info) {
+      messages.push(JSON.parse(info.message));
     };
 
     // Handler that simply collects the messages that are sent in this collection cycle into an array
@@ -148,8 +128,8 @@ const collectAndFetchAllEmails = function(callback) {
         /*!
          * Handle the debugSent event, filling up the messages array with the messages we receive
          */
-        const _handleDebugSent = function(message) {
-          messages.push(message);
+        const _handleDebugSent = function(info) {
+          messages.push(JSON.parse(info.message));
         };
 
         // Handler that simply collects the messages that are sent in this collection cycle into an array
@@ -224,8 +204,8 @@ const collectAndFetchEmailsForBucket = function(bucketNumber, emailPreference, d
       /*!
        * Handle the debugSent event, filling up the messages array with the messages we receive
        */
-      const _handleDebugSent = function(message) {
-        messages.push(message);
+      const _handleDebugSent = function(info) {
+        messages.push(JSON.parse(info.message));
       };
 
       // Handler that simply collects the messages that are sent in this collection cycle into an array

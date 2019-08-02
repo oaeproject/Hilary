@@ -19,8 +19,6 @@ import util from 'util';
 import path from 'path';
 import redback from 'redback';
 import juice from 'juice';
-import stubTransport from 'nodemailer-stub-transport';
-import sendmailTransport from 'nodemailer-sendmail-transport';
 import _ from 'underscore';
 import nodemailer from 'nodemailer';
 import { logger } from 'oae-logger';
@@ -36,16 +34,12 @@ import * as Redis from 'oae-util/lib/redis';
 
 import * as UIAPI from 'oae-ui';
 import { htmlToText } from 'nodemailer-html-to-text';
-import { MailParser } from 'mailparser';
 import { Validator } from 'oae-util/lib/validator';
 import * as TenantsAPI from 'oae-tenants';
 
 const EmailConfig = setUpConfig('oae-email');
-
 const log = logger('oae-email');
-
 const Telemetry = telemetry('oae-email');
-
 const TenantsConfig = setUpConfig('oae-tenants');
 
 let EmailRateLimiter = null;
@@ -77,7 +71,9 @@ const throttleConfig = {
  *
  * ### Events
  *
- * * `debugSent(message)` - If `debug` is enabled, this event is fired and indicates an email was sent from the system. The `message` object, which is a https://www.npmjs.org/package/mailparser object is provided
+ * * `debugSent(message)` - If `debug` is enabled, this event is fired and indicates an email was sent from the
+ * system. The `message` object, which used to be a https://www.npmjs.org/package/mailparser object but now it's a
+ * JSON representation of the sent email, since the upgrade to nodemailer 6.x
  *
  * ### Templates
  *
@@ -160,13 +156,15 @@ const init = function(emailSystemConfig, callback) {
 
   // Open an email transport
   if (debug) {
-    emailTransport = nodemailer.createTransport(stubTransport());
+    emailTransport = nodemailer.createTransport({
+      jsonTransport: true
+    });
   } else if (emailSystemConfig.transport === 'SMTP') {
     log().info({ data: emailSystemConfig.smtpTransport }, 'Configuring SMTP email transport.');
     emailTransport = nodemailer.createTransport(emailSystemConfig.smtpTransport);
   } else if (emailSystemConfig.transport === 'sendmail') {
     log().info({ data: emailSystemConfig.sendmailTransport }, 'Configuring Sendmail email transport.');
-    emailTransport = nodemailer.createTransport(sendmailTransport(emailSystemConfig.sendmailTransport.path));
+    emailTransport = nodemailer.createTransport(emailSystemConfig.sendmailTransport);
   } else {
     log().error(
       {
@@ -193,13 +191,157 @@ const refreshTemplates = function(callback) {
   // Get all the registered OAE modules so we can scan each one for a mail template
   const modules = OaeModules.getAvailableModules();
   _getTemplatesForModules(path.join(__dirname, '/../..'), modules, (err, _templates) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     templates = _templates;
     return callback();
   });
+};
+
+const _abortIfRecipientErrors = (emailData, done) => {
+  const { templateModule, templateId, recipient } = emailData;
+
+  const validator = new Validator();
+  validator.check(templateModule, { code: 400, msg: 'Must specify a template module' }).notEmpty();
+  validator.check(templateId, { code: 400, msg: 'Must specify a template id' }).notEmpty();
+  validator.check(null, { code: 400, msg: 'Must specify a user when sending an email' }).isObject(recipient);
+
+  // Only validate the user email if it was a valid object
+  if (recipient) {
+    validator
+      .check(recipient.email, {
+        code: 400,
+        msg: 'User must have a valid email address to receive email'
+      })
+      .isEmail();
+  }
+
+  if (validator.hasErrors()) {
+    return done(validator.getFirstError());
+  }
+
+  done();
+};
+
+const _abortIfMetaTemplateErrors = (templateData, done) => {
+  const { metaTemplate, recipient, templateModule, templateId } = templateData;
+
+  if (!metaTemplate) {
+    const noMetaTemplateErr = { code: 500, msg: 'No email metadata template existed for user' };
+    log().error(
+      {
+        err: new Error(noMetaTemplateErr.msg),
+        templateModule,
+        templateId,
+        recipient: {
+          id: recipient.id,
+          locale: recipient.locale
+        }
+      },
+      noMetaTemplateErr.msg
+    );
+    return done(noMetaTemplateErr);
+  }
+
+  done();
+};
+
+const _abortIfTemplateErrors = (templateData, done) => {
+  const { htmlTemplate, txtTemplate, recipient, templateModule, templateId } = templateData;
+  if (!htmlTemplate && !txtTemplate) {
+    const noContentTemplateErr = {
+      code: 500,
+      msg: 'No email content (text or html) template existed for user'
+    };
+    log().error(
+      {
+        err: new Error(noContentTemplateErr.msg),
+        templateModule,
+        templateId,
+        recipient: {
+          id: recipient.id,
+          locale: recipient.locale
+        }
+      },
+      noContentTemplateErr.msg
+    );
+    return done(noContentTemplateErr);
+  }
+
+  done();
+};
+
+const _parseJSON = (templateData, done) => {
+  const { metaRendered, recipient, templateModule, templateId } = templateData;
+  let metaContent = null;
+
+  try {
+    metaContent = JSON.parse(metaRendered);
+  } catch (error) {
+    log().error(
+      {
+        err: error,
+        templateModule,
+        templateId,
+        rendered: metaRendered,
+        recipient: {
+          id: recipient.id,
+          locale: recipient.locale
+        }
+      },
+      'Error parsing email metadata template for recipient'
+    );
+    return done({ code: 500, msg: 'Error parsing email metadata template for recipient' });
+  }
+
+  done(null, metaContent);
+};
+
+const _renderHTMLTemplate = templateData => {
+  const { htmlTemplate, recipient, templateCtx, templateModule, templateId } = templateData;
+
+  if (htmlTemplate) {
+    try {
+      return UIAPI.renderTemplate(htmlTemplate, templateCtx, recipient.locale);
+    } catch (error) {
+      log().warn(
+        {
+          err: error,
+          templateModule,
+          templateId,
+          recipient: {
+            id: recipient.id,
+            email: recipient.email,
+            locale: recipient.locale
+          }
+        },
+        'Failed to parse email html template for recipient'
+      );
+    }
+  }
+};
+
+const _renderTXTTemplate = templateData => {
+  const { txtTemplate, recipient, templateModule, templateCtx, templateId } = templateData;
+
+  if (txtTemplate) {
+    try {
+      return UIAPI.renderTemplate(txtTemplate, templateCtx, recipient.locale);
+    } catch (error) {
+      log().warn(
+        {
+          err: error,
+          templateModule,
+          templateId,
+          recipient: {
+            id: recipient.id,
+            locale: recipient.locale
+          }
+        },
+        'Failed to parse email html template for user'
+      );
+    }
+  }
 };
 
 /**
@@ -240,7 +382,8 @@ const sendEmail = function(templateModule, templateId, recipient, data, opts, ca
       }
     };
 
-  const validator = new Validator();
+  /*
+  Const validator = new Validator();
   validator.check(templateModule, { code: 400, msg: 'Must specify a template module' }).notEmpty();
   validator.check(templateId, { code: 400, msg: 'Must specify a template id' }).notEmpty();
   validator.check(null, { code: 400, msg: 'Must specify a user when sending an email' }).isObject(recipient);
@@ -258,227 +401,157 @@ const sendEmail = function(templateModule, templateId, recipient, data, opts, ca
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
+  */
 
-  log().trace(
-    {
-      templateModule,
-      templateId,
-      recipient,
-      data,
-      opts
-    },
-    'Preparing template for mail to be sent.'
-  );
+  _abortIfRecipientErrors({ templateModule, templateId, recipient }, err => {
+    if (err) return callback(err);
 
-  const metaTemplate = _getTemplate(templateModule, templateId, 'meta.json');
-  const htmlTemplate = _getTemplate(templateModule, templateId, 'html');
-  const txtTemplate = _getTemplate(templateModule, templateId, 'txt');
-  const sharedLogic = _getTemplate(templateModule, templateId, 'shared');
-
-  // Verify the user templates have enough data to send an email
-  if (!metaTemplate) {
-    const noMetaTemplateErr = { code: 500, msg: 'No email metadata template existed for user' };
-    log().error(
+    log().trace(
       {
-        err: new Error(noMetaTemplateErr.msg),
         templateModule,
         templateId,
-        recipient: {
-          id: recipient.id,
-          locale: recipient.locale
-        }
+        recipient,
+        data,
+        opts
       },
-      noMetaTemplateErr.msg
+      'Preparing template for mail to be sent.'
     );
-    return callback(noMetaTemplateErr);
-  }
 
-  if (!htmlTemplate && !txtTemplate) {
-    const noContentTemplateErr = {
-      code: 500,
-      msg: 'No email content (text or html) template existed for user'
-    };
-    log().error(
-      {
-        err: new Error(noContentTemplateErr.msg),
-        templateModule,
-        templateId,
-        recipient: {
-          id: recipient.id,
-          locale: recipient.locale
-        }
-      },
-      noContentTemplateErr.msg
-    );
-    return callback(noContentTemplateErr);
-  }
+    const metaTemplate = _getTemplate(templateModule, templateId, 'meta.json');
+    const htmlTemplate = _getTemplate(templateModule, templateId, 'html');
+    const txtTemplate = _getTemplate(templateModule, templateId, 'txt');
+    const sharedLogic = _getTemplate(templateModule, templateId, 'shared');
 
-  const renderedTemplates = {};
-  const templateCtx = _.extend({}, data, {
-    recipient,
-    shared: sharedLogic,
-    instance: {
-      name: TenantsConfig.getValue(recipient.tenant.alias, 'instance', 'instanceName'),
-      URL: TenantsConfig.getValue(recipient.tenant.alias, 'instance', 'instanceURL')
-    },
-    hostingOrganization: {
-      name: TenantsConfig.getValue(recipient.tenant.alias, 'instance', 'hostingOrganization'),
-      URL: TenantsConfig.getValue(recipient.tenant.alias, 'instance', 'hostingOrganizationURL')
-    }
-  });
-  let metaContent = null;
-  let htmlContent = null;
-  let txtContent = null;
+    // Verify the user templates have enough data to send an email
+    _abortIfMetaTemplateErrors({ metaTemplate, templateModule, templateId, recipient }, err => {
+      if (err) return callback(err);
 
-  const metaRendered = UIAPI.renderTemplate(metaTemplate, templateCtx, recipient.locale);
+      _abortIfTemplateErrors({ htmlTemplate, txtTemplate, templateModule, templateId, recipient }, err => {
+        if (err) return callback(err);
 
-  try {
-    // Try and parse the meta template into JSON
-    metaContent = JSON.parse(metaRendered);
-  } catch (error) {
-    log().error(
-      {
-        err: error,
-        templateModule,
-        templateId,
-        rendered: metaRendered,
-        recipient: {
-          id: recipient.id,
-          locale: recipient.locale
-        }
-      },
-      'Error parsing email metadata template for recipient'
-    );
-    return callback({ code: 500, msg: 'Error parsing email metadata template for recipient' });
-  }
-
-  // Try and render the html template
-  if (htmlTemplate) {
-    try {
-      htmlContent = UIAPI.renderTemplate(htmlTemplate, templateCtx, recipient.locale);
-    } catch (error) {
-      log().warn(
-        {
-          err: error,
-          templateModule,
-          templateId,
-          recipient: {
-            id: recipient.id,
-            email: recipient.email,
-            locale: recipient.locale
+        const renderedTemplates = {};
+        const templateCtx = _.extend({}, data, {
+          recipient,
+          shared: sharedLogic,
+          instance: {
+            name: TenantsConfig.getValue(recipient.tenant.alias, 'instance', 'instanceName'),
+            URL: TenantsConfig.getValue(recipient.tenant.alias, 'instance', 'instanceURL')
+          },
+          hostingOrganization: {
+            name: TenantsConfig.getValue(recipient.tenant.alias, 'instance', 'hostingOrganization'),
+            URL: TenantsConfig.getValue(recipient.tenant.alias, 'instance', 'hostingOrganizationURL')
           }
-        },
-        'Failed to parse email html template for recipient'
-      );
-    }
-  }
+        });
 
-  // Try and render the text template
-  if (txtTemplate) {
-    try {
-      txtContent = UIAPI.renderTemplate(txtTemplate, templateCtx, recipient.locale);
-    } catch (error) {
-      log().warn(
-        {
-          err: error,
-          templateModule,
-          templateId,
-          recipient: {
-            id: recipient.id,
-            locale: recipient.locale
+        // Try and parse the meta template into JSON
+        const metaRendered = UIAPI.renderTemplate(metaTemplate, templateCtx, recipient.locale);
+
+        _parseJSON({ metaRendered, templateModule, templateId, recipient }, (err, metaContent) => {
+          if (err) return callback(err);
+
+          // Try and render the html template
+          const htmlContent = _renderHTMLTemplate({
+            htmlTemplate,
+            recipient,
+            templateCtx,
+            templateModule,
+            templateId
+          });
+
+          // Try and render the text template
+          const txtContent = _renderTXTTemplate({ txtTemplate, recipient, templateModule, templateCtx, templateId });
+
+          // If one of HTML or TXT templates managed to render, we will send the email with the content we have
+          if (htmlContent || txtContent) {
+            renderedTemplates['meta.json'] = metaContent;
+            renderedTemplates.html = htmlContent;
+            renderedTemplates.txt = txtContent;
+          } else {
+            return callback({ code: 500, msg: 'Could not parse a suitable content template for user' });
           }
-        },
-        'Failed to parse email html template for user'
-      );
-    }
-  }
 
-  if (htmlContent || txtContent) {
-    // If one of HTML or TXT templates managed to render, we will send the email with the content we have
-    renderedTemplates['meta.json'] = metaContent;
-    renderedTemplates.html = htmlContent;
-    renderedTemplates.txt = txtContent;
-  } else {
-    return callback({ code: 500, msg: 'Could not parse a suitable content template for user' });
-  }
+          // If the `from` headers aren't set, we generate an intelligent `from` header based on the tenant host
+          const tenant = TenantsAPI.getTenant(recipient.tenant.alias);
+          let fromName = EmailConfig.getValue(tenant.alias, 'general', 'fromName') || tenant.displayName;
+          // eslint-disable-next-line no-template-curly-in-string
+          fromName = fromName.replace('${tenant}', tenant.displayName);
+          const fromAddr =
+            EmailConfig.getValue(tenant.alias, 'general', 'fromAddress') || util.format('noreply@%s', tenant.host);
+          const from = util.format('"%s" <%s>', fromName, fromAddr);
 
-  // If the `from` headers aren't set, we generate an intelligent `from` header based on the tenant host
-  const tenant = TenantsAPI.getTenant(recipient.tenant.alias);
-  let fromName = EmailConfig.getValue(tenant.alias, 'general', 'fromName') || tenant.displayName;
-  // eslint-disable-next-line no-template-curly-in-string
-  fromName = fromName.replace('${tenant}', tenant.displayName);
-  const fromAddr =
-    EmailConfig.getValue(tenant.alias, 'general', 'fromAddress') || util.format('noreply@%s', tenant.host);
-  const from = util.format('"%s" <%s>', fromName, fromAddr);
+          // Build the email object that will be sent through nodemailer. The 'from' property can be overridden by
+          // the meta.json, then we further override that with some hard values
+          const emailInfo = _.extend({ from }, renderedTemplates['meta.json'], {
+            to: recipient.email
+          });
 
-  // Build the email object that will be sent through nodemailer. The 'from' property can be overridden by
-  // the meta.json, then we further override that with some hard values
-  const emailInfo = _.extend({ from }, renderedTemplates['meta.json'], {
-    to: recipient.email
-  });
+          if (renderedTemplates.txt) {
+            emailInfo.text = renderedTemplates.txt;
+          }
 
-  if (renderedTemplates.txt) {
-    emailInfo.text = renderedTemplates.txt;
-  }
+          if (renderedTemplates.html) {
+            emailInfo.html = renderedTemplates.html;
 
-  if (renderedTemplates.html) {
-    emailInfo.html = renderedTemplates.html;
+            // We need to escape the &apos; entity because some e-mail clients
+            // don't (yet) support html5 rendering, such as Outlook
+            // Tip from http://stackoverflow.com/questions/419718/html-apostrophe
+            emailInfo.html = emailInfo.html.replace(/&apos;/g, '&#39;');
+          }
 
-    // We need to escape the &apos; entity because some e-mail clients
-    // don't (yet) support html5 rendering, such as Outlook
-    // Tip from http://stackoverflow.com/questions/419718/html-apostrophe
-    emailInfo.html = emailInfo.html.replace(/&apos;/g, '&#39;');
-  }
+          // Ensure the hash is set and is a valid hex string
+          opts.hash = _generateMessageHash(emailInfo, opts);
 
-  // Ensure the hash is set and is a valid hex string
-  opts.hash = _generateMessageHash(emailInfo, opts);
+          // Set the Message-Id header based on the message hash. We apply the
+          // tenant host as the FQDN as it improves the spam score by providing
+          // a source location of the message. We also add the userid of the user
+          // we sent the message to, so we can determine what user a message was
+          // sent to in Sendgrid
+          emailInfo.messageId = util.format('%s.%s@%s', opts.hash, recipient.id.replace(/:/g, '-'), tenant.host);
 
-  // Set the Message-Id header based on the message hash. We apply the
-  // tenant host as the FQDN as it improves the spam score by providing
-  // a source location of the message. We also add the userid of the user
-  // we sent the message to, so we can determine what user a message was
-  // sent to in Sendgrid
-  emailInfo.messageId = util.format('%s.%s@%s', opts.hash, recipient.id.replace(/:/g, '-'), tenant.host);
+          // Increment our debug sent count. We have to do it here because we
+          // optionally enter an asynchronous block below
+          _incr();
 
-  // Increment our debug sent count. We have to do it here because we
-  // optionally enter an asynchronous block below
-  _incr();
+          /*!
+           * Wrapper callback that conveniently decrements the email sent count when
+           * processing has completed
+           */
+          const _decrCallback = function(err, info) {
+            _decr();
+            if (err) return callback(err);
+            return callback(null, info);
+          };
 
-  /*!
-   * Wrapper callback that conveniently decrements the email sent count when
-   * processing has completed
-   */
-  const _decrCallback = function(err) {
-    _decr();
-    callback(err);
-  };
+          // If we're not sending out HTML, we can send out the email now
+          if (!emailInfo.html) {
+            return _sendEmail(emailInfo, opts, _decrCallback);
+          }
 
-  // If we're not sending out HTML, we can send out the email now
-  if (!emailInfo.html) {
-    return _sendEmail(emailInfo, opts, _decrCallback);
-  }
+          // If we're sending HTML, we should inline all the CSS
+          _inlineCSS(emailInfo.html, (err, inlinedHtml) => {
+            if (err) {
+              log().error({ err, emailInfo }, 'Unable to inline CSS');
+              return _decrCallback(err);
+            }
 
-  // If we're sending HTML, we should inline all the CSS
-  _inlineCSS(emailInfo.html, (err, inlinedHtml) => {
-    if (err) {
-      log().error({ err, emailInfo }, 'Unable to inline CSS');
-      return _decrCallback(err);
-    }
+            // Process the HTML such that we add line breaks before each html attribute to try and keep
+            // line length below 998 characters
+            emailInfo.html = _.chain(inlinedHtml.split('\n'))
+              .map(line => {
+                return line.replace(/<[^/][^>]+>/g, match => {
+                  return match.replace(/\s+[a-zA-Z0-9_-]+="[^"]+"/g, match => {
+                    return util.format('\n%s', match);
+                  });
+                });
+              })
+              .value()
+              .join('\n');
 
-    // Process the HTML such that we add line breaks before each html attribute to try and keep
-    // line length below 998 characters
-    emailInfo.html = _.chain(inlinedHtml.split('\n'))
-      .map(line => {
-        return line.replace(/<[^/][^>]+>/g, match => {
-          return match.replace(/\s+[a-zA-Z0-9_-]+="[^"]+"/g, match => {
-            return util.format('\n%s', match);
+            return _sendEmail(emailInfo, opts, _decrCallback);
           });
         });
-      })
-      .value()
-      .join('\n');
-
-    return _sendEmail(emailInfo, opts, _decrCallback);
+      });
+    });
   });
 };
 
@@ -555,7 +628,6 @@ const _sendEmail = function(emailInfo, opts, callback) {
             return callback(err);
           }
 
-          // If we're debugging we log the mail that would have been sent
           if (debug) {
             log().info(
               {
@@ -566,19 +638,13 @@ const _sendEmail = function(emailInfo, opts, callback) {
               },
               'Sending email'
             );
-
-            // Parse the email so our unit tests can inspect the result
-            const mailparser = new MailParser();
-            // eslint-disable-next-line camelcase
-            mailparser.on('end', email_object => {
-              EmailAPI.emit('debugSent', email_object);
-              return callback();
-            });
-            mailparser.write(info.response);
-            mailparser.end();
-          } else {
-            return callback();
+            // Preview only available when sending through an Ethereal account
+            const previewURL = nodemailer.getTestMessageUrl(info);
+            if (previewURL) log().info(`Preview URL: ${previewURL}`);
           }
+
+          EmailAPI.emit('debugSent', info);
+          return callback(null, info);
         });
       });
     });

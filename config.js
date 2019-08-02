@@ -395,15 +395,22 @@ config.email = {
     count: 10,
     timespan: 2 * 60 //  2 minutes
   },
+  /* either SMTP or sendmail */
   transport: 'SMTP',
+  /* sendmail options */
   sendmailTransport: {
+    sendmail: true,
+    newline: 'unix',
     path: '/usr/sbin/sendmail'
   },
+  /* SMTP options with ethereal.email default */
   smtpTransport: {
-    service: 'Gmail',
+    host: 'smtp.ethereal.email',
+    port: 587,
+    secure: false, // true for 465, false for other ports
     auth: {
-      user: 'my.email@gmail.com',
-      pass: 'myemailpassword'
+      user: process.env.ETHEREAL_USER,
+      pass: process.env.ETHEREAL_PASS
     }
   }
 };

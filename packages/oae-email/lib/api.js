@@ -297,8 +297,8 @@ const _parseJSON = (templateData, done) => {
   done(null, metaContent);
 };
 
-const _renderHTMLTemplate = templateData => {
-  const { htmlTemplate, recipient, templateCtx, templateModule, templateId } = templateData;
+const _renderHTMLTemplate = (htmlTemplate, templateData) => {
+  const { recipient, templateCtx, templateModule, templateId } = templateData;
 
   if (htmlTemplate) {
     try {
@@ -321,8 +321,8 @@ const _renderHTMLTemplate = templateData => {
   }
 };
 
-const _renderTXTTemplate = templateData => {
-  const { txtTemplate, recipient, templateModule, templateCtx, templateId } = templateData;
+const _renderTXTTemplate = (txtTemplate, templateData) => {
+  const { recipient, templateModule, templateCtx, templateId } = templateData;
 
   if (txtTemplate) {
     try {
@@ -449,17 +449,17 @@ const sendEmail = function(templateModule, templateId, recipient, data, opts, ca
         _parseJSON({ metaRendered, templateModule, templateId, recipient }, (err, metaContent) => {
           if (err) return callback(err);
 
-          // Try and render the html template
-          const htmlContent = _renderHTMLTemplate({
-            htmlTemplate,
+          const args = {
             recipient,
             templateCtx,
             templateModule,
             templateId
-          });
+          };
+          // Try and render the html template
+          const htmlContent = _renderHTMLTemplate(htmlTemplate, args);
 
           // Try and render the text template
-          const txtContent = _renderTXTTemplate({ txtTemplate, recipient, templateModule, templateCtx, templateId });
+          const txtContent = _renderTXTTemplate(txtTemplate, args);
 
           // If one of HTML or TXT templates managed to render, we will send the email with the content we have
           if (htmlContent || txtContent) {

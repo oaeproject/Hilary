@@ -20,11 +20,7 @@ export const local = {
   name: 'Local Authentication',
   description: 'Allow local authentication for tenant',
   elements: {
-    allowAccountCreation: new Bool(
-      'Local Account Creation',
-      'Allow users to create their own account',
-      true
-    ),
+    allowAccountCreation: new Bool('Local Account Creation', 'Allow users to create their own account', true),
     enabled: new Bool('Local Authentication Enabled', 'Allow local authentication for tenant', true)
   }
 };
@@ -32,60 +28,34 @@ export const google = {
   name: 'Google Authentication',
   description: 'Allow Google authentication for tenant',
   elements: {
-    enabled: new Bool(
-      'Google Authentication Enabled',
-      'Allow Google authentication for tenant',
-      false
-    ),
+    enabled: new Bool('Google Authentication Enabled', 'Allow Google authentication for tenant', false),
     key: new Text('Google client ID', 'Google client ID', process.env.GOOGLE_CLIENT_ID, {
       suppress: true
     }),
-    secret: new Text(
-      'Google client secret',
-      'Google client secret',
-      process.env.GOOGLE_CLIENT_SECRET,
-      {
-        suppress: true
-      }
-    ),
-    domains: new Text(
-      'Google domain(s)',
-      'A comma-separated list of allowed email domains (optional)',
-      ''
-    )
+    secret: new Text('Google client secret', 'Google client secret', process.env.GOOGLE_CLIENT_SECRET, {
+      suppress: true
+    }),
+    domains: new Text('Google domain(s)', 'A comma-separated list of allowed email domains (optional)', '')
   }
 };
 export const twitter = {
   name: 'Twitter Authentication',
   description: 'Allow Twitter authentication for tenant',
   elements: {
-    enabled: new Bool(
-      'Twitter Authentication Enabled',
-      'Allow Twitter authentication for tenant',
-      true
-    ),
+    enabled: new Bool('Twitter Authentication Enabled', 'Allow Twitter authentication for tenant', true),
     key: new Text('Twitter consumer key', 'Twitter consumer key', process.env.TWITTER_KEY, {
       suppress: true
     }),
-    secret: new Text(
-      'Twitter consumer secret',
-      'Twitter consumer secret',
-      process.env.TWITTER_SECRET,
-      {
-        suppress: true
-      }
-    )
+    secret: new Text('Twitter consumer secret', 'Twitter consumer secret', process.env.TWITTER_SECRET, {
+      suppress: true
+    })
   }
 };
 export const facebook = {
   name: 'Facebook Authentication',
   description: 'Allow Facebook authentication for tenant',
   elements: {
-    enabled: new Bool(
-      'Facebook Authentication Enabled',
-      'Allow Facebook authentication for tenant',
-      false
-    ),
+    enabled: new Bool('Facebook Authentication Enabled', 'Allow Facebook authentication for tenant', false),
     appid: new Text('Facebook App ID', 'Facebook App ID', process.env.FACEBOOK_APP_ID, {
       suppress: true
     }),
@@ -98,11 +68,7 @@ export const shibboleth = {
   name: 'Shibboleth Authentication',
   description: 'Allow Shibboleth authentication for tenant',
   elements: {
-    enabled: new Bool(
-      'Shibboleth Authentication Enabled',
-      'Allow Shibboleth authentication for tenant',
-      false
-    ),
+    enabled: new Bool('Shibboleth Authentication Enabled', 'Allow Shibboleth authentication for tenant', false),
     name: new Text('Name', 'A name that users will recognize as their identity provider', ''),
     idpEntityID: new Text('Identity Provider entity ID', 'The entity ID of the IdP', '', {
       suppress: true
@@ -175,22 +141,12 @@ export const cas = {
       '',
       { suppress: true }
     ),
-    mapEmail: new Text(
-      'Email',
-      'The attibute(s) that should be used to construct the email. e.g., {mail}',
-      '',
-      {
-        suppress: true
-      }
-    ),
-    mapLocale: new Text(
-      'Locale',
-      'The attibute(s) that should be used to construct the locale. e.g., {locale}',
-      '',
-      {
-        suppress: true
-      }
-    )
+    mapEmail: new Text('Email', 'The attibute(s) that should be used to construct the email. e.g., {mail}', '', {
+      suppress: true
+    }),
+    mapLocale: new Text('Locale', 'The attibute(s) that should be used to construct the locale. e.g., {locale}', '', {
+      suppress: true
+    })
   }
 };
 export const ldap = {

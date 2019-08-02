@@ -208,9 +208,7 @@ const _authorizeGroupActivityStream = function(ctx, groupId, token, callback) {
  */
 const _authorizeContentActivityStream = function(ctx, contentId, token, callback) {
   if (_.isObject(token)) {
-    if (
-      !Signature.verifyExpiringResourceSignature(ctx, contentId, token.expires, token.signature)
-    ) {
+    if (!Signature.verifyExpiringResourceSignature(ctx, contentId, token.expires, token.signature)) {
       return callback({ code: 401, msg: 'Invalid signature' });
     }
 
@@ -234,9 +232,7 @@ const _authorizeContentActivityStream = function(ctx, contentId, token, callback
  */
 const _authorizeDiscussionActivityStream = function(ctx, discussionId, token, callback) {
   if (_.isObject(token)) {
-    if (
-      !Signature.verifyExpiringResourceSignature(ctx, discussionId, token.expires, token.signature)
-    ) {
+    if (!Signature.verifyExpiringResourceSignature(ctx, discussionId, token.expires, token.signature)) {
       return callback({ code: 401, msg: 'Invalid signature' });
     }
 
@@ -284,9 +280,7 @@ const _authorizeFolderActivityStream = function(ctx, folderId, token, callback) 
  */
 const _authorizeJitsiActivityStream = function(ctx, meetingId, token, callback) {
   if (_.isObject(token)) {
-    if (
-      !Signature.verifyExpiringResourceSignature(ctx, meetingId, token.expires, token.signature)
-    ) {
+    if (!Signature.verifyExpiringResourceSignature(ctx, meetingId, token.expires, token.signature)) {
       return callback({ code: 401, msg: 'Invalid signature' });
     }
 

@@ -295,8 +295,7 @@ const _mockGoogleResponse = function(email) {
     },
     url: 'https://plus.google.com/' + _.random(10000000),
     image: {
-      url:
-        'https://lh5.googleusercontent.com/-wfVubfsOBV0/AAAAAAAAAAI/AAAAAAAAAGQ/rEb5FmsQuiA/photo.jpg?sz=50',
+      url: 'https://lh5.googleusercontent.com/-wfVubfsOBV0/AAAAAAAAAAI/AAAAAAAAAGQ/rEb5FmsQuiA/photo.jpg?sz=50',
       isDefault: false
     },
     isPlusUser: true,

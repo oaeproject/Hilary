@@ -149,7 +149,7 @@ const schema = {
     index: 'not_analyzed'
   }
 };
-export let {
+export const {
   id,
   tenantAlias,
   resourceType,

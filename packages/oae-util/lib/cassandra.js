@@ -128,9 +128,7 @@ const createKeyspace = function(keyspace, callback) {
     durable: config.durable
   };
 
-  const query = `CREATE KEYSPACE IF NOT EXISTS "${keyspace}" WITH REPLICATION = { 'class': '${
-    options.strategyClass
-  }', 'replication_factor': ${options.replication} }`;
+  const query = `CREATE KEYSPACE IF NOT EXISTS "${keyspace}" WITH REPLICATION = { 'class': '${options.strategyClass}', 'replication_factor': ${options.replication} }`;
 
   client.execute(query, err => {
     if (err) return callback(err);

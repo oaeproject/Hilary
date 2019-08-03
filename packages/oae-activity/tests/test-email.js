@@ -1244,11 +1244,9 @@ describe('Activity Email', () => {
                   assert.strictEqual(messages.length, 2);
 
                   // Ensure the 2 recipients are mrvisser and nico
-                  const recipients = _.chain(messages)
-                    .pluck('headers')
-                    .pluck('to')
-                    .value()
-                    .sort();
+                  const recipients = _.map(messages, eachMessage => {
+                    return _.first(eachMessage.to).address;
+                  }).sort();
                   assert.deepStrictEqual(recipients, expectedRecipients);
 
                   // Delete mrvisser and ensure the same action results in only nico receiving the email
@@ -1269,7 +1267,7 @@ describe('Activity Email', () => {
                         link2 => {
                           EmailTestUtil.collectAndFetchAllEmails(messages => {
                             assert.strictEqual(messages.length, 1);
-                            assert.strictEqual(messages[0].headers.to, nico.user.email);
+                            assert.strictEqual(_.first(messages[0].to).address, nico.user.email);
 
                             // Restore mrvisser and ensure email is not sent to mrvisser even if he has
                             // been restored because he lost all those rights when his profile was deleted
@@ -1288,12 +1286,10 @@ describe('Activity Email', () => {
                                     assert.strictEqual(messages.length, 1);
 
                                     // Ensure only nico gets it this time
-                                    const recipient = _.chain(messages)
-                                      .pluck('headers')
-                                      .pluck('to')
-                                      .value()
-                                      .sort();
-                                    assert.deepStrictEqual(recipient, [nico.user.email]);
+                                    const recipients = _.map(messages, eachMessage => {
+                                      return _.first(eachMessage.to).address;
+                                    }).sort();
+                                    assert.deepStrictEqual(recipients, [nico.user.email]);
 
                                     return callback();
                                   });

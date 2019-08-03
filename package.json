@@ -56,7 +56,6 @@
     "less": "1.7.5",
     "locale": "^0.1.0",
     "lunr": "1.0.0",
-    "mailparser": "0.6.2",
     "make-dir": "^3.0.0",
     "marked": "^0.6.1",
     "mime": "^2.0.3",
@@ -66,10 +65,8 @@
     "node-esapi": "^0.0.1",
     "node-fetch": "^2.3.0",
     "nodegit": "^0.24.1",
-    "nodemailer": "2.4.1",
+    "nodemailer": "6.3.0",
     "nodemailer-html-to-text": "^3.0.0",
-    "nodemailer-sendmail-transport": "^1.0.2",
-    "nodemailer-stub-transport": "^1.1.0",
     "oauth-sign": "^0.9.0",
     "oauth2orize": "^1.11.0",
     "optimist": "^0.6.1",
@@ -129,13 +126,13 @@
     "xo": "^0.24.0"
   },
   "engines": {
-    "node": ">=10.16.0"
+    "node": ">=10.13.0"
   },
   "scripts": {
     "test": "mocha -r esm 'node_modules/oae-tests/runner/before-tests.js' 'node_modules/oae-*/tests/**/*.js'",
     "test-module": "func() { mocha -r esm 'node_modules/oae-tests/runner/before-tests.js' 'node_modules/'$1'/tests/**/*.js'; }; func",
     "migrate": "func() { node -r esm 'migrate.js' '--keyspace' $1 ; }; func",
-    "server": "node -r esm app.js | npx bunyan",
+    "start": "node -r esm app.js | npx bunyan",
     "dev-server": "nodemon app.js | npx bunyan",
     "snyk-protect": "snyk protect",
     "lint": "xo --prettier --quiet '**/*.js'",
@@ -156,6 +153,7 @@
     ],
     "rules": {
       "import/no-extraneous-dependencies": "off",
+      "capitalized-comments": "off",
       "max-params": "off",
       "max-nested-callbacks": "off",
       "prettier/prettier": "error",

@@ -127,7 +127,7 @@ OAE.tenantRouter.on('get', '/api/longurl/expand', async (req, res) => {
       'long-url': unshortenedUrl
     };
     return res.status(200).send(data);
-  } catch (err) {
-    return res.status(500).send(err.message);
+  } catch (error) {
+    return res.status(500).send(error.message);
   }
 });

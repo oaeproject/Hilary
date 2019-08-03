@@ -19,9 +19,9 @@ import _ from 'underscore';
 import { logger } from 'oae-logger';
 import { telemetry } from 'oae-telemetry';
 
-import { Activity } from 'oae-activity/lib/model';
+import { Activity, ActivityEntity } from 'oae-activity/lib/model';
 import { ActivityConstants } from 'oae-activity/lib/constants';
-import { ActivityEntity } from 'oae-activity/lib/model';
+
 import * as ActivityUtil from 'oae-activity/lib/util';
 import * as ActivityRegistry from './registry';
 import * as ActivitySystemConfig from './config';

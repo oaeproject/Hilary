@@ -158,31 +158,31 @@ describe('Emails', () => {
       TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
         assert.ok(!err);
 
-        const mrvisser = _.values(users)[0];
-        mrvisser.user.email = 'mrvisser@email.address.com';
-        mrvisser.user.locale = 'en_CA';
+        const miguel = _.values(users)[0];
+        miguel.user.email = 'miguellaginha@email.address.com';
+        miguel.user.locale = 'en_CA';
 
-        const nico = _.values(users)[1];
-        nico.user.email = 'nico@email.address.com';
-        nico.user.locale = 'fr_FR';
+        const rita = _.values(users)[1];
+        rita.user.email = 'oakrita@email.address.com';
+        rita.user.locale = 'fr_FR';
 
         // Verify mrvisser gets the email
-        EmailTestsUtil.sendEmail('oae-email', 'test_locale', mrvisser.user, null, null, (err, message) => {
+        EmailTestsUtil.sendEmail('oae-email', 'test_locale', miguel.user, null, null, (err, info) => {
           assert.ok(!err);
-          const mrvisserMessage = message;
-          assert.ok(mrvisserMessage.subject);
-          assert.ok(mrvisserMessage.text);
+          const miguelEmail = JSON.parse(info.message);
+          assert.ok(miguelEmail.subject);
+          assert.ok(miguelEmail.text);
 
           // Verify nico gets the email
-          EmailTestsUtil.sendEmail('oae-email', 'test_locale', nico.user, null, null, (err, message) => {
+          EmailTestsUtil.sendEmail('oae-email', 'test_locale', rita.user, null, null, (err, info) => {
             assert.ok(!err);
-            const nicoMessage = message;
-            assert.ok(nicoMessage.subject);
-            assert.ok(nicoMessage.text);
+            const ritaEmail = JSON.parse(info.message);
+            assert.ok(ritaEmail.subject);
+            assert.ok(ritaEmail.text);
 
             // Because of the locale difference, the subject and body of the mails should be different
-            assert.notStrictEqual(mrvisserMessage.subject, nicoMessage.subject);
-            assert.notStrictEqual(mrvisserMessage.text, nicoMessage.text);
+            assert.notStrictEqual(miguelEmail.subject, ritaEmail.subject);
+            assert.notStrictEqual(miguelEmail.text, ritaEmail.text);
             return callback();
           });
         });
@@ -241,33 +241,36 @@ describe('Emails', () => {
         mrvisser.user.email = 'mrvisser@email.address.com';
 
         // Verify HTML only
-        EmailTestsUtil.sendEmail('oae-email', 'test_html_only', mrvisser.user, null, null, (err, message) => {
+        EmailTestsUtil.sendEmail('oae-email', 'test_html_only', mrvisser.user, null, null, (err, info) => {
           assert.ok(!err);
+          const message = JSON.parse(info.message);
 
-          assert.strictEqual(message.from[0].name, 'Cambridge University Test');
-          assert.strictEqual(message.from[0].address, util.format('noreply@%s', mrvisser.restContext.hostHeader));
+          assert.strictEqual(message.from.name, 'Cambridge University Test');
+          assert.strictEqual(message.from.address, util.format('noreply@%s', mrvisser.restContext.hostHeader));
           assert.strictEqual(message.subject, 'test html only');
           assert.strictEqual(message.to[0].address, mrvisser.user.email);
           assert.strictEqual(message.html, '<html><body><b>test html only</b></body></html>');
           assert.strictEqual(message.text, 'test html only');
 
           // Verify text only
-          EmailTestsUtil.sendEmail('oae-email', 'test_txt_only', mrvisser.user, null, null, (err, message) => {
+          EmailTestsUtil.sendEmail('oae-email', 'test_txt_only', mrvisser.user, null, null, (err, info) => {
             assert.ok(!err);
 
-            assert.strictEqual(message.from[0].name, 'Cambridge University Test');
-            assert.strictEqual(message.from[0].address, util.format('noreply@%s', mrvisser.restContext.hostHeader));
+            const message = JSON.parse(info.message);
+            assert.strictEqual(message.from.name, 'Cambridge University Test');
+            assert.strictEqual(message.from.address, util.format('noreply@%s', mrvisser.restContext.hostHeader));
             assert.strictEqual(message.subject, 'test txt only');
             assert.strictEqual(message.to[0].address, mrvisser.user.email);
             assert.ok(!message.html);
             assert.strictEqual(message.text, '**test txt only**');
 
             // Verify contents with both html and text
-            EmailTestsUtil.sendEmail('oae-email', 'test_html_and_txt', mrvisser.user, null, null, (err, message) => {
+            EmailTestsUtil.sendEmail('oae-email', 'test_html_and_txt', mrvisser.user, null, null, (err, info) => {
               assert.ok(!err);
 
-              assert.strictEqual(message.from[0].name, 'Cambridge University Test');
-              assert.strictEqual(message.from[0].address, util.format('noreply@%s', mrvisser.restContext.hostHeader));
+              const message = JSON.parse(info.message);
+              assert.strictEqual(message.from.name, 'Cambridge University Test');
+              assert.strictEqual(message.from.address, util.format('noreply@%s', mrvisser.restContext.hostHeader));
               assert.strictEqual(message.subject, 'test html and txt');
               assert.strictEqual(message.to[0].address, mrvisser.user.email);
               assert.strictEqual(message.html, '<html><body><b>test html and text</b></body></html>');
@@ -296,8 +299,9 @@ describe('Emails', () => {
           mrvisser.user,
           null,
           null,
-          (err, message) => {
+          (err, info) => {
             assert.ok(!err);
+            const message = JSON.parse(info.message);
             assert.strictEqual(
               message.html,
               '<html><body><b>test html with &#39;&#39;apostrophes&#39;&#39; only</b></body></html>'
@@ -341,7 +345,7 @@ describe('Emails', () => {
           mrvisser.user,
           _mailData(true, false, false, false),
           null,
-          (err, message) => {
+          err => {
             assert.ok(err);
             assert.strictEqual(err.code, 500);
             assert.strictEqual(err.msg.indexOf('Error parsing email metadata'), 0);
@@ -353,9 +357,10 @@ describe('Emails', () => {
               mrvisser.user,
               _mailData(false, true, false, false),
               null,
-              (err, message) => {
+              (err, info) => {
                 assert.ok(!err);
 
+                const message = JSON.parse(info.message);
                 assert.ok(!message.html);
                 assert.ok(message.text);
                 assert.ok(message.text.indexOf('OK') > -1);
@@ -367,9 +372,9 @@ describe('Emails', () => {
                   mrvisser.user,
                   _mailData(false, false, true, false),
                   null,
-                  (err, message) => {
+                  (err, info) => {
                     assert.ok(!err);
-
+                    const message = JSON.parse(info.message);
                     assert.ok(message.html);
                     assert.ok(message.html.indexOf('OK') > -1);
 
@@ -384,7 +389,7 @@ describe('Emails', () => {
                       mrvisser.user,
                       _mailData(false, false, false, true),
                       null,
-                      (err, message) => {
+                      (err, info) => {
                         assert.ok(err);
                         assert.strictEqual(err.code, 500);
                         assert.strictEqual(err.msg.indexOf('Could not parse a suitable content template'), 0);
@@ -410,8 +415,9 @@ describe('Emails', () => {
         const mrvisser = _.values(users)[0];
         mrvisser.user.email = 'mrvisser@email.address.com';
 
-        EmailTestsUtil.sendEmail('oae-email', 'test_shared', mrvisser.user, {}, null, (err, message) => {
+        EmailTestsUtil.sendEmail('oae-email', 'test_shared', mrvisser.user, {}, null, (err, info) => {
           assert.ok(!err);
+          const message = JSON.parse(info.message);
           assert.strictEqual(message.subject, 'foo');
           assert.strictEqual(message.text, 'bar');
           return callback();
@@ -426,8 +432,9 @@ describe('Emails', () => {
       TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, mrvisser) => {
         assert.ok(!err);
 
-        EmailTestsUtil.sendEmail('oae-email', 'test_include', mrvisser.user, {}, null, (err, message) => {
+        EmailTestsUtil.sendEmail('oae-email', 'test_include', mrvisser.user, {}, null, (err, info) => {
           assert.ok(!err);
+          const message = JSON.parse(info.message);
           assert.ok(message.html);
           assert.ok(message.html.indexOf('<p\n style="background-color: red;">') > -1);
           return callback();
@@ -495,8 +502,8 @@ describe('Emails', () => {
                 assert.ok(messages);
                 assert.ok(!_.isEmpty(messages));
                 assert.strictEqual(messages[0].to[0].address, simong.user.email);
-                assert.strictEqual(messages[0].from[0].name, 'The Cambridge Collaborative system');
-                assert.strictEqual(messages[0].from[0].address, 'noreply@blahblahblah.com');
+                assert.strictEqual(messages[0].from.name, 'The Cambridge Collaborative system');
+                assert.strictEqual(messages[0].from.address, 'noreply@blahblahblah.com');
 
                 // Clear the configuration
                 let configToClear = ['oae-email/general/fromAddress', 'oae-email/general/fromName'];
@@ -518,9 +525,9 @@ describe('Emails', () => {
                         assert.ok(messages);
                         assert.ok(messages.length);
                         assert.strictEqual(messages[0].to[0].address, coenego.user.email);
-                        assert.strictEqual(messages[0].from[0].name, global.oaeTests.tenants.cam.displayName);
+                        assert.strictEqual(messages[0].from.name, global.oaeTests.tenants.cam.displayName);
                         assert.strictEqual(
-                          messages[0].from[0].address,
+                          messages[0].from.address,
                           util.format('noreply@%s', global.oaeTests.tenants.cam.host)
                         );
 
@@ -548,11 +555,11 @@ describe('Emails', () => {
                                 assert.ok(messages.length);
                                 assert.strictEqual(messages[0].to[0].address, coenego.user.email);
                                 assert.strictEqual(
-                                  messages[0].from[0].name,
+                                  messages[0].from.name,
                                   'OAE for ' + global.oaeTests.tenants.cam.displayName
                                 );
                                 assert.strictEqual(
-                                  messages[0].from[0].address,
+                                  messages[0].from.address,
                                   util.format('noreply@%s', global.oaeTests.tenants.cam.host)
                                 );
 
@@ -585,11 +592,11 @@ describe('Emails', () => {
                                           assert.ok(messages.length);
                                           assert.strictEqual(messages[0].to[0].address, coenego.user.email);
                                           assert.strictEqual(
-                                            messages[0].from[0].name,
+                                            messages[0].from.name,
                                             'The glorious OAE for ' + global.oaeTests.tenants.cam.displayName
                                           );
                                           assert.strictEqual(
-                                            messages[0].from[0].address,
+                                            messages[0].from.address,
                                             util.format('noreply@%s', global.oaeTests.tenants.cam.host)
                                           );
 
@@ -623,7 +630,7 @@ describe('Emails', () => {
     it('verify emails have a trustworthy message id', callback => {
       // Plucking SpamAssassin's host allowance rule from property __MSGID_OK_HOST:
       // http://cpansearch.perl.org/src/FELICITY/Mail-SpamAssassin-3.0.2/rules/20_head_tests.cf
-      const MSGID_OK = /@(?:\D{2,}|(?:\d{1,3}\.){3}\d{1,3})>/;
+      const MSGID_OK = /@(?:\D{2,}|(?:\d{1,3}\.){3}\d{1,3})/;
 
       TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, mrvisser, simong) => {
         assert.ok(!err);
@@ -647,7 +654,7 @@ describe('Emails', () => {
               assert.ok(messages);
               assert.ok(!_.isEmpty(messages));
               assert.ok(messages[0].messageId);
-              assert.ok(MSGID_OK.test(messages[0].headers['message-id']));
+              assert.ok(MSGID_OK.test(_.first(messages).messageId));
               return callback();
             });
           }
@@ -684,7 +691,7 @@ describe('Emails', () => {
               // `:` can't appear in email headers
               const transformedUserId = simong.user.id.replace(/:/g, '-');
 
-              assert.ok(messages[0].headers['message-id'].match(transformedUserId));
+              assert.ok(messages[0].messageId.match(transformedUserId));
               return callback();
             });
           }

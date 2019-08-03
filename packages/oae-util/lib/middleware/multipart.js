@@ -108,8 +108,6 @@ export default function(formOptions) {
   };
 }
 
-
-
 /**
  * Multiparty always supplies its values as arrays. To be consistent with other request parsers,
  * if the array is of length 1, we extract the inner string value.

@@ -21,7 +21,6 @@ import util from 'util';
 import async from 'async';
 import _ from 'underscore';
 
-import { config } from '../../../config';
 import bodyParser from 'body-parser';
 import clone from 'clone';
 import express from 'express';
@@ -54,6 +53,7 @@ import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
 import { User } from 'oae-principals/lib/model';
 
 import { logger } from 'oae-logger';
+import { config } from '../../../config';
 
 const migrationRunner = require(path.join(process.cwd(), 'etc/migration/migration-runner.js'));
 
@@ -1353,7 +1353,7 @@ const isIntegrationTest = function() {
 
 // TODO
 const objectifySearchParams = params => {
-  let result = {};
+  const result = {};
   for (const eachKey of params.keys()) {
     result[eachKey] = params.get(eachKey);
   }

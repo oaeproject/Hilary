@@ -68,8 +68,6 @@ export default function(ctx, opts, callback) {
   });
 }
 
-
-
 /**
  * Perform the search that searches a user's followers list
  *

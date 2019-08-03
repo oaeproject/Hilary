@@ -161,12 +161,7 @@ const logAuthenticationSuccess = function(req, authInfo, strategyName) {
 
   log().info(
     data,
-    util.format(
-      'Login for "%s" to tenant "%s" from "%s"',
-      user.id,
-      tenantAlias,
-      req.headers['x-forwarded-for']
-    )
+    util.format('Login for "%s" to tenant "%s" from "%s"', user.id, tenantAlias, req.headers['x-forwarded-for'])
   );
 };
 
@@ -288,15 +283,7 @@ const handleExternalGetOrCreateUser = function(
   // Require the AuthenticationAPI inline to avoid cross-dependency issues
   // during initialization
   const ctx = new Context(req.tenant);
-  return getOrCreateUser(
-    ctx,
-    authProvider,
-    externalId,
-    providerProperties,
-    displayName,
-    opts,
-    callback
-  );
+  return getOrCreateUser(ctx, authProvider, externalId, providerProperties, displayName, opts, callback);
 };
 
 /**
@@ -325,10 +312,7 @@ const handleExternalCallback = function(strategyId, req, res, next) {
       // normal situation as external auth providers don't usually redirect with
       // bad parameters in the request, so somebody is probably tampering with it.
       // We bail out immediately
-      log().warn(
-        { challenges, status },
-        'Possible tampering of external callback request detected'
-      );
+      log().warn({ challenges, status }, 'Possible tampering of external callback request detected');
       return res.redirect('/?authentication=failed&reason=tampering');
     }
 
@@ -453,11 +437,7 @@ const renderTemplate = function(template, data) {
 const _getRequestInvitationInfo = function(req) {
   const redirectUrl = validateRedirectUrl(req.cookies.redirectUrl);
   const parsedRedirectUrl = new URL(redirectUrl, 'http://localhost');
-  return _.pick(
-    objectifySearchParams(parsedRedirectUrl.searchParams),
-    'invitationToken',
-    'invitationEmail'
-  );
+  return _.pick(objectifySearchParams(parsedRedirectUrl.searchParams), 'invitationToken', 'invitationEmail');
 };
 
 export {

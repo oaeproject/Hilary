@@ -2099,7 +2099,8 @@ const assertUserEmailMappingEquals = function(email, expectedUserIds, callback) 
  * @throws {AssertionError}                                 Thrown if an email was sent to the wrong email address or does not contain a proper token
  */
 const onceVerificationEmailSent = function(email, assertions, callback) {
-  EmailAPI.emitter.once('debugSent', message => {
+  EmailAPI.emitter.once('debugSent', info => {
+    const message = JSON.parse(info.message);
     // Verify the email address
     if (email) {
       assert.strictEqual(message.to[0].address, email.toLowerCase());

@@ -211,9 +211,15 @@ const cacheWidgetManifests = function(done) {
   )
     .on('data', entry => {
       // Extract the widget id from the path
-      let entryPathElements = entry.path.split(path.sep);
-      let widgetId = entryPathElements.splice(1, 1).join();
-      let parentDir = entryPathElements.splice(0, 2).join(path.sep);
+      let widgetId = entry.path
+        .split(path.sep)
+        .splice(1, 1)
+        .join();
+      let parentDir = entry.path
+        .split(path.sep)
+        .splice(0, 2)
+        .join(path.sep);
+
       try {
         const widgetManifest = fs.readFileSync(entry.fullPath, 'utf8');
         widgetManifestCache[widgetId] = JSON.parse(widgetManifest);

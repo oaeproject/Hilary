@@ -81,7 +81,7 @@ OaeEmitter.on('ready', addModelsToResources);
 const documentModule = function(moduleName, callback) {
   const files = [];
   // __dirname will be .../node_modules/oae-util/lib so other modules are 2 levels above here
-  readdirp({ root: util.format('%s/../../%s/lib', __dirname, moduleName), fileFilter: '*.js' })
+  readdirp(util.format('%s/../../%s/lib', __dirname, moduleName), { fileFilter: '*.js' })
     .on('data', entry => {
       files.push(entry.fullPath);
     })

@@ -99,29 +99,29 @@ const init = function(_uiDirectory, _hashes, callback) {
   const globalize = require('globalize/lib/cultures/globalize.cultures');
 
   // Cache all of the widget manifest files
-  cacheWidgetManifests();
-
-  // Monitor the UI repository for changes and refresh the cache.
-  // This will only be done in development mode
-  if (process.env.NODE_ENV !== 'production') {
-    watch.createMonitor(uiDirectory, { ignoreDotFiles: true }, monitor => {
-      monitor.on('created', updateFileCaches);
-      monitor.on('changed', updateFileCaches);
-      monitor.on('removed', updateFileCaches);
-    });
-  }
-
-  // Cache the base skin file
-  _cacheSkinVariables(err => {
-    if (err) {
-      return callback(err);
+  cacheWidgetManifests(() => {
+    // Monitor the UI repository for changes and refresh the cache.
+    // This will only be done in development mode
+    if (process.env.NODE_ENV !== 'production') {
+      watch.createMonitor(uiDirectory, { ignoreDotFiles: true }, monitor => {
+        monitor.on('created', updateFileCaches);
+        monitor.on('changed', updateFileCaches);
+        monitor.on('removed', updateFileCaches);
+      });
     }
 
-    // Ensure the skins are not cached, as they may be invalid now
-    cachedSkins = {};
+    // Cache the base skin file
+    _cacheSkinVariables(err => {
+      if (err) {
+        return callback(err);
+      }
 
-    // Cache the i18n bundles
-    return _cacheI18nKeys(callback);
+      // Ensure the skins are not cached, as they may be invalid now
+      cachedSkins = {};
+
+      // Cache the i18n bundles
+      return _cacheI18nKeys(callback);
+    });
   });
 };
 
@@ -195,23 +195,31 @@ const getWidgetManifests = function() {
  *
  * @api private
  */
-const cacheWidgetManifests = function() {
+const cacheWidgetManifests = function(done) {
   widgetManifestCache = {};
 
-  readdirp({
+  readdirp(
     // Cache all of the widget config files under packages
-    root: path.join(uiDirectory, 'packages'),
+    path.join(uiDirectory, 'packages'),
+    {
+      // Only recurse in folders that contain widgets
+      directoryFilter: _widgetDirectoryFilter,
 
-    // Only recurse in folders that contain widgets
-    directoryFilter: _widgetDirectoryFilter,
-
-    // We're only interested in the manifest files
-    fileFilter: 'manifest.json'
-  })
+      // We're only interested in the manifest files
+      fileFilter: 'manifest.json'
+    }
+  )
     .on('data', entry => {
-      // Extract the widget id from the path, which is expected
-      // to be the final part of the path
-      const widgetId = entry.parentDir.split(path.sep).pop();
+      // Extract the widget id from the path
+      let widgetId = entry.path
+        .split(path.sep)
+        .splice(1, 1)
+        .join();
+      let parentDir = entry.path
+        .split(path.sep)
+        .splice(0, 2)
+        .join(path.sep);
+
       try {
         const widgetManifest = fs.readFileSync(entry.fullPath, 'utf8');
         widgetManifestCache[widgetId] = JSON.parse(widgetManifest);
@@ -221,14 +229,15 @@ const cacheWidgetManifests = function() {
       }
 
       widgetManifestCache[widgetId].id = widgetId;
-      widgetManifestCache[widgetId].path = entry.parentDir + '/';
+      widgetManifestCache[widgetId].path = parentDir + '/';
     })
     .on('warn', err => {
       log().warn({ err }, 'A non-fatal error occured whilst caching a widget manifest');
     })
     .on('error', err => {
       log().error({ err }, 'A fatal error occured whilst caching a widget manifest');
-    });
+    })
+    .on('end', done);
 };
 
 /**
@@ -933,13 +942,17 @@ const translate = function(str, locale, variables) {
  * @api private
  */
 const _cacheI18nKeys = function(callback) {
-  _cacheI18nKeysInDirectory('/shared/oae/bundles', null, err => {
-    if (err) {
-      return callback(err);
-    }
+  _cacheI18nKeysInDirectory(
+    '/shared/oae/bundles',
+    entry => {
+      return entry;
+    },
+    err => {
+      if (err) return callback(err);
 
-    return _cacheI18nKeysInDirectory('/packages', _widgetDirectoryFilter, callback);
-  });
+      return _cacheI18nKeysInDirectory('/packages', _widgetDirectoryFilter, callback);
+    }
+  );
 };
 
 /**
@@ -956,16 +969,17 @@ const _cacheI18nKeysInDirectory = function(directory, directoryFilter, callback)
   const done = _.once(callback);
 
   // Get all the bundles in the UI directory tree
-  readdirp({
+  readdirp(
     // Recurse through everything in the specified directory
-    root: uiDirectory + directory,
+    uiDirectory + directory,
+    {
+      // An optional directory filter
+      directoryFilter,
 
-    // An optional directory filter
-    directoryFilter,
-
-    // We're only interested in the properties files
-    fileFilter: '*.properties'
-  })
+      // We're only interested in the properties files
+      fileFilter: '*.properties'
+    }
+  )
     .on('data', entry => {
       _cacheBundleFile(directory + '/' + entry.path, err => {
         if (err) {

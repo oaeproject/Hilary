@@ -86,7 +86,7 @@
     "range_check": "^1.4.0",
     "readdirp": "^3.1.1",
     "recaptcha": "^1.2.1",
-    "redback": "^0.5.1",
+    "redlock": "^4.0.0",
     "ioredis-ratelimit": "^2.1.0",
     "ioredis": "^4.14.0",
     "request": "2.88.0",

@@ -181,26 +181,25 @@ const _collectBucket = function(type, bucketNumber, callback) {
   log().trace('Attempting collection of bucket number %s %s', type, bucketNumber);
   // Try and acquire a lock on the bucket to collect the next batch
   const lockKey = _getLockKey(type, bucketNumber);
-  Locking.acquire(lockKey, bucketInfo.collectionExpiry, (err, lockId) => {
+  Locking.acquire(lockKey, bucketInfo.collectionExpiry, (err, lock) => {
     if (err) {
+      // We could not acquire a lock, someone else came around and managed to snag the bucket
       return callback(err);
     }
 
-    if (!lockId) {
-      // We could not acquire a lock, someone else came around and managed to snag the bucket
-      return callback();
-    }
-
-    log().trace({ lockId, type }, 'Acquired a lock on bucket number %s', bucketNumber);
+    log().trace({ lockId: lock, type }, 'Acquired a lock on bucket number %s', bucketNumber);
 
     // We acquired the lock, perform a collection iteration
     bucketInfo.collector(bucketNumber, (collectionErr, finished) => {
       // We want to ensure we release the bucket, whether we received an error or not
-      Locking.release(lockKey, lockId, (releaseErr, hadLock) => {
+      Locking.release(lockKey, lock, releaseErr => {
         if (collectionErr) {
           return callback(collectionErr);
         }
 
+        // Determines whether or not we owned the lock at the time that we released it
+        // previous redback API used this, redlock doesn't so... dunno
+        const hadLock = true;
         if (releaseErr) {
           log().warn(
             { err: releaseErr, type },
@@ -213,8 +212,9 @@ const _collectBucket = function(type, bucketNumber, callback) {
           return callback(releaseErr);
         }
 
-        log().trace({ lockId, type }, 'Successfully released lock for bucket number %s', bucketNumber);
+        log().trace({ lockId: lock, type }, 'Successfully released lock for bucket number %s', bucketNumber);
 
+        // no longer happens, keeping this here anyway for troubleshooting
         if (!hadLock) {
           // This means that the lock expired before we finished collecting, which likely means the lock expiry
           // is not configured high enough for the collection batch size. Send an error, because it will almost

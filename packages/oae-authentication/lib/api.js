@@ -588,13 +588,9 @@ const _createUser = function(ctx, loginId, displayName, opts, callback) {
   const lockKey = loginId.externalId;
   Locking.acquire(lockKey, 15, (err, lockToken) => {
     if (err) {
-      return callback(err);
-    }
-
-    if (!lockToken) {
       return callback({
         code: 400,
-        msg: 'This login id already exists and is already associated to a user'
+        msg: 'Failed to acquire lock probably because this login id already exists and is already associated to a user'
       });
     }
 

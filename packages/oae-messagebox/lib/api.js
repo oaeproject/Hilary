@@ -271,11 +271,10 @@ const _lockUniqueTimestamp = function(id, timestamp, callback) {
   const key = 'oae-messagebox:' + id + ':' + timestamp;
   Locking.acquire(key, 1, (err, lockToken) => {
     if (err) {
+      // Migration from redback to redlock:
       // This should only occur if Redis is down, just return the requested ts
-      return callback(timestamp, lockToken);
-    }
-
-    if (!lockToken) {
+      // In that case, one should `return callback(timestamp, lockToken);`
+      // Or
       // Someone else has the requested ts, try to lock one ms later
       return _lockUniqueTimestamp(id, timestamp + 1, callback);
     }

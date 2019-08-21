@@ -168,8 +168,13 @@ const init = function(mqConfig, callback) {
     json: true,
     reconnectTimeInSeconds: retryTimeout
   });
-  connection.on('disconnect', () => {
+  connection.on('disconnect', error => {
     log().error('Error connecting to rabbitmq, retrying in ' + retryTimeout + 's...');
+    log().error(error);
+  });
+  connection.on('close', error => {
+    log().error('Closing connection to rabbitmq...');
+    log().error(error);
   });
 
   // Connect to channel

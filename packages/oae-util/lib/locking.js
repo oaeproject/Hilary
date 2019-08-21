@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import redback from 'redback';
+import Redlock from 'redlock';
 
 import { logger } from 'oae-logger';
 
@@ -22,13 +22,15 @@ import { Validator } from './validator';
 
 const log = logger('oae-util-locking');
 
-let lock = null;
+let locker = null;
 
 /**
  * Initialize the Redis based locking
  */
 const init = function() {
-  lock = redback.use(Redis.getClient()).createLock('oae');
+  locker = new Redlock([Redis.getClient()], {
+    retryCount: 0
+  });
 };
 
 /**
@@ -69,7 +71,7 @@ const acquire = function(lockKey, expiresIn, callback) {
 
   log().trace({ lockKey }, 'Trying to acquire lock.');
 
-  lock.acquire(lockKey, expiresIn, callback);
+  locker.lock(lockKey, expiresIn * 1000, callback);
 };
 
 /**
@@ -99,7 +101,9 @@ const release = function(lockKey, token, callback) {
     return callback(validator.getFirstError());
   }
 
-  lock.release(lockKey, token, callback);
+  // the first parameter is not necessary after the
+  // migration from redback to redlock
+  locker.unlock(token, callback);
 };
 
 export { init, acquire, release };

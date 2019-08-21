@@ -32,7 +32,6 @@ const hilaryDirectory = path.resolve(__dirname, '..', '..', '..');
  * @param  {String}     callback.version.3akai-ux   The version information for the UI
  */
 const getVersionCB = function(callback) {
-  // eslint-disable-next-line promise/prefer-await-to-then
   getVersion().then(version => {
     return callback(null, version);
   });

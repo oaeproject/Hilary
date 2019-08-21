@@ -48,13 +48,18 @@ const createClient = function(_config, callback) {
   const connectionOptions = {
     port: _config.port,
     host: _config.host,
-    // eslint-disable-next-line camelcase
-    retry_strategy: () => {
     db: _config.dbIndex || 0,
     password: _config.pass,
+    // By default, ioredis will try to reconnect when the connection to Redis is lost except when the connection is closed
+    // Check https://github.com/luin/ioredis#auto-reconnect
+    retryStrategy: () => {
       log().error('Error connecting to redis, retrying in ' + retryTimeout + 's...');
       isDown = true;
       return retryTimeout * 1000;
+    },
+    reconnectOnError: () => {
+      // Besides auto-reconnect when the connection is closed, ioredis supports reconnecting on the specified errors by the reconnectOnError option. Here's an example that will reconnect when receiving READONLY error:
+      return true;
     }
   };
 

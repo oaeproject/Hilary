@@ -638,6 +638,13 @@ const getAggregatedEntities = function(aggregateKeys, callback) {
 
     log().trace({ results }, 'Multi fetch identities result.');
 
+    // According to https://github.com/luin/ioredis/wiki/Migrating-from-node_redis
+    // the hgetall operation now returns {} instead of null, so let's convert that
+    results = results.map(eachResult => {
+      if (_.isEmpty(eachResult[1])) eachResult[1] = null;
+      return eachResult;
+    });
+
     // Collect all the actual identities that are stored in this result. We will use those to fetch the
     // actual entity contents
     const entityIdentities = {};

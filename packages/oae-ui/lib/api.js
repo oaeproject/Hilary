@@ -211,11 +211,11 @@ const cacheWidgetManifests = function(done) {
   )
     .on('data', entry => {
       // Extract the widget id from the path
-      let widgetId = entry.path
+      const widgetId = entry.path
         .split(path.sep)
         .splice(1, 1)
         .join();
-      let parentDir = entry.path
+      const parentDir = entry.path
         .split(path.sep)
         .splice(0, 2)
         .join(path.sep);

@@ -201,11 +201,13 @@ const _getActivityEntitiesByObjectType = function(activityId, entity, activityEn
     activityEntitiesByObjectType[entity.objectType][activityId][entity[ActivityConstants.properties.OAE_ID]] = entity;
   } else if (entity) {
     // This is actually a collection of more entities. Iterate and collect them.
-    entity[ActivityConstants.properties.OAE_COLLECTION].forEach(entity => {
-      activityEntitiesByObjectType[entity.objectType] = activityEntitiesByObjectType[entity.objectType] || {};
-      activityEntitiesByObjectType[entity.objectType][activityId] =
-        activityEntitiesByObjectType[entity.objectType][activityId] || {};
-      activityEntitiesByObjectType[entity.objectType][activityId][entity[ActivityConstants.properties.OAE_ID]] = entity;
+    entity[ActivityConstants.properties.OAE_COLLECTION].forEach(eachEntity => {
+      activityEntitiesByObjectType[eachEntity.objectType] = activityEntitiesByObjectType[eachEntity.objectType] || {};
+      activityEntitiesByObjectType[eachEntity.objectType][activityId] =
+        activityEntitiesByObjectType[eachEntity.objectType][activityId] || {};
+      activityEntitiesByObjectType[eachEntity.objectType][activityId][
+        eachEntity[ActivityConstants.properties.OAE_ID]
+      ] = eachEntity;
     });
   }
 };

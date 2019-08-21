@@ -1255,9 +1255,7 @@ const setUpBeforeTests = function(config, dropKeyspaceBeforeTest, callback) {
     }
 
     const done = function(err) {
-      if (err) {
-        return callback(new Error(err.msg));
-      }
+      if (err) return callback(new Error(err.msg));
 
       // Run migrations otherwise keyspace is empty
       migrationRunner.runMigrations(config.cassandra, () => {

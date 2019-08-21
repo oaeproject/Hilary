@@ -42,7 +42,6 @@ const log = logger('oae-email');
 const Telemetry = telemetry('oae-email');
 const TenantsConfig = setUpConfig('oae-tenants');
 
-let EmailRateLimiter = null;
 
 // A cache of email templates
 let templates = {};

@@ -830,7 +830,7 @@ const _getUserFromRedis = function(userId, callback) {
       // cache by virtue of an upsert
     }
 
-    if (!hash || !hash.principalId) {
+    if (!hash || !hash.principalId || _.isEmpty(hash)) {
       return callback({ code: 404, msg: 'Principal not found in redis' });
     }
 

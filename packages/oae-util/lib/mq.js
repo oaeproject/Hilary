@@ -628,7 +628,6 @@ const subscribeQueue = function(queueName, subscribeOptions, listener, callback)
       },
       subscribeOptions
     )
-    // eslint-disable-next-line promise/prefer-await-to-then
     .then(ok => {
       if (!ok) {
         log().error({ queueName, err: new Error('Error binding worker for queue') });

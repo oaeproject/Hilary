@@ -787,44 +787,17 @@ const saveAggregatedEntities = function(aggregates, callback) {
 
     // To set all the entity hash values, we use the Redis Hash Multi-set ("hmset") command. The args for each command starts with
     // the cache key, followed by key-value pairs for the hash key and the hash value.
-    if (!_.isEmpty(aggregate.actors)) {
-      // First push the cache key
-      _.each(aggregate.actors, (actor, actorKey) => {
-        const identity = _createEntityIdentity(actor, actorKey);
-
-        // Then push the entity reference (its identity)
-        hmsetActorArgs.push(actorKey, identity);
-
-        // Record the entity by its identity, as we will need to store it separately
-        entitiesByIdentity[identity] = actor;
+    const doStuff = (array, hmsetArgs, entitiesByIdentity) => {
+      _.each(array, (eachElement, eachKey) => {
+        const identity = _createEntityIdentity(eachElement, eachKey);
+        hmsetArgs.push(eachKey, identity);
+        entitiesByIdentity[identity] = eachElement;
       });
-    }
+    };
 
-    if (!_.isEmpty(aggregate.objects)) {
-      // First push the cache key
-      _.each(aggregate.objects, (object, objectKey) => {
-        const identity = _createEntityIdentity(object, objectKey);
-
-        // Then push the entity reference (its identity)
-        hmsetObjectArgs.push(objectKey, identity);
-
-        // Record the entity by its identity, as we will need to store it separately
-        entitiesByIdentity[identity] = object;
-      });
-    }
-
-    if (!_.isEmpty(aggregate.targets)) {
-      // First push the cache key
-      _.each(aggregate.targets, (target, targetKey) => {
-        const identity = _createEntityIdentity(target, targetKey);
-
-        // Then push the entity reference (its identity)
-        hmsetTargetArgs.push(targetKey, identity);
-
-        // Record the entity by its identity, as we will need to store it separately
-        entitiesByIdentity[identity] = target;
-      });
-    }
+    doStuff(aggregate.actors, hmsetActorArgs, entitiesByIdentity);
+    doStuff(aggregate.objects, hmsetObjectArgs, entitiesByIdentity);
+    doStuff(aggregate.targets, hmsetTargetArgs, entitiesByIdentity);
 
     log().trace(
       {

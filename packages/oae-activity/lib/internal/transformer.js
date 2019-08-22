@@ -195,21 +195,19 @@ const _getEntityTypeTransformer = function(objectType, transformerType) {
  */
 const _getActivityEntitiesByObjectType = function(activityId, entity, activityEntitiesByObjectType) {
   if (entity && entity.objectType !== 'collection') {
-    activityEntitiesByObjectType[entity.objectType] = activityEntitiesByObjectType[entity.objectType] || {};
-    activityEntitiesByObjectType[entity.objectType][activityId] =
-      activityEntitiesByObjectType[entity.objectType][activityId] || {};
-    activityEntitiesByObjectType[entity.objectType][activityId][entity[ActivityConstants.properties.OAE_ID]] = entity;
+    _collectStuff(activityEntitiesByObjectType, entity, activityId);
   } else if (entity) {
     // This is actually a collection of more entities. Iterate and collect them.
     entity[ActivityConstants.properties.OAE_COLLECTION].forEach(eachEntity => {
-      activityEntitiesByObjectType[eachEntity.objectType] = activityEntitiesByObjectType[eachEntity.objectType] || {};
-      activityEntitiesByObjectType[eachEntity.objectType][activityId] =
-        activityEntitiesByObjectType[eachEntity.objectType][activityId] || {};
-      activityEntitiesByObjectType[eachEntity.objectType][activityId][
-        eachEntity[ActivityConstants.properties.OAE_ID]
-      ] = eachEntity;
+      _collectStuff(activityEntitiesByObjectType, eachEntity, activityId);
     });
   }
+};
+
+const _collectStuff = (activityEntities, entity, activityId) => {
+  activityEntities[entity.objectType] = activityEntities[entity.objectType] || {};
+  activityEntities[entity.objectType][activityId] = activityEntities[entity.objectType][activityId] || {};
+  activityEntities[entity.objectType][activityId][entity[ActivityConstants.properties.OAE_ID]] = entity;
 };
 
 /**

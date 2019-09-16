@@ -22,7 +22,7 @@ import ShortId from 'shortid';
 
 import { Context } from 'oae-context';
 import { logger } from 'oae-logger';
-import * as MQ from 'oae-util/lib/mq';
+import * as pubSub from 'oae-util/lib/pubsub';
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as Signature from 'oae-util/lib/signature';
 import { telemetry } from 'oae-telemetry';
@@ -176,20 +176,24 @@ const AUTHENTICATION_TIMEOUT = 5000;
  */
 const init = function(callback) {
   // Declare the push exchange
-  MQ.declareExchange(QueueConstants.exchange.NAME, QueueConstants.exchange.OPTIONS, err => {
+  pubSub.declareExchange(QueueConstants.exchange.NAME, QueueConstants.exchange.OPTIONS, err => {
     if (err) {
       return callback(err);
     }
 
     // Create our queue
     queueName = QueueConstants.queue.PREFIX + ShortId.generate();
-    MQ.declareQueue(queueName, QueueConstants.queue.OPTIONS, err => {
+    pubSub.declareQueue(queueName, QueueConstants.queue.OPTIONS, err => {
       if (err) {
         return callback(err);
       }
 
       // Subscribe to our queue for new events
-      return MQ.subscribeQueue(queueName, QueueConstants.subscribe.OPTIONS, _handlePushActivity, callback);
+      // return MQ.subscribeQueue(queueName, QueueConstants.subscribe.OPTIONS, _handlePushActivity, callback);
+
+      // debug
+      console.log('Push activcity handled for ' + queueName);
+      pubSub.subscribe(queueName, _handlePushActivity, callback);
     });
   });
 };
@@ -311,7 +315,7 @@ const registerConnection = function(socket) {
         );
       } else if (connectionInfosPerStream[stream].length === 1) {
         // We can also stop listening to messages from this stream as nobody is interested in it anymore
-        MQ.unbindQueueFromExchange(queueName, QueueConstants.exchange.NAME, stream, () => {
+        pubSub.unbindQueueFromExchange(queueName, QueueConstants.exchange.NAME, stream, () => {
           todo--;
 
           // If nobody else is interested in this stream, we can remove it
@@ -547,7 +551,7 @@ const _bindQueue = function(activityStreamId, callback) {
     return callback();
   }
 
-  MQ.bindQueueToExchange(queueName, QueueConstants.exchange.NAME, activityStreamId, callback);
+  pubSub.bindQueueToExchange(queueName, QueueConstants.exchange.NAME, activityStreamId, callback);
 
   // If we've seen this stream before, we're already listening for events for that stream
   // so there is no need to bind again
@@ -615,7 +619,12 @@ const _writeResponse = function(connectionInfo, id, error) {
  * @api private
  */
 const _push = function(activityStreamId, routedActivity) {
-  MQ.submit(QueueConstants.exchange.NAME, activityStreamId, routedActivity, QueueConstants.publish.OPTIONS);
+  // const channel = QueueConstants.exchange.NAME;
+  // debug
+  // console.log('\n-> Publishing to channel... ' + queueName);
+  routedActivity = JSON.stringify(routedActivity);
+  pubSub.publish(queueName, routedActivity);
+  // MQ.submit(QueueConstants.exchange.NAME, activityStreamId, routedActivity, QueueConstants.publish.OPTIONS);
 };
 
 /**

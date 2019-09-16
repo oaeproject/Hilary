@@ -13,7 +13,9 @@
  * permissions and limitations under the License.
  */
 
+import _ from 'underscore';
 import { EventEmitter } from 'oae-emitter';
+import PreviewConstants from 'oae-preview-processor/lib/constants';
 import * as Redis from './redis';
 import { Validator } from './validator';
 
@@ -25,46 +27,90 @@ import { Validator } from './validator';
 
 // Create the event emitter
 const emitter = new EventEmitter();
-let redisManager = null;
-let redisSubscriber = null;
-let redisPublisher = null;
+let manager = null;
+// this object will contain all subscribers, one for each channel basically plus another for general use
+const subscribers = {};
+let publisher = null;
+const queues = {};
+let redisConfig = null;
+console.log = () => {};
 
 /**
  * Initializes the connection to redis.
  */
 const init = function(config, callback) {
+  redisConfig = config;
   // Only init if the connections haven't been opened.
-  if (redisManager === null) {
+  if (manager === null) {
     // Create 3 clients, one for managing redis and 2 for the actual pub/sub communication.
     Redis.createClient(config, (err, client) => {
       if (err) {
         return callback(err);
       }
 
-      redisManager = client;
+      manager = client;
+      manager.monitor((err, monitor) => {
+        monitor.on('monitor', (time, args, source, database) => {
+          // console.log(`${time}: ${args} : ${source} : ${database}`);
+        });
+      });
       Redis.createClient(config, (err, client) => {
         if (err) {
           return callback(err);
         }
 
-        redisSubscriber = client;
+        // subscriber = client;
+        subscribers.general = client;
+        subscribers.general.monitor((err, monitor) => {
+          monitor.on('monitor', (time, args, source, database) => {
+            // console.log(`${time}: ${args} : ${source} : ${database}`);
+          });
+        });
         Redis.createClient(config, (err, client) => {
           if (err) {
             return callback(err);
           }
 
-          redisPublisher = client;
+          publisher = client;
+          publisher.monitor((err, monitor) => {
+            monitor.on('monitor', (time, args, source, database) => {
+              // console.log(`${time}: ${args} : ${source} : ${database}`);
+            });
+          });
 
           // Listen to all channels and emit them as events.
-          redisSubscriber.on('pmessage', (pattern, channel, message) => {
+          subscribers.general.on('pmessage', (pattern, channel, message) => {
+            // debug
+            // console.log('Listening on ' + channel + ': ' + message);
+            console.log(`-> Emitting message: [${pattern}|${channel}|${message}]`);
             emitter.emit(channel, message);
           });
-          redisSubscriber.psubscribe('*');
-          return callback();
+          // subscribers.general.psubscribe('oae-*', callback);
+          subscribers.general.psubscribe(
+            ['oae-tests', 'oae-search*', 'oae-tenants', 'oae-tenant-networks', 'oae-config'],
+            callback
+          );
         });
       });
     });
   }
+};
+
+const _getOrCreateSubscriberForChannel = (channel, callback) => {
+  if (subscribers[channel]) {
+    // debug
+    console.log('-> Subscriber for [' + channel + '] exists, returning it');
+    return callback(null, subscribers[channel]);
+  }
+
+  Redis.createClient(redisConfig, (err, client) => {
+    if (err) return callback(err);
+
+    // debug
+    console.log('-> Subscriber for [' + channel + '] created, returning it');
+    subscribers[channel] = client;
+    return callback(null, subscribers[channel]);
+  });
 };
 
 /**
@@ -85,7 +131,146 @@ const publish = function(channel, message, callback) {
     return callback(validator.getFirstError());
   }
 
-  redisPublisher.publish(channel, message, callback);
+  /*
+  if (_.isObject(message)) {
+    message = JSON.stringify(message);
+  }
+  */
+
+  emitter.emit('preSubmit', channel);
+  publisher.publish(channel, message, callback);
 };
 
-export { publish, init, emitter };
+const unsubscribe = (channel, callback) => {
+  const validator = new Validator();
+  validator.check(channel, { code: 400, msg: 'No channel was provided.' }).notEmpty();
+  if (validator.hasErrors()) {
+    return callback(validator.getFirstError());
+  }
+
+  // get the proper subscriber
+  _getOrCreateSubscriberForChannel(channel, (err, subscriber) => {
+    subscriber.unsubscribe(channel, () => {
+      console.log('Unsubscribing to [' + channel + ']');
+      subscriber.removeAllListeners('message');
+      // debug
+      if (channel === PreviewConstants.MQ.TASK_GENERATE_PREVIEWS) {
+        console.log('  -> Gonna UNbind a function to the onMessage event for [' + channel + ']\n');
+      }
+
+      delete queues[channel];
+      console.log('  √ Marking [' + channel + '] as UNBOUND ');
+      return callback();
+    });
+  });
+};
+
+const subscribe = (channel, listener, callback) => {
+  callback = callback || function() {};
+  const validator = new Validator();
+  validator.check(channel, { code: 400, msg: 'No channel was provided.' }).notEmpty();
+  if (validator.hasErrors()) {
+    return callback(validator.getFirstError());
+  }
+
+  // if this has been suscribed already, then leave
+  const thisChannelisAlreadyBound = Boolean(queues[channel]);
+  if (thisChannelisAlreadyBound) {
+    // debug
+    console.log('NOT subscribing to [' + channel + "] because it's already there");
+    return callback();
+  }
+
+  // get the proper subscriber
+  _getOrCreateSubscriberForChannel(channel, (err, subscriber) => {
+    subscriber.subscribe(channel, (err, count) => {
+      // debug
+      console.log('Subscribing to [' + channel + ']');
+
+      if (err) return callback(err);
+
+      // debug
+      if (channel === PreviewConstants.MQ.TASK_GENERATE_PREVIEWS) {
+        console.log('  -> Gonna bind a function to the onMessage event for [' + channel + ']\n');
+      }
+
+      subscriber.on('message', (whichChannel, message) => {
+        if (whichChannel === channel) {
+          // debug
+          if (channel === PreviewConstants.MQ.TASK_GENERATE_PREVIEWS) {
+            console.log('\nHeard something from [' + channel + ']');
+            // console.log('=> ' + message + '\n');
+          }
+
+          message = JSON.parse(message);
+          try {
+            listener(message, () => {
+              // queues[queueName].consumerTag = ok.consumerTag;
+              queues[whichChannel] = Date.now();
+
+              // debug
+              console.log('-> Sending POSTHANDLE for ' + whichChannel);
+              emitter.emit('postHandle', null, whichChannel, message, null, null);
+              // return callback();
+            });
+          } catch (error) {
+            // debug
+            console.log('Exception caught, what am I gonna do??');
+          }
+        }
+      });
+      // add to bound queues
+      if (channel === PreviewConstants.MQ.TASK_GENERATE_PREVIEWS) {
+        console.log('  √ Marking [' + channel + '] as BOUND ');
+      }
+
+      queues[channel] = Date.now();
+      return callback();
+    });
+  });
+};
+
+const getBoundQueueNames = function() {
+  return _.keys(queues);
+};
+
+const noNeedToDeclareQueue = (name, options, callback) => {
+  return callback();
+};
+
+const noNeedToDeclareExchange = (name, options, callback) => {
+  return callback();
+};
+
+const noNeedToUnbindQueue = (name, exchangeName, stream, callback) => {
+  return callback();
+};
+
+const noNeedToBindQueueToExchange = (name, exchangeName, stream, callback) => {
+  return callback();
+};
+
+const noNeedToPurge = (queueName, callback) => {
+  emitter.emit('prePurge', queueName);
+  emitter.emit('postPurge', queueName, 1);
+  return callback();
+};
+
+const noNeedToPurgeAll = callback => {
+  return callback();
+};
+
+export {
+  noNeedToDeclareExchange as declareExchange,
+  noNeedToDeclareQueue as declareQueue,
+  noNeedToUnbindQueue as unbindQueueFromExchange,
+  noNeedToBindQueueToExchange as bindQueueToExchange,
+  noNeedToPurge as purge,
+  noNeedToPurgeAll as purgeAll,
+  getBoundQueueNames,
+  publish,
+  init,
+  emitter,
+  subscribe,
+  unsubscribe
+};

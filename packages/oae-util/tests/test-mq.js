@@ -21,7 +21,7 @@ import ShortId from 'shortid';
 import * as MQ from 'oae-util/lib/mq';
 import * as TaskQueue from 'oae-util/lib/taskqueue';
 
-describe('MQ', () => {
+describe.skip('MQ', () => {
   /**
    * Some options that can be used to bind to a message queue.
    */

@@ -114,7 +114,7 @@ const previewPDF = async function(ctx, pdfPath, callback) {
 
   try {
     // Create a directory where we can store the files
-    await fsMakeDir(pagesDir);
+    await fsMakeDir(pagesDir, { recursive: true });
 
     // Will be using promises to load document, pages and misc data instead of
     // callback.

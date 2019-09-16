@@ -186,6 +186,8 @@ const initAvailableModules = function(callback) {
     // Aggregate the oae- modules
     for (let i = 0; i < modules.length; i++) {
       const module = modules[i];
+      // debug
+      console.log('Gonna init module ' - module);
       if (module.substring(0, 4) === 'oae-') {
         // Determine module priority
         const filename = module + '/package.json';

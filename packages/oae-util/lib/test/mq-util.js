@@ -15,24 +15,34 @@
 
 import _ from 'underscore';
 
+import PreviewConstants from 'oae-preview-processor/lib/constants';
 import Counter from 'oae-util/lib/counter';
-import * as MQ from 'oae-util/lib/mq';
+// import * as MQ from 'oae-util/lib/mq';
+import * as pubSub from 'oae-util/lib/pubsub';
 
 // Track when counts for a particular type of task return to 0
 const queueCounters = {};
 
-MQ.emitter.on('preSubmit', routingKey => {
+pubSub.emitter.on('preSubmit', channel => {
   // Technically, the routing key is not the same as the queue, all the Task Queues in OAE however
   // use the same routing key as their destination queue name
-  _increment(routingKey);
+  // debug
+  // console.log('Incrementing on ' + channel);
+  _increment(channel);
 });
 
-MQ.emitter.on('postHandle', (err, queueName) => {
-  _decrement(queueName, 1);
+pubSub.emitter.on('postHandle', (err, channel) => {
+  // debug
+  // console.log('Decrementing on ' + channel);
+  _decrement(channel, 1);
 });
 
-MQ.emitter.on('postPurge', (name, count) => {
-  _decrement(name, count);
+pubSub.emitter.on('postPurge', (name, count) => {
+  // _decrement(name, count);
+  count = _get(name);
+  // debug
+  console.log(count + ' tasks to delete on [' + name + ']');
+  _decrement(name, count); // decrements until 0
 });
 
 /**
@@ -46,9 +56,13 @@ MQ.emitter.on('postPurge', (name, count) => {
  */
 const whenTasksEmpty = function(name, handler) {
   if (!queueCounters[name] || !_hasQueue(name)) {
+    // debug
+    if (name === PreviewConstants.MQ.TASK_GENERATE_PREVIEWS) console.log('Tasks empty for ' + name);
     return handler();
   }
 
+  // debug
+  // if (name === PreviewConstants.MQ.TASK_GENERATE_PREVIEWS) console.log('Waiting for Zero counter found for ' + name);
   // Bind the handler to the counter for this queue
   queueCounters[name].whenZero(handler);
 };
@@ -61,9 +75,29 @@ const whenTasksEmpty = function(name, handler) {
  */
 const _increment = function(name) {
   if (_hasQueue(name)) {
+    // debug
+    if (name === PreviewConstants.MQ.TASK_GENERATE_PREVIEWS) {
+      console.log('Incrementing for [' + name + ']');
+    }
+
     queueCounters[name] = queueCounters[name] || new Counter();
     queueCounters[name].incr();
+  } else {
+    // debug
+    if (name === PreviewConstants.MQ.TASK_GENERATE_PREVIEWS)
+      console.log('-> didnt increment because queue reference isnt there!');
   }
+
+  // pubSub.getBoundQueueNames[name] = Date.now();
+};
+
+const _get = name => {
+  if (_hasQueue(name)) {
+    queueCounters[name] = queueCounters[name] || new Counter();
+    return queueCounters[name].get();
+  }
+
+  return 0;
 };
 
 /**
@@ -73,7 +107,8 @@ const _increment = function(name) {
  * @api private
  */
 const _hasQueue = function(name) {
-  return _.contains(MQ.getBoundQueueNames(), name);
+  // return _.contains(_.keys(queueCounters), name);
+  return _.contains(pubSub.getBoundQueueNames(), name);
 };
 
 /**
@@ -84,6 +119,10 @@ const _hasQueue = function(name) {
  * @api private
  */
 const _decrement = function(name, count) {
+  // debug
+  if (name === PreviewConstants.MQ.TASK_GENERATE_PREVIEWS && count !== 0)
+    console.log('Decrementing ' + count + ' for [' + name + ']');
+
   queueCounters[name] = queueCounters[name] || new Counter();
   queueCounters[name].decr(count);
 };

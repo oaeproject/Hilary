@@ -33,10 +33,11 @@ export const init = function(config, callback) {
   bootCassandra(config, () => {
     bootRedis(config, () => {
       bootPubSub(config, () => {
-        bootRabbitMQ(config, () => {
-          return callback();
-        });
+        // TODO create some sort of bootRedisMQ()
+        // bootRabbitMQ(config, () => {
+        return callback();
       });
+      // });
     });
   });
 };
@@ -79,21 +80,26 @@ const bootPubSub = (config, callback) => {
       return callback(err);
     }
 
-    // Setup the key signing utility
-    Signature.init(config.signing);
+    // Initialize the task queue
+    TaskQueue.init(() => {
+      // Setup the key signing utility
+      Signature.init(config.signing);
 
-    // Setup the temporary file generator
-    Tempfile.init(config.files.tmpDir);
+      // Setup the temporary file generator
+      Tempfile.init(config.files.tmpDir);
 
-    // Clean up temp files that might be accidentally left in the temp directory
-    if (config.files.cleaner.enabled) {
-      Cleaner.start(config.files.tmpDir, config.files.cleaner.interval);
-    }
+      // Clean up temp files that might be accidentally left in the temp directory
+      if (config.files.cleaner.enabled) {
+        Cleaner.start(config.files.tmpDir, config.files.cleaner.interval);
+      }
 
-    return callback();
+      return callback();
+    });
   });
 };
 
+// TODO
+/*
 const bootRabbitMQ = (config, callback) => {
   // Initialize the RabbitMQ listener
   MQ.init(config.mq, err => {
@@ -105,3 +111,4 @@ const bootRabbitMQ = (config, callback) => {
     TaskQueue.init(callback);
   });
 };
+*/

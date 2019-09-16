@@ -35,6 +35,7 @@ import * as Etherpad from 'oae-content/lib/internal/etherpad';
 import * as FoldersPreviews from 'oae-folders/lib/previews';
 import * as FoldersTestUtil from 'oae-folders/lib/test/util';
 import * as MQ from 'oae-util/lib/mq';
+import * as pubSub from 'oae-util/lib/pubsub';
 import * as MQTestUtil from 'oae-util/lib/test/mq-util';
 import * as RestAPI from 'oae-rest';
 import * as RestUtil from 'oae-rest/lib/util';
@@ -311,6 +312,9 @@ describe('Preview processor', () => {
 
           // Wait until the PP items have been generated
           MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
+            // debug
+            console.log("-> All PP jobs should be done now, going forward!!");
+
             // Ensure the preview items are there
             RestAPI.Content.getContent(restCtx, contentObj.id, (err, updatedContent) => {
               assert.ok(!err);
@@ -437,6 +441,7 @@ describe('Preview processor', () => {
      * Enable the Preview Processor if the config specifies we can run with it enabled
      */
     beforeEach(callback => {
+      console.log('- before each init ----------------------------');
       // Ignore this test if the PP is disabled.
       if (!defaultConfig.previews.enabled) {
         return callback();
@@ -452,6 +457,7 @@ describe('Preview processor', () => {
                 return callback(new Error(err.msg));
               }
 
+              console.log('- before each over ----------------------------');
               return callback();
             });
           });
@@ -474,6 +480,7 @@ describe('Preview processor', () => {
           return callback(new Error(err.msg));
         }
 
+        console.log('+ after each +++++++++++++++++++++');
         return callback();
       });
     });
@@ -2132,7 +2139,7 @@ describe('Preview processor', () => {
         assert.ok(!err);
 
         // Purge all task queues
-        MQ.purgeAll(err => {
+        pubSub.purgeAll(err => {
           assert.ok(!err);
 
           // Make sure all tasks are done
@@ -2570,7 +2577,7 @@ describe('Preview processor', () => {
     /**
      * Test that verifies that a push notification is sent out on preview generation completion
      */
-    it('verify a push notification is sent out on preview generation completion', callback => {
+    it.skip('verify a push notification is sent out on preview generation completion', callback => {
       // Ignore this test if the PP is disabled
       if (!defaultConfig.previews.enabled) {
         return callback();
@@ -2621,6 +2628,9 @@ describe('Preview processor', () => {
                     PreviewAPI.enable(err => {
                       assert.ok(!err);
                     });
+
+                    // debug
+                    console.log('Gonna wait on messages!!!!');
 
                     client.on('message', message => {
                       if (message.activities[0] && message.activities[0]['oae:activityType'] === 'previews-finished') {

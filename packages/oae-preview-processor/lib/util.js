@@ -328,6 +328,8 @@ const _cropThumbnail = function(ctx, path, cropMode, callback) {
               ctx.addPreview(widePath, 'wide');
             }
 
+            // debug
+            console.log('-> Finished processing the preview!');
             callback();
           }
         );

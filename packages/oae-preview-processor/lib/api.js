@@ -486,6 +486,9 @@ const _handleGeneratePreviewsTask = function(data, callback) {
       }
     };
 
+  // debug
+  console.log('-> Handling event sent to ' + PreviewConstants.MQ.TASK_GENERATE_PREVIEWS);
+
   if (!data.contentId) {
     log().error({ data }, 'An invalid generate previews task was submitted to the generate previews task queue');
     return callback({

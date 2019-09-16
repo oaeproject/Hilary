@@ -15,6 +15,7 @@
 
 /* eslint-disable import/no-mutable-exports */
 import { logger } from 'oae-logger';
+// import * as pubSub from 'oae-util/lib/pubsub';
 import * as Modules from './modules';
 import OaeEmitter from './emitter';
 import * as Server from './server';
@@ -92,6 +93,7 @@ const init = function(config, callback) {
     OaeEmitter.emit('ready');
 
     log().info('Initialization all done ... Firing up tenants ... Enjoy!');
+    // pubSub.emitter.emit('ready');
     return callback();
   });
 };
@@ -112,4 +114,12 @@ const registerPreShutdownHandler = function(name, maxTimeMillis, handler) {
   Shutdown.registerPreShutdownHandler(name, maxTimeMillis, handler);
 };
 
-export { globalAdminServer, tenantServer, tenantRouter, globalAdminRouter, init, registerPreShutdownHandler };
+export {
+  OaeEmitter,
+  globalAdminServer,
+  tenantServer,
+  tenantRouter,
+  globalAdminRouter,
+  init,
+  registerPreShutdownHandler
+};

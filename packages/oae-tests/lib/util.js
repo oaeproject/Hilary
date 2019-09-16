@@ -35,7 +35,8 @@ import * as LibraryAPI from 'oae-library';
 
 import { LoginId } from 'oae-authentication/lib/model';
 import multipart from 'oae-util/lib/middleware/multipart';
-import * as MQ from 'oae-util/lib/mq';
+import * as pubSub from 'oae-util/lib/pubsub';
+// import * as MQ from 'oae-util/lib/mq';
 import * as MQTestUtil from 'oae-util/lib/test/mq-util';
 import * as OAE from 'oae-util/lib/oae';
 import * as OaeUtil from 'oae-util/lib/util';
@@ -1278,7 +1279,8 @@ const setUpBeforeTests = function(config, dropKeyspaceBeforeTest, callback) {
 
               // Defer the test setup until after the task handlers are successfully bound and all the queues are drained.
               // This will always be fired after OAE.init has successfully finished.
-              MQ.emitter.on('ready', err => {
+              // TODO
+              OAE.OaeEmitter.on('ready', err => {
                 if (err) {
                   return callback(new Error(err.msg));
                 }
@@ -1327,7 +1329,7 @@ const cleanUpAfterTests = function(callback) {
     }
 
     // Purge all the task queues
-    MQ.purgeAll(err => {
+    pubSub.purgeAll(err => {
       if (err) {
         log().error({ err }, 'Error purging the RabbitMQ queues');
       }

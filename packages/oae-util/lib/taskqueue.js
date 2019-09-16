@@ -14,8 +14,9 @@
  */
 
 import _ from 'underscore';
+import * as pubSub from './pubsub';
 
-import * as MQ from './mq';
+// import * as MQ from './mq';
 
 /**
  * ## The Task Queue API.
@@ -59,7 +60,8 @@ const Constants = {
  * @param  {Function}   callback    Standard callback function
  */
 const init = function(callback) {
-  MQ.declareExchange(Constants.DEFAULT_TASK_EXCHANGE_NAME, Constants.DEFAULT_TASK_EXCHANGE_OPTS, callback);
+  // MQ.declareExchange(Constants.DEFAULT_TASK_EXCHANGE_NAME, Constants.DEFAULT_TASK_EXCHANGE_OPTS, callback);
+  return callback();
 };
 
 /**
@@ -77,7 +79,12 @@ const init = function(callback) {
  * @param  {Object}     [options.subscribe]     A set of options that can override the `Constants.DEFAULT_TASK_QUEUE_SUBSCRIBE_OPTS`.
  * @param  {Function}   callback                Standard callback function
  */
-const bind = function(taskQueueId, listener, options, callback) {
+const bind = (taskQueueId, listener, options, callback) => {
+  pubSub.subscribe(taskQueueId, listener, callback);
+};
+
+/*
+const bindOld = function(taskQueueId, listener, options, callback) {
   options = options || {};
   options.queue = options.queue || {};
   options.subscribe = options.subscribe || {};
@@ -94,6 +101,8 @@ const bind = function(taskQueueId, listener, options, callback) {
      *
      * We use the `taskQueueId` for both the name as the queue and the routing key.
      */
+
+/*
     MQ.bindQueueToExchange(taskQueueId, Constants.DEFAULT_TASK_EXCHANGE_NAME, taskQueueId, err => {
       if (err) {
         return callback(err);
@@ -105,12 +114,14 @@ const bind = function(taskQueueId, listener, options, callback) {
     });
   });
 };
+*/
 
 /**
  * Declares a queue as long as it hasn't been declared before
  *
  * @see bind
  */
+/*
 const _declareQueue = function(taskQueueId, queueOptions, callback) {
   if (MQ.isQueueDeclared(taskQueueId)) {
     return callback();
@@ -118,6 +129,7 @@ const _declareQueue = function(taskQueueId, queueOptions, callback) {
 
   MQ.declareQueue(taskQueueId, queueOptions, callback);
 };
+*/
 
 /**
  * Stop consuming tasks from the task queue.
@@ -127,7 +139,8 @@ const _declareQueue = function(taskQueueId, queueOptions, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const unbind = function(taskQueueId, callback) {
-  MQ.unsubscribeQueue(taskQueueId, callback);
+  // MQ.unsubscribeQueue(taskQueueId, callback);
+  pubSub.unsubscribe(taskQueueId, callback);
 };
 
 /**
@@ -138,7 +151,9 @@ const unbind = function(taskQueueId, callback) {
  * @param  {Function}   callback        Standard callback function
  */
 const submit = function(taskQueueId, taskData, callback) {
-  MQ.submit(Constants.DEFAULT_TASK_EXCHANGE_NAME, taskQueueId, taskData, null, callback);
+  // MQ.submit(Constants.DEFAULT_TASK_EXCHANGE_NAME, taskQueueId, taskData, null, callback);
+  pubSub.publish(taskQueueId, JSON.stringify(taskData), callback);
+  // pubSub.publish(taskQueueId, taskData, callback);
 };
 
 export { Constants, init, bind, unbind, submit };

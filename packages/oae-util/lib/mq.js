@@ -166,13 +166,18 @@ const init = function(mqConfig, callback) {
   const retryTimeout = 5;
   connection = amqp.connect(arrayOfHostsToConnectTo, {
     json: true,
+    heartbeatIntervalInSeconds: 60,
     reconnectTimeInSeconds: retryTimeout
   });
   connection.on('disconnect', error => {
+    // debug
+    console.log(error);
     log().error('Error connecting to rabbitmq, retrying in ' + retryTimeout + 's...');
     log().error(error);
   });
   connection.on('close', error => {
+    // debug
+    console.log(error);
     log().error('Closing connection to rabbitmq...');
     log().error(error);
   });
@@ -243,7 +248,7 @@ OAE.registerPreShutdownHandler('mq', null, _destroy);
  * @param  {Object}     exchangeOptions     The options that should be used to declare this exchange. See https://github.com/postwait/node-amqp/#connectionexchangename-options-opencallback for a full list of options
  * @param  {Function}   callback            Standard callback function
  */
-const declareExchange = async function(exchangeName, exchangeOptions, callback) {
+const declareExchange = function(exchangeName, exchangeOptions, callback) {
   if (!exchangeName) {
     log().error({
       exchangeName,
@@ -260,14 +265,12 @@ const declareExchange = async function(exchangeName, exchangeOptions, callback) 
     return callback({ code: 400, msg: 'Tried to declare an exchange twice' });
   }
 
-  try {
-    const exchange = await channel.assertExchange(exchangeName, exchangeOptions.type, exchangeOptions);
+  channel.assertExchange(exchangeName, exchangeOptions.type, exchangeOptions, (err, ok) => {
+    if (err) log().error({ exchangeName, err: new Error('Unable to declare an exchange') });
 
-    exchanges[exchangeName] = exchange;
+    exchanges[exchangeName] = ok.exchange;
     return callback();
-  } catch (error) {
-    log().error({ exchangeName, err: new Error('Unable to declare an exchange') });
-  }
+  });
 };
 
 /**
@@ -277,7 +280,7 @@ const declareExchange = async function(exchangeName, exchangeOptions, callback) 
  * @param  {Object}     queueOptions        The options that should be used to declare this queue. See https://github.com/postwait/node-amqp/#connectionqueuename-options-opencallback for a full list of options
  * @param  {Function}   callback            Standard callback function
  */
-const declareQueue = async function(queueName, queueOptions, callback) {
+const declareQueue = function(queueName, queueOptions, callback) {
   if (!queueName) {
     log().error({
       queueName,
@@ -292,15 +295,16 @@ const declareQueue = async function(queueName, queueOptions, callback) {
     return callback({ code: 400, msg: 'Tried to declare a queue twice' });
   }
 
-  try {
-    const queue = await channel.assertQueue(queueName, queueOptions);
+  channel.assertQueue(queueName, queueOptions, (err, queue) => {
+    if (err) {
+      log().error({ queueName, err: new Error('Unable to declare a queue') });
+      return callback(err);
+    }
 
     log().info({ queueName }, 'Created/Retrieved a RabbitMQ queue');
     queues[queueName] = { queue };
     return callback();
-  } catch (error) {
-    log().error({ queueName, err: new Error('Unable to declare a queue') });
-  }
+  });
 };
 
 /**
@@ -342,14 +346,20 @@ let isWorking = false;
  * A function that will pick RabbitMQ queues of the `queuesToBind` queue and bind them.
  * This function will ensure that at most 1 bind runs at the same time.
  */
-const _processBindQueue = async function() {
+const _processBindQueue = function(callback) {
   // If there is something to do and we're not already doing something we can do some work
   if (queuesToBind.length > 0 && !isWorking) {
     isWorking = true;
 
     const todo = queuesToBind.shift();
-    try {
-      await channel.bindQueue(todo.queueName, todo.exchangeName, todo.routingKey);
+    channel.bindQueue(todo.queueName, todo.exchangeName, todo.routingKey, err => {
+      if (err) {
+        log().error({
+          queueName: todo.queueName,
+          err: new Error('Unable to bind queue to an exchange')
+        });
+        return todo.callback(err);
+      }
 
       log().trace(
         {
@@ -371,13 +381,8 @@ const _processBindQueue = async function() {
       }
 
       isWorking = false;
-      _processBindQueue();
-    } catch (error) {
-      log().error({
-        queueName: todo.queueName,
-        err: new Error('Unable to bind queue to an exchange')
-      });
-    }
+      _processBindQueue(callback);
+    });
   }
 };
 
@@ -448,7 +453,7 @@ const bindQueueToExchange = function(queueName, exchangeName, routingKey, callba
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const unbindQueueFromExchange = async function(queueName, exchangeName, routingKey, callback) {
+const unbindQueueFromExchange = function(queueName, exchangeName, routingKey, callback) {
   if (!queues[queueName]) {
     log().error({
       queueName,
@@ -486,9 +491,14 @@ const unbindQueueFromExchange = async function(queueName, exchangeName, routingK
   }
 
   // Queues[queueName].queue.unbind(exchangeName, routingKey);
-  await channel.unbindQueue(queueName, exchangeName, routingKey, {});
-  log().trace({ queueName, exchangeName, routingKey }, 'Unbound a queue from an exchange');
-  callback();
+  channel.unbindQueue(queueName, exchangeName, routingKey, {}, err => {
+    if (err) {
+      return callback(err);
+    }
+
+    log().trace({ queueName, exchangeName, routingKey }, 'Unbound a queue from an exchange');
+    return callback();
+  });
 };
 
 /**
@@ -650,7 +660,7 @@ const subscribeQueue = function(queueName, subscribeOptions, listener, callback)
  * @param  {Function}  callback        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any
  */
-const unsubscribeQueue = async function(queueName, callback) {
+const unsubscribeQueue = function(queueName, callback) {
   let queue = queues[queueName];
   if (!queue || !queue.queue) {
     log().warn({
@@ -663,20 +673,17 @@ const unsubscribeQueue = async function(queueName, callback) {
   const { consumerTag } = queue;
   queue = queue.queue;
 
-  try {
-    const ok = await channel.cancel(consumerTag);
-
+  channel.cancel(consumerTag, (err, ok) => {
     delete queues[queueName];
 
     if (!ok) {
+      log().error({ queueName, err: new Error('Unable to unsubscribe the queue') });
       log().error({ queueName }, 'An unknown error occurred unsubscribing a queue');
       return callback({ code: 500, msg: 'An unknown error occurred unsubscribing a queue' });
     }
 
     return callback();
-  } catch (error) {
-    log().error({ queueName, err: new Error('Unable to unsubscribe the queue') });
-  }
+  });
 };
 
 /**
@@ -807,7 +814,7 @@ const _waitUntilIdle = function(maxWaitMillis, callback) {
  * @param  {Function}   [callback]      Standard callback method
  * @param  {Object}     [callback.err]  An error that occurred purging the queue, if any
  */
-const purge = async function(queueName, callback) {
+const purge = function(queueName, callback) {
   callback =
     callback ||
     function(err) {
@@ -824,9 +831,8 @@ const purge = async function(queueName, callback) {
   log().info({ queueName }, 'Purging queue');
   MQ.emit('prePurge', queueName);
 
-  try {
-    const data = await channel.purgeQueue(queueName);
-    if (!data) {
+  channel.purgeQueue(queueName, (err, data) => {
+    if (err) {
       log().error({ queueName }, 'Error purging queue');
       return callback({ code: 500, msg: 'Error purging queue: ' + queueName });
     }
@@ -834,9 +840,7 @@ const purge = async function(queueName, callback) {
     MQ.emit('postPurge', queueName, data.messageCount);
 
     return callback();
-  } catch (error) {
-    log().error({ queueName, err: new Error('Unable to purge queue') });
-  }
+  });
 };
 
 /**
@@ -976,19 +980,46 @@ const _dumpProcessingMessages = function(logMessage) {
   log().warn({ messages: _.values(messagesInProcessing).slice(0, NUM_MESSAGES_TO_DUMP) }, logMessage);
 };
 
+const noNeedToDeclareQueue = (name, options, callback) => {
+  return callback();
+};
+
+const noNeedToDeclareExchange = (name, options, callback) => {
+  return callback();
+};
+
+const noNeedToUnbindQueue = (name, exchangeName, stream, callback) => {
+  return callback();
+};
+
+const noNeedToBindQueueToExchange = (name, exchangeName, stream, callback) => {
+  return callback();
+};
+
+const noNeedToPurge = (queue, callback) => {
+  return callback();
+};
+
+const noNeedToPurgeAll = callback => {
+  return callback();
+};
+
 export {
   MQ as emitter,
-  rejectMessage,
+  // rejectMessage,
   init,
-  declareExchange,
-  declareQueue,
+  noNeedToDeclareExchange as declareExchange,
+  noNeedToDeclareQueue as declareQueue,
+  noNeedToUnbindQueue as unbindQueueFromExchange,
+  noNeedToBindQueueToExchange as bindQueueToExchange,
+  noNeedToPurge as purge,
+  noNeedToPurgeAll as purgeAll,
+  getBoundQueueNames
+  /*
+  submit,
   isQueueDeclared,
   bindQueueToExchange,
-  unbindQueueFromExchange,
   subscribeQueue,
   unsubscribeQueue,
-  submit,
-  getBoundQueueNames,
-  purge,
-  purgeAll
+  */
 };

@@ -81,15 +81,6 @@ services:
     tty: false
     volumes:
       - ../data/elasticsearch:/usr/share/elasticsearch/data
-  oae-rabbitmq:
-    container_name: oae-rabbitmq
-    image: rabbitmq:3.6.6-management-alpine
-    restart: always
-    ports:
-      - 5672:5672
-    networks:
-      - my_network
-    tty: false
   oae-nginx:
     container_name: oae-nginx
     image: nginx:stable-alpine
@@ -125,7 +116,8 @@ services:
       - ../data/cassandra:/var/lib/cassandra
   oae-etherpad:
     container_name: oae-etherpad
-    image: oaeproject/oae-etherpad-docker
+    image: oaeproject/oae-etherpad-docker:next
+    # image: oae-etherpad:latest
     restart: always
     networks:
       - my_network
@@ -134,7 +126,8 @@ services:
     tty: false
   oae-ethercalc:
     container_name: oae-ethercalc
-    image: oaeproject/oae-ethercalc-docker
+    image: oaeproject/oae-ethercalc-docker:next
+    # image: oae-ethercalc:latest
     restart: always
     networks:
       - my_network

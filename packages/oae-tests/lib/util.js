@@ -319,24 +319,18 @@ const generateTestUsers = function(restCtx, total, callback, _createdUsers) {
   // Ensure that the provided rest context has been authenticated before trying to use it to
   // create users
   _ensureAuthenticated(restCtx, err => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     // Get the tenant information so we can generate an email address that belongs to the
     // configured tenant email domain (if any)
     RestAPI.Tenants.getTenant(restCtx, null, (err, tenant) => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       const username = generateTestUserId('random-user');
       const displayName = generateTestGroupId('random-user');
       const email = generateTestEmailAddress(username, tenant.emailDomains[0]);
       RestAPI.User.createUser(restCtx, username, 'password', displayName, email, {}, (err, user) => {
-        if (err) {
-          return callback(err);
-        }
+        if (err) return callback(err);
 
         // Manually verify the user their email address
         PrincipalsDAO.setEmailAddress(user, email.toLowerCase(), (err, user) => {
@@ -1319,21 +1313,19 @@ const setUpBeforeTests = function(config, dropKeyspaceBeforeTest, callback) {
  *
  * @param  {Function}    callback    Standard callback function
  */
-const cleanUpAfterTests = function(callback) {
-  // Clean up after ourselves
+const cleanUpAfterTests = callback => {
   Redis.flush(err => {
-    if (err) {
-      log().error({ err }, 'Error flushing Redis data after test completion');
-    }
+    if (err) log().error({ err }, 'Error flushing Redis data after test completion');
 
-    // Purge all the task queues
-    MQ.purgeAll(err => {
-      if (err) {
-        log().error({ err }, 'Error purging the RabbitMQ queues');
-      }
+    return callback();
+  });
+};
 
-      return callback();
-    });
+const cleanAllQueues = callback => {
+  MQ.purgeAll(err => {
+    if (err) log().error({ err }, 'Error purging redis queues');
+
+    return callback();
   });
 };
 
@@ -1388,6 +1380,7 @@ export {
   createInitialTestConfig,
   setUpBeforeTests,
   cleanUpAfterTests,
+  cleanAllQueues,
   isIntegrationTest,
   objectifySearchParams
 };

@@ -17,7 +17,7 @@ import assert from 'assert';
 import fs from 'fs';
 import util from 'util';
 import _ from 'underscore';
-
+import { addMonths } from 'date-fns'
 import * as AuthzAPI from 'oae-authz';
 import * as AuthzDeleteAPI from 'oae-authz/lib/delete';
 import { setUpConfig } from 'oae-config';
@@ -55,7 +55,7 @@ import {
   assertJoinGroupSucceeds
 } from 'oae-principals/lib/test/util';
 import {
-  getExpiredUser,
+  getExpiredUser as fetchAllExpiredUsersToDate,
   updateUserArchiveFlag,
   getPrincipalSkipCache,
   getDataFromArchive
@@ -118,6 +118,11 @@ describe('Delete and eliminate users', () => {
      * Test that verifies we get the correct expired users
      */
     it('Verify if the DAO gets the correct expired users', callback => {
+
+      const isUserAmongTheExpired = (expiredUsers, userToDelete) => {
+        return _.chain(expiredUsers).pluck('principalId').contains(userToDelete.user.id).value();
+      };
+
       // Generate a deleted user to test with
       generateTestUsers(camAdminRestContext, 2, (err, users, userToDelete, userArchive) => {
         assert.ok(!err);
@@ -130,38 +135,19 @@ describe('Delete and eliminate users', () => {
           const actualDate = new Date();
 
           // Get expired principals
-          // The deleted user shouldn't appear because the date in the datebase isn't outdated
-          getExpiredUser(actualDate, (err, expiredUsers) => {
+          // The deleted user shouldn't appear because the date in the datebase isn't updated yet
+          fetchAllExpiredUsersToDate(actualDate, (err, expiredUsers) => {
             assert.ok(!err);
-            assert.ok(
-              !_.find(expiredUsers, expiredUser => {
-                return expiredUser.principalId === userToDelete.user.id;
-              })
-            );
+            assert.ok(!isUserAmongTheExpired(expiredUsers, userToDelete));
 
-            const months = PrincipalsConfig.getValue(userArchive.user.tenant.alias, USER, DELETE);
-
-            if (months) {
-              actualDate.setMonth(actualDate.getMonth() + parseInt(months, 10) + 1);
-              actualDate.setYear(
-                actualDate.getFullYear() + Math.trunc((actualDate.getMonth() + parseInt(months, 10) + 1) / 12)
-              );
-            } else {
-              actualDate.setMonth(actualDate.getMonth() + DEFAULT_MONTH + 1);
-              actualDate.setYear(
-                actualDate.getFullYear() + Math.trunc((actualDate.getMonth() + DEFAULT_MONTH + 1) / 12)
-              );
-            }
+            const timeUntilDeletionInMonths = PrincipalsConfig.getValue(userArchive.user.tenant.alias, USER, DELETE);
+            let deletionDate = addMonths(actualDate, parseInt(timeUntilDeletionInMonths, 10));
 
             // Get expired principals
-            // The deleted user should be considered as an expired user because the date in the database is outdated
-            getExpiredUser(actualDate, (err, otherExpiredUsers) => {
+            // The deleted user should be considered as an expired user because the date in the database is updated
+            fetchAllExpiredUsersToDate(deletionDate, (err, otherExpiredUsers) => {
               assert.ok(!err);
-              assert.ok(
-                _.find(otherExpiredUsers, otherExpiredUser => {
-                  return otherExpiredUser.principalId === userToDelete.user.id;
-                })
-              );
+              assert.ok(isUserAmongTheExpired(otherExpiredUsers, userToDelete));
 
               // Delete User - step 2
               eliminateUser(camAdminRestContext, userToDelete.user, resUserArchive.tenantAlias, err => {
@@ -169,13 +155,9 @@ describe('Delete and eliminate users', () => {
 
                 // Get expired principals
                 // The deleted user shouldn't appear because the user is already marked has fully deleted
-                getExpiredUser(actualDate, (err, moreExpiredUsers) => {
+                fetchAllExpiredUsersToDate(deletionDate, (err, moreExpiredUsers) => {
                   assert.ok(!err);
-                  assert.ok(
-                    !_.find(moreExpiredUsers, moreExpiredUser => {
-                      return moreExpiredUser.principalId === userToDelete.user.id;
-                    })
-                  );
+                  assert.ok(!isUserAmongTheExpired(moreExpiredUsers, userToDelete));
                   return callback();
                 });
               });

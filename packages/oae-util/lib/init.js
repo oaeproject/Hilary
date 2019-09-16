@@ -22,7 +22,6 @@ import * as MQ from './mq';
 import * as Pubsub from './pubsub';
 import * as Redis from './redis';
 import * as Signature from './signature';
-import * as TaskQueue from './taskqueue';
 import * as Tempfile from './tempfile';
 
 const log = logger('oae-cassandra');
@@ -33,7 +32,7 @@ export const init = function(config, callback) {
   bootCassandra(config, () => {
     bootRedis(config, () => {
       bootPubSub(config, () => {
-        bootRabbitMQ(config, () => {
+        bootMQ(config, () => {
           return callback();
         });
       });
@@ -94,14 +93,11 @@ const bootPubSub = (config, callback) => {
   });
 };
 
-const bootRabbitMQ = (config, callback) => {
+const bootMQ = (config, callback) => {
   // Initialize the RabbitMQ listener
   MQ.init(config.mq, err => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
-    // Initialize the task queue
-    TaskQueue.init(callback);
+    callback();
   });
 };

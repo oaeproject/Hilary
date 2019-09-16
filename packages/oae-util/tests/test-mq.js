@@ -19,20 +19,8 @@ import _ from 'underscore';
 import ShortId from 'shortid';
 
 import * as MQ from 'oae-util/lib/mq';
-import * as TaskQueue from 'oae-util/lib/taskqueue';
 
-describe('MQ', () => {
-  /**
-   * Some options that can be used to bind to a message queue.
-   */
-  const purgeQueueOptions = {
-    subscribe: {
-      prefetchCount: 1
-    },
-    queue: {
-      durable: false
-    }
-  };
+describe.skip('MQ', () => {
 
   /**
    * Verify that re-initializing the MQ doesn't invoke an error
@@ -68,10 +56,10 @@ describe('MQ', () => {
       };
 
       const testQueue = 'testQueue-' + new Date().getTime();
-      TaskQueue.bind(testQueue, taskHandler, purgeQueueOptions, () => {
+      MQ.subscribe(testQueue, taskHandler, () => {
         // Submit a couple of tasks.
         for (let i = 0; i < 10; i++) {
-          TaskQueue.submit(testQueue, { foo: 'bar' });
+          MQ.submitJSON(testQueue, { foo: 'bar' });
         }
 
         // Purge the queue.
@@ -99,12 +87,12 @@ describe('MQ', () => {
 
       const testQueueA = 'testQueueA-' + new Date().getTime();
       const testQueueB = 'testQueueB-' + new Date().getTime();
-      TaskQueue.bind(testQueueA, taskHandler, purgeQueueOptions, () => {
-        TaskQueue.bind(testQueueB, taskHandler, purgeQueueOptions, () => {
+      MQ.subscribe(testQueueA, taskHandler, () => {
+        MQ.subscribe(testQueueB, taskHandler, () => {
           // Submit a couple of tasks.
           for (let i = 0; i < 10; i++) {
-            TaskQueue.submit(testQueueA, { queue: 'a' });
-            TaskQueue.submit(testQueueB, { queue: 'b' });
+            MQ.submitJSON(testQueueA, { queue: 'a' });
+            MQ.submitJSON(testQueueB, { queue: 'b' });
           }
 
           // Purge all the queues.
@@ -121,291 +109,6 @@ describe('MQ', () => {
     });
   });
 
-  describe('#declareExchange()', () => {
-    /**
-     * Test that verifies that the parameters are validated
-     */
-    it('verify parameter validation', callback => {
-      MQ.declareExchange(null, { durable: false, autoDelete: true }, err => {
-        assert.strictEqual(err.code, 400);
-
-        // Sanity check
-        const exchangeName = util.format('testExchange-%s', ShortId.generate());
-        MQ.declareExchange(exchangeName, { durable: false, autoDelete: true }, err => {
-          assert.ok(!err);
-          return callback();
-        });
-      });
-    });
-    /**
-     * Test that verifies that exchanges cannot be declared twice
-     */
-    it('verify exchanges cannot be declared twice', callback => {
-      const exchangeName = util.format('testExchange-%s', ShortId.generate());
-      MQ.declareExchange(exchangeName, { durable: false, autoDelete: true }, err => {
-        assert.ok(!err);
-        MQ.declareExchange(exchangeName, { durable: false, autoDelete: true }, err => {
-          assert.strictEqual(err.code, 400);
-          return callback();
-        });
-      });
-    });
-  });
-
-  describe('#declareQueue()', () => {
-    /**
-     * Test that verifies that the parameters are validated
-     */
-    it('verify parameter validation', callback => {
-      MQ.declareQueue(null, { durable: false, autoDelete: true }, err => {
-        assert.strictEqual(err.code, 400);
-
-        // Sanity check
-        const queueName = util.format('testQueue-%s', ShortId.generate());
-        MQ.declareQueue(queueName, { durable: false, autoDelete: true }, err => {
-          assert.ok(!err);
-          return callback();
-        });
-      });
-    });
-
-    /**
-     * Test that verifies that queues cannot be declared twice
-     */
-    it('verify queues cannot be declared twice', callback => {
-      const queueName = util.format('testQueue-%s', ShortId.generate());
-      MQ.declareQueue(queueName, { durable: false, autoDelete: true }, err => {
-        assert.ok(!err);
-        MQ.declareQueue(queueName, { durable: false, autoDelete: true }, err => {
-          assert.strictEqual(err.code, 400);
-          return callback();
-        });
-      });
-    });
-  });
-
-  describe('#isQueueDeclared()', () => {
-    /**
-     * Test that verifies that it can be retrieved whether or not queues are declared
-     */
-    it('verify isQueueDeclared works', callback => {
-      const queueName = util.format('testQueue-%s', ShortId.generate());
-      const exchangeName = util.format('testExchange-%s', ShortId.generate());
-
-      let isDeclared = MQ.isQueueDeclared(queueName);
-      assert.strictEqual(isDeclared, false);
-
-      MQ.declareQueue(queueName, { durable: false, autoDelete: true }, err => {
-        assert.ok(!err);
-
-        isDeclared = MQ.isQueueDeclared(queueName);
-        assert.strictEqual(isDeclared, true);
-        return callback();
-      });
-    });
-  });
-
-  describe('#bindQueueToExchange()', () => {
-    /**
-     * Test that verifies that the parameters are validated
-     */
-    it('verify parameter validation', callback => {
-      const exchangeName = util.format('testExchange-%s', ShortId.generate());
-      const queueName = util.format('testQueue-%s', ShortId.generate());
-      const routingKey = util.format('testRoutingKey-%s', ShortId.generate());
-
-      MQ.declareExchange(exchangeName, { durable: false, autoDelete: true }, err => {
-        assert.ok(!err);
-        MQ.declareQueue(queueName, { durable: false, autoDelete: true }, err => {
-          assert.ok(!err);
-          MQ.bindQueueToExchange(null, exchangeName, routingKey, err => {
-            assert.strictEqual(err.code, 400);
-            MQ.bindQueueToExchange(queueName, null, routingKey, err => {
-              assert.strictEqual(err.code, 400);
-              MQ.bindQueueToExchange(queueName, exchangeName, null, err => {
-                assert.strictEqual(err.code, 400);
-
-                // Sanity check that the queue can be bound
-                MQ.bindQueueToExchange(queueName, exchangeName, routingKey, err => {
-                  assert.ok(!err);
-
-                  // Tidy up after ourselves and remove the binding
-                  MQ.unbindQueueFromExchange(queueName, exchangeName, routingKey, err => {
-                    assert.ok(!err);
-                    return callback();
-                  });
-                });
-              });
-            });
-          });
-        });
-      });
-    });
-
-    /**
-     * Test that verifies a queue can be bound to an exchange
-     */
-    it('verify functionality', callback => {
-      const exchangeName = util.format('testExchange-%s', ShortId.generate());
-      const queueName = util.format('testQueue-%s', ShortId.generate());
-      const routingKey = util.format('testRoutingKey-%s', ShortId.generate());
-      const data = { text: 'The truth is out there' };
-
-      MQ.declareExchange(exchangeName, { durable: false, autoDelete: true }, err => {
-        assert.ok(!err);
-        MQ.declareQueue(queueName, { durable: false, autoDelete: true }, err => {
-          assert.ok(!err);
-          const listener = function(msg) {
-            // Verify the message we receive is correct
-            assert.strictEqual(msg.text, data.text);
-
-            // Unbind the queue so both the queue and exchange will go away when we restart rabbitmq-server
-            MQ.unbindQueueFromExchange(queueName, exchangeName, routingKey, err => {
-              assert.ok(!err);
-              return callback();
-            });
-          };
-
-          MQ.subscribeQueue(queueName, {}, listener, err => {
-            assert.ok(!err);
-
-            MQ.bindQueueToExchange(queueName, exchangeName, routingKey, err => {
-              assert.ok(!err);
-
-              MQ.submit(exchangeName, routingKey, data);
-            });
-          });
-        });
-      });
-    });
-
-    /**
-     * Test that verifies you can bind queues to exchanges in parallel
-     */
-    it('verify you can bind queues to exchanges in parallel', callback => {
-      const exchangeName = util.format('testExchange-%s', ShortId.generate());
-      const queueName = util.format('testQueue-%s', ShortId.generate());
-      const data = { text: 'The truth is out there' };
-      const routingKeys = [];
-      for (let i = 0; i < 100; i++) {
-        routingKeys.push('key-' + i);
-      }
-
-      MQ.declareExchange(exchangeName, { durable: false, autoDelete: true }, err => {
-        assert.ok(!err);
-        MQ.declareQueue(queueName, { durable: false, autoDelete: true }, err => {
-          assert.ok(!err);
-
-          // This test passes if we receive a message from RabbitMQ for each of our routing keys
-          const receivedMessage = _.after(routingKeys.length, message => {
-            return callback();
-          });
-
-          // Subscribe for incoming messages
-          MQ.subscribeQueue(queueName, {}, receivedMessage, err => {
-            assert.ok(!err);
-
-            // When our queue is bound for all routing keys, we will submit a message for each one
-            const queueBound = _.after(routingKeys.length, () => {
-              _.each(routingKeys, routingKey => {
-                MQ.submit(exchangeName, routingKey, data);
-              });
-            });
-
-            // Bind our queue for all routing keys
-            _.each(routingKeys, routingKey => {
-              MQ.bindQueueToExchange(queueName, exchangeName, routingKey, err => {
-                assert.ok(!err);
-                queueBound();
-              });
-            });
-          });
-        });
-      });
-    });
-  });
-
-  describe('#unbindQueueFromExchange()', () => {
-    /**
-     * Test that verifies that the parameters are validated
-     */
-    it('verify parameter validation', callback => {
-      const exchangeName = util.format('testExchange-%s', ShortId.generate());
-      const queueName = util.format('testQueue-%s', ShortId.generate());
-      const routingKey = util.format('testRoutingKey-%s', ShortId.generate());
-
-      MQ.declareExchange(exchangeName, { durable: false, autoDelete: true }, err => {
-        assert.ok(!err);
-        MQ.declareQueue(queueName, { durable: false, autoDelete: true }, err => {
-          assert.ok(!err);
-          MQ.bindQueueToExchange(queueName, exchangeName, routingKey, err => {
-            assert.ok(!err);
-            MQ.unbindQueueFromExchange(null, exchangeName, routingKey, err => {
-              assert.strictEqual(err.code, 400);
-              MQ.unbindQueueFromExchange(queueName, null, routingKey, err => {
-                assert.strictEqual(err.code, 400);
-                MQ.unbindQueueFromExchange(queueName, exchangeName, null, err => {
-                  assert.strictEqual(err.code, 400);
-
-                  // Sanity-check and tidy up
-                  MQ.unbindQueueFromExchange(queueName, exchangeName, routingKey, err => {
-                    assert.ok(!err);
-                    return callback();
-                  });
-                });
-              });
-            });
-          });
-        });
-      });
-    });
-
-    /**
-     * Test that verifies a queue can be unbound from an exchange
-     */
-    it('verify functionality', () => {
-      const exchangeName = util.format('testExchange-%s', ShortId.generate());
-      const queueName = util.format('testQueue-%s', ShortId.generate());
-      const routingKey = util.format('testRoutingKey-%s', ShortId.generate());
-      const data = { text: 'The truth is out there' };
-
-      MQ.declareExchange(exchangeName, { durable: false, autoDelete: true }, err => {
-        assert.ok(!err);
-        MQ.declareQueue(queueName, { durable: false, autoDelete: true }, err => {
-          assert.ok(!err);
-          let handledMessages = 0;
-          const listener = function(msg) {
-            handledMessages++;
-
-            // We should only receive one message
-            assert.strictEqual(handledMessages, 1);
-
-            // Verify the message we receive is correct
-            assert.strictEqual(msg.text, data.text);
-          };
-
-          MQ.subscribeQueue(queueName, {}, listener, err => {
-            assert.ok(!err);
-
-            MQ.bindQueueToExchange(queueName, exchangeName, routingKey, err => {
-              assert.ok(!err);
-
-              MQ.submit(exchangeName, routingKey, data, () => {
-                // Unbind the queue from the exchange, we should no longer receive any messages
-                MQ.unbindQueueFromExchange(queueName, exchangeName, routingKey, err => {
-                  assert.ok(!err);
-
-                  // Submit one more message. If it ends up at our listener the test will fail
-                  MQ.submit(exchangeName, routingKey, data, () => {});
-                });
-              });
-            });
-          });
-        });
-      });
-    });
-  });
-
   describe('#submit()', () => {
     /**
      * Test that verifies the passed in parameters
@@ -416,8 +119,6 @@ describe('MQ', () => {
       const routingKey = util.format('testRoutingKey-%s', ShortId.generate());
       const data = { text: 'The truth is out there' };
 
-      MQ.declareExchange(exchangeName, { durable: false, autoDelete: true }, err => {
-        assert.ok(!err);
 
         // An exchange must be provided
         MQ.submit(null, routingKey, data, null, err => {
@@ -434,7 +135,6 @@ describe('MQ', () => {
             });
           });
         });
-      });
     });
 
     /**
@@ -444,9 +144,6 @@ describe('MQ', () => {
       let exchangeName = util.format('testExchange-%s', ShortId.generate());
       const routingKey = util.format('testRoutingKey-%s', ShortId.generate());
       const data = { text: 'The truth is out there' };
-
-      MQ.declareExchange(exchangeName, { durable: false, autoDelete: true }, err => {
-        assert.ok(!err);
 
         let noConfirmCalled = 0;
         MQ.submit(exchangeName, routingKey, data, null, err => {
@@ -458,8 +155,6 @@ describe('MQ', () => {
 
           // Declare an exchange that acknowledges the message
           exchangeName = util.format('testExchange-%s', ShortId.generate());
-          MQ.declareExchange(exchangeName, { durable: false, autoDelete: true, confirm: true }, err => {
-            assert.ok(!err);
 
             let confirmCalled = 0;
             MQ.submit(exchangeName, routingKey, data, null, err => {
@@ -470,9 +165,7 @@ describe('MQ', () => {
               assert.strictEqual(confirmCalled, 1);
               return callback();
             });
-          });
         });
-      });
     });
 
     /**
@@ -487,12 +180,6 @@ describe('MQ', () => {
       // Make sure the redeliver queue is empty to start
       MQ.purge('oae-util-mq-redeliverqueue', err => {
         assert.ok(!err);
-
-        // Create the exchange and queue on which we'll deliver a message and reject it
-        MQ.declareExchange(exchangeName, { durable: false, autoDelete: true }, err => {
-          assert.ok(!err);
-          MQ.declareQueue(queueName, { durable: false, autoDelete: true }, err => {
-            assert.ok(!err);
 
             // A listener that ensures it only handles the rejected message once
             let handledMessages = 0;
@@ -509,8 +196,6 @@ describe('MQ', () => {
             // Subscribe to the queue and allow it to start accepting messages on the exchange
             MQ.subscribeQueue(queueName, { ack: true }, listener, err => {
               assert.ok(!err);
-              MQ.bindQueueToExchange(queueName, exchangeName, routingKey, err => {
-                assert.ok(!err);
 
                 // Submit a message that we can handle
                 MQ.submit(exchangeName, routingKey, { data: 'test' }, null, err => {
@@ -556,10 +241,7 @@ describe('MQ', () => {
                     });
                   });
                 });
-              });
             });
-          });
-        });
       });
     });
   });

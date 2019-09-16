@@ -137,7 +137,6 @@ const init = function(emailSystemConfig, callback) {
   const numDaysUntilExpire = 30;
   const bucketInterval = Math.ceil(throttleConfig.timespan / 2) * 1000;
 
-  // Create the Redback rate limiter for emails
   rateLimit = require('ioredis-ratelimit')({
     client: Redis.getClient(),
     key(emailTo) {

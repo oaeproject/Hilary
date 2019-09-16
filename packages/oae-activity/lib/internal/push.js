@@ -50,43 +50,9 @@ let queueName = null;
 
 const QueueConstants = {};
 
-QueueConstants.exchange = {
-  NAME: 'oae-activity-pushexchange',
-  OPTIONS: {
-    type: 'direct',
-    durable: false,
-    autoDelete: false
-  }
-};
-
 QueueConstants.queue = {
-  PREFIX: 'oae-activity-push-',
-  OPTIONS: {
-    durable: false,
-    autoDelete: true,
-    arguments: {
-      // Additional information on highly available RabbitMQ queues can be found at http://www.rabbitmq.com/ha.html.
-      // We use `all` as the policy: Queue is mirrored across all nodes in the cluster.
-      // When a new node is added to the cluster, the queue will be mirrored to that node.
-      'x-ha-policy': 'all'
-    }
-  }
+  PREFIX: 'oae-activity-push-'
 };
-
-QueueConstants.publish = {
-  OPTIONS: {
-    // 1 indicates 'non-persistent'
-    deliveryMode: 1
-  }
-};
-
-QueueConstants.subscribe = {
-  OPTIONS: {
-    ack: false
-  }
-};
-
-// If a websocket connection is not authenticated within this timeframe, the connection will
 // be closed automatically
 const AUTHENTICATION_TIMEOUT = 5000;
 
@@ -175,23 +141,10 @@ const AUTHENTICATION_TIMEOUT = 5000;
  * @param  {Object}   callback.err  An error that occurred, if any
  */
 const init = function(callback) {
-  // Declare the push exchange
-  MQ.declareExchange(QueueConstants.exchange.NAME, QueueConstants.exchange.OPTIONS, err => {
-    if (err) {
-      return callback(err);
-    }
-
-    // Create our queue
-    queueName = QueueConstants.queue.PREFIX + ShortId.generate();
-    MQ.declareQueue(queueName, QueueConstants.queue.OPTIONS, err => {
-      if (err) {
-        return callback(err);
-      }
-
-      // Subscribe to our queue for new events
-      return MQ.subscribeQueue(queueName, QueueConstants.subscribe.OPTIONS, _handlePushActivity, callback);
-    });
-  });
+  // Create our queue
+  queueName = QueueConstants.queue.PREFIX + ShortId.generate();
+  // Subscribe to our queue for new events
+  return MQ.subscribe(queueName, _handlePushActivity, callback);
 };
 
 /**
@@ -286,7 +239,7 @@ const registerConnection = function(socket) {
   /*!
    * A client disconnected. We need to do some clean-up.
    *
-   * 1/ Unbind our RabbitMQ queue from the exchange for all the streams that user was interested in (but nobody else).
+   * 1/ Unbind our Redis queue from the exchange for all the streams that user was interested in (but nobody else).
    *
    * 2/ Clear all local references to this socket, so we're not leaking memory.
    */
@@ -311,16 +264,14 @@ const registerConnection = function(socket) {
         );
       } else if (connectionInfosPerStream[stream].length === 1) {
         // We can also stop listening to messages from this stream as nobody is interested in it anymore
-        MQ.unbindQueueFromExchange(queueName, QueueConstants.exchange.NAME, stream, () => {
-          todo--;
+        todo--;
 
-          // If nobody else is interested in this stream, we can remove it
-          delete connectionInfosPerStream[stream];
+        // If nobody else is interested in this stream, we can remove it
+        delete connectionInfosPerStream[stream];
 
-          if (todo === 0) {
-            Telemetry.appendDuration('unbind.all.time', start);
-          }
-        });
+        if (todo === 0) {
+          Telemetry.appendDuration('unbind.all.time', start);
+        }
 
         // Otherwise we need to iterate through the list of sockets for this stream and splice this one out
       } else {
@@ -380,7 +331,9 @@ const _authenticate = function(connectionInfo, message) {
   const validator = new Validator();
   validator.check(data.tenantAlias, { code: 400, msg: 'A tenant needs to be provided' }).notEmpty();
   validator.check(data.userId, { code: 400, msg: 'A userId needs to be provided' }).isUserId();
-  validator.check(null, { code: 400, msg: 'A signature object needs to be provided' }).isObject(data.signature);
+  validator
+    .check(null, { code: 400, msg: 'A signature object needs to be provided' })
+    .isObject(data.signature);
   if (validator.hasErrors()) {
     _writeResponse(connectionInfo, message.id, validator.getFirstError());
     log().error({ err: validator.getFirstError() }, 'Invalid auth frame');
@@ -410,7 +363,10 @@ const _authenticate = function(connectionInfo, message) {
   PrincipalsDAO.getPrincipal(data.userId, (err, user) => {
     if (err) {
       _writeResponse(connectionInfo, message.id, err);
-      log().error({ err, userId: data.userId, sid: socket.id }, 'Error trying to get the principal object');
+      log().error(
+        { err, userId: data.userId, sid: socket.id },
+        'Error trying to get the principal object'
+      );
       return socket.close();
     }
 
@@ -427,7 +383,10 @@ const _authenticate = function(connectionInfo, message) {
       )
     ) {
       _writeResponse(connectionInfo, message.id, { code: 401, msg: 'Invalid signature' });
-      log().error({ userId: data.userId, sid: socket.id }, 'Incoming authentication signature was invalid');
+      log().error(
+        { userId: data.userId, sid: socket.id },
+        'Incoming authentication signature was invalid'
+      );
       return socket.close();
     }
 
@@ -463,13 +422,13 @@ const _subscribe = function(connectionInfo, message) {
   }
 
   // If a format is specified, ensure that it is one that we support
-  if (
+  const formatIsInvalid =
     data.format &&
     !_.chain(ActivityConstants.transformerTypes)
       .values()
       .contains(data.format)
-      .value()
-  ) {
+      .value();
+  if (formatIsInvalid) {
     return _writeResponse(connectionInfo, message.id, {
       code: 400,
       msg: 'The specified stream format is unknown'
@@ -488,7 +447,10 @@ const _subscribe = function(connectionInfo, message) {
       return _writeResponse(connectionInfo, message.id, err);
     }
 
-    const activityStreamId = ActivityUtil.createActivityStreamId(data.stream.resourceId, data.stream.streamType);
+    const activityStreamId = ActivityUtil.createActivityStreamId(
+      data.stream.resourceId,
+      data.stream.streamType
+    );
     log().trace({ sid: socket.id, activityStreamId }, 'Registering socket for stream');
 
     /*!
@@ -498,11 +460,15 @@ const _subscribe = function(connectionInfo, message) {
       // Remember the desired transformer for this stream on this socket
       const transformerType = data.format || ActivityConstants.transformerTypes.INTERNAL;
       connectionInfo.transformerTypes = connectionInfo.transformerTypes || {};
-      connectionInfo.transformerTypes[activityStreamId] = connectionInfo.transformerTypes[activityStreamId] || [];
+      connectionInfo.transformerTypes[activityStreamId] =
+        connectionInfo.transformerTypes[activityStreamId] || [];
       connectionInfo.transformerTypes[activityStreamId].push(transformerType);
 
       // Acknowledge a succesful subscription
-      log().trace({ sid: socket.id, activityStreamId, format: transformerType }, 'Registered a client for a stream');
+      log().trace(
+        { sid: socket.id, activityStreamId, format: transformerType },
+        'Registered a client for a stream'
+      );
       return _writeResponse(connectionInfo, message.id);
     };
 
@@ -515,42 +481,12 @@ const _subscribe = function(connectionInfo, message) {
     // Remember this stream on the socket
     connectionInfo.streams.push(activityStreamId);
 
-    // Bind our app queue to the exchange
-    _bindQueue(activityStreamId, err => {
-      if (err) {
-        log().error({ sid: socket.id, err, activityStreamId }, 'Could not bind our queue to the exchange');
-        return _writeResponse(connectionInfo, message.id, err);
-      }
+    // Remember this socket on the app server so we can push to it asynchronously
+    connectionInfosPerStream[activityStreamId] = connectionInfosPerStream[activityStreamId] || [];
+    connectionInfosPerStream[activityStreamId].push(connectionInfo);
 
-      // Remember this socket on the app server so we can push to it asynchronously
-      connectionInfosPerStream[activityStreamId] = connectionInfosPerStream[activityStreamId] || [];
-      connectionInfosPerStream[activityStreamId].push(connectionInfo);
-
-      return finish();
-    });
+    return finish();
   });
-};
-
-/**
- * Instructs RabbitMQ to deliver events for `activityStreamId` to our app-queue.
- * If we're already listening on `activityStreamId` this function will callback immediately.
- *
- * @param  {String}     activityStreamId    The name of the stream we're interested in
- * @param  {Function}   callback            Standard callback function
- * @param  {Object}     callback.err        An error that occurred, if any
- * @api private
- */
-const _bindQueue = function(activityStreamId, callback) {
-  // If this is the first time we see this stream we'll need to bind this app server to receive
-  // events from RabbitMQ
-  if (connectionInfosPerStream[activityStreamId]) {
-    return callback();
-  }
-
-  MQ.bindQueueToExchange(queueName, QueueConstants.exchange.NAME, activityStreamId, callback);
-
-  // If we've seen this stream before, we're already listening for events for that stream
-  // so there is no need to bind again
 };
 
 /**
@@ -600,11 +536,11 @@ const _writeResponse = function(connectionInfo, id, error) {
 };
 
 /// ///////////////////////////
-// SEND/RECEIVE TO RABBITMQ //
+// SEND/RECEIVE TO REDIS //
 /// ///////////////////////////
 
 /**
- * Push out an activity to the RabbitMQ exchange.
+ * Push out an activity to the Redis queue
  * From there it can be routed to the appropriate app server based on the activityStreamId.
  *
  * @param  {String}         activityStreamId            The activity stream on which the activity was routed. ex: `u:cam:abc123#notification`
@@ -615,11 +551,29 @@ const _writeResponse = function(connectionInfo, id, error) {
  * @api private
  */
 const _push = function(activityStreamId, routedActivity) {
-  MQ.submit(QueueConstants.exchange.NAME, activityStreamId, routedActivity, QueueConstants.publish.OPTIONS);
+  routedActivity = JSON.stringify(routedActivity);
+
+  /**
+   * Since this is not RabbitMQ anymore, thank god, instead of pushing
+   * to the exchange blindly, we first check for a binding:
+   * If it exists, then we submit. If it doesn't, then we skip it. Simple.
+   */
+
+  // strip down the activityStream for cases such as activity#public or activity#loggedin
+  const activityStreamFilter = activityStreamId.split('#');
+  if (activityStreamFilter.length === 3) activityStreamFilter.pop();
+  activityStreamId = activityStreamFilter.join('#');
+
+  const thereIsASocketBoundToThisActivity = connectionInfosPerStream[activityStreamId];
+  if (thereIsASocketBoundToThisActivity) {
+    MQ.submit(queueName, routedActivity, err => {});
+  } else {
+    log().warn(`I am skipping a WebSocket PUSH for ${activityStreamId} because no socket bound...`);
+  }
 };
 
 /**
- * A message arrived on our RabbitMQ queue which we need to distribute
+ * A message arrived on redis queue which we need to distribute
  * to the connected clients who are interested in this stream.
  *
  * @param  {Object}        data        The data that was published to the queue. @see _push
@@ -638,27 +592,32 @@ const _handlePushActivity = function(data, callback) {
       todo++;
       // Because we're sending these activities to possible multiple sockets/users we'll need to clone and transform it for each socket
       const activities = clone(data.activities);
-      ActivityTransformer.transformActivities(connectionInfo.ctx, activities, transformerType, err => {
-        if (err) {
-          return log().error({ err }, 'Could not transform event');
-        }
+      ActivityTransformer.transformActivities(
+        connectionInfo.ctx,
+        activities,
+        transformerType,
+        err => {
+          if (err) {
+            return log().error({ err }, 'Could not transform event');
+          }
 
-        const msgData = {
-          resourceId: data.resourceId,
-          streamType: data.streamType,
-          activities,
-          format: transformerType,
-          numNewActivities: data.numNewActivities
-        };
-        log().trace({ data: msgData, sid: socket.id }, 'Pushing message to socket');
-        const msg = JSON.stringify(msgData);
-        socket.write(msg);
+          const msgData = {
+            resourceId: data.resourceId,
+            streamType: data.streamType,
+            activities,
+            format: transformerType,
+            numNewActivities: data.numNewActivities
+          };
+          log().trace({ data: msgData, sid: socket.id }, 'Pushing message to socket');
+          const msg = JSON.stringify(msgData);
+          socket.write(msg);
 
-        todo--;
-        if (todo === 0) {
-          callback();
+          todo--;
+          if (todo === 0) {
+            callback();
+          }
         }
-      });
+      );
     });
   });
 };
@@ -668,7 +627,7 @@ const _handlePushActivity = function(data, callback) {
 /// //////////////////
 
 /*!
- * Send routed activities to the push exchange
+ * Send routed activities to the push queue
  */
 ActivityEmitter.on(ActivityConstants.events.ROUTED_ACTIVITIES, routedActivities => {
   // Iterate over each target resource
@@ -692,7 +651,7 @@ ActivityEmitter.on(ActivityConstants.events.ROUTED_ACTIVITIES, routedActivities 
 });
 
 /*!
- * Send aggregated activities to the push exchange
+ * Send aggregated activities to the push queue
  */
 ActivityEmitter.on(ActivityConstants.events.DELIVERED_ACTIVITIES, deliveredActivities => {
   // Iterate over each target resource

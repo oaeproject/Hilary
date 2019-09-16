@@ -17,7 +17,6 @@
 import assert from 'assert';
 import fs from 'fs';
 import path from 'path';
-import url from 'url';
 import util from 'util';
 import _ from 'underscore';
 import gm from 'gm';
@@ -38,7 +37,6 @@ import * as MQ from 'oae-util/lib/mq';
 import * as MQTestUtil from 'oae-util/lib/test/mq-util';
 import * as RestAPI from 'oae-rest';
 import * as RestUtil from 'oae-rest/lib/util';
-import * as TaskQueue from 'oae-util/lib/taskqueue';
 import * as Tempfile from 'oae-util/lib/tempfile';
 import * as TestsUtil from 'oae-tests/lib/util';
 import * as PreviewAPI from 'oae-preview-processor/lib/api';
@@ -2231,10 +2229,10 @@ describe('Preview processor', () => {
       };
 
       // Unbind and rebind a process-all handler
-      TaskQueue.unbind(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
+      MQ.unsubscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
         assert.ok(!err);
 
-        TaskQueue.bind(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, _handler, null, err => {
+        MQ.subscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, _handler, err => {
           assert.ok(!err);
 
           RestAPI.Previews.reprocessPreviews(restCtx, filters, callback);
@@ -2452,7 +2450,7 @@ describe('Preview processor', () => {
                   assert.ok(err);
 
                   // Unbind our handler, so we don't trip over the next test
-                  TaskQueue.unbind(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
+                  MQ.unsubscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
                     assert.ok(!err);
                     return callback();
                   });
@@ -2490,7 +2488,7 @@ describe('Preview processor', () => {
               assert.strictEqual(err.code, 400);
 
               // Unbind our handler, so we don't trip over the next test
-              TaskQueue.unbind(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
+              MQ.unsubscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
                 assert.ok(!err);
                 return callback();
               });
@@ -2510,7 +2508,7 @@ describe('Preview processor', () => {
         // Enable previews so we can handle the reprocessing
         PreviewAPI.enable(err => {
           // Unbind the PP first, so we can listen for incoming generate previews task
-          TaskQueue.unbind(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, err => {
+          MQ.unsubscribe(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, err => {
             assert.ok(!err);
 
             // It's possible the PP started processing on old item, wait till it's done so it doesn't mess up this test
@@ -2522,17 +2520,17 @@ describe('Preview processor', () => {
                 callback();
               };
 
-              TaskQueue.bind(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, reprocessTracker, null, err => {
+              MQ.subscribe(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, reprocessTracker, err => {
                 assert.ok(!err);
 
                 // Missing filters is invalid
-                TaskQueue.submit(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, {}, () => {
+                MQ.submitJSON(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, {}, () => {
                   MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, () => {
                     MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
                       assert.strictEqual(contentToBeReprocessed.length, 0);
 
                       // Unknown content filter is invalid
-                      TaskQueue.submit(
+                      MQ.submitJSON(
                         PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS,
                         { filters: { content: { foo: 'bar' } } },
                         () => {
@@ -2541,7 +2539,7 @@ describe('Preview processor', () => {
                               assert.strictEqual(contentToBeReprocessed.length, 0);
 
                               // Unknown revision filter is invalid
-                              TaskQueue.submit(
+                              MQ.submitJSON(
                                 PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS,
                                 { filters: { revision: { foo: 'bar' } } },
                                 () => {
@@ -2584,6 +2582,9 @@ describe('Preview processor', () => {
 
           RestAPI.User.getMe(mrvisser.restContext, (err, mrvisserFullMeData) => {
             assert.ok(!err);
+                    // Re-enable the processor so the file can be processed
+                    PreviewAPI.enable(err => {
+                      assert.ok(!err);
 
             // Create a file that we can process
             RestAPI.Content.createFile(
@@ -2617,10 +2618,6 @@ describe('Preview processor', () => {
                     ]
                   };
                   ActivityTestsUtil.getFullySetupPushClient(data, client => {
-                    // Re-enable the processor so the file can be processed
-                    PreviewAPI.enable(err => {
-                      assert.ok(!err);
-                    });
 
                     client.on('message', message => {
                       if (message.activities[0] && message.activities[0]['oae:activityType'] === 'previews-finished') {
@@ -2639,6 +2636,7 @@ describe('Preview processor', () => {
                 });
               }
             );
+                    });
           });
         });
       });

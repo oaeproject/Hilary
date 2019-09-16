@@ -37,21 +37,15 @@ const init = function(config, callback) {
   if (redisManager === null) {
     // Create 3 clients, one for managing redis and 2 for the actual pub/sub communication.
     Redis.createClient(config, (err, client) => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       redisManager = client;
       Redis.createClient(config, (err, client) => {
-        if (err) {
-          return callback(err);
-        }
+        if (err) return callback(err);
 
         redisSubscriber = client;
         Redis.createClient(config, (err, client) => {
-          if (err) {
-            return callback(err);
-          }
+          if (err) return callback(err);
 
           redisPublisher = client;
 
@@ -59,7 +53,10 @@ const init = function(config, callback) {
           redisSubscriber.on('pmessage', (pattern, channel, message) => {
             emitter.emit(channel, message);
           });
+
           redisSubscriber.psubscribe('*');
+          // ! ['oae-tests', 'oae-search*', 'oae-tenants', 'oae-tenant-networks', 'oae-config']
+
           return callback();
         });
       });

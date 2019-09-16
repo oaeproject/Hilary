@@ -17,12 +17,12 @@ import _ from 'underscore';
 import { logger } from 'oae-logger';
 
 import * as EmitterAPI from 'oae-emitter';
-import * as TaskQueue from 'oae-util/lib/taskqueue';
 import * as SearchUtil from 'oae-search/lib/util';
 
 import { Validator } from 'oae-util/lib/validator';
 import { SearchConstants } from 'oae-search/lib/constants';
 import { SearchResult } from 'oae-search/lib/model';
+import * as MQ from 'oae-util/lib/mq';
 import * as client from './internal/elasticsearch';
 
 const log = logger('oae-search');
@@ -269,16 +269,16 @@ const refreshSearchConfiguration = function(searchConfig, callback) {
 
   if (processIndexJobs && !boundIndexWorkers) {
     boundIndexWorkers = true;
-    TaskQueue.bind(SearchConstants.mq.TASK_INDEX_DOCUMENT, _handleIndexDocumentTask, null, () => {
-      TaskQueue.bind(SearchConstants.mq.TASK_DELETE_DOCUMENT, _handleDeleteDocumentTask, null, () => {
-        return TaskQueue.bind(SearchConstants.mq.TASK_REINDEX_ALL, _handleReindexAllTask, null, callback);
+    MQ.subscribe(SearchConstants.mq.TASK_INDEX_DOCUMENT, _handleIndexDocumentTask, () => {
+      MQ.subscribe(SearchConstants.mq.TASK_DELETE_DOCUMENT, _handleDeleteDocumentTask, () => {
+        return MQ.subscribe(SearchConstants.mq.TASK_REINDEX_ALL, _handleReindexAllTask, callback);
       });
     });
   } else if (!processIndexJobs && boundIndexWorkers) {
     boundIndexWorkers = false;
-    TaskQueue.unbind(SearchConstants.mq.TASK_INDEX_DOCUMENT, () => {
-      TaskQueue.unbind(SearchConstants.mq.TASK_DELETE_DOCUMENT, () => {
-        return TaskQueue.unbind(SearchConstants.mq.TASK_REINDEX_ALL, callback);
+    MQ.unsubscribe(SearchConstants.mq.TASK_INDEX_DOCUMENT, () => {
+      MQ.unsubscribe(SearchConstants.mq.TASK_DELETE_DOCUMENT, () => {
+        return MQ.unsubscribe(SearchConstants.mq.TASK_REINDEX_ALL, callback);
       });
     });
   } else {
@@ -393,7 +393,7 @@ const postReindexAllTask = function(ctx, callback) {
     return callback({ code: 401, msg: 'Only global administrator can trigger a full reindex.' });
   }
 
-  TaskQueue.submit(SearchConstants.mq.TASK_REINDEX_ALL, null, callback);
+  MQ.submitJSON(SearchConstants.mq.TASK_REINDEX_ALL, null, callback);
 };
 
 /**
@@ -443,7 +443,7 @@ const postIndexTask = function(resourceType, resources, index, callback) {
     return callback(validator.getFirstError());
   }
 
-  return TaskQueue.submit(SearchConstants.mq.TASK_INDEX_DOCUMENT, { resourceType, resources, index }, callback);
+  return MQ.submitJSON(SearchConstants.mq.TASK_INDEX_DOCUMENT, { resourceType, resources, index }, callback);
 };
 
 /**
@@ -455,7 +455,7 @@ const postIndexTask = function(resourceType, resources, index, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const postDeleteTask = function(id, children, callback) {
-  return TaskQueue.submit(SearchConstants.mq.TASK_DELETE_DOCUMENT, { id, children }, callback);
+  return MQ.submitJSON(SearchConstants.mq.TASK_DELETE_DOCUMENT, { id, children }, callback);
 };
 
 /**

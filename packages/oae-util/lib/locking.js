@@ -29,7 +29,19 @@ let locker = null;
  */
 const init = function() {
   locker = new Redlock([Redis.getClient()], {
-    retryCount: 0
+    /**
+     * From https://www.npmjs.com/package/redlock#how-do-i-check-if-something-is-locked:
+     *
+     * Redlock cannot tell you with certainty if a resource is currently locked.
+     * For example, if you are on the smaller side of a network partition you will fail to acquire a lock,
+     * but you don't know if the lock exists on the other side; all you know is that you can't
+     * guarantee exclusivity on yours.
+     *
+     * That said, for many tasks it's sufficient to attempt a lock with retryCount=0, and treat a
+     * failure as the resource being "locked" or (more correctly) "unavailable",
+     * With retryCount=-1 there will be unlimited retries until the lock is aquired.
+     */
+    retryCount: 3
   });
 };
 

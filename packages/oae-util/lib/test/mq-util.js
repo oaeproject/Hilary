@@ -17,13 +17,13 @@ import _ from 'underscore';
 
 import PreviewConstants from 'oae-preview-processor/lib/constants';
 import Counter from 'oae-util/lib/counter';
-// import * as MQ from 'oae-util/lib/mq';
-import * as pubSub from 'oae-util/lib/pubsub';
+import * as MQ from 'oae-util/lib/mq';
+// import * as pubSub from 'oae-util/lib/pubsub';
 
 // Track when counts for a particular type of task return to 0
 const queueCounters = {};
 
-pubSub.emitter.on('preSubmit', channel => {
+MQ.emitter.on('preSubmit', channel => {
   // Technically, the routing key is not the same as the queue, all the Task Queues in OAE however
   // use the same routing key as their destination queue name
   // debug
@@ -31,13 +31,13 @@ pubSub.emitter.on('preSubmit', channel => {
   _increment(channel);
 });
 
-pubSub.emitter.on('postHandle', (err, channel) => {
+MQ.emitter.on('postHandle', (err, channel) => {
   // debug
   // console.log('Decrementing on ' + channel);
   _decrement(channel, 1);
 });
 
-pubSub.emitter.on('postPurge', (name, count) => {
+MQ.emitter.on('postPurge', (name, count) => {
   // _decrement(name, count);
   count = _get(name);
   // debug
@@ -82,10 +82,6 @@ const _increment = function(name) {
 
     queueCounters[name] = queueCounters[name] || new Counter();
     queueCounters[name].incr();
-  } else {
-    // debug
-    if (name === PreviewConstants.MQ.TASK_GENERATE_PREVIEWS)
-      console.log('-> didnt increment because queue reference isnt there!');
   }
 
   // pubSub.getBoundQueueNames[name] = Date.now();
@@ -108,7 +104,7 @@ const _get = name => {
  */
 const _hasQueue = function(name) {
   // return _.contains(_.keys(queueCounters), name);
-  return _.contains(pubSub.getBoundQueueNames(), name);
+  return _.contains(MQ.getBoundQueueNames(), name);
 };
 
 /**

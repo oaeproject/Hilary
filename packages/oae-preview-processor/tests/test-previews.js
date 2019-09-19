@@ -17,7 +17,6 @@
 import assert from 'assert';
 import fs from 'fs';
 import path from 'path';
-import url from 'url';
 import util from 'util';
 import _ from 'underscore';
 import gm from 'gm';
@@ -2139,7 +2138,7 @@ describe('Preview processor', () => {
         assert.ok(!err);
 
         // Purge all task queues
-        pubSub.purgeAll(err => {
+        MQ.purgeAll(err => {
           assert.ok(!err);
 
           // Make sure all tasks are done

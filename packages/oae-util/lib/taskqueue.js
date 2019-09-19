@@ -13,10 +13,9 @@
  * permissions and limitations under the License.
  */
 
-import _ from 'underscore';
-import * as pubSub from './pubsub';
-
-// import * as MQ from './mq';
+// import _ from 'underscore';
+// import * as pubSub from './pubsub';
+import * as MQ from './mq';
 
 /**
  * ## The Task Queue API.
@@ -27,32 +26,6 @@ import * as pubSub from './pubsub';
  * It can be used as a simple task queue where tasks can be submitted to
  * and consumed from.
  */
-
-const Constants = {
-  DEFAULT_TASK_EXCHANGE_NAME: 'oae-taskexchange',
-  DEFAULT_TASK_EXCHANGE_OPTS: {
-    type: 'direct',
-    durable: true,
-    autoDelete: false
-  },
-  DEFAULT_TASK_QUEUE_OPTS: {
-    durable: true,
-    autoDelete: false,
-    arguments: {
-      // Additional information on highly available RabbitMQ queues can be found at http://www.rabbitmq.com/ha.html.
-      // We use `all` as the policy: Queue is mirrored across all nodes in the cluster.
-      // When a new node is added to the cluster, the queue will be mirrored to that node.
-      'x-ha-policy': 'all'
-    }
-  },
-  DEFAULT_TASK_QUEUE_PUBLISH_OPTS: {
-    deliveryMode: 2 // 2 indicates 'persistent'
-  },
-  DEFAULT_TASK_QUEUE_SUBSCRIBE_OPTS: {
-    ack: true,
-    prefetchCount: 15
-  }
-};
 
 /**
  * Initializes the task queue logic so that it can start sending and receiving tasks
@@ -80,7 +53,7 @@ const init = function(callback) {
  * @param  {Function}   callback                Standard callback function
  */
 const bind = (taskQueueId, listener, options, callback) => {
-  pubSub.subscribe(taskQueueId, listener, callback);
+  MQ.subscribe(taskQueueId, listener, callback);
 };
 
 /*
@@ -140,7 +113,7 @@ const _declareQueue = function(taskQueueId, queueOptions, callback) {
  */
 const unbind = function(taskQueueId, callback) {
   // MQ.unsubscribeQueue(taskQueueId, callback);
-  pubSub.unsubscribe(taskQueueId, callback);
+  MQ.unsubscribe(taskQueueId, callback);
 };
 
 /**
@@ -152,8 +125,8 @@ const unbind = function(taskQueueId, callback) {
  */
 const submit = function(taskQueueId, taskData, callback) {
   // MQ.submit(Constants.DEFAULT_TASK_EXCHANGE_NAME, taskQueueId, taskData, null, callback);
-  pubSub.publish(taskQueueId, JSON.stringify(taskData), callback);
+  MQ.submit(taskQueueId, JSON.stringify(taskData), callback);
   // pubSub.publish(taskQueueId, taskData, callback);
 };
 
-export { Constants, init, bind, unbind, submit };
+export { init, bind, unbind, submit };

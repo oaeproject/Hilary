@@ -71,9 +71,7 @@ const ES6Modules = [
  */
 const bootstrapModules = function(config, callback) {
   initAvailableModules((err, modules) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     if (_.isEmpty(modules)) {
       return callback(new Error('No modules to install, or error aggregating modules.'));
@@ -83,9 +81,7 @@ const bootstrapModules = function(config, callback) {
 
     // Initialize all modules
     bootstrapModulesInit(modules, config, err => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       // Register all endpoints
       return bootstrapModulesRest(modules, callback);
@@ -124,6 +120,8 @@ const bootstrapModulesInit = function(modules, config, callback) {
       if (fs.existsSync(moduleInitPath)) {
         // ES6 modules cannot have an export default as a function, so init it exported instead
         if (_.contains(ES6Modules, moduleName)) {
+          // debug
+          console.log(moduleName);
           require(moduleName + MODULE_INIT_FILE).init(config, _onceDone);
         } else {
           require(moduleName + MODULE_INIT_FILE)(config, _onceDone);
@@ -188,6 +186,7 @@ const initAvailableModules = function(callback) {
       const module = modules[i];
       // debug
       console.log('Gonna init module ' - module);
+
       if (module.substring(0, 4) === 'oae-') {
         // Determine module priority
         const filename = module + '/package.json';

@@ -16,8 +16,8 @@
 import assert from 'assert';
 import PreviewConstants from 'oae-preview-processor/lib/constants';
 
-import * as pubSub from 'oae-util/lib/pubsub';
-// import * as MQ from 'oae-util/lib/mq';
+// import * as pubSub from 'oae-util/lib/pubsub';
+import * as MQ from 'oae-util/lib/mq';
 import * as TaskQueue from 'oae-util/lib/taskqueue';
 
 /**
@@ -35,7 +35,7 @@ const purgePreviewsQueue = function(callback) {
       assert.ok(!err);
 
       // Purge anything that is in the queue
-      pubSub.purge(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, err => {
+      MQ.purge(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, err => {
         assert.ok(!err);
 
         // Unbind our dummy-handler from the queue
@@ -66,7 +66,7 @@ const purgeRegeneratePreviewsQueue = function(callback) {
       assert.ok(!err);
 
       // Purge anything that is in the queue
-      pubSub.purge(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
+      MQ.purge(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
         assert.ok(!err);
 
         // Unbind our dummy-handler from the queue
@@ -101,7 +101,7 @@ const purgeFoldersPreviewsQueue = function(callback) {
         assert.ok(!err);
 
         // Purge anything that is in the queue
-        pubSub.purge(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, err => {
+        MQ.purge(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, err => {
           assert.ok(!err);
 
           // Unbind our dummy-handler from the queue

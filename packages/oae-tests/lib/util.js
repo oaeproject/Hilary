@@ -35,8 +35,8 @@ import * as LibraryAPI from 'oae-library';
 
 import { LoginId } from 'oae-authentication/lib/model';
 import multipart from 'oae-util/lib/middleware/multipart';
-import * as pubSub from 'oae-util/lib/pubsub';
-// import * as MQ from 'oae-util/lib/mq';
+// import * as pubSub from 'oae-util/lib/pubsub';
+import * as MQ from 'oae-util/lib/mq';
 import * as MQTestUtil from 'oae-util/lib/test/mq-util';
 import * as OAE from 'oae-util/lib/oae';
 import * as OaeUtil from 'oae-util/lib/util';
@@ -320,24 +320,18 @@ const generateTestUsers = function(restCtx, total, callback, _createdUsers) {
   // Ensure that the provided rest context has been authenticated before trying to use it to
   // create users
   _ensureAuthenticated(restCtx, err => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     // Get the tenant information so we can generate an email address that belongs to the
     // configured tenant email domain (if any)
     RestAPI.Tenants.getTenant(restCtx, null, (err, tenant) => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       const username = generateTestUserId('random-user');
       const displayName = generateTestGroupId('random-user');
       const email = generateTestEmailAddress(username, tenant.emailDomains[0]);
       RestAPI.User.createUser(restCtx, username, 'password', displayName, email, {}, (err, user) => {
-        if (err) {
-          return callback(err);
-        }
+        if (err) return callback(err);
 
         // Manually verify the user their email address
         PrincipalsDAO.setEmailAddress(user, email.toLowerCase(), (err, user) => {
@@ -1280,6 +1274,7 @@ const setUpBeforeTests = function(config, dropKeyspaceBeforeTest, callback) {
               // Defer the test setup until after the task handlers are successfully bound and all the queues are drained.
               // This will always be fired after OAE.init has successfully finished.
               // TODO
+              // MQ.emitter.on('ready', err => {
               OAE.OaeEmitter.on('ready', err => {
                 if (err) {
                   return callback(new Error(err.msg));
@@ -1329,7 +1324,7 @@ const cleanUpAfterTests = function(callback) {
     }
 
     // Purge all the task queues
-    pubSub.purgeAll(err => {
+    MQ.purgeAll(err => {
       if (err) {
         log().error({ err }, 'Error purging the RabbitMQ queues');
       }

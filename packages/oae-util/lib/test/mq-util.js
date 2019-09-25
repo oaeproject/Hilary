@@ -15,33 +15,29 @@
 
 import _ from 'underscore';
 
-import PreviewConstants from 'oae-preview-processor/lib/constants';
 import Counter from 'oae-util/lib/counter';
 import * as MQ from 'oae-util/lib/mq';
-// import * as pubSub from 'oae-util/lib/pubsub';
 
 // Track when counts for a particular type of task return to 0
 const queueCounters = {};
 
-MQ.emitter.on('preSubmit', channel => {
-  // Technically, the routing key is not the same as the queue, all the Task Queues in OAE however
-  // use the same routing key as their destination queue name
+MQ.emitter.on('preSubmit', queueName => {
+  _increment(queueName);
   // debug
-  // console.log('Incrementing on ' + channel);
-  _increment(channel);
+  console.log(`* Incrementing on [${queueName}]: now at [${_get(queueName)}]`);
 });
 
-MQ.emitter.on('postHandle', (err, channel) => {
+MQ.emitter.on('postHandle', (err, queueName) => {
+  _decrement(queueName, 1);
   // debug
-  // console.log('Decrementing on ' + channel);
-  _decrement(channel, 1);
+  console.log(` * Decrementing on [${queueName}]: now at [${_get(queueName)}]`);
 });
 
 MQ.emitter.on('postPurge', (name, count) => {
   // _decrement(name, count);
   count = _get(name);
   // debug
-  console.log(count + ' tasks to delete on [' + name + ']');
+  console.log(' * ' + count + ' tasks to delete on [' + name + ']');
   _decrement(name, count); // decrements until 0
 });
 
@@ -54,17 +50,14 @@ MQ.emitter.on('postPurge', (name, count) => {
  * @param  {String}     name        The name of the task to listen for empty events
  * @param  {Function}   handler     The handler to invoke when the task queue is empty
  */
-const whenTasksEmpty = function(name, handler) {
-  if (!queueCounters[name] || !_hasQueue(name)) {
-    // debug
-    if (name === PreviewConstants.MQ.TASK_GENERATE_PREVIEWS) console.log('Tasks empty for ' + name);
+const whenTasksEmpty = function(queueName, handler) {
+  if (!queueCounters[queueName] || !_hasQueue(queueName)) {
+    // if (!queueCounters[queueName]) {
     return handler();
   }
 
-  // debug
-  // if (name === PreviewConstants.MQ.TASK_GENERATE_PREVIEWS) console.log('Waiting for Zero counter found for ' + name);
   // Bind the handler to the counter for this queue
-  queueCounters[name].whenZero(handler);
+  queueCounters[queueName].whenZero(handler);
 };
 
 /**
@@ -73,18 +66,12 @@ const whenTasksEmpty = function(name, handler) {
  * @param  {String}     name    The name of the task whose count to increment
  * @api private
  */
-const _increment = function(name) {
-  if (_hasQueue(name)) {
-    // debug
-    if (name === PreviewConstants.MQ.TASK_GENERATE_PREVIEWS) {
-      console.log('Incrementing for [' + name + ']');
-    }
-
-    queueCounters[name] = queueCounters[name] || new Counter();
-    queueCounters[name].incr();
+const _increment = function(queueName) {
+  if (_hasQueue(queueName)) {
+    queueCounters[queueName] = queueCounters[queueName] || new Counter();
+    printCounter(queueName);
+    queueCounters[queueName].incr();
   }
-
-  // pubSub.getBoundQueueNames[name] = Date.now();
 };
 
 const _get = name => {
@@ -96,6 +83,10 @@ const _get = name => {
   return 0;
 };
 
+const printCounter = queueName => {
+  console.log(`${queueName}: [${_get(queueName)}] elements`);
+};
+
 /**
  * Determines if MQ has a handler bound for a task by the given name.
  *
@@ -104,7 +95,8 @@ const _get = name => {
  */
 const _hasQueue = function(name) {
   // return _.contains(_.keys(queueCounters), name);
-  return _.contains(MQ.getBoundQueueNames(), name);
+  return _.contains(_.keys(MQ.getBoundQueues()), name);
+  // return true;
 };
 
 /**
@@ -114,13 +106,10 @@ const _hasQueue = function(name) {
  * @param  {String}     name    The name of the task whose count to decrement
  * @api private
  */
-const _decrement = function(name, count) {
-  // debug
-  if (name === PreviewConstants.MQ.TASK_GENERATE_PREVIEWS && count !== 0)
-    console.log('Decrementing ' + count + ' for [' + name + ']');
-
-  queueCounters[name] = queueCounters[name] || new Counter();
-  queueCounters[name].decr(count);
+const _decrement = function(queueName, count) {
+  queueCounters[queueName] = queueCounters[queueName] || new Counter();
+  printCounter(queueName);
+  queueCounters[queueName].decr(count);
 };
 
 export { whenTasksEmpty };

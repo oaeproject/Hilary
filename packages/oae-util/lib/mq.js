@@ -37,6 +37,15 @@ let publisher = null;
 const bindings = {};
 const subscribers = {};
 
+// Determines whether or not we should purge queues on first connect. Also ensures we only purge the
+// first time it connects (i.e., on "startup"), however any disconnect / connects while the server is
+// running will not repurge
+const purgeQueuesOnStartup = false;
+const startupPurgeStatus = {};
+
+let numMessagesInProcessing = 0;
+const messagesInProcessing = {};
+
 const PROCESSING_QUEUE = 'processing';
 
 // TODO remove after debuggiing
@@ -138,9 +147,13 @@ const collectLatestFromQueue = (queueName, listener) => {
             emitter.emit('postHandle', null, queueName, message, null, null);
 
             /*
-            // recursive call itself because it's a never ending job
-            console.log('-> Going to listen from [' + queueName + ']');
-            return collectLatestFromQueue(queueName, listener);
+            // recursive call itself if there are more tasks to be consumed
+            subscriber.llen(queueName, (err, stillQueued) => {
+              if (stillQueued > 0) {
+                console.log('-> Still ' + stillQueued + ' tasks there, gonna listen from [' + queueName + ']');
+                return collectLatestFromQueue(queueName, listener);
+              }
+            });
             */
           });
         });
@@ -192,6 +205,18 @@ const subscribe = (queueName, listener, callback) => {
    * 2 add a new listener for future tasks submitted (via lpush command event listener)
    * 3 make sure we consume all past events/tasks that haven't been consumed yet
    */
+
+  // make sure the listener isn't repetitive
+  /*
+  const filtersForThisQueue = _.filter(emitter.listeners(), eachListener => {
+    return eachListener === `collectFrom:${queueName}`;
+  }).length;
+
+  if (filtersForThisQueue > 1) {
+    console.log('\n\nSERIOUS SHIT GOING ON HERE\n\n');
+  }
+  */
+
   emitter.on(`collectFrom:${queueName}`, emittedQueue => {
     if (emittedQueue === queueName) {
       // console.log('-> Going to listen from [' + queueName + ']');
@@ -245,9 +270,12 @@ const submit = function(queueName, message, callback) {
   if (validator.hasErrors()) return callback(validator.getFirstError());
 
   // TODO I dont think the second condition is relevant
-  if (bindings[queueName] || queueName.indexOf('oae-activity-push') !== -1) {
+  // if (bindings[queueName] || queueName.indexOf('oae-activity-push') !== -1) {
+
+  if (bindings[queueName]) {
     console.log('-> Sending PRESUBMIT for [' + queueName + ']');
     emitter.emit('preSubmit', queueName);
+
     publisher.lpush(queueName, message, () => {
       emitter.emit(`collectFrom:${queueName}`, queueName);
       console.log(`\n-> Just emitted the collectFrom:${queueName} event!!`);
@@ -286,226 +314,8 @@ OAE.registerPreShutdownHandler('mq', null, done => {
   done();
 });
 
-/**
- * Declare an exchange
- *
- * @param  {String}     exchangeName        The name of the exchange that should be declared
- * @param  {Object}     exchangeOptions     The options that should be used to declare this exchange. See https://github.com/postwait/node-amqp/#connectionexchangename-options-opencallback for a full list of options
- * @param  {Function}   callback            Standard callback function
- */
-/*
-const declareExchange = function(exchangeName, exchangeOptions, callback) {
-  if (!exchangeName) {
-    log().error({
-      exchangeName,
-      err: new Error('Tried to declare an exchange without providing an exchange name')
-    });
-    return callback({
-      code: 400,
-      msg: 'Tried to declare an exchange without providing an exchange name'
-    });
-  }
-
-  if (exchanges[exchangeName]) {
-    log().error({ exchangeName, err: new Error('Tried to declare an exchange twice') });
-    return callback({ code: 400, msg: 'Tried to declare an exchange twice' });
-  }
-
-  channel.assertExchange(exchangeName, exchangeOptions.type, exchangeOptions, (err, ok) => {
-    if (err) log().error({ exchangeName, err: new Error('Unable to declare an exchange') });
-
-    exchanges[exchangeName] = ok.exchange;
-    return callback();
-  });
-};
-*/
-
-/*
- * Because amqp only supports 1 queue.bind at the same time we need to
- * do them one at a time. To ensure that this is happening, we create a little
- * "in-memory queue" with bind actions that need to happen. This is all rather unfortunate
- * but there is currently no way around this.
- *
- * The reason:
- * Each time you do `Queue.bind(exchangeName, routingKey, callback)`, amqp will set an internal
- * property on the Queue object called `_bindCallback`. Unfortunately this means that whenever you
- * do 2 binds before RabbitMQ has had a chance to respond, the initial callback function will have been overwritten.
- *
- * Example:
- *   Queue.bind('house', 'door', cb1);  // Queue._bindCallback points to cb1
- *   Queue.bind('house', 'roof', cb2);  // Queue._bindCallback points to cb2
- *
- * When RabbitMQ responds with a `queueBindOk` frame for the house->door binding, amqp will execute cb2 and set _bindCallback to null.
- * When RabbitMQ responds with a `queueBindOk` frame for the house->roof binding, amqp will do nothing
- */
-
 // Whether or not the "in-memory queue" is already being processed
 const isWorking = false;
-
-/**
- * A function that will pick RabbitMQ queues of the `queuesToBind` queue and bind them.
- * This function will ensure that at most 1 bind runs at the same time.
- */
-/*
-const _processBindQueue = function(callback) {
-  // If there is something to do and we're not already doing something we can do some work
-  if (queuesToBind.length > 0 && !isWorking) {
-    isWorking = true;
-
-    const todo = queuesToBind.shift();
-    channel.bindQueue(todo.queueName, todo.exchangeName, todo.routingKey, err => {
-      if (err) {
-        log().error({
-          queueName: todo.queueName,
-          err: new Error('Unable to bind queue to an exchange')
-        });
-        return todo.callback(err);
-      }
-
-      log().trace(
-        {
-          queueName: todo.queueName,
-          exchangeName: todo.exchangeName,
-          routingKey: todo.routingKey
-        },
-        'Bound a queue to an exchange'
-      );
-      const doPurge = purgeQueuesOnStartup && !startupPurgeStatus[todo.queueName];
-      if (doPurge) {
-        // Ensure this queue only gets purged the first time we connect
-        startupPurgeStatus[todo.queueName] = true;
-
-        // Purge the queue before subscribing the handler to it if we are configured to do so.
-        purge(todo.queueName, todo.callback);
-      } else {
-        todo.callback();
-      }
-
-      isWorking = false;
-      _processBindQueue(callback);
-    });
-  }
-};
-*/
-
-/**
- * Binds a queue to an exchange.
- * The queue will be purged upon connection if the server has been configured to do so.
- *
- * @param  {String}     queueName       The name of the queue to bind
- * @param  {String}     exchangeName    The name of the exchange to bind too
- * @param  {String}     routingKey      A string that should be used to bind the queue too the exchange
- * @param  {Function}   callback        Standard callback function
- * @param  {Object}     callback.err    An error that occurred, if any
- */
-/*
-const bindQueueToExchange = function(queueName, exchangeName, routingKey, callback) {
-  if (!queues[queueName]) {
-    log().error({
-      queueName,
-      exchangeName,
-      routingKey,
-      err: new Error('Tried to bind a non existing queue to an exchange, have you declared it first?')
-    });
-    return callback({
-      code: 400,
-      msg: 'Tried to bind a non existing queue to an exchange, have you declared it first?'
-    });
-  }
-
-  if (!exchanges[exchangeName]) {
-    log().error({
-      queueName,
-      exchangeName,
-      routingKey,
-      err: new Error('Tried to bind a queue to a non-existing exchange, have you declared it first?')
-    });
-    return callback({
-      code: 400,
-      msg: 'Tried to bind a queue to a non-existing exchange, have you declared it first?'
-    });
-  }
-
-  if (!routingKey) {
-    log().error({
-      queueName,
-      exchangeName,
-      routingKey,
-      err: new Error('Tried to bind a queue to an existing exchange without specifying a routing key')
-    });
-    return callback({ code: 400, msg: 'Missing routing key' });
-  }
-
-  const todo = {
-    queue: queues[queueName].queue,
-    queueName,
-    exchangeName,
-    routingKey,
-    callback
-  };
-  queuesToBind.push(todo);
-  _processBindQueue();
-};
-*/
-
-/**
- * Unbinds a queue from an exchange.
- *
- * @param  {String}     queueName       The name of the queue to unbind
- * @param  {String}     exchangeName    The name of the exchange to unbind from
- * @param  {String}     routingKey      A string that should be used to unbind the queue from the exchange
- * @param  {Function}   callback        Standard callback function
- * @param  {Object}     callback.err    An error that occurred, if any
- */
-/*
-const unbindQueueFromExchange = function(queueName, exchangeName, routingKey, callback) {
-  if (!queues[queueName]) {
-    log().error({
-      queueName,
-      exchangeName,
-      routingKey,
-      err: new Error('Tried to unbind a non existing queue from an exchange, have you declared it first?')
-    });
-    return callback({
-      code: 400,
-      msg: 'Tried to unbind a non existing queue from an exchange, have you declared it first?'
-    });
-  }
-
-  if (!exchanges[exchangeName]) {
-    log().error({
-      queueName,
-      exchangeName,
-      routingKey,
-      err: new Error('Tried to unbind a queue from a non-existing exchange, have you declared it first?')
-    });
-    return callback({
-      code: 400,
-      msg: 'Tried to unbind a queue from a non-existing exchange, have you declared it first?'
-    });
-  }
-
-  if (!routingKey) {
-    log().error({
-      queueName,
-      exchangeName,
-      routingKey,
-      err: new Error('Tried to unbind a queue from an exchange without providing a routingKey')
-    });
-    return callback({ code: 400, msg: 'No routing key was specified' });
-  }
-
-  // Queues[queueName].queue.unbind(exchangeName, routingKey);
-  channel.unbindQueue(queueName, exchangeName, routingKey, {}, err => {
-    if (err) {
-      return callback(err);
-    }
-
-    log().trace({ queueName, exchangeName, routingKey }, 'Unbound a queue from an exchange');
-    return callback();
-  });
-};
-*/
 
 /*
 const subscribeQueue = function(queueName, subscribeOptions, listener, callback) {
@@ -651,68 +461,6 @@ const subscribeQueue = function(queueName, subscribeOptions, listener, callback)
 */
 
 /**
- * Stop consuming messages from **ALL** the queues.
- *
- * @param  {Function}   callback    Standard callback function
- * @api private
- */
-
-/*
-const submit = function(exchangeName, routingKey, data, options, callback) {
-  options = options || {};
-  callback = callback || function() {};
-
-  if (!exchanges[exchangeName]) {
-    log().error({
-      exchangeName,
-      routingKey,
-      err: new Error('Tried to submit a message to an unknown exchange')
-    });
-    return callback({ code: 400, msg: 'Tried to submit a message to an unknown exchange' });
-  }
-
-  if (!routingKey) {
-    log().error({
-      exchangeName,
-      routingKey,
-      err: new Error('Tried to submit a message without specifying a routingKey')
-    });
-    return callback({
-      code: 400,
-      msg: 'Tried to submit a message without specifying a routingKey'
-    });
-  }
-
-  MQ.emit('preSubmit', routingKey);
-
-  channelWrapper.publish(exchangeName, routingKey, data, options, err => {
-    if (err) {
-      log().error({ exchangeName, routingKey, data, options }, 'Failed to submit a message to an exchange');
-      return callback(err);
-    }
-
-    return callback();
-  });
-};
-*/
-
-/**
- * Get the names of all the queues that have been declared with the application and currently have a listener bound to it
- *
- * @return {String[]}   A list of all the names of the queues that are declared with the application and currently have a listener bound to it
- */
-/*
-const getBoundQueueNames = function() {
-  return _.chain(queues)
-    .keys()
-    .filter(queueName => {
-      return !_.isUndefined(queues[queueName].consumerTag);
-    })
-    .value();
-};
-*/
-
-/**
  * Wait until our set of pending tasks has drained. If it takes longer than `maxWaitMillis`, it will
  * dump the pending tasks in the log that are holding things up and force continue.
  *
@@ -729,16 +477,6 @@ const _waitUntilIdle = function(maxWaitMillis, callback) {};
  * @param  {Function}   [callback]      Standard callback method
  * @param  {Object}     [callback.err]  An error that occurred purging the queue, if any
  */
-
-/**
- * Purges all the known queues.
- * Note: This does *not* purge all the queues that are in RabbitMQ.
- * It only purges the queues that are known to the OAE system.
- *
- * @param  {Function}   [callback]      Standard callback method
- * @param  {Object}     [callback.err]  An error that occurred purging the queue, if any
- */
-/*
 
 /**
  * Create a queue that will be used to hold on to messages that were rejected / failed to acknowledge
@@ -786,25 +524,10 @@ const _createRedeliveryQueue = function(callback) {
  * @param  {Object}     deliveryInfo        The delivery info from RabbitMQ
  * @api private
  */
-/*
 const _incrementProcessingTask = function(deliveryKey, data, deliveryInfo) {
-  if (numMessagesInProcessing >= MAX_NUM_MESSAGES_IN_PROCESSING) {
-    _dumpProcessingMessages(
-      'Reached maximum number of concurrent messages allowed in processing (' +
-        MAX_NUM_MESSAGES_IN_PROCESSING +
-        '), this probably means there were many messages received that were never acknowledged.' +
-        ' Clearing "messages in processing" to avoid a memory leak. Please analyze the set of message information (messages)' +
-        ' dumped in this log and resolve the issue of messages not being acknowledged.'
-    );
-
-    messagesInProcessing = {};
-    numMessagesInProcessing = 0;
-  }
-
   messagesInProcessing[deliveryKey] = { data, deliveryInfo };
   numMessagesInProcessing++;
 };
-*/
 
 /**
  * Record the fact that we have finished processing this task.
@@ -812,13 +535,12 @@ const _incrementProcessingTask = function(deliveryKey, data, deliveryInfo) {
  * @param  {String}     deliveryKey         A (locally) unique identifier for this message
  * @api private
  */
-/*
 const _decrementProcessingTask = function(deliveryKey) {
   delete messagesInProcessing[deliveryKey];
   numMessagesInProcessing--;
 
   if (numMessagesInProcessing === 0) {
-    MQ.emit('idle');
+    emitter.emit('idle');
   } else if (numMessagesInProcessing < 0) {
     // In this case, what likely happened was we overflowed our concurrent tasks, flushed it to 0, then
     // some existing tasks completed. This is the best way I can think of handling it that will "self
@@ -828,7 +550,6 @@ const _decrementProcessingTask = function(deliveryKey) {
     numMessagesInProcessing = 0;
   }
 };
-*/
 
 /**
  * Log a message with the in-processing messages in the log line. This will log at must `NUM_MESSAGES_TO_DUMP`
@@ -866,7 +587,8 @@ const purgeQueue = (queueName, callback) => {
   manager.del(queueName, err => {
     if (err) return callback(err);
 
-    delete bindings[queueName];
+    // TODO not sure about this
+    // delete bindings[queueName];
     emitter.emit('postPurge', queueName, 1);
 
     return callback();
@@ -875,7 +597,7 @@ const purgeQueue = (queueName, callback) => {
 
 const purgeAllQueues = callback => {
   // debug
-  console.log('-> Purging all the queues!!!!');
+  console.log('\n-> Purging all the queues!!!!');
 
   const purgeThemAll = (allQueues, done) => {
     if (allQueues.length === 0) {

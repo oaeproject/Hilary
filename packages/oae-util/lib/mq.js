@@ -6,6 +6,7 @@
  *
  *     http://opensource.org/licenses/ECL-2.0
  *
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an "AS IS"
  * BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
@@ -18,9 +19,9 @@ import _ from 'underscore';
 
 import { EventEmitter } from 'oae-emitter';
 import { logger } from 'oae-logger';
-import PreviewConstants from 'oae-preview-processor/lib/constants';
+// import PreviewConstants from 'oae-preview-processor/lib/constants';
 import * as Redis from './redis';
-// import OaeEmitter from './emitter';
+import OaeEmitter from './emitter';
 import * as OAE from './oae';
 import { Validator } from './validator';
 
@@ -33,20 +34,18 @@ let redisConfig = null;
 let manager = null;
 let publisher = null;
 
-const queues = {};
+const bindings = {};
 const subscribers = {};
+
 const PROCESSING_QUEUE = 'processing';
-const DUMP_QUEUE = 'dump';
 
 // TODO remove after debuggiing
-// console.log = () => {};
+console.log = () => {};
 
-/*
 OaeEmitter.on('ready', () => {
   // Let ready = true;
   emitter.emit('ready');
 });
-*/
 
 /**
  * Initialize the Message Queue system so that it can start sending and receiving messages.
@@ -64,54 +63,38 @@ const init = function(config, callback) {
       if (err) return callback(err);
 
       manager = client;
-      manager.monitor((err, monitor) => {
-        monitor.on('monitor', (time, args, source, database) => {
-          // console.log(`${time}: ${args} : ${source} : ${database}`);
-        });
-      });
 
       Redis.createClient(config, (err, client) => {
         if (err) return callback(err);
 
         // subscriber = client;
         subscribers.general = client;
-        subscribers.general.monitor((err, monitor) => {
-          monitor.on('monitor', (time, args, source, database) => {
-            // console.log(`${time}: ${args} : ${source} : ${database}`);
-          });
-        });
 
         Redis.createClient(config, (err, client) => {
           if (err) return callback(err);
 
           publisher = client;
-          publisher.monitor((err, monitor) => {
-            monitor.on('monitor', (time, args, source, database) => {
-              // console.log(`${time}: ${args} : ${source} : ${database}`);
-            });
-
-            return callback();
-          });
+          return callback();
         });
       });
     });
   }
 };
 
-const _getOrCreateSubscriberForChannel = (channel, callback) => {
-  if (subscribers[channel]) {
+const _getOrCreateSubscriberForQueue = (queueName, callback) => {
+  if (subscribers[queueName]) {
     // debug
-    console.log('-> Subscriber for [' + channel + '] exists, returning it');
-    return callback(null, subscribers[channel]);
+    // console.log('-> Returning existing subscriber for [' + queueName + ']');
+    return callback(null, subscribers[queueName]);
   }
 
   Redis.createClient(redisConfig, (err, client) => {
     if (err) return callback(err);
 
     // debug
-    console.log('-> Subscriber for [' + channel + '] created, returning it');
-    subscribers[channel] = client;
-    return callback(null, subscribers[channel]);
+    // console.log('-> Created subscriber for [' + queueName + ']');
+    subscribers[queueName] = client;
+    return callback(null, subscribers[queueName]);
   });
 };
 
@@ -122,32 +105,6 @@ const _getOrCreateSubscriberForChannel = (channel, callback) => {
  * @param  {Function}  callback        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any
  */
-const unsubscribe = (channel, callback) => {
-  const validator = new Validator();
-  validator.check(channel, { code: 400, msg: 'No channel was provided.' }).notEmpty();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
-
-  // get the proper subscriber
-  _getOrCreateSubscriberForChannel(channel, (err, subscriber) => {
-    subscriber.brpoplpush(channel, DUMP_QUEUE, 0, (err /* message */) => {
-      if (err) return callback(err);
-      // })
-      // subscriber.unsubscribe(channel, () => {
-      console.log('Unsubscribing to [' + channel + ']');
-      // subscriber.removeAllListeners('message');
-
-      // debug
-      if (channel === PreviewConstants.MQ.TASK_GENERATE_PREVIEWS) {
-        console.log('  -> Gonna UNbind a function to the onMessage event for [' + channel + ']\n');
-      }
-    });
-    delete queues[channel];
-    console.log('  √ Marking [' + channel + '] as UNBOUND ');
-    return callback();
-  });
-};
 
 /**
  * Subscribe the given `listener` function to the provided queue.
@@ -160,83 +117,114 @@ const unsubscribe = (channel, callback) => {
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const subscribe = (channel, listener, callback) => {
-  callback = callback || function() {};
-  const validator = new Validator();
-  validator.check(channel, { code: 400, msg: 'No channel was provided.' }).notEmpty();
-  if (validator.hasErrors()) return callback(validator.getFirstError());
-
-  // if this has been suscribed already, then leave
-  const thisChannelisAlreadyBound = Boolean(queues[channel]);
-  if (thisChannelisAlreadyBound) {
+const collectLatestFromQueue = (queueName, listener) => {
+  _getOrCreateSubscriberForQueue(queueName, (err, subscriber) => {
     // debug
-    console.log('NOT subscribing to [' + channel + "] because it's already there");
-    return callback();
-  }
-
-  // get the proper subscriber
-  _getOrCreateSubscriberForChannel(channel, (err, subscriber) => {
-    if (err) return callback(err);
-
-    subscriber.brpoplpush(channel, PROCESSING_QUEUE, 0, (err, message) => {
-      if (err) return callback(err);
-      // })
-      // subscriber.subscribe(channel, (err, count) => {
+    console.log('Waiting for something to arrive at [' + queueName + ']');
+    subscriber.brpoplpush(queueName, PROCESSING_QUEUE, 0, (err, queuedMessage) => {
       // debug
-      console.log('Subscribing to [' + channel + ']');
-
-      // debug
-      if (channel === PreviewConstants.MQ.TASK_GENERATE_PREVIEWS) {
-        console.log('  -> Gonna bind a function to the onMessage event for [' + channel + ']\n');
-      }
-
-      const whichChannel = channel;
-
-      // subscriber.on('message', (whichChannel, message) => {
-      // if (whichChannel === channel) {
-      // debug
-      if (channel === PreviewConstants.MQ.TASK_GENERATE_PREVIEWS) {
-        console.log('\nHeard something from [' + channel + ']');
-        // console.log('=> ' + message + '\n');
-      }
-
-      message = JSON.parse(message);
+      console.log('Collected latest from [' + queueName + ']');
+      const message = JSON.parse(queuedMessage);
       try {
         listener(message, () => {
-          // queues[queueName].consumerTag = ok.consumerTag;
-          queues[whichChannel] = Date.now();
+          subscriber.lrem(PROCESSING_QUEUE, -1, queuedMessage, (err, removedElements) => {
+            if (err) console.log(err);
 
-          // debug
-          console.log('-> Sending POSTHANDLE for ' + whichChannel);
-          emitter.emit('postHandle', null, whichChannel, message, null, null);
-          // return callback();
+            // debug
+            console.log('\n-> Removed ' + removedElements + ' task from PROCESSING queue from [' + queueName + ']...');
 
-          // remove message from processing queue
-          subscriber.lrem(PROCESSING_QUEUE, -1, JSON.stringify(message), err => {
-            if (err) return callback(err);
-            // TODO log here when the message is removed
+            // remove message from processing queue
+            console.log('\n-> Sending POSTHANDLE for [' + queueName + ']');
+            emitter.emit('postHandle', null, queueName, message, null, null);
+
+            /*
+            // recursive call itself because it's a never ending job
+            console.log('-> Going to listen from [' + queueName + ']');
+            return collectLatestFromQueue(queueName, listener);
+            */
           });
         });
       } catch (error) {
         // debug
         console.log('Exception caught, what am I gonna do??');
+        console.log(error);
       }
-      // }
-      // });
     });
-
-    // add to bound queues
-    if (channel === PreviewConstants.MQ.TASK_GENERATE_PREVIEWS) {
-      console.log('  √ Marking [' + channel + '] as BOUND ');
-    }
-
-    queues[channel] = Date.now();
-    return callback();
   });
 };
 
-const getBoundQueueNames = function() {
-  return _.keys(queues);
+/*
+const collectAllStalledFromQueue = (queueName, listener, done) => {
+  // debug
+  console.log('Collecting ALL from [' + queueName + '] recursively');
+
+  _getOrCreateSubscriberForQueue(queueName, (err, subscriber) => {
+    // recursive so we parse all the tasks on queue
+    subscriber.llen(queueName, (err, length) => {
+      if (err) console.log(err);
+
+      const areThereMoreTasksToConsume = length > 0;
+      if (areThereMoreTasksToConsume) {
+        console.log('There are ' + length + ' tasks left to consume... recursive call incoming!');
+        collectLatestFromQueue(queueName, listener, () => {
+          collectAllStalledFromQueue(queueName, listener, done);
+        });
+      } else {
+        return done();
+      }
+    });
+  });
+};
+*/
+
+const subscribe = (queueName, listener, callback) => {
+  callback = callback || function() {};
+  const validator = new Validator();
+  validator.check(queueName, { code: 400, msg: 'No channel was provided.' }).notEmpty();
+  if (validator.hasErrors()) return callback(validator.getFirstError());
+
+  // debug
+  console.log('-> Subscribing to [' + queueName + ']');
+
+  /**
+   * We need to do three different things here:
+   * 1 remove all previous listeners, otherwise we'll stack them
+   * 2 add a new listener for future tasks submitted (via lpush command event listener)
+   * 3 make sure we consume all past events/tasks that haven't been consumed yet
+   */
+  emitter.on(`collectFrom:${queueName}`, emittedQueue => {
+    if (emittedQueue === queueName) {
+      // console.log('-> Going to listen from [' + queueName + ']');
+      collectLatestFromQueue(queueName, listener);
+    }
+  });
+
+  // debug: print all listeners
+  console.log();
+  console.log(emitter.listeners());
+  console.log();
+
+  bindings[queueName] = PROCESSING_QUEUE;
+  return callback();
+};
+
+const unsubscribe = (queueName, callback) => {
+  callback = callback || function() {};
+  const validator = new Validator();
+  validator.check(queueName, { code: 400, msg: 'No channel was provided.' }).notEmpty();
+  if (validator.hasErrors()) return callback(validator.getFirstError());
+
+  // debug
+  console.log('-> Unsubscribing to [' + queueName + ']');
+
+  emitter.removeAllListeners(`collectFrom:${queueName}`);
+  delete bindings[queueName];
+  return callback();
+};
+
+const getBoundQueues = function() {
+  // return _.keys(bindings);
+  return bindings;
 };
 
 /**
@@ -249,23 +237,26 @@ const getBoundQueueNames = function() {
  * @param  {Function}   [callback]                  Invoked when the job has been submitted, note that this does *NOT* guarantee that the message reached the exchange as that is not supported by amqp
  * @param  {Object}     [callback.err]              Standard error object, if any
  */
-const submit = function(channel, message, callback) {
+const submit = function(queueName, message, callback) {
   callback = callback || function() {};
   const validator = new Validator();
-  validator.check(channel, { code: 400, msg: 'No channel was provided.' }).notEmpty();
-  validator.check(message, { code: 400, msg: 'No message was provided.' }).notEmpty();
+  validator.check(queueName, { code: 400, msg: 'No channel was provided.' }).notEmpty();
+  // validator.check(message, { code: 400, msg: 'No message was provided.' }).notEmpty();
   if (validator.hasErrors()) return callback(validator.getFirstError());
 
-  /*
-  if (_.isObject(message)) {
-    message = JSON.stringify(message);
+  // TODO I dont think the second condition is relevant
+  if (bindings[queueName] || queueName.indexOf('oae-activity-push') !== -1) {
+    console.log('-> Sending PRESUBMIT for [' + queueName + ']');
+    emitter.emit('preSubmit', queueName);
+    publisher.lpush(queueName, message, () => {
+      emitter.emit(`collectFrom:${queueName}`, queueName);
+      console.log(`\n-> Just emitted the collectFrom:${queueName} event!!`);
+      return callback();
+    });
+  } else {
+    console.log('-> Ignoring submission to unbound [' + queueName + ']...');
+    return callback();
   }
-  */
-
-  emitter.emit('preSubmit', channel);
-  publisher.lpush(channel, message, callback);
-  // TODO remove traditional pubsub
-  // publisher.publish(channel, message, callback);
 };
 
 /**
@@ -329,52 +320,6 @@ const declareExchange = function(exchangeName, exchangeOptions, callback) {
 };
 */
 
-/**
- * Declare a queue
- *
- * @param  {String}     queueName           The name of the queue that should be declared
- * @param  {Object}     queueOptions        The options that should be used to declare this queue. See https://github.com/postwait/node-amqp/#connectionqueuename-options-opencallback for a full list of options
- * @param  {Function}   callback            Standard callback function
- */
-/*
-const declareQueue = function(queueName, queueOptions, callback) {
-  if (!queueName) {
-    log().error({
-      queueName,
-      queueOptions,
-      err: new Error('Tried to declare a queue without providing a name')
-    });
-    return callback({ code: 400, msg: 'Tried to declare a queue without providing a name' });
-  }
-
-  if (queues[queueName]) {
-    log().error({ queueName, queueOptions, err: new Error('Tried to declare a queue twice') });
-    return callback({ code: 400, msg: 'Tried to declare a queue twice' });
-  }
-
-  channel.assertQueue(queueName, queueOptions, (err, queue) => {
-    if (err) {
-      log().error({ queueName, err: new Error('Unable to declare a queue') });
-      return callback(err);
-    }
-
-    log().info({ queueName }, 'Created/Retrieved a RabbitMQ queue');
-    queues[queueName] = { queue };
-    return callback();
-  });
-};
-*/
-
-/**
- * Checks if a queue has been declared
- *
- * @param  {String}     queueName   The name of the queue that should be checked
- * @return {Boolean}                `true` if the queue exists, `false` otherwise
- */
-const isQueueDeclared = function(queueName) {
-  return !_.isUndefined(queues[queueName]);
-};
-
 /*
  * Because amqp only supports 1 queue.bind at the same time we need to
  * do them one at a time. To ensure that this is happening, we create a little
@@ -393,9 +338,6 @@ const isQueueDeclared = function(queueName) {
  * When RabbitMQ responds with a `queueBindOk` frame for the house->door binding, amqp will execute cb2 and set _bindCallback to null.
  * When RabbitMQ responds with a `queueBindOk` frame for the house->roof binding, amqp will do nothing
  */
-
-// A "queue" of bindings that need to happen against RabbitMQ queues
-const queuesToBind = [];
 
 // Whether or not the "in-memory queue" is already being processed
 const isWorking = false;
@@ -917,14 +859,6 @@ const noNeedToBindQueueToExchange = (name, exchangeName, stream, callback) => {
   return callback();
 };
 
-const noNeedToPurge = (queue, callback) => {
-  return callback();
-};
-
-const noNeedToPurgeAll = callback => {
-  return callback();
-};
-
 const purgeQueue = (queueName, callback) => {
   // debug
   console.log('-> Purging queue ' + queueName);
@@ -932,7 +866,7 @@ const purgeQueue = (queueName, callback) => {
   manager.del(queueName, err => {
     if (err) return callback(err);
 
-    delete queues[queueName];
+    delete bindings[queueName];
     emitter.emit('postPurge', queueName, 1);
 
     return callback();
@@ -943,13 +877,20 @@ const purgeAllQueues = callback => {
   // debug
   console.log('-> Purging all the queues!!!!');
 
-  if (getBoundQueueNames.length === 0) {
-    return callback();
-  }
+  const purgeThemAll = (allQueues, done) => {
+    if (allQueues.length === 0) {
+      // purgeQueue(PROCESSING_QUEUE, callback);
+      return done();
+    }
 
-  purgeQueue(getBoundQueueNames.pop(), () => {
-    return purgeAllQueues();
-  });
+    purgeQueue(allQueues.pop(), () => {
+      return purgeThemAll(allQueues, done);
+    });
+  };
+
+  const queuesToPurge = _.keys(bindings);
+  // _.keys(getBoundQueueNames());
+  purgeThemAll(queuesToPurge, callback);
 };
 
 export {
@@ -960,11 +901,11 @@ export {
   noNeedToDeclareQueue as declareQueue,
   noNeedToUnbindQueue as unbindQueueFromExchange,
   noNeedToBindQueueToExchange as bindQueueToExchange,
-  subscribe as subscribeQueue,
-  unsubscribe as unsubscribeQueue,
+  subscribe,
+  unsubscribe,
   purgeQueue as purge,
   purgeAllQueues as purgeAll,
-  getBoundQueueNames,
+  getBoundQueues,
   submit
   /*
   isQueueDeclared,

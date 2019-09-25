@@ -189,11 +189,7 @@ const init = function(callback) {
       }
 
       // Subscribe to our queue for new events
-      // return MQ.subscribeQueue(queueName, QueueConstants.subscribe.OPTIONS, _handlePushActivity, callback);
-
-      // debug
-      console.log('Push activcity handled for ' + queueName);
-      MQ.submit(queueName, _handlePushActivity, callback);
+      return MQ.subscribe(queueName, _handlePushActivity, callback);
     });
   });
 };

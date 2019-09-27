@@ -11,16 +11,11 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            apk add --update --no-cache curl git openssh-client
+            apk add --update --no-cache curl git openssh-client yarn
       - checkout
       - run:
           name: Checkout submodules
           command: git submodule update --init --recursive
-      - run:
-          name: Creating folders for file storage and tmp files
-          command: |
-            mkdir -p ../files
-            mkdir -p ../tmp
       - run:
           name: Setting up volumes in docker-compose
           command: |
@@ -35,7 +30,7 @@ jobs:
             printf "\nconfig.cassandra.timeout = 9000;" >> config.js
             printf "\nconfig.redis.host = 'oae-redis';" >> config.js
             printf "\nconfig.search.hosts[0].host = 'oae-elasticsearch';" >> config.js
-            printf "\nconfig.mq.connection.host = ['oae-rabbitmq'];" >> config.js
+            printf "\nconfig.mq.host = ['oae-redis'];" >> config.js
             printf "\nconfig.etherpad.hosts[0].host = 'oae-etherpad';" >> config.js
             printf "\nconfig.ethercalc[0].host = 'oae-ethercalc';" >> config.js
             printf "\nconfig.previews.enabled = true;" >> config.js
@@ -50,13 +45,18 @@ jobs:
             pip install docker-compose~=1.23.2
       - run:
           name: Create the containers
-          command: docker-compose up --no-start --build oae-cassandra oae-redis oae-rabbitmq oae-elasticsearch oae-hilary oae-ethercalc
+          command: docker-compose up --no-start --build oae-cassandra oae-redis oae-elasticsearch oae-hilary oae-ethercalc
       - run:
           name: Start the containers we need
           command: |
-            docker-compose up -d oae-cassandra oae-redis oae-rabbitmq oae-elasticsearch
+            docker-compose up -d oae-cassandra oae-redis oae-elasticsearch
             sleep 25s
             docker-compose up -d oae-etherpad oae-ethercalc
+      - run:
+          name: Creating folders for file storage and tmp files
+          command: |
+            docker-compose run --rm oae-hilary 'mkdir -p /usr/src/files'
+            docker-compose run --rm oae-hilary 'mkdir -p /usr/src/tmp'
       - run:
           name: Install Hilary dependencies
           command: |
@@ -64,7 +64,6 @@ jobs:
             adduser -u 1000 -G node -s /bin/sh -D node
             chown -R node:node .
             docker cp /root/Hilary oae-hilary:/usr/src
-            rm yarn.lock
             docker-compose run --rm oae-hilary 'cd 3akai-ux && npx lerna bootstrap'
             docker-compose run --rm oae-hilary 'npx lerna bootstrap'
       - run:

@@ -11,11 +11,16 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            apk add --update --no-cache curl git openssh-client yarn
+            apk add --update --no-cache curl git openssh-client
       - checkout
       - run:
           name: Checkout submodules
           command: git submodule update --init --recursive
+      - run:
+          name: Creating folders for file storage and tmp files
+          command: |
+            mkdir -p ../files
+            mkdir -p ../tmp
       - run:
           name: Setting up volumes in docker-compose
           command: |
@@ -52,11 +57,6 @@ jobs:
             docker-compose up -d oae-cassandra oae-redis oae-elasticsearch
             sleep 25s
             docker-compose up -d oae-etherpad oae-ethercalc
-      - run:
-          name: Creating folders for file storage and tmp files
-          command: |
-            docker-compose run --rm oae-hilary 'mkdir -p /usr/src/files'
-            docker-compose run --rm oae-hilary 'mkdir -p /usr/src/tmp'
       - run:
           name: Install Hilary dependencies
           command: |

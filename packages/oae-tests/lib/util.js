@@ -1274,8 +1274,8 @@ const setUpBeforeTests = function(config, dropKeyspaceBeforeTest, callback) {
               // Defer the test setup until after the task handlers are successfully bound and all the queues are drained.
               // This will always be fired after OAE.init has successfully finished.
               // TODO
-              // MQ.emitter.on('ready', err => {
-              OAE.OaeEmitter.on('ready', err => {
+              MQ.emitter.on('ready', err => {
+                // OAE.OaeEmitter.on('ready', err => {
                 if (err) {
                   return callback(new Error(err.msg));
                 }

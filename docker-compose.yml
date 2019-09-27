@@ -81,15 +81,6 @@ services:
     tty: false
     volumes:
       - ../data/elasticsearch:/usr/share/elasticsearch/data
-  oae-rabbitmq:
-    container_name: oae-rabbitmq
-    image: rabbitmq:3.6.6-management-alpine
-    restart: always
-    ports:
-      - 5672:5672
-    networks:
-      - my_network
-    tty: false
   oae-nginx:
     container_name: oae-nginx
     image: nginx:stable-alpine

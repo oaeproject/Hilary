@@ -42,8 +42,6 @@ const purgePreviewsQueue = function(callback) {
         TaskQueue.unbind(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, err => {
           assert.ok(!err);
 
-          // debug
-          console.log('purged!');
           return callback();
         });
       });

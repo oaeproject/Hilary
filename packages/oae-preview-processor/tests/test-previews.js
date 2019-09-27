@@ -34,7 +34,6 @@ import * as Etherpad from 'oae-content/lib/internal/etherpad';
 import * as FoldersPreviews from 'oae-folders/lib/previews';
 import * as FoldersTestUtil from 'oae-folders/lib/test/util';
 import * as MQ from 'oae-util/lib/mq';
-import * as pubSub from 'oae-util/lib/pubsub';
 import * as MQTestUtil from 'oae-util/lib/test/mq-util';
 import * as RestAPI from 'oae-rest';
 import * as RestUtil from 'oae-rest/lib/util';

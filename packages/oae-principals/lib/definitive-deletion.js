@@ -17,6 +17,7 @@ import fs from 'fs';
 import _ from 'underscore';
 import async from 'async';
 import shortId from 'shortid';
+import { addMonths } from 'date-fns';
 
 import * as ActivityAPI from 'oae-activity';
 import * as AuthzAPI from 'oae-authz';
@@ -475,18 +476,8 @@ const _addToArchive = (cloneUserId, principalToEliminate, elementId, callback) =
     return index === self.indexOf(elem);
   });
 
-  const months = PrincipalsConfig.getValue(principalToEliminate.tenant.alias, 'user', DELETE);
-  const deletionDate = new Date();
-
-  if (months) {
-    deletionDate.setMonth(deletionDate.getMonth() + parseInt(months, 10));
-    deletionDate.setYear(
-      deletionDate.getFullYear() + Math.trunc((deletionDate.getMonth() + parseInt(months, 10)) / 12)
-    );
-  } else {
-    deletionDate.setMonth(deletionDate.getMonth() + DEFAULT_MONTH);
-    deletionDate.setYear(deletionDate.getFullYear() + Math.trunc((deletionDate.getMonth() + DEFAULT_MONTH) / 12));
-  }
+  const monthsUntilDeletion = PrincipalsConfig.getValue(principalToEliminate.tenant.alias, 'user', DELETE);
+  const deletionDate = addMonths(new Date(), parseInt(monthsUntilDeletion, 10));
 
   // Add the element to data archive
   PrincipalsDAO.addDataToArchive(

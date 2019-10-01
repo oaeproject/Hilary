@@ -112,12 +112,4 @@ const registerPreShutdownHandler = function(name, maxTimeMillis, handler) {
   Shutdown.registerPreShutdownHandler(name, maxTimeMillis, handler);
 };
 
-export {
-  // OaeEmitter,
-  globalAdminServer,
-  tenantServer,
-  tenantRouter,
-  globalAdminRouter,
-  init,
-  registerPreShutdownHandler
-};
+export { globalAdminServer, tenantServer, tenantRouter, globalAdminRouter, init, registerPreShutdownHandler };

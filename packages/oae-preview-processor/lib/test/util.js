@@ -71,8 +71,6 @@ const purgeRegeneratePreviewsQueue = function(callback) {
         TaskQueue.unbind(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
           assert.ok(!err);
 
-          // debug
-          console.log('purged!');
           return callback();
         });
       });
@@ -106,8 +104,6 @@ const purgeFoldersPreviewsQueue = function(callback) {
           TaskQueue.unbind(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, err => {
             assert.ok(!err);
 
-            // debug
-            console.log('purged!');
             return callback();
           });
         });

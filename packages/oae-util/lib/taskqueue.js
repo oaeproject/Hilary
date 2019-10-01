@@ -13,8 +13,6 @@
  * permissions and limitations under the License.
  */
 
-// import _ from 'underscore';
-// import * as pubSub from './pubsub';
 import * as MQ from './mq';
 
 /**
@@ -33,7 +31,6 @@ import * as MQ from './mq';
  * @param  {Function}   callback    Standard callback function
  */
 const init = function(callback) {
-  // MQ.declareExchange(Constants.DEFAULT_TASK_EXCHANGE_NAME, Constants.DEFAULT_TASK_EXCHANGE_OPTS, callback);
   return callback();
 };
 

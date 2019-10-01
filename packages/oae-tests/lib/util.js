@@ -35,7 +35,6 @@ import * as LibraryAPI from 'oae-library';
 
 import { LoginId } from 'oae-authentication/lib/model';
 import multipart from 'oae-util/lib/middleware/multipart';
-// import * as pubSub from 'oae-util/lib/pubsub';
 import * as MQ from 'oae-util/lib/mq';
 import * as MQTestUtil from 'oae-util/lib/test/mq-util';
 import * as OAE from 'oae-util/lib/oae';
@@ -1273,9 +1272,7 @@ const setUpBeforeTests = function(config, dropKeyspaceBeforeTest, callback) {
 
               // Defer the test setup until after the task handlers are successfully bound and all the queues are drained.
               // This will always be fired after OAE.init has successfully finished.
-              // TODO
               MQ.emitter.on('ready', err => {
-                // OAE.OaeEmitter.on('ready', err => {
                 if (err) {
                   return callback(new Error(err.msg));
                 }
@@ -1319,18 +1316,17 @@ const setUpBeforeTests = function(config, dropKeyspaceBeforeTest, callback) {
 const cleanUpAfterTests = function(callback) {
   // Clean up after ourselves
   Redis.flush(err => {
-    if (err) {
-      log().error({ err }, 'Error flushing Redis data after test completion');
-    }
+    if (err) log().error({ err }, 'Error flushing Redis data after test completion');
 
-    // Purge all the task queues
-    MQ.purgeAll(err => {
-      if (err) {
-        log().error({ err }, 'Error purging the RabbitMQ queues');
-      }
+    return callback();
+  });
+};
 
-      return callback();
-    });
+const cleanAllQueues = callback => {
+  MQ.purgeAll(err => {
+    if (err) log().error({ err }, 'Error purging redis queues');
+
+    return callback();
   });
 };
 
@@ -1385,6 +1381,7 @@ export {
   createInitialTestConfig,
   setUpBeforeTests,
   cleanUpAfterTests,
+  cleanAllQueues,
   isIntegrationTest,
   objectifySearchParams
 };

@@ -58,7 +58,7 @@ const createClient = function(_config, callback) {
       return retryTimeout * 1000;
     },
     reconnectOnError: () => {
-      // Besides auto-reconnect when the connection is closed, ioredis supports reconnecting on the specified errors by the reconnectOnError option. Here's an example that will reconnect when receiving READONLY error:
+      // Besides auto-reconnect when the connection is closed, ioredis supports reconnecting on the specified errors by the reconnectOnError option.
       return true;
     }
   };
@@ -67,6 +67,7 @@ const createClient = function(_config, callback) {
 
   // Register an error handler.
   redisClient.on('error', () => {
+    isDown = true;
     log().error('Error connecting to redis...');
   });
 
@@ -96,11 +97,12 @@ const getClient = function() {
 const flush = function(callback) {
   const done = err => {
     if (err) return callback({ code: 500, msg: err });
-    callback();
+
+    return callback();
   };
 
   if (client) {
-    client.flushdb([], done);
+    client.flushdb(done);
   } else {
     done('Unable to flush redis. Try initializing it first.');
   }

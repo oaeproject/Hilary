@@ -24,20 +24,20 @@ const queueCounters = {};
 MQ.emitter.on('preSubmit', queueName => {
   _increment(queueName);
   // debug
-  console.log(`* Incrementing on [${queueName}]: now at [${_get(queueName)}]`);
+  // console.log(`* Incrementing on [${queueName}]: now at [${_get(queueName)}]`);
 });
 
 MQ.emitter.on('postHandle', (err, queueName) => {
   _decrement(queueName, 1);
   // debug
-  console.log(` * Decrementing on [${queueName}]: now at [${_get(queueName)}]`);
+  // console.log(` * Decrementing on [${queueName}]: now at [${_get(queueName)}]`);
 });
 
 MQ.emitter.on('postPurge', (name, count) => {
   // _decrement(name, count);
   count = _get(name);
   // debug
-  console.log(' * ' + count + ' tasks to delete on [' + name + ']');
+  // console.log(' * ' + count + ' tasks to delete on [' + name + ']');
   _decrement(name, count); // decrements until 0
 });
 
@@ -84,7 +84,7 @@ const _get = name => {
 };
 
 const printCounter = queueName => {
-  console.log(`${queueName}: [${_get(queueName)}] elements`);
+  // console.log(`${queueName}: [${_get(queueName)}] elements`);
 };
 
 /**

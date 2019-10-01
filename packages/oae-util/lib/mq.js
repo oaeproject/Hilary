@@ -46,15 +46,19 @@ const startupPurgeStatus = {};
 let numMessagesInProcessing = 0;
 const messagesInProcessing = {};
 
-const PROCESSING_QUEUE = 'processing';
+// const PROCESSING_QUEUE = 'processing';
 
 // TODO remove after debuggiing
-console.log = () => {};
+// console.log = () => {};
 
 OaeEmitter.on('ready', () => {
   // Let ready = true;
   emitter.emit('ready');
 });
+
+const getProcessingQueueFor = queueName => {
+  return `${queueName}-processing`;
+};
 
 /**
  * Initialize the Message Queue system so that it can start sending and receiving messages.
@@ -92,16 +96,12 @@ const init = function(config, callback) {
 
 const _getOrCreateSubscriberForQueue = (queueName, callback) => {
   if (subscribers[queueName]) {
-    // debug
-    // console.log('-> Returning existing subscriber for [' + queueName + ']');
     return callback(null, subscribers[queueName]);
   }
 
   Redis.createClient(redisConfig, (err, client) => {
     if (err) return callback(err);
 
-    // debug
-    // console.log('-> Created subscriber for [' + queueName + ']');
     subscribers[queueName] = client;
     return callback(null, subscribers[queueName]);
   });
@@ -128,22 +128,14 @@ const _getOrCreateSubscriberForQueue = (queueName, callback) => {
  */
 const collectLatestFromQueue = (queueName, listener) => {
   _getOrCreateSubscriberForQueue(queueName, (err, subscriber) => {
-    // debug
-    console.log('Waiting for something to arrive at [' + queueName + ']');
-    subscriber.brpoplpush(queueName, PROCESSING_QUEUE, 0, (err, queuedMessage) => {
-      // debug
-      console.log('Collected latest from [' + queueName + ']');
+    subscriber.brpoplpush(queueName, getProcessingQueueFor(queueName), 0, (err, queuedMessage) => {
       const message = JSON.parse(queuedMessage);
       try {
         listener(message, () => {
-          subscriber.lrem(PROCESSING_QUEUE, -1, queuedMessage, (err, removedElements) => {
+          subscriber.lrem(getProcessingQueueFor(queueName), -1, queuedMessage, (err, removedElements) => {
             if (err) console.log(err);
 
-            // debug
-            console.log('\n-> Removed ' + removedElements + ' task from PROCESSING queue from [' + queueName + ']...');
-
             // remove message from processing queue
-            console.log('\n-> Sending POSTHANDLE for [' + queueName + ']');
             emitter.emit('postHandle', null, queueName, message, null, null);
 
             /*
@@ -158,8 +150,6 @@ const collectLatestFromQueue = (queueName, listener) => {
           });
         });
       } catch (error) {
-        // debug
-        console.log('Exception caught, what am I gonna do??');
         console.log(error);
       }
     });
@@ -196,9 +186,6 @@ const subscribe = (queueName, listener, callback) => {
   validator.check(queueName, { code: 400, msg: 'No channel was provided.' }).notEmpty();
   if (validator.hasErrors()) return callback(validator.getFirstError());
 
-  // debug
-  console.log('-> Subscribing to [' + queueName + ']');
-
   /**
    * We need to do three different things here:
    * 1 remove all previous listeners, otherwise we'll stack them
@@ -225,11 +212,11 @@ const subscribe = (queueName, listener, callback) => {
   });
 
   // debug: print all listeners
-  console.log();
+  /*
   console.log(emitter.listeners());
-  console.log();
+  */
 
-  bindings[queueName] = PROCESSING_QUEUE;
+  bindings[queueName] = getProcessingQueueFor(queueName);
   return callback();
 };
 
@@ -238,9 +225,6 @@ const unsubscribe = (queueName, callback) => {
   const validator = new Validator();
   validator.check(queueName, { code: 400, msg: 'No channel was provided.' }).notEmpty();
   if (validator.hasErrors()) return callback(validator.getFirstError());
-
-  // debug
-  console.log('-> Unsubscribing to [' + queueName + ']');
 
   emitter.removeAllListeners(`collectFrom:${queueName}`);
   delete bindings[queueName];
@@ -273,16 +257,13 @@ const submit = function(queueName, message, callback) {
   // if (bindings[queueName] || queueName.indexOf('oae-activity-push') !== -1) {
 
   if (bindings[queueName]) {
-    console.log('-> Sending PRESUBMIT for [' + queueName + ']');
     emitter.emit('preSubmit', queueName);
 
     publisher.lpush(queueName, message, () => {
       emitter.emit(`collectFrom:${queueName}`, queueName);
-      console.log(`\n-> Just emitted the collectFrom:${queueName} event!!`);
       return callback();
     });
   } else {
-    console.log('-> Ignoring submission to unbound [' + queueName + ']...');
     return callback();
   }
 };
@@ -310,7 +291,6 @@ const rejectMessage = function(message, requeue, callback) {
 
 // TODO do this or similar
 OAE.registerPreShutdownHandler('mq', null, done => {
-  console.log('coco');
   done();
 });
 
@@ -581,38 +561,34 @@ const noNeedToBindQueueToExchange = (name, exchangeName, stream, callback) => {
 };
 
 const purgeQueue = (queueName, callback) => {
-  // debug
-  console.log('-> Purging queue ' + queueName);
   emitter.emit('prePurge', queueName);
-  manager.del(queueName, err => {
-    if (err) return callback(err);
+  manager.llen(queueName, (err, count) => {
+    manager.del(queueName, err => {
+      if (err) return callback(err);
 
-    // TODO not sure about this
-    // delete bindings[queueName];
-    emitter.emit('postPurge', queueName, 1);
+      emitter.emit('postPurge', queueName, 1);
 
-    return callback();
+      return callback();
+    });
   });
 };
 
 const purgeAllQueues = callback => {
-  // debug
-  console.log('\n-> Purging all the queues!!!!');
-
-  const purgeThemAll = (allQueues, done) => {
+  const purgeQueues = (allQueues, done) => {
     if (allQueues.length === 0) {
-      // purgeQueue(PROCESSING_QUEUE, callback);
       return done();
     }
 
-    purgeQueue(allQueues.pop(), () => {
-      return purgeThemAll(allQueues, done);
+    let nextQueueToPurge = allQueues.pop();
+    purgeQueue(nextQueueToPurge, () => {
+      purgeQueue(getProcessingQueueFor(nextQueueToPurge), () => {
+        return purgeQueues(allQueues, done);
+      });
     });
   };
 
   const queuesToPurge = _.keys(bindings);
-  // _.keys(getBoundQueueNames());
-  purgeThemAll(queuesToPurge, callback);
+  purgeQueues(queuesToPurge, callback);
 };
 
 export {
@@ -629,8 +605,4 @@ export {
   purgeAllQueues as purgeAll,
   getBoundQueues,
   submit
-  /*
-  isQueueDeclared,
-  bindQueueToExchange,
-  */
 };

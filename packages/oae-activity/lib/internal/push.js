@@ -615,12 +615,8 @@ const _writeResponse = function(connectionInfo, id, error) {
  * @api private
  */
 const _push = function(activityStreamId, routedActivity) {
-  // const channel = QueueConstants.exchange.NAME;
-  // debug
-  // console.log('\n-> Publishing to channel... ' + queueName);
   routedActivity = JSON.stringify(routedActivity);
   MQ.submit(queueName, routedActivity);
-  // MQ.submit(QueueConstants.exchange.NAME, activityStreamId, routedActivity, QueueConstants.publish.OPTIONS);
 };
 
 /**

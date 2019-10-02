@@ -37,16 +37,7 @@ let publisher = null;
 const bindings = {};
 const subscribers = {};
 
-// Determines whether or not we should purge queues on first connect. Also ensures we only purge the
-// first time it connects (i.e., on "startup"), however any disconnect / connects while the server is
-// running will not repurge
-const purgeQueuesOnStartup = false;
-const startupPurgeStatus = {};
-
-let numMessagesInProcessing = 0;
-const messagesInProcessing = {};
-
-// const PROCESSING_QUEUE = 'processing';
+const PRODUCTION_MODE = 'production';
 
 // TODO remove after debuggiing
 // console.log = () => {};
@@ -69,26 +60,31 @@ const getProcessingQueueFor = queueName => {
  */
 const init = function(config, callback) {
   redisConfig = config;
+
   // Only init if the connections haven't been opened.
   if (manager === null) {
     // Create 3 clients, one for managing redis and 2 for the actual pub/sub communication.
     Redis.createClient(config, (err, client) => {
       if (err) return callback(err);
 
+      // this is connection that does the purging
       manager = client;
 
       Redis.createClient(config, (err, client) => {
         if (err) return callback(err);
 
-        // subscriber = client;
-        subscribers.general = client;
+        // this is the connectio that does the LPUSHing
+        publisher = client;
 
-        Redis.createClient(config, (err, client) => {
-          if (err) return callback(err);
+        // if the flag is set, we purge all queues on startup. ONLY if we're NOT in production mode.
+        const shallWePurge = redisConfig.purgeQueuesOnStartup && process.env.NODE_ENV !== PRODUCTION_MODE;
+        if (shallWePurge) {
+          purgeAllQueues(err => {
+            if (err) log().error({ err }, 'Purging queues on startup FAILED');
 
-          publisher = client;
-          return callback();
-        });
+            return callback();
+          });
+        }
       });
     });
   }
@@ -133,7 +129,7 @@ const collectLatestFromQueue = (queueName, listener) => {
       try {
         listener(message, () => {
           subscriber.lrem(getProcessingQueueFor(queueName), -1, queuedMessage, (err, removedElements) => {
-            if (err) console.log(err);
+            if (err) log().error('Unable to LREM from redis, message is kept on ' + queueName);
 
             // remove message from processing queue
             emitter.emit('postHandle', null, queueName, message, null, null);
@@ -150,7 +146,7 @@ const collectLatestFromQueue = (queueName, listener) => {
           });
         });
       } catch (error) {
-        console.log(error);
+        log().error({ error }, `Unable to process task on [${queueName}]`);
       }
     });
   });
@@ -206,15 +202,9 @@ const subscribe = (queueName, listener, callback) => {
 
   emitter.on(`collectFrom:${queueName}`, emittedQueue => {
     if (emittedQueue === queueName) {
-      // console.log('-> Going to listen from [' + queueName + ']');
       collectLatestFromQueue(queueName, listener);
     }
   });
-
-  // debug: print all listeners
-  /*
-  console.log(emitter.listeners());
-  */
 
   bindings[queueName] = getProcessingQueueFor(queueName);
   return callback();

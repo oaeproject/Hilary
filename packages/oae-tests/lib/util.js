@@ -1313,8 +1313,7 @@ const setUpBeforeTests = function(config, dropKeyspaceBeforeTest, callback) {
  *
  * @param  {Function}    callback    Standard callback function
  */
-const cleanUpAfterTests = function(callback) {
-  // Clean up after ourselves
+const cleanUpAfterTests = callback => {
   Redis.flush(err => {
     if (err) log().error({ err }, 'Error flushing Redis data after test completion');
 

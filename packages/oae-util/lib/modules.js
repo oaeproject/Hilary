@@ -120,8 +120,6 @@ const bootstrapModulesInit = function(modules, config, callback) {
       if (fs.existsSync(moduleInitPath)) {
         // ES6 modules cannot have an export default as a function, so init it exported instead
         if (_.contains(ES6Modules, moduleName)) {
-          // debug
-          console.log(moduleName);
           require(moduleName + MODULE_INIT_FILE).init(config, _onceDone);
         } else {
           require(moduleName + MODULE_INIT_FILE)(config, _onceDone);
@@ -184,8 +182,6 @@ const initAvailableModules = function(callback) {
     // Aggregate the oae- modules
     for (let i = 0; i < modules.length; i++) {
       const module = modules[i];
-      // debug
-      console.log('Gonna init module ' - module);
 
       if (module.substring(0, 4) === 'oae-') {
         // Determine module priority

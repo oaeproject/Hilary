@@ -68,10 +68,10 @@ describe.skip('MQ', () => {
       };
 
       const testQueue = 'testQueue-' + new Date().getTime();
-      TaskQueue.bind(testQueue, taskHandler, purgeQueueOptions, () => {
+      MQ.subscribe(testQueue, taskHandler, () => {
         // Submit a couple of tasks.
         for (let i = 0; i < 10; i++) {
-          TaskQueue.submit(testQueue, { foo: 'bar' });
+          MQ.submitJSON(testQueue, { foo: 'bar' });
         }
 
         // Purge the queue.
@@ -99,12 +99,12 @@ describe.skip('MQ', () => {
 
       const testQueueA = 'testQueueA-' + new Date().getTime();
       const testQueueB = 'testQueueB-' + new Date().getTime();
-      TaskQueue.bind(testQueueA, taskHandler, purgeQueueOptions, () => {
-        TaskQueue.bind(testQueueB, taskHandler, purgeQueueOptions, () => {
+      MQ.subscribe(testQueueA, taskHandler, () => {
+        MQ.subscribe(testQueueB, taskHandler, () => {
           // Submit a couple of tasks.
           for (let i = 0; i < 10; i++) {
-            TaskQueue.submit(testQueueA, { queue: 'a' });
-            TaskQueue.submit(testQueueB, { queue: 'b' });
+            MQ.submitJSON(testQueueA, { queue: 'a' });
+            MQ.submitJSON(testQueueB, { queue: 'b' });
           }
 
           // Purge all the queues.

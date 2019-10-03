@@ -21,7 +21,7 @@ import * as AuthzUtil from 'oae-authz/lib/util';
 import * as MQTestsUtil from 'oae-util/lib/test/mq-util';
 import * as RestAPI from 'oae-rest';
 import * as SearchAPI from 'oae-search';
-import * as TaskQueue from 'oae-util/lib/taskqueue';
+import * as MQ from 'oae-util/lib/mq';
 import * as TestsUtil from 'oae-tests/lib/util';
 
 import { SearchConstants } from 'oae-search/lib/constants';
@@ -38,7 +38,7 @@ describe('Search API', () => {
     camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
 
     // Unbind the current handler, if any
-    TaskQueue.unbind(SearchConstants.mq.TASK_REINDEX_ALL, err => {
+    MQ.unsubscribe(SearchConstants.mq.TASK_REINDEX_ALL, err => {
       assert.ok(!err);
 
       /*!
@@ -52,7 +52,7 @@ describe('Search API', () => {
       };
 
       // Drain the queue
-      TaskQueue.bind(SearchConstants.mq.TASK_REINDEX_ALL, _handleTaskDrain, null, err => {
+      MQ.subscribe(SearchConstants.mq.TASK_REINDEX_ALL, _handleTaskDrain, err => {
         assert.ok(!err);
         callback();
       });
@@ -160,7 +160,7 @@ describe('Search API', () => {
    */
   it('verify reindex all triggers an mq task', callback => {
     // Unbind the current handler, if any
-    TaskQueue.unbind(SearchConstants.mq.TASK_REINDEX_ALL, err => {
+    MQ.unsubscribe(SearchConstants.mq.TASK_REINDEX_ALL, err => {
       assert.ok(!err);
 
       /*!
@@ -175,7 +175,7 @@ describe('Search API', () => {
       };
 
       // Bind the handler to invoke the callback when the test passes
-      TaskQueue.bind(SearchConstants.mq.TASK_REINDEX_ALL, _handleTask, null, err => {
+      MQ.subscribe(SearchConstants.mq.TASK_REINDEX_ALL, _handleTask, err => {
         assert.ok(!err);
 
         // Reprocess previews
@@ -191,7 +191,7 @@ describe('Search API', () => {
    */
   it('verify non-global admin users cannot trigger reindex all', callback => {
     // Unbind the current handler, if any
-    TaskQueue.unbind(SearchConstants.mq.TASK_REINDEX_ALL, err => {
+    MQ.unsubscribe(SearchConstants.mq.TASK_REINDEX_ALL, err => {
       assert.ok(!err);
 
       /*!
@@ -205,7 +205,7 @@ describe('Search API', () => {
       };
 
       // Bind a handler to handle the task that invokes an assertion failure, as no task should be triggered from this test
-      TaskQueue.bind(SearchConstants.mq.TASK_REINDEX_ALL, _handleTaskFail, null, err => {
+      MQ.subscribe(SearchConstants.mq.TASK_REINDEX_ALL, _handleTaskFail, err => {
         assert.ok(!err);
 
         // Generate a normal user with which to try and reprocess previews

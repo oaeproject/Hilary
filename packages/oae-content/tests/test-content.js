@@ -30,7 +30,7 @@ import * as RestAPI from 'oae-rest';
 import { RestContext } from 'oae-rest/lib/model';
 import * as RestUtil from 'oae-rest/lib/util';
 import * as TenantsAPI from 'oae-tenants/lib/api';
-import * as TaskQueue from 'oae-util/lib/taskqueue';
+import * as MQ from 'oae-util/lib/mq';
 import * as TestsUtil from 'oae-tests';
 import * as ContentAPI from 'oae-content';
 import * as ContentTestUtil from 'oae-content/lib/test/util';
@@ -68,7 +68,7 @@ describe('Content', () => {
       assert.ok(!err);
 
       // Unbind the current handler, if any
-      TaskQueue.unbind(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
+      MQ.unsubscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
         assert.ok(!err);
 
         /*!
@@ -82,7 +82,7 @@ describe('Content', () => {
         };
 
         // Drain the queue
-        TaskQueue.bind(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, _handleTaskDrain, null, err => {
+        MQ.subscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, _handleTaskDrain, err => {
           assert.ok(!err);
           callback();
         });

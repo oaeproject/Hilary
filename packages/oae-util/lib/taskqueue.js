@@ -26,19 +26,8 @@ import * as MQ from './mq';
  */
 
 /**
- * Initializes the task queue logic so that it can start sending and receiving tasks
- *
- * @param  {Function}   callback    Standard callback function
- */
-const init = function(callback) {
-  return callback();
-};
-
-/**
  * A task queue is a simple queue where messages are considered tasks.
- * A queue will be created for each unique `taskQueueId`. The queue is bound to
- * the default exchange and new tasks will be published with the `taskQueue`
- * as routing key. This ensures that a submitted task ends up in the correct queue.
+ * A queue will be created for each unique `taskQueueId`
  *
  * @param  {String}     taskQueueId             The task queue to which the consumer should be bound
  * @param  {Function}   listener                A function that will be executed each time a task is received
@@ -53,54 +42,6 @@ const bind = (taskQueueId, listener, options, callback) => {
   MQ.subscribe(taskQueueId, listener, callback);
 };
 
-/*
-const bindOld = function(taskQueueId, listener, options, callback) {
-  options = options || {};
-  options.queue = options.queue || {};
-  options.subscribe = options.subscribe || {};
-
-  // 1. Declare the queue.
-  const queueOptions = _.defaults(options.queue, Constants.DEFAULT_TASK_QUEUE_OPTS);
-  _declareQueue(taskQueueId, queueOptions, err => {
-    if (err) {
-      return callback(err);
-    }
-
-    /*
-     * 2. Bind queue to the default exchange
-     *
-     * We use the `taskQueueId` for both the name as the queue and the routing key.
-     */
-
-/*
-    MQ.bindQueueToExchange(taskQueueId, Constants.DEFAULT_TASK_EXCHANGE_NAME, taskQueueId, err => {
-      if (err) {
-        return callback(err);
-      }
-
-      // 3. Subscribe to the queue
-      const subscribeOptions = _.defaults(options.subscribe, Constants.DEFAULT_TASK_QUEUE_SUBSCRIBE_OPTS);
-      MQ.subscribeQueue(taskQueueId, subscribeOptions, listener, callback);
-    });
-  });
-};
-*/
-
-/**
- * Declares a queue as long as it hasn't been declared before
- *
- * @see bind
- */
-/*
-const _declareQueue = function(taskQueueId, queueOptions, callback) {
-  if (MQ.isQueueDeclared(taskQueueId)) {
-    return callback();
-  }
-
-  MQ.declareQueue(taskQueueId, queueOptions, callback);
-};
-*/
-
 /**
  * Stop consuming tasks from the task queue.
  *
@@ -109,7 +50,6 @@ const _declareQueue = function(taskQueueId, queueOptions, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const unbind = function(taskQueueId, callback) {
-  // MQ.unsubscribeQueue(taskQueueId, callback);
   MQ.unsubscribe(taskQueueId, callback);
 };
 
@@ -121,9 +61,7 @@ const unbind = function(taskQueueId, callback) {
  * @param  {Function}   callback        Standard callback function
  */
 const submit = function(taskQueueId, taskData, callback) {
-  // MQ.submit(Constants.DEFAULT_TASK_EXCHANGE_NAME, taskQueueId, taskData, null, callback);
   MQ.submit(taskQueueId, JSON.stringify(taskData), callback);
-  // pubSub.publish(taskQueueId, taskData, callback);
 };
 
-export { init, bind, unbind, submit };
+export { bind, unbind, submit };

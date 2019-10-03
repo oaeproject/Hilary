@@ -22,7 +22,6 @@ import * as MQ from './mq';
 import * as Pubsub from './pubsub';
 import * as Redis from './redis';
 import * as Signature from './signature';
-import * as TaskQueue from './taskqueue';
 import * as Tempfile from './tempfile';
 
 const log = logger('oae-cassandra');
@@ -99,7 +98,6 @@ const bootMQ = (config, callback) => {
   MQ.init(config.mq, err => {
     if (err) return callback(err);
 
-    // Initialize the task queue
-    TaskQueue.init(callback);
+    callback();
   });
 };

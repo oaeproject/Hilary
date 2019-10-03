@@ -18,7 +18,6 @@ import PreviewConstants from 'oae-preview-processor/lib/constants';
 
 // import * as pubSub from 'oae-util/lib/pubsub';
 import * as MQ from 'oae-util/lib/mq';
-import * as TaskQueue from 'oae-util/lib/taskqueue';
 
 /**
  * Purges all the events out of the previews queue
@@ -28,24 +27,28 @@ import * as TaskQueue from 'oae-util/lib/taskqueue';
  */
 const purgePreviewsQueue = function(callback) {
   // Unbind the old listener (if any) and bind a new one, so we can purge the queue
-  TaskQueue.unbind(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, err => {
+  MQ.unsubscribe(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, err => {
     assert.ok(!err);
 
-    TaskQueue.bind(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {}, { subscribe: { subscribe: false } }, err => {
-      assert.ok(!err);
-
-      // Purge anything that is in the queue
-      MQ.purge(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, err => {
+    MQ.subscribe(
+      PreviewConstants.MQ.TASK_GENERATE_PREVIEWS,
+      () => {},
+      err => {
         assert.ok(!err);
 
-        // Unbind our dummy-handler from the queue
-        TaskQueue.unbind(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, err => {
+        // Purge anything that is in the queue
+        MQ.purge(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, err => {
           assert.ok(!err);
 
-          return callback();
+          // Unbind our dummy-handler from the queue
+          MQ.unsubscribe(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, err => {
+            assert.ok(!err);
+
+            return callback();
+          });
         });
-      });
-    });
+      }
+    );
   });
 };
 
@@ -57,24 +60,28 @@ const purgePreviewsQueue = function(callback) {
  */
 const purgeRegeneratePreviewsQueue = function(callback) {
   // Unbind the old listener (if any) and bind a new one, so we can purge the queue
-  TaskQueue.unbind(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
+  MQ.unsubscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
     assert.ok(!err);
 
-    TaskQueue.bind(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, () => {}, { subscribe: { subscribe: false } }, err => {
-      assert.ok(!err);
-
-      // Purge anything that is in the queue
-      MQ.purge(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
+    MQ.subscribe(
+      PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS,
+      () => {},
+      err => {
         assert.ok(!err);
 
-        // Unbind our dummy-handler from the queue
-        TaskQueue.unbind(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
+        // Purge anything that is in the queue
+        MQ.purge(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
           assert.ok(!err);
 
-          return callback();
+          // Unbind our dummy-handler from the queue
+          MQ.unsubscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
+            assert.ok(!err);
+
+            return callback();
+          });
         });
-      });
-    });
+      }
+    );
   });
 };
 
@@ -86,13 +93,12 @@ const purgeRegeneratePreviewsQueue = function(callback) {
  */
 const purgeFoldersPreviewsQueue = function(callback) {
   // Unbind the old listener (if any) and bind a new one, so we can purge the queue
-  TaskQueue.unbind(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, err => {
+  MQ.unsubscribe(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, err => {
     assert.ok(!err);
 
-    TaskQueue.bind(
+    MQ.subscribe(
       PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS,
       () => {},
-      { subscribe: { subscribe: false } },
       err => {
         assert.ok(!err);
 
@@ -101,7 +107,7 @@ const purgeFoldersPreviewsQueue = function(callback) {
           assert.ok(!err);
 
           // Unbind our dummy-handler from the queue
-          TaskQueue.unbind(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, err => {
+          MQ.unsubscribe(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, err => {
             assert.ok(!err);
 
             return callback();

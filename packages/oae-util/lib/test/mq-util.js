@@ -21,23 +21,25 @@ import * as MQ from 'oae-util/lib/mq';
 // Track when counts for a particular type of task return to 0
 const queueCounters = {};
 
+// TODO remove after debuggiing
+console.log = () => {};
+
 MQ.emitter.on('preSubmit', queueName => {
   _increment(queueName);
   // debug
-  // console.log(`* Incrementing on [${queueName}]: now at [${_get(queueName)}]`);
+  console.log(`* Incrementing on [${queueName}]: now at [${_get(queueName)}]`);
 });
 
 MQ.emitter.on('postHandle', (err, queueName) => {
   _decrement(queueName, 1);
   // debug
-  // console.log(` * Decrementing on [${queueName}]: now at [${_get(queueName)}]`);
+  console.log(` * Decrementing on [${queueName}]: now at [${_get(queueName)}]`);
 });
 
 MQ.emitter.on('postPurge', (name, count) => {
-  // _decrement(name, count);
   count = _get(name);
   // debug
-  // console.log(' * ' + count + ' tasks to delete on [' + name + ']');
+  console.log(' * ' + count + ' tasks to delete on [' + name + ']');
   _decrement(name, count); // decrements until 0
 });
 
@@ -69,6 +71,7 @@ const whenTasksEmpty = function(queueName, handler) {
 const _increment = function(queueName) {
   if (_hasQueue(queueName)) {
     queueCounters[queueName] = queueCounters[queueName] || new Counter();
+    // debug
     printCounter(queueName);
     queueCounters[queueName].incr();
   }
@@ -83,8 +86,9 @@ const _get = name => {
   return 0;
 };
 
+// TODO remove later
 const printCounter = queueName => {
-  // console.log(`${queueName}: [${_get(queueName)}] elements`);
+  console.log(`${queueName}: [${_get(queueName)}] elements`);
 };
 
 /**
@@ -108,6 +112,7 @@ const _hasQueue = function(name) {
  */
 const _decrement = function(queueName, count) {
   queueCounters[queueName] = queueCounters[queueName] || new Counter();
+  // debug
   printCounter(queueName);
   queueCounters[queueName].decr(count);
 };

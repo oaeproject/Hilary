@@ -19,7 +19,7 @@ import * as AuthzUtil from 'oae-authz/lib/util';
 import * as ContentDAO from 'oae-content/lib/internal/dao';
 import * as EmitterAPI from 'oae-emitter';
 import * as RestUtil from 'oae-rest/lib/util';
-import * as TaskQueue from 'oae-util/lib/taskqueue';
+import * as MQ from 'oae-util/lib/mq';
 
 import { telemetry } from 'oae-telemetry';
 
@@ -72,17 +72,9 @@ const enable = function(callback) {
       /* Error is logged within the implementation */
     };
 
-  // Set up the message queue and start listenening for preview tasks
-  const options = {
-    subscribe: {
-      prefetchCount: 1
-    }
-  };
-
   // Bind an error listener to the REST methods
   RestUtil.emitter.on('error', _restErrorLister);
-
-  TaskQueue.bind(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, _handleGeneratePreviewsTask, options, err => {
+  MQ.subscribe(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, _handleGeneratePreviewsTask, err => {
     if (err) {
       log().error({ err }, 'Could not bind to the generate previews queue');
       return callback(err);
@@ -90,29 +82,24 @@ const enable = function(callback) {
 
     log().info('Bound the preview processor to the generate previews task queue');
 
-    TaskQueue.bind(
-      PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS,
-      _handleGenerateFolderPreviewsTask,
-      options,
-      err => {
+    MQ.subscribe(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, _handleGenerateFolderPreviewsTask, err => {
+      if (err) {
+        log().error({ err }, 'Could not bind to the generate folder previews queue');
+        return callback(err);
+      }
+
+      log().info('Bound the preview processor to the generate folder previews task queue');
+
+      MQ.subscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, _handleRegeneratePreviewsTask, err => {
         if (err) {
-          log().error({ err }, 'Could not bind to the generate folder previews queue');
+          log().error({ err }, 'Could not bind to the regenerate previews queue');
           return callback(err);
         }
 
-        log().info('Bound the preview processor to the generate folder previews task queue');
-
-        TaskQueue.bind(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, _handleRegeneratePreviewsTask, null, err => {
-          if (err) {
-            log().error({ err }, 'Could not bind to the regenerate previews queue');
-            return callback(err);
-          }
-
-          log().info('Bound the preview processor to the regenerate previews task queue');
-          return callback();
-        });
-      }
-    );
+        log().info('Bound the preview processor to the regenerate previews task queue');
+        return callback();
+      });
+    });
   });
 };
 
@@ -130,7 +117,7 @@ const disable = function(callback) {
       /* Error is logged within the implementation */
     };
 
-  TaskQueue.unbind(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, err => {
+  MQ.unsubscribe(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, err => {
     if (err) {
       log().error({ err }, 'Could not unbind from the previews queue');
       return callback(err);
@@ -138,7 +125,7 @@ const disable = function(callback) {
 
     log().info('Unbound the preview processor from the generate previews task queue');
 
-    TaskQueue.unbind(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, err => {
+    MQ.unsubscribe(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, err => {
       if (err) {
         log().error({ err }, 'Could not unbind from the folder previews queue');
         return callback(err);
@@ -146,7 +133,7 @@ const disable = function(callback) {
 
       log().info('Unbound the preview processor from the folder generate previews task queue');
 
-      TaskQueue.unbind(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
+      MQ.unsubscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
         if (err) {
           log().error({ err }, 'Could not unbind from the regenerate previews queue');
           return callback(err);
@@ -338,7 +325,7 @@ const getProcessor = function(ctx, contentObj, callback) {
  */
 const submitForProcessing = function(contentId, revisionId) {
   log().trace({ contentId, revisionId }, 'Submitting for preview processing');
-  TaskQueue.submit(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, {
+  MQ.submitJSON(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, {
     contentId,
     revisionId
   });
@@ -352,7 +339,7 @@ const submitForProcessing = function(contentId, revisionId) {
  */
 const submitFolderForProcessing = function(folderId) {
   log().trace({ folderId }, 'Submitting for folder preview processing');
-  TaskQueue.submit(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, { folderId });
+  MQ.submitJSON(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, { folderId });
 };
 
 /**
@@ -390,7 +377,7 @@ const reprocessPreviews = function(ctx, filters, callback) {
     return callback(filterGenerator.getFirstError());
   }
 
-  TaskQueue.submit(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, { filters }, callback);
+  MQ.submitJSON(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, { filters }, callback);
 };
 
 /**

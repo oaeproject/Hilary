@@ -15,7 +15,7 @@
 
 import assert from 'assert';
 
-import * as TaskQueue from 'oae-util/lib/taskqueue';
+import * as MQ from 'oae-util/lib/mq';
 
 describe('TaskQueue', () => {
   describe('#bind()', () => {
@@ -24,7 +24,7 @@ describe('TaskQueue', () => {
      */
     it('verify a bound worker can receive a task', callback => {
       const testQueue = 'testQueue-' + new Date().getTime();
-      TaskQueue.bind(
+      MQ.subscribe(
         testQueue,
         (data, taskCallback) => {
           assert.ok(data);
@@ -32,9 +32,8 @@ describe('TaskQueue', () => {
           taskCallback();
           callback();
         },
-        null,
         () => {
-          TaskQueue.submit(testQueue, { activity: 'you stink!' });
+          MQ.submitJSON(testQueue, { activity: 'you stink!' });
         }
       );
     });
@@ -44,9 +43,9 @@ describe('TaskQueue', () => {
      */
     it("verify binding an existing queue doesn't invoke an error", callback => {
       const testQueue = 'testQueue-' + new Date().getTime();
-      TaskQueue.bind(testQueue, () => {}, null, () => {
+      MQ.subscribe(testQueue, () => {}, () => {
         // Simply make sure the callback gets executed and we can carry on
-        TaskQueue.bind(testQueue, () => {}, null, callback);
+        MQ.subscribe(testQueue, () => {}, callback);
       });
     });
 
@@ -55,14 +54,13 @@ describe('TaskQueue', () => {
      */
     it('verify an exception is caught when thrown from a task handler', callback => {
       const testQueue = 'testQueue-' + new Date().getTime();
-      TaskQueue.bind(
+      MQ.subscribe(
         testQueue,
         data => {
           throw new Error('Hard-coded exception to verify application remains stable.');
         },
-        null,
         () => {
-          TaskQueue.submit(testQueue, { activity: 'blah' });
+          MQ.submitJSON(testQueue, { activity: 'blah' });
           // Simply make sure tests continue normally when the exception is thrown
           callback();
         }
@@ -70,14 +68,14 @@ describe('TaskQueue', () => {
     });
   });
 
-  describe('#unbind()', () => {
+  describe('#unsubscribe()', () => {
     /**
      * Verify that unbinding a non-existing worker does not invoke an error
      */
     it('verify unbind non-existing queue is safe', callback => {
       const testQueue = 'testQueue-' + new Date().getTime();
       // Simply make sure there is no exception
-      TaskQueue.unbind(testQueue, callback);
+      MQ.unsubscribe(testQueue, callback);
     });
 
     /**
@@ -85,16 +83,15 @@ describe('TaskQueue', () => {
      */
     it('verify unbinding and then rebinding', callback => {
       const testQueue = 'testQueue-' + new Date().getTime();
-      TaskQueue.bind(
+      MQ.subscribe(
         testQueue,
         () => {
           // Dead end. if this is the effective method the test will hang and time out
         },
-        null,
         () => {
           // Now unbind it so we can re-bind with a valid handler
-          TaskQueue.unbind(testQueue, () => {
-            TaskQueue.bind(
+          MQ.unsubscribe(testQueue, () => {
+            MQ.subscribe(
               testQueue,
               (data, taskCallback) => {
                 assert.ok(data);
@@ -102,9 +99,8 @@ describe('TaskQueue', () => {
                 taskCallback();
                 callback();
               },
-              null,
               () => {
-                TaskQueue.submit(testQueue, { activity: 'you stink!' });
+                MQ.submitJSON(testQueue, { activity: 'you stink!' });
               }
             );
           });

@@ -14,27 +14,51 @@
  * permissions and limitations under the License.
  */
 
-// import util from 'util';
 import _ from 'underscore';
 
 import { EventEmitter } from 'oae-emitter';
 import { logger } from 'oae-logger';
-// import PreviewConstants from 'oae-preview-processor/lib/constants';
 import * as Redis from './redis';
 import OaeEmitter from './emitter';
 import * as OAE from './oae';
 import { Validator } from './validator';
 
 const log = logger('mq');
-
-// Create the event emitter
 const emitter = new EventEmitter();
+
+/**
+ * Redis configuration which will load from config.js
+ */
 let redisConfig = null;
 
+/**
+ * This will hold a connection used only for PURGE operations
+ * See `purgeAllQueues` for details
+ */
 let manager = null;
+
+/**
+ * This will hold a connection for LPUSHing messages to queues
+ * See `submit` for details
+ */
 let publisher = null;
 
+/**
+ * This object will track the current bindings
+ * meaning every time we subscribe to a queue
+ * by assigning a listener to it, we set the binding,
+ * and every time we unsubscribe, we do the opposite
+ */
 const bindings = {};
+
+/*+
+ * This object contains the different redis clients
+ * OAE uses. It is currently one per queue (such as oae-activity/activity,
+ * oae-search/reindex, oae-preview-processor/generatePreviews, etc)
+ * Every time we subscribe, we block that client while listening
+ * on the queue, using redis BRPOPLPUSH.
+ * See `_getOrCreateSubscriberForQueue` for details
+ */
 const subscribers = {};
 
 const PRODUCTION_MODE = 'production';
@@ -43,9 +67,12 @@ const PRODUCTION_MODE = 'production';
 // console.log = () => {};
 
 OaeEmitter.on('ready', () => {
-  // Let ready = true;
   emitter.emit('ready');
 });
+
+const getRedeliveryQueueFor = queueName => {
+  return `${queueName}-redelivery`;
+};
 
 const getProcessingQueueFor = queueName => {
   return `${queueName}-processing`;
@@ -63,27 +90,18 @@ const init = function(config, callback) {
 
   // Only init if the connections haven't been opened.
   if (manager === null) {
-    // Create 3 clients, one for managing redis and 2 for the actual pub/sub communication.
     Redis.createClient(config, (err, client) => {
       if (err) return callback(err);
-
-      // this is connection that does the purging
       manager = client;
 
       Redis.createClient(config, (err, client) => {
         if (err) return callback(err);
-
-        // this is the connectio that does the LPUSHing
         publisher = client;
 
         // if the flag is set, we purge all queues on startup. ONLY if we're NOT in production mode.
         const shallWePurge = redisConfig.purgeQueuesOnStartup && process.env.NODE_ENV !== PRODUCTION_MODE;
         if (shallWePurge) {
-          purgeAllQueues(err => {
-            if (err) log().error({ err }, 'Purging queues on startup FAILED');
-
-            return callback();
-          });
+          purgeAllQueues(callback);
         }
       });
     });
@@ -126,15 +144,28 @@ const collectLatestFromQueue = (queueName, listener) => {
   _getOrCreateSubscriberForQueue(queueName, (err, subscriber) => {
     subscriber.brpoplpush(queueName, getProcessingQueueFor(queueName), 0, (err, queuedMessage) => {
       const message = JSON.parse(queuedMessage);
-      try {
-        listener(message, () => {
-          subscriber.lrem(getProcessingQueueFor(queueName), -1, queuedMessage, (err, removedElements) => {
-            if (err) log().error('Unable to LREM from redis, message is kept on ' + queueName);
+      listener(message, err => {
+        /*
+         * Lets set the convention that if the listener function
+         * returns the callback with an error, then something went
+         * unpexpectadly wrong, and we need to know about it.
+         * Hence, we're sending it to a special queue for analysis
+         */
+        if (err) {
+          log().warn(
+            { err },
+            `Using the redelivery mechanism for a message that failed running ${listener.name} on ${queueName}`
+          );
+          _redeliverToSpecialQueue(queueName, queuedMessage);
+        }
 
-            // remove message from processing queue
-            emitter.emit('postHandle', null, queueName, message, null, null);
+        subscriber.lrem(getProcessingQueueFor(queueName), -1, queuedMessage, err => {
+          if (err) log().error('Unable to LREM from redis, message is kept on ' + queueName);
 
-            /*
+          // remove message from processing queue
+          emitter.emit('postHandle', null, queueName, message, null, null);
+
+          /*
             // recursive call itself if there are more tasks to be consumed
             subscriber.llen(queueName, (err, stillQueued) => {
               if (stillQueued > 0) {
@@ -143,13 +174,14 @@ const collectLatestFromQueue = (queueName, listener) => {
               }
             });
             */
-          });
         });
-      } catch (error) {
-        log().error({ error }, `Unable to process task on [${queueName}]`);
-      }
+      });
     });
   });
+};
+
+const _redeliverToSpecialQueue = (queueName, message) => {
+  publisher.lpush(getRedeliveryQueueFor(queueName), message, () => {});
 };
 
 /*
@@ -236,7 +268,7 @@ const getBoundQueues = function() {
  * @param  {Function}   [callback]                  Invoked when the job has been submitted, note that this does *NOT* guarantee that the message reached the exchange as that is not supported by amqp
  * @param  {Object}     [callback.err]              Standard error object, if any
  */
-const submit = function(queueName, message, callback) {
+const submit = (queueName, message, callback) => {
   callback = callback || function() {};
   const validator = new Validator();
   validator.check(queueName, { code: 400, msg: 'No channel was provided.' }).notEmpty();
@@ -256,6 +288,10 @@ const submit = function(queueName, message, callback) {
   } else {
     return callback();
   }
+};
+
+const submitJSON = (queueName, message, callback) => {
+  submit(queueName, JSON.stringify(message), callback);
 };
 
 /**
@@ -569,7 +605,7 @@ const purgeAllQueues = callback => {
       return done();
     }
 
-    let nextQueueToPurge = allQueues.pop();
+    const nextQueueToPurge = allQueues.pop();
     purgeQueue(nextQueueToPurge, () => {
       purgeQueue(getProcessingQueueFor(nextQueueToPurge), () => {
         return purgeQueues(allQueues, done);
@@ -594,5 +630,6 @@ export {
   purgeQueue as purge,
   purgeAllQueues as purgeAll,
   getBoundQueues,
-  submit
+  submit,
+  submitJSON
 };

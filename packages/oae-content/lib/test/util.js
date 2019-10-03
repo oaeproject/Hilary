@@ -25,7 +25,7 @@ import * as MqTestUtil from 'oae-util/lib/test/mq-util';
 import * as LibraryTestUtil from 'oae-library/lib/test/util';
 import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
 import * as RestAPI from 'oae-rest';
-import * as TaskQueue from 'oae-util/lib/taskqueue';
+import * as MQ from 'oae-util/lib/mq';
 import * as TestsUtil from 'oae-tests/lib/util';
 
 import { ContentConstants } from 'oae-content/lib/constants';
@@ -851,7 +851,7 @@ const publishCollabDoc = function(contentId, userId, callback) {
     contentId,
     userId
   };
-  TaskQueue.submit(ContentConstants.queue.ETHERPAD_PUBLISH, data, err => {
+  MQ.submitJSON(ContentConstants.queue.ETHERPAD_PUBLISH, data, err => {
     assert.ok(!err);
   });
 

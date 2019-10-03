@@ -49,7 +49,7 @@ let publisher = null;
  * by assigning a listener to it, we set the binding,
  * and every time we unsubscribe, we do the opposite
  */
-const bindings = {};
+const queueBindings = {};
 
 /*+
  * This object contains the different redis clients
@@ -145,7 +145,7 @@ const collectLatestFromQueue = (queueName, listener) => {
     subscriber.brpoplpush(queueName, getProcessingQueueFor(queueName), 0, (err, queuedMessage) => {
       const message = JSON.parse(queuedMessage);
       listener(message, err => {
-        /*
+        /**
          * Lets set the convention that if the listener function
          * returns the callback with an error, then something went
          * unpexpectadly wrong, and we need to know about it.
@@ -184,53 +184,20 @@ const _redeliverToSpecialQueue = (queueName, message) => {
   publisher.lpush(getRedeliveryQueueFor(queueName), message, () => {});
 };
 
-/*
-const collectAllStalledFromQueue = (queueName, listener, done) => {
-  // debug
-  console.log('Collecting ALL from [' + queueName + '] recursively');
-
-  _getOrCreateSubscriberForQueue(queueName, (err, subscriber) => {
-    // recursive so we parse all the tasks on queue
-    subscriber.llen(queueName, (err, length) => {
-      if (err) console.log(err);
-
-      const areThereMoreTasksToConsume = length > 0;
-      if (areThereMoreTasksToConsume) {
-        console.log('There are ' + length + ' tasks left to consume... recursive call incoming!');
-        collectLatestFromQueue(queueName, listener, () => {
-          collectAllStalledFromQueue(queueName, listener, done);
-        });
-      } else {
-        return done();
-      }
-    });
-  });
-};
-*/
-
 const subscribe = (queueName, listener, callback) => {
   callback = callback || function() {};
   const validator = new Validator();
   validator.check(queueName, { code: 400, msg: 'No channel was provided.' }).notEmpty();
   if (validator.hasErrors()) return callback(validator.getFirstError());
 
-  /**
-   * We need to do three different things here:
-   * 1 remove all previous listeners, otherwise we'll stack them
-   * 2 add a new listener for future tasks submitted (via lpush command event listener)
-   * 3 make sure we consume all past events/tasks that haven't been consumed yet
-   */
-
   // make sure the listener isn't repetitive
-  /*
-  const filtersForThisQueue = _.filter(emitter.listeners(), eachListener => {
-    return eachListener === `collectFrom:${queueName}`;
-  }).length;
-
-  if (filtersForThisQueue > 1) {
-    console.log('\n\nSERIOUS SHIT GOING ON HERE\n\n');
+  const thisQueueHasBeenSubscribedBefore = emitter.listeners(`collectFrom:${queueName}`).length > 0;
+  if (thisQueueHasBeenSubscribedBefore) {
+    log().warn(
+      `There is already one listener for collectFrom:${queueName} event. Something is not right here, but I will remove the previous listener just in case.`
+    );
+    emitter.removeAllListeners(`collectFrom:${queueName}`);
   }
-  */
 
   emitter.on(`collectFrom:${queueName}`, emittedQueue => {
     if (emittedQueue === queueName) {
@@ -238,7 +205,7 @@ const subscribe = (queueName, listener, callback) => {
     }
   });
 
-  bindings[queueName] = getProcessingQueueFor(queueName);
+  queueBindings[queueName] = getProcessingQueueFor(queueName);
   return callback();
 };
 
@@ -249,13 +216,12 @@ const unsubscribe = (queueName, callback) => {
   if (validator.hasErrors()) return callback(validator.getFirstError());
 
   emitter.removeAllListeners(`collectFrom:${queueName}`);
-  delete bindings[queueName];
+  delete queueBindings[queueName];
   return callback();
 };
 
 const getBoundQueues = function() {
-  // return _.keys(bindings);
-  return bindings;
+  return queueBindings;
 };
 
 /**
@@ -278,7 +244,7 @@ const submit = (queueName, message, callback) => {
   // TODO I dont think the second condition is relevant
   // if (bindings[queueName] || queueName.indexOf('oae-activity-push') !== -1) {
 
-  if (bindings[queueName]) {
+  if (queueBindings[queueName]) {
     emitter.emit('preSubmit', queueName);
 
     publisher.lpush(queueName, message, () => {
@@ -613,7 +579,7 @@ const purgeAllQueues = callback => {
     });
   };
 
-  const queuesToPurge = _.keys(bindings);
+  const queuesToPurge = _.keys(queueBindings);
   purgeQueues(queuesToPurge, callback);
 };
 

@@ -451,44 +451,6 @@ const _waitUntilIdle = function(maxWaitMillis, callback) {};
  */
 
 /**
- * Create a queue that will be used to hold on to messages that were rejected / failed to acknowledge
- *
- * @param  {Function}   callback        Standard callback function
- * @param  {Object}     callback.err    An error that occurred, if any
- * @api private
- */
-/*
-const _createRedeliveryQueue = function(callback) {
-  // Don't declare if we've already declared it on this node
-  if (queues[MqConstants.REDELIVER_QUEUE_NAME]) {
-    return callback();
-  }
-
-  // Declare an exchange with a queue whose sole purpose is to hold on to messages that were "redelivered". Such
-  // situations include errors while processing or some kind of client error that resulted in the message not
-  // being acknowledged
-  declareExchange(MqConstants.REDELIVER_EXCHANGE_NAME, MqConstants.REDELIVER_EXCHANGE_OPTIONS, err => {
-    if (err) {
-      return callback(err);
-    }
-
-    declareQueue(MqConstants.REDELIVER_QUEUE_NAME, MqConstants.REDELIVER_QUEUE_OPTIONS, err => {
-      if (err) {
-        return callback(err);
-      }
-
-      return bindQueueToExchange(
-        MqConstants.REDELIVER_QUEUE_NAME,
-        MqConstants.REDELIVER_EXCHANGE_NAME,
-        MqConstants.REDELIVER_QUEUE_NAME,
-        callback
-      );
-    });
-  });
-};
-*/
-
-/**
  * Record the fact that we have begun processing this task.
  *
  * @param  {String}     deliveryKey         A (locally) unique identifier for this message
@@ -536,22 +498,6 @@ const _dumpProcessingMessages = function(logMessage) {
 };
 */
 
-const noNeedToDeclareQueue = (name, options, callback) => {
-  return callback();
-};
-
-const noNeedToDeclareExchange = (name, options, callback) => {
-  return callback();
-};
-
-const noNeedToUnbindQueue = (name, exchangeName, stream, callback) => {
-  return callback();
-};
-
-const noNeedToBindQueueToExchange = (name, exchangeName, stream, callback) => {
-  return callback();
-};
-
 const purgeQueue = (queueName, callback) => {
   emitter.emit('prePurge', queueName);
   manager.llen(queueName, (err, count) => {
@@ -585,12 +531,7 @@ const purgeAllQueues = callback => {
 
 export {
   emitter,
-  // rejectMessage,
   init,
-  noNeedToDeclareExchange as declareExchange,
-  noNeedToDeclareQueue as declareQueue,
-  noNeedToUnbindQueue as unbindQueueFromExchange,
-  noNeedToBindQueueToExchange as bindQueueToExchange,
   subscribe,
   unsubscribe,
   purgeQueue as purge,

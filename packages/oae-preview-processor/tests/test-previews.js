@@ -2568,7 +2568,7 @@ describe('Preview processor', () => {
     /**
      * Test that verifies that a push notification is sent out on preview generation completion
      */
-    it.skip('verify a push notification is sent out on preview generation completion', callback => {
+    it('verify a push notification is sent out on preview generation completion', callback => {
       // Ignore this test if the PP is disabled
       if (!defaultConfig.previews.enabled) {
         return callback();
@@ -2582,6 +2582,9 @@ describe('Preview processor', () => {
 
           RestAPI.User.getMe(mrvisser.restContext, (err, mrvisserFullMeData) => {
             assert.ok(!err);
+                    // Re-enable the processor so the file can be processed
+                    PreviewAPI.enable(err => {
+                      assert.ok(!err);
 
             // Create a file that we can process
             RestAPI.Content.createFile(
@@ -2615,10 +2618,6 @@ describe('Preview processor', () => {
                     ]
                   };
                   ActivityTestsUtil.getFullySetupPushClient(data, client => {
-                    // Re-enable the processor so the file can be processed
-                    PreviewAPI.enable(err => {
-                      assert.ok(!err);
-                    });
 
                     client.on('message', message => {
                       if (message.activities[0] && message.activities[0]['oae:activityType'] === 'previews-finished') {
@@ -2637,6 +2636,7 @@ describe('Preview processor', () => {
                 });
               }
             );
+                    });
           });
         });
       });

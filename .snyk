@@ -1,5 +1,5 @@
 # Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
-version: v1.13.3
+version: v1.13.5
 ignore: {}
 # patches apply the minimum changes required to fix a vulnerability
 patch:
@@ -62,3 +62,16 @@ patch:
         patched: '2019-04-23T13:09:34.786Z'
     - ethercalc-client > ethercalc > zappajs > socket.io > socket.io-client > engine.io-client > ws:
         patched: '2019-04-23T13:09:34.786Z'
+  SNYK-JS-HTTPSPROXYAGENT-469131:
+    - puppeteer > https-proxy-agent:
+        patched: '2019-10-08T04:58:09.575Z'
+    - snyk > proxy-agent > https-proxy-agent:
+        patched: '2019-10-08T04:58:09.575Z'
+    - snyk > proxy-agent > pac-proxy-agent > https-proxy-agent:
+        patched: '2019-10-08T04:58:09.575Z'
+    - lerna > @lerna/add > @evocateur/pacote > make-fetch-happen > https-proxy-agent:
+        patched: '2019-10-08T04:58:09.575Z'
+    - lerna > @lerna/add > @evocateur/pacote > @evocateur/npm-registry-fetch > make-fetch-happen > https-proxy-agent:
+        patched: '2019-10-08T04:58:09.575Z'
+    - lerna > @lerna/publish > @lerna/npm-publish > @evocateur/libnpmpublish > @evocateur/npm-registry-fetch > make-fetch-happen > https-proxy-agent:
+        patched: '2019-10-08T04:58:09.575Z'

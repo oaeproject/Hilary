@@ -94,7 +94,7 @@
     "selectn": "^1.1.2",
     "shortid": "^2.2.8",
     "slideshare": "git://github.com/oaeproject/node-slideshare",
-    "snyk": "^1.210.0",
+    "snyk": "^1.234.0",
     "sockjs": "^0.3.19",
     "strftime": "^0.10.0",
     "tall": "^2.2.0",

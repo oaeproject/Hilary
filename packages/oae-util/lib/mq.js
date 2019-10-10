@@ -102,6 +102,8 @@ const init = function(config, callback) {
         const shallWePurge = redisConfig.purgeQueuesOnStartup && process.env.NODE_ENV !== PRODUCTION_MODE;
         if (shallWePurge) {
           purgeAllQueues(callback);
+        } else {
+          return callback();
         }
       });
     });

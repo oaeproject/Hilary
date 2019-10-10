@@ -164,16 +164,6 @@ const collectLatestFromQueue = (queueName, listener) => {
 
           // remove message from processing queue
           emitter.emit('postHandle', null, queueName, message, null, null);
-
-          /*
-            // recursive call itself if there are more tasks to be consumed
-            subscriber.llen(queueName, (err, stillQueued) => {
-              if (stillQueued > 0) {
-                console.log('-> Still ' + stillQueued + ' tasks there, gonna listen from [' + queueName + ']');
-                return collectLatestFromQueue(queueName, listener);
-              }
-            });
-            */
         });
       });
     });
@@ -241,9 +231,6 @@ const submit = (queueName, message, callback) => {
   // validator.check(message, { code: 400, msg: 'No message was provided.' }).notEmpty();
   if (validator.hasErrors()) return callback(validator.getFirstError());
 
-  // TODO I dont think the second condition is relevant
-  // if (bindings[queueName] || queueName.indexOf('oae-activity-push') !== -1) {
-
   if (queueBindings[queueName]) {
     emitter.emit('preSubmit', queueName);
 
@@ -261,20 +248,6 @@ const submitJSON = (queueName, message, callback) => {
 };
 
 /**
- * Reject a message through the channel object
- * @function rejectMessage
- * @param  {Object} message  The message to be rejected
- * @param  {Boolean} requeue  Whether the message should be requeued
- * @param  {Function} callback Standard callback function
- */
-/*
-const rejectMessage = function(message, requeue, callback) {
-  channel.reject(message, requeue);
-  return callback();
-};
-*/
-
-/**
  * Safely shutdown the MQ service after all current tasks are completed.
  *
  * @param  {Function}   Invoked when shutdown is complete
@@ -286,162 +259,6 @@ OAE.registerPreShutdownHandler('mq', null, done => {
   done();
 });
 
-// Whether or not the "in-memory queue" is already being processed
-const isWorking = false;
-
-/*
-const subscribeQueue = function(queueName, subscribeOptions, listener, callback) {
-  callback =
-    callback ||
-    function(err) {
-      if (err) {
-        log().warn({ err, queueName, subscribeOptions }, 'An error occurred while subscribing to a queue');
-      }
-    };
-
-  if (!queues[queueName]) {
-    log().error({
-      queueName,
-      subscribeOptions,
-      err: new Error('Tried to subscribe to an unknown queue')
-    });
-    return callback({ code: 400, msg: 'Tried to subscribe to an unknown queue' });
-  }
-
-  channel
-    .consume(
-      queueName,
-      msg => {
-        const { headers } = msg.properties;
-        const data = JSON.parse(msg.content.toString());
-        const deliveryInfo = msg.fields;
-        deliveryInfo.queue = queueName;
-
-        log().trace(
-          {
-            queueName,
-            data,
-            headers,
-            deliveryInfo
-          },
-          'Received an MQ message.'
-        );
-
-        const deliveryKey = util.format('%s:%s', deliveryInfo.queue, deliveryInfo.deliveryTag);
-
-        // When a message arrives that was redelivered, we do not give it to the handler. Auto-acknowledge
-        // it and push it into the redelivery queue to be inspected manually
-        if (deliveryInfo.redelivered) {
-          const redeliveryData = {
-            headers,
-            deliveryInfo,
-            data
-          };
-
-          submit(
-            MqConstants.REDELIVER_EXCHANGE_NAME,
-            MqConstants.REDELIVER_QUEUE_NAME,
-            redeliveryData,
-            MqConstants.REDELIVER_SUBMIT_OPTIONS,
-            err => {
-              if (err) {
-                log().warn({ err }, 'An error occurred delivering a redelivered message to the redelivery queue');
-              }
-
-              MQ.emit('storedRedelivery', queueName, data, headers, deliveryInfo, msg);
-            }
-          );
-
-          return channelWrapper.ack(msg);
-        }
-
-        // Indicate that this server has begun processing a new task
-        _incrementProcessingTask(deliveryKey, data, deliveryInfo);
-        MQ.emit('preHandle', queueName, data, headers, deliveryInfo, msg);
-
-        try {
-          // Pass the message data to the subscribed listener
-          listener(data, err => {
-            if (err) {
-              log().error(
-                {
-                  err,
-                  queueName,
-                  data
-                },
-                'An error occurred processing a task'
-              );
-            } else {
-              log().trace(
-                {
-                  queueName,
-                  data,
-                  headers,
-                  deliveryInfo
-                },
-                'MQ message has been processed by the listener'
-              );
-            }
-
-            // Acknowledge that we've seen the message.
-            // Note: We can't use queue.shift() as that only acknowledges the last message that the queue handed to us.
-            // This message and the last message are not necessarily the same if the prefetchCount was higher than 1.
-            if (subscribeOptions.ack !== false) {
-              channelWrapper.ack(msg);
-            }
-
-            // Indicate that this server has finished processing the task
-            _decrementProcessingTask(deliveryKey, deliveryInfo);
-            MQ.emit('postHandle', null, queueName, data, headers, deliveryInfo);
-          });
-        } catch (error) {
-          log().error(
-            {
-              err: error,
-              queueName,
-              data
-            },
-            'Exception raised while handling job'
-          );
-
-          // Acknowledge that we've seen the message
-          if (subscribeOptions.ack !== false) {
-            channelWrapper.ack(msg);
-          }
-
-          // Indicate that this server has finished processing the task
-          _decrementProcessingTask(deliveryKey, deliveryInfo);
-          MQ.emit('postHandle', error, queueName, data, headers, deliveryInfo);
-        }
-      },
-      subscribeOptions
-    )
-    .then(ok => {
-      if (!ok) {
-        log().error({ queueName, err: new Error('Error binding worker for queue') });
-        return unsubscribeQueue(queueName, () => {
-          // Don't overwrite the original error with any binding errors
-          return callback({ code: 500, msg: 'Error binding a worker for queue' });
-        });
-      }
-
-      // Keep the consumerTag so we can unsubscribe later
-      queues[queueName].consumerTag = ok.consumerTag;
-      return callback();
-    });
-};
-*/
-
-/**
- * Wait until our set of pending tasks has drained. If it takes longer than `maxWaitMillis`, it will
- * dump the pending tasks in the log that are holding things up and force continue.
- *
- * @param  {Number}     maxWaitMillis   The maximum amount of time (in milliseconds) to wait for pending tasks to finish
- * @param  {Function}   callback        Standard callback function
- * @api private
- */
-const _waitUntilIdle = function(maxWaitMillis, callback) {};
-
 /**
  * Purge a queue.
  *
@@ -449,55 +266,6 @@ const _waitUntilIdle = function(maxWaitMillis, callback) {};
  * @param  {Function}   [callback]      Standard callback method
  * @param  {Object}     [callback.err]  An error that occurred purging the queue, if any
  */
-
-/**
- * Record the fact that we have begun processing this task.
- *
- * @param  {String}     deliveryKey         A (locally) unique identifier for this message
- * @param  {Object}     data                The task data
- * @param  {Object}     deliveryInfo        The delivery info from RabbitMQ
- * @api private
- */
-const _incrementProcessingTask = function(deliveryKey, data, deliveryInfo) {
-  messagesInProcessing[deliveryKey] = { data, deliveryInfo };
-  numMessagesInProcessing++;
-};
-
-/**
- * Record the fact that we have finished processing this task.
- *
- * @param  {String}     deliveryKey         A (locally) unique identifier for this message
- * @api private
- */
-const _decrementProcessingTask = function(deliveryKey) {
-  delete messagesInProcessing[deliveryKey];
-  numMessagesInProcessing--;
-
-  if (numMessagesInProcessing === 0) {
-    emitter.emit('idle');
-  } else if (numMessagesInProcessing < 0) {
-    // In this case, what likely happened was we overflowed our concurrent tasks, flushed it to 0, then
-    // some existing tasks completed. This is the best way I can think of handling it that will "self
-    // recover" eventually. Concurrent tasks overflowing is a sign of a leak (i.e., a task is handled
-    // but never acknowleged). When this happens there should be a dump of some tasks in the logs and
-    // and they should be investigated and resolved.
-    numMessagesInProcessing = 0;
-  }
-};
-
-/**
- * Log a message with the in-processing messages in the log line. This will log at must `NUM_MESSAGES_TO_DUMP`
- * messages.
- *
- * @param  {String}     logMessage
- * @api private
- */
-/*
-const _dumpProcessingMessages = function(logMessage) {
-  log().warn({ messages: _.values(messagesInProcessing).slice(0, NUM_MESSAGES_TO_DUMP) }, logMessage);
-};
-*/
-
 const purgeQueue = (queueName, callback) => {
   emitter.emit('prePurge', queueName);
   manager.llen(queueName, (err, count) => {

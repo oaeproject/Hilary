@@ -41,7 +41,7 @@ const init = function() {
      * failure as the resource being "locked" or (more correctly) "unavailable",
      * With retryCount=-1 there will be unlimited retries until the lock is aquired.
      */
-    retryCount: -1
+    retryCount: 3
   });
 };
 

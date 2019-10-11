@@ -331,7 +331,9 @@ const _authenticate = function(connectionInfo, message) {
   const validator = new Validator();
   validator.check(data.tenantAlias, { code: 400, msg: 'A tenant needs to be provided' }).notEmpty();
   validator.check(data.userId, { code: 400, msg: 'A userId needs to be provided' }).isUserId();
-  validator.check(null, { code: 400, msg: 'A signature object needs to be provided' }).isObject(data.signature);
+  validator
+    .check(null, { code: 400, msg: 'A signature object needs to be provided' })
+    .isObject(data.signature);
   if (validator.hasErrors()) {
     _writeResponse(connectionInfo, message.id, validator.getFirstError());
     log().error({ err: validator.getFirstError() }, 'Invalid auth frame');
@@ -361,7 +363,10 @@ const _authenticate = function(connectionInfo, message) {
   PrincipalsDAO.getPrincipal(data.userId, (err, user) => {
     if (err) {
       _writeResponse(connectionInfo, message.id, err);
-      log().error({ err, userId: data.userId, sid: socket.id }, 'Error trying to get the principal object');
+      log().error(
+        { err, userId: data.userId, sid: socket.id },
+        'Error trying to get the principal object'
+      );
       return socket.close();
     }
 
@@ -378,7 +383,10 @@ const _authenticate = function(connectionInfo, message) {
       )
     ) {
       _writeResponse(connectionInfo, message.id, { code: 401, msg: 'Invalid signature' });
-      log().error({ userId: data.userId, sid: socket.id }, 'Incoming authentication signature was invalid');
+      log().error(
+        { userId: data.userId, sid: socket.id },
+        'Incoming authentication signature was invalid'
+      );
       return socket.close();
     }
 
@@ -439,27 +447,28 @@ const _subscribe = function(connectionInfo, message) {
       return _writeResponse(connectionInfo, message.id, err);
     }
 
-    const activityStreamId = ActivityUtil.createActivityStreamId(data.stream.resourceId, data.stream.streamType);
+    const activityStreamId = ActivityUtil.createActivityStreamId(
+      data.stream.resourceId,
+      data.stream.streamType
+    );
     log().trace({ sid: socket.id, activityStreamId }, 'Registering socket for stream');
 
     /*!
      * Finishes up the subscription process and  writes a response to the client
      */
     const finish = function() {
-      // debug
-      console.log('________________________________');
-      console.log(`Just added ${activityStreamId} to connectionInfosPerStream {}`);
-      console.dir(connectionInfosPerStream);
-      console.log('________________________________');
-
       // Remember the desired transformer for this stream on this socket
       const transformerType = data.format || ActivityConstants.transformerTypes.INTERNAL;
       connectionInfo.transformerTypes = connectionInfo.transformerTypes || {};
-      connectionInfo.transformerTypes[activityStreamId] = connectionInfo.transformerTypes[activityStreamId] || [];
+      connectionInfo.transformerTypes[activityStreamId] =
+        connectionInfo.transformerTypes[activityStreamId] || [];
       connectionInfo.transformerTypes[activityStreamId].push(transformerType);
 
       // Acknowledge a succesful subscription
-      log().trace({ sid: socket.id, activityStreamId, format: transformerType }, 'Registered a client for a stream');
+      log().trace(
+        { sid: socket.id, activityStreamId, format: transformerType },
+        'Registered a client for a stream'
+      );
       return _writeResponse(connectionInfo, message.id);
     };
 
@@ -549,28 +558,17 @@ const _push = function(activityStreamId, routedActivity) {
    * to the exchange blindly, we first check for a binding:
    * If it exists, then we submit. If it doesn't, then we skip it. Simple.
    */
-  // debug
-  console.log(`Pushing ${activityStreamId} to socket...`);
 
   // strip down the activityStream for cases such as activity#public or activity#loggedin
   const activityStreamFilter = activityStreamId.split('#');
   if (activityStreamFilter.length === 3) activityStreamFilter.pop();
   activityStreamId = activityStreamFilter.join('#');
 
-  // debug
-  console.log(`Pushing ${activityStreamId} to socket...`);
-
-  // const thereIsASocketBoundToThisActivity = connectionInfosPerStream[activityStreamId];
-  const thereIsASocketBoundToThisActivity = true;
+  const thereIsASocketBoundToThisActivity = connectionInfosPerStream[activityStreamId];
   if (thereIsASocketBoundToThisActivity) {
-    // console.log(' -> Found a socket! Submitting it...');
-    MQ.submit(queueName, routedActivity, err => {
-      console.log(' -> Submitted!');
-      console.log('..................');
-    });
+    MQ.submit(queueName, routedActivity, err => {});
   } else {
     log().warn(`I am skipping a WebSocket PUSH for ${activityStreamId} because no socket bound...`);
-    console.log('..................');
   }
 };
 
@@ -594,27 +592,32 @@ const _handlePushActivity = function(data, callback) {
       todo++;
       // Because we're sending these activities to possible multiple sockets/users we'll need to clone and transform it for each socket
       const activities = clone(data.activities);
-      ActivityTransformer.transformActivities(connectionInfo.ctx, activities, transformerType, err => {
-        if (err) {
-          return log().error({ err }, 'Could not transform event');
-        }
+      ActivityTransformer.transformActivities(
+        connectionInfo.ctx,
+        activities,
+        transformerType,
+        err => {
+          if (err) {
+            return log().error({ err }, 'Could not transform event');
+          }
 
-        const msgData = {
-          resourceId: data.resourceId,
-          streamType: data.streamType,
-          activities,
-          format: transformerType,
-          numNewActivities: data.numNewActivities
-        };
-        log().trace({ data: msgData, sid: socket.id }, 'Pushing message to socket');
-        const msg = JSON.stringify(msgData);
-        socket.write(msg);
+          const msgData = {
+            resourceId: data.resourceId,
+            streamType: data.streamType,
+            activities,
+            format: transformerType,
+            numNewActivities: data.numNewActivities
+          };
+          log().trace({ data: msgData, sid: socket.id }, 'Pushing message to socket');
+          const msg = JSON.stringify(msgData);
+          socket.write(msg);
 
-        todo--;
-        if (todo === 0) {
-          callback();
+          todo--;
+          if (todo === 0) {
+            callback();
+          }
         }
-      });
+      );
     });
   });
 };

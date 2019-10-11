@@ -233,7 +233,8 @@ const submit = (queueName, message, callback) => {
   // validator.check(message, { code: 400, msg: 'No message was provided.' }).notEmpty();
   if (validator.hasErrors()) return callback(validator.getFirstError());
 
-  if (queueBindings[queueName]) {
+  const queueIsBound = queueBindings[queueName];
+  if (queueIsBound) {
     emitter.emit('preSubmit', queueName);
 
     publisher.lpush(queueName, message, () => {

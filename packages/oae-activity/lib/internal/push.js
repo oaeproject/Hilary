@@ -414,13 +414,13 @@ const _subscribe = function(connectionInfo, message) {
   }
 
   // If a format is specified, ensure that it is one that we support
-  if (
+  const formatIsInvalid =
     data.format &&
     !_.chain(ActivityConstants.transformerTypes)
       .values()
       .contains(data.format)
-      .value()
-  ) {
+      .value();
+  if (formatIsInvalid) {
     return _writeResponse(connectionInfo, message.id, {
       code: 400,
       msg: 'The specified stream format is unknown'
@@ -446,6 +446,12 @@ const _subscribe = function(connectionInfo, message) {
      * Finishes up the subscription process and  writes a response to the client
      */
     const finish = function() {
+      // debug
+      console.log('________________________________');
+      console.log(`Just added ${activityStreamId} to connectionInfosPerStream {}`);
+      console.dir(connectionInfosPerStream);
+      console.log('________________________________');
+
       // Remember the desired transformer for this stream on this socket
       const transformerType = data.format || ActivityConstants.transformerTypes.INTERNAL;
       connectionInfo.transformerTypes = connectionInfo.transformerTypes || {};
@@ -525,7 +531,7 @@ const _writeResponse = function(connectionInfo, id, error) {
 /// ///////////////////////////
 
 /**
- * Push out an activity to the RabbitMQ exchange.
+ * Push out an activity to the Redis queue
  * From there it can be routed to the appropriate app server based on the activityStreamId.
  *
  * @param  {String}         activityStreamId            The activity stream on which the activity was routed. ex: `u:cam:abc123#notification`
@@ -543,11 +549,28 @@ const _push = function(activityStreamId, routedActivity) {
    * to the exchange blindly, we first check for a binding:
    * If it exists, then we submit. If it doesn't, then we skip it. Simple.
    */
-  const thereIsASocketBoundToThisActivity = connectionInfosPerStream[activityStreamId];
+  // debug
+  console.log(`Pushing ${activityStreamId} to socket...`);
+
+  // strip down the activityStream for cases such as activity#public or activity#loggedin
+  const activityStreamFilter = activityStreamId.split('#');
+  if (activityStreamFilter.length === 3) activityStreamFilter.pop();
+  activityStreamId = activityStreamFilter.join('#');
+
+  // debug
+  console.log(`Pushing ${activityStreamId} to socket...`);
+
+  // const thereIsASocketBoundToThisActivity = connectionInfosPerStream[activityStreamId];
+  const thereIsASocketBoundToThisActivity = true;
   if (thereIsASocketBoundToThisActivity) {
-    MQ.submit(queueName, routedActivity);
+    // console.log(' -> Found a socket! Submitting it...');
+    MQ.submit(queueName, routedActivity, err => {
+      console.log(' -> Submitted!');
+      console.log('..................');
+    });
   } else {
     log().warn(`I am skipping a WebSocket PUSH for ${activityStreamId} because no socket bound...`);
+    console.log('..................');
   }
 };
 

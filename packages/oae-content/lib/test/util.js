@@ -839,7 +839,7 @@ const createCollabDoc = function(adminRestContext, nrOfUsers, nrOfJoinedUsers, c
 
 /**
  * Publish a collaborative document. This function will mimick Etherpad's
- * publishing behaviour by sending the appropriate message to RabbitMQ
+ * publishing behaviour by sending the appropriate message to Redis
  *
  * @param  {String}     contentId   The ID of the content item
  * @param  {String}     userId      The ID of the user who will be publishing the collaborative document

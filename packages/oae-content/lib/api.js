@@ -865,7 +865,7 @@ const _addContentItemToFolders = function(ctx, content, folders, callback) {
  *     -  An `updatedContent` event is fired so activities and PP images can be generated
  *
  * Note that this function does *NOT* perform any permission checks. It's assumed that
- * this function deals with messages coming from RabbitMQ. Producers of those messages
+ * this function deals with messages coming from Redis. Producers of those messages
  * are expected to perform the necessary permissions checks. In the typical case
  * where Etherpad is submitting edit messages, the authorization happens by virtue of the app
  * server constructing a session in Etherpad.
@@ -988,7 +988,7 @@ const handlePublish = function(data, callback) {
  *     -  An `updatedContent` event is fired so activities and PP images can be generated
  *
  * Note that this function does *NOT* perform any permission checks. It's assumed that this
- * function deals with messages coming from RabbitMQ. Producers of those messages are expected
+ * function deals with messages coming from Redis. Producers of those messages are expected
  * to perform the necessary permissions checks. In the typical case where Ethercalc is submitting
  * edit messages, the authorization happens by virtue of the app server constructing a session
  * in Ethercalc.

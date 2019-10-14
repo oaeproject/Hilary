@@ -74,7 +74,7 @@ export function init(config, callback) {
           return callback(err);
         }
 
-        // Handle "publish" messages that are sent from Etherpad via RabbitMQ. These messages
+        // Handle "publish" messages that are sent from Etherpad via Redis. These messages
         // indicate that a user made edits and has closed the document
         MQ.subscribe(ContentConstants.queue.ETHERPAD_PUBLISH, ContentAPI.handlePublish, err => {
           if (err) {

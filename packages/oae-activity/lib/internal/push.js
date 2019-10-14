@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+import { DH_NOT_SUITABLE_GENERATOR } from 'constants';
 import ActivityEmitter from 'oae-activity/lib/internal/emitter';
 
 import _ from 'underscore';
@@ -23,6 +24,7 @@ import ShortId from 'shortid';
 import { Context } from 'oae-context';
 import { logger } from 'oae-logger';
 import * as MQ from 'oae-util/lib/mq';
+import * as Pubsub from 'oae-util/lib/pubsub';
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as Signature from 'oae-util/lib/signature';
 import { telemetry } from 'oae-telemetry';
@@ -34,6 +36,7 @@ import { ActivityConstants } from 'oae-activity/lib/constants';
 import * as ActivityRegistry from 'oae-activity/lib/internal/registry';
 import * as ActivityTransformer from 'oae-activity/lib/internal/transformer';
 import * as ActivityUtil from 'oae-activity/lib/util';
+import emitter from 'oae-principals/lib/internal/emitter';
 
 const log = logger('oae-activity-push');
 const Telemetry = telemetry('push');
@@ -144,7 +147,17 @@ const init = function(callback) {
   // Create our queue
   queueName = QueueConstants.queue.PREFIX + ShortId.generate();
   // Subscribe to our queue for new events
-  return MQ.subscribe(queueName, _handlePushActivity, callback);
+  // return MQ.subscribe(queueName, _handlePushActivity, callback);
+  /*
+  Pubsub.redisManager.psubscribe('*');
+  Pubsub.redisManager.on('pmessage', (pattern, channel, message) => {
+    return _handlePushActivity(message, ()=> {
+      console.log('\n\nHandled callback, moving on...');
+    });
+  }),
+  */
+
+  return callback();
 };
 
 /**
@@ -268,6 +281,9 @@ const registerConnection = function(socket) {
 
         // If nobody else is interested in this stream, we can remove it
         delete connectionInfosPerStream[stream];
+
+        // TODO remove event listener from pubsub
+        Pubsub.emitter.removeAllListeners(stream);
 
         if (todo === 0) {
           Telemetry.appendDuration('unbind.all.time', start);
@@ -405,7 +421,7 @@ const _authenticate = function(connectionInfo, message) {
 
 /**
  * A client wants to subscribe on a stream. We do some basic validation, pass the message
- * too the authorization handler for that stream and do the appropriate MQ binding
+ * too the authorization handler for that stream and do the appropriate PubSub binding
  *
  * @param  {Object}     connectionInfo  The state of the connection we wish to authenticate
  * @param  {Object}     message         The message containing the subscription request
@@ -474,9 +490,33 @@ const _subscribe = function(connectionInfo, message) {
 
     // We need to perform the following check as a socket can subscribe for the same activity stream twice, but with a different format
     if (connectionInfo.streams.indexOf(activityStreamId) > -1) {
+      // debug
+      log().info('\nAlready subscribed this connection to this activityStreamId...');
+
       // No need to bind, we're already bound
       return finish();
     }
+
+    // debug
+    log().info('! will subscribe twice? ' + connectionInfo.streams.indexOf(activityStreamId));
+
+    // debug
+    log().info(`-> Subscribing to ${activityStreamId} for future push...!`);
+
+    Pubsub.emitter.removeAllListeners(activityStreamId);
+    Pubsub.emitter.on(activityStreamId, message => {
+      // debug
+      // console.dir(data);
+      message = JSON.parse(message);
+      // log().info(message);
+      let activity = message.activities[0]['oae:activityType'];
+
+      log().info('Got a message of type ' + activity + ' on channel ' + activityStreamId);
+      // console.dir(message);
+      return _handlePushActivity(message, () => {
+        log().info('Finished processing event!');
+      });
+    });
 
     // Remember this stream on the socket
     connectionInfo.streams.push(activityStreamId);
@@ -551,6 +591,7 @@ const _writeResponse = function(connectionInfo, id, error) {
  * @api private
  */
 const _push = function(activityStreamId, routedActivity) {
+  // TODO don't know about this one!
   routedActivity = JSON.stringify(routedActivity);
 
   /**
@@ -558,18 +599,11 @@ const _push = function(activityStreamId, routedActivity) {
    * to the exchange blindly, we first check for a binding:
    * If it exists, then we submit. If it doesn't, then we skip it. Simple.
    */
+  // debug
+  log().info(`Pushing ${activityStreamId} to socket...`);
+  // console.dir(routedActivity);
 
-  // strip down the activityStream for cases such as activity#public or activity#loggedin
-  const activityStreamFilter = activityStreamId.split('#');
-  if (activityStreamFilter.length === 3) activityStreamFilter.pop();
-  activityStreamId = activityStreamFilter.join('#');
-
-  const thereIsASocketBoundToThisActivity = connectionInfosPerStream[activityStreamId];
-  if (thereIsASocketBoundToThisActivity) {
-    MQ.submit(queueName, routedActivity, err => {});
-  } else {
-    log().warn(`I am skipping a WebSocket PUSH for ${activityStreamId} because no socket bound...`);
-  }
+  Pubsub.publish(activityStreamId, routedActivity);
 };
 
 /**

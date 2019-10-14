@@ -94,7 +94,7 @@ const bootPubSub = (config, callback) => {
 };
 
 const bootMQ = (config, callback) => {
-  // Initialize the RabbitMQ listener
+  // Initialize the redis queue listener
   MQ.init(config.mq, err => {
     if (err) return callback(err);
 

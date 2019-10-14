@@ -271,7 +271,8 @@ OAE.registerPreShutdownHandler('mq', null, done => {
  */
 const purgeQueue = (queueName, callback) => {
   emitter.emit('prePurge', queueName);
-  manager.llen(queueName, (err, count) => {
+  manager.llen(queueName, (err /* count */) => {
+    if (err) return callback(err);
     manager.del(queueName, err => {
       if (err) return callback(err);
 

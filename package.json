@@ -1,5 +1,5 @@
 {
-  "name": "Hilary",
+  "name": "hilary",
   "description": "Open Academic Environment (OAE) Back-end",
   "version": "15.2.0",
   "homepage": "http://www.oaeproject.org",
@@ -134,7 +134,7 @@
     "start": "node -r esm app.js | npx bunyan",
     "dev-server": "nodemon app.js | npx bunyan",
     "snyk-protect": "snyk protect",
-    "lint": "xo --prettier --quiet '**/*.js'",
+    "lint": "xo --prettier --quiet 'packages/**/*.js'",
     "test-with-coverage": "npx nyc --reporter=lcov npm test && cat ./coverage/lcov.info | codacy-coverage",
     "prepare": "npm run snyk-protect"
   },

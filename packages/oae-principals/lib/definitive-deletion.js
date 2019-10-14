@@ -59,8 +59,6 @@ const DISCUSSION_PREFIX = 'd';
 const MEETING_PREFIX = 'm';
 const GROUP_PREFIX = 'g';
 
-const DEFAULT_MONTH = 2;
-
 /**
  * Get or create user archive
  *

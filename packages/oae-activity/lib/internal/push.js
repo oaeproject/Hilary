@@ -13,17 +13,14 @@
  * permissions and limitations under the License.
  */
 
-import { DH_NOT_SUITABLE_GENERATOR } from 'constants';
 import ActivityEmitter from 'oae-activity/lib/internal/emitter';
 
 import _ from 'underscore';
 import clone from 'clone';
 import selectn from 'selectn';
-import ShortId from 'shortid';
 
 import { Context } from 'oae-context';
 import { logger } from 'oae-logger';
-import * as MQ from 'oae-util/lib/mq';
 import * as Pubsub from 'oae-util/lib/pubsub';
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as Signature from 'oae-util/lib/signature';
@@ -36,7 +33,6 @@ import { ActivityConstants } from 'oae-activity/lib/constants';
 import * as ActivityRegistry from 'oae-activity/lib/internal/registry';
 import * as ActivityTransformer from 'oae-activity/lib/internal/transformer';
 import * as ActivityUtil from 'oae-activity/lib/util';
-import emitter from 'oae-principals/lib/internal/emitter';
 
 const log = logger('oae-activity-push');
 const Telemetry = telemetry('push');
@@ -47,9 +43,6 @@ const Telemetry = telemetry('push');
 
 // A hash of sockets per stream
 const connectionInfosPerStream = {};
-
-// The name of the queue we'll be using for this app server
-let queueName = null;
 
 const QueueConstants = {};
 
@@ -144,18 +137,13 @@ const AUTHENTICATION_TIMEOUT = 5000;
  * @param  {Object}   callback.err  An error that occurred, if any
  */
 const init = function(callback) {
-  // Create our queue
-  queueName = QueueConstants.queue.PREFIX + ShortId.generate();
-  // Subscribe to our queue for new events
-  // return MQ.subscribe(queueName, _handlePushActivity, callback);
-  /*
-  Pubsub.redisManager.psubscribe('*');
-  Pubsub.redisManager.on('pmessage', (pattern, channel, message) => {
-    return _handlePushActivity(message, ()=> {
-      console.log('\n\nHandled callback, moving on...');
-    });
-  }),
-  */
+  /**
+   * Nothing to do here since we moved to Redis pubsub
+   * We basically create a redis channel for every `activityStreamId`
+   * and every time we push to it, the app servers that have subscribed
+   * will receive the message and deliver the push notification.
+   * Check pubsub.js for details
+   */
 
   return callback();
 };
@@ -261,8 +249,8 @@ const registerConnection = function(socket) {
     // Measure how long the clients stay connected
     Telemetry.appendDuration('connected.time', connectionStart);
 
-    let todo = connectionInfo.streams.length;
-    if (todo === 0) {
+    let subscribedStreams = connectionInfo.streams.length;
+    if (subscribedStreams === 0) {
       log().trace({ sid: socket.id }, 'Not registered for any streams, not doing anything');
       return;
     }
@@ -277,21 +265,21 @@ const registerConnection = function(socket) {
         );
       } else if (connectionInfosPerStream[stream].length === 1) {
         // We can also stop listening to messages from this stream as nobody is interested in it anymore
-        todo--;
+        subscribedStreams--;
 
         // If nobody else is interested in this stream, we can remove it
         delete connectionInfosPerStream[stream];
 
-        // TODO remove event listener from pubsub
+        // ...and we remove the pubsub listener as well
         Pubsub.emitter.removeAllListeners(stream);
 
-        if (todo === 0) {
+        if (subscribedStreams === 0) {
           Telemetry.appendDuration('unbind.all.time', start);
         }
 
         // Otherwise we need to iterate through the list of sockets for this stream and splice this one out
       } else {
-        todo--;
+        subscribedStreams--;
 
         // Find the socket in the connectionInfosPerStream[stream] array and remove it
         // Unfortunately we can't use an underscore utility as all of the filter/find
@@ -312,7 +300,7 @@ const registerConnection = function(socket) {
           }
         }
 
-        if (todo === 0) {
+        if (subscribedStreams === 0) {
           Telemetry.appendDuration('unbind.all.time', start);
         }
       }
@@ -347,9 +335,7 @@ const _authenticate = function(connectionInfo, message) {
   const validator = new Validator();
   validator.check(data.tenantAlias, { code: 400, msg: 'A tenant needs to be provided' }).notEmpty();
   validator.check(data.userId, { code: 400, msg: 'A userId needs to be provided' }).isUserId();
-  validator
-    .check(null, { code: 400, msg: 'A signature object needs to be provided' })
-    .isObject(data.signature);
+  validator.check(null, { code: 400, msg: 'A signature object needs to be provided' }).isObject(data.signature);
   if (validator.hasErrors()) {
     _writeResponse(connectionInfo, message.id, validator.getFirstError());
     log().error({ err: validator.getFirstError() }, 'Invalid auth frame');
@@ -379,10 +365,7 @@ const _authenticate = function(connectionInfo, message) {
   PrincipalsDAO.getPrincipal(data.userId, (err, user) => {
     if (err) {
       _writeResponse(connectionInfo, message.id, err);
-      log().error(
-        { err, userId: data.userId, sid: socket.id },
-        'Error trying to get the principal object'
-      );
+      log().error({ err, userId: data.userId, sid: socket.id }, 'Error trying to get the principal object');
       return socket.close();
     }
 
@@ -399,10 +382,7 @@ const _authenticate = function(connectionInfo, message) {
       )
     ) {
       _writeResponse(connectionInfo, message.id, { code: 401, msg: 'Invalid signature' });
-      log().error(
-        { userId: data.userId, sid: socket.id },
-        'Incoming authentication signature was invalid'
-      );
+      log().error({ userId: data.userId, sid: socket.id }, 'Incoming authentication signature was invalid');
       return socket.close();
     }
 
@@ -463,10 +443,7 @@ const _subscribe = function(connectionInfo, message) {
       return _writeResponse(connectionInfo, message.id, err);
     }
 
-    const activityStreamId = ActivityUtil.createActivityStreamId(
-      data.stream.resourceId,
-      data.stream.streamType
-    );
+    const activityStreamId = ActivityUtil.createActivityStreamId(data.stream.resourceId, data.stream.streamType);
     log().trace({ sid: socket.id, activityStreamId }, 'Registering socket for stream');
 
     /*!
@@ -476,45 +453,27 @@ const _subscribe = function(connectionInfo, message) {
       // Remember the desired transformer for this stream on this socket
       const transformerType = data.format || ActivityConstants.transformerTypes.INTERNAL;
       connectionInfo.transformerTypes = connectionInfo.transformerTypes || {};
-      connectionInfo.transformerTypes[activityStreamId] =
-        connectionInfo.transformerTypes[activityStreamId] || [];
+      connectionInfo.transformerTypes[activityStreamId] = connectionInfo.transformerTypes[activityStreamId] || [];
       connectionInfo.transformerTypes[activityStreamId].push(transformerType);
 
       // Acknowledge a succesful subscription
-      log().trace(
-        { sid: socket.id, activityStreamId, format: transformerType },
-        'Registered a client for a stream'
-      );
+      log().trace({ sid: socket.id, activityStreamId, format: transformerType }, 'Registered a client for a stream');
       return _writeResponse(connectionInfo, message.id);
     };
 
     // We need to perform the following check as a socket can subscribe for the same activity stream twice, but with a different format
     if (connectionInfo.streams.indexOf(activityStreamId) > -1) {
-      // debug
-      log().info('\nAlready subscribed this connection to this activityStreamId...');
-
       // No need to bind, we're already bound
       return finish();
     }
 
-    // debug
-    log().info('! will subscribe twice? ' + connectionInfo.streams.indexOf(activityStreamId));
-
-    // debug
-    log().info(`-> Subscribing to ${activityStreamId} for future push...!`);
-
     Pubsub.emitter.removeAllListeners(activityStreamId);
     Pubsub.emitter.on(activityStreamId, message => {
-      // debug
-      // console.dir(data);
       message = JSON.parse(message);
-      // log().info(message);
-      let activity = message.activities[0]['oae:activityType'];
 
-      log().info('Got a message of type ' + activity + ' on channel ' + activityStreamId);
-      // console.dir(message);
       return _handlePushActivity(message, () => {
-        log().info('Finished processing event!');
+        const activity = message.activities[0]['oae:activityType'];
+        log().info('Finished processing a ' + activity + ' push notification on channel ' + activityStreamId);
       });
     });
 
@@ -591,18 +550,14 @@ const _writeResponse = function(connectionInfo, id, error) {
  * @api private
  */
 const _push = function(activityStreamId, routedActivity) {
-  // TODO don't know about this one!
   routedActivity = JSON.stringify(routedActivity);
 
   /**
-   * Since this is not RabbitMQ anymore, thank god, instead of pushing
-   * to the exchange blindly, we first check for a binding:
-   * If it exists, then we submit. If it doesn't, then we skip it. Simple.
+   * Since this is not RabbitMQ anymore (thank god) instead of pushing
+   * to an exchange, we use redis pubsub and publish at will
+   * If a browser tab is supposed to send push notifications, then it will
+   * have subscribed to the redis channel. Otherwise, the message is lost.
    */
-  // debug
-  log().info(`Pushing ${activityStreamId} to socket...`);
-  // console.dir(routedActivity);
-
   Pubsub.publish(activityStreamId, routedActivity);
 };
 
@@ -626,32 +581,27 @@ const _handlePushActivity = function(data, callback) {
       todo++;
       // Because we're sending these activities to possible multiple sockets/users we'll need to clone and transform it for each socket
       const activities = clone(data.activities);
-      ActivityTransformer.transformActivities(
-        connectionInfo.ctx,
-        activities,
-        transformerType,
-        err => {
-          if (err) {
-            return log().error({ err }, 'Could not transform event');
-          }
-
-          const msgData = {
-            resourceId: data.resourceId,
-            streamType: data.streamType,
-            activities,
-            format: transformerType,
-            numNewActivities: data.numNewActivities
-          };
-          log().trace({ data: msgData, sid: socket.id }, 'Pushing message to socket');
-          const msg = JSON.stringify(msgData);
-          socket.write(msg);
-
-          todo--;
-          if (todo === 0) {
-            callback();
-          }
+      ActivityTransformer.transformActivities(connectionInfo.ctx, activities, transformerType, err => {
+        if (err) {
+          return log().error({ err }, 'Could not transform event');
         }
-      );
+
+        const msgData = {
+          resourceId: data.resourceId,
+          streamType: data.streamType,
+          activities,
+          format: transformerType,
+          numNewActivities: data.numNewActivities
+        };
+        log().trace({ data: msgData, sid: socket.id }, 'Pushing message to socket');
+        const msg = JSON.stringify(msgData);
+        socket.write(msg);
+
+        todo--;
+        if (todo === 0) {
+          callback();
+        }
+      });
     });
   });
 };

@@ -1309,7 +1309,7 @@ const setUpBeforeTests = function(config, dropKeyspaceBeforeTest, callback) {
 };
 
 /**
- * Flush the Redis DB index and purge Rabbit MQ after the tests complete
+ * Flush the Redis DB index and purge Redis MQ after the tests complete
  *
  * @param  {Function}    callback    Standard callback function
  */
@@ -1322,7 +1322,7 @@ const cleanUpAfterTests = callback => {
 };
 
 const cleanAllQueues = callback => {
-  MQ.purgeAll(err => {
+  MQ.purgeAllBoundQueues(err => {
     if (err) log().error({ err }, 'Error purging redis queues');
 
     return callback();

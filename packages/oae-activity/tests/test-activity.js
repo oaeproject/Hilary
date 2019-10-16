@@ -546,7 +546,7 @@ describe('Activity', () => {
        * Test that verifies that activities delivered to activity feeds disappear after the configured `activityTtl` time has
        * expired.
        */
-      it.skip('verify activity ttl deletes an activity after the expiry time', callback => {
+      it('verify activity ttl deletes an activity after the expiry time', callback => {
         // Set expiry to the smallest possible, 1 second
         ActivityTestUtil.refreshConfiguration({ activityTtl: 2 }, err => {
           assert.ok(!err);

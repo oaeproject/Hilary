@@ -1322,7 +1322,7 @@ const cleanUpAfterTests = callback => {
 };
 
 const cleanAllQueues = callback => {
-  MQ.purgeAll(err => {
+  MQ.purgeAllBoundQueues(err => {
     if (err) log().error({ err }, 'Error purging redis queues');
 
     return callback();

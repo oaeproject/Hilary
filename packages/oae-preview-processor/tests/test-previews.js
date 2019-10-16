@@ -2130,7 +2130,7 @@ describe('Preview processor', () => {
         assert.ok(!err);
 
         // Purge all task queues
-        MQ.purgeAll(err => {
+        MQ.purgeAllBoundQueues(err => {
           assert.ok(!err);
 
           // Make sure all tasks are done

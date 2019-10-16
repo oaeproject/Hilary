@@ -101,12 +101,14 @@ const init = function(config, callback) {
         // if the flag is set, we purge all queues on startup. ONLY if we're NOT in production mode.
         const shallWePurge = redisConfig.purgeQueuesOnStartup && process.env.NODE_ENV !== PRODUCTION_MODE;
         if (shallWePurge) {
-          purgeAllQueues(callback);
+          purgeAllBoundQueues(callback);
         } else {
           return callback();
         }
       });
     });
+  } else {
+    return callback();
   }
 };
 
@@ -230,7 +232,7 @@ const submit = (queueName, message, callback) => {
   callback = callback || function() {};
   const validator = new Validator();
   validator.check(queueName, { code: 400, msg: 'No channel was provided.' }).notEmpty();
-  // validator.check(message, { code: 400, msg: 'No message was provided.' }).notEmpty();
+  validator.check(message, { code: 400, msg: 'No message was provided.' }).notEmpty();
   if (validator.hasErrors()) return callback(validator.getFirstError());
 
   const queueIsBound = queueBindings[queueName];
@@ -270,6 +272,11 @@ OAE.registerPreShutdownHandler('mq', null, done => {
  * @param  {Object}     [callback.err]  An error that occurred purging the queue, if any
  */
 const purgeQueue = (queueName, callback) => {
+  callback = callback || function() {};
+  const validator = new Validator();
+  validator.check(queueName, { code: 400, msg: 'No channel was provided.' }).notEmpty();
+  if (validator.hasErrors()) return callback(validator.getFirstError());
+
   emitter.emit('prePurge', queueName);
   manager.llen(queueName, (err /* count */) => {
     if (err) return callback(err);
@@ -283,22 +290,30 @@ const purgeQueue = (queueName, callback) => {
   });
 };
 
-const purgeAllQueues = callback => {
-  const purgeQueues = (allQueues, done) => {
-    if (allQueues.length === 0) {
-      return done();
-    }
+const purgeQueues = (allQueues, done) => {
+  if (allQueues.length === 0) {
+    return done();
+  }
 
-    const nextQueueToPurge = allQueues.pop();
-    purgeQueue(nextQueueToPurge, () => {
-      purgeQueue(getProcessingQueueFor(nextQueueToPurge), () => {
-        return purgeQueues(allQueues, done);
-      });
+  const nextQueueToPurge = allQueues.pop();
+  purgeQueue(nextQueueToPurge, () => {
+    purgeQueue(getProcessingQueueFor(nextQueueToPurge), () => {
+      return purgeQueues(allQueues, done);
     });
-  };
+  });
+};
 
+const purgeAllBoundQueues = callback => {
   const queuesToPurge = _.keys(queueBindings);
   purgeQueues(queuesToPurge, callback);
+};
+
+const getQueueLength = (queueName, callback) => {
+  manager.llen(queueName, (err, count) => {
+    if (err) return callback(err);
+
+    callback(null, count);
+  });
 };
 
 export {
@@ -306,9 +321,11 @@ export {
   init,
   subscribe,
   unsubscribe,
-  purgeQueue as purge,
-  purgeAllQueues as purgeAll,
+  purgeQueue,
+  purgeQueues,
+  purgeAllBoundQueues,
   getBoundQueues,
   submit,
-  submitJSON
+  submitJSON,
+  getQueueLength
 };

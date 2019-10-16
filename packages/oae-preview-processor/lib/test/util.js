@@ -37,7 +37,7 @@ const purgePreviewsQueue = function(callback) {
         assert.ok(!err);
 
         // Purge anything that is in the queue
-        MQ.purge(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, err => {
+        MQ.purgeQueue(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, err => {
           assert.ok(!err);
 
           // Unbind our dummy-handler from the queue
@@ -70,7 +70,7 @@ const purgeRegeneratePreviewsQueue = function(callback) {
         assert.ok(!err);
 
         // Purge anything that is in the queue
-        MQ.purge(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
+        MQ.purgeQueue(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
           assert.ok(!err);
 
           // Unbind our dummy-handler from the queue
@@ -103,7 +103,7 @@ const purgeFoldersPreviewsQueue = function(callback) {
         assert.ok(!err);
 
         // Purge anything that is in the queue
-        MQ.purge(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, err => {
+        MQ.purgeQueue(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, err => {
           assert.ok(!err);
 
           // Unbind our dummy-handler from the queue

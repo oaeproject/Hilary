@@ -167,6 +167,9 @@ describe('MQ', () => {
   });
 
   describe('#submit()', () => {
+    /**
+     * Verify the parameters
+     */
     it('verify parameter validation', callback => {
       const data = { text: 'The truth is out there' };
       const queueName = util.format('testQueue-%s', ShortId.generate());
@@ -188,6 +191,10 @@ describe('MQ', () => {
       });
     });
 
+    /**
+     * Verify that submitting a task/message won't even touch redis
+     * unless that queue has been bound (subscribed to) before
+     */
     it('verify submit doesnt work before subscription', callback => {
       const queueName = util.format('testQueue-%s', ShortId.generate());
       const data = { msg: 'Practice makes perfect' };
@@ -224,6 +231,10 @@ describe('MQ', () => {
       });
     });
 
+    /**
+     * Verify that submitting a task/message won't do anything
+     * after unsubscribing to the correspondent queue (which will then be unbound)
+     */
     it('verify submit doesnt work after unsubscription', callback => {
       const queueName = util.format('testQueue-%s', ShortId.generate());
       const data = { msg: 'Practice makes perfect' };
@@ -268,6 +279,10 @@ describe('MQ', () => {
       });
     });
 
+    /**
+     * Verify that submitting a message or task works, meaning that the listener
+     * that is bound to the queue after subscribe is executed
+     */
     it('verify submitting a message just works', callback => {
       const queueName = util.format('testQueue-%s', ShortId.generate());
       const data = { msg: 'Practice makes perfect' };
@@ -315,6 +330,10 @@ describe('MQ', () => {
       });
     });
 
+    /**
+     * Verify that submitting many messages will result in all of them 
+     * being processed aka their listener is executed
+     */
     it('verify submitting many messages works', callback => {
       const NUMBER_OF_TASKS = 10;
       let counter = 0;

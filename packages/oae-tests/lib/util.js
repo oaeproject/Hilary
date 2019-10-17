@@ -1341,7 +1341,6 @@ const isIntegrationTest = function() {
   return process.env.OAE_TEST_INTEGRATION !== 'false';
 };
 
-// TODO
 const objectifySearchParams = params => {
   const result = {};
   for (const eachKey of params.keys()) {

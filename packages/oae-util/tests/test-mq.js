@@ -1,4 +1,4 @@
-/*
+/*!
  * Copyright 2014 Apereo Foundation (AF) Licensed under the
  * Educational Community License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License. You may
@@ -34,15 +34,20 @@ describe('MQ', () => {
     });
   });
 
+  /**
+   * We disconnect all clients, make sure they no longer work
+   * then we connect again and proceed with the tests
+   */
   it('verify quitting all clients works', callback => {
     assertAllClientsAreConnected(MQ.getAllConnectedClients(), () => {
       MQ.quitAllConnectedClients(err => {
         assert.ok(!err);
-
         assertAllClientsAreDisconnected(MQ.getAllConnectedClients(), () => {
           MQ.init(config.mq, err => {
             assert.ok(!err);
-            return callback();
+            assertAllClientsAreConnected(MQ.getAllConnectedClients(), () => {
+              return callback();
+            });
           });
         });
       });

@@ -108,4 +108,9 @@ const flush = function(callback) {
   }
 };
 
-export { createClient, getClient, flush, init };
+// TODO JSdoc
+const reconnect = (connection, done) => {
+  connection.connect(done);
+};
+
+export { createClient, getClient, flush, init, reconnect };

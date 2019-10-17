@@ -59,13 +59,11 @@ const queueBindings = {};
  * on the queue, using redis BRPOPLPUSH.
  * See `_getOrCreateSubscriberForQueue` for details
  */
-const subscribers = {};
+let subscribers = {};
 
 const PRODUCTION_MODE = 'production';
 
-// TODO remove after debuggiing
-// console.log = () => {};
-
+// TODO is this necessary???
 OaeEmitter.on('ready', () => {
   emitter.emit('ready');
 });
@@ -88,8 +86,12 @@ const getProcessingQueueFor = queueName => {
 const init = function(config, callback) {
   redisConfig = config;
 
+  // redis connection possible statuses
+  const hasNotBeenCreated = manager === null;
+  const hasConnectionBeenClosed = manager !== null && manager.status === 'end';
+
   // Only init if the connections haven't been opened.
-  if (manager === null) {
+  if (hasNotBeenCreated) {
     Redis.createClient(config, (err, client) => {
       if (err) return callback(err);
       manager = client;
@@ -105,6 +107,12 @@ const init = function(config, callback) {
         } else {
           return callback();
         }
+      });
+    });
+  } else if (hasConnectionBeenClosed) {
+    Redis.reconnect(manager, err => {
+      Redis.reconnect(publisher, err => {
+        return callback();
       });
     });
   } else {
@@ -252,13 +260,9 @@ const submitJSON = (queueName, message, callback) => {
 };
 
 const getAllConnectedClients = () => {
-  const allClients = _.values(subscribers)
+  return _.values(subscribers)
     .concat(manager)
     .concat(publisher);
-
-  // debug
-  // console.log(allClients);
-  return allClients;
 };
 
 /**
@@ -280,6 +284,7 @@ const quitAllConnectedClients = done => {
 
 const quitAllClients = (allClients, done) => {
   if (allClients.length === 0) {
+    subscribers = {};
     return done();
   }
 

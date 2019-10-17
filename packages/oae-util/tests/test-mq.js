@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2014 Apereo Foundation (AF) Licensed under the
  * Educational Community License, Version 2.0 (the "License"); you may
@@ -21,7 +20,7 @@ import ShortId from 'shortid';
 
 import * as MQ from 'oae-util/lib/mq';
 import { whenTasksEmpty as waitUntilProcessed } from 'oae-util/lib/test/mq-util';
-import {config} from '../../../config'
+import { config } from '../../../config';
 
 describe('MQ', () => {
   /**
@@ -116,23 +115,27 @@ describe('MQ', () => {
         MQ.subscribe(testQueueB, increment, () => {
           submitTasksToQueue(testQueueA, allTasksForQueueA, err => {
             assert(!err);
-            assert(counters.a >= 1, 'The number of tasks on redelivery should be at least 1');
-            assert(counters.a <= 10, 'The number of tasks on redelivery should be close to 10');
-            submitTasksToQueue(testQueueB, allTasksForQueueB, err => {
-              assert(!err);
-              assert(counters.b >= 1, 'The number of tasks on redelivery should be at least 1');
-              assert(counters.b <= 10, 'The number of tasks on redelivery should be close to 10');
-
-              MQ.purgeQueues(bothQueues, err => {
+            waitUntilProcessed(testQueueA, () => {
+              assert(counters.a >= 1, 'The number of tasks on redelivery should be at least 1');
+              assert(counters.a <= 10, 'The number of tasks on redelivery should be close to 10');
+              submitTasksToQueue(testQueueB, allTasksForQueueB, err => {
                 assert(!err);
-                MQ.getQueueLength(bothQueues[0], (err, count) => {
-                  assert.ok(!err);
-                  assert(count === 0, 'Purged queues should be zero length');
-                  MQ.getQueueLength(bothQueues[1], (err, count) => {
-                    assert.ok(!err);
-                    assert(count === 0, 'Purged queues should be zero length');
+                waitUntilProcessed(testQueueA, () => {
+                  assert(counters.b >= 1, 'The number of tasks on redelivery should be at least 1');
+                  assert(counters.b <= 10, 'The number of tasks on redelivery should be close to 10');
 
-                    callback();
+                  MQ.purgeQueues(bothQueues, err => {
+                    assert(!err);
+                    MQ.getQueueLength(bothQueues[0], (err, count) => {
+                      assert.ok(!err);
+                      assert(count === 0, 'Purged queues should be zero length');
+                      MQ.getQueueLength(bothQueues[1], (err, count) => {
+                        assert.ok(!err);
+                        assert(count === 0, 'Purged queues should be zero length');
+
+                        callback();
+                      });
+                    });
                   });
                 });
               });

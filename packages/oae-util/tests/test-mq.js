@@ -34,6 +34,21 @@ describe('MQ', () => {
     });
   });
 
+  it('verify quitting all clients works', callback => {
+    assertAllClientsAreConnected(MQ.getAllConnectedClients(), () => {
+      MQ.quitAllConnectedClients(err => {
+        assert.ok(!err);
+
+        assertAllClientsAreDisconnected(MQ.getAllConnectedClients(), () => {
+          MQ.init(config.mq, err => {
+            assert.ok(!err);
+            return callback();
+          });
+        });
+      });
+    });
+  });
+
   describe('#purge()', () => {
     /**
      * Test that verifies the parameters
@@ -431,5 +446,41 @@ const submitTasksToQueue = (queueName, tasks, done) => {
   const poppedTask = tasks.shift();
   MQ.submitJSON(queueName, poppedTask, () => {
     return submitTasksToQueue(queueName, tasks, done);
+  });
+};
+
+/**
+ * Utility function to make sure each and every client is properly connected
+ */
+const assertAllClientsAreConnected = (clients, done) => {
+  if (clients.length === 0) {
+    return done();
+  }
+
+  const nextClient = clients.shift();
+  nextClient.llen('someList', (err, count) => {
+    assert.ok(!err);
+    assert.strictEqual(count, 0, 'This is a random list, its size will always be zero');
+    assertAllClientsAreConnected(clients, done);
+  });
+};
+
+/**
+ * Utility function to make sure each and every client is disconnected
+ */
+const assertAllClientsAreDisconnected = (clients, done) => {
+  if (clients.length === 0) {
+    return done();
+  }
+
+  const nextClient = clients.shift();
+  nextClient.llen('someList', (err, count) => {
+    assert.ok(err, 'Connection is closed, so no command can be issued');
+    /**
+     * By default, ioredis will try to reconnect when the connection to Redis is lost
+     * except when the connection is closed manually by redis.disconnect() or redis.quit().
+     * https://github.com/luin/ioredis#auto-reconnect
+     */
+    assertAllClientsAreDisconnected(clients, done);
   });
 };

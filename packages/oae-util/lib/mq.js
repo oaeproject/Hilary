@@ -126,14 +126,6 @@ const _getOrCreateSubscriberForQueue = (queueName, callback) => {
 };
 
 /**
- * Stop consuming messages from a queue.
- *
- * @param  {String}    queueName       The name of the message queue to unsubscribe from
- * @param  {Function}  callback        Standard callback function
- * @param  {Object}    callback.err    An error that occurred, if any
- */
-
-/**
  * Subscribe the given `listener` function to the provided queue.
  *
  * @param  {Queue}      queueName           The queue to which we'll subscribe the listener
@@ -203,6 +195,13 @@ const subscribe = (queueName, listener, callback) => {
   return callback();
 };
 
+/**
+ * Stop consuming messages from a queue.
+ *
+ * @param  {String}    queueName       The name of the message queue to unsubscribe from
+ * @param  {Function}  callback        Standard callback function
+ * @param  {Object}    callback.err    An error that occurred, if any
+ */
 const unsubscribe = (queueName, callback) => {
   callback = callback || function() {};
   const validator = new Validator();
@@ -252,17 +251,44 @@ const submitJSON = (queueName, message, callback) => {
   submit(queueName, JSON.stringify(message), callback);
 };
 
+const getAllConnectedClients = () => {
+  const allClients = _.values(subscribers)
+    .concat(manager)
+    .concat(publisher);
+
+  // debug
+  // console.log(allClients);
+  return allClients;
+};
+
 /**
- * Safely shutdown the MQ service after all current tasks are completed.
+ * Safely shutdown the MQ service
+ * by closing connections safely
+ * Check IOredis API for details:
+ * https://github.com/luin/ioredis/blob/master/API.md
  *
  * @param  {Function}   Invoked when shutdown is complete
  * @api private
  */
-
-// TODO do this or similar
 OAE.registerPreShutdownHandler('mq', null, done => {
-  done();
+  return quitAllClients(getAllConnectedClients(), done);
 });
+
+const quitAllConnectedClients = done => {
+  return quitAllClients(getAllConnectedClients(), done);
+};
+
+const quitAllClients = (allClients, done) => {
+  if (allClients.length === 0) {
+    return done();
+  }
+
+  const nextClientToQuit = allClients.shift();
+  nextClientToQuit.quit(err => {
+    if (err) return done(err);
+    quitAllClients(allClients, done);
+  });
+};
 
 /**
  * Purge a queue.
@@ -327,5 +353,7 @@ export {
   getBoundQueues,
   submit,
   submitJSON,
-  getQueueLength
+  getQueueLength,
+  getAllConnectedClients,
+  quitAllConnectedClients
 };

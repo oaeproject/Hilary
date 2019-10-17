@@ -40,7 +40,7 @@ const init = function(redisConfig, callback) {
 /**
  * Creates a redis connection from a defined set of configuration.
  *
- * @param  {Object}   config      A redis configuration object
+ * @param  {Object}   _config      A redis configuration object
  * @param  {Function} callback      Standard callback function
  * @return {RedisClient}            A redis client that is configured with the given configuration
  */
@@ -108,7 +108,12 @@ const flush = function(callback) {
   }
 };
 
-// TODO JSdoc
+/**
+ * Reconnect a previously closed redis connection
+ *
+ * @param {Object} connection A redis client created by ioredis (which should be closed)
+ * @param {Function} done Standard callback function
+ */
 const reconnect = (connection, done) => {
   connection.connect(done);
 };

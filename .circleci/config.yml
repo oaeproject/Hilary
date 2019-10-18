@@ -1,6 +1,7 @@
 version: 2
 jobs:
   test:
+    parallelism: 4
     docker:
       - image: "alpine:3.8"
     environment:

@@ -142,32 +142,59 @@ const init = function(config, callback) {
 const collectLatestFromQueue = (queueName, listener) => {
   _getOrCreateSubscriberForQueue(queueName, (err, subscriber) => {
     if (err) log().error({ err }, 'Error creating redis client');
-    subscriber.brpoplpush(queueName, getProcessingQueueFor(queueName), 0, (err, queuedMessage) => {
+    subscriber.rpoplpush(queueName, getProcessingQueueFor(queueName), (err, queuedMessage) => {
       if (err) log().error({ err }, 'Error while BRPOPLPUSHing redis queue ' + queueName);
-      const message = JSON.parse(queuedMessage);
-      listener(message, err => {
-        /**
-         * Lets set the convention that if the listener function
-         * returns the callback with an error, then something went
-         * unpexpectadly wrong, and we need to know about it.
-         * Hence, we're sending it to a special queue for analysis
-         */
-        if (err) {
-          log().warn(
-            { err },
-            `Using the redelivery mechanism for a message that failed running ${listener.name} on ${queueName}`
-          );
-          _redeliverToSpecialQueue(queueName, queuedMessage);
-        }
 
-        subscriber.lrem(getProcessingQueueFor(queueName), -1, queuedMessage, err => {
-          if (err) log().error('Unable to LREM from redis, message is kept on ' + queueName);
+      if (queuedMessage) {
+        const message = JSON.parse(queuedMessage);
+        listener(message, err => {
+          /**
+           * Lets set the convention that if the listener function
+           * returns the callback with an error, then something went
+           * unpexpectadly wrong, and we need to know about it.
+           * Hence, we're sending it to a special queue for analysis
+           */
+          if (err) {
+            log().warn(
+              { err },
+              `Using the redelivery mechanism for a message that failed running ${listener.name} on ${queueName}`
+            );
+            _redeliverToSpecialQueue(queueName, queuedMessage);
+          }
 
-          // remove message from processing queue
-          emitter.emit('postHandle', null, queueName, message, null, null);
+          subscriber.lrem(getProcessingQueueFor(queueName), -1, queuedMessage, err => {
+            if (err) log().error('Unable to LREM from redis, message is kept on ' + queueName);
+
+            // remove message from processing queue
+            emitter.emit('postHandle', null, queueName, message, null, null);
+
+            // recursive call itself if there are more tasks to be consumed
+            isQueueEmpty(queueName, subscriber, (err, queueIsEmpty) => {
+              if (err) log().error({ err }, 'Error trying to LLEN redis queue ' + queueName);
+
+              if (!queueIsEmpty) {
+                return collectLatestFromQueue(queueName, listener);
+              }
+            });
+          });
         });
-      });
+      } else {
+        log().warn('No tasks to be pulled from [' + queueName + '], exiting...');
+      }
     });
+  });
+};
+
+/**
+ * @function isQueueEmpty
+ * @param  {String} queueName  The queue name we're checking the size of (which is a redis List)
+ * @param  {Object} subscriber A redis client which is used solely for subscribing to this queue
+ * @param  {Function} done     Standar callback function
+ */
+const isQueueEmpty = (queueName, subscriber, done) => {
+  subscriber.llen(queueName, (err, stillQueued) => {
+    if (err) done(err);
+    return done(null, stillQueued === 0);
   });
 };
 

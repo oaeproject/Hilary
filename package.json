@@ -158,6 +158,7 @@
       "max-nested-callbacks": "off",
       "prettier/prettier": "error",
       "no-use-before-define": "off",
+      "no-warning-comments": "off",
       "import/no-unresolved": [
         2,
         {

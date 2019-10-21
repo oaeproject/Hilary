@@ -18,12 +18,24 @@ import * as EmitterAPI from 'oae-emitter';
 /**
  * A utility structure that allows one to increment and decrement a count, firing bound handlers
  * when the count becomes `0`
+ *
+ * @function Counter
+ * @return {Object}    An object with several functions that manipulate the counter
  */
 const Counter = function() {
   let _count = 0;
   const _emitter = new EmitterAPI.EventEmitter();
 
   const that = {};
+
+  /**
+   * Set the current count of the counter to zero
+   *
+   */
+  that.zero = function() {
+    _count = 0;
+    _emitter.emit('empty');
+  };
 
   /**
    * Get the current count of the counter
@@ -74,7 +86,8 @@ const Counter = function() {
    * Fire the given handler when the count becomes `0`. If the count is currently `0`, the handler
    * is fired immediately
    *
-   * @param  {Function}   handler     Invoked when the count becomes `0`
+   * @param  {Function}       handler     Invoked when the count becomes `0`
+   * @returns {EventEmitter}              Returns the promise that the `handler` function will be called once for the `empty` event
    */
   that.whenZero = function(handler) {
     if (_count <= 0) {

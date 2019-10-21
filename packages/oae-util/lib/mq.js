@@ -166,7 +166,7 @@ const collectLatestFromQueue = (queueName, listener) => {
             if (err) log().error('Unable to LREM from redis, message is kept on ' + queueName);
 
             // remove message from processing queue
-            emitter.emit('postHandle', null, queueName, message, null, null);
+            emitter.emit('postHandle', queueName);
 
             // recursive call itself if there are more tasks to be consumed
             isQueueEmpty(queueName, subscriber, (err, queueIsEmpty) => {

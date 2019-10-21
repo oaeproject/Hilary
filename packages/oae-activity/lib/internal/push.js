@@ -52,85 +52,98 @@ QueueConstants.queue = {
 // be closed automatically
 const AUTHENTICATION_TIMEOUT = 5000;
 
-/// /////////////
-// PUSH LOGIC //
-/// /////////////
-
 /**
- * Initializes the push logic. We will declare an exchange on which activities can be published,
- * create a queue specifically for this app server and start listening for new messages that are received on the queue.
- * When a client connects to this app server we will add a binding from the exchange too the queue.
- * This means that any activities that are relevant to the client will end up in our appserver queue and thus on this app server.
  *
- * You can find an example below with 2 app servers
+ * Push notifications logic
+ *
+ * Initializes the push logic. We will use Redis pubsub mechanism on which activities can be published.
+ * All the app servers will start listening for new messages by subscribing to specific channels (see pubsub.js for details)
+ * When a client connects to this app server we will add a subscription on Redis for that activityStreamId
+ * This means that any activities that are relevant to the client will end up in our appserver and thus on this app server.
+ *
+ * Redis pubsub as it stands works as follows:
+ * 1 There is a redis connection on each app server listening to every published message, on every channel (subscribed)
+ * 2 Every time a message is received, an event with the same name as the channel is emitted
+ * 3 This means that in order to handle messages from that channel, the app server needs to listen to the event with the same name
+ * Check pubsub.js for details.
+ *
+ * The application servers generate the activity notices that will eventually be sent out as push notifications to all connected clients.
+ * You can find an example below with 2 app servers:
  *
  * ```
- * The servers are idle:
+ * 1 The servers are idle:
  *
- *     |‾‾‾‾‾‾‾‾‾‾‾‾|                               |‾‾‾‾‾‾‾‾‾‾‾‾‾‾|     |‾‾‾‾‾‾‾‾‾|
- *     |  exchange  |                               |  queue-app-0 |-----|  app 0  |
- *     |____________|                               |______________|     |_________|
+ * ┌─────────────────┐                                                                                     ┌─────────────────┐
+ * │  App server #1  │                                                                                     │  App server #1  │
+ * └─────────────────┘                          ┌──────────────┐                                           └─────────────────┘
+ *                                              │              │
+ *                                              │ Redis pubsub │
+ *                                              │              │
+ * ┌─────────────────┐                          └──────────────┘                                           ┌─────────────────┐
+ * │  App server #2  │                                                                                     │  App server #2  │
+ * └─────────────────┘                                                                                     └─────────────────┘
  *
- *                                                  |‾‾‾‾‾‾‾‾‾‾‾‾‾‾|     |‾‾‾‾‾‾‾‾‾|
- *                                                  |  queue-app-1 |-----|  app 1  |
- *                                                  |______________|     |_________|
  *
- *
- * Client 1 comes in and opens a websocket to the "app0" app server.
+ * 2. Client 1 comes in and opens a websocket to the "app1" app server.
  * He subscribes on push notifications for a piece of content: `c:cam:abc123#activity`.
- * This will cause the app server to add a binding from the exchange to its queue for that activityStreamId.
+ * This will cause the app server to add a subscription to the channel that is named after the activityStreamId.
+ *
+ * ┌─────────────────┐
+ * │  App server #1  │
+ * └─────────────────┘                          ┌──────────────┐
+ *                                              │              │ publish  ┌───────────────────────┐  subscribe  ┌─────────────────┐       ┌──────────────────┐
+ *                                              │ Redis pubsub │─────────▷│ c:cam:abc123#activity │◁────────────│  App server #1  │───────│  Browser tab #1  │
+ *                                              │              │          └───────────────────────┘             └─────────────────┘       └──────────────────┘
+ * ┌─────────────────┐                          └──────────────┘
+ * │  App server #2  │
+ * └─────────────────┘
  *
  *
- *     |‾‾‾‾‾‾‾‾‾‾‾‾|                               |‾‾‾‾‾‾‾‾‾‾‾‾‾‾|     |‾‾‾‾‾‾‾‾‾|                                |‾‾‾‾‾‾‾‾‾‾‾‾|
- *     |  exchange  |  b'c:cam:abc123#activity'     |  queue-app-0 |     |  app 0  |                                |  client 1  |
- *     |____________|‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾|______________|‾‾‾‾‾|_________|‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾|____________|
- *
- *                                                  |‾‾‾‾‾‾‾‾‾‾‾‾‾‾|     |‾‾‾‾‾‾‾‾‾|
- *                                                  |  queue-app-1 |     |  app 1  |
- *                                                  |______________|‾‾‾‾‾|_________|
- *
- *
- * A new revision of that piece of content gets uploaded and triggers an activity.
- * A activity will be sent to the push exchange with a routing key of `u:cam:abc123#activity`.
- * Because there is a binding between the exchange and app0's queue, the activity will end up on the app server
+ * 3. A new revision of that piece of content gets uploaded and triggers an activity.
+ * An activity will be published on the pubsub channel `c:cam:abc123#activity`.
+ * Because app server #1 is subscribed to that channel, the activity will end up on the app server
  * and will eventually be sent to the client
  *
  *
- *  u:cam:abc123#activity |‾‾‾‾‾‾‾‾‾‾‾‾|    ------------------->     |‾‾‾‾‾‾‾‾‾‾‾‾‾‾|     |‾‾‾‾‾‾‾‾‾|   -------->   |‾‾‾‾‾‾‾‾‾‾‾‾|
- *  --------------------> |  exchange  |                             |  queue-app-0 |     |  app 0  |               |  client 1  |
- *                        |____________|‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾|______________|‾‾‾‾‾|_________|‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾|____________|
- *
- *                                                                   |‾‾‾‾‾‾‾‾‾‾‾‾‾‾|     |‾‾‾‾‾‾‾‾‾|
- *                                                                   |  queue-app-1 |     |  app 1  |
- *                                                                   |______________|‾‾‾‾‾|_________|
- *
- *
- * Another client comes in (or the same client in a different tab), opens a websocket to app1 and subscribes on the
- * same content items's activity stream. A binding will be added from the exchange to app 1 like so:
+ * ┌─────────────────┐   c:cam:abc123#activity
+ * │  App server #1  │────────────┐
+ * └─────────────────┘            │             ┌──────────────┐                                                                          c:cam:abc123#activity
+ *                                │             │              │ publish  ┌───────────────────────┐ subscribe   ┌─────────────────┐       ┌──────────────────┐
+ *                                └────────────▶│ Redis pubsub │─────────▷│ c:cam:abc123#activity │◁────────────│  App server #1  │──────▶│  Browser tab #1  │
+ *                                              │              │          └───────────────────────┘             └─────────────────┘       └──────────────────┘
+ * ┌─────────────────┐                          └──────────────┘
+ * │  App server #2  │
+ * └─────────────────┘
  *
  *
+ * 4. Another client comes in (or the same client in a different tab), opens a websocket to app server #2 and subscribes to the
+ * same content items's activity stream. The app server #2 will subscribe to the channel as well, like this:
  *
- *     |‾‾‾‾‾‾‾‾‾‾‾‾|                             |‾‾‾‾‾‾‾‾‾‾‾‾‾‾|     |‾‾‾‾‾‾‾‾‾|               |‾‾‾‾‾‾‾‾‾‾‾‾|
- *     |  exchange  |    b'c:cam:abc123#activity' |  queue-app-0 |     |  app 0  |               |  client 1  |
- *     |____________|\‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾|______________|‾‾‾‾‾|_________|‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾|____________|
- *                    \
- *                     \ b'c:cam:abc123#activity' |‾‾‾‾‾‾‾‾‾‾‾‾‾‾|     |‾‾‾‾‾‾‾‾‾|               |‾‾‾‾‾‾‾‾‾‾‾‾|
- *                      \-------------------------|  queue-app-1 |     |  app 1  |               |  client 2  |
- *                                                |______________|‾‾‾‾‾|_________|‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾|____________|
- *
- *
- * When another activity is triggered on the piece of content it will be delivered on both sockets
- *
+ * ┌─────────────────┐                                                                               subscribe  ┌─────────────────┐       ┌──────────────────┐
+ * │  App server #1  │                                                                                   ┌──────│  App server #1  │───────│  Browser tab #1  │
+ * └─────────────────┘                          ┌──────────────┐                                         │      └─────────────────┘       └──────────────────┘
+ *                                              │              │ publish  ┌───────────────────────┐      │
+ *                                              │ Redis pubsub │─────────▷│ c:cam:abc123#activity │◁─────┤
+ *                                              │              │          └───────────────────────┘      │
+ * ┌─────────────────┐                          └──────────────┘                                         │      ┌─────────────────┐       ┌──────────────────┐
+ * │  App server #2  │                                                                                   └──────│  App server #2  │───────│  Browser tab #2  │
+ * └─────────────────┘                                                                               subscribe  └─────────────────┘       └──────────────────┘
  *
  *
  *
- *  u:cam:abc123#activity |‾‾‾‾‾‾‾‾‾‾‾‾|      --------------->       |‾‾‾‾‾‾‾‾‾‾‾‾‾‾|     |‾‾‾‾‾‾‾‾‾|  --------->   |‾‾‾‾‾‾‾‾‾‾‾‾|
- * ---------------------> |  exchange  |                             |  queue-app-0 |     |  app 0  |               |  client 1  |
- *                        |____________|\‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾|______________|‾‾‾‾‾|_________|‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾|____________|
- *                                       \    --------------->
- *                                        \                          |‾‾‾‾‾‾‾‾‾‾‾‾‾‾|     |‾‾‾‾‾‾‾‾‾|  --------->   |‾‾‾‾‾‾‾‾‾‾‾‾|
- *                                         \-------------------------|  queue-app-1 |     |  app 1  |               |  client 2  |
- *                                                                   |______________|‾‾‾‾‾|_________|‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾|____________|
+ * 5. When another activity is triggered on the piece of content it will be delivered on both sockets:
+ *
+ *                                                                                                                                        c:cam:abc123#activity
+ * ┌─────────────────┐                                                                                subscribe ┌─────────────────┐       ┌──────────────────┐
+ * │  App server #1  │                                                                                   ┌──────│  App server #1  │──────▶│  Browser tab #1  │
+ * └─────────────────┘                          ┌──────────────┐                                         │      └─────────────────┘       └──────────────────┘
+ *                                              │              │ publish  ┌───────────────────────┐      │
+ *                                ┌────────────▶│ Redis pubsub │─────────▷│ c:cam:abc123#activity │◁─────┤
+ *                                │             │              │          └───────────────────────┘      │
+ * ┌─────────────────┐            │             └──────────────┘                                         │      ┌─────────────────┐       ┌──────────────────┐
+ * │  App server #2  │────────────┘                                                                      └──────│  App server #2  │──────▶│  Browser tab #2  │
+ * └─────────────────┘  c:cam:abc123#activity                                                         subscribe └─────────────────┘       └──────────────────┘
+ *                                                                                                                                        c:cam:abc123#activity
  * ```
  *
  * @param  {Function} callback      Standard callback function
@@ -145,7 +158,7 @@ const init = function(callback) {
    * Check pubsub.js for details
    */
 
-  return callback();
+  callback();
 };
 
 /**
@@ -318,6 +331,7 @@ const registerConnection = function(socket) {
  *
  * @param  {Object}     connectionInfo  The state of the connection we wish to authenticate
  * @param  {Object}     message         The authentication frame
+ * @return {Function}                   Returns a function which writes to a socket
  * @api private
  */
 const _authenticate = function(connectionInfo, message) {
@@ -405,6 +419,7 @@ const _authenticate = function(connectionInfo, message) {
  *
  * @param  {Object}     connectionInfo  The state of the connection we wish to authenticate
  * @param  {Object}     message         The message containing the subscription request
+ * @return {Function}                   Returns a function which writes to a socket
  * @api private
  */
 const _subscribe = function(connectionInfo, message) {

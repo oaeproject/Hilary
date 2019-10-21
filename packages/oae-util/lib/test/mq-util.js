@@ -25,7 +25,7 @@ MQ.emitter.on('preSubmit', queueName => {
   _increment(queueName);
 });
 
-MQ.emitter.on('postHandle', (err, queueName) => {
+MQ.emitter.on('postHandle', queueName => {
   _decrement(queueName, 1);
 });
 
@@ -34,14 +34,19 @@ MQ.emitter.on('postPurge', (name, count) => {
   _decrement(name, count); // decrements until 0
 });
 
+MQ.emitter.on('zeroLeftToHandle', queueName => {
+  _setToZero(queueName);
+});
+
 /**
  * Invoke the given handler only if the local counter of tasks of the given name indicates that the task queue is completely
  * empty. If it is not empty now, then the handler will be invoked when it becomes empty.
  *
  * This is ONLY useful in a local development environment where one application node is firing and handling all tasks.
  *
- * @param  {String}     name        The name of the task to listen for empty events
+ * @param  {String}     queueName   The name of the task to listen for empty events
  * @param  {Function}   handler     The handler to invoke when the task queue is empty
+ * @returns {Function}              Returns the execution of the handler function when counter equals zero
  */
 const whenTasksEmpty = function(queueName, handler) {
   if (!queueCounters[queueName] || !_hasQueue(queueName)) {
@@ -55,7 +60,7 @@ const whenTasksEmpty = function(queueName, handler) {
 /**
  * Increment the count for a task of the given name
  *
- * @param  {String}     name    The name of the task whose count to increment
+ * @param  {String}     queueName    The name of the task whose count to increment
  * @api private
  */
 const _increment = function(queueName) {
@@ -74,21 +79,28 @@ const _get = name => {
   return 0;
 };
 
+const _setToZero = queueName => {
+  queueCounters[queueName] = queueCounters[queueName] || new Counter();
+  queueCounters[queueName].zero();
+};
+
 /**
  * Determines if MQ has a handler bound for a task by the given name.
  *
- * @return {Boolean}    Whether or not there is a task bound
+ * @param  {String}     queueName   The name of the task queue we're checking existance of
+ * @return {Boolean}                Whether or not there is a task bound
  * @api private
  */
-const _hasQueue = function(name) {
-  return _.contains(_.keys(MQ.getBoundQueues()), name);
+const _hasQueue = queueName => {
+  return _.contains(_.keys(MQ.getBoundQueues()), queueName);
 };
 
 /**
  * Decrement the count for a task of the given name, firing any `whenTasksEmpty` handlers that are
  * waiting for the count to reach 0, if appropriate
  *
- * @param  {String}     name    The name of the task whose count to decrement
+ * @param  {String}     queueName    The name of the task whose count to decrement
+ * @param  {Integer}    count        The value to decrement the counter
  * @api private
  */
 const _decrement = function(queueName, count) {

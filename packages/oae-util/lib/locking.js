@@ -41,7 +41,9 @@ const init = function() {
      * failure as the resource being "locked" or (more correctly) "unavailable",
      * With retryCount=-1 there will be unlimited retries until the lock is aquired.
      */
-    retryCount: 3
+    retryDelay: 200, // the time in ms between attempts
+    retryJitter: 200, // the max time in ms randomly added to retries to improve performance under high contention
+    retryCount: 3 // the max number of times Redlock will attempt to lock a resource before erroring
   });
 };
 

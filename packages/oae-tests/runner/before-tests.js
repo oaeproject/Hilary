@@ -49,9 +49,7 @@ before(function(callback) {
 
 beforeEach(function(callback) {
   log().info('Beginning test "%s"', this.currentTest.title);
-
-  // clean all redis queues before each test
-  TestsUtil.cleanAllQueues(callback);
+  return callback();
 });
 
 afterEach(function(callback) {

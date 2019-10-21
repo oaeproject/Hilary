@@ -58,6 +58,7 @@ const init = function() {
  * @param  {Function}  callback        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any
  * @param  {String}    callback.token  An identifier for the lock that was granted. If unspecified, the lock was already held by someone else
+ * @returns {Function}                 Returns a callback
  */
 const acquire = function(lockKey, expiresIn, callback) {
   const validator = new Validator();
@@ -91,11 +92,12 @@ const acquire = function(lockKey, expiresIn, callback) {
 /**
  * Release a lock
  *
- * @param  {String}     lockKey             The unique key for the lock to release
- * @param  {String}     token               The identifier of the lock that was given when the lock was acquired
- * @param  {Function}   callback            Standard callback function
- * @param  {Object}     callback.err        An error that occurred, if any
- * @param  {Boolean}    callback.hadLock    Specifies whether or not we actually released a lock
+ * @param   {String}     lockKey             The unique key for the lock to release
+ * @param   {String}     token               The identifier of the lock that was given when the lock was acquired
+ * @param   {Function}   callback            Standard callback function
+ * @param   {Object}     callback.err        An error that occurred, if any
+ * @param   {Boolean}    callback.hadLock    Specifies whether or not we actually released a lock
+ * @returns {Function}                      Returns a callback
  */
 const release = function(lockKey, token, callback) {
   const validator = new Validator();

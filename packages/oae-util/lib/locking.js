@@ -57,7 +57,7 @@ const init = function() {
  * @param  {Number}    expiresIn       Maximum number of seconds for which to hold the lock
  * @param  {Function}  callback        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any
- * @param  {String}    callback.token  An identifier for the lock that was granted. If unspecified, the lock was already held by someone else
+ * @param  {Object}    callback.lock   An object which is the actual Lock that was granted
  * @returns {Function}                 Returns a callback
  */
 const acquire = function(lockKey, expiresIn, callback) {
@@ -92,25 +92,18 @@ const acquire = function(lockKey, expiresIn, callback) {
 /**
  * Release a lock
  *
- * @param   {String}     lockKey             The unique key for the lock to release
- * @param   {String}     token               The identifier of the lock that was given when the lock was acquired
+ * @param   {Object}     lock                Lock to be released
  * @param   {Function}   callback            Standard callback function
  * @param   {Object}     callback.err        An error that occurred, if any
  * @param   {Boolean}    callback.hadLock    Specifies whether or not we actually released a lock
  * @returns {Function}                      Returns a callback
  */
-const release = function(lockKey, token, callback) {
+const release = function(lock, callback) {
   const validator = new Validator();
   validator
-    .check(lockKey, {
+    .check(lock, {
       code: 400,
       msg: 'The key of the lock to try and release needs to be specified'
-    })
-    .notNull();
-  validator
-    .check(token, {
-      code: 400,
-      msg: 'The identifier of the lock that was given when the lock was acquired needs to be specified'
     })
     .notNull();
   if (validator.hasErrors()) {
@@ -119,7 +112,7 @@ const release = function(lockKey, token, callback) {
 
   // the first parameter is not necessary after the
   // migration from redback to redlock
-  locker.unlock(token, callback);
+  locker.unlock(lock, callback);
 };
 
 export { init, acquire, release };

@@ -178,7 +178,7 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
     // Locking is required to make sure we don't end up with 2 messages that were
     // created at exactly the same time
     const id = replyToThreadKey ? replyToThreadKey : messageBoxId;
-    _lockUniqueTimestamp(id, Date.now(), (created, lockKey, lockToken) => {
+    _lockUniqueTimestamp(id, Date.now(), (created, lock) => {
       // Data that will be output in diagnostic error messages
       const diagnosticData = {
         messageBoxId,
@@ -250,7 +250,7 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
           return callback(null, message);
         });
       });
-      Locking.release(lockKey, lockToken, () => {});
+      Locking.release(lock, () => {});
     });
   });
 };
@@ -269,7 +269,7 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
  */
 const _lockUniqueTimestamp = function(id, timestamp, callback) {
   const key = 'oae-messagebox:' + id + ':' + timestamp;
-  Locking.acquire(key, 1, (err, lockToken) => {
+  Locking.acquire(key, 1, (err, lock) => {
     if (err) {
       // Migration from redback to redlock:
       // This should only occur if Redis is down, just return the requested ts
@@ -280,7 +280,7 @@ const _lockUniqueTimestamp = function(id, timestamp, callback) {
     }
 
     // Successful lock, return the details
-    return callback(timestamp, key, lockToken);
+    return callback(timestamp, lock);
   });
 };
 

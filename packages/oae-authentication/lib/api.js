@@ -586,7 +586,7 @@ const createUser = function(ctx, loginId, displayName, opts, callback) {
 const _createUser = function(ctx, loginId, displayName, opts, callback) {
   // Lock on externalId to make sure we're not already making an account for this user
   const lockKey = loginId.externalId;
-  Locking.acquire(lockKey, 15, (err, lockToken) => {
+  Locking.acquire(lockKey, 15, (err, lock) => {
     if (err) {
       return callback({
         code: 400,
@@ -615,7 +615,7 @@ const _createUser = function(ctx, loginId, displayName, opts, callback) {
       // Create the user and immediately associate the login id
       PrincipalsAPI.createUser(ctx, loginId.tenantAlias, displayName, opts, (err, user) => {
         if (err) {
-          Locking.release(lockKey, lockToken, () => {
+          Locking.release(lock, () => {
             return callback(err);
           });
           return;
@@ -625,7 +625,7 @@ const _createUser = function(ctx, loginId, displayName, opts, callback) {
         _associateLoginId(loginId, user.id, err => {
           // Immediately release the lock, regardless of whether or not
           // association worked
-          Locking.release(lockKey, lockToken, () => {
+          Locking.release(lock, () => {
             if (err) {
               return callback(err);
             }

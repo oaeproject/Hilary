@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+import { createKeyspace } from 'oae-util/lib/cassandra';
 import { config } from '../../config';
 
 const fs = require('fs');
@@ -89,8 +90,11 @@ const runMigrations = async function(dbConfig, callback) {
                 callback(err);
               }
 
-              log().info('Migrations complete');
-              callback();
+              log().info('Migrations completed.');
+              createKeyspace('etherpad', err => {
+                log().info('Etherpad keyspace created.');
+                callback();
+              });
             }
           );
         });

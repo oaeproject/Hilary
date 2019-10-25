@@ -195,7 +195,7 @@ const _collectBucket = function(type, bucketNumber, callback) {
     // We acquired the lock, perform a collection iteration
     bucketInfo.collector(bucketNumber, (collectionErr, finished) => {
       // We want to ensure we release the bucket, whether we received an error or not
-      Locking.release(lock, releaseErr => {
+      Locking.release(lock, (releaseErr /* ,hadLock */) => {
         if (collectionErr) {
           return callback(collectionErr);
         }

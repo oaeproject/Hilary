@@ -41,9 +41,9 @@ const init = function() {
      * failure as the resource being "locked" or (more correctly) "unavailable",
      * With retryCount=-1 there will be unlimited retries until the lock is aquired.
      */
-    retryDelay: 200, // the time in ms between attempts
-    retryJitter: 200, // the max time in ms randomly added to retries to improve performance under high contention
-    retryCount: 3 // the max number of times Redlock will attempt to lock a resource before erroring
+    retryDelay: 500, // the time in ms between attempts
+    retryJitter: 500, // the max time in ms randomly added to retries to improve performance under high contention
+    retryCount: 0 // the max number of times Redlock will attempt to lock a resource before erroring
   });
 };
 
@@ -86,7 +86,14 @@ const acquire = function(lockKey, expiresIn, callback) {
 
   log().trace({ lockKey }, 'Trying to acquire lock.');
 
-  locker.lock(lockKey, expiresIn * 1000, callback);
+  locker.lock(lockKey, expiresIn * 1000, (err, lock) => {
+    if (err) {
+      log().warn({ err }, 'Unable to lock for ' + lockKey);
+      return callback(err);
+    }
+
+    return callback(null, lock);
+  });
 };
 
 /**
@@ -112,7 +119,14 @@ const release = function(lock, callback) {
 
   // the first parameter is not necessary after the
   // migration from redback to redlock
-  locker.unlock(lock, callback);
+  locker.unlock(lock, err => {
+    if (err) {
+      log().error({ err }, 'Unable to release the lock ' + lock.value);
+      return callback(err);
+    }
+
+    return callback();
+  });
 };
 
 export { init, acquire, release };

@@ -116,7 +116,7 @@ services:
       - ../data/cassandra:/var/lib/cassandra
   oae-etherpad:
     container_name: oae-etherpad
-    image: oaeproject/oae-etherpad-docker:next
+    image: oaeproject/oae-etherpad-docker:v0.0.2
     # image: oae-etherpad:latest
     restart: always
     networks:
@@ -126,8 +126,7 @@ services:
     tty: false
   oae-ethercalc:
     container_name: oae-ethercalc
-    image: oaeproject/oae-ethercalc-docker:next
-    # image: oae-ethercalc:latest
+    image: oaeproject/oae-ethercalc-docker:v0.0.2
     restart: always
     networks:
       - my_network

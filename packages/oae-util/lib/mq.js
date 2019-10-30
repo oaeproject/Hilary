@@ -27,6 +27,55 @@ const log = logger('mq');
 const emitter = new EventEmitter();
 
 /**
+ * Task queueing logic
+ *
+ * For every queue OAE creates, there are two extra queues (redis lists), *-processing and *-redelivery
+ * The way tasks are processed is illustrated below for `oae-activity/activity`, but works the same way for all queues:
+ *
+ * oae-acticity/activity
+ * oae-acticity/activity-processing
+ * oae-acticity/activity/enable
+ * oae-acticity/activity/enable-processing
+ * oae-search/index
+ * oae-search/index-processing
+ * oae-search/delete
+ * oae-search/delete-processing
+ * oae-search/reindex
+ * oae-search/reindex-processing
+ * oae-content/etherpad-publish
+ * oae-content/etherpad-publish-processing
+ * oae-content/ethercalc-publish
+ * oae-content/ethercalc-publish-processing
+ * oae-content/ethercalc-edit
+ * oae-content/ethercalc-edit-processing
+ * oae-preview-processor/generatePreviews
+ * oae-preview-processor/generatePreviews-processing
+ * oae-preview-processor/generateFolderPreviews
+ * oae-preview-processor/generateFolderPreviews-processing
+ * oae-preview-processor/regeneratePreviews
+ * oae-preview-processor/regeneratePreviews-processing
+ *
+ *     ┌──────────────────────────────────────────┬─┐
+ *     │           oae-activity/activity          │X│──┐
+ *     └──────────────────────────────────────────┴─┘  │
+ *                                                     │
+ *  ┌──────────────────  brpoplpush   ─────────────────┘
+ *  │
+ *  │                                                   handler     Λ    returns
+ *  │  ┌─┬──────────────────────────────────────────┐   invoked    ╱ ╲    error           lpush   ┌─┬──────────────────────────────────────────┐
+ *  └─▷│X│    oae-activity/activity-processing      │────────────▷▕   ▏─────────────▷  ──────────▷│X│    oae-activity/activity-redelivery      │
+ *     └─┴──────────────────────────────────────────┘              ╲ ╱                            └─┴──────────────────────────────────────────┘
+ *                            △                                     V                                                    │
+ *                            │                                     │                                                    │
+ *                            │                                                                                          │
+ *                            │                                returns OK                                                │
+ *                            │                 ┌─┐                                                                      │
+ *                            │       lrem (-1) │X│ from            │                                                    │
+ *                            │                 └─┘                 ▽                                                    │
+ *                            └────────────────────────────────────  ◁───────────────────────────────────────────────────┘
+ */
+
+/**
  * Redis configuration which will load from config.js
  */
 let redisConfig = null;

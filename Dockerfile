@@ -36,13 +36,20 @@ RUN apk --update --no-cache add \
       git \
       python \
       ghostscript \
-      graphicsmagick curl openssh-client python py-pip bash su-exec wget
+      graphicsmagick \
+      curl \
+      openssh-client \
+      python \
+      py-pip \
+      bash \
+      su-exec \
+      wget
 
 # Installs the 3.9 Chromium package.
 RUN apk update && apk upgrade && \
-    echo @3.9 http://nl.alpinelinux.org/alpine/v3.9/community >> /etc/apk/repositories && \
-    echo @3.9 http://nl.alpinelinux.org/alpine/v3.9/main >> /etc/apk/repositories && \
-    apk add --no-cache \
+      echo @3.9 http://nl.alpinelinux.org/alpine/v3.9/community >> /etc/apk/repositories && \
+      echo @3.9 http://nl.alpinelinux.org/alpine/v3.9/main >> /etc/apk/repositories && \
+      apk add --no-cache \
       chromium@3.9 \
       nss@3.9 \
       freetype@3.9 \
@@ -110,4 +117,4 @@ USER node
 
 # Run the app - you may override CMD via docker run command line instruction
 ENTRYPOINT ["/bin/sh", "-c"]
-CMD ["nodemon -L app.js | bunyan"]
+CMD ["node app.js | bunyan"]

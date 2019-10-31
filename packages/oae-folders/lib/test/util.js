@@ -36,6 +36,8 @@ import { User } from 'oae-principals/lib/model';
 import * as FoldersDAO from '../internal/dao';
 import { FoldersConstants } from '../constants';
 
+const TIMEOUT = 1000;
+
 /**
  * Generate a number of folders for use in testing
  *
@@ -1221,7 +1223,7 @@ const assertFolderSearchEquals = function(restContext, folderId, q, expectedCont
     assert.ok(!err);
 
     // Assert we've got the exact number of results that we expected (in case we want 0 results)
-    setTimeout(assert.strictEqual, 200, results.results.length, expectedContent.length);
+    setTimeout(assert.strictEqual, TIMEOUT, results.results.length, expectedContent.length);
 
     // Assert that the results that came back are the ones we expected
     _.each(expectedContent, content => {
@@ -1250,7 +1252,7 @@ const assertGeneralFolderSearchEquals = function(restContext, q, expectedFolders
     { resourceTypes: 'folder', q, scope: '_network' },
     (err, results) => {
       assert.ok(!err);
-      setTimeout(_assertSearchResults, 200, results, expectedFolders, missingFolders);
+      setTimeout(_assertSearchResults, TIMEOUT, results, expectedFolders, missingFolders);
       return callback();
     }
   );

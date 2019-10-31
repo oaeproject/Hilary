@@ -2,7 +2,7 @@ version: 2
 jobs:
   test:
     docker:
-      - image: "oaeproject/oae-hilary:latest"
+      - image: "oaeproject/oae-hilary:preview"
       - image: "oaeproject/oae-cassandra-docker"
       - image: "redis:3.2.8-alpine"
       - image: "oaeproject/oae-elasticsearch-docker"

@@ -33,10 +33,10 @@ LABEL Author=ApereoFoundation
 LABEL Email=oae@apereo.org
 
 RUN apk --update --no-cache add \
-    git \
-		python \
-    ghostscript \
-    graphicsmagick
+      git \
+      python \
+      ghostscript \
+      graphicsmagick curl openssh-client python py-pip bash su-exec wget
 
 # Installs the 3.9 Chromium package.
 RUN apk update && apk upgrade && \
@@ -52,23 +52,55 @@ RUN apk update && apk upgrade && \
 # Install libreoffice
 RUN apk add --no-cache libreoffice openjdk8-jre
 
-# install nodegit
+# Install nodegit
 RUN apk --update --no-cache add build-base libgit2-dev
 RUN ln -s /usr/lib/libcurl.so.4 /usr/lib/libcurl-gnutls.so.4
 
-# Set the base directory
-ENV HILARY_DIR /usr/src/Hilary
-RUN mkdir -p ${HILARY_DIR} \
-    && chown -R node:node ${HILARY_DIR} \
-    && chmod -R 755 ${HILARY_DIR}
+# Set the Hilary directory
+ENV CODE_DIR /usr/src
+ENV HILARY_DIR ${CODE_DIR}/Hilary
+RUN mkdir -p ${HILARY_DIR}
 WORKDIR ${HILARY_DIR}
+
+# Set the right permissions for Hilary
+RUN chown -R node:node ${CODE_DIR} \
+      && chmod -R 755 ${CODE_DIR}
 
 # Create the temp directory for Hilary
 ENV TMP_DIR /tmp
-RUN mkdir -p ${TMP_DIR} \
-    && chown -R node:node ${TMP_DIR} \
-    && chmod -R 755 ${TMP_DIR} \
-    && export TMP=${TMP_DIR}
+RUN mkdir -p ${TMP_DIR}
+RUN chown -R node:node ${TMP_DIR} \
+      && chmod -R 755 ${TMP_DIR} \
+      && export TMP=${TMP_DIR}
+
+# Set base folder
+ENV BASE_DIR /opt
+RUN mkdir -p ${BASE_DIR}
+
+# Set etherpad folder
+ENV ETHERPAD_DIR ${BASE_DIR}/etherpad
+RUN mkdir -p ${ETHERPAD_DIR}
+
+# Set ethercalc folder
+ENV ETHERCALC_DIR ${BASE_DIR}/ethercalc
+RUN mkdir -p ${ETHERCALC_DIR}
+
+# Set permissions for base dir and its contents
+RUN chown -R node:node ${BASE_DIR} \
+      && chmod -R 755 ${BASE_DIR}
+
+# Install cqlsh for etherpad
+RUN pip install cqlsh==4.0.1
+RUN pip install thrift==0.9.3
+
+# Install PM2 for etherpad and ethercalc
+RUN yarn global add pm2
+
+# Install lerna
+RUN yarn global add lerna
+
+# Copy specific configuration for running tests
+COPY .circleci/settings.json ${BASE_DIR}
 
 # Expose ports for node server
 EXPOSE 2000

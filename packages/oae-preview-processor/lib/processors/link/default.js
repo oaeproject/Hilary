@@ -48,9 +48,10 @@ const init = function(_config, callback) {
   screenShottingOptions.timeout = OaeUtil.getNumberParam(_config.screenShotting.timeout, screenShottingOptions.timeout);
 
   const chromiumExecutable = _config.screenShotting.binary;
-  if (chromiumExecutable) {
-    screenShottingOptions.executablePath = chromiumExecutable;
-  }
+  if (chromiumExecutable) screenShottingOptions.executablePath = chromiumExecutable;
+
+  const sandboxArgs = _config.screenShotting.sandbox;
+  if (sandboxArgs) screenShottingOptions.args = [sandboxArgs];
 
   return callback();
 };
@@ -160,7 +161,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
           gm.compare(
             imgPath,
             path.resolve(__dirname, '../../../static/link/blank.png'),
-            0.0,
+            0,
             (err, isEqual, equality, raw) => {
               if (err) {
                 log().error({ err, contentId: ctx.contentId }, 'Could not compare image');

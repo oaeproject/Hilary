@@ -38,19 +38,16 @@ RUN apk --update --no-cache add \
     ghostscript \
     graphicsmagick
 
-# Installs the 3.8 Chromium package.
+# Installs the 3.9 Chromium package.
 RUN apk update && apk upgrade && \
-    echo @3.8 http://nl.alpinelinux.org/alpine/v3.8/community >> /etc/apk/repositories && \
-    echo @3.8 http://nl.alpinelinux.org/alpine/v3.8/main >> /etc/apk/repositories && \
+    echo @3.9 http://nl.alpinelinux.org/alpine/v3.9/community >> /etc/apk/repositories && \
+    echo @3.9 http://nl.alpinelinux.org/alpine/v3.9/main >> /etc/apk/repositories && \
     apk add --no-cache \
-      chromium@3.8 \
-      nss@3.8 \
-      freetype@3.8 \
-      harfbuzz@3.8 \
-      ttf-freefont@3.8
-
-# Tell Puppeteer to skip installing Chrome. We'll be using the installed package.
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
+      chromium@3.9 \
+      nss@3.9 \
+      freetype@3.9 \
+      harfbuzz@3.9 \
+      ttf-freefont@3.9
 
 # Install libreoffice
 RUN apk add --no-cache libreoffice openjdk8-jre

@@ -159,6 +159,7 @@
       "prettier/prettier": "error",
       "no-use-before-define": "off",
       "no-warning-comments": "off",
+      "prefer-named-capture-group": "off",
       "import/no-unresolved": [
         2,
         {

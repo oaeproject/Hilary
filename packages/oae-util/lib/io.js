@@ -44,9 +44,9 @@ const getFileListForFolder = function(foldername, callback) {
       }
 
       const finalFiles = [];
-      for (let f = 0; f < files.length; f++) {
-        if (files[f].substring(0, 1) !== '.') {
-          finalFiles.push(files[f]);
+      for (const element of files) {
+        if (element.slice(0, 1) !== '.') {
+          finalFiles.push(element);
         }
       }
 

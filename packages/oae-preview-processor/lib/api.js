@@ -621,7 +621,7 @@ const _handleRegeneratePreviewsTask = function(data, callback) {
         try {
           contentRow.previews = JSON.parse(contentRow.previews);
           return true;
-        } catch (error) {
+        } catch {
           // If the preview is invalid JSON, something bad happened. Lets try and reprocess it so the processor can better set the preview data
           log().warn({ contentRow }, 'Found invalid JSON for content item. Forcing regeneration of previews');
         }

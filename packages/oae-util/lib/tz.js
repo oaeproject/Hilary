@@ -19,7 +19,7 @@ import _ from 'underscore';
 import tz from 'timezone-js';
 import railsTimezone from 'rails-timezone';
 
-import RailsMappings from 'oae-util/timezones-rails';
+import RailsMappings from 'oae-util/timezones-rails.json';
 
 tz.timezone.loadingScheme = tz.timezone.loadingSchemes.MANUAL_LOAD;
 tz.timezone.transport = function(opts) {
@@ -90,7 +90,7 @@ const getClosestSupportedTimezone = function(zone) {
     });
 
     return _getMostSimilarZone(zone, closest.zone);
-  } catch (error) {
+  } catch {
     // If someone passes in a bad zone name we end up here
   }
 };

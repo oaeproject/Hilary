@@ -282,7 +282,7 @@ const _rowToRevision = function(row) {
   if (hash.previews) {
     try {
       hash.previews = JSON.parse(hash.previews);
-    } catch (error) {
+    } catch {
       hash.previews = {};
     }
   }

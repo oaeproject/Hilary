@@ -113,7 +113,7 @@ const _getId = function(link) {
   }
 
   if (parsedUrl.hostname === 'youtu.be') {
-    return parsedUrl.pathname.substr(1);
+    return parsedUrl.pathname.slice(1);
 
     // Although not really possible, but we return null in all other cases
   }

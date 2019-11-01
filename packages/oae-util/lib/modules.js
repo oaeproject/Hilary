@@ -180,10 +180,8 @@ const initAvailableModules = function(callback) {
     const modulePriority = {};
 
     // Aggregate the oae- modules
-    for (let i = 0; i < modules.length; i++) {
-      const module = modules[i];
-
-      if (module.substring(0, 4) === 'oae-') {
+    for (const module of modules) {
+      if (module.slice(0, 4) === 'oae-') {
         // Determine module priority
         const filename = module + '/package.json';
         const pkg = require(filename);

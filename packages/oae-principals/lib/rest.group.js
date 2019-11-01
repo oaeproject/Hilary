@@ -236,9 +236,9 @@ OAE.tenantRouter.on('post', '/api/group/:groupId/members', (req, res) => {
   // Convert the string 'false' to a proper boolean
   const members = req.body;
   const principals = _.keys(members);
-  for (let i = 0; i < principals.length; i++) {
-    if (members[principals[i]] === 'false') {
-      members[principals[i]] = false;
+  for (const element of principals) {
+    if (members[element] === 'false') {
+      members[element] = false;
     }
   }
 

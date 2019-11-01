@@ -1128,70 +1128,70 @@ const createInitialTestConfig = function() {
   // Require the configuration file, from here on the configuration should be
   // passed around instead of required
   const envConfig = require('../../../' + (process.env.NODE_ENV || 'local')).config;
-  config = _.extend({}, config, envConfig);
+  let mergedConfig = _.extend({}, config, envConfig);
 
   // Streams can't be deep copied so we stash them in a variable, delete them from the config
   // and add them to the final config
-  const logConfig = config.log;
-  delete config.log;
-  config = clone(config);
-  config.log = logConfig;
+  const logConfig = mergedConfig.log;
+  delete mergedConfig.log;
+  mergedConfig = clone(mergedConfig);
+  mergedConfig.log = logConfig;
 
   // The Cassandra connection config that should be used for unit tests, using
   // a custom keyspace for just the tests
-  config.cassandra.keyspace = 'oaeTest';
+  mergedConfig.cassandra.keyspace = 'oaeTest';
 
   // We'll stick all our redis data in a separate DB index.
-  config.redis.dbIndex = 1;
+  mergedConfig.redis.dbIndex = 1;
 
   // Log everything (except mocha output) to tests.log
-  config.log.streams = [
+  mergedConfig.log.streams = [
     {
-      level: config.test.level || 'info',
-      path: config.test.path || './tests.log'
+      level: mergedConfig.test.level || 'info',
+      path: mergedConfig.test.path || './tests.log'
     }
   ];
 
   // Unit test will purge the rabbit mq queues when they're connected
-  config.mq.purgeQueuesOnStartup = true;
+  mergedConfig.mq.purgeQueuesOnStartup = true;
 
   // In order to speed up some of the tests and to avoid mocha timeouts, we reduce the default time outs
-  config.previews.office.timeout = 30000;
-  config.previews.screenShotting.timeout = 30000;
+  mergedConfig.previews.office.timeout = 30000;
+  mergedConfig.previews.screenShotting.timeout = 30000;
 
-  config.search.index.name = 'oaetest';
+  mergedConfig.search.index.name = 'oaetest';
   // eslint-disable-next-line camelcase
-  config.search.index.settings.number_of_shards = 1;
+  mergedConfig.search.index.settings.number_of_shards = 1;
   // eslint-disable-next-line camelcase
-  config.search.index.settings.number_of_replicas = 0;
-  config.search.index.settings.store = { type: 'memory' };
-  config.search.index.destroyOnStartup = true;
+  mergedConfig.search.index.settings.number_of_replicas = 0;
+  mergedConfig.search.index.settings.store = { type: 'memory' };
+  mergedConfig.search.index.destroyOnStartup = true;
 
   // Disable the poller so it only collects manually
-  config.activity.collectionPollingFrequency = -1;
-  config.activity.mail.pollingFrequency = 3600;
-  config.activity.numberOfProcessingBuckets = 1;
+  mergedConfig.activity.collectionPollingFrequency = -1;
+  mergedConfig.activity.mail.pollingFrequency = 3600;
+  mergedConfig.activity.numberOfProcessingBuckets = 1;
 
-  config.servers.serverInternalAddress = null;
-  config.servers.globalAdminAlias = 'admin';
-  config.servers.globalAdminHost = 'localhost:2000';
-  config.servers.guestTenantAlias = 'guest';
-  config.servers.guestTenantHost = 'guest.oae.com';
-  config.servers.useHttps = false;
+  mergedConfig.servers.serverInternalAddress = null;
+  mergedConfig.servers.globalAdminAlias = 'admin';
+  mergedConfig.servers.globalAdminHost = 'localhost:2000';
+  mergedConfig.servers.guestTenantAlias = 'guest';
+  mergedConfig.servers.guestTenantHost = 'guest.oae.com';
+  mergedConfig.servers.useHttps = false;
 
   // Force emails into debug mode
-  config.email.debug = true;
+  mergedConfig.email.debug = true;
 
   // Set mail grace period to 0 so emails are sent immediately
-  config.activity.mail.gracePeriod = 0;
+  mergedConfig.activity.mail.gracePeriod = 0;
 
   // Disable mixpanel tracking
-  config.mixpanel.enabled = false;
+  mergedConfig.mixpanel.enabled = false;
 
   // Explicitly use a different cookie
-  config.cookie.name = CONFIG_COOKIE_NAME;
+  mergedConfig.cookie.name = CONFIG_COOKIE_NAME;
 
-  return config;
+  return mergedConfig;
 };
 
 /**

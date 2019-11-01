@@ -155,27 +155,27 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
   validator.check(sizes, { code: 400, msg: 'The desired sizes array is missing' }).notNull();
   if (sizes) {
     validator.check(sizes.length, { code: 400, msg: 'The desired sizes array is empty' }).min(1);
-    for (let i = 0; i < sizes.length; i++) {
+    for (const element of sizes) {
       validator
-        .check(sizes[i].width, {
+        .check(element.width, {
           code: 400,
           msg: 'The width needs to be a valid integer larger than 0'
         })
         .isInt();
       validator
-        .check(sizes[i].width, {
+        .check(element.width, {
           code: 400,
           msg: 'The width needs to be a valid integer larger than 0'
         })
         .min(0);
       validator
-        .check(sizes[i].height, {
+        .check(element.height, {
           code: 400,
           msg: 'The width needs to be a valid integer larger than 0'
         })
         .isInt();
       validator
-        .check(sizes[i].height, {
+        .check(element.height, {
           code: 400,
           msg: 'The height needs to be a valid integer larger than 0'
         })

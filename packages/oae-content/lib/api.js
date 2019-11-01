@@ -260,7 +260,7 @@ const createLink = function(ctx, displayName, description, visibility, link, add
   }
 
   // Make sure the URL starts with a protocol
-  if (link.indexOf('://') === -1) {
+  if (!link.includes('://')) {
     link = 'http://' + link;
   }
 
@@ -2035,8 +2035,7 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
       msg: 'You should at least specify a new displayName, description, visibility or link'
     })
     .min(1);
-  for (let i = 0; i < fieldNames.length; i++) {
-    const fieldName = fieldNames[i];
+  for (const fieldName of fieldNames) {
     validator
       .check(fieldName, {
         code: 400,
@@ -2829,7 +2828,7 @@ const _storePreview = function(ctx, previewReference, options, callback) {
 const _getPictureDownloadUrlFromUri = function(ctx, uri, parentId) {
   try {
     return ContentUtil.getSignedDownloadUrl(ctx, uri);
-  } catch (error) {
+  } catch {
     // The backend was probably not found, we will fail safely here
     log(ctx).warn({ parentId }, 'Could not find storage backend for uri: %s', uri);
     return null;

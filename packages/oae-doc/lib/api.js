@@ -187,7 +187,7 @@ const _parseDocs = function(dir, exclude, callback) {
  */
 const _filterFiles = function(fileNames, exclude) {
   return _.filter(fileNames, fileName => {
-    if (fileName.indexOf('.js') !== -1 && _.indexOf(exclude, fileName) === -1) {
+    if (fileName.includes('.js') && _.indexOf(exclude, fileName) === -1) {
       return true;
     }
 

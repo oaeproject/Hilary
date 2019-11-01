@@ -74,7 +74,7 @@ const init = function(config, callback) {
  * @borrows Interface.test as PDF.test
  */
 const test = function(ctx, contentObj, callback) {
-  if (contentObj.resourceSubType === RESOURCE_SUBTYPE && PreviewConstants.TYPES.PDF.indexOf(ctx.revision.mime) !== -1) {
+  if (contentObj.resourceSubType === RESOURCE_SUBTYPE && PreviewConstants.TYPES.PDF.includes(ctx.revision.mime)) {
     callback(null, 10);
   } else {
     callback(null, -1);

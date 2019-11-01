@@ -572,7 +572,7 @@ const _parsePreviews = function(hash) {
     if (hash.previews) {
       hash.previews = JSON.parse(hash.previews);
     }
-  } catch (error) {
+  } catch {
     log().warn({ hash }, 'Could not parse the content previews object');
   }
 };

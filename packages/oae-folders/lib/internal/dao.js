@@ -323,7 +323,7 @@ const _rowToFolder = function(row) {
   const storageHash = Cassandra.rowToHash(row);
   try {
     storageHash.previews = JSON.parse(storageHash.previews);
-  } catch (error) {
+  } catch {
     storageHash.previews = {};
   }
 

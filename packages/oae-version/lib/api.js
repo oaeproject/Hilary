@@ -55,8 +55,7 @@ const getVersion = async function(repoPath = hilaryDirectory, repoInformation = 
   const submodulePointers = {};
   const submodules = await repo.getSubmoduleNames();
   if (!_.isEmpty(submodules)) {
-    for (let index = 0; index < submodules.length; index++) {
-      const eachSubmodule = submodules[index];
+    for (const eachSubmodule of submodules) {
       // eslint-disable-next-line no-await-in-loop
       const eachSubmoduleRepo = await git.Submodule.lookup(repo, eachSubmodule);
       submodulePointers[eachSubmodule] = eachSubmoduleRepo.headId().toString();

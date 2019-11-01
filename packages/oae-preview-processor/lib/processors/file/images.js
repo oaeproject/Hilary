@@ -20,7 +20,7 @@ import * as PreviewUtil from 'oae-preview-processor/lib/util';
  * @borrows Interface.test as Images.test
  */
 const test = function(ctx, contentObj, callback) {
-  if (contentObj.resourceSubType === 'file' && PreviewConstants.TYPES.IMAGE.indexOf(ctx.revision.mime) !== -1) {
+  if (contentObj.resourceSubType === 'file' && PreviewConstants.TYPES.IMAGE.includes(ctx.revision.mime)) {
     callback(null, 10);
   } else {
     callback(null, -1);

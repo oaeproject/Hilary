@@ -49,10 +49,10 @@ OAE.globalAdminRouter.on('post', '/api/content/reprocessPreviews', (req, res) =>
   _.each(req.body, (value, name) => {
     if (name.indexOf('content_') === 0) {
       filters.content = filters.content || {};
-      filters.content[name.substr(8)] = value;
+      filters.content[name.slice(8)] = value;
     } else if (name.indexOf('revision_') === 0) {
       filters.revision = filters.revision || {};
-      filters.revision[name.substr(9)] = value;
+      filters.revision[name.slice(9)] = value;
     }
   });
 

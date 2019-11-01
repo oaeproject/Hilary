@@ -1620,13 +1620,13 @@ const _getUploadedFiles = function(ctx, uploadedFiles, callback) {
       '/' +
       uploadedFileId[1] +
       '/' +
-      uploadedFileId[2].substring(0, 2) +
+      uploadedFileId[2].slice(0, 2) +
       '/' +
-      uploadedFileId[2].substring(2, 4) +
+      uploadedFileId[2].slice(2, 6) +
       '/' +
-      uploadedFileId[2].substring(4, 6) +
+      uploadedFileId[2].slice(4, 10) +
       '/' +
-      uploadedFileId[2].substring(6, 8) +
+      uploadedFileId[2].slice(6, 14) +
       '/' +
       uploadedFileId[2] +
       '/' +

@@ -113,10 +113,10 @@ const _hash = function(resourceType, tenantAlias, resourceId) {
     '%s/%s/%s/%s/%s/%s/%s',
     resourceType,
     tenantAlias,
-    resourceId.substr(0, 2),
-    resourceId.substr(2, 2),
-    resourceId.substr(4, 2),
-    resourceId.substr(6, 2),
+    resourceId.slice(0, 2),
+    resourceId.slice(2, 4),
+    resourceId.slice(4, 6),
+    resourceId.slice(6, 8),
     resourceId
   );
 };

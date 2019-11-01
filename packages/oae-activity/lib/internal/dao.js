@@ -356,9 +356,8 @@ const getAggregateStatus = function(aggregateKeys, callback) {
     // The result is each aggregate status separated by a new line, ordered the same as the keys were in the args. Therefore
     // we iterate over those one-by-one and match the aggregate status result with the aggregate key by index.
     const aggregateStatus = {};
-    for (let i = 0; i < results.length; i++) {
+    for (let [i, result] of results.entries()) {
       // Match the aggregate status result with the aggregate key by index.
-      let result = results[i];
       const aggregateKey = aggregateKeys[i];
 
       if (result) {
@@ -736,7 +735,7 @@ const _fetchEntitiesByIdentities = function(entityIdentities, callback) {
       if (entityStr) {
         try {
           entitiesByIdentity[entityIdentities[i]] = JSON.parse(entityStr);
-        } catch (error) {
+        } catch {
           log().warn({ entityStr }, 'Failed to parse aggregated activity entity from redis. Skipping.');
         }
       }

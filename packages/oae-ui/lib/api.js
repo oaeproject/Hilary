@@ -249,7 +249,7 @@ const cacheWidgetManifests = function(done) {
  * @api private
  */
 const _widgetDirectoryFilter = function(entry) {
-  return entry.fullPath.indexOf('/packages/oae-') !== -1;
+  return entry.fullPath.includes('/packages/oae-');
 };
 
 /// ///////////////
@@ -271,11 +271,11 @@ const getStaticBatch = function(files, callback) {
   // Filter out the duplicate ones
   files = _.uniq(files);
   // Make sure that all provided filenames are real strings
-  for (let i = 0; i < files.length; i++) {
-    validator.check(files[i], { code: 400, msg: 'A valid file path needs to be provided' }).notEmpty();
+  for (const element of files) {
+    validator.check(element, { code: 400, msg: 'A valid file path needs to be provided' }).notEmpty();
     // Make sure that only absolute paths are allowed. All paths that contain a '../' have the potential of
     // exposing private server files
-    validator.check(files[i], { code: 400, msg: 'Only absolute paths are allowed' }).notContains('../');
+    validator.check(element, { code: 400, msg: 'Only absolute paths are allowed' }).notContains('../');
   }
 
   validator.check(files.length, { code: 400, msg: 'At least one file must be provided' }).min(1);
@@ -659,8 +659,8 @@ const _cacheSkinVariables = function(callback) {
     const sections = [];
     let subsections = [];
 
-    const sectionRegex = new RegExp('[*] [@]section[ ]+([^*]+) [*]');
-    const subsectionRegex = new RegExp('[*] [@]subsection[ ]+([^*]+) [*]');
+    const sectionRegex = '[*] [@]section[ ]+([^*]+) [*]';
+    const subsectionRegex = '[*] [@]subsection[ ]+([^*]+) [*]';
 
     for (let i = 0; i < tree.rules.length; i++) {
       const rule = tree.rules[i];
@@ -692,12 +692,12 @@ const _cacheSkinVariables = function(callback) {
         // This should be defined in the previous rule.
         const docRule = tree.rules[i - 1];
         let description = 'TODO';
-        if (docRule && docRule.value && typeof docRule.value === 'string' && docRule.value.substring(0, 2) === '/*') {
+        if (docRule && docRule.value && typeof docRule.value === 'string' && docRule.value.slice(0, 2) === '/*') {
           description = docRule.value.replace('/* ', '').replace('*/', '');
         }
 
         // Strip out the '@' sign from the token to get the variable name.
-        const name = rule.name.substr(1);
+        const name = rule.name.slice(1);
 
         // Less variables don't have any type.
         // We determine the type by looking at the suffix in the variable name.
@@ -1113,7 +1113,7 @@ const renderTemplate = function(template, data, locale) {
       truncate(text, maxChars) {
         text = data.util.text.trim(text);
         if (text.length > maxChars) {
-          text = text.substring(0, maxChars) + '...';
+          text = text.slice(0, maxChars) + '...';
         }
 
         return text;

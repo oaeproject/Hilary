@@ -770,7 +770,7 @@ const _getTemplatesForTemplateIds = function(basedir, module, templateIds, callb
         try {
           const templateSharedPath = _templatesPath(basedir, module, templateId + '.shared');
           sharedLogic = require(templateSharedPath);
-        } catch (error) {}
+        } catch {}
 
         // Attach the templates to the given object of templates
         _templates[templateId] = {

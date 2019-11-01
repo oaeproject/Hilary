@@ -477,7 +477,7 @@ const _subscribe = function(connectionInfo, message) {
     };
 
     // We need to perform the following check as a socket can subscribe for the same activity stream twice, but with a different format
-    if (connectionInfo.streams.indexOf(activityStreamId) > -1) {
+    if (connectionInfo.streams.includes(activityStreamId)) {
       // No need to bind, we're already bound
       return finish();
     }

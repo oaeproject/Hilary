@@ -57,7 +57,7 @@ RUN apk update && apk upgrade && \
       ttf-freefont@3.9
 
 # Install libreoffice
-RUN apk add --no-cache libreoffice openjdk8-jre
+RUN apk add --no-cache libreoffice openjdk8
 
 # Install nodegit
 RUN apk --update --no-cache add build-base libgit2-dev

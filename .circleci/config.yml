@@ -2,79 +2,37 @@ version: 2
 jobs:
   test:
     docker:
-      - image: "oaeproject/oae-hilary:preview"
-      - image: "cassandra:2.1.21"
-      - image: "redis:3.2.8-alpine"
-      - image: "oaeproject/oae-elasticsearch-docker"
+      - image: "alpine:3.9"
     environment:
-      TMP: /tmp
-      ETHERPAD_VERSION: 1.6.3
-      ETHERPAD_PATH: /opt/etherpad
-      ETHERCALC_PATH: /opt/ethercalc
+      TMP: /root/tmp
       PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
-    working_directory: /usr/src/Hilary
+    working_directory: ~/Hilary
     steps:
+      - setup_remote_docker
+      - run:
+          name: Install system dependencies
+          command: |
+            apk add --update --no-cache curl git openssh-client docker py-pip python-dev libffi-dev openssl-dev gcc libc-dev make
       - checkout
       - run:
           name: Checkout submodules
-          command: |
-            git submodule update --init --recursive
+          command: git submodule update --init --recursive
       - run:
-          name: Install and run etherpad
+          name: Creating folders for file storage and tmp files
           command: |
-            cd /opt \
-              && curl -sLo /opt/etherpad.tar.gz https://github.com/ether/etherpad-lite/archive/${ETHERPAD_VERSION}.tar.gz \
-              && tar -xz -C /opt -f /opt/etherpad.tar.gz \
-              && mv /opt/etherpad-lite-${ETHERPAD_VERSION}/* ${ETHERPAD_PATH} \
-              && rm -f /etherpad.tar.gz \
-              && sed -i -e "93 s,grep.*,grep -E -o 'v[0-9]\.[0-9](\.[0-9])?')," ${ETHERPAD_PATH}/bin/installDeps.sh \
-              && sed -i -e '96 s,if.*,if [ "${VERSION#v}" = "$NEEDED_VERSION" ]; then,' ${ETHERPAD_PATH}/bin/installDeps.sh \
-              && ${ETHERPAD_PATH}/bin/installDeps.sh
-            cd ${ETHERPAD_PATH} && npm install --silent ep_headings
-            cd ${ETHERPAD_PATH} \
-              && npm install --silent ep_page_view \
-              && git clone https://github.com/oaeproject/ep_comments.git node_modules/ep_comments_page \
-              && cd node_modules/ep_comments_page \
-              && npm install --silent
-            cd ${ETHERPAD_PATH}/node_modules \
-              && git clone https://github.com/oaeproject/ep_oae \
-              && cd ep_oae \
-              && npm install --silent
-            rm ${ETHERPAD_PATH}/node_modules/ep_headings/templates/editbarButtons.ejs && cp ${ETHERPAD_PATH}/node_modules/ep_oae/static/templates/editbarButtons.ejs ${ETHERPAD_PATH}/node_modules/ep_headings/templates/editbarButtons.ejs
-            rm ${ETHERPAD_PATH}/src/static/custom/pad.css && cp ${ETHERPAD_PATH}/node_modules/ep_oae/static/css/pad.css ${ETHERPAD_PATH}/src/static/custom/pad.css
-            echo "13SirapH8t3kxUh5T5aqWXhXahMzoZRA" > ${ETHERPAD_PATH}/APIKEY.txt
-      - run:
-          name: Initialize etherpad keyspace
-          command: |
-            echo "CREATE KEYSPACE IF NOT EXISTS \"etherpad\" WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};" >> ${ETHERPAD_PATH}/init.cql
-            cd ${ETHERPAD_PATH}
-            cqlsh -f init.cql localhost 9160
-      - run:
-          name: Run etherpad
-          command: |
-            cd ${ETHERPAD_PATH}
-            cp ../settings.json .
-            pm2 start node_modules/ep_etherpad-lite/node/server.js
-      - run:
-          name: Install and setup ethercalc
-          command: |
-            cd /opt && git clone https://github.com/oaeproject/ethercalc.git
-            cd ${ETHERCALC_PATH} && npm install --silent
-      - run:
-          name: Run ethercalc
-          command: |
-            pm2 start /opt/ethercalc/app.js
+            mkdir -p ../files
+            mkdir -p ../tmp
       - run:
           name: Adjusting Hilary configuration for tests to run
           command: |
             printf "\nconfig.ui.path = './3akai-ux';" >> config.js
-            printf "\nconfig.cassandra.hosts = ['localhost'];" >> config.js
+            printf "\nconfig.cassandra.hosts = ['oae-cassandra'];" >> config.js
             printf "\nconfig.cassandra.timeout = 9000;" >> config.js
-            printf "\nconfig.redis.host = 'localhost';" >> config.js
-            printf "\nconfig.search.hosts[0].host = 'localhost';" >> config.js
-            printf "\nconfig.mq.host = 'localhost';" >> config.js
-            printf "\nconfig.etherpad.hosts[0].host = 'localhost';" >> config.js
-            printf "\nconfig.ethercalc[0].host = 'localhost';" >> config.js
+            printf "\nconfig.redis.host = 'oae-redis';" >> config.js
+            printf "\nconfig.search.hosts[0].host = 'oae-elasticsearch';" >> config.js
+            printf "\nconfig.mq.host = 'oae-redis';" >> config.js
+            printf "\nconfig.etherpad.hosts[0].host = 'oae-etherpad';" >> config.js
+            printf "\nconfig.ethercalc[0].host = 'oae-ethercalc';" >> config.js
             printf "\nconfig.previews.enabled = true;" >> config.js
             printf "\nconfig.email.debug = false;" >> config.js
             printf "\nconfig.email.transport = 'sendmail';" >> config.js
@@ -82,21 +40,29 @@ jobs:
             printf "\nconfig.previews.screenShotting.binary = '/usr/bin/chromium-browser';" >> config.js
             printf "\nconfig.previews.screenShotting.sandbox = '--no-sandbox';" >> config.js
       - run:
-          name: Install dependencies
+          name: Install docker-compose
           command: |
-            cd 3akai-ux && lerna bootstrap --ci
+            pip install docker-compose~=1.23.2
+      - run:
+          name: Create the containers
+          command: docker-compose up --no-start --build oae-cassandra oae-redis oae-elasticsearch oae-hilary oae-ethercalc
+      - run:
+          name: Start the containers we need
+          command: |
+            docker-compose up -d oae-cassandra oae-redis oae-elasticsearch oae-etherpad oae-ethercalc
       - run:
           name: Install Hilary dependencies
           command: |
-            lerna bootstrap --ci
-      - run:
-          name: Run XO linting
-          command: |
-            # yarn run lint
+            addgroup -g 1000 node
+            adduser -u 1000 -G node -s /bin/sh -D node
+            chown -R node:node .
+            docker cp /root/Hilary oae-hilary:/usr/src
+            docker-compose run --rm oae-hilary 'cd 3akai-ux && npx lerna --ci bootstrap'
+            docker-compose run --rm oae-hilary 'npx lerna --ci bootstrap'
       - run:
           name: Run tests
           command: |
-            yarn run test
+            docker-compose run --rm oae-hilary "yarn run test-with-coverage"
 workflows:
   version: 2
   test-all:

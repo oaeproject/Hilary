@@ -32,18 +32,12 @@ LABEL Name=OAE-Hilary
 LABEL Author=ApereoFoundation
 LABEL Email=oae@apereo.org
 
+# Install system dependencies
 RUN apk --update --no-cache add \
       git \
       python \
       ghostscript \
-      graphicsmagick \
-      curl \
-      openssh-client \
-      python \
-      py-pip \
-      bash \
-      su-exec \
-      wget
+      graphicsmagick
 
 # Installs the 3.9 Chromium package.
 RUN apk update && apk upgrade && \
@@ -56,10 +50,13 @@ RUN apk update && apk upgrade && \
       harfbuzz@3.9 \
       ttf-freefont@3.9
 
-# Install libreoffice
-RUN apk add --no-cache libreoffice openjdk8
+# Tell Puppeteer to skip installing Chrome. We'll be using the installed package.
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
 
-# Install nodegit
+# Install libreoffice
+RUN apk add --no-cache libreoffice openjdk8-jre
+
+# install nodegit
 RUN apk --update --no-cache add build-base libgit2-dev
 RUN ln -s /usr/lib/libcurl.so.4 /usr/lib/libcurl-gnutls.so.4
 
@@ -80,39 +77,11 @@ RUN chown -R node:node ${TMP_DIR} \
       && chmod -R 755 ${TMP_DIR} \
       && export TMP=${TMP_DIR}
 
-# Set base folder
-ENV BASE_DIR /opt
-RUN mkdir -p ${BASE_DIR}
-
-# Set etherpad folder
-ENV ETHERPAD_DIR ${BASE_DIR}/etherpad
-RUN mkdir -p ${ETHERPAD_DIR}
-
-# Set ethercalc folder
-ENV ETHERCALC_DIR ${BASE_DIR}/ethercalc
-RUN mkdir -p ${ETHERCALC_DIR}
-
-# Set permissions for base dir and its contents
-RUN chown -R node:node ${BASE_DIR} \
-      && chmod -R 755 ${BASE_DIR}
-
-# Install cqlsh for etherpad
-RUN pip install cqlsh==4.0.1
-RUN pip install thrift==0.9.3
-
-# Install PM2 for etherpad and ethercalc
-RUN yarn global add pm2
-
-# Install lerna
-RUN yarn global add lerna
-
-# Copy specific configuration for running tests
-COPY .circleci/settings.json ${BASE_DIR}
-
 # Expose ports for node server
 EXPOSE 2000
 EXPOSE 2001
 
+# Change user from now on
 USER node
 
 # Run the app - you may override CMD via docker run command line instruction

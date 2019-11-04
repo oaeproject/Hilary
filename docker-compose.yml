@@ -42,7 +42,6 @@ services:
     #   - "tenant1.oae.com:172.20.0.9"
     # - "any.other.host.oae.com:172.20.0.9"
     image: hilary:latest
-    restart: always
     networks:
       - my_network
     ports:
@@ -64,7 +63,6 @@ services:
   oae-redis:
     container_name: oae-redis
     image: redis:3.2.8-alpine
-    restart: always
     ports:
       - 6379:6379
     tty: false
@@ -73,7 +71,6 @@ services:
   oae-elasticsearch:
     container_name: oae-elasticsearch
     image: oaeproject/oae-elasticsearch-docker
-    restart: always
     networks:
       - my_network
     ports:
@@ -84,7 +81,6 @@ services:
   oae-nginx:
     container_name: oae-nginx
     image: nginx:stable-alpine
-    restart: always
     networks:
       my_network:
         ipv4_address: 172.20.0.9 # this is needed because of multi-tenancy
@@ -105,7 +101,6 @@ services:
   oae-cassandra:
     container_name: oae-cassandra
     image: cassandra:2.1.21
-    restart: always
     networks:
       - my_network
     ports:
@@ -116,9 +111,7 @@ services:
       - ../data/cassandra:/var/lib/cassandra
   oae-etherpad:
     container_name: oae-etherpad
-    image: oaeproject/oae-etherpad-docker:v0.0.2
-    # image: oae-etherpad:latest
-    restart: always
+    image: oaeproject/oae-etherpad-docker:latest
     networks:
       - my_network
     ports:
@@ -126,8 +119,7 @@ services:
     tty: false
   oae-ethercalc:
     container_name: oae-ethercalc
-    image: oaeproject/oae-ethercalc-docker:v0.0.2
-    restart: always
+    image: oaeproject/oae-ethercalc-docker:latest
     networks:
       - my_network
     ports:

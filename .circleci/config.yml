@@ -63,6 +63,12 @@ jobs:
           name: Run tests
           command: |
             docker-compose run --rm oae-hilary "yarn run test-with-coverage"
+      - run:
+          name: Copy log file
+          command: |
+            docker cp oae-hilary:/usr/src/tests.log /root/Hilary
+      - store_artifacts:
+          path: /root/Hilary/tests.log
 workflows:
   version: 2
   test-all:

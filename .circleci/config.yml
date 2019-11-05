@@ -47,7 +47,7 @@ jobs:
           name: Create the containers
           command: docker-compose up --no-start --build oae-cassandra oae-redis oae-elasticsearch oae-hilary oae-ethercalc
       - run:
-          name: Start the containers we need
+          name: Start the containers
           command: |
             docker-compose up -d oae-cassandra oae-redis oae-elasticsearch oae-etherpad oae-ethercalc
       - run:
@@ -60,13 +60,22 @@ jobs:
             docker-compose run --rm oae-hilary 'cd 3akai-ux && npx lerna --ci bootstrap'
             docker-compose run --rm oae-hilary 'npx lerna --ci bootstrap'
       - run:
+          name: Run linting test
+          command: |
+            docker-compose run --rm oae-hilary "yarn run lint"
+      - run:
           name: Run tests
           command: |
-            docker-compose run --rm oae-hilary "yarn run test-with-coverage"
+            docker-compose run --name=tests oae-hilary "yarn run test-with-coverage"
       - run:
           name: Copy log file
           command: |
-            docker cp oae-hilary:/usr/src/tests.log /root/Hilary
+            docker cp oae-hilary:/usr/src/Hilary/tests.log .
+      - run:
+          name: Cleanup
+          command: |
+            docker stop tests
+            docker rm tests
       - store_artifacts:
           path: /root/Hilary/tests.log
 workflows:

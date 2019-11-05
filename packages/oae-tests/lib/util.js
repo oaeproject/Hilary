@@ -36,11 +36,9 @@ import * as LibraryAPI from 'oae-library';
 import { LoginId } from 'oae-authentication/lib/model';
 import multipart from 'oae-util/lib/middleware/multipart';
 import * as MQ from 'oae-util/lib/mq';
-import * as MQTestUtil from 'oae-util/lib/test/mq-util';
 import * as OAE from 'oae-util/lib/oae';
 import * as OaeUtil from 'oae-util/lib/util';
 import * as PreviewAPI from 'oae-preview-processor/lib/api';
-import PreviewConstants from 'oae-preview-processor/lib/constants';
 import PrincipalsAPI from 'oae-principals';
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as Redis from 'oae-util/lib/redis';
@@ -129,6 +127,8 @@ const clearAllData = function(callback) {
    */
   const truncated = _.after(columnFamiliesToClear.length, () => {
     // Flush the data from redis, so we can recreate our admins
+    // And by doing that we also clean the preview processing queues
+    // instead of waiting on them to be empty
     Redis.flush(err => {
       assert.ok(!err);
 
@@ -155,20 +155,14 @@ const clearAllData = function(callback) {
     });
   });
 
-  MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, () => {
-    MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
-      MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, () => {
-        SearchTestUtil.whenIndexingComplete(() => {
-          LibraryAPI.Index.whenUpdatesComplete(() => {
-            // Truncate each column family
-            _.each(columnFamiliesToClear, cf => {
-              const query = util.format('TRUNCATE "%s"', cf);
-              Cassandra.runQuery(query, [], err => {
-                assert.ok(!err);
-                return truncated();
-              });
-            });
-          });
+  SearchTestUtil.whenIndexingComplete(() => {
+    LibraryAPI.Index.whenUpdatesComplete(() => {
+      // Truncate each column family
+      _.each(columnFamiliesToClear, cf => {
+        const query = util.format('TRUNCATE "%s"', cf);
+        Cassandra.runQuery(query, [], err => {
+          assert.ok(!err);
+          return truncated();
         });
       });
     });

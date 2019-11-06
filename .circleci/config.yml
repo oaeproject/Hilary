@@ -3,9 +3,12 @@ jobs:
   test:
     docker:
       - image: "alpine:3.9"
+    parallelism: 4
     environment:
       TMP: /root/tmp
       PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
+      REDIS_HOST: oae-redis
+      REDIS_PORT: 6379
     working_directory: ~/Hilary
     steps:
       - setup_remote_docker
@@ -66,16 +69,14 @@ jobs:
       - run:
           name: Run tests
           command: |
-            docker-compose run --name=tests oae-hilary "yarn run test-with-coverage"
+            docker-compose run --rm oae-hilary "yarn run test-module $(circleci tests glob 'packages/oae-*/tests' | circleci tests split --split-by=timings | tr '\n' ' ')"
+            # docker-compose run --name=tests oae-hilary "yarn run test-with-coverage"
       - run:
           name: Copy log file
           command: |
             docker cp oae-hilary:/usr/src/Hilary/tests.log .
-      - run:
-          name: Cleanup
-          command: |
-            docker stop tests
-            docker rm tests
+      - store_test_results:
+          path: test-results
       - store_artifacts:
           path: /root/Hilary/tests.log
 workflows:

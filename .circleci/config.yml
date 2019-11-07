@@ -78,6 +78,8 @@ jobs:
       - store_test_results:
           path: test-results
       - store_artifacts:
+          path: /root/Hilary/test-results/mocha/results.xml
+      - store_artifacts:
           path: /root/Hilary/tests.log
 workflows:
   version: 2

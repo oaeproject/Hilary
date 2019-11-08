@@ -1,3 +1,10 @@
+aliases:
+  - &install_docker_compose
+    run:
+      name: Install docker-compose
+      command: |
+        pip install docker-compose~=1.23.2
+
 version: 2.1
 jobs:
   test:
@@ -36,10 +43,7 @@ jobs:
             printf "\nconfig.previews.office.binary = '/usr/bin/soffice';" >> config.js
             printf "\nconfig.previews.screenShotting.binary = '/usr/bin/chromium-browser';" >> config.js
             printf "\nconfig.previews.screenShotting.sandbox = '--no-sandbox';" >> config.js
-      - run:
-          name: Install docker-compose
-          command: |
-            pip install docker-compose~=1.23.2
+      - *install_docker_compose
       - run:
           name: Create the containers
           command: docker-compose up --no-start --build oae-cassandra oae-redis oae-elasticsearch oae-hilary oae-ethercalc

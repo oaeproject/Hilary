@@ -60,16 +60,17 @@ jobs:
             adduser -u 1000 -G node -s /bin/sh -D node
             chown -R node:node .
             docker cp /root/Hilary oae-hilary:/usr/src
-            docker-compose run --rm oae-hilary 'cd 3akai-ux && npx lerna --ci bootstrap'
-            docker-compose run --rm oae-hilary 'npx lerna --ci bootstrap'
+            docker-compose run --rm oae-hilary 'cd 3akai-ux && npx lerna bootstrap'
+            docker-compose run --rm oae-hilary 'npx lerna bootstrap'
       - run:
           name: Run linting test
           command: |
-            docker-compose run --rm oae-hilary "yarn run lint"
+            # docker-compose run --rm oae-hilary "yarn run lint"
+            docker-compose run --rm oae-hilary "yarn run lint-module $(circleci tests glob 'packages/**/*.js' | circleci tests split | tr '\n' ' ')"
       - run:
           name: Run tests
           command: |
-            docker-compose run --rm oae-hilary "yarn run test-module $(circleci tests glob 'packages/oae-*/tests' | circleci tests split --split-by=timings | tr '\n' ' ')"
+            docker-compose run --rm oae-hilary "yarn run test-module $(circleci tests glob 'packages/oae-*/tests' | circleci tests split | tr '\n' ' ')"
             # docker-compose run --name=tests oae-hilary "yarn run test-with-coverage"
       - run:
           name: Copy log file

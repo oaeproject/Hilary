@@ -1,13 +1,5 @@
 aliases:
-  - &install_docker_compose
-    run:
-      name: Install docker-compose
-      command: |
-        pip install docker-compose~=1.23.2
-
-version: 2.1
-jobs:
-  test:
+  - &defaults
     docker:
       - image: "alpine:3.9"
     parallelism: 4
@@ -17,74 +9,130 @@ jobs:
       REDIS_HOST: oae-redis
       REDIS_PORT: 6379
     working_directory: ~/Hilary
+  - &install_system_dependencies
+    run:
+      name: Install system dependencies
+      command: |
+        apk add --update --no-cache curl git openssh-client docker py-pip python-dev libffi-dev openssl-dev gcc libc-dev make
+  - &update_config
+    run:
+      name: Adjusting Hilary configuration for tests to run
+      command: |
+        printf "\nconfig.ui.path = './3akai-ux';" >> config.js
+        printf "\nconfig.cassandra.hosts = ['oae-cassandra'];" >> config.js
+        printf "\nconfig.cassandra.timeout = 9000;" >> config.js
+        printf "\nconfig.redis.host = 'oae-redis';" >> config.js
+        printf "\nconfig.search.hosts[0].host = 'oae-elasticsearch';" >> config.js
+        printf "\nconfig.mq.host = 'oae-redis';" >> config.js
+        printf "\nconfig.etherpad.hosts[0].host = 'oae-etherpad';" >> config.js
+        printf "\nconfig.ethercalc[0].host = 'oae-ethercalc';" >> config.js
+        printf "\nconfig.previews.enabled = true;" >> config.js
+        printf "\nconfig.email.debug = false;" >> config.js
+        printf "\nconfig.email.transport = 'sendmail';" >> config.js
+        printf "\nconfig.previews.office.binary = '/usr/bin/soffice';" >> config.js
+        printf "\nconfig.previews.screenShotting.binary = '/usr/bin/chromium-browser';" >> config.js
+        printf "\nconfig.previews.screenShotting.sandbox = '--no-sandbox';" >> config.js
+  - &copy_log_file
+    run:
+      name: Copy log file
+      command: |
+        docker cp oae-hilary:/usr/src/Hilary/tests.log .
+  - &store_results
+    store_test_results:
+      path: test-results
+  - &upload_mocha_results
+    store_artifacts:
+      path: /root/Hilary/test-results/mocha/results.xml
+  - &upload_logs
+    store_artifacts:
+      path: /root/Hilary/tests.log
+  - &run_sequential_tests
+    run:
+      name: Run tests sequentially and upload coverage
+      command: |
+        docker-compose run --rm oae-hilary "yarn run test-with-coverage"
+  - &run_parallel_tests
+    run:
+      name: Run tests in parallel
+      command: |
+        docker-compose run --rm oae-hilary "yarn run test-module $(circleci tests glob 'packages/oae-*/tests' | circleci tests split | tr '\n' ' ')"
+  - &run_linting
+    run:
+      name: Run linting test
+      command: |
+        docker-compose run --rm oae-hilary "yarn run lint-module $(circleci tests glob 'packages/**/*.js' | circleci tests split | tr '\n' ' ')"
+  - &install_dependencies
+    run:
+      name: Install Hilary dependencies
+      command: |
+        docker-compose run --rm oae-hilary 'cd 3akai-ux && npx lerna bootstrap'
+        docker-compose run --rm oae-hilary 'npx lerna bootstrap'
+  - &copy_code
+    run:
+      name: Copy code
+      command: |
+        addgroup -g 1000 node
+        adduser -u 1000 -G node -s /bin/sh -D node
+        chown -R node:node .
+        docker cp /root/Hilary oae-hilary:/usr/src
+  - &create_containers
+    run:
+      name: Create the containers
+      command: docker-compose up --no-start --build oae-cassandra oae-redis oae-elasticsearch oae-hilary oae-ethercalc
+  - &launch_containers
+    run:
+      name: Start the containers
+      command: |
+        docker-compose up -d oae-cassandra oae-redis oae-elasticsearch oae-etherpad oae-ethercalc
+  - &install_docker_compose
+    run:
+      name: Install docker-compose
+      command: |
+        pip install docker-compose~=1.23.2
+
+version: 2.1
+jobs:
+  test:
+    <<: *defaults
     steps:
       - setup_remote_docker
-      - run:
-          name: Install system dependencies
-          command: |
-            apk add --update --no-cache curl git openssh-client docker py-pip python-dev libffi-dev openssl-dev gcc libc-dev make
+      - *install_system_dependencies
       - checkout
       - run: git submodule sync
       - run: git submodule update --init
-      - run:
-          name: Adjusting Hilary configuration for tests to run
-          command: |
-            printf "\nconfig.ui.path = './3akai-ux';" >> config.js
-            printf "\nconfig.cassandra.hosts = ['oae-cassandra'];" >> config.js
-            printf "\nconfig.cassandra.timeout = 9000;" >> config.js
-            printf "\nconfig.redis.host = 'oae-redis';" >> config.js
-            printf "\nconfig.search.hosts[0].host = 'oae-elasticsearch';" >> config.js
-            printf "\nconfig.mq.host = 'oae-redis';" >> config.js
-            printf "\nconfig.etherpad.hosts[0].host = 'oae-etherpad';" >> config.js
-            printf "\nconfig.ethercalc[0].host = 'oae-ethercalc';" >> config.js
-            printf "\nconfig.previews.enabled = true;" >> config.js
-            printf "\nconfig.email.debug = false;" >> config.js
-            printf "\nconfig.email.transport = 'sendmail';" >> config.js
-            printf "\nconfig.previews.office.binary = '/usr/bin/soffice';" >> config.js
-            printf "\nconfig.previews.screenShotting.binary = '/usr/bin/chromium-browser';" >> config.js
-            printf "\nconfig.previews.screenShotting.sandbox = '--no-sandbox';" >> config.js
+      - *update_config
       - *install_docker_compose
-      - run:
-          name: Create the containers
-          command: docker-compose up --no-start --build oae-cassandra oae-redis oae-elasticsearch oae-hilary oae-ethercalc
-      - run:
-          name: Start the containers
-          command: |
-            docker-compose up -d oae-cassandra oae-redis oae-elasticsearch oae-etherpad oae-ethercalc
-      - run:
-          name: Copy code
-          command: |
-            addgroup -g 1000 node
-            adduser -u 1000 -G node -s /bin/sh -D node
-            chown -R node:node .
-            docker cp /root/Hilary oae-hilary:/usr/src
-      - run:
-          name: Install Hilary dependencies
-          command: |
-            docker-compose run --rm oae-hilary 'cd 3akai-ux && npx lerna bootstrap'
-            docker-compose run --rm oae-hilary 'npx lerna bootstrap'
-      - run:
-          name: Run linting test
-          command: |
-            docker-compose run --rm oae-hilary "yarn run lint-module $(circleci tests glob 'packages/**/*.js' | circleci tests split | tr '\n' ' ')"
-      - run:
-          name: Run tests in parallel
-          command: |
-            docker-compose run --rm oae-hilary "yarn run test-module $(circleci tests glob 'packages/oae-*/tests' | circleci tests split --split-by=timings | tr '\n' ' ')"
-      - run:
-          name: Run tests sequentially and upload coverage
-          command: |
-            # docker-compose run --rm oae-hilary "yarn run test-with-coverage"
-      - run:
-          name: Copy log file
-          command: |
-            docker cp oae-hilary:/usr/src/Hilary/tests.log .
-      - store_test_results:
-          path: test-results
-      - store_artifacts:
-          path: /root/Hilary/test-results/mocha/results.xml
-      - store_artifacts:
-          path: /root/Hilary/tests.log
+      - *create_containers
+      - *launch_containers
+      - *copy_code
+      - *install_dependencies
+      - *run_linting
+      - *run_parallel_tests # doesn't include coverage
+      - *copy_log_file
+      - *store_results
+      - *upload_mocha_results
+      - *upload_logs
+  coverage:
+    <<: *defaults
+    steps:
+      - setup_remote_docker
+      - *install_system_dependencies
+      - checkout
+      - run: git submodule sync
+      - run: git submodule update --init
+      - *update_config
+      - *install_docker_compose
+      - *create_containers
+      - *launch_containers
+      - *copy_code
+      - *install_dependencies
+      - *run_linting
+      - *run_sequential_tests # includes coverage
+      - *copy_log_file
+      - *store_results
+      - *upload_mocha_results
+      - *upload_logs
+
 workflows:
   version: 2
   lint-and-test:
@@ -98,4 +146,4 @@ workflows:
             branches:
               only: master
     jobs:
-      - test
+      - coverage

@@ -18,6 +18,7 @@ import fs from 'fs';
 import Path from 'path';
 import util from 'util';
 import PreviewConstants from 'oae-preview-processor/lib/constants';
+import * as PreviewUtil from 'oae-preview-processor/lib/util';
 
 import { logger } from 'oae-logger';
 
@@ -97,14 +98,8 @@ const init = function(config, callback) {
  * @borrows Interface.test as Office.test
  */
 const test = function(ctx, contentObj, callback) {
-  let testCode = null;
-  if (contentObj.resourceSubType === 'file' && PreviewConstants.TYPES.OFFICE.includes(ctx.revision.mime)) {
-    testCode = 10;
-  } else {
-    testCode = -1;
-  }
-
-  callback(null, testCode);
+  const docTypeIsValid = PreviewConstants.TYPES.OFFICE.includes(ctx.revision.mime);
+  callback(null, PreviewUtil.test(contentObj, docTypeIsValid));
 };
 
 /**

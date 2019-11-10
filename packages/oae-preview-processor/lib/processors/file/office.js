@@ -97,11 +97,14 @@ const init = function(config, callback) {
  * @borrows Interface.test as Office.test
  */
 const test = function(ctx, contentObj, callback) {
+  let testCode = null;
   if (contentObj.resourceSubType === 'file' && PreviewConstants.TYPES.OFFICE.includes(ctx.revision.mime)) {
-    callback(null, 10);
+    testCode = 10;
   } else {
-    callback(null, -1);
+    testCode = -1;
   }
+
+  callback(null, testCode);
 };
 
 /**

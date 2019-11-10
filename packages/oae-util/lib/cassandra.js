@@ -1000,6 +1000,19 @@ const _truncateString = function(str, ifOverSize) {
   return str;
 };
 
+const parsePreviewsFromRow = row => {
+  const hash = rowToHash(row);
+  if (hash.previews) {
+    try {
+      hash.previews = JSON.parse(hash.previews);
+    } catch {
+      hash.previews = {};
+    }
+  }
+
+  return hash;
+};
+
 export {
   init,
   close,
@@ -1018,5 +1031,6 @@ export {
   runAllPagesQuery,
   iterateAll,
   rowToHash,
-  constructUpsertCQL
+  constructUpsertCQL,
+  parsePreviewsFromRow
 };

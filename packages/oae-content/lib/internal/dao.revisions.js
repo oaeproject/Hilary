@@ -278,15 +278,7 @@ const _copyPreviewItemsIfNecessary = function(fromRevisionId, toRevisionId, call
  * @api private
  */
 const _rowToRevision = function(row) {
-  const hash = Cassandra.rowToHash(row);
-  if (hash.previews) {
-    try {
-      hash.previews = JSON.parse(hash.previews);
-    } catch {
-      hash.previews = {};
-    }
-  }
-
+  const hash = Cassandra.parsePreviewsFromRow(row);
   return new Revision(hash.contentId, hash.revisionId, hash.createdBy, hash.created, hash);
 };
 

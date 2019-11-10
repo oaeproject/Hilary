@@ -32,20 +32,17 @@ aliases:
         printf "\nconfig.previews.office.binary = '/usr/bin/soffice';" >> config.js
         printf "\nconfig.previews.screenShotting.binary = '/usr/bin/chromium-browser';" >> config.js
         printf "\nconfig.previews.screenShotting.sandbox = '--no-sandbox';" >> config.js
-  - &copy_log_file
+  - &copy_artifacts
     run:
-      name: Copy log file
+      name: Copy logs to host
       command: |
-        docker cp oae-hilary:/usr/src/Hilary/tests.log .
+        docker cp oae-hilary:/usr/src/Hilary/tests.log reports/logs
   - &store_results
     store_test_results:
-      path: test-results
-  - &upload_mocha_results
-    store_artifacts:
-      path: /root/Hilary/test-results/mocha/results.xml
+      path: reports
   - &upload_logs
     store_artifacts:
-      path: /root/Hilary/tests.log
+      path: reports/logs/tests.log
   - &run_sequential_tests
     run:
       name: Run tests sequentially and upload coverage
@@ -75,6 +72,7 @@ aliases:
         adduser -u 1000 -G node -s /bin/sh -D node
         chown -R node:node .
         docker cp /root/Hilary oae-hilary:/usr/src
+        mkdir -p reports/logs
   - &create_containers
     run:
       name: Create the containers
@@ -108,9 +106,8 @@ jobs:
       - *install_dependencies
       - *run_linting
       - *run_parallel_tests # doesn't include coverage
-      - *copy_log_file
+      - *copy_artifacts
       - *store_results
-      - *upload_mocha_results
       - *upload_logs
   coverage:
     <<: *defaults
@@ -128,9 +125,8 @@ jobs:
       - *install_dependencies
       - *run_linting
       - *run_sequential_tests # includes coverage
-      - *copy_log_file
+      - *copy_artifacts
       - *store_results
-      - *upload_mocha_results
       - *upload_logs
 
 workflows:

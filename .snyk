@@ -1,5 +1,5 @@
 # Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
-version: v1.13.3
+version: v1.13.5
 ignore: {}
 # patches apply the minimum changes required to fix a vulnerability
 patch:
@@ -62,3 +62,28 @@ patch:
         patched: '2019-04-23T13:09:34.786Z'
     - ethercalc-client > ethercalc > zappajs > socket.io > socket.io-client > engine.io-client > ws:
         patched: '2019-04-23T13:09:34.786Z'
+  'npm:hoek:20180212':
+    - youtube-api > googleapis > google-auth-library > request > hawk > sntp > hoek:
+        patched: '2019-11-11T11:31:36.414Z'
+    - youtube-api > googleapis > request > hawk > hoek:
+        patched: '2019-11-11T11:31:36.414Z'
+    - youtube-api > googleapis > google-auth-library > request > hawk > hoek:
+        patched: '2019-11-11T11:31:36.414Z'
+    - youtube-api > googleapis > request > hawk > cryptiles > boom > hoek:
+        patched: '2019-11-11T11:31:36.414Z'
+    - youtube-api > googleapis > google-auth-library > request > hawk > boom > hoek:
+        patched: '2019-11-11T11:31:36.414Z'
+    - youtube-api > googleapis > request > hawk > sntp > hoek:
+        patched: '2019-11-11T11:31:36.414Z'
+    - youtube-api > googleapis > google-auth-library > request > hawk > cryptiles > boom > hoek:
+        patched: '2019-11-11T11:31:36.414Z'
+    - youtube-api > googleapis > request > hawk > boom > hoek:
+        patched: '2019-11-11T11:31:36.414Z'
+  'npm:lodash:20180130':
+    - dox > jsdoctypeparser > lodash:
+        patched: '2019-11-11T11:31:36.414Z'
+  'npm:tunnel-agent:20170305':
+    - youtube-api > googleapis > google-auth-library > request > tunnel-agent:
+        patched: '2019-11-11T11:31:36.414Z'
+    - youtube-api > googleapis > request > tunnel-agent:
+        patched: '2019-11-11T11:31:36.414Z'

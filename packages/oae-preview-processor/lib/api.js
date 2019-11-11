@@ -325,10 +325,13 @@ const getProcessor = function(ctx, contentObj, callback) {
  */
 const submitForProcessing = function(contentId, revisionId) {
   log().trace({ contentId, revisionId }, 'Submitting for preview processing');
-  MQ.submitJSON(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, {
-    contentId,
-    revisionId
-  });
+  MQ.submit(
+    PreviewConstants.MQ.TASK_GENERATE_PREVIEWS,
+    JSON.stringify({
+      contentId,
+      revisionId
+    })
+  );
 };
 
 /**
@@ -339,7 +342,7 @@ const submitForProcessing = function(contentId, revisionId) {
  */
 const submitFolderForProcessing = function(folderId) {
   log().trace({ folderId }, 'Submitting for folder preview processing');
-  MQ.submitJSON(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, { folderId });
+  MQ.submit(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, JSON.stringify({ folderId }));
 };
 
 /**
@@ -377,7 +380,7 @@ const reprocessPreviews = function(ctx, filters, callback) {
     return callback(filterGenerator.getFirstError());
   }
 
-  MQ.submitJSON(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, { filters }, callback);
+  MQ.submit(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, JSON.stringify({ filters }), callback);
 };
 
 /**

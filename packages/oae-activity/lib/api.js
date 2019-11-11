@@ -718,7 +718,7 @@ const postActivity = function(ctx, activitySeed, callback) {
     return callback(validator.getFirstError());
   }
 
-  MQ.submitJSON(ActivityConstants.mq.TASK_ACTIVITY, activitySeed, callback);
+  MQ.submit(ActivityConstants.mq.TASK_ACTIVITY, JSON.stringify(activitySeed), callback);
 };
 
 /**

@@ -851,7 +851,7 @@ const publishCollabDoc = function(contentId, userId, callback) {
     contentId,
     userId
   };
-  MQ.submitJSON(ContentConstants.queue.ETHERPAD_PUBLISH, data, err => {
+  MQ.submit(ContentConstants.queue.ETHERPAD_PUBLISH, JSON.stringify(data), err => {
     assert.ok(!err);
   });
 

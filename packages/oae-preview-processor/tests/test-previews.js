@@ -2524,24 +2524,24 @@ describe('Preview processor', () => {
                 assert.ok(!err);
 
                 // Missing filters is invalid
-                MQ.submitJSON(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, {}, () => {
+                MQ.submit(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, JSON.stringify({}), () => {
                   MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, () => {
                     MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
                       assert.strictEqual(contentToBeReprocessed.length, 0);
 
                       // Unknown content filter is invalid
-                      MQ.submitJSON(
+                      MQ.submit(
                         PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS,
-                        { filters: { content: { foo: 'bar' } } },
+                        JSON.stringify({ filters: { content: { foo: 'bar' } } }),
                         () => {
                           MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, () => {
                             MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
                               assert.strictEqual(contentToBeReprocessed.length, 0);
 
                               // Unknown revision filter is invalid
-                              MQ.submitJSON(
+                              MQ.submit(
                                 PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS,
-                                { filters: { revision: { foo: 'bar' } } },
+                                JSON.stringify({ filters: { revision: { foo: 'bar' } } }),
                                 () => {
                                   MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, () => {
                                     MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {

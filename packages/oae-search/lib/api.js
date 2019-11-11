@@ -393,7 +393,7 @@ const postReindexAllTask = function(ctx, callback) {
     return callback({ code: 401, msg: 'Only global administrator can trigger a full reindex.' });
   }
 
-  MQ.submitJSON(SearchConstants.mq.TASK_REINDEX_ALL, null, callback);
+  MQ.submit(SearchConstants.mq.TASK_REINDEX_ALL, JSON.stringify(null), callback);
 };
 
 /**
@@ -443,7 +443,11 @@ const postIndexTask = function(resourceType, resources, index, callback) {
     return callback(validator.getFirstError());
   }
 
-  return MQ.submitJSON(SearchConstants.mq.TASK_INDEX_DOCUMENT, { resourceType, resources, index }, callback);
+  return MQ.submit(
+    SearchConstants.mq.TASK_INDEX_DOCUMENT,
+    JSON.stringify({ resourceType, resources, index }),
+    callback
+  );
 };
 
 /**
@@ -455,7 +459,7 @@ const postIndexTask = function(resourceType, resources, index, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const postDeleteTask = function(id, children, callback) {
-  return MQ.submitJSON(SearchConstants.mq.TASK_DELETE_DOCUMENT, { id, children }, callback);
+  return MQ.submit(SearchConstants.mq.TASK_DELETE_DOCUMENT, JSON.stringify({ id, children }), callback);
 };
 
 /**

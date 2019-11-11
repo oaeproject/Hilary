@@ -211,14 +211,14 @@ describe('MQ', () => {
         });
       };
 
-      MQ.submitJSON(queueName, data, err => {
+      MQ.submit(queueName, JSON.stringify(data), err => {
         assert.ok(!err);
         assert.strictEqual(counter, 0, 'It has not been subscribed so submit wont deliver the message');
 
         MQ.subscribe(queueName, taskHandler, err => {
           assert.ok(!err);
 
-          MQ.submitJSON(queueName, data, err => {
+          MQ.submit(queueName, JSON.stringify(data), err => {
             assert.ok(!err);
 
             waitUntilProcessed(queueName, () => {
@@ -254,7 +254,7 @@ describe('MQ', () => {
       MQ.subscribe(queueName, taskHandler, err => {
         assert.ok(!err);
 
-        MQ.submitJSON(queueName, data, err => {
+        MQ.submit(queueName, JSON.stringify(data), err => {
           assert.ok(!err);
 
           waitUntilProcessed(queueName, () => {
@@ -264,7 +264,7 @@ describe('MQ', () => {
               assert.ok(!err);
               assert.strictEqual(counter, 1, 'Task handler should have been called once so far');
 
-              MQ.submitJSON(queueName, data, err => {
+              MQ.submit(queueName, JSON.stringify(data), err => {
                 assert.ok(!err);
 
                 waitUntilProcessed(queueName, () => {
@@ -304,7 +304,7 @@ describe('MQ', () => {
       MQ.subscribe(queueName, taskHandler, err => {
         assert.ok(!err);
 
-        MQ.submitJSON(queueName, data, err => {
+        MQ.submit(queueName, JSON.stringify(data), err => {
           assert.ok(!err);
 
           waitUntilProcessed(queueName, () => {
@@ -388,43 +388,6 @@ describe('MQ', () => {
       });
     });
 
-    it('verify submit and submitJSON are pretty much equivalent except for the message format', callback => {
-      const queueName = util.format('testQueue-%s', ShortId.generate());
-      const data = { msg: 'You know nothing Jon Snow' };
-
-      const taskHandler = (message, done) => {
-        assert.strictEqual(data.msg, message.msg, 'Message received should match the one sent');
-        return done();
-      };
-
-      MQ.subscribe(queueName, taskHandler, err => {
-        assert.ok(!err);
-        MQ.submitJSON(queueName, data, err => {
-          assert.ok(!err);
-          MQ.submit(queueName, JSON.stringify(data), err => {
-            assert.ok(!err);
-
-            waitUntilProcessed(queueName, () => {
-              // make sure the queue is Empty, as well the processing and redelivery correspondents
-              MQ.getQueueLength(queueName, (err, count) => {
-                assert.ok(!err);
-                assert.strictEqual(count, 0, 'The queue should be empty');
-                MQ.getQueueLength(`${queueName}-processing`, (err, count) => {
-                  assert.ok(!err);
-                  assert.strictEqual(count, 0, 'The queue should be empty');
-                  MQ.getQueueLength(`${queueName}-redelivery`, (err, count) => {
-                    assert.ok(!err);
-                    assert.strictEqual(count, 0, 'The queue should be empty');
-                    callback();
-                  });
-                });
-              });
-            });
-          });
-        });
-      });
-    });
-
     it('verify that a error handler will cause the message to be redelivered', done => {
       const queueName = util.format('testQueue-%s', ShortId.generate());
       const data = { msg: 'You know nothing Jon Snow' };
@@ -439,7 +402,7 @@ describe('MQ', () => {
 
       MQ.subscribe(queueName, taskHandler, err => {
         assert.ok(!err);
-        MQ.submitJSON(queueName, data, err => {
+        MQ.submit(queueName, JSON.stringify(data), err => {
           assert.ok(!err);
           waitUntilProcessed(queueName, () => {
             assert.strictEqual(counter, 1, 'There should be one processed task so far');
@@ -468,7 +431,7 @@ const submitTasksToQueue = (queueName, tasks, done) => {
   if (tasks.length === 0) return done();
 
   const poppedTask = tasks.shift();
-  MQ.submitJSON(queueName, poppedTask, () => {
+  MQ.submit(queueName, JSON.stringify(poppedTask), () => {
     return submitTasksToQueue(queueName, tasks, done);
   });
 };

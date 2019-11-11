@@ -357,19 +357,6 @@ const submit = (queueName, message, callback) => {
 };
 
 /**
- * Submit a message to an exchange
- *
- * @function submitJSON
- * @param  {String}     queueName                   The queue name which is a redis List
- * @param  {Object}     message                     The data to send with the message. This will be received by the worker for this type of task
- * @param  {Function}   [callback]                  Invoked when the job has been submitted
- * @param  {Object}     [callback.err]              Standard error object, if any
- */
-const submitJSON = (queueName, message, callback) => {
-  submit(queueName, JSON.stringify(message), callback);
-};
-
-/**
  * Gets all the active redis clients
  * This includes the `manager`, the `publisher` and the active `subscribers`
  *
@@ -545,7 +532,6 @@ export {
   purgeAllBoundQueues,
   getBoundQueues,
   submit,
-  submitJSON,
   getQueueLength,
   getAllActiveClients as getAllConnectedClients,
   quitAllConnectedClients

@@ -4,8 +4,7 @@ Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject
 
 [![Discord](https://img.shields.io/badge/chat-on_discord-green.svg)](https://discord.gg/RShTcdq)
 
-## Build status
-
+## Project status
 <!-- current project status -->
 
 [![CircleCI](https://circleci.com/gh/oaeproject/Hilary/tree/master.svg?style=shield)](https://circleci.com/gh/oaeproject/Hilary/tree/master)
@@ -17,15 +16,15 @@ Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Foaeproject%2FHilary.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Foaeproject%2FHilary?ref=badge_shield)
 [![Known Vulnerabilities](https://snyk.io/test/github/oaeproject/Hilary/badge.svg)](https://snyk.io/test/github/oaeproject/Hilary)
 
+## Project standards
 <!-- standards used in project -->
 
-[![datree-badge](https://s3.amazonaws.com/catalog.static.datree.io/datree-badge-28px.svg)](https://datree.io/?src=badge)
-
+[![Datree](https://img.shields.io/badge/policy%20by-datree-yellow)](https://datree.io/?src=badge)
 [![lerna](https://img.shields.io/badge/maintained%20with-lerna-cc00ff.svg)](https://lerna.js.org/)
 ![code style](https://img.shields.io/badge/code_style-prettier-ff69b4.svg)
 [![XO code style](https://img.shields.io/badge/code_style-XO-5ed9c7.svg)](https://github.com/xojs/xo)
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg)](https://conventionalcommits.org)
-[![Semver](http://img.shields.io/SemVer/2.0.0.png)](http://semver.org/spec/v2.0.0.html)
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/tag/oaeproject/Hilary)
 
 ## Install
 

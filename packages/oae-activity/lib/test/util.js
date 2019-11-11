@@ -17,7 +17,7 @@ import assert from 'assert';
 import _ from 'underscore';
 import cheerio from 'cheerio';
 import ShortId from 'shortid';
-import sjsc from 'sockjs-client-ws';
+import SockJS from 'sockjs-client';
 
 import * as EmitterAPI from 'oae-emitter';
 import * as MqTestsUtil from 'oae-util/lib/test/mq-util';
@@ -351,18 +351,22 @@ const getPushClient = function(callback) {
   const messageCallbacks = {};
 
   // Set up a websocket connection to the localhost tenant
-  const socket = sjsc.create('http://localhost:2001/api/push');
+  // const socket = sjsc.create('http://localhost:2001/api/push');
+  const socket = new SockJS('http://localhost:2001/api/push');
 
+  /*
   socket.on('error', e => {
     assert.fail(e, null, 'Did not expect an error on the websocket');
   });
+  */
 
-  socket.on('connection', () => {
+  socket.addEventListener('open', function() {
     // The socket has been connected and is ready to transmit messages
     callback(client);
   });
 
-  socket.on('data', msg => {
+  socket.addEventListener('message', function(e) {
+    let msg = e.data;
     // We ignore 'open', 'heartbeat' or 'close' messages
     if (msg === 'o' || msg === 'h' || msg === 'c') {
       return;
@@ -391,9 +395,9 @@ const getPushClient = function(callback) {
     }
   });
 
-  socket.on('close', () => {
+  socket.onclose = function() {
     client.emit('close');
-  });
+  };
 
   /**
    * Returns the raw socket. This allows you to send custom messages
@@ -420,7 +424,7 @@ const getPushClient = function(callback) {
 
     // Send the message over the wire
     const msg = JSON.stringify({ id, name, payload });
-    socket.write(msg);
+    socket.send(msg);
   };
 
   /**
@@ -469,7 +473,10 @@ const getPushClient = function(callback) {
    */
   client.close = function(callback) {
     callback = callback || function() {};
-    socket.on('close', callback);
+    socket.onclose = function() {
+      callback();
+    };
+
     socket.close();
   };
 };

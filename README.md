@@ -7,6 +7,7 @@ Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject
 ## Build status
 
 <!-- current project status -->
+
 [![CircleCI](https://circleci.com/gh/oaeproject/Hilary/tree/master.svg?style=shield)](https://circleci.com/gh/oaeproject/Hilary/tree/master)
 [![Code Climate](https://codeclimate.com/github/oaeproject/Hilary/badges/gpa.svg)](https://codeclimate.com/github/oaeproject/Hilary)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/8a6104cadb6b442596c418534cf97db3)](https://www.codacy.com/app/brecke/Hilary?utm_source=github.com&utm_medium=referral&utm_content=oaeproject/Hilary&utm_campaign=Badge_Grade)
@@ -17,8 +18,10 @@ Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject
 [![Known Vulnerabilities](https://snyk.io/test/github/oaeproject/Hilary/badge.svg)](https://snyk.io/test/github/oaeproject/Hilary)
 
 <!-- standards used in project -->
+
 [![datree-badge](https://s3.amazonaws.com/catalog.static.datree.io/datree-badge-28px.svg)](https://datree.io/?src=badge)
 
+[![lerna](https://img.shields.io/badge/maintained%20with-lerna-cc00ff.svg)](https://lerna.js.org/)
 ![code style](https://img.shields.io/badge/code_style-prettier-ff69b4.svg)
 [![XO code style](https://img.shields.io/badge/code_style-XO-5ed9c7.svg)](https://github.com/xojs/xo)
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg)](https://conventionalcommits.org)

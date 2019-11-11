@@ -20,7 +20,7 @@ const _getVersion = async function(req, res) {
   try {
     const repoInformation = await VersionAPI.getVersion();
     return res.status(200).send(JSON.stringify(repoInformation));
-  } catch (error) {
+  } catch {
     const msg = 'Unable to gather repo information';
     return res.status(500).send(msg);
   }

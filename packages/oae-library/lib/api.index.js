@@ -493,7 +493,7 @@ const _query = function(indexName, libraryId, visibility, opts, callback) {
       let result = null;
       try {
         result = _adjustColumnsForSlugs(indexName, libraryId, opts.start, opts.limit, rows, nextToken);
-      } catch (error) {
+      } catch {
         // There was an issue parsing the data, result with an error
         return callback({ err: 500, msg: 'An unexpected error occurred parsing library data' });
       }

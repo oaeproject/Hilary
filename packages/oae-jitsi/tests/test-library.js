@@ -343,7 +343,6 @@ describe('Meeting libraries', () => {
     });
   });
 
-  // TODO move at the end of the file
   describe('Group libraries', () => {
     const groups = {};
 

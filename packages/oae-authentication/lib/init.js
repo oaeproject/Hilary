@@ -140,7 +140,7 @@ const setupPassportSerializers = function(cookieSecret) {
     try {
       // Parse the cookie data into a JSON object
       sessionData = JSON.parse(sessionData);
-    } catch (error) {
+    } catch {
       // If JSON parsing fails, the user cookie has malformed session data (or it was tampered). We'll
       // just continue with an empty session, which means the user is effectively anonymous
       sessionData = {};

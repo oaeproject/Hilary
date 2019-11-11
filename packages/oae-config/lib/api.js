@@ -334,8 +334,8 @@ const _cacheSchema = function(callback) {
       }
 
       // Require all of them
-      for (let c = 0; c < configFiles.length; c++) {
-        const configFile = require(module + '/config/' + configFiles[c]);
+      for (const element of configFiles) {
+        const configFile = require(module + '/config/' + element);
         cachedGlobalSchema[module] = _.extend(cachedGlobalSchema[module] || {}, configFile);
       }
 
@@ -363,8 +363,8 @@ const _cacheSchema = function(callback) {
     });
   };
 
-  for (let m = 0; m < modules.length; m++) {
-    getModuleSchema(modules[m]);
+  for (const element of modules) {
+    getModuleSchema(element);
   }
 };
 
@@ -503,7 +503,7 @@ const _deserializeConfigValue = function(element, value) {
   if (value[0] === '{') {
     try {
       value = JSON.parse(value);
-    } catch (error) {
+    } catch {
       // It's perfectly possible that a value started with a `{` that doesn't use the
       // optional keys
     }
@@ -590,8 +590,7 @@ const updateConfig = function(ctx, tenantAlias, configValues, callback) {
     .min(1);
 
   // Since we can return out of this loop, we use `for` instead of `_.each`
-  for (let i = 0; i < configFieldNames.length; i++) {
-    const configFieldName = configFieldNames[i];
+  for (const configFieldName of configFieldNames) {
     const configFieldValue = configValues[configFieldName];
 
     validator

@@ -17,7 +17,6 @@ import crypto from 'crypto';
 import fs from 'fs';
 import util from 'util';
 import path from 'path';
-import redback from 'redback';
 import juice from 'juice';
 import _ from 'underscore';
 import nodemailer from 'nodemailer';
@@ -42,7 +41,8 @@ const log = logger('oae-email');
 const Telemetry = telemetry('oae-email');
 const TenantsConfig = setUpConfig('oae-tenants');
 
-let EmailRateLimiter = null;
+// const EmailRateLimiter = null;
+let rateLimit = null;
 
 // A cache of email templates
 let templates = {};
@@ -121,9 +121,6 @@ const init = function(emailSystemConfig, callback) {
   throttleConfig.count = emailSystemConfig.throttling.count || 10;
   throttleConfig.timespan = emailSystemConfig.throttling.timespan || 2 * 60;
 
-  // Create the Redback rate limiter for emails
-  const EmailRedback = redback.use(Redis.getClient(), { namespace: 'oae-email:redback' });
-
   /*!
    * For robust unit tests, any provided timespan needs to cover at least 2 buckets so that when
    * we do a count on the rate, we don't risk rolling over to a new interval and miss the emails
@@ -137,7 +134,21 @@ const init = function(emailSystemConfig, callback) {
    * the current time bucket is 2, redback will clear buckets 3 and 4 while we count back from 0,
    * 1 and 2).
    */
-  const bucketInterval = Math.ceil(throttleConfig.timespan / 2);
+  const numDaysUntilExpire = 30;
+  const bucketInterval = Math.ceil(throttleConfig.timespan / 2) * 1000;
+
+  rateLimit = require('ioredis-ratelimit')({
+    client: Redis.getClient(),
+    key(emailTo) {
+      return `oae-email:throttle:${String(emailTo)}`;
+    },
+    limit: throttleConfig.count,
+    duration: bucketInterval,
+    difference: 0, // allow no interval between requests
+    ttl: 1000 * 24 * 60 * 60 * numDaysUntilExpire // Not sure about this
+  });
+
+  /*
   EmailRateLimiter = EmailRedback.createRateLimit('email', {
     // The rate limiter seems to need at least 5 buckets to work, so lets give it exactly 5 (there are exactly bucket_span / bucket_interval buckets)
     // eslint-disable-next-line camelcase
@@ -147,6 +158,7 @@ const init = function(emailSystemConfig, callback) {
     // eslint-disable-next-line camelcase
     subject_expiry: throttleConfig.timespan
   });
+  */
 
   // If there was an existing email transport, we close it.
   if (emailTransport) {
@@ -584,13 +596,8 @@ const _sendEmail = function(emailInfo, opts, callback) {
 
   // We lock the mail for a sufficiently long time
   const lockKey = util.format('oae-email-locking:%s', emailInfo.messageId);
-  Locking.acquire(lockKey, deduplicationInterval, (err, token) => {
+  Locking.acquire(lockKey, deduplicationInterval, (err /* lock */) => {
     if (err) {
-      log().error({ err, emailInfo }, 'Unable to lock email id');
-      return callback(err);
-    }
-
-    if (!token) {
       Telemetry.incr('lock.fail');
       log().error(
         { emailInfo },
@@ -600,54 +607,40 @@ const _sendEmail = function(emailInfo, opts, callback) {
     }
 
     // Ensure we're not sending out too many emails to a single user within the last timespan
-    EmailRateLimiter.count(emailInfo.to, throttleConfig.timespan, (err, count) => {
-      if (err) {
-        log().error({ err }, 'Failed to perform email throttle check');
-        return callback({ code: 500, msg: 'Failed to perform email throttle check' });
-      }
-
-      if (count > throttleConfig.count - 1) {
-        Telemetry.incr('throttled');
-        log().warn({ to: emailInfo.to }, 'Throttling in effect');
-        return callback({ code: 403, msg: 'Throttling in effect' });
-      }
-
-      // We will proceed to send an email, so add it to the rate-limit counts
-      EmailRateLimiter.add(emailInfo.to, err => {
-        if (err) {
-          log().warn(
-            { err, to: emailInfo.to },
-            'An unexpected error occurred trying to increment email rate-limit counts'
+    // debug
+    return rateLimit(emailInfo.to)
+      .then(() => {
+        // We will proceed to send an email, so add it to the rate-limit counts
+        // We got a lock and aren't throttled, send our mail
+        return emailTransport.sendMail(emailInfo).catch(error => {
+          log().error({ err: error, to: emailInfo.to, subject: emailInfo.subject }, 'Error sending email to recipient');
+          return callback(err);
+        });
+      })
+      .then(info => {
+        if (debug) {
+          log().info(
+            {
+              to: emailInfo.to,
+              subject: emailInfo.subject,
+              html: emailInfo.html,
+              text: emailInfo.text
+            },
+            'Sending email'
           );
+          // Preview only available when sending through an Ethereal account
+          const previewURL = nodemailer.getTestMessageUrl(info);
+          if (previewURL) log().info(`Preview URL: ${previewURL}`);
         }
 
-        // We got a lock and aren't throttled, send our mail
-        emailTransport.sendMail(emailInfo, (err, info) => {
-          if (err) {
-            log().error({ err, to: emailInfo.to, subject: emailInfo.subject }, 'Error sending email to recipient');
-            return callback(err);
-          }
-
-          if (debug) {
-            log().info(
-              {
-                to: emailInfo.to,
-                subject: emailInfo.subject,
-                html: emailInfo.html,
-                text: emailInfo.text
-              },
-              'Sending email'
-            );
-            // Preview only available when sending through an Ethereal account
-            const previewURL = nodemailer.getTestMessageUrl(info);
-            if (previewURL) log().info(`Preview URL: ${previewURL}`);
-          }
-
-          EmailAPI.emit('debugSent', info);
-          return callback(null, info);
-        });
+        EmailAPI.emit('debugSent', info);
+        return callback(null, info);
+      })
+      .catch(error => {
+        Telemetry.incr('throttled');
+        log().warn({ to: emailInfo.to, err: error }, 'Throttling in effect');
+        return callback({ code: 403, msg: 'Throttling in effect' });
       });
-    });
   });
 };
 
@@ -777,7 +770,7 @@ const _getTemplatesForTemplateIds = function(basedir, module, templateIds, callb
         try {
           const templateSharedPath = _templatesPath(basedir, module, templateId + '.shared');
           sharedLogic = require(templateSharedPath);
-        } catch (error) {}
+        } catch {}
 
         // Attach the templates to the given object of templates
         _templates[templateId] = {

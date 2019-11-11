@@ -179,29 +179,32 @@ const _collectBucket = function(type, bucketNumber, callback) {
   const bucketInfo = bucketsInfo[type];
 
   log().trace('Attempting collection of bucket number %s %s', type, bucketNumber);
+
   // Try and acquire a lock on the bucket to collect the next batch
   const lockKey = _getLockKey(type, bucketNumber);
-  Locking.acquire(lockKey, bucketInfo.collectionExpiry, (err, lockId) => {
+  let hadLock = true;
+
+  Locking.acquire(lockKey, bucketInfo.collectionExpiry, (err, lock) => {
     if (err) {
+      // We could not acquire a lock, someone else came around and managed to snag the bucket
       return callback(err);
     }
 
-    if (!lockId) {
-      // We could not acquire a lock, someone else came around and managed to snag the bucket
-      return callback();
-    }
-
-    log().trace({ lockId, type }, 'Acquired a lock on bucket number %s', bucketNumber);
+    log().trace({ lockId: lock.value, type }, 'Acquired a lock on bucket number %s', bucketNumber);
 
     // We acquired the lock, perform a collection iteration
     bucketInfo.collector(bucketNumber, (collectionErr, finished) => {
       // We want to ensure we release the bucket, whether we received an error or not
-      Locking.release(lockKey, lockId, (releaseErr, hadLock) => {
+      Locking.release(lock, (releaseErr /* ,hadLock */) => {
         if (collectionErr) {
           return callback(collectionErr);
         }
 
+        // Determines whether or not we owned the lock at the time that we released it
         if (releaseErr) {
+          // if releasing the lock failed, then we probably didn't have it in the first place
+          hadLock = false;
+
           log().warn(
             { err: releaseErr, type },
             'An unexpected error occurred while releasing the lock from bucket number %s',
@@ -213,7 +216,7 @@ const _collectBucket = function(type, bucketNumber, callback) {
           return callback(releaseErr);
         }
 
-        log().trace({ lockId, type }, 'Successfully released lock for bucket number %s', bucketNumber);
+        log().trace({ lockId: lock, type }, 'Successfully released lock for bucket number %s', bucketNumber);
 
         if (!hadLock) {
           // This means that the lock expired before we finished collecting, which likely means the lock expiry

@@ -17,7 +17,6 @@
 import assert from 'assert';
 import fs from 'fs';
 import path from 'path';
-import url from 'url';
 import _ from 'underscore';
 
 import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
@@ -801,52 +800,59 @@ describe('File previews', () => {
           assert.ok(!err);
 
           // Bert should receive an activity that Nicolaas shared a piece of content with him
-          ActivityTestsUtil.collectAndGetActivityStream(bert.restContext, bert.user.id, null, (err, activityStream) => {
-            assert.ok(!err);
+          setTimeout(
+            ActivityTestsUtil.collectAndGetActivityStream,
+            5000,
+            bert.restContext,
+            bert.user.id,
+            null,
+            (err, activityStream) => {
+              assert.ok(!err);
 
-            const activity = _.find(activityStream.items, activity => {
-              return activity.object['oae:id'] === contentObj.id;
-            });
-            assert.ok(activity);
+              const activity = _.find(activityStream.items, activity => {
+                return activity.object['oae:id'] === contentObj.id;
+              });
+              assert.ok(activity);
 
-            // Verify the activity
-            _verifySignedDownloadUrl(bert.restContext, activity.object.image.url, () => {
-              // Verify the thumbnailUrl is on the content profile, but not the back-end uri
-              RestAPI.Content.getContent(bert.restContext, contentObj.id, (err, contentObjOnCamTenant) => {
-                assert.ok(!err);
-                assert.ok(!contentObjOnCamTenant.previews.thumbnailUri);
-                assert.ok(contentObjOnCamTenant.previews.thumbnailUrl);
+              // Verify the activity
+              _verifySignedDownloadUrl(bert.restContext, activity.object.image.url, () => {
+                // Verify the thumbnailUrl is on the content profile, but not the back-end uri
+                RestAPI.Content.getContent(bert.restContext, contentObj.id, (err, contentObjOnCamTenant) => {
+                  assert.ok(!err);
+                  assert.ok(!contentObjOnCamTenant.previews.thumbnailUri);
+                  assert.ok(contentObjOnCamTenant.previews.thumbnailUrl);
 
-                _verifySignedDownloadUrl(bert.restContext, contentObjOnCamTenant.previews.thumbnailUrl, () => {
-                  // Verify the thumbnailUrl in search results
-                  const randomText = TestsUtil.generateRandomText(5);
-                  RestAPI.Content.updateContent(
-                    contexts.nicolaas.restContext,
-                    contentObj.id,
-                    { displayName: randomText },
-                    (err, updatedContentObj) => {
-                      assert.ok(!err);
-                      SearchTestsUtil.searchAll(
-                        bert.restContext,
-                        'general',
-                        null,
-                        { resourceTypes: 'content', q: randomText },
-                        (err, results) => {
-                          assert.ok(!err);
-                          const doc = _.find(results.results, doc => {
-                            return doc.id === contentObj.id;
-                          });
-                          assert.ok(doc);
+                  _verifySignedDownloadUrl(bert.restContext, contentObjOnCamTenant.previews.thumbnailUrl, () => {
+                    // Verify the thumbnailUrl in search results
+                    const randomText = TestsUtil.generateRandomText(5);
+                    RestAPI.Content.updateContent(
+                      contexts.nicolaas.restContext,
+                      contentObj.id,
+                      { displayName: randomText },
+                      (err, updatedContentObj) => {
+                        assert.ok(!err);
+                        SearchTestsUtil.searchAll(
+                          bert.restContext,
+                          'general',
+                          null,
+                          { resourceTypes: 'content', q: randomText },
+                          (err, results) => {
+                            assert.ok(!err);
+                            const doc = _.find(results.results, doc => {
+                              return doc.id === contentObj.id;
+                            });
+                            assert.ok(doc);
 
-                          return _verifySignedDownloadUrl(bert.restContext, doc.thumbnailUrl, callback);
-                        }
-                      );
-                    }
-                  );
+                            return _verifySignedDownloadUrl(bert.restContext, doc.thumbnailUrl, callback);
+                          }
+                        );
+                      }
+                    );
+                  });
                 });
               });
-            });
-          });
+            }
+          );
         });
       });
     });

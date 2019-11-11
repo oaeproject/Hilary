@@ -52,12 +52,6 @@ const navigateToPageIfUrl = async function(page, url) {
   }
 };
 
-const setChromiumPathIfAny = function(launchOptions, executablePath) {
-  if (executablePath) {
-    launchOptions.executablePath = executablePath;
-  }
-};
-
 /**
  * Takes a snapshot of the provided url by loading it in a headless browser. All javascript and CSS stylesheets will be applied.
  * The URL can be anything starting with http, including file://<..> URLs. This is to allow generating images for local files.
@@ -72,10 +66,8 @@ const setChromiumPathIfAny = function(launchOptions, executablePath) {
 const getPuppeteerImage = function(url, imgPath, options, callback) {
   log().trace({ url, imgPath }, 'Generating image for an url.');
 
-  setChromiumPathIfAny(launchOptions, options.executablePath);
-
   (async () => {
-    const browser = await puppeteer.launch(launchOptions);
+    const browser = await puppeteer.launch({ ...launchOptions, ...options });
     const page = await browser.newPage();
 
     let isAttachment = false;

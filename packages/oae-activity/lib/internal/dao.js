@@ -234,7 +234,8 @@ const saveQueuedActivities = function(activityBuckets, callback) {
     // the order in which values will be sorted, from lowest to highest.
 
     // The bucket cache-key as the first argument
-    const zaddArgs = [_createBucketCacheKey(bucketNumber)];
+    const key = _createBucketCacheKey(bucketNumber);
+    const zaddArgs = [];
     _.each(activityBucket, routedActivity => {
       // Append the ordered pair of <rank>, <value> for this routed activity
       zaddArgs.push(routedActivity.activity.published);
@@ -242,7 +243,7 @@ const saveQueuedActivities = function(activityBuckets, callback) {
     });
 
     // Append this bucket zadd command to the batch
-    multi.zadd(zaddArgs);
+    multi.zadd(key, zaddArgs);
   });
 
   // Finally execute the zadd commands to append the values to bucket's sorted lists
@@ -355,9 +356,8 @@ const getAggregateStatus = function(aggregateKeys, callback) {
     // The result is each aggregate status separated by a new line, ordered the same as the keys were in the args. Therefore
     // we iterate over those one-by-one and match the aggregate status result with the aggregate key by index.
     const aggregateStatus = {};
-    for (let i = 0; i < results.length; i++) {
+    for (let [i, result] of results.entries()) {
       // Match the aggregate status result with the aggregate key by index.
-      let result = results[i];
       const aggregateKey = aggregateKeys[i];
 
       if (result) {
@@ -476,14 +476,14 @@ const resetAggregationForActivityStreams = function(activityStreamIds, callback)
     let allActiveAggregateKeys = [];
     _.each(activeAggregateKeysForActivityStreams, (activeAggregateKeys, index) => {
       const activityStream = activityStreamIds[index];
-      if (!_.isEmpty(activeAggregateKeys)) {
+      if (!_.isEmpty(activeAggregateKeys[1])) {
         // As we will be removing these aggregate keys, they will no longer be active for this stream so we can remove them from the "current active aggregate keys" set
         const activeAggregatesForActivityStreamKey = _createActiveAggregatesForActivityStreamKey(activityStream);
-        multi.zrem(activeAggregatesForActivityStreamKey, activeAggregateKeys);
+        multi.zrem(activeAggregatesForActivityStreamKey, activeAggregateKeys[1]);
 
         // Keep track of all the active aggregate keys across activitystreams so we can generate the status and entity cache keys
         // This allows us to delete them in one big `del` command
-        allActiveAggregateKeys = allActiveAggregateKeys.concat(activeAggregateKeys);
+        allActiveAggregateKeys = allActiveAggregateKeys.concat(activeAggregateKeys[1]);
       }
     });
 
@@ -637,12 +637,19 @@ const getAggregatedEntities = function(aggregateKeys, callback) {
 
     log().trace({ results }, 'Multi fetch identities result.');
 
+    // According to https://github.com/luin/ioredis/wiki/Migrating-from-node_redis
+    // the hgetall operation now returns {} instead of null, so let's convert that
+    results = results.map(eachResult => {
+      if (_.isEmpty(eachResult[1])) eachResult[1] = null;
+      return eachResult;
+    });
+
     // Collect all the actual identities that are stored in this result. We will use those to fetch the
     // actual entity contents
     const entityIdentities = {};
     _.each(results, result => {
-      if (result) {
-        _.each(result, entityIdentity => {
+      if (result && !_.isEmpty(result[1])) {
+        _.each(result[1], entityIdentity => {
           if (entityIdentity) {
             entityIdentities[entityIdentity] = true;
           }
@@ -682,9 +689,9 @@ const getAggregatedEntities = function(aggregateKeys, callback) {
             targets: {}
           };
 
-          log().trace({ aggregate: result }, 'Iterating aggregated entity identities to map to full entities');
+          log().trace({ aggregate: result[1] }, 'Iterating aggregated entity identities to map to full entities');
 
-          _.each(result, (identity, entityKey) => {
+          _.each(result[1], (identity, entityKey) => {
             // Grab the entity from the identity map that was fetched
             aggregateEntities[aggregateKey][entityType][entityKey] = entitiesByIdentity[identity];
           });
@@ -728,7 +735,7 @@ const _fetchEntitiesByIdentities = function(entityIdentities, callback) {
       if (entityStr) {
         try {
           entitiesByIdentity[entityIdentities[i]] = JSON.parse(entityStr);
-        } catch (error) {
+        } catch {
           log().warn({ entityStr }, 'Failed to parse aggregated activity entity from redis. Skipping.');
         }
       }
@@ -779,47 +786,17 @@ const saveAggregatedEntities = function(aggregates, callback) {
 
     // To set all the entity hash values, we use the Redis Hash Multi-set ("hmset") command. The args for each command starts with
     // the cache key, followed by key-value pairs for the hash key and the hash value.
-    if (!_.isEmpty(aggregate.actors)) {
-      // First push the cache key
-      hmsetActorArgs.push(aggregateActorsKey);
-      _.each(aggregate.actors, (actor, actorKey) => {
-        const identity = _createEntityIdentity(actor, actorKey);
-
-        // Then push the entity reference (its identity)
-        hmsetActorArgs.push(actorKey, identity);
-
-        // Record the entity by its identity, as we will need to store it separately
-        entitiesByIdentity[identity] = actor;
+    const doStuff = (array, hmsetArgs, entitiesByIdentity) => {
+      _.each(array, (eachElement, eachKey) => {
+        const identity = _createEntityIdentity(eachElement, eachKey);
+        hmsetArgs.push(eachKey, identity);
+        entitiesByIdentity[identity] = eachElement;
       });
-    }
+    };
 
-    if (!_.isEmpty(aggregate.objects)) {
-      // First push the cache key
-      hmsetObjectArgs.push(aggregateObjectsKey);
-      _.each(aggregate.objects, (object, objectKey) => {
-        const identity = _createEntityIdentity(object, objectKey);
-
-        // Then push the entity reference (its identity)
-        hmsetObjectArgs.push(objectKey, identity);
-
-        // Record the entity by its identity, as we will need to store it separately
-        entitiesByIdentity[identity] = object;
-      });
-    }
-
-    if (!_.isEmpty(aggregate.targets)) {
-      // First push the cache key
-      hmsetTargetArgs.push(aggregateTargetsKey);
-      _.each(aggregate.targets, (target, targetKey) => {
-        const identity = _createEntityIdentity(target, targetKey);
-
-        // Then push the entity reference (its identity)
-        hmsetTargetArgs.push(targetKey, identity);
-
-        // Record the entity by its identity, as we will need to store it separately
-        entitiesByIdentity[identity] = target;
-      });
-    }
+    doStuff(aggregate.actors, hmsetActorArgs, entitiesByIdentity);
+    doStuff(aggregate.objects, hmsetObjectArgs, entitiesByIdentity);
+    doStuff(aggregate.targets, hmsetTargetArgs, entitiesByIdentity);
 
     log().trace(
       {
@@ -832,15 +809,15 @@ const saveAggregatedEntities = function(aggregates, callback) {
 
     // Append each set operation to the multi command
     if (hmsetActorArgs.length > 0) {
-      multi.hmset(hmsetActorArgs);
+      multi.hmset(aggregateActorsKey, hmsetActorArgs);
     }
 
     if (hmsetObjectArgs.length > 0) {
-      multi.hmset(hmsetObjectArgs);
+      multi.hmset(aggregateObjectsKey, hmsetObjectArgs);
     }
 
     if (hmsetTargetArgs.length > 0) {
-      multi.hmset(hmsetTargetArgs);
+      multi.hmset(aggregateTargetsKey, hmsetTargetArgs);
     }
 
     // Since we've updated this, we reset the expiry so it will be removed after the idle time
@@ -1036,7 +1013,7 @@ const incrementNotificationsUnreadCounts = function(userIdsIncrBy, callback) {
      */
     const newValues = {};
     _.each(results, (newValue, i) => {
-      newValues[userIds[i]] = newValue;
+      newValues[userIds[i]] = newValue[1];
     });
 
     return callback(null, newValues);

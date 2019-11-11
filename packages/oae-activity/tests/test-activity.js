@@ -481,8 +481,7 @@ describe('Activity', () => {
                         err => {
                           assert.ok(!err);
 
-                          // Verify both the first activity and the 2nd are collected into the stream, as the first one should have been queued until
-                          // we were finally enabled.
+                          // Verify that only the 2nd is collected into the stream, as the first just wasn't queued because the worker was disabled. And this is much simpler this way. The worker is supposed to be enabled all the time anyway.
                           ActivityTestUtil.collectAndGetActivityStream(
                             jack.restContext,
                             null,
@@ -492,10 +491,6 @@ describe('Activity', () => {
                               assert.ok(activityStream);
                               assert.ok(activityStream.items);
                               assert.strictEqual(activityStream.items.length, 1);
-                              assert.strictEqual(
-                                activityStream.items[0].object['oae:collection'].length,
-                                2
-                              );
 
                               // Re-enable the worker (again) and verify activities are still being routed
                               ActivityTestUtil.refreshConfiguration(null, err => {
@@ -514,7 +509,7 @@ describe('Activity', () => {
                                   err => {
                                     assert.ok(!err);
 
-                                    // Verify it was routed: now we should have 3 activities aggregated
+                                    // Verify it was routed: now we should have 2 activities aggregated
                                     ActivityTestUtil.collectAndGetActivityStream(
                                       jack.restContext,
                                       null,
@@ -526,7 +521,7 @@ describe('Activity', () => {
                                         assert.strictEqual(activityStream.items.length, 1);
                                         assert.strictEqual(
                                           activityStream.items[0].object['oae:collection'].length,
-                                          3
+                                          2
                                         );
                                         callback();
                                       }
@@ -3697,21 +3692,21 @@ describe('Activity', () => {
                 [simong.user.id + '#activity'],
                 (err, activeAggregateKeysForActivityStream) => {
                   assert.ok(!err);
-                  assert.strictEqual(activeAggregateKeysForActivityStream.length, 1);
-                  assert.ok(!_.isEmpty(activeAggregateKeysForActivityStream[0]));
+                  assert.strictEqual(activeAggregateKeysForActivityStream[0].length, 2);
+                  assert.ok(!_.isEmpty(activeAggregateKeysForActivityStream[0][1]));
 
                   // Verify that the notification stream has a set of keys as well
                   ActivityDAO.getActiveAggregateKeysForActivityStreams(
                     [simong.user.id + '#notification'],
                     (err, activeAggregateKeysForNotificationStream) => {
                       assert.ok(!err);
-                      assert.strictEqual(activeAggregateKeysForNotificationStream.length, 1);
-                      assert.ok(!_.isEmpty(activeAggregateKeysForNotificationStream[0]));
+                      assert.strictEqual(activeAggregateKeysForNotificationStream[0].length, 2);
+                      assert.ok(!_.isEmpty(activeAggregateKeysForNotificationStream[0][1]));
 
                       // Assert that the aggregate keys for a notification stream are different than those of an activity stream
-                      const allActivityKeys = _.flatten(activeAggregateKeysForActivityStream);
+                      const allActivityKeys = _.flatten(activeAggregateKeysForActivityStream[0][1]);
                       const allNotificationKeys = _.flatten(
-                        activeAggregateKeysForNotificationStream
+                        activeAggregateKeysForNotificationStream[0][1]
                       );
                       assert.ok(_.isEmpty(_.intersection(allActivityKeys, allNotificationKeys)));
 
@@ -3727,7 +3722,7 @@ describe('Activity', () => {
                             (err, activeAggregateKeysForActivityStream) => {
                               assert.ok(!err);
                               assert.strictEqual(activeAggregateKeysForActivityStream.length, 1);
-                              assert.ok(_.isEmpty(activeAggregateKeysForActivityStream[0]));
+                              assert.ok(_.isEmpty(activeAggregateKeysForActivityStream[0][1]));
 
                               // Assert that we did not impact the "notification" activity stream
                               ActivityDAO.getActiveAggregateKeysForActivityStreams(
@@ -3735,11 +3730,11 @@ describe('Activity', () => {
                                 (err, activeAggregateKeysForNotificationStream) => {
                                   assert.ok(!err);
                                   assert.strictEqual(
-                                    activeAggregateKeysForNotificationStream.length,
-                                    1
+                                    activeAggregateKeysForNotificationStream[0].length,
+                                    2
                                   );
                                   assert.ok(
-                                    !_.isEmpty(activeAggregateKeysForNotificationStream[0])
+                                    !_.isEmpty(activeAggregateKeysForNotificationStream[0][1])
                                   );
                                   return callback();
                                 }

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import redis from 'redis';
+import Redis from 'ioredis';
 import { logger } from 'oae-logger';
 
 const log = logger('oae-redis');
@@ -30,32 +30,17 @@ const retryTimeout = 5;
  */
 const init = function(redisConfig, callback) {
   createClient(redisConfig, (err, _client) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     client = _client;
     return callback();
   });
 };
 
-const _selectIndex = function(client, _config, callback) {
-  // Select the correct DB index.
-  const dbIndex = _config.dbIndex || 0;
-  client.select(dbIndex, err => {
-    if (err) {
-      log().error({ err }, "Couldn't select the redis DB index '%s'", dbIndex);
-      return callback(err);
-    }
-
-    return callback(null, client);
-  });
-};
-
 /**
  * Creates a redis connection from a defined set of configuration.
  *
- * @param  {Object}   config      A redis configuration object
+ * @param  {Object}   _config      A redis configuration object
  * @param  {Function} callback      Standard callback function
  * @return {RedisClient}            A redis client that is configured with the given configuration
  */
@@ -63,47 +48,37 @@ const createClient = function(_config, callback) {
   const connectionOptions = {
     port: _config.port,
     host: _config.host,
-    // eslint-disable-next-line camelcase
-    retry_strategy: () => {
+    db: _config.dbIndex || 0,
+    password: _config.pass,
+    // By default, ioredis will try to reconnect when the connection to Redis is lost except when the connection is closed
+    // Check https://github.com/luin/ioredis#auto-reconnect
+    retryStrategy: () => {
       log().error('Error connecting to redis, retrying in ' + retryTimeout + 's...');
       isDown = true;
       return retryTimeout * 1000;
+    },
+    reconnectOnError: () => {
+      // Besides auto-reconnect when the connection is closed, ioredis supports reconnecting on the specified errors by the reconnectOnError option.
+      return true;
     }
   };
-  const client = redis.createClient(connectionOptions);
+
+  const redisClient = Redis.createClient(connectionOptions);
 
   // Register an error handler.
-  client.on('error', () => {
+  redisClient.on('error', () => {
+    isDown = true;
     log().error('Error connecting to redis...');
   });
 
-  client.on('ready', () => {
+  redisClient.on('ready', () => {
     if (isDown) {
       log().error('Reconnected to redis \\o/');
     }
 
     isDown = false;
   });
-
-  // Authenticate (if required, redis allows for async auth)
-  _authenticateRedis(client, _config, callback);
-};
-
-const _authenticateRedis = (client, _config, callback) => {
-  const isAuthenticationEnabled = _config.pass && _config.pass !== '';
-
-  if (isAuthenticationEnabled) {
-    client.auth(_config.pass, err => {
-      if (err) {
-        log().error({ err }, "Couldn't authenticate with redis.");
-        return callback(err);
-      }
-
-      _selectIndex(client, _config, callback);
-    });
-  }
-
-  _selectIndex(client, _config, callback);
+  return callback(null, redisClient);
 };
 
 /**
@@ -121,18 +96,26 @@ const getClient = function() {
  */
 const flush = function(callback) {
   const done = err => {
-    if (err) {
-      return callback({ code: 500, msg: err });
-    }
+    if (err) return callback({ code: 500, msg: err });
 
-    callback();
+    return callback();
   };
 
   if (client) {
-    client.flushdb([], done);
+    client.flushdb(done);
   } else {
     done('Unable to flush redis. Try initializing it first.');
   }
 };
 
-export { createClient, getClient, flush, init };
+/**
+ * Reconnect a previously closed redis connection
+ *
+ * @param {Object} connection A redis client created by ioredis (which should be closed)
+ * @param {Function} done Standard callback function
+ */
+const reconnect = (connection, done) => {
+  connection.connect(done);
+};
+
+export { createClient, getClient, flush, init, reconnect };

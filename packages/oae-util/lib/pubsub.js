@@ -31,27 +31,25 @@ let redisPublisher = null;
 
 /**
  * Initializes the connection to redis.
+ *
+ * @function init
+ * @param  {Object} config      The configuration read from `config.js`
+ * @param  {Function} callback  Standard callback function
  */
 const init = function(config, callback) {
   // Only init if the connections haven't been opened.
   if (redisManager === null) {
     // Create 3 clients, one for managing redis and 2 for the actual pub/sub communication.
     Redis.createClient(config, (err, client) => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       redisManager = client;
       Redis.createClient(config, (err, client) => {
-        if (err) {
-          return callback(err);
-        }
+        if (err) return callback(err);
 
         redisSubscriber = client;
         Redis.createClient(config, (err, client) => {
-          if (err) {
-            return callback(err);
-          }
+          if (err) return callback(err);
 
           redisPublisher = client;
 
@@ -59,8 +57,18 @@ const init = function(config, callback) {
           redisSubscriber.on('pmessage', (pattern, channel, message) => {
             emitter.emit(channel, message);
           });
+
+          /**
+           * As it stands, this pubsub mechanism is used for real-time queueing for the following modules:
+           * oae-tests
+           * oae-search*
+           * oae-tenants
+           * oae-tenant-networks
+           * oae-config
+           */
           redisSubscriber.psubscribe('*');
-          return callback();
+
+          callback();
         });
       });
     });
@@ -75,6 +83,7 @@ const init = function(config, callback) {
  * @param  {String}    message          The message you wish to send on a channel. ex: 'start 2000'
  * @param  {Function}  callback         Standard callback function
  * @param  {Object}    callback.err     An error that occurred, if any
+ * @returns {null}                      Returns nothing, unless validator triggers a callback(err)
  */
 const publish = function(channel, message, callback) {
   callback = callback || function() {};

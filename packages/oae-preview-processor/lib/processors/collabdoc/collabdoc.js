@@ -52,9 +52,10 @@ const init = function(_config, callback) {
   screenShottingOptions.timeout = OaeUtil.getNumberParam(_config.screenShotting.timeout, screenShottingOptions.timeout);
 
   const chromiumExecutable = _config.screenShotting.binary;
-  if (chromiumExecutable) {
-    screenShottingOptions.executablePath = chromiumExecutable;
-  }
+  if (chromiumExecutable) screenShottingOptions.executablePath = chromiumExecutable;
+
+  const sandboxArgs = _config.screenShotting.sandbox;
+  if (sandboxArgs) screenShottingOptions.args = [sandboxArgs];
 
   return callback();
 };

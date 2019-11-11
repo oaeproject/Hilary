@@ -32,7 +32,6 @@ const hilaryDirectory = path.resolve(__dirname, '..', '..', '..');
  * @param  {String}     callback.version.3akai-ux   The version information for the UI
  */
 const getVersionCB = function(callback) {
-  // eslint-disable-next-line promise/prefer-await-to-then
   getVersion().then(version => {
     return callback(null, version);
   });
@@ -56,8 +55,7 @@ const getVersion = async function(repoPath = hilaryDirectory, repoInformation = 
   const submodulePointers = {};
   const submodules = await repo.getSubmoduleNames();
   if (!_.isEmpty(submodules)) {
-    for (let index = 0; index < submodules.length; index++) {
-      const eachSubmodule = submodules[index];
+    for (const eachSubmodule of submodules) {
       // eslint-disable-next-line no-await-in-loop
       const eachSubmoduleRepo = await git.Submodule.lookup(repo, eachSubmodule);
       submodulePointers[eachSubmodule] = eachSubmoduleRepo.headId().toString();

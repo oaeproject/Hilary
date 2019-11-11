@@ -17,7 +17,7 @@ import mkdirp from 'mkdirp';
 
 import * as Cleaner from 'oae-util/lib/cleaner';
 import { logger } from 'oae-logger';
-import * as TaskQueue from 'oae-util/lib/taskqueue';
+import * as MQ from 'oae-util/lib/mq';
 
 import * as Etherpad from './internal/etherpad';
 import * as Ethercalc from './internal/ethercalc';
@@ -74,37 +74,27 @@ export function init(config, callback) {
           return callback(err);
         }
 
-        // Handle "publish" messages that are sent from Etherpad via RabbitMQ. These messages
+        // Handle "publish" messages that are sent from Etherpad via Redis. These messages
         // indicate that a user made edits and has closed the document
-        TaskQueue.bind(ContentConstants.queue.ETHERPAD_PUBLISH, ContentAPI.handlePublish, null, err => {
+        MQ.subscribe(ContentConstants.queue.ETHERPAD_PUBLISH, ContentAPI.handlePublish, err => {
           if (err) {
             return callback(err);
           }
 
           // Same for Ethercalc - no ack because ack breaks Ethercalc
-          TaskQueue.bind(
-            ContentConstants.queue.ETHERCALC_EDIT,
-            Ethercalc.setEditedBy,
-            { subscribe: { ack: false } },
-            function(err) {
+          MQ.subscribe(ContentConstants.queue.ETHERCALC_EDIT, Ethercalc.setEditedBy, function(err) {
+            if (err) {
+              return callback(err);
+            }
+
+            MQ.subscribe(ContentConstants.queue.ETHERCALC_PUBLISH, ContentAPI.ethercalcPublish, err => {
               if (err) {
                 return callback(err);
               }
 
-              TaskQueue.bind(
-                ContentConstants.queue.ETHERCALC_PUBLISH,
-                ContentAPI.ethercalcPublish,
-                { subscribe: { ack: false } },
-                function(err) {
-                  if (err) {
-                    return callback(err);
-                  }
-
-                  return callback();
-                }
-              );
-            }
-          );
+              return callback();
+            });
+          });
         });
       });
     });

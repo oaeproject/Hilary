@@ -23,12 +23,12 @@ import * as OAE from 'oae-util/lib/oae';
 import * as OaeUtil from 'oae-util/lib/util';
 import * as PrincipalsUtil from 'oae-principals/lib/util';
 import * as Redis from 'oae-util/lib/redis';
-import * as TaskQueue from 'oae-util/lib/taskqueue';
 import { Validator } from 'oae-authz/lib/validator';
 
 import { setUpConfig } from 'oae-config';
 import { ActivityConstants } from 'oae-activity/lib/constants';
 import { ActivityStream } from 'oae-activity/lib/model';
+import * as MQ from 'oae-util/lib/mq';
 import ActivityEmitter from './internal/emitter';
 import * as ActivityEmail from './internal/email';
 import * as ActivityNotifications from './internal/notifications';
@@ -111,17 +111,12 @@ const refreshConfiguration = function(config, callback) {
   if (config.processActivityJobs && !boundWorker) {
     boundWorker = true;
     // Bind directly to the `routeActivity` router method
-    return TaskQueue.bind(
-      ActivityConstants.mq.TASK_ACTIVITY,
-      ActivityRouter.routeActivity,
-      { subscribe: { prefetchCount: config.maxConcurrentRouters } },
-      callback
-    );
+    return MQ.subscribe(ActivityConstants.mq.TASK_ACTIVITY, ActivityRouter.routeActivity, callback);
   }
 
   if (!config.processActivityJobs && boundWorker) {
     boundWorker = false;
-    return TaskQueue.unbind(ActivityConstants.mq.TASK_ACTIVITY, callback);
+    return MQ.unsubscribe(ActivityConstants.mq.TASK_ACTIVITY, callback);
   }
 
   return callback();
@@ -723,7 +718,7 @@ const postActivity = function(ctx, activitySeed, callback) {
     return callback(validator.getFirstError());
   }
 
-  TaskQueue.submit(ActivityConstants.mq.TASK_ACTIVITY, activitySeed, callback);
+  MQ.submit(ActivityConstants.mq.TASK_ACTIVITY, JSON.stringify(activitySeed), callback);
 };
 
 /**

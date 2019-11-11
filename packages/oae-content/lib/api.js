@@ -260,7 +260,7 @@ const createLink = function(ctx, displayName, description, visibility, link, add
   }
 
   // Make sure the URL starts with a protocol
-  if (link.indexOf('://') === -1) {
+  if (!link.includes('://')) {
     link = 'http://' + link;
   }
 
@@ -865,7 +865,7 @@ const _addContentItemToFolders = function(ctx, content, folders, callback) {
  *     -  An `updatedContent` event is fired so activities and PP images can be generated
  *
  * Note that this function does *NOT* perform any permission checks. It's assumed that
- * this function deals with messages coming from RabbitMQ. Producers of those messages
+ * this function deals with messages coming from Redis. Producers of those messages
  * are expected to perform the necessary permissions checks. In the typical case
  * where Etherpad is submitting edit messages, the authorization happens by virtue of the app
  * server constructing a session in Etherpad.
@@ -988,7 +988,7 @@ const handlePublish = function(data, callback) {
  *     -  An `updatedContent` event is fired so activities and PP images can be generated
  *
  * Note that this function does *NOT* perform any permission checks. It's assumed that this
- * function deals with messages coming from RabbitMQ. Producers of those messages are expected
+ * function deals with messages coming from Redis. Producers of those messages are expected
  * to perform the necessary permissions checks. In the typical case where Ethercalc is submitting
  * edit messages, the authorization happens by virtue of the app server constructing a session
  * in Ethercalc.
@@ -2035,8 +2035,7 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
       msg: 'You should at least specify a new displayName, description, visibility or link'
     })
     .min(1);
-  for (let i = 0; i < fieldNames.length; i++) {
-    const fieldName = fieldNames[i];
+  for (const fieldName of fieldNames) {
     validator
       .check(fieldName, {
         code: 400,
@@ -2829,7 +2828,7 @@ const _storePreview = function(ctx, previewReference, options, callback) {
 const _getPictureDownloadUrlFromUri = function(ctx, uri, parentId) {
   try {
     return ContentUtil.getSignedDownloadUrl(ctx, uri);
-  } catch (error) {
+  } catch {
     // The backend was probably not found, we will fail safely here
     log(ctx).warn({ parentId }, 'Could not find storage backend for uri: %s', uri);
     return null;

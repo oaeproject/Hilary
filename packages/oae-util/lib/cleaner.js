@@ -132,9 +132,10 @@ const checkFile = function(path, time, callback) {
 /**
  * Checks a set of files if they are older than a specified time and removes them if they are.
  *
- * @param  {String[]}   paths           The set of paths to check.
- * @param  {String}     time            The time (in ms since epoch) when a file is considered outdated.
- * @param  {Function}   [callback]      Invoked when all files in the `paths` array have been addressed
+ * @param   {String[]}   paths           The set of paths to check.
+ * @param   {String}     time            The time (in ms since epoch) when a file is considered outdated.
+ * @param   {Function}   [callback]      Invoked when all files in the `paths` array have been addressed
+ * @returns {Function}                   Returns a callback depending on logic
  * @api private
  */
 const checkFiles = function(paths, time, callback) {

@@ -196,7 +196,7 @@ const PreviewContext = function(config, contentId, revisionId) {
     let extension = 'unknown';
     const name = that.revision.filename;
     if (name.lastIndexOf('.') !== -1) {
-      const ext = name.substr(name.lastIndexOf('.') + 1);
+      const ext = name.slice(name.lastIndexOf('.') + 1);
       if (ext !== '' && extensionRegex.test(ext)) {
         extension = ext;
       }

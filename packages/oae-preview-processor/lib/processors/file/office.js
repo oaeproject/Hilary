@@ -18,6 +18,7 @@ import fs from 'fs';
 import Path from 'path';
 import util from 'util';
 import PreviewConstants from 'oae-preview-processor/lib/constants';
+import * as PreviewUtil from 'oae-preview-processor/lib/util';
 
 import { logger } from 'oae-logger';
 
@@ -68,7 +69,7 @@ const init = function(config, callback) {
   exec(cmd, { timeout: config.timeout }, (err, stdout, stderr) => {
     // LibreOffice doesn't always return an error exit code which results in `err` being null
     // so we need to do an additional check for the string 'Error' in the standard error output.
-    if (err || (stderr && stderr.indexOf('Error') !== -1)) {
+    if (err || (stderr && stderr.includes('Error'))) {
       let errorMessage = 'Could not properly convert a file to PDF.\n';
       errorMessage += 'Please run the command in your terminal of choice and ensure that:\n';
       errorMessage += '    1.  The path to the soffice binary is configured properly.\n';
@@ -97,11 +98,8 @@ const init = function(config, callback) {
  * @borrows Interface.test as Office.test
  */
 const test = function(ctx, contentObj, callback) {
-  if (contentObj.resourceSubType === 'file' && PreviewConstants.TYPES.OFFICE.indexOf(ctx.revision.mime) !== -1) {
-    callback(null, 10);
-  } else {
-    callback(null, -1);
-  }
+  const docTypeIsValid = PreviewConstants.TYPES.OFFICE.includes(ctx.revision.mime);
+  callback(null, PreviewUtil.test(contentObj, docTypeIsValid));
 };
 
 /**
@@ -153,7 +151,7 @@ const _convertToPdf = function(ctx, path, callback) {
     }
 
     const filename = Path.basename(path);
-    const pdfFilename = filename.substr(0, filename.lastIndexOf('.')) + '.pdf';
+    const pdfFilename = filename.slice(0, filename.lastIndexOf('.')) + '.pdf';
     const pdfPath = ctx.baseDir + '/' + pdfFilename;
 
     // Sometimes office does not convert the file but returns no errorcode

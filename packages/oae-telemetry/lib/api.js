@@ -269,14 +269,10 @@ const _publishTelemetryData = function() {
  */
 const _resetTelemetryCounts = function(callback) {
   callback = callback || function() {};
-  Locking.acquire(_getTelemetryCountResetLock(), telemetryConfig.resetInterval, (err, token) => {
+  Locking.acquire(_getTelemetryCountResetLock(), telemetryConfig.resetInterval, (err /* , token */) => {
     if (err) {
-      log().error({ err }, 'Error acquiring lock to reset telemetry data');
-      return callback();
-    }
-
-    if (!token) {
       // We didn't acquire the lock, so don't bother resetting
+      log().error({ err }, 'Error acquiring lock to reset telemetry data');
       return callback();
     }
 
@@ -339,13 +335,10 @@ const _pushCountsToRedis = function(callback) {
  */
 const _lockAndGetCounts = function(callback) {
   // Try and fetch the lock for the duration of the publishing interval
-  Locking.acquire(_getTelemetryCountPublishLock(), telemetryConfig.publishInterval, (err, token) => {
+  Locking.acquire(_getTelemetryCountPublishLock(), telemetryConfig.publishInterval, (err /* , token */) => {
     if (err) {
+      // Migration from redback to redlock:
       log().error({ err }, 'Error acquiring lock to publish telemetry counts');
-      return callback();
-    }
-
-    if (!token) {
       // We didn't acquire the lock, so don't bother with the counts
       return callback();
     }

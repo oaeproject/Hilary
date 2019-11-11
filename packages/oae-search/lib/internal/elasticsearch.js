@@ -233,8 +233,7 @@ const runIndex = function(typeName, id, doc, options, callback) {
  */
 const bulk = function(operations, callback) {
   let numOps = 0;
-  for (let i = 0; i < operations.length; i++) {
-    const meta = operations[i];
+  for (const meta of operations) {
     const keys = _.keys(meta);
     // Verify this is a metadata line, then apply the index
     if (keys.length === 1 && (meta.create || meta.index || meta.delete)) {

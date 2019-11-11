@@ -320,14 +320,8 @@ const _createUpdatedFolderFromStorageHash = function(folder, updatedStorageHash)
  * @api private
  */
 const _rowToFolder = function(row) {
-  const storageHash = Cassandra.rowToHash(row);
-  try {
-    storageHash.previews = JSON.parse(storageHash.previews);
-  } catch (error) {
-    storageHash.previews = {};
-  }
-
-  return _storageHashToFolder(storageHash.id, storageHash);
+  const hash = Cassandra.parsePreviewsFromRow(row);
+  return _storageHashToFolder(hash.id, hash);
 };
 
 /**

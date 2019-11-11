@@ -74,7 +74,7 @@ const init = function(config, callback) {
  * @borrows Interface.test as PDF.test
  */
 const test = function(ctx, contentObj, callback) {
-  if (contentObj.resourceSubType === RESOURCE_SUBTYPE && PreviewConstants.TYPES.PDF.indexOf(ctx.revision.mime) !== -1) {
+  if (contentObj.resourceSubType === RESOURCE_SUBTYPE && PreviewConstants.TYPES.PDF.includes(ctx.revision.mime)) {
     callback(null, 10);
   } else {
     callback(null, -1);
@@ -114,7 +114,7 @@ const previewPDF = async function(ctx, pdfPath, callback) {
 
   try {
     // Create a directory where we can store the files
-    await fsMakeDir(pagesDir);
+    await fsMakeDir(pagesDir, { recursive: true });
 
     // Will be using promises to load document, pages and misc data instead of
     // callback.

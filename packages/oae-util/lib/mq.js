@@ -6,6 +6,7 @@
  *
  *     http://opensource.org/licenses/ECL-2.0
  *
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an "AS IS"
  * BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
@@ -13,691 +14,342 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
 import _ from 'underscore';
-import amqp from 'amqp-connection-manager';
 
+import { EventEmitter } from 'oae-emitter';
 import { logger } from 'oae-logger';
-import * as EmitterAPI from 'oae-emitter';
+import * as Redis from './redis';
 import OaeEmitter from './emitter';
 import * as OAE from './oae';
+import { Validator } from './validator';
 
 const log = logger('mq');
-
-const MqConstants = {
-  REDELIVER_EXCHANGE_NAME: 'oae-util-mq-redeliverexchange',
-  REDELIVER_EXCHANGE_OPTIONS: {
-    type: 'direct',
-    durable: true,
-    autoDelete: false
-  },
-  REDELIVER_QUEUE_NAME: 'oae-util-mq-redeliverqueue',
-  REDELIVER_QUEUE_OPTIONS: {
-    durable: true,
-    autoDelete: false,
-    arguments: {
-      // Additional information on highly available RabbitMQ queues can be found at http://www.rabbitmq.com/ha.html. We
-      // use `all` as the policy: Queue is mirrored across all nodes in the cluster. When a new node is added to the
-      // cluster, the queue will be mirrored to that node
-      'x-ha-policy': 'all'
-    }
-  },
-  REDELIVER_SUBMIT_OPTIONS: {
-    // DeliveryMode=2 indicates "persistent", which ensures a redelivered message we have stored here won't disappear when
-    // rabbitmq is restarted
-    deliveryMode: 2
-  }
-};
-
-let connection = null;
-let channel = null;
-let channelWrapper = null;
-const queues = {};
-const exchanges = {};
-
-let initialized = false;
-
-// Determines whether or not we should purge queues on first connect. Also ensures we only purge the
-// first time it connects (i.e., on "startup"), however any disconnect / connects while the server is
-// running will not repurge
-let purgeQueuesOnStartup = false;
-const startupPurgeStatus = {};
-
-let numMessagesInProcessing = 0;
-let messagesInProcessing = {};
-
-const MAX_NUM_MESSAGES_IN_PROCESSING = 1000;
-const NUM_MESSAGES_TO_DUMP = 10;
+const emitter = new EventEmitter();
 
 /**
- * ## RabbitMQ API
+ * Task queueing logic
  *
- * ### Events
+ * For every queue OAE creates, there are two extra queues (redis lists), *-processing and *-redelivery
+ * The way tasks are processed is illustrated below for `oae-activity/activity`, but works the same way for all queues:
  *
- *  * `preSubmit(routingKey, data)`                                 - Invoked just before a message is submitted to the exchange (in the same process tick)
- *  * `preHandle(queueName, data, headers, deliveryInfo)`           - Invoked just before a message handler is invoked with the message data (in the same process tick in which the message was received)
- *  * `postHandle(err, queueName, data, headers, deliveryInfo)`     - Invoked after the message handler finishes processing (or if an exception is thrown in the same process tick in which it is invoked)
- *  * `prePurge(queueName)`                                         - Invoked just before a queue is purged. All mesages which are not awaiting acknowledgement will be removed
- *  * `postPurge(queueName, count)`                                 - Invoked after the queue has been purged. `count` is the number of messages that are purged from the queue
- *  * `idle`                                                        - Invoked when all current messages have been completed and the workers are no longer processing any messages
- *  * `storedRedelivery(queueName, data, headers, deliveryInfo)`    - Invoked when a redelivered message has been aborted and stored in the redelivery queue to be manually intervened
+ * oae-acticity/activity
+ * oae-acticity/activity-processing
+ * oae-acticity/activity/enable
+ * oae-acticity/activity/enable-processing
+ * oae-search/index
+ * oae-search/index-processing
+ * oae-search/delete
+ * oae-search/delete-processing
+ * oae-search/reindex
+ * oae-search/reindex-processing
+ * oae-content/etherpad-publish
+ * oae-content/etherpad-publish-processing
+ * oae-content/ethercalc-publish
+ * oae-content/ethercalc-publish-processing
+ * oae-content/ethercalc-edit
+ * oae-content/ethercalc-edit-processing
+ * oae-preview-processor/generatePreviews
+ * oae-preview-processor/generatePreviews-processing
+ * oae-preview-processor/generateFolderPreviews
+ * oae-preview-processor/generateFolderPreviews-processing
+ * oae-preview-processor/regeneratePreviews
+ * oae-preview-processor/regeneratePreviews-processing
+ *
+ *     ┌──────────────────────────────────────────┬─┐
+ *     │           oae-activity/activity          │X│──┐
+ *     └──────────────────────────────────────────┴─┘  │
+ *                                                     │
+ *  ┌──────────────────  brpoplpush   ─────────────────┘
+ *  │
+ *  │                                                   handler     Λ    returns
+ *  │  ┌─┬──────────────────────────────────────────┐   invoked    ╱ ╲    error           lpush   ┌─┬──────────────────────────────────────────┐
+ *  └─▷│X│    oae-activity/activity-processing      │────────────▷▕   ▏─────────────▷  ──────────▷│X│    oae-activity/activity-redelivery      │
+ *     └─┴──────────────────────────────────────────┘              ╲ ╱                            └─┴──────────────────────────────────────────┘
+ *                            △                                     V                                                    │
+ *                            │                                     │                                                    │
+ *                            │                                                                                          │
+ *                            │                                returns OK                                                │
+ *                            │                 ┌─┐                                                                      │
+ *                            │       lrem (-1) │X│ from            │                                                    │
+ *                            │                 └─┘                 ▽                                                    │
+ *                            └────────────────────────────────────  ◁───────────────────────────────────────────────────┘
  */
-const MQ = new EmitterAPI.EventEmitter();
 
-const deferredTaskHandlers = {};
-// Let ready = false;
+/**
+ * Redis configuration which will load from config.js
+ */
+let redisConfig = null;
 
+/**
+ * This will hold a connection used only for PURGE operations
+ * See `purgeAllQueues` for details
+ */
+let manager = null;
+
+/**
+ * This will hold a connection for LPUSHing messages to queues
+ * See `submit` for details
+ */
+let publisher = null;
+
+/**
+ * This object will track the current bindings
+ * meaning every time we subscribe to a queue
+ * by assigning a listener to it, we set the binding,
+ * and every time we unsubscribe, we do the opposite
+ */
+const queueBindings = {};
+
+/*+
+ * This object contains the different redis clients
+ * OAE uses. It is currently one per queue (such as oae-activity/activity,
+ * oae-search/reindex, oae-preview-processor/generatePreviews, etc)
+ * Every time we subscribe, we block that client while listening
+ * on the queue, using redis BRPOPLPUSH.
+ * See `_getOrCreateSubscriberForQueue` for details
+ */
+let subscribers = {};
+
+const PRODUCTION_MODE = 'production';
+
+/**
+ * This is kind of legacy but still plays a role booting up tests
+ * Previously this would be a "reminder" to bind all the queues
+ * which of course is no longer necessary
+ */
 OaeEmitter.on('ready', () => {
-  // Let ready = true;
-
-  const numberToBind = _.keys(deferredTaskHandlers).length;
-  let numberBound = 0;
-  let returned = false;
-
-  /*!
-   * Monitors all the deferred task handlers that have been bound, emitting a 'ready' event
-   * when all have been bound.
-   */
-  const _monitorBinding = function(err) {
-    if (returned) {
-      // Do nothing, we've called back
-      return;
-    }
-
-    if (err) {
-      MQ.emit('ready', err);
-      returned = true;
-      return;
-    }
-
-    numberBound++;
-    if (!returned && numberBound >= numberToBind) {
-      MQ.emit('ready');
-      returned = true;
-    }
-  };
-
-  if (numberToBind > 0) {
-    // Bind all the deferred task handlers now that the container is ready
-    _.each(deferredTaskHandlers, (handlerInfo, taskName) => {
-      // eslint-disable-next-line no-undef
-      bind(taskName, handlerInfo.listener, handlerInfo.options, _monitorBinding);
-      delete deferredTaskHandlers[taskName];
-    });
-  } else {
-    // No deferred task handlers, we're just immediately ready
-    MQ.emit('ready');
-  }
+  emitter.emit('ready');
 });
 
 /**
- * Reject a message through the channel object
- * @function rejectMessage
- * @param  {Object} message  The message to be rejected
- * @param  {Boolean} requeue  Whether the message should be requeued
- * @param  {Function} callback Standard callback function
+ * Safely shutdown the MQ service
+ * by closing connections safely
+ * Check IOredis API for details:
+ * https://github.com/luin/ioredis/blob/master/API.md
  */
-const rejectMessage = function(message, requeue, callback) {
-  channel.reject(message, requeue);
-  return callback();
-};
+OAE.registerPreShutdownHandler('mq', null, done => {
+  return quitAllClients(getAllActiveClients(), done);
+});
 
 /**
  * Initialize the Message Queue system so that it can start sending and receiving messages.
  *
- * @param  {Object}    mqConfig        The MQ Configuration object
- * @param  {Function}  callback        Standard callback function
- * @param  {Object}    callback.err    An error that occurred, if any
+ * @function init
+ * @param  {Object}    config           The MQ Configuration object
+ * @param  {Function}  callback         Standard callback function
+ * @param  {Object}    callback.err     An error that occurred, if any
+ * @returns {Function}                  Returns a callback
  */
-const init = function(mqConfig, callback) {
-  //  Const taskConfig = mqConfig.tasks || {};
+const init = function(config, callback) {
+  redisConfig = config;
 
-  if (connection) {
-    log().warn('Attempted to initialize an existing RabbitMQ connector. Ignoring');
-    return _createRedeliveryQueue(callback);
-  }
+  // redis connection possible statuses
+  const hasNotBeenCreated = manager === null;
+  const hasConnectionBeenClosed = manager !== null && manager.status === 'end';
 
-  log().info('Initializing RabbitMQ connector');
+  // Only init if the connections haven't been opened.
+  if (hasNotBeenCreated) {
+    Redis.createClient(config, (err, client) => {
+      if (err) return callback(err);
+      manager = client;
 
-  const arrayOfHostsToConnectTo = _.map(mqConfig.connection.host, eachHost => {
-    return `amqp://${eachHost}`;
-  });
+      Redis.createClient(config, (err, client) => {
+        if (err) return callback(err);
+        publisher = client;
 
-  const retryTimeout = 5;
-  connection = amqp.connect(arrayOfHostsToConnectTo, {
-    json: true,
-    reconnectTimeInSeconds: retryTimeout
-  });
-  connection.on('disconnect', () => {
-    log().error('Error connecting to rabbitmq, retrying in ' + retryTimeout + 's...');
-  });
-
-  // Connect to channel
-  channelWrapper = connection.createChannel({
-    json: true,
-    setup(ch, cb) {
-      // `channel` here is a regular amqplib `ConfirmChannel`.
-      channel = ch;
-      log().info('Connection channel to RabbitMQ established.');
-
-      // We only honour the purge-queue setting if the environment is not production
-      if (mqConfig.purgeQueuesOnStartup === true) {
-        if (process.env.NODE_ENV === 'production') {
-          log().warn(
-            'Attempted to set config.mq.purgeQueuesOnStartup to true when in production mode. Ignoring and not purging queues.'
-          );
-          purgeQueuesOnStartup = false;
+        // if the flag is set, we purge all queues on startup. ONLY if we're NOT in production mode.
+        const shallWePurge = redisConfig.purgeQueuesOnStartup && process.env.NODE_ENV !== PRODUCTION_MODE;
+        if (shallWePurge) {
+          purgeAllBoundQueues(callback);
         } else {
-          purgeQueuesOnStartup = true;
+          return callback();
         }
-      }
-
-      return cb();
-    }
-  });
-
-  channelWrapper.waitForConnect(() => {
-    log().info('Connection to RabbitMQ established.');
-    if (!initialized) {
-      initialized = true;
-      return _createRedeliveryQueue(callback);
-    }
-  });
-
-  connection.on('error', err => {
-    log().error({ err }, 'Error in the RabbitMQ connection. Reconnecting.');
-  });
-
-  connection.on('close', () => {
-    log().warn('Closed connection to RabbitMQ. Reconnecting.');
-  });
-};
-
-/**
- * Safely shutdown the MQ service after all current tasks are completed.
- *
- * @param  {Function}   Invoked when shutdown is complete
- * @api private
- */
-const _destroy = function(callback) {
-  // Unbind all queues so we don't receive new messages
-  log().info('Unbinding all queues for shut down...');
-  _unsubscribeAll(() => {
-    // Give 15 seconds for mq messages to complete processing
-    log().info('Waiting until all processing messages complete...');
-    _waitUntilIdle(15000, callback);
-  });
-};
-
-OAE.registerPreShutdownHandler('mq', null, _destroy);
-
-/**
- * Declare an exchange
- *
- * @param  {String}     exchangeName        The name of the exchange that should be declared
- * @param  {Object}     exchangeOptions     The options that should be used to declare this exchange. See https://github.com/postwait/node-amqp/#connectionexchangename-options-opencallback for a full list of options
- * @param  {Function}   callback            Standard callback function
- */
-const declareExchange = async function(exchangeName, exchangeOptions, callback) {
-  if (!exchangeName) {
-    log().error({
-      exchangeName,
-      err: new Error('Tried to declare an exchange without providing an exchange name')
-    });
-    return callback({
-      code: 400,
-      msg: 'Tried to declare an exchange without providing an exchange name'
-    });
-  }
-
-  if (exchanges[exchangeName]) {
-    log().error({ exchangeName, err: new Error('Tried to declare an exchange twice') });
-    return callback({ code: 400, msg: 'Tried to declare an exchange twice' });
-  }
-
-  try {
-    const exchange = await channel.assertExchange(exchangeName, exchangeOptions.type, exchangeOptions);
-
-    exchanges[exchangeName] = exchange;
-    return callback();
-  } catch (error) {
-    log().error({ exchangeName, err: new Error('Unable to declare an exchange') });
-  }
-};
-
-/**
- * Declare a queue
- *
- * @param  {String}     queueName           The name of the queue that should be declared
- * @param  {Object}     queueOptions        The options that should be used to declare this queue. See https://github.com/postwait/node-amqp/#connectionqueuename-options-opencallback for a full list of options
- * @param  {Function}   callback            Standard callback function
- */
-const declareQueue = async function(queueName, queueOptions, callback) {
-  if (!queueName) {
-    log().error({
-      queueName,
-      queueOptions,
-      err: new Error('Tried to declare a queue without providing a name')
-    });
-    return callback({ code: 400, msg: 'Tried to declare a queue without providing a name' });
-  }
-
-  if (queues[queueName]) {
-    log().error({ queueName, queueOptions, err: new Error('Tried to declare a queue twice') });
-    return callback({ code: 400, msg: 'Tried to declare a queue twice' });
-  }
-
-  try {
-    const queue = await channel.assertQueue(queueName, queueOptions);
-
-    log().info({ queueName }, 'Created/Retrieved a RabbitMQ queue');
-    queues[queueName] = { queue };
-    return callback();
-  } catch (error) {
-    log().error({ queueName, err: new Error('Unable to declare a queue') });
-  }
-};
-
-/**
- * Checks if a queue has been declared
- *
- * @param  {String}     queueName   The name of the queue that should be checked
- * @return {Boolean}                `true` if the queue exists, `false` otherwise
- */
-const isQueueDeclared = function(queueName) {
-  return !_.isUndefined(queues[queueName]);
-};
-
-/*
- * Because amqp only supports 1 queue.bind at the same time we need to
- * do them one at a time. To ensure that this is happening, we create a little
- * "in-memory queue" with bind actions that need to happen. This is all rather unfortunate
- * but there is currently no way around this.
- *
- * The reason:
- * Each time you do `Queue.bind(exchangeName, routingKey, callback)`, amqp will set an internal
- * property on the Queue object called `_bindCallback`. Unfortunately this means that whenever you
- * do 2 binds before RabbitMQ has had a chance to respond, the initial callback function will have been overwritten.
- *
- * Example:
- *   Queue.bind('house', 'door', cb1);  // Queue._bindCallback points to cb1
- *   Queue.bind('house', 'roof', cb2);  // Queue._bindCallback points to cb2
- *
- * When RabbitMQ responds with a `queueBindOk` frame for the house->door binding, amqp will execute cb2 and set _bindCallback to null.
- * When RabbitMQ responds with a `queueBindOk` frame for the house->roof binding, amqp will do nothing
- */
-
-// A "queue" of bindings that need to happen against RabbitMQ queues
-const queuesToBind = [];
-
-// Whether or not the "in-memory queue" is already being processed
-let isWorking = false;
-
-/**
- * A function that will pick RabbitMQ queues of the `queuesToBind` queue and bind them.
- * This function will ensure that at most 1 bind runs at the same time.
- */
-const _processBindQueue = async function() {
-  // If there is something to do and we're not already doing something we can do some work
-  if (queuesToBind.length > 0 && !isWorking) {
-    isWorking = true;
-
-    const todo = queuesToBind.shift();
-    try {
-      await channel.bindQueue(todo.queueName, todo.exchangeName, todo.routingKey);
-
-      log().trace(
-        {
-          queueName: todo.queueName,
-          exchangeName: todo.exchangeName,
-          routingKey: todo.routingKey
-        },
-        'Bound a queue to an exchange'
-      );
-      const doPurge = purgeQueuesOnStartup && !startupPurgeStatus[todo.queueName];
-      if (doPurge) {
-        // Ensure this queue only gets purged the first time we connect
-        startupPurgeStatus[todo.queueName] = true;
-
-        // Purge the queue before subscribing the handler to it if we are configured to do so.
-        purge(todo.queueName, todo.callback);
-      } else {
-        todo.callback();
-      }
-
-      isWorking = false;
-      _processBindQueue();
-    } catch (error) {
-      log().error({
-        queueName: todo.queueName,
-        err: new Error('Unable to bind queue to an exchange')
       });
-    }
+    });
+  } else if (hasConnectionBeenClosed) {
+    Redis.reconnect(manager, err => {
+      if (err) return callback(err);
+      Redis.reconnect(publisher, err => {
+        if (err) return callback(err);
+        return callback();
+      });
+    });
+  } else {
+    return callback();
   }
-};
-
-/**
- * Binds a queue to an exchange.
- * The queue will be purged upon connection if the server has been configured to do so.
- *
- * @param  {String}     queueName       The name of the queue to bind
- * @param  {String}     exchangeName    The name of the exchange to bind too
- * @param  {String}     routingKey      A string that should be used to bind the queue too the exchange
- * @param  {Function}   callback        Standard callback function
- * @param  {Object}     callback.err    An error that occurred, if any
- */
-const bindQueueToExchange = function(queueName, exchangeName, routingKey, callback) {
-  if (!queues[queueName]) {
-    log().error({
-      queueName,
-      exchangeName,
-      routingKey,
-      err: new Error('Tried to bind a non existing queue to an exchange, have you declared it first?')
-    });
-    return callback({
-      code: 400,
-      msg: 'Tried to bind a non existing queue to an exchange, have you declared it first?'
-    });
-  }
-
-  if (!exchanges[exchangeName]) {
-    log().error({
-      queueName,
-      exchangeName,
-      routingKey,
-      err: new Error('Tried to bind a queue to a non-existing exchange, have you declared it first?')
-    });
-    return callback({
-      code: 400,
-      msg: 'Tried to bind a queue to a non-existing exchange, have you declared it first?'
-    });
-  }
-
-  if (!routingKey) {
-    log().error({
-      queueName,
-      exchangeName,
-      routingKey,
-      err: new Error('Tried to bind a queue to an existing exchange without specifying a routing key')
-    });
-    return callback({ code: 400, msg: 'Missing routing key' });
-  }
-
-  const todo = {
-    queue: queues[queueName].queue,
-    queueName,
-    exchangeName,
-    routingKey,
-    callback
-  };
-  queuesToBind.push(todo);
-  _processBindQueue();
-};
-
-/**
- * Unbinds a queue from an exchange.
- *
- * @param  {String}     queueName       The name of the queue to unbind
- * @param  {String}     exchangeName    The name of the exchange to unbind from
- * @param  {String}     routingKey      A string that should be used to unbind the queue from the exchange
- * @param  {Function}   callback        Standard callback function
- * @param  {Object}     callback.err    An error that occurred, if any
- */
-const unbindQueueFromExchange = async function(queueName, exchangeName, routingKey, callback) {
-  if (!queues[queueName]) {
-    log().error({
-      queueName,
-      exchangeName,
-      routingKey,
-      err: new Error('Tried to unbind a non existing queue from an exchange, have you declared it first?')
-    });
-    return callback({
-      code: 400,
-      msg: 'Tried to unbind a non existing queue from an exchange, have you declared it first?'
-    });
-  }
-
-  if (!exchanges[exchangeName]) {
-    log().error({
-      queueName,
-      exchangeName,
-      routingKey,
-      err: new Error('Tried to unbind a queue from a non-existing exchange, have you declared it first?')
-    });
-    return callback({
-      code: 400,
-      msg: 'Tried to unbind a queue from a non-existing exchange, have you declared it first?'
-    });
-  }
-
-  if (!routingKey) {
-    log().error({
-      queueName,
-      exchangeName,
-      routingKey,
-      err: new Error('Tried to unbind a queue from an exchange without providing a routingKey')
-    });
-    return callback({ code: 400, msg: 'No routing key was specified' });
-  }
-
-  // Queues[queueName].queue.unbind(exchangeName, routingKey);
-  await channel.unbindQueue(queueName, exchangeName, routingKey, {});
-  log().trace({ queueName, exchangeName, routingKey }, 'Unbound a queue from an exchange');
-  callback();
 };
 
 /**
  * Subscribe the given `listener` function to the provided queue.
  *
+ * @function collectLatestFromQueue
  * @param  {Queue}      queueName           The queue to which we'll subscribe the listener
- * @param  {Object}     subscribeOptions    The options with which we wish to subscribe to the queue
  * @param  {Function}   listener            The function that will handle messages delivered from the queue
  * @param  {Object}     listener.data       The data that was sent in the message. This is different depending on the type of job
  * @param  {Function}   listener.callback   The listener callback. This must be invoked in order to acknowledge that the message was handled
- * @param  {Function}   callback            Standard callback function
- * @param  {Object}     callback.err        An error that occurred, if any
  */
-const subscribeQueue = function(queueName, subscribeOptions, listener, callback) {
-  callback =
-    callback ||
-    function(err) {
-      if (err) {
-        log().warn({ err, queueName, subscribeOptions }, 'An error occurred while subscribing to a queue');
-      }
-    };
+const collectLatestFromQueue = (queueName, listener) => {
+  _getOrCreateSubscriberForQueue(queueName, (err, subscriber) => {
+    if (err) log().error({ err }, 'Error creating redis client');
+    subscriber.rpoplpush(queueName, getProcessingQueueFor(queueName), (err, queuedMessage) => {
+      if (err) log().error({ err }, 'Error while BRPOPLPUSHing redis queue ' + queueName);
 
-  if (!queues[queueName]) {
-    log().error({
-      queueName,
-      subscribeOptions,
-      err: new Error('Tried to subscribe to an unknown queue')
-    });
-    return callback({ code: 400, msg: 'Tried to subscribe to an unknown queue' });
-  }
-
-  channel
-    .consume(
-      queueName,
-      msg => {
-        const { headers } = msg.properties;
-        const data = JSON.parse(msg.content.toString());
-        const deliveryInfo = msg.fields;
-        deliveryInfo.queue = queueName;
-
-        log().trace(
-          {
-            queueName,
-            data,
-            headers,
-            deliveryInfo
-          },
-          'Received an MQ message.'
-        );
-
-        const deliveryKey = util.format('%s:%s', deliveryInfo.queue, deliveryInfo.deliveryTag);
-
-        // When a message arrives that was redelivered, we do not give it to the handler. Auto-acknowledge
-        // it and push it into the redelivery queue to be inspected manually
-        if (deliveryInfo.redelivered) {
-          const redeliveryData = {
-            headers,
-            deliveryInfo,
-            data
-          };
-
-          submit(
-            MqConstants.REDELIVER_EXCHANGE_NAME,
-            MqConstants.REDELIVER_QUEUE_NAME,
-            redeliveryData,
-            MqConstants.REDELIVER_SUBMIT_OPTIONS,
-            err => {
-              if (err) {
-                log().warn({ err }, 'An error occurred delivering a redelivered message to the redelivery queue');
-              }
-
-              MQ.emit('storedRedelivery', queueName, data, headers, deliveryInfo, msg);
-            }
-          );
-
-          return channelWrapper.ack(msg);
-        }
-
-        // Indicate that this server has begun processing a new task
-        _incrementProcessingTask(deliveryKey, data, deliveryInfo);
-        MQ.emit('preHandle', queueName, data, headers, deliveryInfo, msg);
-
-        try {
-          // Pass the message data to the subscribed listener
-          listener(data, err => {
-            if (err) {
-              log().error(
-                {
-                  err,
-                  queueName,
-                  data
-                },
-                'An error occurred processing a task'
-              );
-            } else {
-              log().trace(
-                {
-                  queueName,
-                  data,
-                  headers,
-                  deliveryInfo
-                },
-                'MQ message has been processed by the listener'
-              );
-            }
-
-            // Acknowledge that we've seen the message.
-            // Note: We can't use queue.shift() as that only acknowledges the last message that the queue handed to us.
-            // This message and the last message are not necessarily the same if the prefetchCount was higher than 1.
-            if (subscribeOptions.ack !== false) {
-              channelWrapper.ack(msg);
-            }
-
-            // Indicate that this server has finished processing the task
-            _decrementProcessingTask(deliveryKey, deliveryInfo);
-            MQ.emit('postHandle', null, queueName, data, headers, deliveryInfo);
-          });
-        } catch (error) {
-          log().error(
-            {
-              err: error,
-              queueName,
-              data
-            },
-            'Exception raised while handling job'
-          );
-
-          // Acknowledge that we've seen the message
-          if (subscribeOptions.ack !== false) {
-            channelWrapper.ack(msg);
+      if (queuedMessage) {
+        const message = JSON.parse(queuedMessage);
+        listener(message, err => {
+          /**
+           * Lets set the convention that if the listener function
+           * returns the callback with an error, then something went
+           * unpexpectadly wrong, and we need to know about it.
+           * Hence, we're sending it to a special queue for analysis
+           */
+          if (err) {
+            log().warn(
+              { err },
+              `Using the redelivery mechanism for a message that failed running ${listener.name} on ${queueName}`
+            );
+            _redeliverToSpecialQueue(queueName, queuedMessage);
           }
 
-          // Indicate that this server has finished processing the task
-          _decrementProcessingTask(deliveryKey, deliveryInfo);
-          MQ.emit('postHandle', error, queueName, data, headers, deliveryInfo);
-        }
-      },
-      subscribeOptions
-    )
-    // eslint-disable-next-line promise/prefer-await-to-then
-    .then(ok => {
-      if (!ok) {
-        log().error({ queueName, err: new Error('Error binding worker for queue') });
-        return unsubscribeQueue(queueName, () => {
-          // Don't overwrite the original error with any binding errors
-          return callback({ code: 500, msg: 'Error binding a worker for queue' });
-        });
-      }
+          subscriber.lrem(getProcessingQueueFor(queueName), -1, queuedMessage, err => {
+            if (err) log().error('Unable to LREM from redis, message is kept on ' + queueName);
 
-      // Keep the consumerTag so we can unsubscribe later
-      queues[queueName].consumerTag = ok.consumerTag;
-      return callback();
+            // remove message from processing queue
+            emitter.emit('postHandle', queueName);
+
+            // recursive call itself if there are more tasks to be consumed
+            isQueueEmpty(queueName, subscriber, (err, queueIsEmpty) => {
+              if (err) log().error({ err }, 'Error trying to LLEN redis queue ' + queueName);
+
+              if (!queueIsEmpty) {
+                return collectLatestFromQueue(queueName, listener);
+              }
+            });
+          });
+        });
+      } else {
+        log().warn('No tasks to be pulled from [' + queueName + '], exiting...');
+      }
     });
+  });
 };
 
 /**
- * Stop consuming messages from a queue.
+ * @function isQueueEmpty
+ * @param  {String} queueName  The queue name we're checking the size of (which is a redis List)
+ * @param  {Object} subscriber A redis client which is used solely for subscribing to this queue
+ * @param  {Function} done     Standar callback function
+ */
+const isQueueEmpty = (queueName, subscriber, done) => {
+  subscriber.llen(queueName, (err, stillQueued) => {
+    if (err) done(err);
+    return done(null, stillQueued === 0);
+  });
+};
+
+/**
+ * Sends a message which has just failed to be processed to a special queue for later inspection
  *
+ * @function _redeliverToSpecialQueue
+ * @param  {String} queueName   The queue name for redelivery, which is a redis List
+ * @param  {String} message     The message we need to store in the redelivery queue in JSON format
+ */
+const _redeliverToSpecialQueue = (queueName, message) => {
+  publisher.lpush(getRedeliveryQueueFor(queueName), message, () => {});
+};
+
+/**
+ * Binds a listener to a queue, meaning that every time a message is pushed to that queue
+ * (which is a redis List) that listener will be executed.
+ *
+ * @function subscribe
+ * @param  {String}   queueName     The queue name we want to subscribe to, which is a redis List
+ * @param  {Function} listener      The function we need to run for each task sent to the queue
+ * @param  {Function} callback      Standard callback function
+ * @param  {Object}   callback.err  An error that occurred, if any
+ * @return {Function}               Returns the callback
+ */
+const subscribe = (queueName, listener, callback) => {
+  callback = callback || function() {};
+  const validator = new Validator();
+  validator.check(queueName, { code: 400, msg: 'No channel was provided.' }).notEmpty();
+  if (validator.hasErrors()) return callback(validator.getFirstError());
+
+  // make sure the listener isn't repetitive
+  const thisQueueHasBeenSubscribedBefore = emitter.listeners(`collectFrom:${queueName}`).length > 0;
+  if (thisQueueHasBeenSubscribedBefore) {
+    log().warn(
+      `There is already one listener for collectFrom:${queueName} event. Something is not right here, but I will remove the previous listener just in case.`
+    );
+    emitter.removeAllListeners(`collectFrom:${queueName}`);
+  }
+
+  emitter.on(`collectFrom:${queueName}`, emittedQueue => {
+    if (emittedQueue === queueName) {
+      collectLatestFromQueue(queueName, listener);
+    }
+  });
+
+  queueBindings[queueName] = getProcessingQueueFor(queueName);
+  return callback();
+};
+
+/**
+ * Unbinds any listener to a specific queue, meaning that if we then submit messages
+ * to that queue, they won't be processed. This happens because we do two things here:
+ * 1 We flag the queue as unbound, and `submit` respects this flag, so it won't even PUSH
+ * 2 We remove the listener associated with the event which is sent when submit PUSHES to the queue
+ *
+ * @function unsubscribe
  * @param  {String}    queueName       The name of the message queue to unsubscribe from
  * @param  {Function}  callback        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any
+ * @returns {Function}                 Returns callback
  */
-const unsubscribeQueue = async function(queueName, callback) {
-  let queue = queues[queueName];
-  if (!queue || !queue.queue) {
-    log().warn({
-      queueName,
-      err: new Error('Attempted to unbind listener from non-existant job queue. Ignoring')
-    });
-    return callback();
-  }
+const unsubscribe = (queueName, callback) => {
+  callback = callback || function() {};
+  const validator = new Validator();
+  validator.check(queueName, { code: 400, msg: 'No channel was provided.' }).notEmpty();
+  if (validator.hasErrors()) return callback(validator.getFirstError());
 
-  const { consumerTag } = queue;
-  queue = queue.queue;
-
-  try {
-    const ok = await channel.cancel(consumerTag);
-
-    delete queues[queueName];
-
-    if (!ok) {
-      log().error({ queueName }, 'An unknown error occurred unsubscribing a queue');
-      return callback({ code: 500, msg: 'An unknown error occurred unsubscribing a queue' });
-    }
-
-    return callback();
-  } catch (error) {
-    log().error({ queueName, err: new Error('Unable to unsubscribe the queue') });
-  }
+  emitter.removeAllListeners(`collectFrom:${queueName}`);
+  delete queueBindings[queueName];
+  return callback();
 };
 
 /**
- * Stop consuming messages from **ALL** the queues.
+ * Gets the map-like object where we keep track of which queues are bound and which aren't
  *
- * @param  {Function}   callback    Standard callback function
- * @api private
+ * @function getBoundQueues
+ * @return {Object} An map-like object which contains all the queues (String) that are bound to a listener
  */
-const _unsubscribeAll = function(callback) {
-  let queuesUnbound = 0;
-  const queueNames = _.keys(queues);
-  if (queueNames.length > 0) {
-    _.each(queueNames, queueName => {
-      log().info({ queueName }, 'Attempting to unbind a queue');
-      unsubscribeQueue(queueName, err => {
-        queuesUnbound++;
+const getBoundQueues = function() {
+  return queueBindings;
+};
 
-        if (!err) {
-          log().info({ queueName }, 'Successfully unbound a queue');
-        }
+/**
+ * Submit a message to an exchange
+ *
+ * @function submit
+ * @param  {String}     queueName                   The queue name which is a redis List
+ * @param  {String}     message                     The data to send with the message in JSON. This will be received by the worker for this type of task
+ * @param  {Function}   [callback]                  Invoked when the job has been submitted
+ * @param  {Object}     [callback.err]              Standard error object, if any
+ * @returns {Function}                              Returns callback
+ */
+const submit = (queueName, message, callback) => {
+  callback = callback || function() {};
+  const validator = new Validator();
+  validator.check(queueName, { code: 400, msg: 'No channel was provided.' }).notEmpty();
+  validator.check(message, { code: 400, msg: 'No message was provided.' }).notEmpty();
+  if (validator.hasErrors()) return callback(validator.getFirstError());
 
-        if (queuesUnbound === queueNames.length) {
-          return callback();
-        }
-      });
+  const queueIsBound = queueBindings[queueName];
+  if (queueIsBound) {
+    emitter.emit('preSubmit', queueName);
+    publisher.lpush(queueName, message, () => {
+      emitter.emit(`collectFrom:${queueName}`, queueName);
+      return callback();
     });
   } else {
     return callback();
@@ -705,286 +357,182 @@ const _unsubscribeAll = function(callback) {
 };
 
 /**
- * Submit a message to an exchange
+ * Gets all the active redis clients
+ * This includes the `manager`, the `publisher` and the active `subscribers`
  *
- * @param  {String}     exchangeName                The name of the exchange to submit the message too
- * @param  {String}     routingKey                  The key with which the message can be routed
- * @param  {Object}     [data]                      The data to send with the message. This will be received by the worker for this type of task
- * @param  {Object}     [options]                   A set of options to publish the message with. See https://github.com/postwait/node-amqp#exchangepublishroutingkey-message-options-callback for more information
- * @param  {Function}   [callback]                  Invoked when the job has been submitted, note that this does *NOT* guarantee that the message reached the exchange as that is not supported by amqp
- * @param  {Object}     [callback.err]              Standard error object, if any
+ * @function getAllConnectedClients
+ * @return {Array} An Array with all the active redis connections
  */
-const submit = function(exchangeName, routingKey, data, options, callback) {
-  options = options || {};
-  callback = callback || function() {};
-
-  if (!exchanges[exchangeName]) {
-    log().error({
-      exchangeName,
-      routingKey,
-      err: new Error('Tried to submit a message to an unknown exchange')
-    });
-    return callback({ code: 400, msg: 'Tried to submit a message to an unknown exchange' });
-  }
-
-  if (!routingKey) {
-    log().error({
-      exchangeName,
-      routingKey,
-      err: new Error('Tried to submit a message without specifying a routingKey')
-    });
-    return callback({
-      code: 400,
-      msg: 'Tried to submit a message without specifying a routingKey'
-    });
-  }
-
-  MQ.emit('preSubmit', routingKey);
-
-  channelWrapper.publish(exchangeName, routingKey, data, options, err => {
-    if (err) {
-      log().error({ exchangeName, routingKey, data, options }, 'Failed to submit a message to an exchange');
-      return callback(err);
-    }
-
-    return callback();
-  });
-};
-
-/**
- * Get the names of all the queues that have been declared with the application and currently have a listener bound to it
- *
- * @return {String[]}   A list of all the names of the queues that are declared with the application and currently have a listener bound to it
- */
-const getBoundQueueNames = function() {
-  return _.chain(queues)
-    .keys()
-    .filter(queueName => {
-      return !_.isUndefined(queues[queueName].consumerTag);
-    })
-    .value();
-};
-
-/**
- * Wait until our set of pending tasks has drained. If it takes longer than `maxWaitMillis`, it will
- * dump the pending tasks in the log that are holding things up and force continue.
- *
- * @param  {Number}     maxWaitMillis   The maximum amount of time (in milliseconds) to wait for pending tasks to finish
- * @param  {Function}   callback        Standard callback function
- * @api private
- */
-const _waitUntilIdle = function(maxWaitMillis, callback) {
-  if (numMessagesInProcessing <= 0) {
-    log().info('Successfully entered into idle state.');
-    return callback();
-  }
-
-  /*!
-   * Gives at most `maxWaitMillis` time to finish. If it doesn't, we suspect we have leaked messages and
-   * output a certain amount of them to the logs for inspection.
-   */
-  const forceContinueHandle = setTimeout(() => {
-    _dumpProcessingMessages('Timed out ' + maxWaitMillis + 'ms while waiting for tasks to complete.');
-    MQ.removeListener('idle', callback);
-    return callback();
-  }, maxWaitMillis);
-
-  MQ.once('idle', () => {
-    log().info('Successfully entered into idle state.');
-    clearTimeout(forceContinueHandle);
-    return callback();
-  });
+const getAllActiveClients = () => {
+  return _.values(subscribers)
+    .concat(manager)
+    .concat(publisher);
 };
 
 /**
  * Purge a queue.
  *
+ * @function purgeQueue
  * @param  {String}     queueName       The name of the queue to purge.
  * @param  {Function}   [callback]      Standard callback method
  * @param  {Object}     [callback.err]  An error that occurred purging the queue, if any
+ * @returns {Function}                  Returns a callback
  */
-const purge = async function(queueName, callback) {
-  callback =
-    callback ||
-    function(err) {
-      if (err) {
-        log().error({ err, queueName }, 'Error purging queue.');
-      }
-    };
+const purgeQueue = (queueName, callback) => {
+  callback = callback || function() {};
+  const validator = new Validator();
+  validator.check(queueName, { code: 400, msg: 'No channel was provided.' }).notEmpty();
+  if (validator.hasErrors()) return callback(validator.getFirstError());
 
-  if (!queues[queueName]) {
-    log().error({ queueName, err: new Error('Tried purging an unknown queue') });
-    return callback({ code: 400, msg: 'Tried purging an unknown queue' });
-  }
+  emitter.emit('prePurge', queueName);
+  manager.llen(queueName, (err /* count */) => {
+    if (err) return callback(err);
+    manager.del(queueName, err => {
+      if (err) return callback(err);
 
-  log().info({ queueName }, 'Purging queue');
-  MQ.emit('prePurge', queueName);
+      emitter.emit('postPurge', queueName, 1);
 
-  try {
-    const data = await channel.purgeQueue(queueName);
-    if (!data) {
-      log().error({ queueName }, 'Error purging queue');
-      return callback({ code: 500, msg: 'Error purging queue: ' + queueName });
-    }
-
-    MQ.emit('postPurge', queueName, data.messageCount);
-
-    return callback();
-  } catch (error) {
-    log().error({ queueName, err: new Error('Unable to purge queue') });
-  }
-};
-
-/**
- * Purges all the known queues.
- * Note: This does *not* purge all the queues that are in RabbitMQ.
- * It only purges the queues that are known to the OAE system.
- *
- * @param  {Function}   [callback]      Standard callback method
- * @param  {Object}     [callback.err]  An error that occurred purging the queue, if any
- */
-const purgeAll = function(callback) {
-  callback =
-    callback ||
-    function(err) {
-      if (err) {
-        log().error({ err }, 'Error purging all known queues.');
-      }
-    };
-
-  // Get all the known queues we can purge
-  const toPurge = _.keys(queues);
-  log().info({ queues: toPurge }, 'Purging all known queues.');
-
-  /*!
-   * Purges one of the known queues and calls the callback method when they are all purged (or when an error occurs)
-   *
-   * @param  {Object}  err    Standard error object (if any)
-   */
-  const doPurge = function(err) {
-    if (err) {
-      return callback(err);
-    }
-
-    if (_.isEmpty(toPurge)) {
       return callback();
-    }
-
-    return purge(toPurge.pop(), doPurge);
-  };
-
-  // Start purging
-  doPurge();
-};
-
-/**
- * Create a queue that will be used to hold on to messages that were rejected / failed to acknowledge
- *
- * @param  {Function}   callback        Standard callback function
- * @param  {Object}     callback.err    An error that occurred, if any
- * @api private
- */
-const _createRedeliveryQueue = function(callback) {
-  // Don't declare if we've already declared it on this node
-  if (queues[MqConstants.REDELIVER_QUEUE_NAME]) {
-    return callback();
-  }
-
-  // Declare an exchange with a queue whose sole purpose is to hold on to messages that were "redelivered". Such
-  // situations include errors while processing or some kind of client error that resulted in the message not
-  // being acknowledged
-  declareExchange(MqConstants.REDELIVER_EXCHANGE_NAME, MqConstants.REDELIVER_EXCHANGE_OPTIONS, err => {
-    if (err) {
-      return callback(err);
-    }
-
-    declareQueue(MqConstants.REDELIVER_QUEUE_NAME, MqConstants.REDELIVER_QUEUE_OPTIONS, err => {
-      if (err) {
-        return callback(err);
-      }
-
-      return bindQueueToExchange(
-        MqConstants.REDELIVER_QUEUE_NAME,
-        MqConstants.REDELIVER_EXCHANGE_NAME,
-        MqConstants.REDELIVER_QUEUE_NAME,
-        callback
-      );
     });
   });
 };
 
 /**
- * Record the fact that we have begun processing this task.
+ * Purge a list of queues, by calling `purgeQueue` recursively
  *
- * @param  {String}     deliveryKey         A (locally) unique identifier for this message
- * @param  {Object}     data                The task data
- * @param  {Object}     deliveryInfo        The delivery info from RabbitMQ
- * @api private
+ * @function purgeQueues
+ * @param  {Array} allQueues    An array containing all the queue names we want to purge (which are redis Lists).
+ * @param  {Function} done      Standard callback method
+ * @return {Function}           Returns callback
  */
-const _incrementProcessingTask = function(deliveryKey, data, deliveryInfo) {
-  if (numMessagesInProcessing >= MAX_NUM_MESSAGES_IN_PROCESSING) {
-    _dumpProcessingMessages(
-      'Reached maximum number of concurrent messages allowed in processing (' +
-        MAX_NUM_MESSAGES_IN_PROCESSING +
-        '), this probably means there were many messages received that were never acknowledged.' +
-        ' Clearing "messages in processing" to avoid a memory leak. Please analyze the set of message information (messages)' +
-        ' dumped in this log and resolve the issue of messages not being acknowledged.'
-    );
-
-    messagesInProcessing = {};
-    numMessagesInProcessing = 0;
+const purgeQueues = (allQueues, done) => {
+  if (allQueues.length === 0) {
+    return done();
   }
 
-  messagesInProcessing[deliveryKey] = { data, deliveryInfo };
-  numMessagesInProcessing++;
+  const nextQueueToPurge = allQueues.pop();
+  purgeQueue(nextQueueToPurge, () => {
+    purgeQueue(getProcessingQueueFor(nextQueueToPurge), () => {
+      return purgeQueues(allQueues, done);
+    });
+  });
 };
 
 /**
- * Record the fact that we have finished processing this task.
+ * Purges the queues which are currently subscribed (or bound to a listener)
  *
- * @param  {String}     deliveryKey         A (locally) unique identifier for this message
- * @api private
+ * @function purgeAllBoundQueues
+ * @param  {Function} callback Standard callback method
  */
-const _decrementProcessingTask = function(deliveryKey) {
-  delete messagesInProcessing[deliveryKey];
-  numMessagesInProcessing--;
-
-  if (numMessagesInProcessing === 0) {
-    MQ.emit('idle');
-  } else if (numMessagesInProcessing < 0) {
-    // In this case, what likely happened was we overflowed our concurrent tasks, flushed it to 0, then
-    // some existing tasks completed. This is the best way I can think of handling it that will "self
-    // recover" eventually. Concurrent tasks overflowing is a sign of a leak (i.e., a task is handled
-    // but never acknowleged). When this happens there should be a dump of some tasks in the logs and
-    // and they should be investigated and resolved.
-    numMessagesInProcessing = 0;
-  }
+const purgeAllBoundQueues = callback => {
+  const queuesToPurge = _.keys(queueBindings);
+  purgeQueues(queuesToPurge, callback);
 };
 
 /**
- * Log a message with the in-processing messages in the log line. This will log at must `NUM_MESSAGES_TO_DUMP`
- * messages.
+ * Quits (aka disconnect) all active redis clients
  *
- * @param  {String}     logMessage
- * @api private
+ * @function quitAllConnectedClients
+ * @param  {Function} done Standard callback function
+ * @return {Function} Returns `quitAllClients` method
  */
-const _dumpProcessingMessages = function(logMessage) {
-  log().warn({ messages: _.values(messagesInProcessing).slice(0, NUM_MESSAGES_TO_DUMP) }, logMessage);
+const quitAllConnectedClients = done => {
+  return quitAllClients(getAllActiveClients(), done);
+};
+
+/**
+ * Quits (or disconnects) all the redis clients given
+ *
+ * @function quitAllClients
+ * @param  {Array} allClients   An array of redis clients we want to quit (disconnect)
+ * @param  {Function} done      Standard callback function
+ * @return {Function}           Returns callback
+ */
+const quitAllClients = (allClients, done) => {
+  if (allClients.length === 0) {
+    subscribers = {};
+    return done();
+  }
+
+  const nextClientToQuit = allClients.shift();
+  nextClientToQuit.quit(err => {
+    if (err) return done(err);
+    quitAllClients(allClients, done);
+  });
+};
+
+/**
+ * Fetches the length of a queue (which is a redis list)
+ *
+ * @function getQueueLength
+ * @param  {String}   queueName The queue we want to know the length of
+ * @param  {Function} callback  Standard callback function
+ */
+const getQueueLength = (queueName, callback) => {
+  manager.llen(queueName, (err, count) => {
+    if (err) return callback(err);
+
+    return callback(null, count);
+  });
+};
+
+/**
+ * Fetches the redis connection used to subscribe to a specific queue
+ * There is one redis connection per queue
+ *
+ * @function _getOrCreateSubscriberForQueue
+ * @param  {String} queueName   The queue name, which the client is or will be subscribing
+ * @param  {Function} callback  Standard callback function
+ * @return {Function}           Returns callback
+ */
+const _getOrCreateSubscriberForQueue = (queueName, callback) => {
+  if (subscribers[queueName]) {
+    return callback(null, subscribers[queueName]);
+  }
+
+  Redis.createClient(redisConfig, (err, client) => {
+    if (err) return callback(err);
+
+    subscribers[queueName] = client;
+    return callback(null, subscribers[queueName]);
+  });
+};
+
+/**
+ * Utility function for getting the name of the corresponding redelivery queue
+ * The rule is we just append `-redelivery` to a queueName
+ *
+ * @function getRedeliveryQueueFor
+ * @param  {String} queueName The queue name which we want the corresponding redelivery queue for
+ * @return {String} The redelivery queue name
+ */
+const getRedeliveryQueueFor = queueName => {
+  return `${queueName}-redelivery`;
+};
+
+/**
+ * Utility function for getting the name of the corresponding processiing queue
+ * The rule is we just append `-processing` to a queueName
+ *
+ * @function getProcessingQueueFor
+ * @param  {String} queueName The queue name which we want the corresponding processing queue for
+ * @return {String} The processing queue name
+ */
+const getProcessingQueueFor = queueName => {
+  return `${queueName}-processing`;
 };
 
 export {
-  MQ as emitter,
-  rejectMessage,
+  emitter,
   init,
-  declareExchange,
-  declareQueue,
-  isQueueDeclared,
-  bindQueueToExchange,
-  unbindQueueFromExchange,
-  subscribeQueue,
-  unsubscribeQueue,
+  subscribe,
+  unsubscribe,
+  purgeQueue,
+  purgeQueues,
+  purgeAllBoundQueues,
+  getBoundQueues,
   submit,
-  getBoundQueueNames,
-  purge,
-  purgeAll
+  getQueueLength,
+  getAllActiveClients as getAllConnectedClients,
+  quitAllConnectedClients
 };

@@ -627,7 +627,7 @@ const iterateAll = function(columnNames, columnFamily, keyColumnName, opts, onEa
     const extraColumnNames = [keyColumnName];
 
     // Only return the key column to the caller if they specified to do so
-    returnKeyColumn = columnNames.indexOf(keyColumnName) !== -1;
+    returnKeyColumn = columnNames.includes(keyColumnName);
 
     // Add the additional entries to the column names
     columnNames = _.union(columnNames, extraColumnNames);
@@ -748,7 +748,7 @@ const _buildIterateAllQuery = function(columnNames, columnFamily, keyColumnName,
     // Quote all the column names and join with a comma
     cql += _.map(columnNames, columnName => {
       // Check if `columnName` contains a quote as it might be calling a function
-      if (columnName.indexOf('"') === -1) {
+      if (!columnName.includes('"')) {
         return util.format('"%s"', columnName);
 
         // Return as-is
@@ -852,8 +852,8 @@ const constructUpsertCQL = function(cf, rowKey, rowValue, values, ttl) {
   }
 
   const whereClause = [];
-  for (let i = 0; i < rowKey.length; i++) {
-    whereClause.push(util.format('"%s" = ?', rowKey[i]));
+  for (const [i, element] of rowKey.entries()) {
+    whereClause.push(util.format('"%s" = ?', element));
     q.parameters.push(rowValue[i]);
   }
 
@@ -1000,6 +1000,19 @@ const _truncateString = function(str, ifOverSize) {
   return str;
 };
 
+const parsePreviewsFromRow = row => {
+  const hash = rowToHash(row);
+  if (hash.previews) {
+    try {
+      hash.previews = JSON.parse(hash.previews);
+    } catch {
+      hash.previews = {};
+    }
+  }
+
+  return hash;
+};
+
 export {
   init,
   close,
@@ -1018,5 +1031,6 @@ export {
   runAllPagesQuery,
   iterateAll,
   rowToHash,
-  constructUpsertCQL
+  constructUpsertCQL,
+  parsePreviewsFromRow
 };

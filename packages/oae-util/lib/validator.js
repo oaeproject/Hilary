@@ -269,7 +269,7 @@ Validator.prototype.isString = function(val) {
  */
 Validator.prototype.isValidTimeZone = function() {
   // Only timezones of the following format are supported: `foo/bar[/optional]`
-  if (!tz.timezone.timezone.zones[this.str] || this.str.indexOf('/') === -1) {
+  if (!tz.timezone.timezone.zones[this.str] || !this.str.includes('/')) {
     this.error(this.msg || 'Invalid timezone');
   }
 

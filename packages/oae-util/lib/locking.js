@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import redback from 'redback';
+import Redlock from 'redlock';
 
 import { logger } from 'oae-logger';
 
@@ -22,13 +22,29 @@ import { Validator } from './validator';
 
 const log = logger('oae-util-locking');
 
-let lock = null;
+let locker = null;
 
 /**
  * Initialize the Redis based locking
  */
 const init = function() {
-  lock = redback.use(Redis.getClient()).createLock('oae');
+  locker = new Redlock([Redis.getClient()], {
+    /**
+     * From https://www.npmjs.com/package/redlock#how-do-i-check-if-something-is-locked:
+     *
+     * Redlock cannot tell you with certainty if a resource is currently locked.
+     * For example, if you are on the smaller side of a network partition you will fail to acquire a lock,
+     * but you don't know if the lock exists on the other side; all you know is that you can't
+     * guarantee exclusivity on yours.
+     *
+     * That said, for many tasks it's sufficient to attempt a lock with retryCount=0, and treat a
+     * failure as the resource being "locked" or (more correctly) "unavailable",
+     * With retryCount=-1 there will be unlimited retries until the lock is aquired.
+     */
+    retryDelay: 500, // the time in ms between attempts
+    retryJitter: 500, // the max time in ms randomly added to retries to improve performance under high contention
+    retryCount: 0 // the max number of times Redlock will attempt to lock a resource before erroring
+  });
 };
 
 /**
@@ -41,7 +57,8 @@ const init = function() {
  * @param  {Number}    expiresIn       Maximum number of seconds for which to hold the lock
  * @param  {Function}  callback        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any
- * @param  {String}    callback.token  An identifier for the lock that was granted. If unspecified, the lock was already held by someone else
+ * @param  {Object}    callback.lock   An object which is the actual Lock that was granted
+ * @returns {Function}                 Returns a callback
  */
 const acquire = function(lockKey, expiresIn, callback) {
   const validator = new Validator();
@@ -69,37 +86,47 @@ const acquire = function(lockKey, expiresIn, callback) {
 
   log().trace({ lockKey }, 'Trying to acquire lock.');
 
-  lock.acquire(lockKey, expiresIn, callback);
+  locker.lock(lockKey, expiresIn * 1000, (err, lock) => {
+    if (err) {
+      log().warn({ err }, 'Unable to lock for ' + lockKey);
+      return callback(err);
+    }
+
+    return callback(null, lock);
+  });
 };
 
 /**
  * Release a lock
  *
- * @param  {String}     lockKey             The unique key for the lock to release
- * @param  {String}     token               The identifier of the lock that was given when the lock was acquired
- * @param  {Function}   callback            Standard callback function
- * @param  {Object}     callback.err        An error that occurred, if any
- * @param  {Boolean}    callback.hadLock    Specifies whether or not we actually released a lock
+ * @param   {Object}     lock                Lock to be released
+ * @param   {Function}   callback            Standard callback function
+ * @param   {Object}     callback.err        An error that occurred, if any
+ * @param   {Boolean}    callback.hadLock    Specifies whether or not we actually released a lock
+ * @returns {Function}                      Returns a callback
  */
-const release = function(lockKey, token, callback) {
+const release = function(lock, callback) {
   const validator = new Validator();
   validator
-    .check(lockKey, {
+    .check(lock, {
       code: 400,
       msg: 'The key of the lock to try and release needs to be specified'
-    })
-    .notNull();
-  validator
-    .check(token, {
-      code: 400,
-      msg: 'The identifier of the lock that was given when the lock was acquired needs to be specified'
     })
     .notNull();
   if (validator.hasErrors()) {
     return callback(validator.getFirstError());
   }
 
-  lock.release(lockKey, token, callback);
+  // the first parameter is not necessary after the
+  // migration from redback to redlock
+  locker.unlock(lock, err => {
+    if (err) {
+      log().error({ err }, 'Unable to release the lock ' + lock.value);
+      return callback(err);
+    }
+
+    return callback();
+  });
 };
 
 export { init, acquire, release };

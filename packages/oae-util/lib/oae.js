@@ -101,7 +101,7 @@ const init = function(config, callback) {
  * pre-shutdown handler is to gracefully put the system in a state where it does not receive new work. For example:
  *
  *  1. Shut down the web server listeners such that new user web requests are not proxied to this app node; or
- *  2. unbind RabbitMQ task listeners so this node does not receive anymore tasks such as indexing, activity, etc...
+ *  2. unbind redis queue task listeners so this node does not receive anymore tasks such as indexing, activity, etc...
  *
  * @param  {String}     name                The name of the handler, it should be unique, so make sure you prefix it with your module
  * @param  {Number}     [maxTimeMillis]     The maximum amount of time to allow for this handler to finish before moving on to shutdown. Default `PRESHUTDOWN_DEFAULT_TIMEOUT_MILLIS` (15 seconds)

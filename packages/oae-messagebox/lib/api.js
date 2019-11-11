@@ -35,6 +35,7 @@ const DURATION_RECENT_CONTRIBUTIONS_SECONDS = 30 * 24 * 60 * 60;
 
 // A regex that will find links in the body. Note that we capture the characters just before and
 // after the URL so we can determine whether the URL is already provided in markdown format
+// eslint-disable-next-line prefer-regex-literals
 const REGEXP_LINK = new RegExp(
   '(.?)https?://([^/\\r\\n\\s]+)(/[-A-Z0-9+&@#/%?=~_|!:,.;]*[-A-Z0-9+&@#/%=~_|])(.?)',
   'gi'
@@ -71,25 +72,25 @@ const replaceLinks = function(body) {
 
     // If there are an odd number of backtics before the match it's inside a quote and should be
     // left as is
-    const inQuote = body.substring(0, offset + 1).split('`').length % 2 === 0;
+    const inQuote = body.slice(0, offset + 1).split('`').length % 2 === 0;
 
     // If the line the match is on starts with 4 spaces and all preceding lines since the last
     // blank line do too it's a block quote and should be left as is
     let inBlockQuote = false;
-    const lineIndex = body.substring(0, offset + 1).lastIndexOf('\n');
+    const lineIndex = body.slice(0, offset + 1).lastIndexOf('\n');
 
     // If the matched line starts with 4 spaces
-    if (body.substr(lineIndex + 1, 4) === '    ') {
-      const preMatchBody = body.substring(0, lineIndex + 1);
+    if (body.slice(lineIndex + 1, lineIndex + 1 + 4) === '    ') {
+      const preMatchBody = body.slice(0, lineIndex + 1);
       const lastParaIndex = preMatchBody.lastIndexOf('\n\n');
       if (lastParaIndex !== -1) {
-        const lastParaLine = body.substring(0, lastParaIndex + 1).split('\n').length;
+        const lastParaLine = body.slice(0, lastParaIndex + 1).split('\n').length;
         // Get just the lines between the last double linebreak and our match
         let lines = preMatchBody.split('\n');
         lines = lines.slice(lastParaLine, lines.length - 1);
         // Check that all lines in this block start with 4 spaces
         const allLinesStartWith4Spaces = _.every(lines, line => {
-          return line.substring(0, 4) === '    ';
+          return line.slice(0, 4) === '    ';
         });
         inBlockQuote = _.isEmpty(lines) || allLinesStartWith4Spaces;
       }
@@ -178,7 +179,7 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
     // Locking is required to make sure we don't end up with 2 messages that were
     // created at exactly the same time
     const id = replyToThreadKey ? replyToThreadKey : messageBoxId;
-    _lockUniqueTimestamp(id, Date.now(), (created, lockKey, lockToken) => {
+    _lockUniqueTimestamp(id, Date.now(), (created, lock) => {
       // Data that will be output in diagnostic error messages
       const diagnosticData = {
         messageBoxId,
@@ -250,7 +251,7 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
           return callback(null, message);
         });
       });
-      Locking.release(lockKey, lockToken, () => {});
+      Locking.release(lock, () => {});
     });
   });
 };
@@ -269,19 +270,18 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
  */
 const _lockUniqueTimestamp = function(id, timestamp, callback) {
   const key = 'oae-messagebox:' + id + ':' + timestamp;
-  Locking.acquire(key, 1, (err, lockToken) => {
+  Locking.acquire(key, 1, (err, lock) => {
     if (err) {
+      // Migration from redback to redlock:
       // This should only occur if Redis is down, just return the requested ts
-      return callback(timestamp, lockToken);
-    }
-
-    if (!lockToken) {
+      // In that case, one should `return callback(timestamp, lockToken);`
+      // Or
       // Someone else has the requested ts, try to lock one ms later
       return _lockUniqueTimestamp(id, timestamp + 1, callback);
     }
 
     // Successful lock, return the details
-    return callback(timestamp, key, lockToken);
+    return callback(timestamp, lock);
   });
 };
 

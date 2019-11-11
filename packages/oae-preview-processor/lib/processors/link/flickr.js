@@ -317,8 +317,8 @@ const _base58Decode = function(s) {
   //  - Add it up                                                     (=val)
   let val = 0;
   let exp = 1;
-  for (let i = 0; i < reversed.length; i++) {
-    const position = alphabet.indexOf(reversed[i]);
+  for (const element of reversed) {
+    const position = alphabet.indexOf(element);
     val += exp * position;
     exp *= alphabet.length;
   }

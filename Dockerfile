@@ -32,22 +32,23 @@ LABEL Name=OAE-Hilary
 LABEL Author=ApereoFoundation
 LABEL Email=oae@apereo.org
 
+# Install system dependencies
 RUN apk --update --no-cache add \
-    git \
-		python \
-    ghostscript \
-    graphicsmagick
+      git \
+      python \
+      ghostscript \
+      graphicsmagick
 
-# Installs the 3.8 Chromium package.
+# Installs the 3.9 Chromium package.
 RUN apk update && apk upgrade && \
-    echo @3.8 http://nl.alpinelinux.org/alpine/v3.8/community >> /etc/apk/repositories && \
-    echo @3.8 http://nl.alpinelinux.org/alpine/v3.8/main >> /etc/apk/repositories && \
-    apk add --no-cache \
-      chromium@3.8 \
-      nss@3.8 \
-      freetype@3.8 \
-      harfbuzz@3.8 \
-      ttf-freefont@3.8
+      echo @3.9 http://nl.alpinelinux.org/alpine/v3.9/community >> /etc/apk/repositories && \
+      echo @3.9 http://nl.alpinelinux.org/alpine/v3.9/main >> /etc/apk/repositories && \
+      apk add --no-cache \
+      chromium@3.9 \
+      nss@3.9 \
+      freetype@3.9 \
+      harfbuzz@3.9 \
+      ttf-freefont@3.9
 
 # Tell Puppeteer to skip installing Chrome. We'll be using the installed package.
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
@@ -59,26 +60,30 @@ RUN apk add --no-cache libreoffice openjdk8-jre
 RUN apk --update --no-cache add build-base libgit2-dev
 RUN ln -s /usr/lib/libcurl.so.4 /usr/lib/libcurl-gnutls.so.4
 
-# Set the base directory
-ENV HILARY_DIR /usr/src/Hilary
-RUN mkdir -p ${HILARY_DIR} \
-    && chown -R node:node ${HILARY_DIR} \
-    && chmod -R 755 ${HILARY_DIR}
+# Set the Hilary directory
+ENV CODE_DIR /usr/src
+ENV HILARY_DIR ${CODE_DIR}/Hilary
+RUN mkdir -p ${HILARY_DIR}
 WORKDIR ${HILARY_DIR}
+
+# Set the right permissions for Hilary
+RUN chown -R node:node ${CODE_DIR} \
+      && chmod -R 755 ${CODE_DIR}
 
 # Create the temp directory for Hilary
 ENV TMP_DIR /tmp
-RUN mkdir -p ${TMP_DIR} \
-    && chown -R node:node ${TMP_DIR} \
-    && chmod -R 755 ${TMP_DIR} \
-    && export TMP=${TMP_DIR}
+RUN mkdir -p ${TMP_DIR}
+RUN chown -R node:node ${TMP_DIR} \
+      && chmod -R 755 ${TMP_DIR} \
+      && export TMP=${TMP_DIR}
 
 # Expose ports for node server
 EXPOSE 2000
 EXPOSE 2001
 
+# Change user from now on
 USER node
 
 # Run the app - you may override CMD via docker run command line instruction
 ENTRYPOINT ["/bin/sh", "-c"]
-CMD ["nodemon -L app.js | bunyan"]
+CMD ["node app.js | bunyan"]

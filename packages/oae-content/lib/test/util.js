@@ -25,7 +25,7 @@ import * as MqTestUtil from 'oae-util/lib/test/mq-util';
 import * as LibraryTestUtil from 'oae-library/lib/test/util';
 import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
 import * as RestAPI from 'oae-rest';
-import * as TaskQueue from 'oae-util/lib/taskqueue';
+import * as MQ from 'oae-util/lib/mq';
 import * as TestsUtil from 'oae-tests/lib/util';
 
 import { ContentConstants } from 'oae-content/lib/constants';
@@ -839,7 +839,7 @@ const createCollabDoc = function(adminRestContext, nrOfUsers, nrOfJoinedUsers, c
 
 /**
  * Publish a collaborative document. This function will mimick Etherpad's
- * publishing behaviour by sending the appropriate message to RabbitMQ
+ * publishing behaviour by sending the appropriate message to Redis
  *
  * @param  {String}     contentId   The ID of the content item
  * @param  {String}     userId      The ID of the user who will be publishing the collaborative document
@@ -851,7 +851,7 @@ const publishCollabDoc = function(contentId, userId, callback) {
     contentId,
     userId
   };
-  TaskQueue.submit(ContentConstants.queue.ETHERPAD_PUBLISH, data, err => {
+  MQ.submit(ContentConstants.queue.ETHERPAD_PUBLISH, JSON.stringify(data), err => {
     assert.ok(!err);
   });
 

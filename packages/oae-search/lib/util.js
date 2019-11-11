@@ -158,8 +158,7 @@ const transformSearchResults = function(ctx, transformers, results, callback) {
   const docsByType = {};
   const docIdOrdering = {};
   hits = hits.hits;
-  for (let i = 0; i < hits.length; i++) {
-    const doc = hits[i];
+  for (const [i, doc] of hits.entries()) {
     const id = doc._id;
     let type = doc.fields.resourceType;
 
@@ -191,8 +190,8 @@ const transformSearchResults = function(ctx, transformers, results, callback) {
       // If we aren't using the default transformer, ensure the resourceType property by merging it over the doc, it should never change and don't necessarily need to be manually applied by an extension transformer
       if (resourceType !== '*') {
         const docIds = _.keys(docs);
-        for (let i = 0; i < docIds.length; i++) {
-          const doc = docs[docIds[i]];
+        for (const element of docIds) {
+          const doc = docs[element];
           doc.resourceType = resourceType;
         }
       }

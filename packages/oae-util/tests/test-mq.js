@@ -1,4 +1,4 @@
-/*
+/*!
  * Copyright 2014 Apereo Foundation (AF) Licensed under the
  * Educational Community License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License. You may
@@ -19,29 +19,38 @@ import _ from 'underscore';
 import ShortId from 'shortid';
 
 import * as MQ from 'oae-util/lib/mq';
-import * as TaskQueue from 'oae-util/lib/taskqueue';
+import { whenTasksEmpty as waitUntilProcessed } from 'oae-util/lib/test/mq-util';
+import { config } from '../../../config';
 
 describe('MQ', () => {
-  /**
-   * Some options that can be used to bind to a message queue.
-   */
-  const purgeQueueOptions = {
-    subscribe: {
-      prefetchCount: 1
-    },
-    queue: {
-      durable: false
-    }
-  };
-
   /**
    * Verify that re-initializing the MQ doesn't invoke an error
    */
   it('verify re-initialization is safe', callback => {
     // Ensure processing continues, and that MQ is still stable with the tests that follow
-    MQ.init({}, err => {
+    MQ.init(config.mq, err => {
       assert.ok(!err);
       return callback();
+    });
+  });
+
+  /**
+   * We disconnect all clients, make sure they no longer work
+   * then we connect again and proceed with the tests
+   */
+  it('verify quitting all clients works', callback => {
+    assertAllClientsAreConnected(MQ.getAllConnectedClients(), () => {
+      MQ.quitAllConnectedClients(err => {
+        assert.ok(!err);
+        assertAllClientsAreDisconnected(MQ.getAllConnectedClients(), () => {
+          MQ.init(config.mq, err => {
+            assert.ok(!err);
+            assertAllClientsAreConnected(MQ.getAllConnectedClients(), () => {
+              return callback();
+            });
+          });
+        });
+      });
     });
   });
 
@@ -50,8 +59,8 @@ describe('MQ', () => {
      * Test that verifies the parameters
      */
     it('verify parameter validation', callback => {
-      const name = util.format('testQueue-%s', ShortId.generate());
-      MQ.purge(name, err => {
+      const queueName = util.format('testQueue-%s', ShortId.generate());
+      MQ.purgeQueue('', err => {
         assert.strictEqual(err.code, 400);
         return callback();
       });
@@ -61,26 +70,39 @@ describe('MQ', () => {
      * Verify that a queue can be purged of its tasks.
      */
     it('verify a queue can be purged', callback => {
-      let called = 0;
-      const taskHandler = function(data, taskCallback) {
-        called++;
-        setTimeout(taskCallback, 2000);
+      const testQueue = 'testQueue-' + new Date().getTime();
+
+      let counter = 0;
+      const increment = (message, done) => {
+        counter++;
+        return done(new Error(`I want these tasks to be redelivered!`));
       };
 
-      const testQueue = 'testQueue-' + new Date().getTime();
-      TaskQueue.bind(testQueue, taskHandler, purgeQueueOptions, () => {
-        // Submit a couple of tasks.
-        for (let i = 0; i < 10; i++) {
-          TaskQueue.submit(testQueue, { foo: 'bar' });
-        }
+      // we need subscribe even though we don't use it,
+      // otherwise it won't submit to a queue that hasn't been subscribed
+      MQ.subscribe(testQueue, increment, err => {
+        const allTasks = new Array(10).fill({ foo: 'bar' });
+        submitTasksToQueue(testQueue, allTasks, err => {
+          assert(!err);
 
-        // Purge the queue.
-        MQ.purge(testQueue, () => {
-          // Because of the asynchronous nature of node/rabbitmq it's possible that a task gets delivered
-          // before the purge command is processed.
-          // That means we should have only handled at most 1 task.
-          assert.ok(called <= 1);
-          callback();
+          MQ.getQueueLength(`${testQueue}-redelivery`, (err, count) => {
+            assert.ok(!err);
+            // the redelivery mechanism is asynchronous, so counters must be close to 10
+            assert(counter >= 1, 'The number of tasks handled should be at least 1');
+            assert(counter <= 10, 'The number of tasks handled should be close to 10');
+            assert(count >= 1, 'The number of tasks on redelivery should be at least 1');
+            assert(count <= 10, 'The number of tasks on redelivery should be close to 10');
+
+            MQ.purgeQueue(testQueue, err => {
+              assert(!err);
+
+              MQ.getQueueLength(testQueue, (err, count) => {
+                assert.ok(!err);
+                assert(count === 0, 'Purged queue should have zero length');
+                callback();
+              });
+            });
+          });
         });
       });
     });
@@ -91,312 +113,50 @@ describe('MQ', () => {
      * Verify that all known queues can be purged of its tasks.
      */
     it('verify all queues can be purged', callback => {
-      const called = { a: 0, b: 0 };
-      const taskHandler = function(data, taskCallback) {
-        called[data.queue]++;
-        setTimeout(taskCallback, 2000);
+      const counters = { a: 0, b: 0 };
+      const increment = (data, done) => {
+        counters[data.queue]++;
+
+        /**
+         * By doing this we are making sure the tasks are re-submitted
+         * to another queue which is named after the first one: ${queueName}-redelivery
+         */
+        return done(new Error('I want these tasks to be redelivered!'));
       };
 
       const testQueueA = 'testQueueA-' + new Date().getTime();
       const testQueueB = 'testQueueB-' + new Date().getTime();
-      TaskQueue.bind(testQueueA, taskHandler, purgeQueueOptions, () => {
-        TaskQueue.bind(testQueueB, taskHandler, purgeQueueOptions, () => {
-          // Submit a couple of tasks.
-          for (let i = 0; i < 10; i++) {
-            TaskQueue.submit(testQueueA, { queue: 'a' });
-            TaskQueue.submit(testQueueB, { queue: 'b' });
-          }
+      const allTasksForQueueA = new Array(10).fill({ queue: 'a' });
+      const allTasksForQueueB = new Array(10).fill({ queue: 'b' });
 
-          // Purge all the queues.
-          MQ.purgeAll(() => {
-            // Because of the asynchronous nature of node/rabbitmq it's possible that a task gets delivered
-            // before the purge command is processed.
-            // That means we should have only handled at most 1 task.
-            assert.ok(called.a <= 10);
-            assert.ok(called.b <= 10);
-            callback();
-          });
-        });
-      });
-    });
-  });
+      const bothQueues = [`${testQueueA}-redelivery`, `${testQueueB}-redelivery`];
 
-  describe('#declareExchange()', () => {
-    /**
-     * Test that verifies that the parameters are validated
-     */
-    it('verify parameter validation', callback => {
-      MQ.declareExchange(null, { durable: false, autoDelete: true }, err => {
-        assert.strictEqual(err.code, 400);
+      MQ.subscribe(testQueueA, increment, () => {
+        MQ.subscribe(testQueueB, increment, () => {
+          submitTasksToQueue(testQueueA, allTasksForQueueA, err => {
+            assert(!err);
+            waitUntilProcessed(testQueueA, () => {
+              assert(counters.a >= 1, 'The number of tasks on redelivery should be at least 1');
+              assert(counters.a <= 10, 'The number of tasks on redelivery should be close to 10');
+              submitTasksToQueue(testQueueB, allTasksForQueueB, err => {
+                assert(!err);
+                waitUntilProcessed(testQueueA, () => {
+                  assert(counters.b >= 1, 'The number of tasks on redelivery should be at least 1');
+                  assert(counters.b <= 10, 'The number of tasks on redelivery should be close to 10');
 
-        // Sanity check
-        const exchangeName = util.format('testExchange-%s', ShortId.generate());
-        MQ.declareExchange(exchangeName, { durable: false, autoDelete: true }, err => {
-          assert.ok(!err);
-          return callback();
-        });
-      });
-    });
-    /**
-     * Test that verifies that exchanges cannot be declared twice
-     */
-    it('verify exchanges cannot be declared twice', callback => {
-      const exchangeName = util.format('testExchange-%s', ShortId.generate());
-      MQ.declareExchange(exchangeName, { durable: false, autoDelete: true }, err => {
-        assert.ok(!err);
-        MQ.declareExchange(exchangeName, { durable: false, autoDelete: true }, err => {
-          assert.strictEqual(err.code, 400);
-          return callback();
-        });
-      });
-    });
-  });
+                  MQ.purgeQueues(bothQueues, err => {
+                    assert(!err);
+                    MQ.getQueueLength(bothQueues[0], (err, count) => {
+                      assert.ok(!err);
+                      assert(count === 0, 'Purged queues should be zero length');
+                      MQ.getQueueLength(bothQueues[1], (err, count) => {
+                        assert.ok(!err);
+                        assert(count === 0, 'Purged queues should be zero length');
 
-  describe('#declareQueue()', () => {
-    /**
-     * Test that verifies that the parameters are validated
-     */
-    it('verify parameter validation', callback => {
-      MQ.declareQueue(null, { durable: false, autoDelete: true }, err => {
-        assert.strictEqual(err.code, 400);
-
-        // Sanity check
-        const queueName = util.format('testQueue-%s', ShortId.generate());
-        MQ.declareQueue(queueName, { durable: false, autoDelete: true }, err => {
-          assert.ok(!err);
-          return callback();
-        });
-      });
-    });
-
-    /**
-     * Test that verifies that queues cannot be declared twice
-     */
-    it('verify queues cannot be declared twice', callback => {
-      const queueName = util.format('testQueue-%s', ShortId.generate());
-      MQ.declareQueue(queueName, { durable: false, autoDelete: true }, err => {
-        assert.ok(!err);
-        MQ.declareQueue(queueName, { durable: false, autoDelete: true }, err => {
-          assert.strictEqual(err.code, 400);
-          return callback();
-        });
-      });
-    });
-  });
-
-  describe('#isQueueDeclared()', () => {
-    /**
-     * Test that verifies that it can be retrieved whether or not queues are declared
-     */
-    it('verify isQueueDeclared works', callback => {
-      const queueName = util.format('testQueue-%s', ShortId.generate());
-      const exchangeName = util.format('testExchange-%s', ShortId.generate());
-
-      let isDeclared = MQ.isQueueDeclared(queueName);
-      assert.strictEqual(isDeclared, false);
-
-      MQ.declareQueue(queueName, { durable: false, autoDelete: true }, err => {
-        assert.ok(!err);
-
-        isDeclared = MQ.isQueueDeclared(queueName);
-        assert.strictEqual(isDeclared, true);
-        return callback();
-      });
-    });
-  });
-
-  describe('#bindQueueToExchange()', () => {
-    /**
-     * Test that verifies that the parameters are validated
-     */
-    it('verify parameter validation', callback => {
-      const exchangeName = util.format('testExchange-%s', ShortId.generate());
-      const queueName = util.format('testQueue-%s', ShortId.generate());
-      const routingKey = util.format('testRoutingKey-%s', ShortId.generate());
-
-      MQ.declareExchange(exchangeName, { durable: false, autoDelete: true }, err => {
-        assert.ok(!err);
-        MQ.declareQueue(queueName, { durable: false, autoDelete: true }, err => {
-          assert.ok(!err);
-          MQ.bindQueueToExchange(null, exchangeName, routingKey, err => {
-            assert.strictEqual(err.code, 400);
-            MQ.bindQueueToExchange(queueName, null, routingKey, err => {
-              assert.strictEqual(err.code, 400);
-              MQ.bindQueueToExchange(queueName, exchangeName, null, err => {
-                assert.strictEqual(err.code, 400);
-
-                // Sanity check that the queue can be bound
-                MQ.bindQueueToExchange(queueName, exchangeName, routingKey, err => {
-                  assert.ok(!err);
-
-                  // Tidy up after ourselves and remove the binding
-                  MQ.unbindQueueFromExchange(queueName, exchangeName, routingKey, err => {
-                    assert.ok(!err);
-                    return callback();
+                        callback();
+                      });
+                    });
                   });
-                });
-              });
-            });
-          });
-        });
-      });
-    });
-
-    /**
-     * Test that verifies a queue can be bound to an exchange
-     */
-    it('verify functionality', callback => {
-      const exchangeName = util.format('testExchange-%s', ShortId.generate());
-      const queueName = util.format('testQueue-%s', ShortId.generate());
-      const routingKey = util.format('testRoutingKey-%s', ShortId.generate());
-      const data = { text: 'The truth is out there' };
-
-      MQ.declareExchange(exchangeName, { durable: false, autoDelete: true }, err => {
-        assert.ok(!err);
-        MQ.declareQueue(queueName, { durable: false, autoDelete: true }, err => {
-          assert.ok(!err);
-          const listener = function(msg) {
-            // Verify the message we receive is correct
-            assert.strictEqual(msg.text, data.text);
-
-            // Unbind the queue so both the queue and exchange will go away when we restart rabbitmq-server
-            MQ.unbindQueueFromExchange(queueName, exchangeName, routingKey, err => {
-              assert.ok(!err);
-              return callback();
-            });
-          };
-
-          MQ.subscribeQueue(queueName, {}, listener, err => {
-            assert.ok(!err);
-
-            MQ.bindQueueToExchange(queueName, exchangeName, routingKey, err => {
-              assert.ok(!err);
-
-              MQ.submit(exchangeName, routingKey, data);
-            });
-          });
-        });
-      });
-    });
-
-    /**
-     * Test that verifies you can bind queues to exchanges in parallel
-     */
-    it('verify you can bind queues to exchanges in parallel', callback => {
-      const exchangeName = util.format('testExchange-%s', ShortId.generate());
-      const queueName = util.format('testQueue-%s', ShortId.generate());
-      const data = { text: 'The truth is out there' };
-      const routingKeys = [];
-      for (let i = 0; i < 100; i++) {
-        routingKeys.push('key-' + i);
-      }
-
-      MQ.declareExchange(exchangeName, { durable: false, autoDelete: true }, err => {
-        assert.ok(!err);
-        MQ.declareQueue(queueName, { durable: false, autoDelete: true }, err => {
-          assert.ok(!err);
-
-          // This test passes if we receive a message from RabbitMQ for each of our routing keys
-          const receivedMessage = _.after(routingKeys.length, message => {
-            return callback();
-          });
-
-          // Subscribe for incoming messages
-          MQ.subscribeQueue(queueName, {}, receivedMessage, err => {
-            assert.ok(!err);
-
-            // When our queue is bound for all routing keys, we will submit a message for each one
-            const queueBound = _.after(routingKeys.length, () => {
-              _.each(routingKeys, routingKey => {
-                MQ.submit(exchangeName, routingKey, data);
-              });
-            });
-
-            // Bind our queue for all routing keys
-            _.each(routingKeys, routingKey => {
-              MQ.bindQueueToExchange(queueName, exchangeName, routingKey, err => {
-                assert.ok(!err);
-                queueBound();
-              });
-            });
-          });
-        });
-      });
-    });
-  });
-
-  describe('#unbindQueueFromExchange()', () => {
-    /**
-     * Test that verifies that the parameters are validated
-     */
-    it('verify parameter validation', callback => {
-      const exchangeName = util.format('testExchange-%s', ShortId.generate());
-      const queueName = util.format('testQueue-%s', ShortId.generate());
-      const routingKey = util.format('testRoutingKey-%s', ShortId.generate());
-
-      MQ.declareExchange(exchangeName, { durable: false, autoDelete: true }, err => {
-        assert.ok(!err);
-        MQ.declareQueue(queueName, { durable: false, autoDelete: true }, err => {
-          assert.ok(!err);
-          MQ.bindQueueToExchange(queueName, exchangeName, routingKey, err => {
-            assert.ok(!err);
-            MQ.unbindQueueFromExchange(null, exchangeName, routingKey, err => {
-              assert.strictEqual(err.code, 400);
-              MQ.unbindQueueFromExchange(queueName, null, routingKey, err => {
-                assert.strictEqual(err.code, 400);
-                MQ.unbindQueueFromExchange(queueName, exchangeName, null, err => {
-                  assert.strictEqual(err.code, 400);
-
-                  // Sanity-check and tidy up
-                  MQ.unbindQueueFromExchange(queueName, exchangeName, routingKey, err => {
-                    assert.ok(!err);
-                    return callback();
-                  });
-                });
-              });
-            });
-          });
-        });
-      });
-    });
-
-    /**
-     * Test that verifies a queue can be unbound from an exchange
-     */
-    it('verify functionality', () => {
-      const exchangeName = util.format('testExchange-%s', ShortId.generate());
-      const queueName = util.format('testQueue-%s', ShortId.generate());
-      const routingKey = util.format('testRoutingKey-%s', ShortId.generate());
-      const data = { text: 'The truth is out there' };
-
-      MQ.declareExchange(exchangeName, { durable: false, autoDelete: true }, err => {
-        assert.ok(!err);
-        MQ.declareQueue(queueName, { durable: false, autoDelete: true }, err => {
-          assert.ok(!err);
-          let handledMessages = 0;
-          const listener = function(msg) {
-            handledMessages++;
-
-            // We should only receive one message
-            assert.strictEqual(handledMessages, 1);
-
-            // Verify the message we receive is correct
-            assert.strictEqual(msg.text, data.text);
-          };
-
-          MQ.subscribeQueue(queueName, {}, listener, err => {
-            assert.ok(!err);
-
-            MQ.bindQueueToExchange(queueName, exchangeName, routingKey, err => {
-              assert.ok(!err);
-
-              MQ.submit(exchangeName, routingKey, data, () => {
-                // Unbind the queue from the exchange, we should no longer receive any messages
-                MQ.unbindQueueFromExchange(queueName, exchangeName, routingKey, err => {
-                  assert.ok(!err);
-
-                  // Submit one more message. If it ends up at our listener the test will fail
-                  MQ.submit(exchangeName, routingKey, data, () => {});
                 });
               });
             });
@@ -408,153 +168,254 @@ describe('MQ', () => {
 
   describe('#submit()', () => {
     /**
-     * Test that verifies the passed in parameters
+     * Verify the parameters
      */
     it('verify parameter validation', callback => {
-      const exchangeName = util.format('testExchange-%s', ShortId.generate());
-      const queueName = util.format('testQueue-%s', ShortId.generate());
-      const routingKey = util.format('testRoutingKey-%s', ShortId.generate());
       const data = { text: 'The truth is out there' };
+      const queueName = util.format('testQueue-%s', ShortId.generate());
 
-      MQ.declareExchange(exchangeName, { durable: false, autoDelete: true }, err => {
-        assert.ok(!err);
+      // A queueName must be provided
+      MQ.submit(null, data, err => {
+        assert.strictEqual(err.code, 400);
 
-        // An exchange must be provided
-        MQ.submit(null, routingKey, data, null, err => {
+        // A message must be provided
+        MQ.submit(queueName, null, err => {
           assert.strictEqual(err.code, 400);
 
-          // A routing-key must be provided
-          MQ.submit(exchangeName, null, data, null, err => {
-            assert.strictEqual(err.code, 400);
-
-            // Sanity check
-            MQ.submit(exchangeName, routingKey, data, null, err => {
-              assert.ok(!err);
-              return callback();
-            });
-          });
-        });
-      });
-    });
-
-    /**
-     * Test that verifies that the callback function in the submit handler is properly executed
-     */
-    it('verify callback', callback => {
-      let exchangeName = util.format('testExchange-%s', ShortId.generate());
-      const routingKey = util.format('testRoutingKey-%s', ShortId.generate());
-      const data = { text: 'The truth is out there' };
-
-      MQ.declareExchange(exchangeName, { durable: false, autoDelete: true }, err => {
-        assert.ok(!err);
-
-        let noConfirmCalled = 0;
-        MQ.submit(exchangeName, routingKey, data, null, err => {
-          assert.ok(!err);
-
-          // This should only be executed once
-          noConfirmCalled++;
-          assert.strictEqual(noConfirmCalled, 1);
-
-          // Declare an exchange that acknowledges the message
-          exchangeName = util.format('testExchange-%s', ShortId.generate());
-          MQ.declareExchange(exchangeName, { durable: false, autoDelete: true, confirm: true }, err => {
+          // Sanity check
+          MQ.submit(queueName, data, err => {
             assert.ok(!err);
-
-            let confirmCalled = 0;
-            MQ.submit(exchangeName, routingKey, data, null, err => {
-              assert.ok(!err);
-
-              // This should only be executed once
-              confirmCalled++;
-              assert.strictEqual(confirmCalled, 1);
-              return callback();
-            });
+            return callback();
           });
         });
       });
     });
 
     /**
-     * Test that verifies when an amqp message is redelivered (rejected or failed), it gets sent into a
-     * redelivery queue for manual intervention, rather than refiring the listener
+     * Verify that submitting a task/message won't even touch redis
+     * unless that queue has been bound (subscribed to) before
      */
-    it('verify redelivered messages are not re-executed', callback => {
-      const exchangeName = util.format('testExchange-%s', ShortId.generate());
+    it('verify submit doesnt work before subscription', callback => {
       const queueName = util.format('testQueue-%s', ShortId.generate());
-      const routingKey = util.format('testRoutingKey-%s', ShortId.generate());
+      const data = { msg: 'Practice makes perfect' };
 
-      // Make sure the redeliver queue is empty to start
-      MQ.purge('oae-util-mq-redeliverqueue', err => {
-        assert.ok(!err);
+      let counter = 0;
+      const taskHandler = (message, done) => {
+        counter++;
 
-        // Create the exchange and queue on which we'll deliver a message and reject it
-        MQ.declareExchange(exchangeName, { durable: false, autoDelete: true }, err => {
+        // make sure there is one task in the queue
+        MQ.getQueueLength(`${queueName}-processing`, (err, count) => {
           assert.ok(!err);
-          MQ.declareQueue(queueName, { durable: false, autoDelete: true }, err => {
+          assert.strictEqual(count, 1, 'There should be one task on the processing queue');
+          done();
+        });
+      };
+
+      MQ.submit(queueName, JSON.stringify(data), err => {
+        assert.ok(!err);
+        assert.strictEqual(counter, 0, 'It has not been subscribed so submit wont deliver the message');
+
+        MQ.subscribe(queueName, taskHandler, err => {
+          assert.ok(!err);
+
+          MQ.submit(queueName, JSON.stringify(data), err => {
             assert.ok(!err);
 
-            // A listener that ensures it only handles the rejected message once
-            let handledMessages = 0;
-            const listener = function(msg, callback) {
-              handledMessages++;
-              if (handledMessages > 1) {
-                // Throw in a new tick to ensure it doesn't get caught by MQ for automatic acknowledgement
-                process.nextTick(() => {
-                  assert.fail('Should only have handled the message at most once');
-                });
-              }
-            };
+            waitUntilProcessed(queueName, () => {
+              assert.strictEqual(counter, 1, 'Task handler should have been called once so far');
 
-            // Subscribe to the queue and allow it to start accepting messages on the exchange
-            MQ.subscribeQueue(queueName, { ack: true }, listener, err => {
+              callback();
+            });
+          });
+        });
+      });
+    });
+
+    /**
+     * Verify that submitting a task/message won't do anything
+     * after unsubscribing to the correspondent queue (which will then be unbound)
+     */
+    it('verify submit doesnt work after unsubscription', callback => {
+      const queueName = util.format('testQueue-%s', ShortId.generate());
+      const data = { msg: 'Practice makes perfect' };
+
+      let counter = 0;
+      const taskHandler = (message, done) => {
+        counter++;
+
+        // make sure there is one task in the queue
+        MQ.getQueueLength(`${queueName}-processing`, (err, count) => {
+          assert.ok(!err);
+          assert.strictEqual(count, 1, 'There should be one task on the processing queue');
+          done();
+        });
+      };
+
+      MQ.subscribe(queueName, taskHandler, err => {
+        assert.ok(!err);
+
+        MQ.submit(queueName, JSON.stringify(data), err => {
+          assert.ok(!err);
+
+          waitUntilProcessed(queueName, () => {
+            assert.strictEqual(counter, 1, 'Task handler should have been called once so far');
+
+            MQ.unsubscribe(queueName, err => {
               assert.ok(!err);
-              MQ.bindQueueToExchange(queueName, exchangeName, routingKey, err => {
+              assert.strictEqual(counter, 1, 'Task handler should have been called once so far');
+
+              MQ.submit(queueName, JSON.stringify(data), err => {
                 assert.ok(!err);
 
-                // Submit a message that we can handle
-                MQ.submit(exchangeName, routingKey, { data: 'test' }, null, err => {
-                  assert.ok(!err);
+                waitUntilProcessed(queueName, () => {
+                  assert.strictEqual(counter, 1, 'Task handler should have been called once so far');
+
+                  callback();
                 });
+              });
+            });
+          });
+        });
+      });
+    });
 
-                // When the raw message comes in, reject it so it gets redelivered
-                _bindPreHandleOnce(queueName, (_queueName, data, headers, deliveryInfo, message) => {
-                  // Reject the message, indicating that we want it requeued and redelivered
-                  MQ.rejectMessage(message, true, () => {
-                    // Ensure that rabbitmq intercepts the redelivery of the rejected message and stuffs it in the redelivery queue
-                    // for manual intervention
-                    MQ.emitter.once('storedRedelivery', _queueName => {
-                      // Here we make sure that the listener received the message the first time. But this does not
-                      // ensure it doesn't receive it the second time. That is what the `assert.fail` is for in the
-                      // listener
-                      assert.strictEqual(handledMessages, 1);
-                      assert.strictEqual(queueName, _queueName);
+    /**
+     * Verify that submitting a message or task works, meaning that the listener
+     * that is bound to the queue after subscribe is executed
+     */
+    it('verify submitting a message just works', callback => {
+      const queueName = util.format('testQueue-%s', ShortId.generate());
+      const data = { msg: 'Practice makes perfect' };
 
-                      // Make sure we can take the item off the redelivery queue
-                      MQ.subscribeQueue(
-                        'oae-util-mq-redeliverqueue',
-                        { prefetchCount: 1 },
-                        (data, listenerCallback) => {
-                          assert.ok(data);
-                          assert.ok(data.headers);
-                          assert.strictEqual(data.deliveryInfo.queue, queueName);
-                          assert.strictEqual(data.deliveryInfo.exchange, exchangeName);
-                          assert.strictEqual(data.deliveryInfo.routingKey, routingKey);
-                          assert.strictEqual(data.data.data, 'test');
+      let counter = 0;
+      const taskHandler = (message, done) => {
+        counter++;
 
-                          // Don't accept any more messages on this queue
-                          MQ.unsubscribeQueue('oae-util-mq-redeliverqueue', err => {
-                            assert.ok(!err);
+        assert.strictEqual(message.msg, data.msg, 'Received message should match the one sent');
 
-                            // Acknowledge the redelivered message so it doesn't go in an infinite redelivery loop
-                            listenerCallback();
+        // make sure there is one task in the queue
+        MQ.getQueueLength(`${queueName}-processing`, (err, count) => {
+          assert.ok(!err);
+          assert.strictEqual(count, 1, 'There should be one task on the processing queue');
+          done();
+        });
+      };
 
-                            return callback();
-                          });
-                        }
-                      );
-                    });
-                  });
+      MQ.subscribe(queueName, taskHandler, err => {
+        assert.ok(!err);
+
+        MQ.submit(queueName, JSON.stringify(data), err => {
+          assert.ok(!err);
+
+          waitUntilProcessed(queueName, () => {
+            assert.strictEqual(counter, 1, 'Task handler should have been called once so far');
+
+            // make sure the queue is Empty, as well the processing and redelivery correspondents
+            MQ.getQueueLength(queueName, (err, count) => {
+              assert.ok(!err);
+              assert.strictEqual(count, 0, 'The queue should be empty');
+              MQ.getQueueLength(`${queueName}-processing`, (err, count) => {
+                assert.ok(!err);
+                assert.strictEqual(count, 0, 'The queue should be empty');
+                MQ.getQueueLength(`${queueName}-redelivery`, (err, count) => {
+                  assert.ok(!err);
+                  assert.strictEqual(count, 0, 'The queue should be empty');
+
+                  callback();
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+
+    /**
+     * Verify that submitting many messages will result in all of them 
+     * being processed aka their listener is executed
+     */
+    it('verify submitting many messages works', callback => {
+      const NUMBER_OF_TASKS = 10;
+      let counter = 0;
+      const queueName = util.format('testQueue-%s', ShortId.generate());
+
+      const allTasks = new Array(NUMBER_OF_TASKS).fill(null).map(each => {
+        return { msg: `Practice ${counter++} times makes perfect` };
+      });
+      // we'll soon shift/pop the array, so let's keep a clone for later
+      const allMessages = allTasks.slice(0);
+
+      counter = 0;
+      const taskHandler = (message, done) => {
+        assert.strictEqual(
+          message.msg,
+          allMessages[counter++].msg,
+          'It should handle tasks in the same order as submitted'
+        );
+        return done();
+      };
+
+      MQ.subscribe(queueName, taskHandler, err => {
+        assert.ok(!err);
+
+        submitTasksToQueue(queueName, allTasks, err => {
+          assert.ok(!err);
+
+          waitUntilProcessed(queueName, () => {
+            assert.strictEqual(
+              counter,
+              NUMBER_OF_TASKS,
+              'Task handler should have been called once for each message sent'
+            );
+
+            // make sure the queue is Empty, as well the processing and redelivery correspondents
+            MQ.getQueueLength(queueName, (err, count) => {
+              assert.ok(!err);
+              assert.strictEqual(count, 0, 'The queue should be empty');
+              MQ.getQueueLength(`${queueName}-processing`, (err, count) => {
+                assert.ok(!err);
+                assert.strictEqual(count, 0, 'The queue should be empty');
+                MQ.getQueueLength(`${queueName}-redelivery`, (err, count) => {
+                  assert.ok(!err);
+                  assert.strictEqual(count, 0, 'The queue should be empty');
+
+                  callback();
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+
+    it('verify that a error handler will cause the message to be redelivered', done => {
+      const queueName = util.format('testQueue-%s', ShortId.generate());
+      const data = { msg: 'You know nothing Jon Snow' };
+      let counter = 0;
+
+      const taskHandler = (message, done) => {
+        counter++;
+
+        // by returning an error, we are causing the redelivery
+        done(new Error('Goodness gracious me!!!'));
+      };
+
+      MQ.subscribe(queueName, taskHandler, err => {
+        assert.ok(!err);
+        MQ.submit(queueName, JSON.stringify(data), err => {
+          assert.ok(!err);
+          waitUntilProcessed(queueName, () => {
+            assert.strictEqual(counter, 1, 'There should be one processed task so far');
+            MQ.getQueueLength(queueName, (err, count) => {
+              assert.ok(!err);
+              assert.strictEqual(count, 0, 'The queue should be empty');
+              MQ.getQueueLength(`${queueName}-processing`, (err, count) => {
+                assert.ok(!err);
+                assert.strictEqual(count, 0, 'The queue should be empty');
+                MQ.getQueueLength(`${queueName}-redelivery`, (err, count) => {
+                  assert.ok(!err);
+                  assert.strictEqual(count, 1, 'There should be one task redelivered for later processing');
+                  done();
                 });
               });
             });
@@ -565,28 +426,48 @@ describe('MQ', () => {
   });
 });
 
+// Recursive submission of an array of tasks to a specific queue
+const submitTasksToQueue = (queueName, tasks, done) => {
+  if (tasks.length === 0) return done();
+
+  const poppedTask = tasks.shift();
+  MQ.submit(queueName, JSON.stringify(poppedTask), () => {
+    return submitTasksToQueue(queueName, tasks, done);
+  });
+};
+
 /**
- * Bind a listener to the MQ preHandle event for a particular queue name. The bound function
- * will be unbound immediately after the first message on the queue is received.
- *
- * @param  {String}     handlingQueueName   The name of the queue on which to listen to a message
- * @param  {Function}   handler             The listener to invoke when a message comes. Same as the MQ event `preHandle`
- * @api private
+ * Utility function to make sure each and every client is properly connected
  */
-const _bindPreHandleOnce = function(handlingQueueName, handler) {
-  /*!
-   * Filters tasks by those on the expected queue, and immediately unbinds the
-   * handler so it only gets invoked once. The parameters are the MQ preHandle
-   * event parameters.
-   */
-  const _handler = function(queueName, data, headers, deliveryInfo, message) {
-    if (queueName !== handlingQueueName) {
-      return;
-    }
+const assertAllClientsAreConnected = (clients, done) => {
+  if (clients.length === 0) {
+    return done();
+  }
 
-    MQ.emitter.removeListener('preHandle', _handler);
-    return handler(queueName, data, headers, deliveryInfo, message);
-  };
+  const nextClient = clients.shift();
+  nextClient.llen('someList', (err, count) => {
+    assert.ok(!err);
+    assert.strictEqual(count, 0, 'This is a random list, its size will always be zero');
+    assertAllClientsAreConnected(clients, done);
+  });
+};
 
-  MQ.emitter.on('preHandle', _handler);
+/**
+ * Utility function to make sure each and every client is disconnected
+ */
+const assertAllClientsAreDisconnected = (clients, done) => {
+  if (clients.length === 0) {
+    return done();
+  }
+
+  const nextClient = clients.shift();
+  nextClient.llen('someList', (err, count) => {
+    assert.ok(err, 'Connection is closed, so no command can be issued');
+    /**
+     * By default, ioredis will try to reconnect when the connection to Redis is lost
+     * except when the connection is closed manually by redis.disconnect() or redis.quit().
+     * https://github.com/luin/ioredis#auto-reconnect
+     */
+    assertAllClientsAreDisconnected(clients, done);
+  });
 };

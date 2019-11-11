@@ -71,9 +71,7 @@ const ES6Modules = [
  */
 const bootstrapModules = function(config, callback) {
   initAvailableModules((err, modules) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     if (_.isEmpty(modules)) {
       return callback(new Error('No modules to install, or error aggregating modules.'));
@@ -83,9 +81,7 @@ const bootstrapModules = function(config, callback) {
 
     // Initialize all modules
     bootstrapModulesInit(modules, config, err => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       // Register all endpoints
       return bootstrapModulesRest(modules, callback);
@@ -184,9 +180,8 @@ const initAvailableModules = function(callback) {
     const modulePriority = {};
 
     // Aggregate the oae- modules
-    for (let i = 0; i < modules.length; i++) {
-      const module = modules[i];
-      if (module.substring(0, 4) === 'oae-') {
+    for (const module of modules) {
+      if (module.slice(0, 4) === 'oae-') {
         // Determine module priority
         const filename = module + '/package.json';
         const pkg = require(filename);

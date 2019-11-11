@@ -21,18 +21,21 @@ import * as MQ from 'oae-util/lib/mq';
 // Track when counts for a particular type of task return to 0
 const queueCounters = {};
 
-MQ.emitter.on('preSubmit', routingKey => {
-  // Technically, the routing key is not the same as the queue, all the Task Queues in OAE however
-  // use the same routing key as their destination queue name
-  _increment(routingKey);
+MQ.emitter.on('preSubmit', queueName => {
+  _increment(queueName);
 });
 
-MQ.emitter.on('postHandle', (err, queueName) => {
+MQ.emitter.on('postHandle', queueName => {
   _decrement(queueName, 1);
 });
 
 MQ.emitter.on('postPurge', (name, count) => {
-  _decrement(name, count);
+  count = _get(name);
+  _decrement(name, count); // decrements until 0
+});
+
+MQ.emitter.on('zeroLeftToHandle', queueName => {
+  _setToZero(queueName);
 });
 
 /**
@@ -41,51 +44,68 @@ MQ.emitter.on('postPurge', (name, count) => {
  *
  * This is ONLY useful in a local development environment where one application node is firing and handling all tasks.
  *
- * @param  {String}     name        The name of the task to listen for empty events
+ * @param  {String}     queueName   The name of the task to listen for empty events
  * @param  {Function}   handler     The handler to invoke when the task queue is empty
+ * @returns {Function}              Returns the execution of the handler function when counter equals zero
  */
-const whenTasksEmpty = function(name, handler) {
-  if (!queueCounters[name] || !_hasQueue(name)) {
+const whenTasksEmpty = function(queueName, handler) {
+  if (!queueCounters[queueName] || !_hasQueue(queueName)) {
     return handler();
   }
 
   // Bind the handler to the counter for this queue
-  queueCounters[name].whenZero(handler);
+  queueCounters[queueName].whenZero(handler);
 };
 
 /**
  * Increment the count for a task of the given name
  *
- * @param  {String}     name    The name of the task whose count to increment
+ * @param  {String}     queueName    The name of the task whose count to increment
  * @api private
  */
-const _increment = function(name) {
+const _increment = function(queueName) {
+  if (_hasQueue(queueName)) {
+    queueCounters[queueName] = queueCounters[queueName] || new Counter();
+    queueCounters[queueName].incr();
+  }
+};
+
+const _get = name => {
   if (_hasQueue(name)) {
     queueCounters[name] = queueCounters[name] || new Counter();
-    queueCounters[name].incr();
+    return queueCounters[name].get();
   }
+
+  return 0;
+};
+
+const _setToZero = queueName => {
+  queueCounters[queueName] = queueCounters[queueName] || new Counter();
+  queueCounters[queueName].zero();
 };
 
 /**
  * Determines if MQ has a handler bound for a task by the given name.
  *
- * @return {Boolean}    Whether or not there is a task bound
+ * @param  {String}     queueName   The name of the task queue we're checking existance of
+ * @return {Boolean}                Whether or not there is a task bound
  * @api private
  */
-const _hasQueue = function(name) {
-  return _.contains(MQ.getBoundQueueNames(), name);
+const _hasQueue = queueName => {
+  return _.contains(_.keys(MQ.getBoundQueues()), queueName);
 };
 
 /**
  * Decrement the count for a task of the given name, firing any `whenTasksEmpty` handlers that are
  * waiting for the count to reach 0, if appropriate
  *
- * @param  {String}     name    The name of the task whose count to decrement
+ * @param  {String}     queueName    The name of the task whose count to decrement
+ * @param  {Integer}    count        The value to decrement the counter
  * @api private
  */
-const _decrement = function(name, count) {
-  queueCounters[name] = queueCounters[name] || new Counter();
-  queueCounters[name].decr(count);
+const _decrement = function(queueName, count) {
+  queueCounters[queueName] = queueCounters[queueName] || new Counter();
+  queueCounters[queueName].decr(count);
 };
 
 export { whenTasksEmpty };

@@ -170,9 +170,9 @@ const _getIndirectRoles = function(principalId, resourceId, callback) {
 
       // Add the roles of the matching groups
       const allRoles = [];
-      for (let m = 0; m < memberships.length; m++) {
-        if (!_.contains(allRoles, groups[memberships[m]])) {
-          allRoles.push(groups[memberships[m]]);
+      for (const element of memberships) {
+        if (!_.contains(allRoles, groups[element])) {
+          allRoles.push(groups[element]);
         }
       }
 
@@ -313,8 +313,7 @@ const updateRoles = function(resourceId, changes, callback) {
   const validator = new Validator();
   validator.check(resourceId, { code: 400, msg: 'Invalid non-user resource id provided' }).isNonUserResourceId();
   validator.check(roleChanges.length, { code: 400, msg: 'At least one role change needs to be applied' }).min(1);
-  for (let i = 0; i < roleChanges.length; i++) {
-    const principalId = roleChanges[i];
+  for (const principalId of roleChanges) {
     validator.check(principalId, { code: 400, msg: 'Invalid principal id specified: ' + principalId }).isPrincipalId();
     validator.check(changes[principalId], { code: 400, msg: 'Invalid role provided' }).isValidRoleChange();
   }
@@ -1241,8 +1240,7 @@ const getRolesForPrincipalsAndResourceType = function(principalIds, resourceType
       msg: 'At least one principal Id needs to be passed in'
     })
     .min(1);
-  for (let i = 0; i < principalIds.length; i++) {
-    const principalId = principalIds[i];
+  for (const principalId of principalIds) {
     validator.check(principalId, { code: 400, msg: 'Invalid principal id specified: ' + principalId }).isPrincipalId();
   }
 

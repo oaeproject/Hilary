@@ -546,7 +546,7 @@ OAE.tenantRouter.on('post', '/api/content/:contentId/revisions/:revisionId/previ
     if (req.body.links) {
       files = JSON.parse(req.body.links);
     }
-  } catch (error) {
+  } catch {
     let invalidField = null;
     if (!contentMetadata) {
       invalidField = 'contentMetadata';
@@ -799,8 +799,8 @@ OAE.tenantRouter.on('get', '/api/content/:contentId/members', (req, res) => {
 OAE.tenantRouter.on('post', '/api/content/:contentId/members', (req, res) => {
   // Parse the incoming false values
   const requestKeys = _.keys(req.body);
-  for (let r = 0; r < requestKeys.length; r++) {
-    req.body[requestKeys[r]] = OaeUtil.castToBoolean(req.body[requestKeys[r]]);
+  for (const element of requestKeys) {
+    req.body[element] = OaeUtil.castToBoolean(req.body[element]);
   }
 
   ContentAPI.setContentPermissions(req.ctx, req.params.contentId, req.body, err => {

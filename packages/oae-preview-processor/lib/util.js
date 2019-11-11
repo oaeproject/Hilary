@@ -425,4 +425,15 @@ const _cropIntelligently = function(ctx, path, width, height, opts, filename, ca
   });
 };
 
-export { downloadRemoteFile, generatePreviewsFromImage };
+const test = (contentObj, fileTypeIsValid) => {
+  let testCode = null;
+  if (contentObj.resourceSubType === 'file' && fileTypeIsValid) {
+    testCode = 10;
+  } else {
+    testCode = -1;
+  }
+
+  return testCode;
+};
+
+export { downloadRemoteFile, generatePreviewsFromImage, test };

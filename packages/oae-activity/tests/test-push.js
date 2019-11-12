@@ -69,7 +69,7 @@ describe('Activity push', () => {
             });
 
             // Send a message that contains no ID
-            socket.write('{}');
+            socket.send('{}');
           });
         });
       });
@@ -110,7 +110,7 @@ describe('Activity push', () => {
             });
 
             // Send a malformed message
-            socket.write('NO JSON');
+            socket.send('NO JSON');
           });
         });
       });

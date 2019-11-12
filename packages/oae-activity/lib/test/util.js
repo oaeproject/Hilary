@@ -351,14 +351,11 @@ const getPushClient = function(callback) {
   const messageCallbacks = {};
 
   // Set up a websocket connection to the localhost tenant
-  // const socket = sjsc.create('http://localhost:2001/api/push');
   const socket = new SockJS('http://localhost:2001/api/push');
 
-  /*
-  socket.on('error', e => {
+  socket.addEventListener('error', e => {
     assert.fail(e, null, 'Did not expect an error on the websocket');
   });
-  */
 
   socket.addEventListener('open', function() {
     // The socket has been connected and is ready to transmit messages

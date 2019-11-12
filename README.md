@@ -167,7 +167,7 @@ If the database settings are correct (`config.js`) then the output should resemb
 
 Now run `docker-compose up -d oae-cassandra oae-redis oae-rabbitmq oae-elasticsearch oae-etherpad oae-nginx` and then `docker-compose logs -f` to check the logs for all containers.
 
-You may then install `nodemon` and run `yarn run server` locally on the terminal to start the server.
+You may then run `yarn run start` locally on the terminal to start the server.
 
 ### Setup
 
@@ -243,13 +243,7 @@ We're looking forward to seeing your contributions to the OAE project!
 
 ### Running tests
 
-To run tests just make sure you have installed all dependencies (`lerna bootstrap`) and run `yarn run test`. To run tests on a specific module, just append its name as follows: `yarn run test-module -- oae-principals`.
-
-### Troubleshooting
-
-#### All I see is the 502 service unavailable page
-
-If you still can't see the Web interface correctly by the time the containers start, it might be due to Hilary starting before Cassandra was available. This usually results in 502 _Service unavailable_ pages. We recommend to start hilary again to make sure it boots after cassandra is accepting connections: `docker-compose restart oae-hilary`. This is something we're looking to fix in the future.
+To run tests just make sure you have installed all dependencies (`lerna bootstrap`) and run `yarn run test`. To run tests on a specific module, just append its path as follows: `yarn run test-module -- packages/oae-principals/tests`.
 
 ## Get in touch
 
@@ -257,4 +251,4 @@ The project website can be found at http://www.oaeproject.org. The [project blog
 
 The mailing list used for Apereo OAE is oae@apereo.org. You can subscribe to the mailing list at https://groups.google.com/a/apereo.org/d/forum/oae.
 
-Bugs and other issues can be reported in our [issue tracker](https://github.com/oaeproject/Hilary/issues). Ideas for new features and capabilities can be suggested and voted for in our [UserVoice page](http://oaeproject.uservoice.com).
+Bugs and other issues can be reported in our [issue tracker](https://github.com/oaeproject/Hilary/issues) and we're always available to help in our [discord channel](https://discord.gg/RShTcdq).

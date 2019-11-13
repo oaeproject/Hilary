@@ -369,29 +369,12 @@ const _transferResourcePermissions = (
                   // If there is another manager on the resource, send a notification email
                   if (hasAnotherManager) {
                     // We will just notify the members that the user will remove his account
-                    _addMemberToList(listElementByMember, eachLibraryItem, newMemberList, false, (
-                      err
-                      /* ListElementByMember */
-                    ) => {
-                      if (err) return callback(err);
-
-                      _removeFromLibrary(ctx, user.id, eachLibraryItem, resourceType, err => {
-                        if (err) return callback(err);
-
-                        done();
-                      });
-                    });
-
-                    // Has no manager
-                  } else {
-                    listOfIdElementToBeTransferred.push(eachLibraryItem.id);
-
-                    // Make user archive a manager of the resource
-                    _updateRoles(ctx, eachLibraryItem, archiveUser, resourceType, err => {
-                      if (err) return callback(err);
-
-                      // We will notify the members that the user will remove his account and make the user archive manager of the resource
-                      _addMemberToList(listElementByMember, eachLibraryItem, newMemberList, true, (
+                    _addMemberToList(
+                      listElementByMember,
+                      eachLibraryItem,
+                      newMemberList,
+                      false,
+                      (
                         err
                         /* ListElementByMember */
                       ) => {
@@ -402,7 +385,36 @@ const _transferResourcePermissions = (
 
                           done();
                         });
-                      });
+                      }
+                    );
+
+                    // Has no manager
+                  } else {
+                    listOfIdElementToBeTransferred.push(eachLibraryItem.id);
+
+                    // Make user archive a manager of the resource
+                    _updateRoles(ctx, eachLibraryItem, archiveUser, resourceType, err => {
+                      if (err) return callback(err);
+
+                      // We will notify the members that the user will remove his account and make the user archive manager of the resource
+                      _addMemberToList(
+                        listElementByMember,
+                        eachLibraryItem,
+                        newMemberList,
+                        true,
+                        (
+                          err
+                          /* ListElementByMember */
+                        ) => {
+                          if (err) return callback(err);
+
+                          _removeFromLibrary(ctx, user.id, eachLibraryItem, resourceType, err => {
+                            if (err) return callback(err);
+
+                            done();
+                          });
+                        }
+                      );
                     });
                   }
                 }

@@ -22,6 +22,7 @@ import $ from 'cheerio';
 import Globalize from 'globalize';
 import less from 'less';
 import marked from 'marked';
+import pipe from 'ramda/src/pipe';
 import PropertiesParser from 'properties-parser';
 import readdirp from 'readdirp';
 import watch from 'watch';
@@ -35,6 +36,8 @@ import * as TZ from 'oae-util/lib/tz';
 import { Validator } from 'oae-util/lib/validator';
 import { logger } from 'oae-logger';
 
+import { JSDOM } from 'jsdom';
+import createDOMPurify from 'dompurify';
 import { UIConstants } from './constants';
 
 const log = logger('oae-ui');
@@ -1158,10 +1161,21 @@ const renderTemplate = function(template, data, locale) {
        * @return {String}                 The converted HTML
        */
       toHtml(str) {
-        return marked(str, {
+        const f = pipe(
+          marked,
+          marked => {
+            const { window } = new JSDOM(marked);
+            return { window, content: marked };
+          },
+          jsdom => {
+            const DOMPurify = createDOMPurify(jsdom.window);
+            return DOMPurify.sanitize(jsdom.content, { USE_PROFILES: { html: true } });
+          }
+        );
+
+        return f(str, {
           gfm: true,
-          breaks: true,
-          sanitize: true
+          breaks: true
         });
       }
     },

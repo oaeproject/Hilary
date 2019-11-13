@@ -1788,7 +1788,7 @@ describe('Activity Email', () => {
                 '/content/cam/foo"',
               /* Style inserted here */ '>/content/cam/foo</a></p>',
               '<p',
-              /* Style inserted here */ '>Image: <img\n src="http://www.oaeproject.org/themes/oae/logo.png"\n alt="Alternate Text"\n style="',
+              /* Style inserted here */ '>Image: <img\n alt="Alternate Text"\n src="http://www.oaeproject.org/themes/oae/logo.png"\n style="',
               '<ul',
               /* Style inserted here */ '>',
               '<li>Bullet Item</li>',
@@ -1804,8 +1804,7 @@ describe('Activity Email', () => {
               /* Style inserted here */ '>First Level Heading</h1>',
               '<p',
               /* Style inserted here */ '>Paragraph with<br>line break</p>',
-              '<p',
-              /* Style inserted here */ '>&lt;script&gt;alert(&quot;XSS attack&quot;)&lt;/script&gt;</p>'
+              '<p'
             ];
 
             RestAPI.Discussions.createMessage(user2.restContext, discussion.id, markdownBody, null, (err, comment) => {

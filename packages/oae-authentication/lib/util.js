@@ -217,7 +217,7 @@ const handleExternalSetup = function(strategyId, passportOptions, req, res, next
 
   // Get the URL to which the user should be redirected and store it in a cookie,
   // so we can retrieve it once the user returns from the external authentication source
-  const redirectUrl = validateRedirectUrl(req.param('redirectUrl'));
+  const redirectUrl = validateRedirectUrl(req.body.redirectUrl);
   res.cookie('redirectUrl', redirectUrl);
 
   // Initiate the authentication process

@@ -42,7 +42,7 @@ OAE.tenantRouter.on('post', '/api/auth/shibboleth', (req, res) => {
 
   // Get the URL to which the user should be redirected and store it in a cookie,
   // so we can retrieve it once the user returns from the identity provider
-  const redirectUrl = AuthenticationUtil.validateRedirectUrl(req.param('redirectUrl'));
+  const redirectUrl = AuthenticationUtil.validateRedirectUrl(req.params.redirectUrl);
   res.cookie('redirectUrl', redirectUrl);
 
   // Redirect the user to our SP host

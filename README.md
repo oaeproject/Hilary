@@ -4,6 +4,28 @@ Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject
 
 [![Discord](https://img.shields.io/badge/chat-on_discord-green.svg)](https://discord.gg/RShTcdq)
 
+- [Open Academic Environment (OAE Project)](#open-academic-environment-oae-project)
+  - [Project status](#project-status)
+  - [Project standards](#project-standards)
+  - [Install](#install)
+    - [Docker Quickstart Guide](#docker-quickstart-guide)
+    - [Clone the repos](#clone-the-repos)
+    - [Customize the folder paths (optional)](#customize-the-folder-paths-optional)
+    - [Build the docker image locally](#build-the-docker-image-locally)
+    - [Install dependencies](#install-dependencies)
+    - [Create the SSL Certificate](#create-the-ssl-certificate)
+    - [Setup nginx](#setup-nginx)
+    - [Run migrations](#run-migrations)
+    - [Run the server and the containers](#run-the-server-and-the-containers)
+  - [Setup](#setup)
+    - [Set up external authentication strategies (optional)](#set-up-external-authentication-strategies-optional)
+    - [Change the /etc/hosts file](#change-the-etchosts-file)
+    - [Change the docker-compose DNS entries](#change-the-docker-compose-dns-entries)
+    - [Creating your first user tenant](#creating-your-first-user-tenant)
+    - [Creating your first user](#creating-your-first-user)
+    - [Running tests](#running-tests)
+  - [Get in touch](#get-in-touch)
+
 ## Project status
 <!-- current project status -->
 
@@ -43,7 +65,7 @@ docker-compose version 1.11.2, build dfed245
 
 Also, don't forget the [post-install instructions](https://docs.docker.com/engine/installation/linux/linux-postinstall/) if you're using linux.
 
-#### Clone the repos
+### Clone the repos
 
 ```
 git clone https://github.com/oaeproject/Hilary.git && cd Hilary
@@ -52,7 +74,7 @@ git submodule update
 cd 3akai-ux && git checkout master # because HEAD is detached after pulling submodules by default
 ```
 
-#### Customize the folder paths (optional)
+### Customize the folder paths (optional)
 
 If you accept the following directory structure, `docker-compose` will work out of the box.
 
@@ -72,7 +94,7 @@ If you accept the following directory structure, `docker-compose` will work out 
 
 If you want to use different (local) paths, make sure to change container volumes accordingly on `docker-compose.yml`:
 
-#### Build the docker image locally
+### Build the docker image locally
 
 ```
 # this will build the hilary:latest image and create all containers
@@ -86,7 +108,7 @@ nameserver 8.8.8.8
 nameserver 8.8.4.4
 ```
 
-#### Install dependencies
+### Install dependencies
 
 In order to install dependencies for the frontend and the backend, we need [lerna](https://lerna.js.org/) installed in order to run a one-off command for each:
 
@@ -97,7 +119,7 @@ lerna bootstrap
 cd 3akai-ux && lerna bootstrap
 ```
 
-#### Create the SSL Certificate
+### Create the SSL Certificate
 
 If we're looking to use HTTPS via nginx, first we need to create the SSL certificate. You can do do that by running:
 
@@ -119,7 +141,7 @@ This may take a few minutes, but when it's done you will have the file `nginx/dh
 
 Before moving on to the next step, make sure these three files exist otherwise there will be errors.
 
-#### Setup nginx
+### Setup nginx
 
 Open the file `nginx.docker.conf` and make sure these lines:
 
@@ -151,7 +173,7 @@ server 192.168.1.2:2001; # assuming 192.168.1.2 is the external network IP addre
 ...
 ```
 
-#### Run migrations
+### Run migrations
 
 Before running the app we need to ensure the schema exists on the database. To achieve that we need to run
 
@@ -163,15 +185,15 @@ If the database settings are correct (`config.js`) then the output should resemb
 
 [![asciicast](https://asciinema.org/a/zamBGF5iNPHiIdt3kSSC9153m.svg)](https://asciinema.org/a/zamBGF5iNPHiIdt3kSSC9153m)
 
-#### Run the server and the containers
+### Run the server and the containers
 
 Now run `docker-compose up -d oae-cassandra oae-redis oae-rabbitmq oae-elasticsearch oae-etherpad oae-nginx` and then `docker-compose logs -f` to check the logs for all containers.
 
 You may then run `yarn run start` locally on the terminal to start the server.
 
-### Setup
+## Setup
 
-#### Set up external authentication strategies (optional)
+### Set up external authentication strategies (optional)
 
 In order to set up twitter authentication, you'll need to set your twitter dev account environment variables like this:
 
@@ -192,7 +214,7 @@ export FACEBOOK_APP_SECRET=""
 
 This is enough to run all the tests locally in a dev environment. For production purposes, all environment variables can and should be overwritten by the admin in the tenant configuration form.
 
-#### Change the /etc/hosts file
+### Change the /etc/hosts file
 
 OAE is a multi-tenant system that discriminates the tenant by the host name with which you are accessing the server. In order to support the "Global Tenant" (i.e., the tenant that hosts the administration UI) and a "User Tenant", you will need to have at least 2 different host names that point to your server. To do this, you will need to add the following entries to your `/etc/hosts` file:
 
@@ -203,7 +225,7 @@ OAE is a multi-tenant system that discriminates the tenant by the host name with
 
 Where `admin.oae.com` is the hostname that we will use to access the global administration tenant and `tenant1.oae.com` would be one of many potential user tenant hosts. After making this change, you should now be able to visit http://admin.oae.com \o/
 
-#### Change the docker-compose DNS entries
+### Change the docker-compose DNS entries
 
 This same DNS information must be made explicit in the `docker-compose.yml` file, to make sure that the `oae-hilary` container can connect to the `oae-nginx` container holding HTTP server (for instance, for preview processing purposes). Go to the file and look for the following section:
 
@@ -219,7 +241,7 @@ As you see, we already included both `admin.oae.com` and `tenant1.oae.com`, both
 - "tenant2.oae.com:172.20.0.9"
 ```
 
-#### Creating your first user tenant
+### Creating your first user tenant
 
 When you start the server, all data schemas will be created for you if they don't already exist. A global administrator user and global administration tenant will be ready for you as well. You can use these to create a new user tenant that hosts the actual OAE user interface.
 
@@ -233,7 +255,7 @@ When you start the server, all data schemas will be created for you if they don'
 
 You can now access the user tenant by their host http://tenant1.oae.com and start creating new users.
 
-#### Creating your first user
+### Creating your first user
 
 To create a new user, use either the Sign Up link at the top left, or the Sign In link at the top right.
 

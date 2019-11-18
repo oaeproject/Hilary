@@ -28,10 +28,13 @@ import { Validator } from 'oae-util/lib/validator';
  * validator.check(principalId, error).isPrincipalId();
  * ```
  */
-Validator.prototype.isPrincipalId = function() {
+Validator.isPrincipalId = function(string) {
+  /*
   if (!AuthzUtil.isPrincipalId(this.str)) {
     this.error(this.msg || 'An invalid principal id was provided');
   }
+  */
+  return AuthzUtil.isPrincipalId(string);
 };
 
 /**
@@ -43,10 +46,14 @@ Validator.prototype.isPrincipalId = function() {
  * validator.check(groupId, error).isGroupId();
  * ```
  */
-Validator.prototype.isGroupId = function() {
-  if (!AuthzUtil.isGroupId(this.str)) {
-    this.error(this.msg || 'An invalid group id was provided');
+Validator.isGroupId = function(string) {
+  if (!AuthzUtil.isGroupId(string)) {
+    // this.error(this.msg || 'An invalid group id was provided');
+    console.log('An invalid group id was provided');
+    return false;
   }
+
+  return true;
 };
 
 /**
@@ -58,10 +65,14 @@ Validator.prototype.isGroupId = function() {
  * validator.check(userId, error).isUserId();
  * ```
  */
-Validator.prototype.isUserId = function() {
-  if (!AuthzUtil.isUserId(this.str)) {
+Validator.isUserId = string => {
+  /*
+  if (!AuthzUtil.isUserId(string)) {
     this.error(this.msg || 'An invalid user id was provided');
   }
+  */
+
+  return AuthzUtil.isUserId(string);
 };
 
 /**
@@ -73,10 +84,14 @@ Validator.prototype.isUserId = function() {
  * validator.check(resourceId, error).isNonUserResourceId();
  * ```
  */
-Validator.prototype.isNonUserResourceId = function() {
-  if (AuthzUtil.isUserId(this.str) || !AuthzUtil.isResourceId(this.str)) {
-    this.error(this.msg || 'An invalid non-user resource id was provided');
+Validator.isNonUserResourceId = function(string) {
+  if (AuthzUtil.isUserId(string) || !AuthzUtil.isResourceId(string)) {
+    // this.error(this.msg || 'An invalid non-user resource id was provided');
+    console.log('An invalid non-user resource id was provided');
+    return false;
   }
+
+  return true;
 };
 
 /**
@@ -88,10 +103,14 @@ Validator.prototype.isNonUserResourceId = function() {
  * validator.check(resourceId, error).isResourceId();
  * ```
  */
-Validator.prototype.isResourceId = function() {
-  if (!AuthzUtil.isResourceId(this.str)) {
-    this.error(this.msg || 'An invalid resource id was provided');
+Validator.isResourceId = function(string) {
+  if (!AuthzUtil.isResourceId(string)) {
+    // this.error(this.msg || 'An invalid resource id was provided');
+    console.log('An invalid resource id was provided');
+    return false;
   }
+
+  return true;
 };
 
 /**
@@ -103,10 +122,14 @@ Validator.prototype.isResourceId = function() {
  * validator.check(null, error).isResource(resource);
  * ```
  */
-Validator.prototype.isResource = function(resource) {
+Validator.isResource = function(resource) {
   if (!AuthzUtil.isResource(resource)) {
-    this.error(this.msg || 'An invalid resource was provided');
+    // this.error(this.msg || 'An invalid resource was provided');
+    console.log('An invalid resource was provided');
+    return false;
   }
+
+  return true;
 };
 
 /**
@@ -118,10 +141,14 @@ Validator.prototype.isResource = function(resource) {
  * validator.check(role, error).isValidRole();
  * ```
  */
-Validator.prototype.isValidRole = function() {
-  if (!AuthzUtil.isRole(this.str)) {
-    this.error(this.msg || util.format('A role must be one of: %s', AuthzConstants.role.ALL_PRIORITY.join(', ')));
+Validator.isValidRole = function(string) {
+  if (!AuthzUtil.isRole(string)) {
+    // this.error(this.msg || util.format('A role must be one of: %s', AuthzConstants.role.ALL_PRIORITY.join(', ')));
+    console.log(util.format('A role must be one of: %s', AuthzConstants.role.ALL_PRIORITY.join(', ')));
+    return false;
   }
+
+  return true;
 };
 
 /**
@@ -135,13 +162,21 @@ Validator.prototype.isValidRole = function() {
  * validator.check(newRole, error).isValidRoleChange();
  * ```
  */
-Validator.prototype.isValidRoleChange = function() {
-  if (this.str !== false && !AuthzUtil.isRole(this.str)) {
+Validator.isValidRoleChange = function(string) {
+  if (string !== false && !AuthzUtil.isRole(string)) {
+    /*
     this.error(
       this.msg ||
         util.format('A role change must either be false, or one of: %s', AuthzConstants.role.ALL_PRIORITY.join(', '))
     );
+    */
+    console.log(
+      util.format('A role change must either be false, or one of: %s', AuthzConstants.role.ALL_PRIORITY.join(', '))
+    );
+    return false;
   }
+
+  return true;
 };
 
 /**
@@ -155,13 +190,21 @@ Validator.prototype.isValidRoleChange = function() {
  *
  * @see AuthzUtil#parseShareTarget for specification
  */
-Validator.prototype.isValidShareTarget = function() {
-  if (!AuthzUtil.parseShareTarget(this.str)) {
+Validator.isValidShareTarget = function(string) {
+  if (!AuthzUtil.parseShareTarget(string)) {
+    /*
     this.error(
       this.msg ||
         'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
     );
+    */
+    console.log(
+      'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
+    );
+    return false;
   }
+
+  return true;
 };
 
 export { Validator };

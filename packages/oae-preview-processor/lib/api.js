@@ -20,6 +20,7 @@ import * as ContentDAO from 'oae-content/lib/internal/dao';
 import * as EmitterAPI from 'oae-emitter';
 import * as RestUtil from 'oae-rest/lib/util';
 import * as MQ from 'oae-util/lib/mq';
+import pipe from 'ramda/src/pipe';
 
 import { telemetry } from 'oae-telemetry';
 
@@ -36,7 +37,7 @@ import * as CollabDocProcessor from 'oae-preview-processor/lib/processors/collab
 import * as FolderProcessor from 'oae-preview-processor/lib/processors/folder';
 
 import { logger } from 'oae-logger';
-import { Validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator';
 import PreviewConstants from './constants';
 import { FilterGenerator } from './filters';
 import { PreviewContext } from './model';
@@ -227,21 +228,26 @@ const getConfiguration = function() {
  * @param  {Function}   processor.generatePreviews  The method that generates previews for a piece of content.
  */
 const registerProcessor = function(processorId, processor) {
-  const validator = new Validator();
-  validator.check(processorId, 'Missing processor ID').notEmpty();
-  if (processorId) {
-    validator.check(_processors[processorId], 'This processor is already registerd').isNull();
-  }
+  pipe(validator.isNotEmpty, validator.generateError('Missing processor ID'), someError => {
+    if (someError) throw new Error(someError);
+  })(processorId);
 
-  validator.check(null, 'Missing processor').isObject(processor);
-  if (processor) {
-    validator.check(processor.test, 'The processor has no test method').notNull();
-    validator.check(processor.generatePreviews, 'The processor has no generatePreviews method').notNull();
-  }
+  pipe(validator.isNull, validator.generateError('This processor is already registerd'), someError => {
+    if (someError) throw new Error(someError);
+  })(_processors[processorId]);
 
-  if (validator.hasErrors()) {
-    throw new Error(validator.getFirstError());
-  }
+  pipe(validator.isObject, validator.generateError('Missing processor'), someError => {
+    if (someError) throw new Error(someError);
+  })(processor);
+
+  pipe(validator.isNotNull, validator.generateError('The processor has no test method'), someError => {
+    if (someError) throw new Error(someError);
+  })(processor.test);
+
+  // TODO not a string
+  pipe(validator.isNotNull, validator.generateError('The processor has no generatePreviews method'), someError => {
+    if (someError) throw new Error(someError);
+  })(processor.generatePreviews);
 
   _processors[processorId] = processor;
 };

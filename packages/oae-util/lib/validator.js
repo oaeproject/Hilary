@@ -17,9 +17,7 @@ import _ from 'underscore';
 import * as tz from 'oae-util/lib/tz';
 import * as OAEUI from 'oae-ui';
 
-import { Validator } from 'validator';
-
-export { Validator };
+import Validator from 'validator';
 
 const HOST_REGEX = /^(?=.{1,255}$)[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?(?:\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?)*\.?(:\d+)?$/i;
 
@@ -31,8 +29,8 @@ let countriesByCode = null;
  *
  * @param  {Object}  msg     Error that should be recorded if the validation fails
  */
-Validator.prototype.error = function(msg) {
-  this._errors.push(msg);
+Validator.error = function(msg) {
+  this._errors.push(new Error(msg));
 };
 
 /**
@@ -48,7 +46,7 @@ Validator.prototype.error = function(msg) {
  *
  * @return {Object[]}     Array containing all of the validation errors
  */
-Validator.prototype.getErrors = function() {
+Validator.getErrors = function() {
   if (this._errors && this._errors.length > 0) {
     return this._errors;
   }
@@ -56,11 +54,78 @@ Validator.prototype.getErrors = function() {
   return null;
 };
 
+// TODO: documentation
+Validator.isDifferent = (string, notEqualsTo) => {
+  return !Validator.equals(string, notEqualsTo);
+};
+
+Validator.isNotEmpty = string => {
+  return !Validator.isEmpty(string);
+};
+
+Validator.notContains = (string, seed) => {
+  return !Validator.contains(string, seed);
+};
+
+Validator.isNull = whatever => {
+  return !whatever;
+};
+
+Validator.isNotNull = whatever => {
+  return !Validator.isNull(whatever);
+};
+
+Validator.pickFirstError = allErrors => {
+  if (allErrors && allErrors.length > 0) {
+    return allErrors[0];
+  }
+
+  return null;
+};
+
+Validator.finalize = function(done) {
+  return function(generatedError) {
+    if (generatedError) {
+      // debug
+      console.log('Returning the callback!');
+      console.log(generatedError);
+      return done(generatedError);
+    }
+  };
+};
+
+/**
+Validator.generateError = function(errorMessage) {
+  const newError = new Error(errorMessage);
+  return function(validationFailed) {
+    if (validationFailed && this._errors) {
+      this._errors.push(newError);
+    }
+
+    return this._errors;
+  };
+};
+*/
+
+Validator.generateError = function(errorMessage) {
+  const newError = new Error(errorMessage);
+  return function(validationPassed) {
+    if (!validationPassed) {
+      // debug
+      console.log('throwing error! ' + errorMessage.msg);
+      console.dir(newError);
+      return newError;
+    }
+
+    return null;
+  };
+};
+
 /**
  * Wrapper function around node-validator that determines how many errors have been collected.
  * @return {Number}     The number of errors that have been collected by this validator
  */
-Validator.prototype.getErrorCount = function() {
+Validator.getErrorCount = function() {
   if (this._errors) {
     return this._errors.length;
   }
@@ -80,7 +145,7 @@ Validator.prototype.getErrorCount = function() {
  *
  * @return {Object} The first error object in this validator or null if no errors were found.
  */
-Validator.prototype.getFirstError = function() {
+Validator.getFirstError = function() {
   if (this._errors && this._errors.length > 0) {
     return this._errors[0];
   }
@@ -100,7 +165,7 @@ Validator.prototype.getFirstError = function() {
  *
  * @return {Boolean}     Returns true when validation errors have occured and false otherwise
  */
-Validator.prototype.hasErrors = function() {
+Validator.hasErrors = function() {
   return Boolean(this._errors && this._errors.length);
 };
 
@@ -120,18 +185,35 @@ Validator.prototype.hasErrors = function() {
  * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
  * @param  {String}     [tenantAlias]   The alias of the tenant to verify the context is authenticated to. If unspecified, the check will validate that the context is simply authenticated anywhere
  */
-Validator.prototype.isLoggedInUser = function(ctx, tenantAlias) {
+Validator.isLoggedInUser = function(ctx, tenantAlias) {
   if (!_.isObject(ctx)) {
-    this.error(this.msg || 'An empty context has been passed in');
-  } else if (!_.isObject(ctx.tenant()) || !ctx.tenant().alias) {
-    this.error(this.msg || 'The context is not associated to a tenant');
-  } else if (!_.isObject(ctx.user()) || !ctx.user().id) {
-    this.error(this.msg || 'The user is not logged in');
-  } else if (tenantAlias && ctx.tenant().alias !== tenantAlias) {
-    this.error(this.msg || 'The context is associated to an invalid tenant');
+    // this.error(this.msg || 'An empty context has been passed in');
+    console.log('An empty context has been passed in');
+    return false;
   }
 
-  return this;
+  if (!_.isObject(ctx.tenant()) || !ctx.tenant().alias) {
+    // this.error(this.msg || 'The context is not associated to a tenant');
+    console.log('The context is not associated to a tenant');
+    return false;
+  }
+
+  if (!_.isObject(ctx.user()) || !ctx.user().id) {
+    // this.error(this.msg || 'The user is not logged in');
+    console.log('The user is not logged in');
+    return false;
+  }
+
+  if (tenantAlias && ctx.tenant().alias !== tenantAlias) {
+    // this.error(this.msg || 'The context is associated to an invalid tenant');
+    console.log('The context is associated to an invalid tenant');
+    return false;
+  }
+
+  // debug
+  console.log('its a logged in user!');
+
+  return true;
 };
 
 /**
@@ -145,20 +227,40 @@ Validator.prototype.isLoggedInUser = function(ctx, tenantAlias) {
  *
  * @param  {Context}    ctx     Standard context object containing the current user and the current tenant
  */
-Validator.prototype.isGlobalAdministratorUser = function(ctx) {
+Validator.isGlobalAdministratorUser = ctx => {
   if (!_.isObject(ctx)) {
-    this.error(this.msg || 'An empty context has been passed in');
-  } else if (!_.isFunction(ctx.tenant) || !_.isObject(ctx.tenant()) || !ctx.tenant().alias) {
-    this.error(this.msg || 'The context is not associated to a tenant');
-  } else if (!_.isFunction(ctx.user) || !_.isObject(ctx.user()) || !ctx.user().id) {
-    this.error(this.msg || 'The user is not logged in');
-  } else if (!_.isFunction(ctx.user().isGlobalAdmin)) {
-    this.error(this.msg || 'The user object is invalid');
-  } else if (ctx.user().isGlobalAdmin() !== true) {
-    this.error(this.msg || 'The user is not a global administrator');
+    // this.error(this.msg || 'An empty context has been passed in');
+    console.log('An empty context has been passed in');
+    return false;
   }
 
-  return this;
+  if (!_.isFunction(ctx.tenant) || !_.isObject(ctx.tenant()) || !ctx.tenant().alias) {
+    // this.error(this.msg || 'The context is not associated to a tenant');
+    console.log('The context is not associated to a tenant');
+    return false;
+  }
+
+  if (!_.isFunction(ctx.user) || !_.isObject(ctx.user()) || !ctx.user().id) {
+    // this.error(this.msg || 'The user is not logged in');
+    console.log('The user is not logged in');
+    return false;
+  }
+
+  if (!_.isFunction(ctx.user().isGlobalAdmin)) {
+    console.log('The user object is invalid');
+    return false;
+    // this.error(this.msg || 'The user object is invalid');
+  }
+
+  if (ctx.user().isGlobalAdmin() !== true) {
+    console.log('The user is not a global administrator');
+    return false;
+    // this.error(this.msg || 'The user is not a global administrator');
+  }
+
+  // debug
+  console.log('its a true global administrator user!');
+  return true;
 };
 
 /**
@@ -172,12 +274,14 @@ Validator.prototype.isGlobalAdministratorUser = function(ctx) {
  *
  * @param  {Object}     obj   Object that needs to be checked for validity
  */
-Validator.prototype.isObject = function(obj) {
+Validator.isObject = function(obj) {
   if (!_.isObject(obj)) {
-    this.error(this.msg || 'A non-object has been passed in');
+    // this.error(this.msg || 'A non-object has been passed in');
+    console.log('A non-object has been passed in');
+    return false;
   }
 
-  return this;
+  return true;
 };
 
 /**
@@ -191,12 +295,18 @@ Validator.prototype.isObject = function(obj) {
  *
  * @param  {Object[]}     arr   Object that needs to be checked for validity
  */
-Validator.prototype.isArray = function(arr) {
+Validator.isArray = function(arr) {
   if (!_.isArray(arr)) {
-    this.error(this.msg || 'A non-array has been passed in');
+    // this.error(this.msg || 'A non-array has been passed in');
+    console.log('A non-array has been passed in');
+    return false;
   }
 
-  return this;
+  return true;
+};
+
+Validator.isArrayNotEmpty = arr => {
+  return Validator.isArray(arr) && _.size(arr) > 0;
 };
 
 /**
@@ -210,13 +320,15 @@ Validator.prototype.isArray = function(arr) {
  *
  * @param  {Boolean}     val   Value that needs to be checked for validity
  */
-Validator.prototype.isBoolean = function(val) {
+Validator.isBoolean = function(val) {
   const isBoolean = val === true || val === false;
   if (!isBoolean) {
-    this.error(this.msg || 'A non-boolean has been passed in');
+    // this.error(this.msg || 'A non-boolean has been passed in');
+    console.log('A non-boolean has been passed in');
+    return false;
   }
 
-  return this;
+  return true;
 };
 
 /**
@@ -232,13 +344,15 @@ Validator.prototype.isBoolean = function(val) {
  *
  * @param  {Object}     val     Value that needs to be checked if it is defined (i.e., not `null` or `undefined`)
  */
-Validator.prototype.isDefined = function(val) {
+Validator.isDefined = function(val) {
   const isDefined = !_.isNull(val) && !_.isUndefined(val);
   if (!isDefined) {
-    this.error(this.msg || 'An undefined value has been passed in');
+    // this.error(this.msg || 'An undefined value has been passed in');
+    console.log('An undefined value has been passed in');
+    return false;
   }
 
-  return this;
+  return true;
 };
 
 /**
@@ -250,12 +364,14 @@ Validator.prototype.isDefined = function(val) {
  * validator.check(null, error).isString(val);
  * ```
  */
-Validator.prototype.isString = function(val) {
+Validator.isString = function(val) {
   if (!_.isString(val)) {
-    this.error(this.msg || 'A non-string has been passed in');
+    // this.error(this.msg || 'A non-string has been passed in');
+    console.log('A non-string has been passed in');
+    return false;
   }
 
-  return this;
+  return true;
 };
 
 /**
@@ -267,13 +383,15 @@ Validator.prototype.isString = function(val) {
  * validator.check(timezone, error).isValidTimeZone();
  * ```
  */
-Validator.prototype.isValidTimeZone = function() {
+Validator.isValidTimeZone = function(string) {
   // Only timezones of the following format are supported: `foo/bar[/optional]`
-  if (!tz.timezone.timezone.zones[this.str] || !this.str.includes('/')) {
-    this.error(this.msg || 'Invalid timezone');
+  if (!tz.timezone.timezone.zones[string] || !string.includes('/')) {
+    // this.error(this.msg || 'Invalid timezone');
+    console.log('Invalid timezone');
+    return false;
   }
 
-  return this;
+  return true;
 };
 
 /**
@@ -289,8 +407,9 @@ Validator.prototype.isValidTimeZone = function() {
  * validator.check(aString, error).isShortString();
  * ```
  */
-Validator.prototype.isShortString = function() {
-  this.len(1, 1000);
+Validator.isShortString = function(string) {
+  // string.len(1, 1000);
+  return Validator.isLength(string, { min: 1, max: 1000 });
 };
 
 /**
@@ -306,8 +425,8 @@ Validator.prototype.isShortString = function() {
  * validator.check(aString, error).isMediumString();
  * ```
  */
-Validator.prototype.isMediumString = function() {
-  this.len(1, 10000);
+Validator.isMediumString = function(string) {
+  return Validator.isLength(string, { min: 1, max: 10000 });
 };
 
 /**
@@ -323,8 +442,9 @@ Validator.prototype.isMediumString = function() {
  * validator.check(aString, error).isLongString();
  * ```
  */
-Validator.prototype.isLongString = function() {
-  this.len(1, 100000);
+Validator.isLongString = function(string) {
+  // this.len(1, 100000);
+  return Validator.isLength(string, { min: 1, max: 100000 });
 };
 
 /**
@@ -336,9 +456,11 @@ Validator.prototype.isLongString = function() {
  * validator.check(aString, error).istHost();
  * ```
  */
-Validator.prototype.isHost = function() {
-  this.isShortString();
-  this.regex(HOST_REGEX);
+Validator.isHost = function(hostString) {
+  // this.isShortString();
+  // this.regex(HOST_REGEX);
+
+  return Validator.isShortString(hostString) && hostString.match(HOST_REGEX);
 };
 
 /**
@@ -350,12 +472,20 @@ Validator.prototype.isHost = function() {
  * validator.check(aString, error).isIso3166Country();
  * ```
  */
-Validator.prototype.isIso3166Country = function() {
-  if (!_.isString(this.str)) {
-    this.error(this.msg || 'Provided country code was not a string');
-  } else if (!_hasCountryCode(this.str.toUpperCase())) {
-    this.error(this.msg || 'Provided country code is not associated to any known country');
+Validator.isIso3166Country = function(string) {
+  if (!_.isString(string)) {
+    // this.error(this.msg || 'Provided country code was not a string');
+    console.log('Provided country code was not a string');
+    return false;
   }
+
+  if (!_hasCountryCode(string.toUpperCase())) {
+    // this.error(this.msg || 'Provided country code is not associated to any known country');
+    console.log('Provided country code is not associated to any known country');
+    return false;
+  }
+
+  return true;
 };
 
 /**
@@ -379,3 +509,5 @@ const _hasCountryCode = function(code) {
 
   return countriesByCode[code];
 };
+
+export { Validator };

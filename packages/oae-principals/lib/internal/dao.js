@@ -25,9 +25,9 @@ import * as Cassandra from 'oae-util/lib/cassandra';
 import * as OaeUtil from 'oae-util/lib/util';
 import * as Redis from 'oae-util/lib/redis';
 
-import { sanitize } from 'validator';
 import { Group, User } from 'oae-principals/lib/model';
-import { Validator } from 'oae-authz/lib/validator';
+import { Validator as validator } from 'oae-authz/lib/validator';
+import pipe from 'ramda/src/pipe';
 
 import { LoginId } from 'oae-authentication/lib/model';
 import { PrincipalsConstants } from '../constants';
@@ -271,12 +271,17 @@ const getPrincipals = function(principalIds, fields, callback) {
  */
 const updatePrincipal = function(principalId, profileFields, callback) {
   // Ensure the caller is not trying to set an invalid field
-  const validator = new Validator();
   const invalidKeys = _.intersection(RESTRICTED_FIELDS, _.keys(profileFields));
-  validator.check(invalidKeys.length, { code: 400, msg: 'Attempted to update an invalid property' }).max(0);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+
+  pipe(
+    validator.isEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'Attempted to update an invalid property'
+    }),
+    validator.finalize(callback)
+  )(invalidKeys);
+  // validator.check(, { code: 400, msg:  }).max(0);
 
   // Perform the update
   return _updatePrincipal(principalId, profileFields, callback);
@@ -392,30 +397,34 @@ const acceptTermsAndConditions = function(userId, callback) {
  */
 const setAdmin = function(adminType, isAdmin, userId, callback) {
   // Ensure we're using a real principal id. If we weren't, we would be dangerously upserting an invalid row
-  const validator = new Validator();
+  pipe(
+    validator.isPrincipalId,
+    validator.generateError({
+      code: 400,
+      msg: 'Attempted to update a principal with a non-principal id'
+    }),
+    validator.finalize(callback)
+  )(userId);
+
+  /*
   validator
     .check(userId, { code: 400, msg: 'Attempted to update a principal with a non-principal id' })
     .isPrincipalId();
-  if (validator.hasErrors()) {
-    return callback(validator.getError());
-  }
+    */
 
-  Cassandra.runQuery(
-    util.format('UPDATE "Principals" SET "%s" = ? WHERE "principalId" = ?', adminType),
-    [
-      sanitize(isAdmin)
-        .toBooleanStrict()
-        .toString(),
-      userId
-    ],
-    err => {
-      if (err) {
-        return callback(err);
-      }
+  const query = util.format('UPDATE "Principals" SET "%s" = ? WHERE "principalId" = ?', adminType);
+  // debug
+  console.dir(query);
+  console.dir(String(isAdmin));
+  console.dir(userId);
 
-      return invalidateCachedUsers([userId], callback);
+  Cassandra.runQuery(query, [String(isAdmin), userId], err => {
+    if (err) {
+      return callback(err);
     }
-  );
+
+    return invalidateCachedUsers([userId], callback);
+  });
 };
 
 /**
@@ -905,13 +914,20 @@ const _transformUserFieldTypes = function(hash) {
  * @api private
  */
 const _hashToUser = function(hash) {
+  // debug
+  const isGlobalAdmin = validator.toBoolean(String(hash['admin:global']), true);
+  console.log(`${hash['admin:global']} turned into ${isGlobalAdmin}`);
+
+  const isTenantAdmin = validator.toBoolean(String(hash['admin:tenant']), true);
+  console.log(`${hash['admin:tenant']} turned into ${isTenantAdmin}`);
+
   const user = new User(hash.tenantAlias, hash.principalId, hash.displayName, hash.email, {
     visibility: hash.visibility,
     deleted: hash.deleted,
     locale: hash.locale,
     publicAlias: hash.publicAlias,
-    isGlobalAdmin: sanitize(hash['admin:global']).toBooleanStrict(),
-    isTenantAdmin: sanitize(hash['admin:tenant']).toBooleanStrict(),
+    isGlobalAdmin,
+    isTenantAdmin,
     smallPictureUri: hash.smallPictureUri,
     mediumPictureUri: hash.mediumPictureUri,
     largePictureUri: hash.largePictureUri,

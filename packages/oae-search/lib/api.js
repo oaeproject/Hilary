@@ -19,7 +19,8 @@ import { logger } from 'oae-logger';
 import * as EmitterAPI from 'oae-emitter';
 import * as SearchUtil from 'oae-search/lib/util';
 
-import { Validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator';
+import pipe from 'ramda/src/pipe';
 import { SearchConstants } from 'oae-search/lib/constants';
 import { SearchResult } from 'oae-search/lib/model';
 import * as MQ from 'oae-util/lib/mq';
@@ -425,23 +426,52 @@ const postIndexTask = function(resourceType, resources, index, callback) {
       }
     };
 
-  const validator = new Validator();
-  validator.check(resourceType, { code: 400, msg: 'Must specify a resource type' }).notEmpty();
-  validator.check(null, { code: 400, msg: '"resources" parameter must be an array' }).isArray(resources);
-  validator.check(null, { code: 400, msg: '"index" parameter must be an object' }).isObject(index);
-  validator
-    .check(resources.length, {
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'Must specify a resource type'
+    }),
+    validator.finalize(callback)
+  )(resourceType);
+
+  pipe(
+    validator.isArray,
+    validator.generateError({
+      code: 400,
+      msg: '"resources" parameter must be an array'
+    }),
+    validator.finalize(callback)
+  )(resources);
+
+  pipe(
+    validator.isObject,
+    validator.generateError({
+      code: 400,
+      msg: '"index" parameter must be an object'
+    }),
+    validator.finalize(callback)
+  )(index);
+
+  pipe(
+    validator.isArrayNotEmpty,
+    validator.generateError({
       code: 400,
       msg: '"resources" parameter must be an array with one or more entries'
-    })
-    .min(1);
-  _.each(resources, resource => {
-    validator.check(resource.id, { code: 400, msg: 'Each index resource must have an id' }).notEmpty();
-  });
+    }),
+    validator.finalize(callback)
+  )(resources);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  _.each(resources, resource => {
+    pipe(
+      validator.isNotEmpty,
+      validator.generateError({
+        code: 400,
+        msg: 'Each index resource must have an id'
+      }),
+      validator.finalize(callback)
+    )(resource.id);
+  });
 
   return MQ.submit(
     SearchConstants.mq.TASK_INDEX_DOCUMENT,

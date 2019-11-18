@@ -42,7 +42,8 @@ import * as TenantsUtil from 'oae-tenants/lib/util';
 import * as Signature from 'oae-util/lib/signature';
 import { setUpConfig } from 'oae-config';
 import { Context } from 'oae-context';
-import { Validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator';
+import pipe from 'ramda/src/pipe';
 import { AuthenticationConstants } from 'oae-authentication/lib/constants';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import * as UserDeletionUtil from 'oae-principals/lib/definitive-deletion';
@@ -152,17 +153,41 @@ const createUser = function(ctx, tenantAlias, displayName, opts, callback) {
   opts.emailPreference = opts.emailPreference || PrincipalsConfig.getValue(tenantAlias, 'user', 'emailPreference');
   opts.isUserArchive = opts.isUserArchive || null;
 
-  const validator = new Validator();
-  validator.check(displayName, { code: 400, msg: 'A display name must be provided' }).notEmpty();
-  validator
-    .check(displayName, { code: 400, msg: 'A display name can be at most 1000 characters long' })
-    .isShortString();
-  validator
-    .check(opts.visibility, { code: 400, msg: 'The specified visibility setting is unknown' })
-    .isIn(_.values(AuthzConstants.visibility));
-  validator
-    .check(opts.emailPreference, { code: 400, msg: 'The specified email preference is invalid' })
-    .isIn(_.values(PrincipalsConstants.emailPreferences));
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'A display name must be provided'
+    }),
+    validator.finalize(callback)
+  )(displayName);
+
+  pipe(
+    validator.isShortString,
+    validator.generateError({
+      code: 400,
+      msg: 'A display name can be at most 1000 characters long'
+    }),
+    validator.finalize(callback)
+  )(displayName);
+
+  pipe(
+    validator.isIn,
+    validator.generateError({
+      code: 400,
+      msg: 'The specified visibility setting is unknown'
+    }),
+    validator.finalize(callback)
+  )(opts.visibility, _.values(AuthzConstants.visibility));
+
+  pipe(
+    validator.isIn,
+    validator.generateError({
+      code: 400,
+      msg: 'The specified email preference is invalid'
+    }),
+    validator.finalize(callback)
+  )(opts.emailPreference, _.values(PrincipalsConstants.emailPreferences));
 
   // If an administrator is creating an account, we consider the email address to be verified
   opts.emailVerified = opts.emailVerified || (ctx.user() && ctx.user().isAdmin(tenantAlias)) || false;
@@ -172,14 +197,18 @@ const createUser = function(ctx, tenantAlias, displayName, opts, callback) {
   if (_.isString(opts.email)) {
     // E-mail addresses are always lower-cased as it makes them easier to deal with
     opts.email = opts.email.toLowerCase();
-    validator.check(opts.email, { code: 400, msg: 'The specified email address is invalid' }).isEmail();
+
+    pipe(
+      validator.isEmail,
+      validator.generateError({
+        code: 400,
+        msg: 'The specified email address is invalid'
+      }),
+      validator.finalize(callback)
+    )(opts.email);
   } else {
     // Avoid setting a falsey email address
     delete opts.email;
-  }
-
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
   }
 
   const id = AuthzUtil.toId('u', tenantAlias, ShortId.generate());
@@ -920,11 +949,14 @@ const canRestoreUser = function(ctx, userId, callback) {
  * @param  {User}      callback.user   The user object
  */
 const getUser = function(ctx, userId, callback) {
-  const validator = new Validator();
-  validator.check(userId, { code: 400, msg: 'An invalid user id was provided' }).isUserId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isUserId,
+    validator.generateError({
+      code: 400,
+      msg: 'An invalid user id was provided'
+    }),
+    validator.finalize(callback)
+  )(userId);
 
   PrincipalsUtil.getPrincipal(ctx, userId, callback);
 };
@@ -940,11 +972,14 @@ const getUser = function(ctx, userId, callback) {
  * @param  {Object}     callback.user   The decorated user object
  */
 const getFullUserProfile = function(ctx, userId, callback) {
-  const validator = new Validator();
-  validator.check(userId, { code: 400, msg: 'An invalid user id was provided' }).isUserId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isUserId,
+    validator.generateError({
+      code: 400,
+      msg: 'An invalid user id was provided'
+    }),
+    validator.finalize(callback)
+  )(userId);
 
   // Get and validate the basic user profile to decorate
   getUser(ctx, userId, (err, user) => {

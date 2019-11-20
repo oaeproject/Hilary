@@ -413,11 +413,6 @@ const setAdmin = function(adminType, isAdmin, userId, callback) {
     */
 
   const query = util.format('UPDATE "Principals" SET "%s" = ? WHERE "principalId" = ?', adminType);
-  // debug
-  console.dir(query);
-  console.dir(String(isAdmin));
-  console.dir(userId);
-
   Cassandra.runQuery(query, [String(isAdmin), userId], err => {
     if (err) {
       return callback(err);
@@ -914,20 +909,13 @@ const _transformUserFieldTypes = function(hash) {
  * @api private
  */
 const _hashToUser = function(hash) {
-  // debug
-  const isGlobalAdmin = validator.toBoolean(String(hash['admin:global']), true);
-  console.log(`${hash['admin:global']} turned into ${isGlobalAdmin}`);
-
-  const isTenantAdmin = validator.toBoolean(String(hash['admin:tenant']), true);
-  console.log(`${hash['admin:tenant']} turned into ${isTenantAdmin}`);
-
   const user = new User(hash.tenantAlias, hash.principalId, hash.displayName, hash.email, {
     visibility: hash.visibility,
     deleted: hash.deleted,
     locale: hash.locale,
     publicAlias: hash.publicAlias,
-    isGlobalAdmin,
-    isTenantAdmin,
+    isGlobalAdmin: validator.toBoolean(String(hash['admin:global']), true),
+    isTenantAdmin: validator.toBoolean(String(hash['admin:tenant']), true),
     smallPictureUri: hash.smallPictureUri,
     mediumPictureUri: hash.mediumPictureUri,
     largePictureUri: hash.largePictureUri,

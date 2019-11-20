@@ -188,30 +188,23 @@ Validator.hasErrors = function() {
 Validator.isLoggedInUser = function(ctx, tenantAlias) {
   if (!_.isObject(ctx)) {
     // this.error(this.msg || 'An empty context has been passed in');
-    console.log('An empty context has been passed in');
     return false;
   }
 
   if (!_.isObject(ctx.tenant()) || !ctx.tenant().alias) {
     // this.error(this.msg || 'The context is not associated to a tenant');
-    console.log('The context is not associated to a tenant');
     return false;
   }
 
   if (!_.isObject(ctx.user()) || !ctx.user().id) {
     // this.error(this.msg || 'The user is not logged in');
-    console.log('The user is not logged in');
     return false;
   }
 
   if (tenantAlias && ctx.tenant().alias !== tenantAlias) {
     // this.error(this.msg || 'The context is associated to an invalid tenant');
-    console.log('The context is associated to an invalid tenant');
     return false;
   }
-
-  // debug
-  console.log('its a logged in user!');
 
   return true;
 };
@@ -230,36 +223,29 @@ Validator.isLoggedInUser = function(ctx, tenantAlias) {
 Validator.isGlobalAdministratorUser = ctx => {
   if (!_.isObject(ctx)) {
     // this.error(this.msg || 'An empty context has been passed in');
-    console.log('An empty context has been passed in');
     return false;
   }
 
   if (!_.isFunction(ctx.tenant) || !_.isObject(ctx.tenant()) || !ctx.tenant().alias) {
     // this.error(this.msg || 'The context is not associated to a tenant');
-    console.log('The context is not associated to a tenant');
     return false;
   }
 
   if (!_.isFunction(ctx.user) || !_.isObject(ctx.user()) || !ctx.user().id) {
     // this.error(this.msg || 'The user is not logged in');
-    console.log('The user is not logged in');
     return false;
   }
 
   if (!_.isFunction(ctx.user().isGlobalAdmin)) {
-    console.log('The user object is invalid');
     return false;
     // this.error(this.msg || 'The user object is invalid');
   }
 
   if (ctx.user().isGlobalAdmin() !== true) {
-    console.log('The user is not a global administrator');
     return false;
     // this.error(this.msg || 'The user is not a global administrator');
   }
 
-  // debug
-  console.log('its a true global administrator user!');
   return true;
 };
 
@@ -277,7 +263,6 @@ Validator.isGlobalAdministratorUser = ctx => {
 Validator.isObject = function(obj) {
   if (!_.isObject(obj)) {
     // this.error(this.msg || 'A non-object has been passed in');
-    console.log('A non-object has been passed in');
     return false;
   }
 
@@ -298,7 +283,6 @@ Validator.isObject = function(obj) {
 Validator.isArray = function(arr) {
   if (!_.isArray(arr)) {
     // this.error(this.msg || 'A non-array has been passed in');
-    console.log('A non-array has been passed in');
     return false;
   }
 
@@ -324,7 +308,6 @@ Validator.isBoolean = function(val) {
   const isBoolean = val === true || val === false;
   if (!isBoolean) {
     // this.error(this.msg || 'A non-boolean has been passed in');
-    console.log('A non-boolean has been passed in');
     return false;
   }
 
@@ -348,7 +331,6 @@ Validator.isDefined = function(val) {
   const isDefined = !_.isNull(val) && !_.isUndefined(val);
   if (!isDefined) {
     // this.error(this.msg || 'An undefined value has been passed in');
-    console.log('An undefined value has been passed in');
     return false;
   }
 
@@ -367,7 +349,6 @@ Validator.isDefined = function(val) {
 Validator.isString = function(val) {
   if (!_.isString(val)) {
     // this.error(this.msg || 'A non-string has been passed in');
-    console.log('A non-string has been passed in');
     return false;
   }
 
@@ -387,7 +368,6 @@ Validator.isValidTimeZone = function(string) {
   // Only timezones of the following format are supported: `foo/bar[/optional]`
   if (!tz.timezone.timezone.zones[string] || !string.includes('/')) {
     // this.error(this.msg || 'Invalid timezone');
-    console.log('Invalid timezone');
     return false;
   }
 
@@ -475,13 +455,11 @@ Validator.isHost = function(hostString) {
 Validator.isIso3166Country = function(string) {
   if (!_.isString(string)) {
     // this.error(this.msg || 'Provided country code was not a string');
-    console.log('Provided country code was not a string');
     return false;
   }
 
   if (!_hasCountryCode(string.toUpperCase())) {
     // this.error(this.msg || 'Provided country code is not associated to any known country');
-    console.log('Provided country code is not associated to any known country');
     return false;
   }
 

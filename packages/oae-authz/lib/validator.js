@@ -49,7 +49,6 @@ Validator.isPrincipalId = function(string) {
 Validator.isGroupId = function(string) {
   if (!AuthzUtil.isGroupId(string)) {
     // this.error(this.msg || 'An invalid group id was provided');
-    console.log('An invalid group id was provided');
     return false;
   }
 
@@ -87,7 +86,6 @@ Validator.isUserId = string => {
 Validator.isNonUserResourceId = function(string) {
   if (AuthzUtil.isUserId(string) || !AuthzUtil.isResourceId(string)) {
     // this.error(this.msg || 'An invalid non-user resource id was provided');
-    console.log('An invalid non-user resource id was provided');
     return false;
   }
 
@@ -106,7 +104,6 @@ Validator.isNonUserResourceId = function(string) {
 Validator.isResourceId = function(string) {
   if (!AuthzUtil.isResourceId(string)) {
     // this.error(this.msg || 'An invalid resource id was provided');
-    console.log('An invalid resource id was provided');
     return false;
   }
 
@@ -125,7 +122,6 @@ Validator.isResourceId = function(string) {
 Validator.isResource = function(resource) {
   if (!AuthzUtil.isResource(resource)) {
     // this.error(this.msg || 'An invalid resource was provided');
-    console.log('An invalid resource was provided');
     return false;
   }
 
@@ -144,7 +140,6 @@ Validator.isResource = function(resource) {
 Validator.isValidRole = function(string) {
   if (!AuthzUtil.isRole(string)) {
     // this.error(this.msg || util.format('A role must be one of: %s', AuthzConstants.role.ALL_PRIORITY.join(', ')));
-    console.log(util.format('A role must be one of: %s', AuthzConstants.role.ALL_PRIORITY.join(', ')));
     return false;
   }
 
@@ -170,9 +165,6 @@ Validator.isValidRoleChange = function(string) {
         util.format('A role change must either be false, or one of: %s', AuthzConstants.role.ALL_PRIORITY.join(', '))
     );
     */
-    console.log(
-      util.format('A role change must either be false, or one of: %s', AuthzConstants.role.ALL_PRIORITY.join(', '))
-    );
     return false;
   }
 
@@ -198,9 +190,6 @@ Validator.isValidShareTarget = function(string) {
         'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
     );
     */
-    console.log(
-      'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
-    );
     return false;
   }
 

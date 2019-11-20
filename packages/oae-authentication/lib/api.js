@@ -138,12 +138,15 @@ const localUsernameExists = function(ctx, tenantAlias, username, callback) {
   const loginId = new LoginId(tenantAlias, AuthenticationConstants.providers.LOCAL, username);
 
   // Parameter validation
-  const validator = new Validator();
-  validator.check(username, { code: 400, msg: 'Please specify a username' }).notEmpty();
-  _validateLoginIdForLookup(validator, loginId);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'Please specify a username'
+    }),
+    validator.finalize(callback)
+  )(username);
+  _validateLoginIdForLookup(validator, loginId, callback);
 
   _getUserIdFromLoginId(loginId, (err, userId) => {
     if (err && err.code !== 404) {
@@ -730,15 +733,23 @@ const _createUser = function(ctx, loginId, displayName, opts, callback) {
  * @param  {Object}    callback.err    An error that occurred, if any
  */
 const associateLoginId = function(ctx, loginId, userId, callback) {
-  const validator = new Validator();
   _validateLoginIdForPersistence(validator, loginId, callback);
-  validator
-    .check(null, { code: 401, msg: 'You must be authenticated to associate a login id to a user' })
-    .isLoggedInUser(ctx);
-  validator.check(userId, { code: 400, msg: 'You must specify a user id' }).notEmpty();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isLoggedInUser,
+    validator.generateError({
+      code: 401,
+      msg: 'You must be authenticated to associate a login id to a user'
+    }),
+    validator.finalize(callback)
+  )(ctx);
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'You must specify a user id'
+    }),
+    validator.finalize(callback)
+  )(userId);
 
   const isAdmin = ctx.user().isAdmin(loginId.tenantAlias);
   const isTargetUser = ctx.user().id === userId;
@@ -819,15 +830,30 @@ const associateLoginId = function(ctx, loginId, userId, callback) {
  */
 const changePassword = function(ctx, userId, oldPassword, newPassword, callback) {
   // Parameter validation
-  const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to change a password' })
-    .isLoggedInUser(ctx);
-  validator.check(userId, { code: 400, msg: 'A user id must be provided' }).isUserId();
-  validator.check(newPassword, { code: 400, msg: 'A new password must be provided' }).notEmpty();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isLoggedInUser,
+    validator.generateError({
+      code: 401,
+      msg: 'You have to be logged in to be able to change a password'
+    }),
+    validator.finalize(callback)
+  )(ctx);
+  pipe(
+    validator.isUserId,
+    validator.generateError({
+      code: 400,
+      msg: 'A user id must be provided'
+    }),
+    validator.finalize(callback)
+  )(userId);
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'A new password must be provided'
+    }),
+    validator.finalize(callback)
+  )(newPassword);
 
   // Ensure the user changing their password exists
   PrincipalsAPI.getUser(ctx, userId, (err, user) => {
@@ -892,22 +918,37 @@ const changePassword = function(ctx, userId, oldPassword, newPassword, callback)
  */
 const checkPassword = function(tenantAlias, username, password, callback) {
   // Parameter validation
-  const validator = new Validator();
-  validator.check(tenantAlias, { code: 401, msg: 'A tenant must be provided' }).notEmpty();
-  validator.check(username, { code: 400, msg: 'A username must be provided' }).notEmpty();
-  validator.check(password, { code: 400, msg: 'A password must be provided' }).notEmpty();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 401,
+      msg: 'A tenant must be provided'
+    }),
+    validator.finalize(callback)
+  )(tenantAlias);
+
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'A username must be provided'
+    }),
+    validator.finalize(callback)
+  )(username);
+
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'A password must be provided'
+    }),
+    validator.finalize(callback)
+  )(password);
 
   // We can only check password on local authentication
   const loginId = new LoginId(tenantAlias, AuthenticationConstants.providers.LOCAL, username);
 
-  _validateLoginIdForLookup(validator, loginId);
-  if (validator.hasErrors()) {
-    // eslint-disable-next-line new-cap
-    return new callback(validator.getFirstError());
-  }
+  _validateLoginIdForLookup(validator, loginId, callback);
 
   Cassandra.runQuery(
     'SELECT "userId", "password" FROM "AuthenticationLoginId" WHERE "loginId" = ?',
@@ -949,12 +990,7 @@ const checkPassword = function(tenantAlias, username, password, callback) {
 const getUserIdFromLoginId = function(tenantAlias, provider, externalId, callback) {
   const loginId = new LoginId(tenantAlias, provider, externalId);
 
-  const validator = new Validator();
-  _validateLoginIdForLookup(validator, loginId);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
-
+  _validateLoginIdForLookup(validator, loginId, callback);
   _getUserIdFromLoginId(loginId, callback);
 };
 
@@ -1037,14 +1073,41 @@ const getResetPasswordSecret = function(ctx, username, callback) {
  */
 const resetPassword = function(ctx, username, secret, newPassword, callback) {
   // Parameter validation
-  const validator = new Validator();
-  validator.check(username, { code: 400, msg: 'A username must be provided' }).notEmpty();
-  validator.check(secret, { code: 400, msg: 'A secret must be provided' }).notEmpty();
-  validator.check(newPassword, { code: 400, msg: 'A new password must be provided' }).notEmpty();
-  validator.check(newPassword, { code: 400, msg: 'Must specify a password at least 6 characters long' }).len(6);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'A username must be provided'
+    }),
+    validator.finalize(callback)
+  )(username);
+
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'A secret must be provided'
+    }),
+    validator.finalize(callback)
+  )(secret);
+
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'A new password must be provided'
+    }),
+    validator.finalize(callback)
+  )(newPassword);
+
+  pipe(
+    validator.isLength,
+    validator.generateError({
+      code: 400,
+      msg: 'Must specify a password at least 6 characters long'
+    }),
+    validator.finalize(callback)
+  )(newPassword, { min: 6, max: 6 });
 
   // Default to the current tenant's alias
   const tenantAlias = ctx.tenant().alias;
@@ -1157,14 +1220,22 @@ const _associateLoginId = function(loginId, userId, callback) {
  */
 const getUserLoginIds = function(ctx, userId, callback) {
   // Parameter validation
-  const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to request the login ids for a user' })
-    .isLoggedInUser(ctx);
-  validator.check(userId, { code: 400, msg: 'A user id must be provided' }).isUserId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isLoggedInUser,
+    validator.generateError({
+      code: 401,
+      msg: 'You have to be logged in to request the login ids for a user'
+    }),
+    validator.finalize(callback)
+  )(ctx);
+  pipe(
+    validator.isUserId,
+    validator.generateError({
+      code: 400,
+      msg: 'A user id must be provided'
+    }),
+    validator.finalize(callback)
+  )(userId);
 
   // Request the user details
   PrincipalsAPI.getUser(ctx, userId, (err, user) => {
@@ -1302,7 +1373,7 @@ const _expandLoginId = function(loginIdStr) {
  * @api private
  */
 const _validateLoginIdForLookup = function(validator, loginId, callback) {
-  const numErrors = validator.getErrorCount();
+  // const numErrors = validator.getErrorCount();
 
   pipe(
     validator.isObject,
@@ -1313,36 +1384,35 @@ const _validateLoginIdForLookup = function(validator, loginId, callback) {
     validator.finalize(callback)
   )(loginId);
 
-  if (validator.getErrorCount() === numErrors) {
-    // Only validate these if loginId is a valid object
+  // if (validator.getErrorCount() === numErrors) {
+  // Only validate these if loginId is a valid object
 
-    pipe(
-      validator.isNotEmpty,
-      validator.generateError({
-        code: 400,
-        msg: 'Must specify a tenant id on the login id'
-      }),
-      validator.finalize(callback)
-    )(loginId.tenantAlias);
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'Must specify a tenant id on the login id'
+    }),
+    validator.finalize(callback)
+  )(loginId.tenantAlias);
 
-    pipe(
-      validator.isNotEmpty,
-      validator.generateError({
-        code: 400,
-        msg: 'Must specify an authentication provider on the login id'
-      }),
-      validator.finalize(callback)
-    )(loginId.provider);
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'Must specify an authentication provider on the login id'
+    }),
+    validator.finalize(callback)
+  )(loginId.provider);
 
-    pipe(
-      validator.isNotEmpty,
-      validator.generateError({
-        code: 400,
-        msg: 'Must specify an external id on the login id'
-      }),
-      validator.finalize(callback)
-    )(loginId.externalId);
-  }
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'Must specify an external id on the login id'
+    }),
+    validator.finalize(callback)
+  )(loginId.externalId);
 };
 
 /**
@@ -1353,25 +1423,25 @@ const _validateLoginIdForLookup = function(validator, loginId, callback) {
  * @api private
  */
 const _validateLoginIdForPersistence = function(validator, loginId, callback) {
-  const numErrors = validator.getErrorCount();
+  // const numErrors = validator.getErrorCount();
   _validateLoginIdForLookup(validator, loginId, callback);
 
   // Only continue validating if the login id is valid so far
-  if (validator.getErrorCount() === numErrors) {
-    loginId.properties = loginId.properties || {};
+  // if (validator.getErrorCount() === numErrors) {
+  loginId.properties = loginId.properties || {};
 
-    // Custom handling for local authentication (i.e., username and password)
-    const isItLocalAuthentication = loginId.provider === AuthenticationConstants.providers.LOCAL;
-    if (isItLocalAuthentication) {
-      pipe(
-        validator.isLength,
-        validator.generateError({
-          code: 400,
-          msg: 'Must specify a password at least 6 characters long'
-        }),
-        validator.finalize(callback)
-      )(loginId.properties.password, { min: 6 });
-    }
+  // Custom handling for local authentication (i.e., username and password)
+  const isItLocalAuthentication = loginId.provider === AuthenticationConstants.providers.LOCAL;
+  if (isItLocalAuthentication) {
+    pipe(
+      validator.isLength,
+      validator.generateError({
+        code: 400,
+        msg: 'Must specify a password at least 6 characters long'
+      }),
+      validator.finalize(callback)
+    )(loginId.properties.password, { min: 6 });
+    // }
   }
 };
 

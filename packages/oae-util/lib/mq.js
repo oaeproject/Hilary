@@ -201,36 +201,41 @@ const init = function(config, callback) {
  * @param  {Object}     listener.data       The data that was sent in the message. This is different depending on the type of job
  * @param  {Function}   listener.callback   The listener callback. This must be invoked in order to acknowledge that the message was handled
  */
-const waitForTasksOnQueue = (queueName, listener) => {
+const setupListeningForMessages = (queueName, listener) => {
   _getOrCreateSubscriberForQueue(queueName, (err, queueSubscriber) => {
     if (err) log().error({ err }, 'Error creating redis client');
 
     const validConnection = queueSubscriber && !queueSubscriber.manuallyClosing;
     if (validConnection) {
-      queueSubscriber.brpoplpush(queueName, getProcessingQueueFor(queueName), 0, (err, queuedMessage) => {
-        if (err) log().error({ err }, 'Error while BRPOPLPUSHing redis queue ' + queueName);
-
-        if (queuedMessage) {
-          parseMessage(queuedMessage, queueName, listener, () => {
-            const processingQueue = getProcessingQueueFor(queueName);
-            removeMessageFromQueue(processingQueue, queuedMessage, () => {
-              // return waitForTasksOnQueue(queueName, listener);
-              log().info(`Finished parsing a message fetched on ${queueName}. Resuming...`);
-            });
-          });
-        } else {
-          log().warn(`Fetched an invalid message from ${queueName}. Resuming...`);
-        }
-
-        return waitForTasksOnQueue(queueName, listener);
-      });
+      listenForMessages(queueSubscriber, queueName, listener);
     } else {
-      // debug
-      log().warn('Something wrong going on here');
+      log().warn({ queueName }, `Unable to find a valid redis connection to listen on ${queueName}`);
     }
   });
 };
 
+// TODO: jsdoc
+function listenForMessages(queueSubscriber, queueName, listener) {
+  queueSubscriber.brpoplpush(queueName, getProcessingQueueFor(queueName), 0, (err, queuedMessage) => {
+    if (err) log().error({ err }, 'Error while BRPOPLPUSHing redis queue ' + queueName);
+
+    if (queuedMessage) {
+      parseMessage(queuedMessage, queueName, listener, () => {
+        const processingQueue = getProcessingQueueFor(queueName);
+        removeMessageFromQueue(processingQueue, queuedMessage, () => {
+          // return waitForTasksOnQueue(queueName, listener);
+          log().info(`Finished parsing a message fetched on ${queueName}. Resuming...`);
+        });
+      });
+    } else {
+      log().warn(`Fetched an invalid message from ${queueName}. Resuming...`);
+    }
+
+    return setupListeningForMessages(queueName, listener);
+  });
+}
+
+// TODO: jsdoc
 const removeMessageFromQueue = (processingQueue, queuedMessage, callback) => {
   log().info(`About to remove a message from ${processingQueue}`);
   theRedisPurger.lrem(processingQueue, -1, queuedMessage, (err, count) => {
@@ -245,6 +250,7 @@ const removeMessageFromQueue = (processingQueue, queuedMessage, callback) => {
   });
 };
 
+// TODO: jsdoc
 const parseMessage = (queuedMessage, queueName, listener, callback) => {
   const message = JSON.parse(queuedMessage);
   listener(message, err => {
@@ -327,7 +333,7 @@ const subscribe = (queueName, listener, callback) => {
   }
 
   queueBindings[queueName] = getProcessingQueueFor(queueName);
-  waitForTasksOnQueue(queueName, listener);
+  setupListeningForMessages(queueName, listener);
 
   return callback();
 };
@@ -360,15 +366,6 @@ const unsubscribe = (queueName, callback) => {
   }
 
   return callback();
-};
-
-const printBoundQueues = queueName => {
-  // debug
-  console.log(`Unsubscribed to [${queueName}]. Status:`);
-  const coco = _.reject(_.keys(queueBindings), eachKey => {
-    return !queueBindings[eachKey];
-  });
-  console.dir(coco);
 };
 
 /**

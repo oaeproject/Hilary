@@ -86,7 +86,8 @@ const _createNewClient = function(hosts, keyspace) {
     keyspace,
     protocolOptions: { maxVersion: 3 },
     socketOptions: {
-      connectTimeout: CONFIG.timeout
+      connectTimeout: CONFIG.timeout,
+      readTimeout: CONFIG.timeout
     },
     consistency: cassandra.types.consistencies.quorum
   });

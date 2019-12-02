@@ -48,13 +48,15 @@ MQ.emitter.on('zeroLeftToHandle', queueName => {
  * @param  {Function}   handler     The handler to invoke when the task queue is empty
  * @returns {Function}              Returns the execution of the handler function when counter equals zero
  */
-const whenTasksEmpty = function(queueName, handler) {
-  if (!queueCounters[queueName] || !_hasQueue(queueName)) {
-    return handler();
-  }
+const whenTasksEmpty = function(queueName, done) {
+  MQ.isQueueEmpty(queueName, (err, isEmpty) => {
+    if (err) return done(err);
+    if (isEmpty) {
+      return done();
+    }
 
-  // Bind the handler to the counter for this queue
-  queueCounters[queueName].whenZero(handler);
+    setTimeout(whenTasksEmpty, 100, queueName, done);
+  });
 };
 
 /**

@@ -16,6 +16,7 @@
 import * as TestsUtil from 'oae-tests/lib/util';
 import { logger } from 'oae-logger';
 import nock from 'nock';
+import { flush } from 'oae-util/lib/redis';
 
 const log = logger('before-tests');
 
@@ -49,7 +50,10 @@ before(function(callback) {
 
 beforeEach(function(callback) {
   log().info('Beginning test "%s"', this.currentTest.title);
-  return callback();
+  flush(err => {
+    if (err) callback(err);
+    return callback();
+  });
 });
 
 afterEach(function(callback) {

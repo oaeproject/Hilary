@@ -45,7 +45,11 @@ const previewCounter = new Counter();
 const whenPreviewsComplete = function(callback) {
   previewCounter.whenZero(() => {
     MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, () => {
-      return MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, callback);
+      return MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS_PROCESSING, () => {
+        return MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
+          return MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS_PROCESSING, callback);
+        });
+      });
     });
   });
 };

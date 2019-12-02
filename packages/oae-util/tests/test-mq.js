@@ -39,17 +39,12 @@ describe('MQ', () => {
    * then we connect again and proceed with the tests
    */
   it('verify quitting all clients works', callback => {
-    assertAllClientsAreConnected(MQ.getAllConnectedClients(), () => {
-      MQ.quitAllConnectedClients(err => {
+    assertAllClientsAreReady(MQ.getAllConnectedClients());
+    assertAllClientsAreDisconnected(MQ.getAllConnectedClients(), () => {
+      MQ.init(config.mq, err => {
         assert.ok(!err);
-        assertAllClientsAreDisconnected(MQ.getAllConnectedClients(), () => {
-          MQ.init(config.mq, err => {
-            assert.ok(!err);
-            assertAllClientsAreConnected(MQ.getAllConnectedClients(), () => {
-              return callback();
-            });
-          });
-        });
+        assertAllClientsAreReady(MQ.getAllConnectedClients());
+        return callback();
       });
     });
   });
@@ -59,7 +54,6 @@ describe('MQ', () => {
      * Test that verifies the parameters
      */
     it('verify parameter validation', callback => {
-      const queueName = util.format('testQueue-%s', ShortId.generate());
       MQ.purgeQueue('', err => {
         assert.strictEqual(err.code, 400);
         return callback();
@@ -81,6 +75,7 @@ describe('MQ', () => {
       // we need subscribe even though we don't use it,
       // otherwise it won't submit to a queue that hasn't been subscribed
       MQ.subscribe(testQueue, increment, err => {
+        assert(!err);
         const allTasks = new Array(10).fill({ foo: 'bar' });
         submitTasksToQueue(testQueue, allTasks, err => {
           assert(!err);
@@ -331,7 +326,7 @@ describe('MQ', () => {
     });
 
     /**
-     * Verify that submitting many messages will result in all of them 
+     * Verify that submitting many messages will result in all of them
      * being processed aka their listener is executed
      */
     it('verify submitting many messages works', callback => {
@@ -339,7 +334,7 @@ describe('MQ', () => {
       let counter = 0;
       const queueName = util.format('testQueue-%s', ShortId.generate());
 
-      const allTasks = new Array(NUMBER_OF_TASKS).fill(null).map(each => {
+      const allTasks = new Array(NUMBER_OF_TASKS).fill(null).map(() => {
         return { msg: `Practice ${counter++} times makes perfect` };
       });
       // we'll soon shift/pop the array, so let's keep a clone for later
@@ -439,16 +434,9 @@ const submitTasksToQueue = (queueName, tasks, done) => {
 /**
  * Utility function to make sure each and every client is properly connected
  */
-const assertAllClientsAreConnected = (clients, done) => {
-  if (clients.length === 0) {
-    return done();
-  }
-
-  const nextClient = clients.shift();
-  nextClient.llen('someList', (err, count) => {
-    assert.ok(!err);
-    assert.strictEqual(count, 0, 'This is a random list, its size will always be zero');
-    assertAllClientsAreConnected(clients, done);
+const assertAllClientsAreReady = clients => {
+  _.each(clients, eachClient => {
+    assert.ok(eachClient.status === 'ready' || eachClient.status === 'connecting');
   });
 };
 
@@ -461,13 +449,9 @@ const assertAllClientsAreDisconnected = (clients, done) => {
   }
 
   const nextClient = clients.shift();
-  nextClient.llen('someList', (err, count) => {
+  nextClient.disconnect();
+  nextClient.llen('someList', err => {
     assert.ok(err, 'Connection is closed, so no command can be issued');
-    /**
-     * By default, ioredis will try to reconnect when the connection to Redis is lost
-     * except when the connection is closed manually by redis.disconnect() or redis.quit().
-     * https://github.com/luin/ioredis#auto-reconnect
-     */
     assertAllClientsAreDisconnected(clients, done);
   });
 };

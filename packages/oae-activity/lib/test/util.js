@@ -62,12 +62,14 @@ const refreshConfiguration = function(config, callback) {
  */
 const collectAndGetActivityStream = function(restCtx, resourceId, opts, callback) {
   MqTestsUtil.whenTasksEmpty(ActivityConstants.mq.TASK_ACTIVITY, () => {
-    ActivityAggregator.collectAllBuckets(() => {
-      if (resourceId) {
-        RestAPI.Activity.getActivityStream(restCtx, resourceId, opts, callback);
-      } else {
-        RestAPI.Activity.getCurrentUserActivityStream(restCtx, opts, callback);
-      }
+    MqTestsUtil.whenTasksEmpty(ActivityConstants.mq.TASK_ACTIVITY_PROCESSING, () => {
+      ActivityAggregator.collectAllBuckets(() => {
+        if (resourceId) {
+          RestAPI.Activity.getActivityStream(restCtx, resourceId, opts, callback);
+        } else {
+          RestAPI.Activity.getCurrentUserActivityStream(restCtx, opts, callback);
+        }
+      });
     });
   });
 };
@@ -85,8 +87,10 @@ const collectAndGetActivityStream = function(restCtx, resourceId, opts, callback
  */
 const collectAndGetNotificationStream = function(restCtx, opts, callback) {
   MqTestsUtil.whenTasksEmpty(ActivityConstants.mq.TASK_ACTIVITY, () => {
-    ActivityAggregator.collectAllBuckets(() => {
-      RestAPI.Activity.getNotificationStream(restCtx, opts, callback);
+    MqTestsUtil.whenTasksEmpty(ActivityConstants.mq.TASK_ACTIVITY_PROCESSING, () => {
+      ActivityAggregator.collectAllBuckets(() => {
+        RestAPI.Activity.getNotificationStream(restCtx, opts, callback);
+      });
     });
   });
 };

@@ -84,13 +84,20 @@ let redisConfig = null;
  * This will hold a connection used only for PURGE operations
  * See `purgeAllQueues` for details
  */
-let manager = null;
+let theRedisPurger = null;
+
+/**
+ * This will hold a connection used only for LLEN operations
+ * See `whenTasksEmpty` for details
+ * This is only relevant for tests
+ */
+let theRedisEmptinessChecker = null;
 
 /**
  * This will hold a connection for LPUSHing messages to queues
  * See `submit` for details
  */
-let publisher = null;
+let theRedisPublisher = null;
 
 /**
  * This object will track the current bindings
@@ -108,7 +115,7 @@ const queueBindings = {};
  * on the queue, using redis BRPOPLPUSH.
  * See `_getOrCreateSubscriberForQueue` for details
  */
-let subscribers = {};
+const subscribers = {};
 
 const PRODUCTION_MODE = 'production';
 
@@ -128,7 +135,8 @@ OaeEmitter.on('ready', () => {
  * https://github.com/luin/ioredis/blob/master/API.md
  */
 OAE.registerPreShutdownHandler('mq', null, done => {
-  return quitAllClients(getAllActiveClients(), done);
+  quitAllConnectedClients();
+  return done();
 });
 
 /**
@@ -144,34 +152,39 @@ const init = function(config, callback) {
   redisConfig = config;
 
   // redis connection possible statuses
-  const hasNotBeenCreated = manager === null;
-  const hasConnectionBeenClosed = manager !== null && manager.status === 'end';
+  const hasNotBeenCreated = theRedisPurger === null;
+  const hasConnectionBeenClosed = theRedisPurger !== null && theRedisPurger.status === 'end';
 
   // Only init if the connections haven't been opened.
   if (hasNotBeenCreated) {
     Redis.createClient(config, (err, client) => {
       if (err) return callback(err);
-      manager = client;
+      theRedisPurger = client;
+      theRedisEmptinessChecker = client.duplicate();
+      theRedisPublisher = client.duplicate();
 
-      Redis.createClient(config, (err, client) => {
-        if (err) return callback(err);
-        publisher = client;
+      // Assign names just for fun
+      theRedisPurger.queueName = 'purger';
+      theRedisEmptinessChecker.queueName = 'checker';
+      theRedisPublisher.queueName = 'publisher';
 
-        // if the flag is set, we purge all queues on startup. ONLY if we're NOT in production mode.
-        const shallWePurge = redisConfig.purgeQueuesOnStartup && process.env.NODE_ENV !== PRODUCTION_MODE;
-        if (shallWePurge) {
-          purgeAllBoundQueues(callback);
-        } else {
-          return callback();
-        }
-      });
+      // if the flag is set, we purge all queues on startup. ONLY if we're NOT in production mode.
+      const shallWePurge = redisConfig.purgeQueuesOnStartup && process.env.NODE_ENV !== PRODUCTION_MODE;
+      if (shallWePurge) {
+        purgeAllBoundQueues(callback);
+      } else {
+        return callback();
+      }
     });
   } else if (hasConnectionBeenClosed) {
-    Redis.reconnect(manager, err => {
+    Redis.reconnect(theRedisPurger, err => {
       if (err) return callback(err);
-      Redis.reconnect(publisher, err => {
+      Redis.reconnect(theRedisPublisher, err => {
         if (err) return callback(err);
-        return callback();
+        Redis.reconnect(theRedisEmptinessChecker, err => {
+          if (err) return callback(err);
+          return callback();
+        });
       });
     });
   } else {
@@ -188,60 +201,90 @@ const init = function(config, callback) {
  * @param  {Object}     listener.data       The data that was sent in the message. This is different depending on the type of job
  * @param  {Function}   listener.callback   The listener callback. This must be invoked in order to acknowledge that the message was handled
  */
-const collectLatestFromQueue = (queueName, listener) => {
-  _getOrCreateSubscriberForQueue(queueName, (err, subscriber) => {
+const waitForTasksOnQueue = (queueName, listener) => {
+  _getOrCreateSubscriberForQueue(queueName, (err, queueSubscriber) => {
     if (err) log().error({ err }, 'Error creating redis client');
-    subscriber.rpoplpush(queueName, getProcessingQueueFor(queueName), (err, queuedMessage) => {
-      if (err) log().error({ err }, 'Error while BRPOPLPUSHing redis queue ' + queueName);
 
-      if (queuedMessage) {
-        const message = JSON.parse(queuedMessage);
-        listener(message, err => {
-          /**
-           * Lets set the convention that if the listener function
-           * returns the callback with an error, then something went
-           * unpexpectadly wrong, and we need to know about it.
-           * Hence, we're sending it to a special queue for analysis
-           */
-          if (err) {
-            log().warn(
-              { err },
-              `Using the redelivery mechanism for a message that failed running ${listener.name} on ${queueName}`
-            );
-            _redeliverToSpecialQueue(queueName, queuedMessage);
-          }
+    const validConnection = queueSubscriber && !queueSubscriber.manuallyClosing;
+    if (validConnection) {
+      queueSubscriber.brpoplpush(queueName, getProcessingQueueFor(queueName), 0, (err, queuedMessage) => {
+        if (err) log().error({ err }, 'Error while BRPOPLPUSHing redis queue ' + queueName);
 
-          subscriber.lrem(getProcessingQueueFor(queueName), -1, queuedMessage, err => {
-            if (err) log().error('Unable to LREM from redis, message is kept on ' + queueName);
-
-            // remove message from processing queue
-            emitter.emit('postHandle', queueName);
-
-            // recursive call itself if there are more tasks to be consumed
-            isQueueEmpty(queueName, subscriber, (err, queueIsEmpty) => {
-              if (err) log().error({ err }, 'Error trying to LLEN redis queue ' + queueName);
-
-              if (!queueIsEmpty) {
-                return collectLatestFromQueue(queueName, listener);
-              }
+        if (queuedMessage) {
+          parseMessage(queuedMessage, queueName, listener, () => {
+            const processingQueue = getProcessingQueueFor(queueName);
+            removeMessageFromQueue(processingQueue, queuedMessage, () => {
+              // return waitForTasksOnQueue(queueName, listener);
+              log().info(`Finished parsing a message fetched on ${queueName}. Resuming...`);
             });
           });
-        });
-      } else {
-        log().warn('No tasks to be pulled from [' + queueName + '], exiting...');
-      }
-    });
+        } else {
+          log().warn(`Fetched an invalid message from ${queueName}. Resuming...`);
+        }
+
+        return waitForTasksOnQueue(queueName, listener);
+      });
+    } else {
+      // debug
+      log().warn('Something wrong going on here');
+    }
+  });
+};
+
+const removeMessageFromQueue = (processingQueue, queuedMessage, callback) => {
+  log().info(`About to remove a message from ${processingQueue}`);
+  theRedisPurger.lrem(processingQueue, -1, queuedMessage, (err, count) => {
+    if (err) {
+      log().error('Unable to LREM from redis, message is kept on ' + processingQueue);
+      return callback(err);
+    }
+
+    log().info(`Removed ${count} message from ${processingQueue}. Resuming worker...`);
+    // return collectLatestFromQueue(queueName, listener);
+    return callback();
+  });
+};
+
+const parseMessage = (queuedMessage, queueName, listener, callback) => {
+  const message = JSON.parse(queuedMessage);
+  listener(message, err => {
+    /**
+     * Lets set the convention that if the listener function
+     * returns the callback with an error, then something went
+     * unpexpectadly wrong, and we need to know about it.
+     * Hence, we're sending it to a special queue for analysis
+     */
+    if (err) {
+      log().warn(
+        { err },
+        `Using the redelivery mechanism for a message that failed running ${listener.name} on ${queueName}`
+      );
+      // TODO
+      const redeliveryQueue = getRedeliveryQueueFor(queueName);
+      sendToRedeliveryQueue(redeliveryQueue, queuedMessage, err => {
+        if (err) {
+          log().warn(`Unable to submit a message to ${redeliveryQueue}`);
+        } else {
+          log().warn(`Submitted a message to ${redeliveryQueue} following an error`);
+        }
+
+        return callback();
+      });
+    }
+
+    return callback();
   });
 };
 
 /**
  * @function isQueueEmpty
  * @param  {String} queueName  The queue name we're checking the size of (which is a redis List)
- * @param  {Object} subscriber A redis client which is used solely for subscribing to this queue
+ * @param  {Object} someRedisConnection A redis client which is used solely for subscribing to this queue
  * @param  {Function} done     Standar callback function
  */
-const isQueueEmpty = (queueName, subscriber, done) => {
-  subscriber.llen(queueName, (err, stillQueued) => {
+const isQueueEmpty = (queueName, done) => {
+  const redisConnection = fetchEmptinessChecker();
+  redisConnection.llen(queueName, (err, stillQueued) => {
     if (err) done(err);
     return done(null, stillQueued === 0);
   });
@@ -254,8 +297,11 @@ const isQueueEmpty = (queueName, subscriber, done) => {
  * @param  {String} queueName   The queue name for redelivery, which is a redis List
  * @param  {String} message     The message we need to store in the redelivery queue in JSON format
  */
-const _redeliverToSpecialQueue = (queueName, message) => {
-  publisher.lpush(getRedeliveryQueueFor(queueName), message, () => {});
+const sendToRedeliveryQueue = (redeliveryQueue, message, callback) => {
+  theRedisPublisher.lpush(redeliveryQueue, message, err => {
+    if (err) return callback(err);
+    return callback;
+  });
 };
 
 /**
@@ -275,22 +321,14 @@ const subscribe = (queueName, listener, callback) => {
   validator.check(queueName, { code: 400, msg: 'No channel was provided.' }).notEmpty();
   if (validator.hasErrors()) return callback(validator.getFirstError());
 
-  // make sure the listener isn't repetitive
-  const thisQueueHasBeenSubscribedBefore = emitter.listeners(`collectFrom:${queueName}`).length > 0;
-  if (thisQueueHasBeenSubscribedBefore) {
-    log().warn(
-      `There is already one listener for collectFrom:${queueName} event. Something is not right here, but I will remove the previous listener just in case.`
-    );
-    emitter.removeAllListeners(`collectFrom:${queueName}`);
+  const queueIsAlreadyBound = queueBindings[queueName];
+  if (queueIsAlreadyBound) {
+    return callback();
   }
 
-  emitter.on(`collectFrom:${queueName}`, emittedQueue => {
-    if (emittedQueue === queueName) {
-      collectLatestFromQueue(queueName, listener);
-    }
-  });
-
   queueBindings[queueName] = getProcessingQueueFor(queueName);
+  waitForTasksOnQueue(queueName, listener);
+
   return callback();
 };
 
@@ -312,9 +350,25 @@ const unsubscribe = (queueName, callback) => {
   validator.check(queueName, { code: 400, msg: 'No channel was provided.' }).notEmpty();
   if (validator.hasErrors()) return callback(validator.getFirstError());
 
-  emitter.removeAllListeners(`collectFrom:${queueName}`);
+  // update bindings
   delete queueBindings[queueName];
+
+  // disconnect subscriber
+  const subscribedClient = subscribers[queueName];
+  if (subscribedClient) {
+    subscribedClient.disconnect(false);
+  }
+
   return callback();
+};
+
+const printBoundQueues = queueName => {
+  // debug
+  console.log(`Unsubscribed to [${queueName}]. Status:`);
+  const coco = _.reject(_.keys(queueBindings), eachKey => {
+    return !queueBindings[eachKey];
+  });
+  console.dir(coco);
 };
 
 /**
@@ -346,9 +400,7 @@ const submit = (queueName, message, callback) => {
 
   const queueIsBound = queueBindings[queueName];
   if (queueIsBound) {
-    emitter.emit('preSubmit', queueName);
-    publisher.lpush(queueName, message, () => {
-      emitter.emit(`collectFrom:${queueName}`, queueName);
+    theRedisPublisher.lpush(queueName, message, () => {
       return callback();
     });
   } else {
@@ -365,8 +417,9 @@ const submit = (queueName, message, callback) => {
  */
 const getAllActiveClients = () => {
   return _.values(subscribers)
-    .concat(manager)
-    .concat(publisher);
+    .concat(theRedisPurger)
+    .concat(theRedisPublisher)
+    .concat(theRedisEmptinessChecker);
 };
 
 /**
@@ -385,15 +438,12 @@ const purgeQueue = (queueName, callback) => {
   if (validator.hasErrors()) return callback(validator.getFirstError());
 
   emitter.emit('prePurge', queueName);
-  manager.llen(queueName, (err /* count */) => {
+  theRedisPurger.del(queueName, err => {
     if (err) return callback(err);
-    manager.del(queueName, err => {
-      if (err) return callback(err);
 
-      emitter.emit('postPurge', queueName, 1);
+    emitter.emit('postPurge', queueName, 1);
 
-      return callback();
-    });
+    return callback();
   });
 };
 
@@ -436,28 +486,10 @@ const purgeAllBoundQueues = callback => {
  * @param  {Function} done Standard callback function
  * @return {Function} Returns `quitAllClients` method
  */
-const quitAllConnectedClients = done => {
-  return quitAllClients(getAllActiveClients(), done);
-};
-
-/**
- * Quits (or disconnects) all the redis clients given
- *
- * @function quitAllClients
- * @param  {Array} allClients   An array of redis clients we want to quit (disconnect)
- * @param  {Function} done      Standard callback function
- * @return {Function}           Returns callback
- */
-const quitAllClients = (allClients, done) => {
-  if (allClients.length === 0) {
-    subscribers = {};
-    return done();
-  }
-
-  const nextClientToQuit = allClients.shift();
-  nextClientToQuit.quit(err => {
-    if (err) return done(err);
-    quitAllClients(allClients, done);
+const quitAllConnectedClients = () => {
+  const allClients = getAllActiveClients();
+  _.each(allClients, each => {
+    each.disconnect();
   });
 };
 
@@ -469,7 +501,7 @@ const quitAllClients = (allClients, done) => {
  * @param  {Function} callback  Standard callback function
  */
 const getQueueLength = (queueName, callback) => {
-  manager.llen(queueName, (err, count) => {
+  theRedisPurger.llen(queueName, (err, count) => {
     if (err) return callback(err);
 
     return callback(null, count);
@@ -486,16 +518,28 @@ const getQueueLength = (queueName, callback) => {
  * @return {Function}           Returns callback
  */
 const _getOrCreateSubscriberForQueue = (queueName, callback) => {
-  if (subscribers[queueName]) {
+  const subscriber = subscribers[queueName];
+  // redis connection possible statuses:
+  const hasNotBeenCreated = !subscriber;
+  const hasConnectionBeenClosed = subscriber && subscriber.status === 'end';
+
+  if (hasNotBeenCreated) {
+    // create it then
+    Redis.createClient(redisConfig, (err, client) => {
+      if (err) return callback(err);
+
+      client.queueName = queueName;
+      subscribers[queueName] = client;
+      return callback(null, subscribers[queueName]);
+    });
+  } else if (hasConnectionBeenClosed) {
+    subscribers[queueName].connect(err => {
+      if (err) return callback(err);
+      return callback(null, subscribers[queueName]);
+    });
+  } else {
     return callback(null, subscribers[queueName]);
   }
-
-  Redis.createClient(redisConfig, (err, client) => {
-    if (err) return callback(err);
-
-    subscribers[queueName] = client;
-    return callback(null, subscribers[queueName]);
-  });
 };
 
 /**
@@ -522,6 +566,11 @@ const getProcessingQueueFor = queueName => {
   return `${queueName}-processing`;
 };
 
+// TODO: jsdocs
+const fetchEmptinessChecker = () => {
+  return theRedisEmptinessChecker;
+};
+
 export {
   emitter,
   init,
@@ -534,5 +583,7 @@ export {
   submit,
   getQueueLength,
   getAllActiveClients as getAllConnectedClients,
-  quitAllConnectedClients
+  quitAllConnectedClients,
+  fetchEmptinessChecker,
+  isQueueEmpty
 };

@@ -37,13 +37,15 @@ const sendEmail = function(templateModule, templateId, toUser, data, opts, callb
   // is to avoid any notifications from other tests firing the debugSent event, which will result in us returning the
   // wrong message here.
   MqTestsUtil.whenTasksEmpty(ActivityConstants.mq.TASK_ACTIVITY, () => {
-    ActivityAggregator.collectAllBuckets(() => {
-      ActivityNotifications.whenNotificationsEmpty(() => {
-        // Send the email, and return the error if one occurs, otherwise the message will be returned
-        EmailAPI.sendEmail(templateModule, templateId, toUser, data, opts, (err, info) => {
-          if (err) return callback(err);
+    MqTestsUtil.whenTasksEmpty(ActivityConstants.mq.TASK_ACTIVITY_PROCESSING, () => {
+      ActivityAggregator.collectAllBuckets(() => {
+        ActivityNotifications.whenNotificationsEmpty(() => {
+          // Send the email, and return the error if one occurs, otherwise the message will be returned
+          EmailAPI.sendEmail(templateModule, templateId, toUser, data, opts, (err, info) => {
+            if (err) return callback(err);
 
-          callback(null, info);
+            callback(null, info);
+          });
         });
       });
     });
@@ -121,60 +123,62 @@ const collectAndFetchAllEmails = function(callback) {
 
   // Ensure no notifications from other tests are still processing
   MqTestsUtil.whenTasksEmpty(ActivityConstants.mq.TASK_ACTIVITY, () => {
-    ActivityNotifications.whenNotificationsEmpty(() => {
-      // Wait for any message that was sent to finish its asynchronous
-      // work
-      EmailAPI.whenAllEmailsSent(() => {
-        /*!
-         * Handle the debugSent event, filling up the messages array with the messages we receive
-         */
-        const _handleDebugSent = function(info) {
-          messages.push(JSON.parse(info.message));
-        };
+    MqTestsUtil.whenTasksEmpty(ActivityConstants.mq.TASK_ACTIVITY_PROCESSING, () => {
+      ActivityNotifications.whenNotificationsEmpty(() => {
+        // Wait for any message that was sent to finish its asynchronous
+        // work
+        EmailAPI.whenAllEmailsSent(() => {
+          /*!
+           * Handle the debugSent event, filling up the messages array with the messages we receive
+           */
+          const _handleDebugSent = function(info) {
+            messages.push(JSON.parse(info.message));
+          };
 
-        // Handler that simply collects the messages that are sent in this collection cycle into an array
-        EmailAPI.emitter.on('debugSent', _handleDebugSent);
+          // Handler that simply collects the messages that are sent in this collection cycle into an array
+          EmailAPI.emitter.on('debugSent', _handleDebugSent);
 
-        // Collect the activity buckets, which will aggregate any pending activities into the proper email activity streams
-        ActivityAggregator.collectAllBuckets(() => {
-          // Ensure all scheduling of email delivery has been completed
-          ActivityEmail.whenEmailsScheduled(() => {
-            // Collect and send the emails
-            ActivityEmail.collectAllBuckets(() => {
-              // Wait for any message that was sent to finish its asynchronous
-              // work
-              EmailAPI.whenAllEmailsSent(() => {
-                EmailAPI.emitter.removeListener('debugSent', _handleDebugSent);
+          // Collect the activity buckets, which will aggregate any pending activities into the proper email activity streams
+          ActivityAggregator.collectAllBuckets(() => {
+            // Ensure all scheduling of email delivery has been completed
+            ActivityEmail.whenEmailsScheduled(() => {
+              // Collect and send the emails
+              ActivityEmail.collectAllBuckets(() => {
+                // Wait for any message that was sent to finish its asynchronous
+                // work
+                EmailAPI.whenAllEmailsSent(() => {
+                  EmailAPI.emitter.removeListener('debugSent', _handleDebugSent);
 
-                // SMTP specifications have a requirement that no line in an email body
-                // should surpass 999 characters, including the CR+LF character. This check
-                // ensures no email has an html content line longer than 500 chars, which
-                // accounts for post-processing things such as SendGrid changing the links
-                // to extremely long values (e.g., ~400 characters long) for click-tracking
-                //
-                // @see https://github.com/oaeproject/Hilary/issues/1168
+                  // SMTP specifications have a requirement that no line in an email body
+                  // should surpass 999 characters, including the CR+LF character. This check
+                  // ensures no email has an html content line longer than 500 chars, which
+                  // accounts for post-processing things such as SendGrid changing the links
+                  // to extremely long values (e.g., ~400 characters long) for click-tracking
+                  //
+                  // @see https://github.com/oaeproject/Hilary/issues/1168
 
-                _.each(messages, message => {
-                  _assertEmailTemplateFieldValid(message, 'subject');
-                  _assertEmailTemplateFieldValid(message, 'html');
-                  _assertEmailTemplateFieldValid(message, 'text');
-                  _.each(message.html.split('\n'), line => {
-                    assert.ok(
-                      line.length <= 500,
-                      util.format(
-                        'Expected no email line to be more than 500 characters, but found: (%s) %s',
-                        line.length,
-                        line
-                      )
-                    );
-                    assert.ok(
-                      line.split('<a').length < 3,
-                      util.format('Expected no email line to have more than 1 link, but found: %s', line)
-                    );
+                  _.each(messages, message => {
+                    _assertEmailTemplateFieldValid(message, 'subject');
+                    _assertEmailTemplateFieldValid(message, 'html');
+                    _assertEmailTemplateFieldValid(message, 'text');
+                    _.each(message.html.split('\n'), line => {
+                      assert.ok(
+                        line.length <= 500,
+                        util.format(
+                          'Expected no email line to be more than 500 characters, but found: (%s) %s',
+                          line.length,
+                          line
+                        )
+                      );
+                      assert.ok(
+                        line.split('<a').length < 3,
+                        util.format('Expected no email line to have more than 1 link, but found: %s', line)
+                      );
+                    });
                   });
-                });
 
-                return callback(messages);
+                  return callback(messages);
+                });
               });
             });
           });
@@ -200,24 +204,26 @@ const collectAndFetchEmailsForBucket = function(bucketNumber, emailPreference, d
 
   // Ensure no notifications from other tests are still processing
   MqTestsUtil.whenTasksEmpty(ActivityConstants.mq.TASK_ACTIVITY, () => {
-    ActivityNotifications.whenNotificationsEmpty(() => {
-      /*!
-       * Handle the debugSent event, filling up the messages array with the messages we receive
-       */
-      const _handleDebugSent = function(info) {
-        messages.push(JSON.parse(info.message));
-      };
+    MqTestsUtil.whenTasksEmpty(ActivityConstants.mq.TASK_ACTIVITY_PROCESSING, () => {
+      ActivityNotifications.whenNotificationsEmpty(() => {
+        /*!
+         * Handle the debugSent event, filling up the messages array with the messages we receive
+         */
+        const _handleDebugSent = function(info) {
+          messages.push(JSON.parse(info.message));
+        };
 
-      // Handler that simply collects the messages that are sent in this collection cycle into an array
-      EmailAPI.emitter.on('debugSent', _handleDebugSent);
+        // Handler that simply collects the messages that are sent in this collection cycle into an array
+        EmailAPI.emitter.on('debugSent', _handleDebugSent);
 
-      // Collect the activity buckets, which will aggregate any pending activities into the proper email activity streams
-      ActivityAggregator.collectAllBuckets(() => {
-        // Collect and send the emails
-        ActivityEmail.collectMails(bucketNumber, emailPreference, dayOfWeek, hourOfDay, err => {
-          assert.ok(!err);
-          EmailAPI.emitter.removeListener('debugSent', _handleDebugSent);
-          return callback(messages);
+        // Collect the activity buckets, which will aggregate any pending activities into the proper email activity streams
+        ActivityAggregator.collectAllBuckets(() => {
+          // Collect and send the emails
+          ActivityEmail.collectMails(bucketNumber, emailPreference, dayOfWeek, hourOfDay, err => {
+            assert.ok(!err);
+            EmailAPI.emitter.removeListener('debugSent', _handleDebugSent);
+            return callback(messages);
+          });
         });
       });
     });
@@ -232,13 +238,15 @@ const collectAndFetchEmailsForBucket = function(bucketNumber, emailPreference, d
  */
 const clearEmailCollections = function(callback) {
   MqTestsUtil.whenTasksEmpty(ActivityConstants.mq.TASK_ACTIVITY, () => {
-    // Force an activity collection so all emails get scheduled
-    ActivityAggregator.collectAllBuckets(() => {
-      // Clear the scheduled emails from the buckets
-      Cassandra.runQuery('TRUNCATE "EmailBuckets"', [], err => {
-        assert.ok(!err);
+    MqTestsUtil.whenTasksEmpty(ActivityConstants.mq.TASK_ACTIVITY_PROCESSING, () => {
+      // Force an activity collection so all emails get scheduled
+      ActivityAggregator.collectAllBuckets(() => {
+        // Clear the scheduled emails from the buckets
+        Cassandra.runQuery('TRUNCATE "EmailBuckets"', [], err => {
+          assert.ok(!err);
 
-        return callback();
+          return callback();
+        });
       });
     });
   });

@@ -110,35 +110,39 @@ describe('Search', () => {
   const _createContentAndWait = function(stream, callback) {
     // When the queue is empty, we create a piece of content for which we can generate preview items.
     MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
-      TestsUtil.generateTestUsers(signedAdminRestContext, 1, (err, response, creator) => {
-        assert.ok(!err);
+      MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS_PROCESSING, () => {
+        TestsUtil.generateTestUsers(signedAdminRestContext, 1, (err, response, creator) => {
+          assert.ok(!err);
 
-        RestAPI.Content.createFile(
-          creator.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          'public',
-          stream,
-          [],
-          [],
-          [],
-          (err, contentObj) => {
-            assert.ok(!err);
+          RestAPI.Content.createFile(
+            creator.restContext,
+            'Test Content 1',
+            'Test content description 1',
+            'public',
+            stream,
+            [],
+            [],
+            [],
+            (err, contentObj) => {
+              assert.ok(!err);
 
-            // Wait till the PP items have been generated
-            MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
-              // Ensure the preview items are there
-              RestAPI.Content.getContent(creator.restContext, contentObj.id, (err, updatedContent) => {
-                assert.ok(!err);
-                assert.ok(updatedContent.previews);
-                assert.strictEqual(updatedContent.previews.status, 'done');
-                assert.strictEqual(updatedContent.previews.pageCount, 1);
+              // Wait till the PP items have been generated
+              MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
+                MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS_PROCESSING, () => {
+                  // Ensure the preview items are there
+                  RestAPI.Content.getContent(creator.restContext, contentObj.id, (err, updatedContent) => {
+                    assert.ok(!err);
+                    assert.ok(updatedContent.previews);
+                    assert.strictEqual(updatedContent.previews.status, 'done');
+                    assert.strictEqual(updatedContent.previews.pageCount, 1);
 
-                return callback(creator, updatedContent);
+                    return callback(creator, updatedContent);
+                  });
+                });
               });
-            });
-          }
-        );
+            }
+          );
+        });
       });
     });
   };

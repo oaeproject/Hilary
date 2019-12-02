@@ -229,11 +229,17 @@ const searchAll = function(restCtx, searchType, params, opts, callback) {
  */
 const whenIndexingComplete = function(callback) {
   MqTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_REINDEX_ALL, () => {
-    MqTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_INDEX_DOCUMENT, () => {
-      MqTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_DELETE_DOCUMENT, () => {
-        ElasticSearch.refresh(err => {
-          assert.ok(!err);
-          return callback();
+    MqTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_REINDEX_ALL_PROCESSING, () => {
+      MqTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_INDEX_DOCUMENT, () => {
+        MqTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_INDEX_DOCUMENT_PROCESSING, () => {
+          MqTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_DELETE_DOCUMENT, () => {
+            MqTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_DELETE_DOCUMENT_PROCESSING, () => {
+              ElasticSearch.refresh(err => {
+                assert.ok(!err);
+                return callback();
+              });
+            });
+          });
         });
       });
     });

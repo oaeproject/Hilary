@@ -15,8 +15,9 @@
  */
 
 import path from 'path';
+import fs from 'fs';
 import { Map } from 'immutable';
-import git from 'nodegit';
+import * as git from 'isomorphic-git';
 import _ from 'underscore';
 
 // A variable that will hold the path to the UI directory
@@ -38,13 +39,11 @@ const getVersionCB = function(callback) {
 };
 
 const getVersion = async function(repoPath = hilaryDirectory, repoInformation = new Map()) {
-  const repo = await git.Repository.open(repoPath);
-  const headCommit = await repo.getHeadCommit();
-
-  const lastCommitId = headCommit.id().toString();
-  const lastCommitDate = headCommit.date();
-
-  const tags = await git.Tag.list(repo);
+  const commitLog = await git.log({ fs, dir: repoPath, depth: 1 });
+  const headCommit = _.first(commitLog);
+  const lastCommitId = headCommit.oid; // id().toString();
+  const lastCommitDate = new Date(headCommit.author.timestamp); // .date();
+  const tags = await git.listTags({ fs, dir: repoPath });
 
   const findLatestTag = (accumulator, currentValue) => {
     return parseFloat(accumulator) > parseFloat(currentValue) ? accumulator : currentValue;
@@ -52,24 +51,28 @@ const getVersion = async function(repoPath = hilaryDirectory, repoInformation = 
 
   const latestTag = tags.reduce(findLatestTag);
 
-  const submodulePointers = {};
-  const submodules = await repo.getSubmoduleNames();
-  if (!_.isEmpty(submodules)) {
-    for (const eachSubmodule of submodules) {
-      // eslint-disable-next-line no-await-in-loop
-      const eachSubmoduleRepo = await git.Submodule.lookup(repo, eachSubmodule);
-      submodulePointers[eachSubmodule] = eachSubmoduleRepo.headId().toString();
-      // eslint-disable-next-line no-await-in-loop
-      repoInformation = await getVersion(path.join(repoPath, eachSubmodule), repoInformation);
+  /**
+   * Isomorphic-git does not yet support submodules
+   * so we have to list them by hand for now
+   */
+  const submodules = {
+    'oae-rest': {
+      path: await git.statusMatrix({ fs, dir: repoPath, pattern: '**/oae-rest/package.json' })
+    },
+    '3akai-ux': {
+      path: await git.statusMatrix({ fs, dir: repoPath, pattern: '3akai-ux/package.json' })
+    },
+    restjsdoc: {
+      path: await git.statusMatrix({ fs, dir: repoPath, pattern: '**/restjsdoc/package.json' })
     }
-  }
+  };
 
   const repoName = _.last(repoPath.split('/'));
   repoInformation = repoInformation.set(repoName, {
     lastCommitId,
     lastCommitDate,
     latestTag,
-    submodulePointers
+    submodules
   });
 
   return repoInformation;

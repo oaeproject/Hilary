@@ -206,11 +206,7 @@ const setupListeningForMessages = (queueName, listener) => {
     if (err) log().error({ err }, 'Error creating redis client');
 
     const isSubscriberActive = queueSubscriber && !queueSubscriber.manuallyClosing;
-    if (isSubscriberActive) {
-      listenForMessages(queueSubscriber, queueName, listener);
-    } else {
-      log().warn({ queueName }, `Unable to find an active redis connection to listen on ${queueName}`);
-    }
+    if (isSubscriberActive) listenForMessages(queueSubscriber, queueName, listener);
   });
 };
 
@@ -220,7 +216,7 @@ const setupListeningForMessages = (queueName, listener) => {
  * @param  {String}   queueName       The queue we're listening to
  * @param  {Function}   listener      The function that will handle messages delivered from the queue
  */
-function listenForMessages(queueSubscriber, queueName, listener) {
+const listenForMessages = (queueSubscriber, queueName, listener) => {
   queueSubscriber.brpoplpush(queueName, getProcessingQueueFor(queueName), 0, (err, queuedMessage) => {
     if (err) log().error({ err }, 'Error while BRPOPLPUSHing redis queue ' + queueName);
 
@@ -234,7 +230,7 @@ function listenForMessages(queueSubscriber, queueName, listener) {
 
     return setupListeningForMessages(queueName, listener);
   });
-}
+};
 
 /**
  * @function removeMessageFromQueue

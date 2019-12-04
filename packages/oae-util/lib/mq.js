@@ -193,9 +193,9 @@ const init = function(config, callback) {
 };
 
 /**
- * Subscribe the given `listener` function to the provided queue.
+ * Sets up the main logic for binding the given `listener` function to the provided queue
  *
- * @function collectLatestFromQueue
+ * @function setupListeningForMessages
  * @param  {Queue}      queueName           The queue to which we'll subscribe the listener
  * @param  {Function}   listener            The function that will handle messages delivered from the queue
  * @param  {Object}     listener.data       The data that was sent in the message. This is different depending on the type of job
@@ -205,27 +205,28 @@ const setupListeningForMessages = (queueName, listener) => {
   _getOrCreateSubscriberForQueue(queueName, (err, queueSubscriber) => {
     if (err) log().error({ err }, 'Error creating redis client');
 
-    const validConnection = queueSubscriber && !queueSubscriber.manuallyClosing;
-    if (validConnection) {
+    const isSubscriberActive = queueSubscriber && !queueSubscriber.manuallyClosing;
+    if (isSubscriberActive) {
       listenForMessages(queueSubscriber, queueName, listener);
     } else {
-      log().warn({ queueName }, `Unable to find a valid redis connection to listen on ${queueName}`);
+      log().warn({ queueName }, `Unable to find an active redis connection to listen on ${queueName}`);
     }
   });
 };
 
-// TODO: jsdoc
+/**
+ * @function listenForMessages
+ * @param  {Redis}    queueSubscriber The redis connection which subscribes (and blocks) to the queue
+ * @param  {String}   queueName       The queue we're listening to
+ * @param  {Function}   listener      The function that will handle messages delivered from the queue
+ */
 function listenForMessages(queueSubscriber, queueName, listener) {
   queueSubscriber.brpoplpush(queueName, getProcessingQueueFor(queueName), 0, (err, queuedMessage) => {
     if (err) log().error({ err }, 'Error while BRPOPLPUSHing redis queue ' + queueName);
 
     if (queuedMessage) {
-      parseMessage(queuedMessage, queueName, listener, () => {
-        const processingQueue = getProcessingQueueFor(queueName);
-        removeMessageFromQueue(processingQueue, queuedMessage, () => {
-          // return waitForTasksOnQueue(queueName, listener);
-          log().info(`Finished parsing a message fetched on ${queueName}. Resuming...`);
-        });
+      handleMessage(queuedMessage, queueName, listener, () => {
+        removeMessageFromQueue(getProcessingQueueFor(queueName), queuedMessage, () => {});
       });
     } else {
       log().warn(`Fetched an invalid message from ${queueName}. Resuming...`);
@@ -235,7 +236,12 @@ function listenForMessages(queueSubscriber, queueName, listener) {
   });
 }
 
-// TODO: jsdoc
+/**
+ * @function removeMessageFromQueue
+ * @param  {String}   processingQueue  A redis processing queue (where the handled messages are at this stage)
+ * @param  {String}   queuedMessage   The message we need to remove from the queue
+ * @param  {Function} callback        Standard callback function
+ */
 const removeMessageFromQueue = (processingQueue, queuedMessage, callback) => {
   log().info(`About to remove a message from ${processingQueue}`);
   theRedisPurger.lrem(processingQueue, -1, queuedMessage, (err, count) => {
@@ -245,13 +251,18 @@ const removeMessageFromQueue = (processingQueue, queuedMessage, callback) => {
     }
 
     log().info(`Removed ${count} message from ${processingQueue}. Resuming worker...`);
-    // return collectLatestFromQueue(queueName, listener);
     return callback();
   });
 };
 
-// TODO: jsdoc
-const parseMessage = (queuedMessage, queueName, listener, callback) => {
+/**
+ * @function handleMessage
+ * @param  {String}   queuedMessage The message we're processing
+ * @param  {String}   queueName     The redis queue where we originally popped the message from
+ * @param  {Function} listener      The function that is bound to the `queueName` redis queue
+ * @param  {Function} callback      Standard callback function
+ */
+const handleMessage = (queuedMessage, queueName, listener, callback) => {
   const message = JSON.parse(queuedMessage);
   listener(message, err => {
     /**
@@ -265,14 +276,10 @@ const parseMessage = (queuedMessage, queueName, listener, callback) => {
         { err },
         `Using the redelivery mechanism for a message that failed running ${listener.name} on ${queueName}`
       );
-      // TODO
       const redeliveryQueue = getRedeliveryQueueFor(queueName);
       sendToRedeliveryQueue(redeliveryQueue, queuedMessage, err => {
-        if (err) {
-          log().warn(`Unable to submit a message to ${redeliveryQueue}`);
-        } else {
-          log().warn(`Submitted a message to ${redeliveryQueue} following an error`);
-        }
+        if (err) log().warn(`Unable to submit a message to ${redeliveryQueue}`);
+        log().warn(`Submitted a message to ${redeliveryQueue} following an error`);
 
         return callback();
       });
@@ -396,13 +403,8 @@ const submit = (queueName, message, callback) => {
   if (validator.hasErrors()) return callback(validator.getFirstError());
 
   const queueIsBound = queueBindings[queueName];
-  if (queueIsBound) {
-    theRedisPublisher.lpush(queueName, message, () => {
-      return callback();
-    });
-  } else {
-    return callback();
-  }
+  if (queueIsBound) return theRedisPublisher.lpush(queueName, message, callback);
+  return callback();
 };
 
 /**
@@ -434,11 +436,8 @@ const purgeQueue = (queueName, callback) => {
   validator.check(queueName, { code: 400, msg: 'No channel was provided.' }).notEmpty();
   if (validator.hasErrors()) return callback(validator.getFirstError());
 
-  emitter.emit('prePurge', queueName);
   theRedisPurger.del(queueName, err => {
     if (err) return callback(err);
-
-    emitter.emit('postPurge', queueName, 1);
 
     return callback();
   });
@@ -453,9 +452,7 @@ const purgeQueue = (queueName, callback) => {
  * @return {Function}           Returns callback
  */
 const purgeQueues = (allQueues, done) => {
-  if (allQueues.length === 0) {
-    return done();
-  }
+  if (allQueues.length === 0) return done();
 
   const nextQueueToPurge = allQueues.pop();
   purgeQueue(nextQueueToPurge, () => {
@@ -484,8 +481,7 @@ const purgeAllBoundQueues = callback => {
  * @return {Function} Returns `quitAllClients` method
  */
 const quitAllConnectedClients = () => {
-  const allClients = getAllActiveClients();
-  _.each(allClients, each => {
+  _.each(getAllActiveClients(), each => {
     each.disconnect();
   });
 };
@@ -563,7 +559,10 @@ const getProcessingQueueFor = queueName => {
   return `${queueName}-processing`;
 };
 
-// TODO: jsdocs
+/**
+ * @function fetchEmptinessChecker
+ * @return {Redis} A redis connection specifically created for LLENning queues
+ */
 const fetchEmptinessChecker = () => {
   return theRedisEmptinessChecker;
 };

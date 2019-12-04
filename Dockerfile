@@ -26,7 +26,7 @@
 # $ docker run -it --name=hilary --net=host oae-hilary:latest
 #
 
-FROM node:10-alpine
+FROM node:10-alpine3.9
 
 LABEL Name=OAE-Hilary
 LABEL Author=ApereoFoundation
@@ -37,9 +37,11 @@ RUN apk --update --no-cache add \
       git \
       python \
       ghostscript \
-      graphicsmagick
+      graphicsmagick \
+      libreoffice \
+      openjdk8-jre
 
-# Installs the 3.9 Chromium package.
+# Installs the 3.9 Chromium package
 RUN apk update && apk upgrade && \
       echo @3.9 http://nl.alpinelinux.org/alpine/v3.9/community >> /etc/apk/repositories && \
       echo @3.9 http://nl.alpinelinux.org/alpine/v3.9/main >> /etc/apk/repositories && \
@@ -52,13 +54,6 @@ RUN apk update && apk upgrade && \
 
 # Tell Puppeteer to skip installing Chrome. We'll be using the installed package.
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
-
-# Install libreoffice
-RUN apk add --no-cache libreoffice openjdk8-jre
-
-# install nodegit
-RUN apk --update --no-cache add build-base libgit2-dev
-RUN ln -s /usr/lib/libcurl.so.4 /usr/lib/libcurl-gnutls.so.4
 
 # Set the Hilary directory
 ENV CODE_DIR /usr/src

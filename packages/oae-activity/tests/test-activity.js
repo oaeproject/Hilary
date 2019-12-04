@@ -29,7 +29,6 @@ import { ActivitySeed, ActivitySeedResource, AssociationsSession } from 'oae-act
 
 import * as ActivityTestUtil from 'oae-activity/lib/test/util';
 import * as ActivityUtil from 'oae-activity/lib/util';
-import * as redis from 'oae-util/lib/redis';
 
 // Keep a safe reference to the get aggregate status function as we will
 // patch it in some of these tests

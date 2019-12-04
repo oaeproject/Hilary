@@ -23,7 +23,7 @@ import * as redis from 'oae-util/lib/redis';
 const PATH = 'path';
 const PACKAGE_JSON = 'package.json';
 
-describe.only('Git information', function() {
+describe('Git information', function() {
   before(done => {
     redis.flush(done);
   });

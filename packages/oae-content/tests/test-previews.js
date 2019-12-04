@@ -18,6 +18,7 @@ import assert from 'assert';
 import fs from 'fs';
 import path from 'path';
 import _ from 'underscore';
+import { flush } from 'oae-util/lib/redis';
 
 import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
 import * as RestAPI from 'oae-rest';
@@ -69,10 +70,14 @@ describe('File previews', () => {
       RestAPI.User.getMe(globalAdminOnTenantRestContext, (err, user) => {
         assert.ok(!err);
         assert.ok(!user.anon);
-        callback();
+        flush(callback);
       });
     });
   });
+
+  beforeEach(done => {
+    flush(done);
+  })
 
   /**
    * Utility method that returns a stream that points to an OAE animation thumbnail.

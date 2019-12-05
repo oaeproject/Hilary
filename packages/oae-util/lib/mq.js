@@ -152,8 +152,8 @@ const init = function(config, callback) {
   redisConfig = config;
 
   // redis connection possible statuses
-  const hasNotBeenCreated = theRedisPurger === null;
-  const hasConnectionBeenClosed = theRedisPurger !== null && theRedisPurger.status === 'end';
+  const hasNotBeenCreated = !theRedisPurger;
+  const hasConnectionBeenClosed = theRedisPurger && theRedisPurger.status === 'end';
 
   // Only init if the connections haven't been opened.
   if (hasNotBeenCreated) {
@@ -366,9 +366,20 @@ const unsubscribe = (queueName, callback) => {
   const subscribedClient = subscribers[queueName];
   if (subscribedClient) {
     subscribedClient.disconnect(false);
+    // subscribers[queueName] = null;
+    waitForDisconnectionAndReturn(subscribedClient, callback);
   }
 
   return callback();
+};
+
+// TODO jsdoc here
+const waitForDisconnectionAndReturn = (connection, done) => {
+  if (connection.status === 'end') {
+    return done();
+  }
+
+  setTimeout(waitForDisconnectionAndReturn, 100, connection, done);
 };
 
 /**

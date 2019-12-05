@@ -45,6 +45,7 @@ const init = function(redisConfig, callback) {
  * @return {RedisClient}            A redis client that is configured with the given configuration
  */
 const createClient = function(_config, callback) {
+  const notOnTestingEnvironment = !(process.env.OAE_TESTS_RUNNING === 'true');
   const connectionOptions = {
     port: _config.port,
     host: _config.host,
@@ -54,8 +55,8 @@ const createClient = function(_config, callback) {
      * If we are running tests, then we need to tell redis connections NOT to
      * auto-subscribe and NOT to resume previous BRPOPs and such blocking commands
      */
-    autoResendUnfulfilledCommands: !(process.env.OAE_TESTS_RUNNING === 'true'),
-    autoResubscribe: !(process.env.OAE_TESTS_RUNNING === 'true'),
+    autoResendUnfulfilledCommands: notOnTestingEnvironment,
+    autoResubscribe: notOnTestingEnvironment,
     // By default, ioredis will try to reconnect when the connection to Redis is lost except when the connection is closed
     // Check https://github.com/luin/ioredis#auto-reconnect
     retryStrategy: () => {

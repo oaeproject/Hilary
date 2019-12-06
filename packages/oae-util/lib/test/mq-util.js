@@ -16,6 +16,21 @@
 import * as MQ from 'oae-util/lib/mq';
 
 /**
+ * Fetches the length of a queue (which is a redis list)
+ *
+ * @function getQueueLength
+ * @param  {String}   queueName The queue we want to know the length of
+ * @param  {Function} callback  Standard callback function
+ */
+const getQueueLength = (queueName, callback) => {
+  MQ.fetchThePurger().llen(queueName, (err, count) => {
+    if (err) return callback(err);
+
+    return callback(null, count);
+  });
+};
+
+/**
  * Invoke the given handler only if the local counter of tasks of the given name indicates that the task queue is completely
  * empty. If it is not empty now, then the handler will be invoked when it becomes empty.
  *
@@ -26,14 +41,26 @@ import * as MQ from 'oae-util/lib/mq';
  * @returns {Function}              Returns the execution of the handler function when counter equals zero
  */
 const whenTasksEmpty = function(queueName, done) {
-  MQ.isQueueEmpty(queueName, (err, isEmpty) => {
+  isQueueEmpty(queueName, (err, isEmpty) => {
     if (err) return done(err);
-    if (isEmpty) {
-      return done();
-    }
+    if (isEmpty) return done();
 
     setTimeout(whenTasksEmpty, 100, queueName, done);
   });
 };
 
-export { whenTasksEmpty };
+/**
+ * @function isQueueEmpty
+ * @param  {String} queueName  The queue name we're checking the size of (which is a redis List)
+ * @param  {Object} someRedisConnection A redis client which is used solely for subscribing to this queue
+ * @param  {Function} done     Standar callback function
+ */
+const isQueueEmpty = (queueName, done) => {
+  const redisConnection = MQ.fetchEmptinessChecker();
+  redisConnection.llen(queueName, (err, stillQueued) => {
+    if (err) done(err);
+    return done(null, stillQueued === 0);
+  });
+};
+
+export { getQueueLength, whenTasksEmpty };

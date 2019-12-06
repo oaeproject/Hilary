@@ -158,7 +158,7 @@ describe('Search API', () => {
   /**
    * Test that verifies when reindex all is triggered through the REST endpoint, a task is triggered.
    */
-  it.skip('verify reindex all triggers an mq task', callback => {
+  it('verify reindex all triggers an mq task', callback => {
     // Unbind the current handler, if any
     MQ.unsubscribe(SearchConstants.mq.TASK_REINDEX_ALL, err => {
       assert.ok(!err);

@@ -26,6 +26,10 @@ import { Validator } from './validator';
 const log = logger('mq');
 const emitter = new EventEmitter();
 
+const THE_PURGER = 'purger';
+const THE_CHECKER = 'checker';
+const THE_PUBLISHER = 'publisher';
+
 /**
  * Task queueing logic
  *
@@ -164,9 +168,9 @@ const init = function(config, callback) {
       theRedisPublisher = client.duplicate();
 
       // Assign names just for fun
-      theRedisPurger.queueName = 'purger';
-      theRedisEmptinessChecker.queueName = 'checker';
-      theRedisPublisher.queueName = 'publisher';
+      theRedisPurger.queueName = THE_PURGER;
+      theRedisEmptinessChecker.queueName = THE_CHECKER;
+      theRedisPublisher.queueName = THE_PUBLISHER;
 
       // if the flag is set, we purge all queues on startup. ONLY if we're NOT in production mode.
       const shallWePurge = redisConfig.purgeQueuesOnStartup && process.env.NODE_ENV !== PRODUCTION_MODE;
@@ -177,6 +181,7 @@ const init = function(config, callback) {
       }
     });
   } else if (hasConnectionBeenClosed) {
+    // Here we assume that if the purger has been disconnected, then all must have been too
     Redis.reconnect(theRedisPurger, err => {
       if (err) return callback(err);
       Redis.reconnect(theRedisPublisher, err => {
@@ -202,33 +207,39 @@ const init = function(config, callback) {
  * @param  {Function}   listener.callback   The listener callback. This must be invoked in order to acknowledge that the message was handled
  */
 const setupListeningForMessages = (queueName, listener) => {
-  _getOrCreateSubscriberForQueue(queueName, (err, queueSubscriber) => {
+  getOrCreateSubscriberForQueue(queueName, (err, queueSubscriber) => {
     if (err) log().error({ err }, 'Error creating redis client');
 
-    const isSubscriberActive = queueSubscriber && !queueSubscriber.manuallyClosing;
-    if (isSubscriberActive) listenForMessages(queueSubscriber, queueName, listener);
+    listenForMessages(queueSubscriber, queueName, listener);
   });
 };
 
 /**
  * @function listenForMessages
- * @param  {Redis}    queueSubscriber The redis connection which subscribes (and blocks) to the queue
- * @param  {String}   queueName       The queue we're listening to
- * @param  {Function}   listener      The function that will handle messages delivered from the queue
+ * @param  {Redis}      queueSubscriber The redis connection which subscribes (and blocks) to the queue
+ * @param  {String}     queueName       The queue we're listening to
+ * @param  {Function}   taskHandler     The function that will handle messages delivered from the queue
  */
-const listenForMessages = (queueSubscriber, queueName, listener) => {
+const listenForMessages = (queueSubscriber, queueName, taskHandler) => {
   queueSubscriber.brpoplpush(queueName, getProcessingQueueFor(queueName), 0, (err, queuedMessage) => {
-    if (err) log().error({ err }, 'Error while BRPOPLPUSHing redis queue ' + queueName);
-
-    if (queuedMessage) {
-      handleMessage(queuedMessage, queueName, listener, () => {
-        removeMessageFromQueue(getProcessingQueueFor(queueName), queuedMessage, () => {});
-      });
-    } else {
-      log().warn(`Fetched an invalid message from ${queueName}. Resuming...`);
+    if (err) {
+      log().error({ err }, 'Error while BRPOPLPUSHing redis queue ' + queueName);
+      /**
+       * If this happens, then most likely this connection has been disconnected
+       * and the `queueMessage` is undefined
+       * So we just emit that we're done to complete the disconnection process
+       */
+      emitter.emit(`stoppedListeningTo:${queueName}`);
+      return;
     }
 
-    return setupListeningForMessages(queueName, listener);
+    if (queuedMessage) {
+      handleMessage(queuedMessage, queueName, taskHandler, () => {
+        removeMessageFromQueue(getProcessingQueueFor(queueName), queuedMessage, () => {
+          return listenForMessages(queueSubscriber, queueName, taskHandler);
+        });
+      });
+    }
   });
 };
 
@@ -255,12 +266,12 @@ const removeMessageFromQueue = (processingQueue, queuedMessage, callback) => {
  * @function handleMessage
  * @param  {String}   queuedMessage The message we're processing
  * @param  {String}   queueName     The redis queue where we originally popped the message from
- * @param  {Function} listener      The function that is bound to the `queueName` redis queue
+ * @param  {Function} taskHandler      The function that is bound to the `queueName` redis queue
  * @param  {Function} callback      Standard callback function
  */
-const handleMessage = (queuedMessage, queueName, listener, callback) => {
+const handleMessage = (queuedMessage, queueName, taskHandler, callback) => {
   const message = JSON.parse(queuedMessage);
-  listener(message, err => {
+  taskHandler(message, err => {
     /**
      * Lets set the convention that if the listener function
      * returns the callback with an error, then something went
@@ -270,7 +281,7 @@ const handleMessage = (queuedMessage, queueName, listener, callback) => {
     if (err) {
       log().warn(
         { err },
-        `Using the redelivery mechanism for a message that failed running ${listener.name} on ${queueName}`
+        `Using the redelivery mechanism for a message that failed running ${taskHandler.name} on ${queueName}`
       );
       const redeliveryQueue = getRedeliveryQueueFor(queueName);
       sendToRedeliveryQueue(redeliveryQueue, queuedMessage, err => {
@@ -282,20 +293,6 @@ const handleMessage = (queuedMessage, queueName, listener, callback) => {
     }
 
     return callback();
-  });
-};
-
-/**
- * @function isQueueEmpty
- * @param  {String} queueName  The queue name we're checking the size of (which is a redis List)
- * @param  {Object} someRedisConnection A redis client which is used solely for subscribing to this queue
- * @param  {Function} done     Standar callback function
- */
-const isQueueEmpty = (queueName, done) => {
-  const redisConnection = fetchEmptinessChecker();
-  redisConnection.llen(queueName, (err, stillQueued) => {
-    if (err) done(err);
-    return done(null, stillQueued === 0);
   });
 };
 
@@ -335,7 +332,10 @@ const subscribe = (queueName, listener, callback) => {
     return callback();
   }
 
+  // Flag this queue as bound
   queueBindings[queueName] = getProcessingQueueFor(queueName);
+
+  // Start listening for messages asynchronously
   setupListeningForMessages(queueName, listener);
 
   return callback();
@@ -349,37 +349,43 @@ const subscribe = (queueName, listener, callback) => {
  *
  * @function unsubscribe
  * @param  {String}    queueName       The name of the message queue to unsubscribe from
- * @param  {Function}  callback        Standard callback function
+ * @param  {Function}  done        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any
  * @returns {Function}                 Returns callback
  */
-const unsubscribe = (queueName, callback) => {
-  callback = callback || function() {};
+const unsubscribe = (queueName, done) => {
+  done = done || function() {};
   const validator = new Validator();
   validator.check(queueName, { code: 400, msg: 'No channel was provided.' }).notEmpty();
-  if (validator.hasErrors()) return callback(validator.getFirstError());
+  if (validator.hasErrors()) return done(validator.getFirstError());
 
-  // update bindings
+  // Either case, let's update the queue bindings
   delete queueBindings[queueName];
 
-  // disconnect subscriber
-  const subscribedClient = subscribers[queueName];
-  if (subscribedClient) {
-    subscribedClient.disconnect(false);
-    // subscribers[queueName] = null;
-    waitForDisconnectionAndReturn(subscribedClient, callback);
+  // Now let's disconnect the subscriber
+  if (isConnectionActive(queueName)) {
+    return disconnectConnectionAndWait(queueName, done);
   }
 
-  return callback();
+  return done();
 };
 
-// TODO jsdoc here
-const waitForDisconnectionAndReturn = (connection, done) => {
-  if (connection.status === 'end') {
+// TODO JSdoc
+const disconnectConnectionAndWait = (queueName, done) => {
+  // Waiting for the brpoplpush to break and stop worker recursiveness
+  emitter.once(`stoppedListeningTo:${queueName}`, () => {
     return done();
-  }
+  });
 
-  setTimeout(waitForDisconnectionAndReturn, 100, connection, done);
+  // Disconnect this connection and flag it
+  const subscribedClient = subscribers[queueName];
+  subscribedClient.disconnect(false);
+  subscribedClient.status = 'end';
+};
+
+// TODO JSdoc
+const isConnectionActive = queueName => {
+  return subscribers[queueName] && subscribers[queueName].status !== 'end';
 };
 
 /**
@@ -489,22 +495,29 @@ const purgeAllBoundQueues = callback => {
  */
 const quitAllConnectedClients = () => {
   _.each(getAllActiveClients(), each => {
-    each.disconnect();
+    each.disconnect(false);
   });
 };
 
-/**
- * Fetches the length of a queue (which is a redis list)
- *
- * @function getQueueLength
- * @param  {String}   queueName The queue we want to know the length of
- * @param  {Function} callback  Standard callback function
- */
-const getQueueLength = (queueName, callback) => {
-  theRedisPurger.llen(queueName, (err, count) => {
+// TODO JSdoc
+const createNewClient = (queueName, callback) => {
+  Redis.createClient(redisConfig, (err, client) => {
     if (err) return callback(err);
 
-    return callback(null, count);
+    client.queueName = queueName;
+    subscribers[queueName] = client;
+    return callback(null, subscribers[queueName]);
+  });
+};
+
+// TODO JSdoc
+const reconnectClient = (queueName, callback) => {
+  const subscriber = subscribers[queueName];
+  Redis.reconnect(subscribers[queueName], err => {
+    if (err) return callback(err);
+
+    subscribers[queueName] = subscriber;
+    return callback(null, subscribers[queueName]);
   });
 };
 
@@ -517,26 +530,16 @@ const getQueueLength = (queueName, callback) => {
  * @param  {Function} callback  Standard callback function
  * @return {Function}           Returns callback
  */
-const _getOrCreateSubscriberForQueue = (queueName, callback) => {
+const getOrCreateSubscriberForQueue = (queueName, callback) => {
   const subscriber = subscribers[queueName];
   // redis connection possible statuses:
   const hasNotBeenCreated = !subscriber;
   const hasConnectionBeenClosed = subscriber && subscriber.status === 'end';
 
   if (hasNotBeenCreated) {
-    // create it then
-    Redis.createClient(redisConfig, (err, client) => {
-      if (err) return callback(err);
-
-      client.queueName = queueName;
-      subscribers[queueName] = client;
-      return callback(null, subscribers[queueName]);
-    });
+    createNewClient(queueName, callback);
   } else if (hasConnectionBeenClosed) {
-    subscribers[queueName].connect(err => {
-      if (err) return callback(err);
-      return callback(null, subscribers[queueName]);
-    });
+    reconnectClient(queueName, callback);
   } else {
     return callback(null, subscribers[queueName]);
   }
@@ -574,6 +577,11 @@ const fetchEmptinessChecker = () => {
   return theRedisEmptinessChecker;
 };
 
+// TODO JSdoc
+const fetchThePurger = () => {
+  return theRedisPurger;
+};
+
 export {
   emitter,
   init,
@@ -584,9 +592,10 @@ export {
   purgeAllBoundQueues,
   getBoundQueues,
   submit,
-  getQueueLength,
   getAllActiveClients as getAllConnectedClients,
-  quitAllConnectedClients,
   fetchEmptinessChecker,
-  isQueueEmpty
+  fetchThePurger,
+  THE_CHECKER,
+  THE_PURGER,
+  THE_PUBLISHER
 };

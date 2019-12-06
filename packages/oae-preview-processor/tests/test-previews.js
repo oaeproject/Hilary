@@ -2364,7 +2364,9 @@ describe('Preview processor', () => {
     /**
      * Test that verifies when previews are reprocessed through the REST endpoint, a task is triggered.
      */
-    it.skip('verify reprocessing previews triggers an mq task', callback => {
+    it('verify reprocessing previews triggers an mq task', callback => {
+      // this timeout allows us to wait for disconnection to come into effect before subscribe again
+      const TIMEOUT = 500;
       // Verify sending a single filter with a single value
       let filters = { content_previewsStatus: 'error' };
       _reprocessWithHandler(globalAdminRestContext, filters, data => {
@@ -2375,7 +2377,7 @@ describe('Preview processor', () => {
 
         // Verify sending a single filter with multiple values
         filters = { content_previewsStatus: ['error', 'done', 'pending'] };
-        _reprocessWithHandler(globalAdminRestContext, filters, data => {
+        setTimeout(_reprocessWithHandler, TIMEOUT, globalAdminRestContext, filters, data => {
           assert.ok(data);
           assert.ok(data.filters);
           assert.ok(data.filters.content);
@@ -2389,7 +2391,7 @@ describe('Preview processor', () => {
             content_previewsStatus: ['error', 'done', 'pending'],
             content_resourceSubType: ['file', 'link']
           };
-          _reprocessWithHandler(globalAdminRestContext, filters, data => {
+          setTimeout(_reprocessWithHandler, TIMEOUT, globalAdminRestContext, filters, data => {
             assert.ok(data);
             assert.ok(data.filters);
             assert.ok(data.filters.content);
@@ -2407,7 +2409,7 @@ describe('Preview processor', () => {
               content_resourceSubType: ['file', 'link'],
               revision_mime: ['application/pdf', 'application/msword']
             };
-            _reprocessWithHandler(globalAdminRestContext, filters, data => {
+            setTimeout(_reprocessWithHandler, TIMEOUT, globalAdminRestContext, filters, data => {
               assert.ok(data);
               assert.ok(data.filters);
               assert.ok(data.filters.content);
@@ -2437,7 +2439,7 @@ describe('Preview processor', () => {
        *
        * @see MQ#bind
        */
-      const _handleTaskFail = function(data) {
+      const _handleTaskFail = function(/* data */) {
         assert.fail('Did not expect the task to be invoked.');
       };
 

@@ -62,7 +62,11 @@ const createClient = function(_config, callback) {
     retryStrategy: () => {
       log().error('Error connecting to redis, retrying in ' + retryTimeout + 's...');
       isDown = true;
-      return retryTimeout * 1000;
+      if (notOnTestingEnvironment) {
+        return retryTimeout * 1000;
+      }
+
+      return null;
     },
     reconnectOnError: () => {
       // Besides auto-reconnect when the connection is closed, ioredis supports reconnecting on the specified errors by the reconnectOnError option.
@@ -122,7 +126,9 @@ const flush = function(callback) {
  * @param {Function} done Standard callback function
  */
 const reconnect = (connection, done) => {
-  connection.connect(done);
+  connection.connect(() => {
+    return done();
+  });
 };
 
 export { createClient, getClient, flush, init, reconnect };

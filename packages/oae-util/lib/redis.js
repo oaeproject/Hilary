@@ -84,7 +84,7 @@ const createClient = function(_config, callback) {
 
   redisClient.on('ready', () => {
     if (isDown) {
-      log().error('Reconnected to redis \\o/');
+      log().info('Reconnected to redis \\o/');
     }
 
     isDown = false;

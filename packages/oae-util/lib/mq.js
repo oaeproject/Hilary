@@ -250,14 +250,14 @@ const listenForMessages = (queueSubscriber, queueName, taskHandler) => {
  * @param  {Function} callback        Standard callback function
  */
 const removeMessageFromQueue = (processingQueue, queuedMessage, callback) => {
-  log().info(`About to remove a message from ${processingQueue}`);
+  log().debug(`About to remove a message from ${processingQueue}`);
   staticConnections.THE_PURGER.lrem(processingQueue, -1, queuedMessage, (err, count) => {
     if (err) {
       log().error('Unable to LREM from redis, message is kept on ' + processingQueue);
       return callback(err);
     }
 
-    log().info(`Removed ${count} message from ${processingQueue}. Resuming worker...`);
+    log().debug(`Removed ${count} message from ${processingQueue}. Resuming worker...`);
     return callback();
   });
 };

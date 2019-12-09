@@ -29,6 +29,28 @@ const emitter = new EventEmitter();
 const THE_PURGER = 'purger';
 const THE_CHECKER = 'checker';
 const THE_PUBLISHER = 'publisher';
+const staticConnectionNames = { THE_PURGER, THE_CHECKER, THE_PUBLISHER };
+const MQConstants = { staticConnectionNames };
+
+const staticConnections = {
+  /**
+   * This will hold a connection used only for PURGE operations
+   * See `purgeAllQueues` for details
+   */
+  THE_PURGER: null,
+  /**
+   * This will hold a connection used only for LLEN operations
+   * See `whenTasksEmpty` for details
+   * This is only relevant for tests
+   */
+  THE_CHECKER: null,
+
+  /**
+   * This will hold a connection for LPUSHing messages to queues
+   * See `submit` for details
+   */
+  THE_PUBLISHER: null
+};
 
 /**
  * Task queueing logic
@@ -85,25 +107,6 @@ const THE_PUBLISHER = 'publisher';
 let redisConfig = null;
 
 /**
- * This will hold a connection used only for PURGE operations
- * See `purgeAllQueues` for details
- */
-let theRedisPurger = null;
-
-/**
- * This will hold a connection used only for LLEN operations
- * See `whenTasksEmpty` for details
- * This is only relevant for tests
- */
-let theRedisEmptinessChecker = null;
-
-/**
- * This will hold a connection for LPUSHing messages to queues
- * See `submit` for details
- */
-let theRedisPublisher = null;
-
-/**
  * This object will track the current bindings
  * meaning every time we subscribe to a queue
  * by assigning a listener to it, we set the binding,
@@ -154,23 +157,29 @@ OAE.registerPreShutdownHandler('mq', null, done => {
  */
 const init = function(config, callback) {
   redisConfig = config;
+  let theRedisPurger = staticConnections.THE_PURGER;
+  let theRedisChecker = staticConnections.THE_CHECKER;
+  let theRedisPublisher = staticConnections.THE_PUBLISHER;
 
   // redis connection possible statuses
   const hasNotBeenCreated = !theRedisPurger;
   const hasConnectionBeenClosed = theRedisPurger && theRedisPurger.status === 'end';
 
-  // Only init if the connections haven't been opened.
+  // Only init if the connections haven't been opened
   if (hasNotBeenCreated) {
     Redis.createClient(config, (err, client) => {
       if (err) return callback(err);
       theRedisPurger = client;
-      theRedisEmptinessChecker = client.duplicate();
-      theRedisPublisher = client.duplicate();
+      theRedisPurger.queueName = MQConstants.staticConnectionNames.THE_PURGER;
+      staticConnections.THE_PURGER = theRedisPurger;
 
-      // Assign names just for fun
-      theRedisPurger.queueName = THE_PURGER;
-      theRedisEmptinessChecker.queueName = THE_CHECKER;
-      theRedisPublisher.queueName = THE_PUBLISHER;
+      theRedisChecker = client.duplicate();
+      theRedisChecker.queueName = MQConstants.staticConnectionNames.THE_CHECKER;
+      staticConnections.THE_CHECKER = theRedisChecker;
+
+      theRedisPublisher = client.duplicate();
+      theRedisPublisher.queueName = MQConstants.staticConnectionNames.THE_PUBLISHER;
+      staticConnections.THE_PUBLISHER = theRedisPublisher;
 
       // if the flag is set, we purge all queues on startup. ONLY if we're NOT in production mode.
       const shallWePurge = redisConfig.purgeQueuesOnStartup && process.env.NODE_ENV !== PRODUCTION_MODE;
@@ -182,16 +191,7 @@ const init = function(config, callback) {
     });
   } else if (hasConnectionBeenClosed) {
     // Here we assume that if the purger has been disconnected, then all must have been too
-    Redis.reconnect(theRedisPurger, err => {
-      if (err) return callback(err);
-      Redis.reconnect(theRedisPublisher, err => {
-        if (err) return callback(err);
-        Redis.reconnect(theRedisEmptinessChecker, err => {
-          if (err) return callback(err);
-          return callback();
-        });
-      });
-    });
+    Redis.reconnectAll([theRedisChecker, theRedisPurger, theRedisPublisher], callback);
   } else {
     return callback();
   }
@@ -251,7 +251,7 @@ const listenForMessages = (queueSubscriber, queueName, taskHandler) => {
  */
 const removeMessageFromQueue = (processingQueue, queuedMessage, callback) => {
   log().info(`About to remove a message from ${processingQueue}`);
-  theRedisPurger.lrem(processingQueue, -1, queuedMessage, (err, count) => {
+  staticConnections.THE_PURGER.lrem(processingQueue, -1, queuedMessage, (err, count) => {
     if (err) {
       log().error('Unable to LREM from redis, message is kept on ' + processingQueue);
       return callback(err);
@@ -304,7 +304,7 @@ const handleMessage = (queuedMessage, queueName, taskHandler, callback) => {
  * @param  {String} message     The message we need to store in the redelivery queue in JSON format
  */
 const sendToRedeliveryQueue = (redeliveryQueue, message, callback) => {
-  theRedisPublisher.lpush(redeliveryQueue, message, err => {
+  staticConnections.THE_PUBLISHER.lpush(redeliveryQueue, message, err => {
     if (err) return callback(err);
     return callback;
   });
@@ -328,9 +328,7 @@ const subscribe = (queueName, listener, callback) => {
   if (validator.hasErrors()) return callback(validator.getFirstError());
 
   const queueIsAlreadyBound = queueBindings[queueName];
-  if (queueIsAlreadyBound) {
-    return callback();
-  }
+  if (queueIsAlreadyBound) return callback();
 
   // Flag this queue as bound
   queueBindings[queueName] = getProcessingQueueFor(queueName);
@@ -370,7 +368,11 @@ const unsubscribe = (queueName, done) => {
   return done();
 };
 
-// TODO JSdoc
+/**
+ * @function disconnectConnectionAndWait
+ * @param  {String}   queueName The redis list we (un)subscribe to
+ * @param  {Function} done      Standard callback function
+ */
 const disconnectConnectionAndWait = (queueName, done) => {
   // Waiting for the brpoplpush to break and stop worker recursiveness
   emitter.once(`stoppedListeningTo:${queueName}`, () => {
@@ -383,7 +385,11 @@ const disconnectConnectionAndWait = (queueName, done) => {
   subscribedClient.status = 'end';
 };
 
-// TODO JSdoc
+/**
+ * @function isConnectionActive
+ * @param  {String}   queueName The redis list we (un)subscribe to
+ * @return {Boolean}            Whether the connection is open or closed
+ */
 const isConnectionActive = queueName => {
   return subscribers[queueName] && subscribers[queueName].status !== 'end';
 };
@@ -416,7 +422,7 @@ const submit = (queueName, message, callback) => {
   if (validator.hasErrors()) return callback(validator.getFirstError());
 
   const queueIsBound = queueBindings[queueName];
-  if (queueIsBound) return theRedisPublisher.lpush(queueName, message, callback);
+  if (queueIsBound) return staticConnections.THE_PUBLISHER.lpush(queueName, message, callback);
   return callback();
 };
 
@@ -429,9 +435,9 @@ const submit = (queueName, message, callback) => {
  */
 const getAllActiveClients = () => {
   return _.values(subscribers)
-    .concat(theRedisPurger)
-    .concat(theRedisPublisher)
-    .concat(theRedisEmptinessChecker);
+    .concat(staticConnections.THE_PURGER)
+    .concat(staticConnections.THE_CHECKER)
+    .concat(staticConnections.THE_PUBLISHER);
 };
 
 /**
@@ -449,6 +455,7 @@ const purgeQueue = (queueName, callback) => {
   validator.check(queueName, { code: 400, msg: 'No channel was provided.' }).notEmpty();
   if (validator.hasErrors()) return callback(validator.getFirstError());
 
+  const theRedisPurger = staticConnections.THE_PURGER;
   theRedisPurger.del(queueName, err => {
     if (err) return callback(err);
 
@@ -499,25 +506,33 @@ const quitAllConnectedClients = () => {
   });
 };
 
-// TODO JSdoc
+/**
+ * @function createNewClient
+ * @param  {String} queueName   The redis list we want to create the client for (in case it's a subscriber)
+ * @param  {Function} callback  Standard callback function
+ */
 const createNewClient = (queueName, callback) => {
   Redis.createClient(redisConfig, (err, client) => {
     if (err) return callback(err);
 
     client.queueName = queueName;
     subscribers[queueName] = client;
-    return callback(null, subscribers[queueName]);
+    return callback(null, client);
   });
 };
 
-// TODO JSdoc
+/**
+ * @function reconnectClient
+ * @param  {String} queueName   The redis list we want to reconnect the client for (in case it's a subscriber)
+ * @param  {Function} callback  Standard callback function
+ */
 const reconnectClient = (queueName, callback) => {
   const subscriber = subscribers[queueName];
-  Redis.reconnect(subscribers[queueName], err => {
+  Redis.reconnect(subscriber, err => {
     if (err) return callback(err);
 
     subscribers[queueName] = subscriber;
-    return callback(null, subscribers[queueName]);
+    return callback(null, subscriber);
   });
 };
 
@@ -569,19 +584,6 @@ const getProcessingQueueFor = queueName => {
   return `${queueName}-processing`;
 };
 
-/**
- * @function fetchEmptinessChecker
- * @return {Redis} A redis connection specifically created for LLENning queues
- */
-const fetchEmptinessChecker = () => {
-  return theRedisEmptinessChecker;
-};
-
-// TODO JSdoc
-const fetchThePurger = () => {
-  return theRedisPurger;
-};
-
 export {
   emitter,
   init,
@@ -593,9 +595,6 @@ export {
   getBoundQueues,
   submit,
   getAllActiveClients as getAllConnectedClients,
-  fetchEmptinessChecker,
-  fetchThePurger,
-  THE_CHECKER,
-  THE_PURGER,
-  THE_PUBLISHER
+  MQConstants,
+  staticConnections
 };

@@ -39,7 +39,11 @@ describe('MQ', () => {
    * then we connect again and proceed with the tests
    */
   it('verify quitting all clients works', callback => {
-    const connectionNames = [MQ.THE_PURGER, MQ.THE_CHECKER, MQ.THE_PUBLISHER];
+    const connectionNames = [
+      MQ.staticConnections.THE_PURGER,
+      MQ.staticConnections.THE_CHECKER,
+      MQ.staticConnections.THE_PUBLISHER
+    ];
     const connectionsToCheck = _.filter(MQ.getAllConnectedClients(), eachClient => {
       return connectionNames.includes(eachClient.queueName);
     });

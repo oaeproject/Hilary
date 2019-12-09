@@ -23,7 +23,7 @@ import * as MQ from 'oae-util/lib/mq';
  * @param  {Function} callback  Standard callback function
  */
 const getQueueLength = (queueName, callback) => {
-  MQ.fetchThePurger().llen(queueName, (err, count) => {
+  MQ.staticConnections.THE_CHECKER.llen(queueName, (err, count) => {
     if (err) return callback(err);
 
     return callback(null, count);
@@ -56,8 +56,7 @@ const whenTasksEmpty = function(queueName, done) {
  * @param  {Function} done     Standar callback function
  */
 const isQueueEmpty = (queueName, done) => {
-  const redisConnection = MQ.fetchEmptinessChecker();
-  redisConnection.llen(queueName, (err, stillQueued) => {
+  MQ.staticConnections.THE_CHECKER.llen(queueName, (err, stillQueued) => {
     if (err) done(err);
     return done(null, stillQueued === 0);
   });

@@ -131,4 +131,18 @@ const reconnect = (connection, done) => {
   });
 };
 
-export { createClient, getClient, flush, init, reconnect };
+/**
+ * @function reconnectAll
+ * @param  {Array} connections Array of connections to reconnect one after the other
+ * @param {Function} done Standard callback function
+ */
+const reconnectAll = (connections, done) => {
+  if (connections.length === 0) {
+    return done();
+  }
+
+  const someConnection = connections.shift();
+  return reconnect(someConnection, done);
+};
+
+export { createClient, getClient, flush, init, reconnect, reconnectAll };

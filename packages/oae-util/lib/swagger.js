@@ -251,8 +251,15 @@ const register = function(filePath, callback) {
           }
         });
       });
-    } catch (error) {
-      log().warn({ err: error }, util.format('Could not parse restjsdoc in %s', filePath));
+    } catch {
+      /**
+       * Esprima is lagging behind and does not support some of the most recent ES20xx features
+       * Because of that, there have been some parsing errors showing up
+       * And I don't want them there, because they are not errors per se
+       * So yeah.
+       * Check this issue for more information: https://github.com/jquery/esprima/issues/1953
+       */
+      // log().warn({}, util.format('Could not parse restjsdoc in %s', filePath));
     }
 
     return callback();

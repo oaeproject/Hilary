@@ -1654,8 +1654,8 @@ describe('Activity Email', () => {
                   assert.strictEqual(mail.subject.indexOf('__MSG__'), -1);
 
                   // The message can change, but the actor's and object's displayname will usually be in there
-                  assert.ok(mail.subject.indexOf(simong.user.displayName) !== -1);
-                  assert.ok(mail.subject.indexOf(link.displayName) !== -1);
+                  assert.ok(mail.subject.includes(simong.user.displayName));
+                  assert.ok(mail.subject.includes(link.displayName));
 
                   // Trigger a mail that contains two different activities
                   RestAPI.Content.createLink(

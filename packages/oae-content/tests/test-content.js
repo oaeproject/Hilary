@@ -93,8 +93,9 @@ describe('Content', () => {
   /**
    * Function that will clean up any files that we have lingering around.
    */
-  after(() => {
-    temp.cleanup();
+  after(done => {
+    temp.track(true);
+    temp.cleanup(done);
   });
 
   /**
@@ -392,9 +393,9 @@ describe('Content', () => {
               RestAPI.Content.download(contexts.nicolaas.restContext, contentObj.id, null, path, (err, response) => {
                 assert.ok(!err);
                 const headerKeys = _.keys(response.headers);
-                assert.ok(headerKeys.indexOf('x-accel-redirect') !== -1);
-                assert.ok(headerKeys.indexOf('x-sendfile') !== -1);
-                assert.ok(headerKeys.indexOf('x-lighttpd-send-file') !== -1);
+                assert.ok(headerKeys.includes('x-accel-redirect'));
+                assert.ok(headerKeys.includes('x-sendfile'));
+                assert.ok(headerKeys.includes('x-lighttpd-send-file'));
 
                 // Try downloading it as Simon
                 RestAPI.Content.download(contexts.simon.restContext, contentObj.id, null, path, (err, body) => {
@@ -418,9 +419,9 @@ describe('Content', () => {
                         (err, response) => {
                           assert.ok(!err);
                           const headerKeys = _.keys(response.headers);
-                          assert.ok(headerKeys.indexOf('x-accel-redirect') !== -1);
-                          assert.ok(headerKeys.indexOf('x-sendfile') !== -1);
-                          assert.ok(headerKeys.indexOf('x-lighttpd-send-file') !== -1);
+                          assert.ok(headerKeys.includes('x-accel-redirect'));
+                          assert.ok(headerKeys.includes('x-sendfile'));
+                          assert.ok(headerKeys.includes('x-lighttpd-send-file'));
 
                           callback();
                         }

@@ -13,30 +13,22 @@
  * permissions and limitations under the License.
  */
 
-import _ from 'underscore';
-
-import Counter from 'oae-util/lib/counter';
 import * as MQ from 'oae-util/lib/mq';
 
-// Track when counts for a particular type of task return to 0
-const queueCounters = {};
+/**
+ * Fetches the length of a queue (which is a redis list)
+ *
+ * @function getQueueLength
+ * @param  {String}   queueName The queue we want to know the length of
+ * @param  {Function} callback  Standard callback function
+ */
+const getQueueLength = (queueName, callback) => {
+  MQ.staticConnections.THE_CHECKER.llen(queueName, (err, count) => {
+    if (err) return callback(err);
 
-MQ.emitter.on('preSubmit', queueName => {
-  _increment(queueName);
-});
-
-MQ.emitter.on('postHandle', queueName => {
-  _decrement(queueName, 1);
-});
-
-MQ.emitter.on('postPurge', (name, count) => {
-  count = _get(name);
-  _decrement(name, count); // decrements until 0
-});
-
-MQ.emitter.on('zeroLeftToHandle', queueName => {
-  _setToZero(queueName);
-});
+    return callback(null, count);
+  });
+};
 
 /**
  * Invoke the given handler only if the local counter of tasks of the given name indicates that the task queue is completely
@@ -48,64 +40,41 @@ MQ.emitter.on('zeroLeftToHandle', queueName => {
  * @param  {Function}   handler     The handler to invoke when the task queue is empty
  * @returns {Function}              Returns the execution of the handler function when counter equals zero
  */
-const whenTasksEmpty = function(queueName, handler) {
-  if (!queueCounters[queueName] || !_hasQueue(queueName)) {
-    return handler();
-  }
+const whenTasksEmpty = function(queueName, done) {
+  isQueueEmpty(queueName, (err, isEmpty) => {
+    if (err) return done(err);
+    if (isEmpty) return done();
 
-  // Bind the handler to the counter for this queue
-  queueCounters[queueName].whenZero(handler);
+    setTimeout(whenTasksEmpty, 100, queueName, done);
+  });
 };
 
 /**
- * Increment the count for a task of the given name
+ * Makes sure it waits until both the `queueName` and the `queueName-processing` queues are empty
  *
- * @param  {String}     queueName    The name of the task whose count to increment
- * @api private
+ * This is ONLY useful in a local development environment where one application node is firing and handling all tasks.
+ *
+ * @function whenBothTasksEmpty
+ * @param  {String}     queueName   The name of the task to listen for empty events
+ * @param  {Function}   handler     The handler to invoke when the task queue is empty
  */
-const _increment = function(queueName) {
-  if (_hasQueue(queueName)) {
-    queueCounters[queueName] = queueCounters[queueName] || new Counter();
-    queueCounters[queueName].incr();
-  }
-};
-
-const _get = name => {
-  if (_hasQueue(name)) {
-    queueCounters[name] = queueCounters[name] || new Counter();
-    return queueCounters[name].get();
-  }
-
-  return 0;
-};
-
-const _setToZero = queueName => {
-  queueCounters[queueName] = queueCounters[queueName] || new Counter();
-  queueCounters[queueName].zero();
+const whenBothTasksEmpty = (queueName, done) => {
+  whenTasksEmpty(queueName, () => {
+    whenTasksEmpty(MQ.getProcessingQueueFor(queueName), done);
+  });
 };
 
 /**
- * Determines if MQ has a handler bound for a task by the given name.
- *
- * @param  {String}     queueName   The name of the task queue we're checking existance of
- * @return {Boolean}                Whether or not there is a task bound
- * @api private
+ * @function isQueueEmpty
+ * @param  {String} queueName  The queue name we're checking the size of (which is a redis List)
+ * @param  {Object} someRedisConnection A redis client which is used solely for subscribing to this queue
+ * @param  {Function} done     Standar callback function
  */
-const _hasQueue = queueName => {
-  return _.contains(_.keys(MQ.getBoundQueues()), queueName);
+const isQueueEmpty = (queueName, done) => {
+  MQ.staticConnections.THE_CHECKER.llen(queueName, (err, stillQueued) => {
+    if (err) done(err);
+    return done(null, stillQueued === 0);
+  });
 };
 
-/**
- * Decrement the count for a task of the given name, firing any `whenTasksEmpty` handlers that are
- * waiting for the count to reach 0, if appropriate
- *
- * @param  {String}     queueName    The name of the task whose count to decrement
- * @param  {Integer}    count        The value to decrement the counter
- * @api private
- */
-const _decrement = function(queueName, count) {
-  queueCounters[queueName] = queueCounters[queueName] || new Counter();
-  queueCounters[queueName].decr(count);
-};
-
-export { whenTasksEmpty };
+export { getQueueLength, whenTasksEmpty, whenBothTasksEmpty };

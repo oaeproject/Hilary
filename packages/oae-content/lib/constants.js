@@ -89,6 +89,9 @@ ContentConstants.search = {
 
 ContentConstants.queue = {
   ETHERPAD_PUBLISH: 'oae-content/etherpad-publish',
+  ETHERPAD_PUBLISH_PROCESSING: 'oae-content/etherpad-publish-processing',
   ETHERCALC_PUBLISH: 'oae-content/ethercalc-publish',
-  ETHERCALC_EDIT: 'oae-content/ethercalc-edit'
+  ETHERCALC_PUBLISH_PROCESSING: 'oae-content/ethercalc-publish-processing',
+  ETHERCALC_EDIT: 'oae-content/ethercalc-edit',
+  ETHERCALC_EDIT_PROCESSING: 'oae-content/ethercalc-edit-processing'
 };

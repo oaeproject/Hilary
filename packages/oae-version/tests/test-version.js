@@ -18,8 +18,16 @@ import _ from 'underscore';
 import { fromJS } from 'immutable';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
+import * as redis from 'oae-util/lib/redis';
+
+const PATH = 'path';
+const PACKAGE_JSON = 'package.json';
 
 describe('Git information', function() {
+  before(done => {
+    redis.flush(done);
+  });
+
   /**
    * Test that verifies that the git information is returned
    */
@@ -55,36 +63,60 @@ describe('Git information', function() {
       assert.ok(_.isString(hilaryInfo.get('lastCommitDate')));
       assert.ok(_.isString(hilaryInfo.get('latestTag')));
 
-      const submodulePointers = hilaryInfo.get('submodulePointers');
-      assert.ok(_.isObject(submodulePointers));
-      assert.strictEqual(submodulePointers.size, 3);
+      const submodules = hilaryInfo.get('submodules');
+      assert.ok(_.isObject(submodules));
+      assert.strictEqual(submodules.size, 3);
 
-      const frontendInfo = repoInfo.get('3akai-ux');
-      assert.ok(_.isObject(frontendInfo));
-      assert.ok(_.isString(frontendInfo.get('lastCommitId')));
-      assert.ok(_.isString(frontendInfo.get('lastCommitDate')));
-      assert.ok(_.isString(frontendInfo.get('latestTag')));
-      assert.strictEqual(frontendInfo.get('submodulePointers').size, 0);
+      // oae-rest submodule
+      let submoduleName = 'oae-rest';
+      let submodulePath = submodules.get(submoduleName).get(PATH);
+      assert.strictEqual(submodulePath.size, 1);
+      assert.ok(
+        submodulePath
+          .get(0)
+          .get(0)
+          .includes(PACKAGE_JSON)
+      );
+      assert.ok(
+        submodulePath
+          .get(0)
+          .get(0)
+          .includes(submoduleName)
+      );
 
-      const oaeRestInfo = repoInfo.get('oae-rest');
-      assert.ok(_.isObject(oaeRestInfo));
-      assert.ok(_.isString(oaeRestInfo.get('lastCommitId')));
-      assert.ok(_.isString(oaeRestInfo.get('lastCommitDate')));
-      assert.ok(_.isString(oaeRestInfo.get('latestTag')));
-      assert.strictEqual(oaeRestInfo.get('submodulePointers').size, 0);
+      // 3akai-ux submodule
+      submoduleName = '3akai-ux';
+      submodulePath = submodules.get(submoduleName).get(PATH);
+      assert.strictEqual(submodulePath.size, 1);
+      assert.ok(
+        submodulePath
+          .get(0)
+          .get(0)
+          .includes(PACKAGE_JSON)
+      );
+      assert.ok(
+        submodulePath
+          .get(0)
+          .get(0)
+          .includes(submoduleName)
+      );
 
-      const restjsDocInfo = repoInfo.get('restjsdoc');
-      assert.ok(_.isObject(restjsDocInfo));
-      assert.ok(_.isString(restjsDocInfo.get('lastCommitId')));
-      assert.ok(_.isString(restjsDocInfo.get('lastCommitDate')));
-      assert.ok(_.isString(restjsDocInfo.get('latestTag')));
-      assert.strictEqual(restjsDocInfo.get('submodulePointers').size, 0);
-
-      // Verify that the latest commit on every submodule repo is where Hilary is pointing
-      // this would mean that Hilary submodules are up to date
-      assert.strictEqual(submodulePointers.get('3akai-ux'), frontendInfo.get('lastCommitId'));
-      assert.strictEqual(submodulePointers.get('packages/oae-rest'), oaeRestInfo.get('lastCommitId'));
-      assert.strictEqual(submodulePointers.get('packages/restjsdoc'), restjsDocInfo.get('lastCommitId'));
+      // restjsdoc submodule
+      submoduleName = 'restjsdoc';
+      submodulePath = submodules.get(submoduleName).get(PATH);
+      assert.strictEqual(submodulePath.size, 1);
+      assert.ok(
+        submodulePath
+          .get(0)
+          .get(0)
+          .includes(PACKAGE_JSON)
+      );
+      assert.ok(
+        submodulePath
+          .get(0)
+          .get(0)
+          .includes(submoduleName)
+      );
 
       callback();
     });

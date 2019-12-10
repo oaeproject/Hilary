@@ -48,6 +48,7 @@ import * as PreviewPDF from 'oae-preview-processor/lib/processors/file/pdf';
 import * as PreviewSlideShare from 'oae-preview-processor/lib/processors/link/slideshare';
 import * as PreviewTestUtil from 'oae-preview-processor/lib/test/util';
 import * as PreviewUtil from 'oae-preview-processor/lib/util';
+import { flush } from 'oae-util/lib/redis';
 
 describe('Preview processor', () => {
   // We fill this variable on tests startup with the configuration
@@ -299,7 +300,7 @@ describe('Preview processor', () => {
    */
   const _createContentAndWait = function(resourceSubType, link, stream, callback) {
     // When the queue is empty, we create a piece of content for which we can generate preview items
-    MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
+    MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
       TestsUtil.generateTestUsers(signedAdminRestContext, 1, (err, users, simon) => {
         assert.ok(!err);
         const restCtx = simon.restContext;
@@ -308,7 +309,7 @@ describe('Preview processor', () => {
           assert.ok(!err);
 
           // Wait until the PP items have been generated
-          MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
+          MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
             // Ensure the preview items are there
             RestAPI.Content.getContent(restCtx, contentObj.id, (err, updatedContent) => {
               assert.ok(!err);
@@ -783,7 +784,7 @@ describe('Preview processor', () => {
             assert.ok(!err);
 
             // Wait till the file has been processed
-            MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
+            MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
               // Verify the previous metadata is gone
               RestAPI.Content.getContent(restCtx, content.id, (err, updatedContentObj) => {
                 assert.ok(!err);
@@ -1756,7 +1757,7 @@ describe('Preview processor', () => {
             assert.ok(!err);
 
             // Wait till it has been processed.
-            MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
+            MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
               // Ensure the preview items are there.
               RestAPI.Content.getContent(restCtx, contentObj.id, (err, updatedContent) => {
                 assert.ok(!err);
@@ -1802,7 +1803,7 @@ describe('Preview processor', () => {
         assert.ok(!err);
 
         // Create a piece of content with 2 separate mime types
-        MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
+        MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
           TestsUtil.generateTestUsers(signedAdminRestContext, 1, (err, response) => {
             assert.ok(!err);
             const restCtx = _.values(response)[0].restContext;
@@ -1847,7 +1848,7 @@ describe('Preview processor', () => {
                               updatedContentObj.latestRevisionId,
                               err => {
                                 assert.ok(!err);
-                                MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
+                                MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
                                   // The revisions should have been processed, fetch their metadata.
                                   RestAPI.Content.getRevision(
                                     restCtx,
@@ -2134,10 +2135,10 @@ describe('Preview processor', () => {
           assert.ok(!err);
 
           // Make sure all tasks are done
-          MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
-            MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, () => {
-              MQTestUtil.whenTasksEmpty(SearchConstants.mq.TASK_INDEX_DOCUMENT, () => {
-                MQTestUtil.whenTasksEmpty(ActivityConstants.mq.TASK_ACTIVITY, () => {
+          MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS_PROCESSING, () => {
+            MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS_PROCESSING, () => {
+              MQTestUtil.whenTasksEmpty(SearchConstants.mq.TASK_INDEX_DOCUMENT_PROCESSING, () => {
+                MQTestUtil.whenTasksEmpty(ActivityConstants.mq.TASK_ACTIVITY_PROCESSING, () => {
                   // Trash all the content items
                   Cassandra.runQuery('TRUNCATE "Content"', [], err => {
                     assert.ok(!err);
@@ -2330,7 +2331,7 @@ describe('Preview processor', () => {
           assert.ok(!err);
 
           // Wait for the preview to finish generating
-          MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
+          MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
             RestAPI.Content.getContent(user.restContext, content.id, (err, content) => {
               assert.ok(!err);
 
@@ -2347,6 +2348,8 @@ describe('Preview processor', () => {
      * Test that verifies when previews are reprocessed through the REST endpoint, a task is triggered.
      */
     it('verify reprocessing previews triggers an mq task', callback => {
+      // this timeout allows us to wait for disconnection to come into effect before subscribe again
+      const TIMEOUT = 500;
       // Verify sending a single filter with a single value
       let filters = { content_previewsStatus: 'error' };
       _reprocessWithHandler(globalAdminRestContext, filters, data => {
@@ -2357,7 +2360,7 @@ describe('Preview processor', () => {
 
         // Verify sending a single filter with multiple values
         filters = { content_previewsStatus: ['error', 'done', 'pending'] };
-        _reprocessWithHandler(globalAdminRestContext, filters, data => {
+        setTimeout(_reprocessWithHandler, TIMEOUT, globalAdminRestContext, filters, data => {
           assert.ok(data);
           assert.ok(data.filters);
           assert.ok(data.filters.content);
@@ -2371,7 +2374,7 @@ describe('Preview processor', () => {
             content_previewsStatus: ['error', 'done', 'pending'],
             content_resourceSubType: ['file', 'link']
           };
-          _reprocessWithHandler(globalAdminRestContext, filters, data => {
+          setTimeout(_reprocessWithHandler, TIMEOUT, globalAdminRestContext, filters, data => {
             assert.ok(data);
             assert.ok(data.filters);
             assert.ok(data.filters.content);
@@ -2389,7 +2392,7 @@ describe('Preview processor', () => {
               content_resourceSubType: ['file', 'link'],
               revision_mime: ['application/pdf', 'application/msword']
             };
-            _reprocessWithHandler(globalAdminRestContext, filters, data => {
+            setTimeout(_reprocessWithHandler, TIMEOUT, globalAdminRestContext, filters, data => {
               assert.ok(data);
               assert.ok(data.filters);
               assert.ok(data.filters.content);
@@ -2419,7 +2422,7 @@ describe('Preview processor', () => {
        *
        * @see MQ#bind
        */
-      const _handleTaskFail = function(data) {
+      const _handleTaskFail = function(/* data */) {
         assert.fail('Did not expect the task to be invoked.');
       };
 
@@ -2512,7 +2515,7 @@ describe('Preview processor', () => {
             assert.ok(!err);
 
             // It's possible the PP started processing on old item, wait till it's done so it doesn't mess up this test
-            MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
+            MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
               // Bind our own listener that will keep track of content that needs reprocessing (it should always be empty)
               const contentToBeReprocessed = [];
               const reprocessTracker = function(data, callback) {
@@ -2525,8 +2528,8 @@ describe('Preview processor', () => {
 
                 // Missing filters is invalid
                 MQ.submit(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, JSON.stringify({}), () => {
-                  MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, () => {
-                    MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
+                  MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, () => {
+                    MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
                       assert.strictEqual(contentToBeReprocessed.length, 0);
 
                       // Unknown content filter is invalid
@@ -2534,8 +2537,8 @@ describe('Preview processor', () => {
                         PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS,
                         JSON.stringify({ filters: { content: { foo: 'bar' } } }),
                         () => {
-                          MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, () => {
-                            MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
+                          MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, () => {
+                            MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
                               assert.strictEqual(contentToBeReprocessed.length, 0);
 
                               // Unknown revision filter is invalid
@@ -2543,8 +2546,8 @@ describe('Preview processor', () => {
                                 PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS,
                                 JSON.stringify({ filters: { revision: { foo: 'bar' } } }),
                                 () => {
-                                  MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, () => {
-                                    MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
+                                  MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, () => {
+                                    MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
                                       assert.strictEqual(contentToBeReprocessed.length, 0);
                                       return callback();
                                     });
@@ -2582,61 +2585,63 @@ describe('Preview processor', () => {
 
           RestAPI.User.getMe(mrvisser.restContext, (err, mrvisserFullMeData) => {
             assert.ok(!err);
-                    // Re-enable the processor so the file can be processed
-                    PreviewAPI.enable(err => {
-                      assert.ok(!err);
+            // Re-enable the processor so the file can be processed
+            PreviewAPI.enable(err => {
+              assert.ok(!err);
 
-            // Create a file that we can process
-            RestAPI.Content.createFile(
-              mrvisser.restContext,
-              'Test Content 1',
-              'Test content description 1',
-              'private',
-              getImageStream,
-              [],
-              [],
-              [],
-              (err, contentObj) => {
-                assert.ok(!err);
-
-                // Setup a client that listens to the content's activity stream
-                RestAPI.Content.getContent(mrvisser.restContext, contentObj.id, (err, contentObj) => {
+              // Create a file that we can process
+              RestAPI.Content.createFile(
+                mrvisser.restContext,
+                'Test Content 1',
+                'Test content description 1',
+                'private',
+                getImageStream,
+                [],
+                [],
+                [],
+                (err, contentObj) => {
                   assert.ok(!err);
-                  const data = {
-                    authentication: {
-                      userId: mrvisserFullMeData.id,
-                      tenantAlias: mrvisserFullMeData.tenant.alias,
-                      signature: mrvisserFullMeData.signature
-                    },
-                    streams: [
-                      {
-                        resourceId: contentObj.id,
-                        streamType: 'activity',
-                        token: contentObj.signature,
-                        transformer: 'internal'
-                      }
-                    ]
-                  };
-                  ActivityTestsUtil.getFullySetupPushClient(data, client => {
 
-                    client.on('message', message => {
-                      if (message.activities[0] && message.activities[0]['oae:activityType'] === 'previews-finished') {
-                        assert.strictEqual(message.activities[0].object.previews.status, 'done');
+                  // Setup a client that listens to the content's activity stream
+                  RestAPI.Content.getContent(mrvisser.restContext, contentObj.id, (err, contentObj) => {
+                    assert.ok(!err);
+                    const data = {
+                      authentication: {
+                        userId: mrvisserFullMeData.id,
+                        tenantAlias: mrvisserFullMeData.tenant.alias,
+                        signature: mrvisserFullMeData.signature
+                      },
+                      streams: [
+                        {
+                          resourceId: contentObj.id,
+                          streamType: 'activity',
+                          token: contentObj.signature,
+                          transformer: 'internal'
+                        }
+                      ]
+                    };
+                    ActivityTestsUtil.getFullySetupPushClient(data, client => {
+                      client.on('message', message => {
+                        if (
+                          message.activities[0] &&
+                          message.activities[0]['oae:activityType'] === 'previews-finished'
+                        ) {
+                          assert.strictEqual(message.activities[0].object.previews.status, 'done');
 
-                        // Ensure that the full previews object is returned
-                        assert.strictEqual(message.activities[0].object.previews.total, 4);
-                        assert.ok(message.activities[0].object.previews.largeUrl);
-                        assert.ok(message.activities[0].object.previews.mediumUrl);
-                        assert.ok(message.activities[0].object.previews.smallUrl);
-                        assert.ok(message.activities[0].object.previews.thumbnailUrl);
-                        return callback();
-                      }
+                          // Ensure that the full previews object is returned
+                          assert.strictEqual(message.activities[0].object.previews.total, 4);
+                          assert.ok(message.activities[0].object.previews.largeUrl);
+                          assert.ok(message.activities[0].object.previews.mediumUrl);
+                          assert.ok(message.activities[0].object.previews.smallUrl);
+                          assert.ok(message.activities[0].object.previews.thumbnailUrl);
+                          return callback();
+                        }
+                      });
                     });
                   });
-                });
-              }
-            );
-                    });
+                }
+              );
+            });
           });
         });
       });
@@ -2655,8 +2660,8 @@ describe('Preview processor', () => {
       _setupForReprocessing(true, (user, content, link) => {
         // Reprocess all content items that are files
         RestAPI.Previews.reprocessPreviews(globalAdminRestContext, { content_resourceSubType: 'file' }, err => {
-          MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, () => {
-            MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
+          MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, () => {
+            MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
               // Assert that we reprocessed the file content object
               RestAPI.Content.getContent(user.restContext, content.id, (err, content) => {
                 assert.ok(!err);
@@ -2706,7 +2711,7 @@ describe('Preview processor', () => {
                 assert.ok(!err);
 
                 // Wait for any potential previews to finish as a sanity-check. There shouldn't be, though
-                MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
+                MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
                   // Ensure that no previews have been processed yet
                   RestAPI.Content.getRevisions(user.restContext, content.id, null, null, (err, data) => {
                     assert.ok(!data.results[0].previews);
@@ -2718,8 +2723,8 @@ describe('Preview processor', () => {
                       { revision_createdAfter: secondRevisionCreated - 1 },
                       err => {
                         // Give all preview tasks a chance to complete
-                        MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, () => {
-                          MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
+                        MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, () => {
+                          MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
                             // Assert that we only reprocessed the last revision
                             RestAPI.Content.getRevisions(user.restContext, content.id, null, null, (err, data) => {
                               assert.ok(!err);
@@ -2785,8 +2790,8 @@ describe('Preview processor', () => {
                       globalAdminRestContext,
                       { content_resourceSubType: 'file' },
                       err => {
-                        MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, () => {
-                          MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
+                        MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, () => {
+                          MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
                             // Assert that we reprocessed the file content object
                             RestAPI.Content.getContent(user.restContext, content.id, (err, content) => {
                               assert.ok(!err);

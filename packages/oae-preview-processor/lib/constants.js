@@ -143,8 +143,11 @@ export default {
   },
   MQ: {
     TASK_GENERATE_PREVIEWS: 'oae-preview-processor/generatePreviews',
+    TASK_GENERATE_PREVIEWS_PROCESSING: 'oae-preview-processor/generatePreviews-processing',
     TASK_GENERATE_FOLDER_PREVIEWS: 'oae-preview-processor/generateFolderPreviews',
-    TASK_REGENERATE_PREVIEWS: 'oae-preview-processor/regeneratePreviews'
+    TASK_GENERATE_FOLDER_PREVIEWS_PROCESSING: 'oae-preview-processor/generateFolderPreviews-processing',
+    TASK_REGENERATE_PREVIEWS: 'oae-preview-processor/regeneratePreviews',
+    TASK_REGENERATE_PREVIEWS_PROCESSING: 'oae-preview-processor/regeneratePreviews-processing'
   },
   SIZES: {
     IMAGE: {

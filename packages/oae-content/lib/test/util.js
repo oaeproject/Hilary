@@ -855,7 +855,9 @@ const publishCollabDoc = function(contentId, userId, callback) {
     assert.ok(!err);
   });
 
-  MqTestUtil.whenTasksEmpty(ContentConstants.queue.ETHERPAD_PUBLISH, callback);
+  MqTestUtil.whenTasksEmpty(ContentConstants.queue.ETHERPAD_PUBLISH, () => {
+    MqTestUtil.whenTasksEmpty(ContentConstants.queue.ETHERPAD_PUBLISH_PROCESSING, callback);
+  });
 };
 
 /**

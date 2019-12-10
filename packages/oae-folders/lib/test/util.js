@@ -1704,13 +1704,15 @@ const _purgeFolderContentLibrary = function(folderId, callback) {
   // shouldn't result in slower (non-PP) tests as the PP won't be bound to the folder generate queue thus
   // `whenTasksEmpty` will return immediately
   MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, () => {
-    FoldersDAO.getFoldersByIds([folderId], (err, folders) => {
-      assert.ok(!err);
-      return LibraryTestUtil.assertPurgeFreshLibraries(
-        FoldersConstants.library.CONTENT_LIBRARY_INDEX_NAME,
-        [_.first(folders).groupId],
-        callback
-      );
+    MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS_PROCESSING, () => {
+      FoldersDAO.getFoldersByIds([folderId], (err, folders) => {
+        assert.ok(!err);
+        return LibraryTestUtil.assertPurgeFreshLibraries(
+          FoldersConstants.library.CONTENT_LIBRARY_INDEX_NAME,
+          [_.first(folders).groupId],
+          callback
+        );
+      });
     });
   });
 };

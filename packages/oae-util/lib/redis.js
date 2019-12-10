@@ -45,17 +45,28 @@ const init = function(redisConfig, callback) {
  * @return {RedisClient}            A redis client that is configured with the given configuration
  */
 const createClient = function(_config, callback) {
+  const notOnTestingEnvironment = !(process.env.OAE_TESTS_RUNNING === 'true');
   const connectionOptions = {
     port: _config.port,
     host: _config.host,
     db: _config.dbIndex || 0,
     password: _config.pass,
+    /**
+     * If we are running tests, then we need to tell redis connections NOT to
+     * auto-subscribe and NOT to resume previous BRPOPs and such blocking commands
+     */
+    autoResendUnfulfilledCommands: notOnTestingEnvironment,
+    autoResubscribe: notOnTestingEnvironment,
     // By default, ioredis will try to reconnect when the connection to Redis is lost except when the connection is closed
     // Check https://github.com/luin/ioredis#auto-reconnect
     retryStrategy: () => {
       log().error('Error connecting to redis, retrying in ' + retryTimeout + 's...');
       isDown = true;
-      return retryTimeout * 1000;
+      if (notOnTestingEnvironment) {
+        return retryTimeout * 1000;
+      }
+
+      return null;
     },
     reconnectOnError: () => {
       // Besides auto-reconnect when the connection is closed, ioredis supports reconnecting on the specified errors by the reconnectOnError option.
@@ -73,7 +84,7 @@ const createClient = function(_config, callback) {
 
   redisClient.on('ready', () => {
     if (isDown) {
-      log().error('Reconnected to redis \\o/');
+      log().info('Reconnected to redis \\o/');
     }
 
     isDown = false;
@@ -115,7 +126,23 @@ const flush = function(callback) {
  * @param {Function} done Standard callback function
  */
 const reconnect = (connection, done) => {
-  connection.connect(done);
+  connection.connect(() => {
+    return done();
+  });
 };
 
-export { createClient, getClient, flush, init, reconnect };
+/**
+ * @function reconnectAll
+ * @param  {Array} connections Array of connections to reconnect one after the other
+ * @param {Function} done Standard callback function
+ */
+const reconnectAll = (connections, done) => {
+  if (connections.length === 0) {
+    return done();
+  }
+
+  const someConnection = connections.shift();
+  return reconnect(someConnection, done);
+};
+
+export { createClient, getClient, flush, init, reconnect, reconnectAll };

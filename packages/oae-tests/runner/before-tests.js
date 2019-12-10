@@ -16,6 +16,7 @@
 import * as TestsUtil from 'oae-tests/lib/util';
 import { logger } from 'oae-logger';
 import nock from 'nock';
+import { flush } from 'oae-util/lib/redis';
 
 const log = logger('before-tests');
 
@@ -39,17 +40,25 @@ const dropKeyspaceBeforeTest = process.env.OAE_TEST_DROP_KEYSPACE_BEFORE !== 'fa
 
 // First set up the keyspace and all of the column families required for all of the different OAE modules
 before(function(callback) {
-  // Create the configuration for the test
-  const config = TestsUtil.createInitialTestConfig();
+  // Set an env var for running tests. This is being used in `redis.js`
+  process.env.OAE_TESTS_RUNNING = 'true';
 
-  this.timeout(config.test.timeout || DEFAULT_TIMEOUT);
+  flush(() => {
+    // Create the configuration for the test
+    const config = TestsUtil.createInitialTestConfig();
 
-  TestsUtil.setUpBeforeTests(config, dropKeyspaceBeforeTest, callback);
+    this.timeout(config.test.timeout || DEFAULT_TIMEOUT);
+
+    TestsUtil.setUpBeforeTests(config, dropKeyspaceBeforeTest, callback);
+  });
 });
 
 beforeEach(function(callback) {
   log().info('Beginning test "%s"', this.currentTest.title);
-  return callback();
+  flush(err => {
+    if (err) callback(err);
+    return callback();
+  });
 });
 
 afterEach(function(callback) {
@@ -66,5 +75,7 @@ afterEach(function(callback) {
 // Executed once all of the tests for all of the different modules have finished running or
 // when one of the tests has caused an error. Drop the keyspace after all the tests are done
 after(callback => {
+  // Unset an env var for running tests once they are over
+  process.env.OAE_TESTS_RUNNING = '';
   TestsUtil.cleanUpAfterTests(callback);
 });

@@ -77,8 +77,11 @@ SearchConstants.search = {
 
 SearchConstants.mq = {
   TASK_INDEX_DOCUMENT: 'oae-search/index',
+  TASK_INDEX_DOCUMENT_PROCESSING: 'oae-search/index-processing',
   TASK_DELETE_DOCUMENT: 'oae-search/delete',
-  TASK_REINDEX_ALL: 'oae-search/reindex'
+  TASK_DELETE_DOCUMENT_PROCESSING: 'oae-search/delete-processing',
+  TASK_REINDEX_ALL: 'oae-search/reindex',
+  TASK_REINDEX_ALL_PROCESSING: 'oae-search/reindex-processing'
 };
 
 SearchConstants.events = {

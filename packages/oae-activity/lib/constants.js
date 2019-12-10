@@ -22,7 +22,8 @@ ActivityConstants.entityTypes = {
 };
 
 ActivityConstants.mq = {
-  TASK_ACTIVITY: 'oae-activity/activity'
+  TASK_ACTIVITY: 'oae-activity/activity',
+  TASK_ACTIVITY_PROCESSING: 'oae-activity/activity-processing'
 };
 
 ActivityConstants.properties = {

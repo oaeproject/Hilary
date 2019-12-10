@@ -19,7 +19,7 @@ import _ from 'underscore';
 import ShortId from 'shortid';
 
 import * as MQ from 'oae-util/lib/mq';
-import { whenTasksEmpty as waitUntilProcessed } from 'oae-util/lib/test/mq-util';
+import { whenTasksEmpty as waitUntilProcessed, getQueueLength } from 'oae-util/lib/test/mq-util';
 import { config } from '../../../config';
 
 describe('MQ', () => {
@@ -39,17 +39,20 @@ describe('MQ', () => {
    * then we connect again and proceed with the tests
    */
   it('verify quitting all clients works', callback => {
-    assertAllClientsAreConnected(MQ.getAllConnectedClients(), () => {
-      MQ.quitAllConnectedClients(err => {
+    const connectionNames = [
+      MQ.staticConnections.THE_PURGER,
+      MQ.staticConnections.THE_CHECKER,
+      MQ.staticConnections.THE_PUBLISHER
+    ];
+    const connectionsToCheck = _.filter(MQ.getAllConnectedClients(), eachClient => {
+      return connectionNames.includes(eachClient.queueName);
+    });
+
+    assertAllClientsAreDisconnected(connectionsToCheck, () => {
+      MQ.init(config.mq, err => {
         assert.ok(!err);
-        assertAllClientsAreDisconnected(MQ.getAllConnectedClients(), () => {
-          MQ.init(config.mq, err => {
-            assert.ok(!err);
-            assertAllClientsAreConnected(MQ.getAllConnectedClients(), () => {
-              return callback();
-            });
-          });
-        });
+        assertAllClientsAreReady(connectionsToCheck);
+        return callback();
       });
     });
   });
@@ -59,7 +62,6 @@ describe('MQ', () => {
      * Test that verifies the parameters
      */
     it('verify parameter validation', callback => {
-      const queueName = util.format('testQueue-%s', ShortId.generate());
       MQ.purgeQueue('', err => {
         assert.strictEqual(err.code, 400);
         return callback();
@@ -81,11 +83,12 @@ describe('MQ', () => {
       // we need subscribe even though we don't use it,
       // otherwise it won't submit to a queue that hasn't been subscribed
       MQ.subscribe(testQueue, increment, err => {
+        assert(!err);
         const allTasks = new Array(10).fill({ foo: 'bar' });
         submitTasksToQueue(testQueue, allTasks, err => {
           assert(!err);
 
-          MQ.getQueueLength(`${testQueue}-redelivery`, (err, count) => {
+          getQueueLength(`${testQueue}-redelivery`, (err, count) => {
             assert.ok(!err);
             // the redelivery mechanism is asynchronous, so counters must be close to 10
             assert(counter >= 1, 'The number of tasks handled should be at least 1');
@@ -96,7 +99,7 @@ describe('MQ', () => {
             MQ.purgeQueue(testQueue, err => {
               assert(!err);
 
-              MQ.getQueueLength(testQueue, (err, count) => {
+              getQueueLength(testQueue, (err, count) => {
                 assert.ok(!err);
                 assert(count === 0, 'Purged queue should have zero length');
                 callback();
@@ -146,10 +149,10 @@ describe('MQ', () => {
 
                   MQ.purgeQueues(bothQueues, err => {
                     assert(!err);
-                    MQ.getQueueLength(bothQueues[0], (err, count) => {
+                    getQueueLength(bothQueues[0], (err, count) => {
                       assert.ok(!err);
                       assert(count === 0, 'Purged queues should be zero length');
-                      MQ.getQueueLength(bothQueues[1], (err, count) => {
+                      getQueueLength(bothQueues[1], (err, count) => {
                         assert.ok(!err);
                         assert(count === 0, 'Purged queues should be zero length');
 
@@ -204,7 +207,7 @@ describe('MQ', () => {
         counter++;
 
         // make sure there is one task in the queue
-        MQ.getQueueLength(`${queueName}-processing`, (err, count) => {
+        getQueueLength(`${queueName}-processing`, (err, count) => {
           assert.ok(!err);
           assert.strictEqual(count, 1, 'There should be one task on the processing queue');
           done();
@@ -244,7 +247,7 @@ describe('MQ', () => {
         counter++;
 
         // make sure there is one task in the queue
-        MQ.getQueueLength(`${queueName}-processing`, (err, count) => {
+        getQueueLength(`${queueName}-processing`, (err, count) => {
           assert.ok(!err);
           assert.strictEqual(count, 1, 'There should be one task on the processing queue');
           done();
@@ -294,7 +297,7 @@ describe('MQ', () => {
         assert.strictEqual(message.msg, data.msg, 'Received message should match the one sent');
 
         // make sure there is one task in the queue
-        MQ.getQueueLength(`${queueName}-processing`, (err, count) => {
+        getQueueLength(`${queueName}-processing`, (err, count) => {
           assert.ok(!err);
           assert.strictEqual(count, 1, 'There should be one task on the processing queue');
           done();
@@ -311,13 +314,13 @@ describe('MQ', () => {
             assert.strictEqual(counter, 1, 'Task handler should have been called once so far');
 
             // make sure the queue is Empty, as well the processing and redelivery correspondents
-            MQ.getQueueLength(queueName, (err, count) => {
+            getQueueLength(queueName, (err, count) => {
               assert.ok(!err);
               assert.strictEqual(count, 0, 'The queue should be empty');
-              MQ.getQueueLength(`${queueName}-processing`, (err, count) => {
+              getQueueLength(`${queueName}-processing`, (err, count) => {
                 assert.ok(!err);
                 assert.strictEqual(count, 0, 'The queue should be empty');
-                MQ.getQueueLength(`${queueName}-redelivery`, (err, count) => {
+                getQueueLength(`${queueName}-redelivery`, (err, count) => {
                   assert.ok(!err);
                   assert.strictEqual(count, 0, 'The queue should be empty');
 
@@ -331,7 +334,7 @@ describe('MQ', () => {
     });
 
     /**
-     * Verify that submitting many messages will result in all of them 
+     * Verify that submitting many messages will result in all of them
      * being processed aka their listener is executed
      */
     it('verify submitting many messages works', callback => {
@@ -339,7 +342,7 @@ describe('MQ', () => {
       let counter = 0;
       const queueName = util.format('testQueue-%s', ShortId.generate());
 
-      const allTasks = new Array(NUMBER_OF_TASKS).fill(null).map(each => {
+      const allTasks = new Array(NUMBER_OF_TASKS).fill(null).map(() => {
         return { msg: `Practice ${counter++} times makes perfect` };
       });
       // we'll soon shift/pop the array, so let's keep a clone for later
@@ -369,13 +372,13 @@ describe('MQ', () => {
             );
 
             // make sure the queue is Empty, as well the processing and redelivery correspondents
-            MQ.getQueueLength(queueName, (err, count) => {
+            getQueueLength(queueName, (err, count) => {
               assert.ok(!err);
               assert.strictEqual(count, 0, 'The queue should be empty');
-              MQ.getQueueLength(`${queueName}-processing`, (err, count) => {
+              getQueueLength(`${queueName}-processing`, (err, count) => {
                 assert.ok(!err);
                 assert.strictEqual(count, 0, 'The queue should be empty');
-                MQ.getQueueLength(`${queueName}-redelivery`, (err, count) => {
+                getQueueLength(`${queueName}-redelivery`, (err, count) => {
                   assert.ok(!err);
                   assert.strictEqual(count, 0, 'The queue should be empty');
 
@@ -406,13 +409,13 @@ describe('MQ', () => {
           assert.ok(!err);
           waitUntilProcessed(queueName, () => {
             assert.strictEqual(counter, 1, 'There should be one processed task so far');
-            MQ.getQueueLength(queueName, (err, count) => {
+            getQueueLength(queueName, (err, count) => {
               assert.ok(!err);
               assert.strictEqual(count, 0, 'The queue should be empty');
-              MQ.getQueueLength(`${queueName}-processing`, (err, count) => {
+              getQueueLength(`${queueName}-processing`, (err, count) => {
                 assert.ok(!err);
                 assert.strictEqual(count, 0, 'The queue should be empty');
-                MQ.getQueueLength(`${queueName}-redelivery`, (err, count) => {
+                getQueueLength(`${queueName}-redelivery`, (err, count) => {
                   assert.ok(!err);
                   assert.strictEqual(count, 1, 'There should be one task redelivered for later processing');
                   done();
@@ -439,16 +442,9 @@ const submitTasksToQueue = (queueName, tasks, done) => {
 /**
  * Utility function to make sure each and every client is properly connected
  */
-const assertAllClientsAreConnected = (clients, done) => {
-  if (clients.length === 0) {
-    return done();
-  }
-
-  const nextClient = clients.shift();
-  nextClient.llen('someList', (err, count) => {
-    assert.ok(!err);
-    assert.strictEqual(count, 0, 'This is a random list, its size will always be zero');
-    assertAllClientsAreConnected(clients, done);
+const assertAllClientsAreReady = connectionsToCheck => {
+  _.each(connectionsToCheck, eachClient => {
+    assert.ok(eachClient.status === 'ready');
   });
 };
 
@@ -461,13 +457,9 @@ const assertAllClientsAreDisconnected = (clients, done) => {
   }
 
   const nextClient = clients.shift();
-  nextClient.llen('someList', (err, count) => {
+  nextClient.disconnect();
+  nextClient.llen('someList', err => {
     assert.ok(err, 'Connection is closed, so no command can be issued');
-    /**
-     * By default, ioredis will try to reconnect when the connection to Redis is lost
-     * except when the connection is closed manually by redis.disconnect() or redis.quit().
-     * https://github.com/luin/ioredis#auto-reconnect
-     */
     assertAllClientsAreDisconnected(clients, done);
   });
 };

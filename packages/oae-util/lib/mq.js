@@ -596,5 +596,6 @@ export {
   submit,
   getAllActiveClients as getAllConnectedClients,
   MQConstants,
-  staticConnections
+  staticConnections,
+  getProcessingQueueFor
 };

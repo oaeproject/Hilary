@@ -50,6 +50,21 @@ const whenTasksEmpty = function(queueName, done) {
 };
 
 /**
+ * Makes sure it waits until both the `queueName` and the `queueName-processing` queues are empty
+ *
+ * This is ONLY useful in a local development environment where one application node is firing and handling all tasks.
+ *
+ * @function whenBothTasksEmpty
+ * @param  {String}     queueName   The name of the task to listen for empty events
+ * @param  {Function}   handler     The handler to invoke when the task queue is empty
+ */
+const whenBothTasksEmpty = (queueName, done) => {
+  whenTasksEmpty(queueName, () => {
+    whenTasksEmpty(MQ.getProcessingQueueFor(queueName), done);
+  });
+};
+
+/**
  * @function isQueueEmpty
  * @param  {String} queueName  The queue name we're checking the size of (which is a redis List)
  * @param  {Object} someRedisConnection A redis client which is used solely for subscribing to this queue
@@ -62,4 +77,4 @@ const isQueueEmpty = (queueName, done) => {
   });
 };
 
-export { getQueueLength, whenTasksEmpty };
+export { getQueueLength, whenTasksEmpty, whenBothTasksEmpty };

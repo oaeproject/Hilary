@@ -111,6 +111,7 @@ jobs:
       - *upload_logs
   coverage:
     <<: *defaults
+    parallelism: 1
     steps:
       - setup_remote_docker
       - *install_system_dependencies

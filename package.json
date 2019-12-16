@@ -114,6 +114,7 @@
     "youtube-api": "^2.0.9"
   },
   "devDependencies": {
+    "chalk": "^3.0.0",
     "codacy-coverage": "^3.3.0",
     "eslint-config-prettier": "^6.5.0",
     "eslint-plugin-prettier": "^3.0.1",

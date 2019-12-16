@@ -2,7 +2,6 @@ aliases:
   - &defaults
     docker:
       - image: "alpine:3.9"
-    parallelism: 4
     environment:
       TMP: /root/tmp
       PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
@@ -92,6 +91,7 @@ version: 2.1
 jobs:
   test:
     <<: *defaults
+    parallelism: 4
     steps:
       - setup_remote_docker
       - *install_system_dependencies

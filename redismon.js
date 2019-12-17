@@ -24,8 +24,7 @@ import chalk from 'chalk';
 const { log, clear } = console;
 const TIMEOUT = 1000;
 
-import config from './config';
-console.dir(config.redis);
+import { config } from './config';
 const connection = new Redis(config.redis);
 
 const queues = {

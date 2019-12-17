@@ -109,7 +109,15 @@ const printAllQs = async allQs => {
 const printSomeQ = async someQ => {
   await connection.llen(someQ).then(count => {
     const qName = someQ.split('/');
-    log(`   [${chalk.greenBright(count)}] <- [${chalk.yellowBright(qName[0])} / ${chalk.cyanBright(qName[1])}]`);
+
+    let displayCount = chalk.greenBright;
+    let displayQ = chalk.cyanBright;
+    if (count > 0) {
+      displayCount = chalk.redBright;
+      displayQ = chalk.redBright;
+    }
+
+    log(`   [${displayCount(count)}] <- [${chalk.yellowBright(qName[0])} / ${displayQ(qName[1])}]`);
   });
 };
 

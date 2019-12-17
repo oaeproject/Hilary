@@ -58,10 +58,8 @@ const staticConnections = {
  * For every queue OAE creates, there are two extra queues (redis lists), *-processing and *-redelivery
  * The way tasks are processed is illustrated below for `oae-activity/activity`, but works the same way for all queues:
  *
- * oae-acticity/activity
- * oae-acticity/activity-processing
- * oae-acticity/activity/enable
- * oae-acticity/activity/enable-processing
+ * oae-activity/activity
+ * oae-activity/activity-processing
  * oae-search/index
  * oae-search/index-processing
  * oae-search/delete

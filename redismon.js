@@ -16,6 +16,10 @@
 /**
  * This is a simple tool for keeping an eye on redis queues that
  * are relevant to OAE such as activity, search and preview generation
+ *
+ * To run this as a standalone app on the terminal, do as follows:
+ * 1 npm install chalk (it's a dev dependency so it might not have been installed)
+ * 2 node -r esm redismon.js
  */
 import Redis from 'ioredis';
 import _ from 'underscore';

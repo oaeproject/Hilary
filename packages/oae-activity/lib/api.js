@@ -25,9 +25,18 @@ import * as PrincipalsUtil from 'oae-principals/lib/util';
 import * as Redis from 'oae-util/lib/redis';
 import { Validator as validator } from 'oae-authz/lib/validator';
 
-const { isLoggedInUser, isUserId, isPrincipalId, isNotEmpty, isNumeric, isObject } = validator;
+const {
+  getNestedObject,
+  makeSureThat,
+  ifNotThenThrow,
+  isLoggedInUser,
+  isUserId,
+  isPrincipalId,
+  isNotEmpty,
+  isANumber,
+  isObject
+} = validator;
 
-const ifFails = validator.generateError;
 const ifError = validator.finalize;
 
 import pipe from 'ramda/src/pipe';
@@ -536,7 +545,7 @@ const getActivityStream = function(ctx, principalId, start, limit, transformerTy
 
   pipe(
     isPrincipalId,
-    ifFails({
+    ifNotThenThrow({
       code: 400,
       msg: 'You can only view activity streams for a principal'
     }),
@@ -545,7 +554,7 @@ const getActivityStream = function(ctx, principalId, start, limit, transformerTy
 
   pipe(
     isIn,
-    ifFails({
+    ifNotThenThrow({
       code: 400,
       msg: 'Unknown activity transformer type'
     }),
@@ -599,7 +608,7 @@ const getNotificationStream = function(ctx, userId, start, limit, transformerTyp
 
   pipe(
     isLoggedInUser,
-    ifFails({
+    ifNotThenThrow({
       code: 401,
       msg: 'You must be logged in to get a notification stream'
     }),
@@ -608,7 +617,7 @@ const getNotificationStream = function(ctx, userId, start, limit, transformerTyp
 
   pipe(
     isUserId,
-    ifFails({
+    ifNotThenThrow({
       code: 400,
       msg: 'You can only view the notification streams for a user'
     }),
@@ -617,7 +626,7 @@ const getNotificationStream = function(ctx, userId, start, limit, transformerTyp
 
   pipe(
     isIn,
-    ifFails({
+    ifNotThenThrow({
       code: 400,
       msg: 'Unknown activity transformer type'
     }),
@@ -646,7 +655,7 @@ const getNotificationStream = function(ctx, userId, start, limit, transformerTyp
 const markNotificationsRead = function(ctx, callback) {
   pipe(
     isLoggedInUser,
-    ifFails({
+    ifNotThenThrow({
       code: 401,
       msg: 'You must be logged in to mark notifications read'
     }),
@@ -654,6 +663,11 @@ const markNotificationsRead = function(ctx, callback) {
   )(ctx);
 
   ActivityNotifications.markNotificationsRead(ctx.user(), callback);
+};
+
+// TODO Jsdoc
+const isActivityFeedDisabled = ctx => {
+  return !ActivityConfig.getValue(ctx.tenant().alias, 'activity', 'enabled');
 };
 
 /**
@@ -674,122 +688,74 @@ const postActivity = function(ctx, activitySeed, callback) {
     };
 
   // Short-circuit if we find that activities are disabled for this tenant
-  const activitiesEnabled = ActivityConfig.getValue(ctx.tenant().alias, 'activity', 'enabled');
-  if (!activitiesEnabled) {
+  if (isActivityFeedDisabled(ctx)) {
     return callback();
   }
 
-  // Validate the activity seed
-  /*
-  if (!isObject(activitySeed)) {
-    return callback({
+  const getAttribute = getNestedObject(activitySeed);
+
+  const runValidations = pipe(
+    isObject,
+    ifNotThenThrow({
       code: 400,
       msg: 'No activity seed provided.'
-    });
-  }
-   */
-
-  const tretas = pipe(
-    isObject,
-    passed => {
-      if (!passed) {
-        return {
-          code: 400,
-          msg: 'No activity seed provided.'
-        };
-      }
-
-      return null;
-    },
-    error => {
-      if (error) {
-        return callback(error);
-      }
-
-      return null;
-    }
+    }),
+    makeSureThat(getAttribute(['activityType']), isNotEmpty),
+    ifNotThenThrow({
+      code: 400,
+      msg: 'Activity seed did not have an activity type.'
+    }),
+    makeSureThat(getAttribute(['verb']), isNotEmpty),
+    ifNotThenThrow({
+      code: 400,
+      msg: 'Activity seed did not have a verb.'
+    }),
+    makeSureThat(getAttribute(['published']), isANumber),
+    ifNotThenThrow({
+      code: 400,
+      msg: 'Activity seed did not have a valid publish date.'
+    }),
+    makeSureThat(getAttribute(['actorResource']), isObject),
+    ifNotThenThrow({
+      code: 400,
+      msg: 'Activity seed did not have an actor resource'
+    }),
+    makeSureThat(getAttribute(['actorResource', 'resourceId']), isNotEmpty),
+    ifNotThenThrow({
+      code: 400,
+      msg: 'Actor of activity seed did not have a resourceId'
+    }),
+    makeSureThat(getAttribute(['actorResource', 'resourceType']), isNotEmpty),
+    ifNotThenThrow({
+      code: 400,
+      msg: 'Actor of activity seed did not have a resourceType'
+    }),
+    makeSureThat(getAttribute(['objectResource', 'resourceId']), isNotEmpty),
+    ifNotThenThrow({
+      code: 400,
+      msg: 'Object of activity seed was specified and did not have a resourceId'
+    }),
+    makeSureThat(getAttribute(['objectResource', 'resourceType']), isNotEmpty),
+    ifNotThenThrow({
+      code: 400,
+      msg: 'Object of activity seed was specified and did not have a resourceType'
+    }),
+    makeSureThat(getAttribute(['targetResource', 'resourceId']), isNotEmpty),
+    ifNotThenThrow({
+      code: 400,
+      msg: 'Target of activity seed was specified and did not have a resourceId'
+    }),
+    makeSureThat(getAttribute(['targetResource', 'resourceType']), isNotEmpty),
+    ifNotThenThrow({
+      code: 400,
+      msg: 'Target of activity seed was specified and did not have a resourceType'
+    })
   );
-  tretas(activitySeed);
 
-  if (activitySeed) {
-    if (!isNotEmpty(activitySeed.activityType)) {
-      return callback({
-        code: 400,
-        msg: 'Activity seed did not have an activity type.'
-      });
-    }
-
-    if (!isNotEmpty(activitySeed.verb)) {
-      return callback({
-        code: 400,
-        msg: 'Activity seed did not have a verb.'
-      });
-    }
-
-    if (!isNumeric(String(activitySeed.published))) {
-      return callback({
-        code: 400,
-        msg: 'Activity seed did not have a valid publish date.'
-      });
-    }
-
-    // Validate the actor resource
-    if (!isObject(activitySeed.actorResource)) {
-      return callback({
-        code: 400,
-        msg: 'Activity seed did not have an actor resource'
-      });
-    }
-
-    if (activitySeed.actorResource) {
-      if (!isNotEmpty(activitySeed.actorResource.resourceId)) {
-        return callback({
-          code: 400,
-          msg: 'Actor of activity seed did not have a resourceId'
-        });
-      }
-
-      if (!isNotEmpty(activitySeed.actorResource.resourceType)) {
-        return callback({
-          code: 400,
-          msg: 'Actor of activity seed did not have a resourceType'
-        });
-      }
-    }
-
-    // Validate the object resource
-    if (activitySeed.objectResource) {
-      if (!isNotEmpty(activitySeed.objectResource.resourceId)) {
-        return callback({
-          code: 400,
-          msg: 'Object of activity seed was specified and did not have a resourceId'
-        });
-      }
-
-      if (!isNotEmpty(activitySeed.objectResource.resourceType)) {
-        return callback({
-          code: 400,
-          msg: 'Object of activity seed was specified and did not have a resourceType'
-        });
-      }
-    }
-
-    // Validate the target resource
-    if (activitySeed.targetResource) {
-      if (!isNotEmpty(activitySeed.targetResource.resourceId)) {
-        return callback({
-          code: 400,
-          msg: 'Target of activity seed was specified and did not have a resourceId'
-        });
-      }
-
-      if (!isNotEmpty(activitySeed.targetResource.resourceType)) {
-        return callback({
-          code: 400,
-          msg: 'Target of activity seed was specified and did not have a resourceType'
-        });
-      }
-    }
+  try {
+    runValidations(activitySeed);
+  } catch (error) {
+    return callback(error);
   }
 
   MQ.submit(ActivityConstants.mq.TASK_ACTIVITY, JSON.stringify(activitySeed), callback);
@@ -805,7 +771,7 @@ const postActivity = function(ctx, activitySeed, callback) {
  * @param  {String}            transformerType          The type of transformer with which the activities should be transformed. One of `ActivityConstants.transformerTypes`
  * @param  {Function}          callback                 Standard callback function
  * @param  {Object}            callback.err             An error that occurred, if any
- * @param  {ActivityStream}    callback.activityStream  The activity stream
+ * @param j {ActivityStream}    callback.activityStream  The activity stream
  * @api private
  */
 const _getActivityStream = function(ctx, activityStreamId, start, limit, transformerType, callback) {

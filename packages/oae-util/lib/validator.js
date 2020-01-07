@@ -94,18 +94,25 @@ Validator.finalize = function(done) {
   };
 };
 
-/**
-Validator.generateError = function(errorMessage) {
-  const newError = new Error(errorMessage);
-  return function(validationFailed) {
-    if (validationFailed && this._errors) {
-      this._errors.push(newError);
+Validator.ifNotThenThrow = error => {
+  return passed => {
+    if (!passed) {
+      throw error;
     }
-
-    return this._errors;
   };
 };
-*/
+
+Validator.makeSureThat = (value, validation) => {
+  return function() {
+    return validation(value);
+  };
+};
+
+Validator.getNestedObject = nestedObj => {
+  return attrPath => {
+    return attrPath.reduce((obj, key) => (obj && obj[key] !== 'undefined' ? obj[key] : undefined), nestedObj);
+  };
+};
 
 Validator.generateError = function(errorMessage) {
   // const newError = new Error(errorMessage);
@@ -268,6 +275,10 @@ Validator.isObject = function(obj) {
   }
 
   return true;
+};
+
+Validator.isANumber = input => {
+  return Validator.isNumeric(String(input));
 };
 
 /**

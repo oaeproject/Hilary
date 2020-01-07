@@ -18,7 +18,8 @@ import { AuthzConstants } from 'oae-authz/lib/constants';
 import { ContentConstants } from 'oae-content/lib/constants';
 import { DiscussionsConstants } from 'oae-discussions/lib/constants';
 import { SearchConstants } from 'oae-search/lib/constants';
-import { Validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator';
+import pipe from 'ramda/src/pipe';
 
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as SearchAPI from 'oae-search';
@@ -62,13 +63,14 @@ export const registerLibrarySearch = function(searchName, resourceTypes, options
     opts.libraryOwnerId = opts.pathParams[0];
     opts.limit = OaeUtil.getNumberParam(opts.limit, 12, 1, 25);
 
-    const validator = new Validator();
-    validator
-      .check(opts.libraryOwnerId, { code: 400, msg: 'Must specificy an id of a library to search' })
-      .isResourceId();
-    if (validator.hasErrors()) {
-      return callback(validator.getFirstError());
-    }
+    pipe(
+      validator.isResourceId,
+      validator.generateError({
+        code: 400,
+        msg: 'Must specificy an id of a library to search'
+      }),
+      validator.finalize(callback)
+    )(opts.libraryOwnerId);
 
     options.getLibraryOwner(opts.libraryOwnerId, (err, libraryOwner) => {
       if (err) {

@@ -26,7 +26,8 @@ import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as Signature from 'oae-util/lib/signature';
 import { telemetry } from 'oae-telemetry';
 import * as TenantsAPI from 'oae-tenants';
-import { Validator } from 'oae-authz/lib/validator';
+import { Validator as validator } from 'oae-authz/lib/validator';
+import pipe from 'ramda/src/pipe';
 
 import { ActivityConstants } from 'oae-activity/lib/constants';
 
@@ -345,16 +346,45 @@ const _authenticate = function(connectionInfo, message) {
     return socket.close();
   }
 
-  // Parameter validation
-  const validator = new Validator();
-  validator.check(data.tenantAlias, { code: 400, msg: 'A tenant needs to be provided' }).notEmpty();
-  validator.check(data.userId, { code: 400, msg: 'A userId needs to be provided' }).isUserId();
-  validator.check(null, { code: 400, msg: 'A signature object needs to be provided' }).isObject(data.signature);
-  if (validator.hasErrors()) {
+  const handleError = () => {
     _writeResponse(connectionInfo, message.id, validator.getFirstError());
     log().error({ err: validator.getFirstError() }, 'Invalid auth frame');
     return socket.close();
-  }
+  };
+
+  // Parameter validation
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'A tenant needs to be provided'
+    }),
+    error => {
+      if (error) return handleError();
+    }
+  )(data.tenantAlias);
+
+  pipe(
+    validator.isUserId,
+    validator.generateError({
+      code: 400,
+      msg: 'A userId needs to be provided'
+    }),
+    error => {
+      if (error) return handleError();
+    }
+  )(data.userId);
+
+  pipe(
+    validator.isObject,
+    validator.generateError({
+      code: 400,
+      msg: 'A signature object needs to be provided'
+    }),
+    error => {
+      if (error) return handleError();
+    }
+  )(data.signature);
 
   // Do some preliminary signature validation before we access the user from the database
   validator

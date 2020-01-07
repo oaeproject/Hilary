@@ -22,7 +22,7 @@ import { Validator } from 'oae-util/lib/validator';
 
 import * as TestsUtil from 'oae-tests/lib/util';
 
-describe('Utilities', () => {
+describe.skip('Utilities', () => {
   describe('Validator', () => {
     it('verify undefined gets checked as empty', callback => {
       const validator = new Validator();

@@ -368,17 +368,33 @@ const reprocessPreviews = function(ctx, filters, callback) {
       }
     };
 
-  const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'Must be global administrator to reprocess previews' })
-    .isGlobalAdministratorUser(ctx);
-  validator.check(null, { code: 400, msg: 'At least one filter must be specified' }).isObject(filters);
-  if (_.isObject(filters)) {
-    validator.check(_.keys(filters).length, { code: 400, msg: 'At least one filter must be specified' }).min(1);
-  }
+  pipe(
+    validator.isGlobalAdministratorUser,
+    validator.generateError({
+      code: 401,
+      msg: 'Must be global administrator to reprocess previews'
+    }),
+    validator.finalize(callback)
+  )(ctx);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  pipe(
+    validator.isObject,
+    validator.generateError({
+      code: 400,
+      msg: 'At least one filter must be specified'
+    }),
+    validator.finalize(callback)
+  )(filters);
+
+  if (_.isObject(filters)) {
+    pipe(
+      validator.isArrayNotEmpty,
+      validator.generateError({
+        code: 400,
+        msg: 'At least one filter must be specified'
+      }),
+      validator.finalize(callback)
+    )(_.keys(filters));
   }
 
   const filterGenerator = new FilterGenerator(filters);
@@ -397,13 +413,32 @@ const reprocessPreviews = function(ctx, filters, callback) {
  * @param  {String}     revisionId  The id of the revision to reprocess
  */
 const reprocessPreview = function(ctx, contentId, revisionId, callback) {
-  const validator = new Validator();
-  validator.check(contentId, { code: 400, msg: 'A content id must be provided' }).isResourceId();
-  validator.check(revisionId, { code: 400, msg: 'A revision id must be provided' }).isResourceId();
-  validator.check(null, { code: 401, msg: 'Must be logged in to reprocess previews' }).isLoggedInUser(ctx);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isResourceId,
+    validator.generateError({
+      code: 400,
+      msg: 'A content id must be provided'
+    }),
+    validator.finalize(callback)
+  )(contentId);
+
+  pipe(
+    validator.isResourceId,
+    validator.generateError({
+      code: 400,
+      msg: 'A revision id must be provided'
+    }),
+    validator.finalize(callback)
+  )(revisionId);
+
+  pipe(
+    validator.isLoggedInUser,
+    validator.generateError({
+      code: 401,
+      msg: 'Must be logged in to reprocess previews'
+    }),
+    validator.finalize(callback)
+  )(ctx);
 
   const contentTenantAlias = AuthzUtil.getResourceFromId(contentId).tenantAlias;
   if (!ctx.user().isAdmin(contentTenantAlias)) {

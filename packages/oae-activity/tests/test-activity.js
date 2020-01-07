@@ -897,7 +897,7 @@ describe('Activity', () => {
       /**
        * Test that postActivity validates input properly
        */
-      it('verify postActivity validation', callback => {
+      it.only('verify postActivity validation', callback => {
         TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, jack) => {
           assert.ok(!err);
 
@@ -949,7 +949,7 @@ describe('Activity', () => {
               };
 
               // Verify no seed
-              ActivityAPI.postActivity(anonymousCamApiContext, _createActivitySeed(), err => {
+             ActivityAPI.postActivity(anonymousCamApiContext, _createActivitySeed(), err => {
                 assert.ok(err);
                 assert.strictEqual(err.code, 400);
 
@@ -1027,7 +1027,7 @@ describe('Activity', () => {
                                                   _createActivitySeed({}, {}, {}, {}),
                                                   err => {
                                                     assert.ok(!err);
-                                                    callback();
+                                                    return callback();
                                                   }
                                                 );
                                               }

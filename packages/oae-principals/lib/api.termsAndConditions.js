@@ -14,8 +14,9 @@
  */
 
 /* eslint-disable unicorn/filename-case */
-import { Validator } from 'oae-util/lib/validator';
 import { setUpConfig } from 'oae-config';
+import { Validator as validator } from 'oae-util/lib/validator';
+import pipe from 'ramda/src/pipe';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
 import * as PrincipalsDAO from './internal/dao';
@@ -69,14 +70,23 @@ const acceptTermsAndConditions = function(ctx, userId, callback) {
   }
 
   // Perform some basic validation
-  const validator = new Validator();
-  validator.check(userId, { code: 400, msg: 'Invalid userId passed in' }).isUserId();
-  validator
-    .check(null, { code: 401, msg: 'Only logged in users can accept the Terms and Conditions' })
-    .isLoggedInUser(ctx);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isUserId,
+    validator.generateError({
+      code: 400,
+      msg: 'Invalid userId passed in'
+    }),
+    validator.finalize(callback)
+  )(userId);
+
+  pipe(
+    validator.isLoggedInUser,
+    validator.generateError({
+      code: 401,
+      msg: 'Only logged in users can accept the Terms and Conditions'
+    }),
+    validator.finalize(callback)
+  )(ctx);
 
   // Only a tenant/global admin or the user themself can accept the Terms and Conditions
   const userTenant = AuthzUtil.getPrincipalFromId(userId).tenantAlias;

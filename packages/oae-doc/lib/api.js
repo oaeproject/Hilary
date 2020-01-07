@@ -20,7 +20,9 @@ import dox from 'dox';
 import { getFileListForFolder } from 'oae-util/lib/io';
 import * as modules from 'oae-util/lib/modules';
 import * as OaeUtil from 'oae-util/lib/util';
-import { Validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator';
+import pipe from 'ramda/src/pipe';
+import isIn from 'validator/lib/isIn';
 
 import { logger } from 'oae-logger';
 
@@ -224,18 +226,32 @@ const getModules = function(type, callback) {
  * @param  {Object}     callback.doc    The parsed Dox documentation for the requested module
  */
 const getModuleDocumentation = function(moduleId, type, callback) {
-  const validator = new Validator();
-  validator.check(moduleId, { code: 400, msg: 'Missing module id' }).notEmpty();
-  validator.check(type, { code: 400, msg: 'Missing module type' }).notEmpty();
-  validator
-    .check(type, {
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'Missing module id'
+    }),
+    validator.finalize(callback)
+  )(moduleId);
+
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'Missing module type'
+    }),
+    validator.finalize(callback)
+  )(type);
+
+  pipe(
+    isIn,
+    validator.generateError({
       code: 400,
       msg: 'Invalid module type. Accepted values are "backend" and "frontend"'
-    })
-    .isIn(['backend', 'frontend']);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+    }),
+    validator.finalize(callback)
+  )(type, ['backend', 'frontend']);
 
   // Return the parsed docs from cache
   if (cachedDocs[type] && cachedDocs[type][moduleId]) {

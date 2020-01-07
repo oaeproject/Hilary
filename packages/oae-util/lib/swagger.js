@@ -24,7 +24,9 @@ import clone from 'clone';
 import readdirp from 'readdirp';
 import * as restjsdoc from 'restjsdoc';
 import * as TenantsUtil from 'oae-tenants/lib/util';
-import { Validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator';
+import pipe from 'ramda/src/pipe';
+import isIn from 'validator/lib/isIn';
 import * as SwaggerParamTypes from './swaggerParamTypes';
 
 const log = logger('oae-swagger');
@@ -305,36 +307,70 @@ const _addSwaggerEndpoint = function(spec, resources) {
  * @param  {Object}     spec            The swagger spec to append
  */
 const _appendToApi = function(rootResource, api, spec) {
-  const validator = new Validator();
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      msg: 'Nickname must exist',
+      path: api.path
+    }),
+    error => {
+      return log().warn(
+        { swaggerValidationErrors: error },
+        'Some swagger documentation could not be parsed, the server will start but those routes may be undocumented'
+      );
+    }
+  )(spec.nickname);
 
-  validator.check(spec.nickname, { path: api.path, msg: 'Nickname must exist' }).notEmpty();
-  validator
-    .check(spec.nickname, {
+  pipe(
+    validator.notContains,
+    validator.generateError({
       path: api.path,
       msg: 'Nicknames cannot contain spaces: ' + spec.nickname
-    })
-    .notContains(' ');
+    }),
+    error => {
+      return log().warn(
+        { swaggerValidationErrors: error },
+        'Some swagger documentation could not be parsed, the server will start but those routes may be undocumented'
+      );
+    }
+  )(spec.nickname, ' ');
 
   // Parse and validate params
   _.each(spec.params, param => {
-    validator
-      .check(param.paramType, {
+    pipe(
+      isIn,
+      validator.generateError({
         path: api.path,
         name: param.name,
         msg: 'Invalid param type: ' + param.paramType
-      })
-      // eslint-disable-next-line no-undef
-      .isIn(Swagger.Constants.paramTypes);
+      }),
+      error => {
+        return log().warn(
+          { swaggerValidationErrors: error },
+          'Some swagger documentation could not be parsed, the server will start but those routes may be undocumented'
+        );
+      }
+    )(param.paramType, Swagger.Constants.paramTypes);
+
     if (param.paramType === 'path') {
-      validator.check(param.name, { path: api.path, name: param.name, msg: 'Invalid path' }).isIn(api.path);
+      pipe(
+        isIn,
+        validator.generateError({
+          path: api.path,
+          name: param.name,
+          msg: 'Invalid path'
+        }),
+        error => {
+          return log().warn(
+            { swaggerValidationErrors: error },
+            'Some swagger documentation could not be parsed, the server will start but those routes may be undocumented'
+          );
+        }
+      )(param.name, api.path);
     }
   });
 
   if (validator.hasErrors()) {
-    return log().warn(
-      { swaggerValidationErrors: validator.getErrors() },
-      'Some swagger documentation could not be parsed, the server will start but those routes may be undocumented'
-    );
   }
 
   api.operations.push(spec);

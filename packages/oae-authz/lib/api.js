@@ -23,7 +23,8 @@ import * as TenantsUtil from 'oae-tenants/lib/util';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import AuthzGraph from 'oae-authz/lib/internal/graph';
 import * as AuthzUtil from 'oae-authz/lib/util';
-import { Validator } from 'oae-authz/lib/validator';
+import { Validator as validator } from 'oae-authz/lib/validator';
+import pipe from 'ramda/src/pipe';
 
 import { logger } from 'oae-logger';
 
@@ -63,20 +64,34 @@ const _getDirectRole = function(principalId, resourceId, callback) {
  * @param  {Object}       callback.roles  A hash keyed by principal id, with value set to the role they have directly on the resource. If the principal has no role or there is an error performing the check, role will be null.
  **/
 const getDirectRoles = function(principalIds, resourceId, callback) {
-  const validator = new Validator();
-  validator
-    .check(principalIds.length, {
+  pipe(
+    validator.isArrayNotEmpty,
+    validator.generateError({
       code: 400,
       msg: 'At least one principal id needs to be passed in'
-    })
-    .min(1);
-  validator.check(resourceId, { code: 400, msg: 'Invalid non-user resource id provided' }).isNonUserResourceId();
+    }),
+    validator.finalize(callback)
+  )(principalIds);
+
+  pipe(
+    validator.isNonUserResourceId,
+    validator.generateError({
+      code: 400,
+      msg: 'Invalid non-user resource id provided'
+    }),
+    validator.finalize(callback)
+  )(resourceId);
+
   _.each(principalIds, principalId => {
-    validator.check(principalId, { code: 400, msg: 'Invalid principal id provided' }).isPrincipalId();
+    pipe(
+      validator.isPrincipalId,
+      validator.generateError({
+        code: 400,
+        msg: 'Invalid principal id provided'
+      }),
+      validator.finalize(callback)
+    )(principalId);
   });
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
 
   Cassandra.runQuery(
     'SELECT "memberId", "role" FROM "AuthzMembers" WHERE "resourceId" = ? AND "memberId" IN ?',
@@ -108,12 +123,23 @@ const getDirectRoles = function(principalIds, resourceId, callback) {
  * @param  {String[]}     callback.roles    An array containing all the roles the principal has on the resource.
  */
 const getAllRoles = function(principalId, resourceId, callback) {
-  const validator = new Validator();
-  validator.check(principalId, { code: 400, msg: 'Invalid principal id provided.' }).isPrincipalId();
-  validator.check(resourceId, { code: 400, msg: 'Invalid non-user resource id provided.' }).isNonUserResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isPrincipalId,
+    validator.generateError({
+      code: 400,
+      msg: 'Invalid principal id provided.'
+    }),
+    validator.finalize(callback)
+  )(principalId);
+
+  pipe(
+    validator.isNonUserResourceId,
+    validator.generateError({
+      code: 400,
+      msg: 'Invalid non-user resource id provided.'
+    }),
+    validator.finalize(callback)
+  )(resourceId);
 
   // Get the direct role of the user
   _getDirectRole(principalId, resourceId, (err, directRole) => {
@@ -222,13 +248,32 @@ const _getResourceGroupMembers = function(resourceId, callback) {
  * @param  {Boolean}     callback.hasRole    Whether or not the principal has the specified role on the resource
  */
 const hasRole = function(principalId, resourceId, role, callback) {
-  const validator = new Validator();
-  validator.check(principalId, { code: 400, msg: 'Invalid principal id provided' }).isPrincipalId();
-  validator.check(resourceId, { code: 400, msg: 'Invalid non-user resource id provided' }).isNonUserResourceId();
-  validator.check(role, { code: 400, msg: 'Invalid role provided' }).isValidRole();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isPrincipalId,
+    validator.generateError({
+      code: 400,
+      msg: 'Invalid principal id provided'
+    }),
+    validator.finalize(callback)
+  )(principalId);
+
+  pipe(
+    validator.isNonUserResourceId,
+    validator.generateError({
+      code: 400,
+      msg: 'Invalid non-user resource id provided'
+    }),
+    validator.finalize(callback)
+  )(resourceId);
+
+  pipe(
+    validator.isValidRole,
+    validator.generateError({
+      code: 400,
+      msg: 'Invalid role provided'
+    }),
+    validator.finalize(callback)
+  )(role);
 
   _hasRole(principalId, resourceId, role, callback);
 };
@@ -243,12 +288,23 @@ const hasRole = function(principalId, resourceId, role, callback) {
  * @param  {Boolean}     callback.hasRole    Whether or not the principal has a role on the resource
  */
 const hasAnyRole = function(principalId, resourceId, callback) {
-  const validator = new Validator();
-  validator.check(principalId, { code: 400, msg: 'Invalid principal id provided' }).isPrincipalId();
-  validator.check(resourceId, { code: 400, msg: 'Invalid non-user resource id provided' }).isNonUserResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isPrincipalId,
+    validator.generateError({
+      code: 400,
+      msg: 'Invalid principal id provided'
+    }),
+    validator.finalize(callback)
+  )(principalId);
+
+  pipe(
+    validator.isNonUserResourceId,
+    validator.generateError({
+      code: 400,
+      msg: 'Invalid non-user resource id provided'
+    }),
+    validator.finalize(callback)
+  )(resourceId);
 
   _hasRole(principalId, resourceId, null, callback);
 };
@@ -310,16 +366,42 @@ const _hasRole = function(principalId, resourceId, role, callback) {
 const updateRoles = function(resourceId, changes, callback) {
   const roleChanges = _.keys(changes);
 
-  const validator = new Validator();
-  validator.check(resourceId, { code: 400, msg: 'Invalid non-user resource id provided' }).isNonUserResourceId();
-  validator.check(roleChanges.length, { code: 400, msg: 'At least one role change needs to be applied' }).min(1);
-  for (const principalId of roleChanges) {
-    validator.check(principalId, { code: 400, msg: 'Invalid principal id specified: ' + principalId }).isPrincipalId();
-    validator.check(changes[principalId], { code: 400, msg: 'Invalid role provided' }).isValidRoleChange();
-  }
+  pipe(
+    validator.isNonUserResourceId,
+    validator.generateError({
+      code: 400,
+      msg: 'Invalid non-user resource id provided'
+    }),
+    validator.finalize(callback)
+  )(resourceId);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  pipe(
+    validator.isArrayNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'At least one role change needs to be applied'
+    }),
+    validator.finalize(callback)
+  )(roleChanges);
+
+  for (const principalId of roleChanges) {
+    pipe(
+      validator.isPrincipalId,
+      validator.generateError({
+        code: 400,
+        msg: 'Invalid principal id specified: ' + principalId
+      }),
+      validator.finalize(callback)
+    )(principalId);
+
+    pipe(
+      validator.isValidRoleChange,
+      validator.generateError({
+        code: 400,
+        msg: 'Invalid role provided'
+      }),
+      validator.finalize(callback)
+    )(changes[principalId]);
   }
 
   return _updateRoles(resourceId, changes, callback);
@@ -475,11 +557,14 @@ const getAuthzMembers = function(resourceId, start, limit, callback) {
   start = start || '';
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  const validator = new Validator();
-  validator.check(resourceId, { code: 400, msg: 'Invalid non-user resource id provided' }).isNonUserResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isNonUserResourceId,
+    validator.generateError({
+      code: 400,
+      msg: 'Invalid non-user resource id provided'
+    }),
+    validator.finalize(callback)
+  )(resourceId);
 
   Cassandra.runPagedQuery(
     'AuthzMembers',
@@ -727,11 +812,14 @@ const getAuthzMembersGraph = function(resourceIds, callback, _graph, _resourceId
  * @param  {AuthzGraph}     callback.graph  The memberships graph of the given principal
  */
 const getPrincipalMembershipsGraph = function(principalId, callback) {
-  const validator = new Validator();
-  validator.check(principalId, { code: 400, msg: 'Invalid principal id provided' }).isPrincipalId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isPrincipalId,
+    validator.generateError({
+      code: 400,
+      msg: 'Invalid principal id provided'
+    }),
+    validator.finalize(callback)
+  )(principalId);
 
   // First try the full memberships cache
   Cassandra.runAllPagesQuery('AuthzMembershipsCache', 'principalId', principalId, 'groupId', null, (err, rows) => {
@@ -811,11 +899,14 @@ const getPrincipalMemberships = function(principalId, start, limit, callback) {
   start = start || '';
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  const validator = new Validator();
-  validator.check(principalId, { code: 400, msg: 'Invalid principal id provided' }).isPrincipalId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isPrincipalId,
+    validator.generateError({
+      code: 400,
+      msg: 'Invalid principal id provided'
+    }),
+    validator.finalize(callback)
+  )(principalId);
 
   Cassandra.runPagedQuery(
     'AuthzMembershipsCache',
@@ -881,11 +972,14 @@ const getPrincipalMemberships = function(principalId, start, limit, callback) {
  * @param  {String[]}       callback.groupIds       An array of group ids representing all the indirect groups to which the user belongs
  */
 const getAllIndirectPrincipalMemberships = function(principalId, callback, _groupIds, _nextToken) {
-  const validator = new Validator();
-  validator.check(principalId, { code: 400, msg: 'Invalid principal id provided' }).isPrincipalId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isPrincipalId,
+    validator.generateError({
+      code: 400,
+      msg: 'Invalid principal id provided'
+    }),
+    validator.finalize(callback)
+  )(principalId);
 
   _groupIds = _groupIds || [];
   if (_nextToken === null) {
@@ -916,11 +1010,14 @@ const getIndirectPrincipalMemberships = function(principalId, start, limit, call
   start = start || '';
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  const validator = new Validator();
-  validator.check(principalId, { code: 400, msg: 'Invalid principal id provided' }).isPrincipalId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isPrincipalId,
+    validator.generateError({
+      code: 400,
+      msg: 'Invalid principal id provided'
+    }),
+    validator.finalize(callback)
+  )(principalId);
 
   // Note that indirect memberships for group principals aren't cached at the moment, so this will
   // still function properly but be less efficient than it could be. Since there is no use-case
@@ -1113,12 +1210,23 @@ const _getInvalidateMembershipsCacheQueries = function(userIds) {
  * `start` and `limit`, as they are not relevant when fetching all entries.
  */
 const getAllRolesForPrincipalAndResourceType = function(principalId, resourceType, callback) {
-  const validator = new Validator();
-  validator.check(principalId, { code: 400, msg: 'Invalid principal id specified: ' + principalId }).isPrincipalId();
-  validator.check(resourceType, { code: 400, msg: 'A resourceType needs to be provided' }).notEmpty();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isPrincipalId,
+    validator.generateError({
+      code: 400,
+      msg: 'Invalid principal id specified: ' + principalId
+    }),
+    validator.finalize(callback)
+  )(principalId);
+
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'A resourceType needs to be provided'
+    }),
+    validator.finalize(callback)
+  )(resourceType);
 
   // We append a '|' to the "end" range, as | has a high ASCII alphabetical ordering. This may not suffice if resourceIds have
   // multi-byte characters, which is technically possible. Unfortunately, I don't think there is a better way to do this with
@@ -1159,12 +1267,23 @@ const getAllRolesForPrincipalAndResourceType = function(principalId, resourceTyp
 const getRolesForPrincipalAndResourceType = function(principalId, resourceType, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  const validator = new Validator();
-  validator.check(principalId, { code: 400, msg: 'Invalid principal id specified: ' + principalId }).isPrincipalId();
-  validator.check(resourceType, { code: 400, msg: 'A resourceType needs to be provided' }).notEmpty();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isPrincipalId,
+    validator.generateError({
+      code: 400,
+      msg: 'Invalid principal id specified: ' + principalId
+    }),
+    validator.finalize(callback)
+  )(principalId);
+
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'A resourceType needs to be provided'
+    }),
+    validator.finalize(callback)
+  )(resourceType);
 
   // We append a '|' to the "end" range, as | has a high ASCII alphabetical ordering. This may not suffice if resourceIds have
   // multi-byte characters, which is technically possible. Unfortunately, I don't think there is a better way to do this with
@@ -1232,20 +1351,33 @@ const getRolesForPrincipalAndResourceType = function(principalId, resourceType, 
 const getRolesForPrincipalsAndResourceType = function(principalIds, resourceType, callback) {
   principalIds = principalIds || [];
 
-  const validator = new Validator();
-  validator.check(resourceType, { code: 400, msg: 'A resourceType needs to be provided' }).notEmpty();
-  validator
-    .check(principalIds.length, {
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'A resourceType needs to be provided'
+    }),
+    validator.finalize(callback)
+  )(resourceType);
+
+  pipe(
+    validator.isArrayNotEmpty,
+    validator.generateError({
       code: 400,
       msg: 'At least one principal Id needs to be passed in'
-    })
-    .min(1);
-  for (const principalId of principalIds) {
-    validator.check(principalId, { code: 400, msg: 'Invalid principal id specified: ' + principalId }).isPrincipalId();
-  }
+    }),
+    validator.finalize(callback)
+  )(principalIds);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  for (const principalId of principalIds) {
+    pipe(
+      validator.isPrincipalId,
+      validator.generateError({
+        code: 400,
+        msg: 'Invalid principal id specified: ' + principalId
+      }),
+      validator.finalize(callback)
+    )(principalId);
   }
 
   // We append a '|' to the "end" range, as | has a high ASCII alphabetical ordering. This may not suffice if resourceIds have

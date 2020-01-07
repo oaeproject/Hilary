@@ -18,6 +18,7 @@ import Redlock from 'redlock';
 import { logger } from 'oae-logger';
 
 import pipe from 'ramda/src/pipe';
+import isInt from 'validator/lib/isInt';
 import * as Redis from './redis';
 import { Validator as validator } from './validator';
 
@@ -81,7 +82,7 @@ const acquire = function(lockKey, expiresIn, callback) {
   )(expiresIn);
 
   pipe(
-    validator.isInt,
+    isInt,
     validator.generateError({
       code: 400,
       msg: 'The maximum number of seconds for which to hold the lock needs to be an integer'

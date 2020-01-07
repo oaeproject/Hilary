@@ -34,6 +34,7 @@ import * as TenantsUtil from 'oae-tenants/lib/util';
 import { logger } from 'oae-logger';
 import { Validator as validator } from 'oae-authz/lib/validator';
 import pipe from 'ramda/src/pipe';
+import isLength from 'validator/lib/isLength';
 import { getTenantSkinVariables } from 'oae-ui';
 import { AuthenticationConstants } from 'oae-authentication/lib/constants';
 import * as AuthenticationUtil from 'oae-authentication/lib/util';
@@ -1101,7 +1102,7 @@ const resetPassword = function(ctx, username, secret, newPassword, callback) {
   )(newPassword);
 
   pipe(
-    validator.isLength,
+    isLength,
     validator.generateError({
       code: 400,
       msg: 'Must specify a password at least 6 characters long'
@@ -1434,7 +1435,7 @@ const _validateLoginIdForPersistence = function(validator, loginId, callback) {
   const isItLocalAuthentication = loginId.provider === AuthenticationConstants.providers.LOCAL;
   if (isItLocalAuthentication) {
     pipe(
-      validator.isLength,
+      isLength,
       validator.generateError({
         code: 400,
         msg: 'Must specify a password at least 6 characters long'

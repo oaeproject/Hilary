@@ -23,7 +23,15 @@ import * as OAE from 'oae-util/lib/oae';
 import * as OaeUtil from 'oae-util/lib/util';
 import * as PrincipalsUtil from 'oae-principals/lib/util';
 import * as Redis from 'oae-util/lib/redis';
-import { Validator } from 'oae-authz/lib/validator';
+import { Validator as validator } from 'oae-authz/lib/validator';
+
+const { isLoggedInUser, isUserId, isPrincipalId, isNotEmpty, isNumeric, isObject } = validator;
+
+const ifFails = validator.generateError;
+const ifError = validator.finalize;
+
+import pipe from 'ramda/src/pipe';
+import isIn from 'validator/lib/isIn';
 
 import { setUpConfig } from 'oae-config';
 import { ActivityConstants } from 'oae-activity/lib/constants';
@@ -526,16 +534,23 @@ const registerActivityEntityAssociation = function(activityEntityType, associati
 const getActivityStream = function(ctx, principalId, start, limit, transformerType, callback) {
   transformerType = transformerType || ActivityConstants.transformerTypes.ACTIVITYSTREAMS;
 
-  const validator = new Validator();
-  validator
-    .check(principalId, { code: 400, msg: 'You can only view activity streams for a principal' })
-    .isPrincipalId();
-  validator
-    .check(transformerType, { code: 400, msg: 'Unknown activity transformer type' })
-    .isIn(_.values(ActivityConstants.transformerTypes));
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    isPrincipalId,
+    ifFails({
+      code: 400,
+      msg: 'You can only view activity streams for a principal'
+    }),
+    ifError(callback)
+  )(principalId);
+
+  pipe(
+    isIn,
+    ifFails({
+      code: 400,
+      msg: 'Unknown activity transformer type'
+    }),
+    ifError(callback)
+  )(transformerType, _.values(ActivityConstants.transformerTypes));
 
   limit = OaeUtil.getNumberParam(limit, 25, 1);
 
@@ -582,15 +597,32 @@ const getActivityStream = function(ctx, principalId, start, limit, transformerTy
 const getNotificationStream = function(ctx, userId, start, limit, transformerType, callback) {
   transformerType = transformerType || ActivityConstants.transformerTypes.ACTIVITYSTREAMS;
 
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'You must be logged in to get a notification stream' }).isLoggedInUser(ctx);
-  validator.check(userId, { code: 400, msg: 'You can only view the notification streams for a user' }).isUserId();
-  validator
-    .check(transformerType, { code: 400, msg: 'Unknown activity transformer type' })
-    .isIn(_.values(ActivityConstants.transformerTypes));
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    isLoggedInUser,
+    ifFails({
+      code: 401,
+      msg: 'You must be logged in to get a notification stream'
+    }),
+    ifError(callback)
+  )(ctx);
+
+  pipe(
+    isUserId,
+    ifFails({
+      code: 400,
+      msg: 'You can only view the notification streams for a user'
+    }),
+    ifError(callback)
+  )(userId);
+
+  pipe(
+    isIn,
+    ifFails({
+      code: 400,
+      msg: 'Unknown activity transformer type'
+    }),
+    ifError(callback)
+  )(transformerType, _.values(ActivityConstants.transformerTypes));
 
   limit = OaeUtil.getNumberParam(limit, 25, 1);
 
@@ -612,11 +644,14 @@ const getNotificationStream = function(ctx, userId, start, limit, transformerTyp
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const markNotificationsRead = function(ctx, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'You must be logged in to mark notifications read' }).isLoggedInUser(ctx);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    isLoggedInUser,
+    ifFails({
+      code: 401,
+      msg: 'You must be logged in to mark notifications read'
+    }),
+    ifError(callback)
+  )(ctx);
 
   ActivityNotifications.markNotificationsRead(ctx.user(), callback);
 };
@@ -645,77 +680,116 @@ const postActivity = function(ctx, activitySeed, callback) {
   }
 
   // Validate the activity seed
-  const validator = new Validator();
-  validator.check(null, { code: 400, msg: 'No activity seed provided.' }).isObject(activitySeed);
+  /*
+  if (!isObject(activitySeed)) {
+    return callback({
+      code: 400,
+      msg: 'No activity seed provided.'
+    });
+  }
+   */
+
+  const tretas = pipe(
+    isObject,
+    passed => {
+      if (!passed) {
+        return {
+          code: 400,
+          msg: 'No activity seed provided.'
+        };
+      }
+
+      return null;
+    },
+    error => {
+      if (error) {
+        return callback(error);
+      }
+
+      return null;
+    }
+  );
+  tretas(activitySeed);
+
   if (activitySeed) {
-    validator
-      .check(activitySeed.activityType, {
+    if (!isNotEmpty(activitySeed.activityType)) {
+      return callback({
         code: 400,
         msg: 'Activity seed did not have an activity type.'
-      })
-      .notEmpty();
-    validator.check(activitySeed.verb, { code: 400, msg: 'Activity seed did not have a verb.' }).notEmpty();
-    validator
-      .check(activitySeed.published, {
+      });
+    }
+
+    if (!isNotEmpty(activitySeed.verb)) {
+      return callback({
+        code: 400,
+        msg: 'Activity seed did not have a verb.'
+      });
+    }
+
+    if (!isNumeric(String(activitySeed.published))) {
+      return callback({
         code: 400,
         msg: 'Activity seed did not have a valid publish date.'
-      })
-      .isNumeric();
+      });
+    }
 
     // Validate the actor resource
-    validator
-      .check(null, { code: 400, msg: 'Activity seed did not have an actor resource' })
-      .isObject(activitySeed.actorResource);
+    if (!isObject(activitySeed.actorResource)) {
+      return callback({
+        code: 400,
+        msg: 'Activity seed did not have an actor resource'
+      });
+    }
+
     if (activitySeed.actorResource) {
-      validator
-        .check(activitySeed.actorResource.resourceId, {
+      if (!isNotEmpty(activitySeed.actorResource.resourceId)) {
+        return callback({
           code: 400,
           msg: 'Actor of activity seed did not have a resourceId'
-        })
-        .notEmpty();
-      validator
-        .check(activitySeed.actorResource.resourceType, {
+        });
+      }
+
+      if (!isNotEmpty(activitySeed.actorResource.resourceType)) {
+        return callback({
           code: 400,
           msg: 'Actor of activity seed did not have a resourceType'
-        })
-        .notEmpty();
+        });
+      }
     }
 
     // Validate the object resource
     if (activitySeed.objectResource) {
-      validator
-        .check(activitySeed.objectResource.resourceId, {
+      if (!isNotEmpty(activitySeed.objectResource.resourceId)) {
+        return callback({
           code: 400,
           msg: 'Object of activity seed was specified and did not have a resourceId'
-        })
-        .notEmpty();
-      validator
-        .check(activitySeed.objectResource.resourceType, {
+        });
+      }
+
+      if (!isNotEmpty(activitySeed.objectResource.resourceType)) {
+        return callback({
           code: 400,
           msg: 'Object of activity seed was specified and did not have a resourceType'
-        })
-        .notEmpty();
+        });
+      }
     }
 
     // Validate the target resource
     if (activitySeed.targetResource) {
-      validator
-        .check(activitySeed.targetResource.resourceId, {
+      if (!isNotEmpty(activitySeed.targetResource.resourceId)) {
+        return callback({
           code: 400,
           msg: 'Target of activity seed was specified and did not have a resourceId'
-        })
-        .notEmpty();
-      validator
-        .check(activitySeed.targetResource.resourceType, {
+        });
+      }
+
+      if (!isNotEmpty(activitySeed.targetResource.resourceType)) {
+        return callback({
           code: 400,
           msg: 'Target of activity seed was specified and did not have a resourceType'
-        })
-        .notEmpty();
+        });
+      }
     }
-  }
-
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
   }
 
   MQ.submit(ActivityConstants.mq.TASK_ACTIVITY, JSON.stringify(activitySeed), callback);

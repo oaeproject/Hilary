@@ -94,7 +94,7 @@ describe('Content', () => {
       const onCleaned = function(cleanedDir) {
         if (cleanedDir === dir) {
           Cleaner.emitter.removeListener('cleaned', onCleaned);
-          setTimeout(fs.readdir, 1500, dir, (err, files) => {
+          setTimeout(fs.readdir, 2500, dir, (err, files) => {
             assert.ok(!err);
             assert.strictEqual(files.length, 1);
             assert.strictEqual(files[0], 'd');

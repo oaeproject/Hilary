@@ -33,6 +33,7 @@ import * as OAE from 'oae-util/lib/oae';
 import * as OaeUtil from 'oae-util/lib/util';
 import * as Pubsub from 'oae-util/lib/pubsub';
 import { Validator as validator } from 'oae-util/lib/validator';
+import isIn from 'validator/lib/isIn';
 import TenantEmailDomainIndex from './internal/emailDomainIndex';
 import TenantIndex from './internal/tenantIndex';
 import * as TenantNetworksDAO from './internal/dao.networks';
@@ -643,7 +644,7 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
   const errors = [];
   _.each(opts, (val, key) => {
     pipe(
-      validator.isIn,
+      isIn,
       validator.generateError({
         code: 400,
         msg: `Invalid field: ${key}`
@@ -738,19 +739,24 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
     return callback({ code: 401, msg: 'Unauthorized users cannot update tenants' });
   }
 
-  const validator = new Validator();
-  validator.check(alias, { code: 400, msg: 'Missing alias' }).notEmpty();
-  validator
-    .check(getTenant(alias), {
+  // Short-circuit validation if the tenant did not exist
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'Missing alias'
+    }),
+    validator.finalize(callback)
+  )(alias);
+
+  pipe(
+    validator.isNotNull,
+    validator.generateError({
       code: 404,
       msg: util.format('Tenant with alias "%s" does not exist and cannot be updated', alias)
-    })
-    .notNull();
-
-  // Short-circuit validation if the tenant did not exist
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+    }),
+    validator.finalize(callback)
+  )(getTenant(alias));
 
   // Check that at least either a new display name or hostname have been provided
   const updateFields = tenantUpdates ? _.keys(tenantUpdates) : [];
@@ -761,14 +767,24 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
     })
     .min(1);
   _.each(tenantUpdates, (updateValue, updateField) => {
-    validator
-      .check(updateField, {
+    pipe(
+      isIn,
+      validator.generateError({
         code: 400,
         msg: util.format('"%s" is not a recognized tenant update field', updateField)
-      })
-      .isIn(['displayName', 'host', 'emailDomains', 'countryCode']);
+      }),
+      validator.finalize(callback)
+    )(updateField, ['displayName', 'host', 'emailDomains', 'countryCode']);
+
     if (updateField === 'displayName') {
-      validator.check(updateValue, { code: 400, msg: 'A displayName cannot be empty' }).notEmpty();
+      pipe(
+        validator.isNotEmpty,
+        validator.generateError({
+          code: 400,
+          msg: 'A displayName cannot be empty'
+        }),
+        validator.finalize(callback)
+      )(updateValue);
     } else if (updateField === 'host') {
       // Ensure the tenant host name is all lower case
       updateValue = updateValue.toLowerCase();
@@ -844,30 +860,34 @@ const disableTenants = function(ctx, aliases, disabled, callback) {
   aliases = _.isArray(aliases) ? aliases : [aliases];
   aliases = _.compact(aliases);
 
-  const validator = new Validator();
-  validator
-    .check(null, {
+  pipe(
+    validator.isGlobalAdministratorUser,
+    validator.generateError({
       code: 401,
       msg: 'You must be a global admin user to enable or disable a tenant'
-    })
-    .isGlobalAdministratorUser(ctx);
-  validator
-    .check(aliases.length, {
+    }),
+    validator.finalize(callback)
+  )(ctx);
+
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
       code: 400,
       msg: 'You must provide at least one alias to enable or disable'
-    })
-    .min(1);
+    }),
+    validator.finalize(callback)
+  )(aliases);
+
   _.each(aliases, alias => {
-    validator
-      .check(getTenant(alias), {
+    pipe(
+      validator.isNotNull,
+      validator.generateError({
         code: 404,
         msg: util.format('Tenant with alias "%s" does not exist and cannot be enabled or disabled', alias)
-      })
-      .notNull();
+      }),
+      validator.finalize(callback)
+    )(getTenant(alias));
   });
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
 
   // Store the "active" flag in cassandra
   const queries = _.map(aliases, alias => {

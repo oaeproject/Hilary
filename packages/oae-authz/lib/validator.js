@@ -15,7 +15,7 @@
 
 import util from 'util';
 
-import { AuthzConstants } from 'oae-authz/lib/constants';
+// import { AuthzConstants } from 'oae-authz/lib/constants';
 import * as AuthzUtil from 'oae-authz/lib/util';
 import { Validator } from 'oae-util/lib/validator';
 

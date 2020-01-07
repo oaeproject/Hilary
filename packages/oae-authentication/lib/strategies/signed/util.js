@@ -20,7 +20,8 @@ import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as Signature from 'oae-util/lib/signature';
 import * as TenantsAPI from 'oae-tenants';
 import * as TenantsUtil from 'oae-tenants/lib/util';
-import { Validator } from 'oae-authz/lib/validator';
+import { Validator as validator } from 'oae-authz/lib/validator';
+import pipe from 'ramda/src/pipe';
 
 const TIME_1_MINUTE_IN_SECONDS = 60;
 
@@ -36,17 +37,23 @@ const TIME_1_MINUTE_IN_SECONDS = 60;
  * @param  {Object}     callback.requestInfo.body   The signed body of the POST request to send in order to verify the authenticity of the authentication request
  */
 const getSignedTenantAuthenticationRequest = function(ctx, tenantAlias, callback) {
-  const validator = new Validator();
-  validator
-    .check(null, {
+  pipe(
+    validator.isGlobalAdministratorUser,
+    validator.generateError({
       code: 401,
       msg: 'Only global administrators are allowed to authenticate to other tenants'
-    })
-    .isGlobalAdministratorUser(ctx);
-  validator.check(tenantAlias, { code: 400, msg: 'Missing target tenant alias' }).notEmpty();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+    }),
+    validator.finalize(callback)
+  )(ctx);
+
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'Missing target tenant alias'
+    }),
+    validator.finalize(callback)
+  )(tenantAlias);
 
   if (ctx.imposter()) {
     return callback({
@@ -89,19 +96,23 @@ const getSignedTenantAuthenticationRequest = function(ctx, tenantAlias, callback
  * @param  {Object}     callback.requestInfo.body   The signed body of the POST request to send in order to verify the authenticity of the authentication request
  */
 const getSignedBecomeUserAuthenticationRequest = function(ctx, becomeUserId, callback) {
-  const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'Must be authenticated in order to become another user' })
-    .isLoggedInUser(ctx);
-  validator
-    .check(becomeUserId, {
+  pipe(
+    validator.isLoggedInUser,
+    validator.generateError({
+      code: 401,
+      msg: 'Must be authenticated in order to become another user'
+    }),
+    validator.finalize(callback)
+  )(ctx);
+
+  pipe(
+    validator.isUserId,
+    validator.generateError({
       code: 400,
       msg: 'Must specific a valid user id of a user to become (becomeUserId)'
-    })
-    .isUserId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+    }),
+    validator.finalize(callback)
+  )(becomeUserId);
 
   if (!ctx.user().isAdmin(ctx.user().tenant.alias)) {
     // Only users who have an admin status can become someone. This check is redundant to
@@ -167,11 +178,14 @@ const getSignedBecomeUserAuthenticationRequest = function(ctx, becomeUserId, cal
  * @param  {String}     [callback.becomeUserId]     The id of the user who the authenticating user should become, if any
  */
 const verifySignedAuthenticationBody = function(ctx, body, callback) {
-  const validator = new Validator();
-  validator.check(body.userId, { code: 400, msg: 'Invalid user id provided as the authenticating user' }).isUserId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isUserId,
+    validator.generateError({
+      code: 400,
+      msg: 'Invalid user id provided as the authenticating user'
+    }),
+    validator.finalize(callback)
+  )(body.userId);
 
   // Verify all the signed data in the request body, except the `signature` and `expires` parameters which are
   // not part of the signed data object. Include the tenant alias to ensure that the signature is being used

@@ -108,13 +108,14 @@ Validator.generateError = function(errorMessage) {
 */
 
 Validator.generateError = function(errorMessage) {
-  const newError = new Error(errorMessage);
+  // const newError = new Error(errorMessage);
   return function(validationPassed) {
     if (!validationPassed) {
       // debug
-      console.log('throwing error! ' + errorMessage.msg);
-      console.dir(newError);
-      return newError;
+      console.log(errorMessage.msg);
+      console.log(errorMessage.code);
+      // return newError;
+      return errorMessage;
     }
 
     return null;

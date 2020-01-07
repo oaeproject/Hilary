@@ -24,7 +24,9 @@ import _ from 'underscore';
 
 import { logger } from 'oae-logger';
 
-import { Validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator';
+import pipe from 'ramda/src/pipe';
+import isInt from 'validator/lib/isInt';
 
 const log = logger('oae-util-image');
 
@@ -113,78 +115,153 @@ const autoOrient = function(inputPath, opts, callback) {
  * @param  {Object}     callback.files          An object where each entry holds a resized file. The keys are of the form `size.width + 'x' + size.height`
  */
 const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
-  const validator = new Validator();
-  validator.check(imagePath, { code: 400, msg: 'A path to the image that you want to crop is missing' }).notNull();
-  validator
-    .check(null, {
+  pipe(
+    validator.isNotNull,
+    validator.generateError({
+      code: 400,
+      msg: 'A path to the image that you want to crop is missing'
+    }),
+    validator.finalize(callback)
+  )(imagePath);
+
+  pipe(
+    validator.isObject,
+    validator.generateError({
       code: 400,
       msg: 'The coordinates for the area you wish to crop must be specified'
-    })
-    .isObject(selectedArea);
+    }),
+    validator.finalize(callback)
+  )(selectedArea);
+
   if (selectedArea) {
-    validator.check(selectedArea.x, { code: 400, msg: 'The x-coordinate needs to be a valid integer' }).isInt();
-    validator.check(selectedArea.x, { code: 400, msg: 'The x-coordinate needs to be a valid integer' }).min(0);
-    validator.check(selectedArea.y, { code: 400, msg: 'The y-coordinate needs to be a valid integer' }).isInt();
-    validator.check(selectedArea.y, { code: 400, msg: 'The y-coordinate needs to be a valid integer' }).min(0);
-    validator
-      .check(selectedArea.width, {
+    pipe(
+      isInt,
+      validator.generateError({
+        code: 400,
+        msg: 'The x-coordinate needs to be a valid integer'
+      }),
+      validator.finalize(callback)
+    )(selectedArea.x);
+
+    pipe(
+      isInt,
+      validator.generateError({
+        code: 400,
+        msg: 'The x-coordinate needs to be a valid integer'
+      }),
+      validator.finalize(callback)
+    )(selectedArea.x, { gt: 0 });
+
+    pipe(
+      isInt,
+      validator.generateError({
+        code: 400,
+        msg: 'The y-coordinate needs to be a valid integer'
+      }),
+      validator.finalize(callback)
+    )(selectedArea.y);
+
+    pipe(
+      isInt,
+      validator.generateError({
+        code: 400,
+        msg: 'The y-coordinate needs to be a valid integer'
+      }),
+      validator.finalize(callback)
+    )(selectedArea.y, { gt: 0 });
+
+    pipe(
+      isInt,
+      validator.generateError({
         code: 400,
         msg: 'The width value must be an integer larger than 0'
-      })
-      .isInt();
-    validator
-      .check(selectedArea.width, {
+      }),
+      validator.finalize(callback)
+    )(selectedArea.width);
+
+    pipe(
+      isInt,
+      validator.generateError({
         code: 400,
         msg: 'The width value must be an integer larger than 0'
-      })
-      .min(1);
-    validator
-      .check(selectedArea.height, {
+      }),
+      validator.finalize(callback)
+    )(selectedArea.width, { min: 1 });
+
+    pipe(
+      isInt,
+      validator.generateError({
         code: 400,
         msg: 'The height value must be an integer larger than 0'
-      })
-      .isInt();
-    validator
-      .check(selectedArea.height, {
+      }),
+      validator.finalize(callback)
+    )(selectedArea.height);
+
+    pipe(
+      isInt,
+      validator.generateError({
         code: 400,
         msg: 'The height value must be an integer larger than 0'
-      })
-      .min(1);
+      }),
+      validator.finalize(callback)
+    )(selectedArea.height, { min: 1 });
   }
 
-  validator.check(sizes, { code: 400, msg: 'The desired sizes array is missing' }).notNull();
+  pipe(
+    validator.isNotNull,
+    validator.generateError({
+      code: 400,
+      msg: 'The desired sizes array is missing'
+    }),
+    validator.finalize(callback)
+  )(sizes);
+
   if (sizes) {
-    validator.check(sizes.length, { code: 400, msg: 'The desired sizes array is empty' }).min(1);
+    pipe(
+      validator.isArrayNotEmpty,
+      validator.generateError({
+        code: 400,
+        msg: 'The desired sizes array is empty'
+      }),
+      validator.finalize(callback)
+    )(sizes);
+
     for (const element of sizes) {
-      validator
-        .check(element.width, {
+      pipe(
+        isInt,
+        validator.generateError({
           code: 400,
           msg: 'The width needs to be a valid integer larger than 0'
-        })
-        .isInt();
-      validator
-        .check(element.width, {
+        }),
+        validator.finalize(callback)
+      )(element.width);
+
+      pipe(
+        isInt,
+        validator.generateError({
           code: 400,
           msg: 'The width needs to be a valid integer larger than 0'
-        })
-        .min(0);
-      validator
-        .check(element.height, {
+        }),
+        validator.finalize(callback)
+      )(element.width, { min: 0 });
+
+      pipe(
+        isInt,
+        validator.generateError({
           code: 400,
           msg: 'The width needs to be a valid integer larger than 0'
-        })
-        .isInt();
-      validator
-        .check(element.height, {
+        }),
+        validator.finalize(callback)
+      )(element.height);
+      pipe(
+        isInt,
+        validator.generateError({
           code: 400,
           msg: 'The height needs to be a valid integer larger than 0'
-        })
-        .min(0);
+        }),
+        validator.finalize(callback)
+      )(element.height, { min: 0 });
     }
-  }
-
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
   }
 
   // Crop the image
@@ -244,47 +321,95 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
  * @param  {Number}     callback.file.size      The size in bytes of the cropped image
  */
 const cropImage = function(imagePath, selectedArea, callback) {
-  const validator = new Validator();
-  validator.check(imagePath, { code: 400, msg: 'A path to the image that you want to crop is missing' }).notNull();
-  validator
-    .check(null, {
+  pipe(
+    validator.isNotNull,
+    validator.generateError({
+      code: 400,
+      msg: 'A path to the image that you want to crop is missing'
+    }),
+    validator.finalize(callback)
+  )(imagePath);
+
+  pipe(
+    validator.isObject,
+    validator.generateError({
       code: 400,
       msg: 'The coordinates for the area you wish to crop must be specified'
-    })
-    .isObject(selectedArea);
-  if (selectedArea) {
-    validator.check(selectedArea.x, { code: 400, msg: 'The x-coordinate needs to be a valid integer' }).isInt();
-    validator.check(selectedArea.x, { code: 400, msg: 'The x-coordinate needs to be a valid integer' }).min(0);
-    validator.check(selectedArea.y, { code: 400, msg: 'The y-coordinate needs to be a valid integer' }).isInt();
-    validator.check(selectedArea.y, { code: 400, msg: 'The y-coordinate needs to be a valid integer' }).min(0);
-    validator
-      .check(selectedArea.width, {
-        code: 400,
-        msg: 'The width value must be an integer larger than 0'
-      })
-      .isInt();
-    validator
-      .check(selectedArea.width, {
-        code: 400,
-        msg: 'The width value must be an integer larger than 0'
-      })
-      .min(1);
-    validator
-      .check(selectedArea.height, {
-        code: 400,
-        msg: 'The height value must be an integer larger than 0'
-      })
-      .isInt();
-    validator
-      .check(selectedArea.height, {
-        code: 400,
-        msg: 'The height value must be an integer larger than 0'
-      })
-      .min(1);
-  }
+    }),
+    validator.finalize(callback)
+  )(selectedArea);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  if (selectedArea) {
+    pipe(
+      isInt,
+      validator.generateError({
+        code: 400,
+        msg: 'The x-coordinate needs to be a valid integer'
+      }),
+      validator.finalize(callback)
+    )(selectedArea.x);
+
+    pipe(
+      isInt,
+      validator.generateError({
+        code: 400,
+        msg: 'The x-coordinate needs to be a valid integer'
+      }),
+      validator.finalize(callback)
+    )(selectedArea.x, { min: 0 });
+
+    pipe(
+      isInt,
+      validator.generateError({
+        code: 400,
+        msg: 'The y-coordinate needs to be a valid integer'
+      }),
+      validator.finalize(callback)
+    )(selectedArea.y);
+
+    pipe(
+      isInt,
+      validator.generateError({
+        code: 400,
+        msg: 'The y-coordinate needs to be a valid integer'
+      }),
+      validator.finalize(callback)
+    )(selectedArea.y, { min: 0 });
+
+    pipe(
+      isInt,
+      validator.generateError({
+        code: 400,
+        msg: 'The width value must be an integer larger than 0'
+      }),
+      validator.finalize(callback)
+    )(selectedArea.width);
+
+    pipe(
+      isInt,
+      validator.generateError({
+        code: 400,
+        msg: 'The width value must be an integer larger than 0'
+      }),
+      validator.finalize(callback)
+    )(selectedArea.width, { min: 1 });
+
+    pipe(
+      isInt,
+      validator.generateError({
+        code: 400,
+        msg: 'The height value must be an integer larger than 0'
+      }),
+      validator.finalize(callback)
+    )(selectedArea.height);
+    pipe(
+      isInt,
+      validator.generateError({
+        code: 400,
+        msg: 'The height value must be an integer larger than 0'
+      }),
+      validator.finalize(callback)
+    )(selectedArea.height, { min: 1 });
   }
 
   _cropImage(imagePath, selectedArea, callback);
@@ -382,28 +507,60 @@ const _cropImage = function(imagePath, selectedArea, callback) {
  * @param  {Number}     callback.file.size      The size in bytes of the resized image
  */
 const resizeImage = function(imagePath, size, callback) {
-  const validator = new Validator();
-  validator.check(imagePath, { code: 400, msg: 'A path to the image that you want to resize is missing' }).notNull();
-  validator.check(null, { code: 400, msg: 'The size must be specified' }).isObject(size);
-  if (size) {
-    validator.check(size.width, { code: 400, msg: 'The width needs to be a valid integer larger than 0' }).isInt();
-    validator.check(size.width, { code: 400, msg: 'The width needs to be a valid integer larger than 0' }).min(0);
-    validator
-      .check(size.height, {
-        code: 400,
-        msg: 'The height needs to be a valid integer larger than 0'
-      })
-      .isInt();
-    validator
-      .check(size.height, {
-        code: 400,
-        msg: 'The height needs to be a valid integer larger than 0'
-      })
-      .min(0);
-  }
+  pipe(
+    validator.isNotNull,
+    validator.generateError({
+      code: 400,
+      msg: 'A path to the image that you want to resize is missing'
+    }),
+    validator.finalize(callback)
+  )(imagePath);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  pipe(
+    validator.isObject,
+    validator.generateError({
+      code: 400,
+      msg: 'The size must be specified'
+    }),
+    validator.finalize(callback)
+  )(size);
+
+  if (size) {
+    pipe(
+      isInt,
+      validator.generateError({
+        code: 400,
+        msg: 'The width needs to be a valid integer larger than 0'
+      }),
+      validator.finalize(callback)
+    )(size.width);
+
+    pipe(
+      isInt,
+      validator.generateError({
+        code: 400,
+        msg: 'The width needs to be a valid integer larger than 0'
+      }),
+      validator.finalize(callback)
+    )(size.width, { min: 0 });
+
+    pipe(
+      isInt,
+      validator.generateError({
+        code: 400,
+        msg: 'The height needs to be a valid integer larger than 0'
+      }),
+      validator.finalize(callback)
+    )(size.height);
+
+    pipe(
+      isInt,
+      validator.generateError({
+        code: 400,
+        msg: 'The height needs to be a valid integer larger than 0'
+      }),
+      validator.finalize(callback)
+    )(size.height, { min: 0 });
   }
 
   _resizeImage(imagePath, size, callback);
@@ -499,11 +656,14 @@ const getImageExtension = function(source, fallback) {
  * @param  {Number}     callback.file.size      The size of the resized image (in bytes)
  */
 const convertToJPG = function(inputPath, callback) {
-  const validator = new Validator();
-  validator.check(inputPath, { code: 400, msg: 'A path to the image that you want to resize is missing' }).notNull();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isNotNull,
+    validator.generateError({
+      code: 400,
+      msg: 'A path to the image that you want to resize is missing'
+    }),
+    validator.finalize(callback)
+  )(inputPath);
 
   let conversionPath = inputPath;
   if (inputPath.lastIndexOf('.gif') === inputPath.length - 4) {

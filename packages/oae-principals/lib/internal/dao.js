@@ -628,16 +628,14 @@ const _updatePrincipal = function(principalId, profileFields, callback) {
     .value();
 
   // Ensure we aren't updating a non-principal to avoid upserting invalid rows
-  const validator = new Validator();
-  validator
-    .check(principalId, {
+  pipe(
+    validator.isPrincipalId,
+    validator.generateError({
       code: 400,
       msg: 'Attempted to update a principal with a non-principal id'
-    })
-    .isPrincipalId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+    }),
+    validator.finalize(callback)
+  )(principalId);
 
   // If a change is being made to the email address, we need to update the mapping
   _isEmailAddressUpdate(principalId, profileFields, (err, isEmailAddressUpdate, oldEmail) => {

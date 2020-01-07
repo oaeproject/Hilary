@@ -23,8 +23,9 @@ import * as EmitterAPI from 'oae-emitter';
 import * as IO from 'oae-util/lib/io';
 import * as OaeUtil from 'oae-util/lib/util';
 import * as Pubsub from 'oae-util/lib/pubsub';
-import { Validator } from 'oae-util/lib/validator';
 import { logger } from 'oae-logger';
+import { Validator as validator } from 'oae-util/lib/validator';
+import pipe from 'ramda/src/pipe';
 
 const log = logger('oae-config');
 
@@ -158,11 +159,14 @@ const getSchema = function(ctx, callback) {
  */
 const getTenantConfig = function(ctx, tenantAlias, callback) {
   // Parameter validation
-  const validator = new Validator();
-  validator.check(tenantAlias, { code: 400, msg: 'Missing tenant parameter' }).notEmpty();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'Missing tenant parameter'
+    }),
+    validator.finalize(callback)
+  )(tenantAlias);
 
   const isGlobalAdmin = ctx.user() && ctx.user().isGlobalAdmin();
   const isTenantAdmin = ctx.user() && ctx.user().isTenantAdmin(tenantAlias);
@@ -580,25 +584,36 @@ const updateConfig = function(ctx, tenantAlias, configValues, callback) {
 
   const configFieldNames = _.keys(configValues);
 
-  const validator = new Validator();
-  validator.check(tenantAlias, { code: 400, msg: 'Missing tenantid' }).notEmpty();
-  validator
-    .check(configFieldNames.length, {
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'Missing tenantid'
+    }),
+    validator.finalize(callback)
+  )(tenantAlias);
+
+  pipe(
+    validator.isArrayNotEmpty,
+    validator.generateError({
       code: 400,
       msg: 'Missing configuration. Example configuration: {"oae-authentication/twitter/enabled": false}'
-    })
-    .min(1);
+    }),
+    validator.finalize(callback)
+  )(configFieldNames);
 
   // Since we can return out of this loop, we use `for` instead of `_.each`
   for (const configFieldName of configFieldNames) {
     const configFieldValue = configValues[configFieldName];
 
-    validator
-      .check(null, {
+    pipe(
+      validator.isDefined,
+      validator.generateError({
         code: 400,
         msg: util.format('The configuration value for "%s" must be specified', configFieldName)
-      })
-      .isDefined(configFieldValue);
+      }),
+      validator.finalize(callback)
+    )(configFieldValue);
 
     const parts = configFieldName.split('/');
     if (!_element(parts[0], parts[1], parts[2])) {
@@ -689,26 +704,37 @@ const clearConfig = function(ctx, tenantAlias, configFields, callback) {
     return callback({ code: 401, msg: 'Only authorized tenant admins can change config values' });
   }
 
-  const validator = new Validator();
-  validator.check(tenantAlias, { code: 400, msg: 'Missing tenant alias' }).notEmpty();
-  validator
-    .check(configFields.length, {
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'Missing tenant alias'
+    }),
+    validator.finalize(callback)
+  )(tenantAlias);
+
+  pipe(
+    validator.isArrayNotEmpty,
+    validator.generateError({
       code: 400,
       msg: 'Missing configuration. Example configuration: ["oae-authentication/twitter/enabled"]'
-    })
-    .min(1);
+    }),
+    validator.finalize(callback)
+  )(configFields);
 
   // Sort the config fields alphabetically so we can do the mixed element/optionalKey check
   configFields = configFields.sort();
   for (let i = 0; i < configFields.length; i++) {
     // Check that we're not clearing both the entire element and one if its optional keys
     if (i > 0) {
-      validator
-        .check(configFields[i].indexOf(configFields[i - 1] + '/'), {
+      pipe(
+        validator.isDifferent,
+        validator.generateError({
           code: 400,
           msg: 'You cannot mix clearing an entire element and an optionalKey'
-        })
-        .not('0');
+        }),
+        validator.finalize(callback)
+      )(configFields[i].indexOf(configFields[i - 1] + '/', '0'));
     }
 
     const configField = configFields[i].split('/');

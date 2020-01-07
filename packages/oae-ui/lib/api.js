@@ -33,7 +33,7 @@ import * as ContentUtil from 'oae-content/lib/internal/util';
 import * as EmitterAPI from 'oae-emitter';
 import * as Sanitization from 'oae-util/lib/sanitization';
 import * as TZ from 'oae-util/lib/tz';
-import { Validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator';
 import { logger } from 'oae-logger';
 
 import { JSDOM } from 'jsdom';
@@ -269,16 +269,37 @@ const _widgetDirectoryFilter = function(entry) {
  * @param  {Object}      callback.data   JSON Object representing the retrieved files
  */
 const getStaticBatch = function(files, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 400, msg: 'The files parameter must be an array' }).isArray(files);
+  pipe(
+    validator.isArray,
+    validator.generateError({
+      code: 400,
+      msg: 'The files parameter must be an array'
+    }),
+    validator.finalize(callback)
+  )(files);
+
   // Filter out the duplicate ones
   files = _.uniq(files);
   // Make sure that all provided filenames are real strings
   for (const element of files) {
-    validator.check(element, { code: 400, msg: 'A valid file path needs to be provided' }).notEmpty();
+    pipe(
+      validator.isNotEmpty,
+      validator.generateError({
+        code: 400,
+        msg: 'A valid file path needs to be provided'
+      }),
+      validator.finalize(callback)
+    )(element);
     // Make sure that only absolute paths are allowed. All paths that contain a '../' have the potential of
     // exposing private server files
-    validator.check(element, { code: 400, msg: 'Only absolute paths are allowed' }).notContains('../');
+    pipe(
+      validator.notContains,
+      validator.generateError({
+        code: 400,
+        msg: 'Only absolute paths are allowed'
+      }),
+      validator.finalize(callback)
+    )(element, '../');
   }
 
   validator.check(files.length, { code: 400, msg: 'At least one file must be provided' }).min(1);

@@ -30,7 +30,8 @@ import * as ResourceActivity from 'oae-resource/lib/activity';
 
 import { Invitation } from 'oae-authz/lib/invitations/model';
 import { AuthzConstants } from 'oae-authz/lib/constants';
-import { Validator } from 'oae-authz/lib/validator';
+import { Validator as validator } from 'oae-authz/lib/validator';
+import pipe from 'ramda/src/pipe';
 import { ResourceConstants } from 'oae-resource/lib/constants';
 
 const log = logger('oae-resource-actions');
@@ -57,34 +58,41 @@ const ResourceActions = new EmitterAPI.EventEmitter();
  * @param  {EmailChangeInfo}    callback.emailChangeInfo    The email change info object that describes the resource invitations
  */
 const create = function(ctx, roles, createFn, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 400, msg: 'Only authenticated users can create a new resource' }).isLoggedInUser(ctx);
+  pipe(
+    validator.isLoggedInUser,
+    validator.generateError({
+      code: 400,
+      msg: 'Only authenticated users can create a new resource'
+    }),
+    validator.finalize(callback)
+  )(ctx);
 
   // Ensure all member ids are valid members
   const memberIds = _.keys(roles);
   _.each(memberIds, memberId => {
-    validator
-      .check(memberId, {
+    pipe(
+      validator.isValidShareTarget,
+      validator.generateError({
         code: 400,
         msg:
           'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
-      })
-      .isValidShareTarget();
+      }),
+      validator.finalize(callback)
+    )(memberId);
   });
 
   // Ensure there is at least one manager member in the list of roles
   const firstManagerRole = _.find(roles, (role, memberId) => {
     return AuthzUtil.isPrincipalId(memberId) && role === AuthzConstants.role.MANAGER;
   });
-  validator
-    .check(firstManagerRole, {
+  pipe(
+    validator.isValidRole,
+    validator.generateError({
       code: 400,
       msg: 'There must be at least one manager specified when creating a resource'
-    })
-    .isValidRole();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+    }),
+    validator.finalize(callback)
+  )(firstManagerRole);
 
   // Get the target resources being added as members and invitations to the new resource
   _getTargetRoles(roles, (err, targetRolesById) => {
@@ -147,16 +155,41 @@ const create = function(ctx, roles, createFn, callback) {
  * @param  {EmailChangeInfo}    callback.emailChangeInfo    Describes the resource invitation updates
  */
 const share = function(ctx, resource, targetIds, role, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 400, msg: 'Only authenticated users can share a resource' }).isLoggedInUser(ctx);
-  validator.check(role, { code: 400, msg: 'Must specify a valid role' }).isValidRole();
-  validator.check(null, { code: 400, msg: 'An invalid resource was provided' }).isResource(resource);
-  validator
-    .check(targetIds.length, {
+  pipe(
+    validator.isLoggedInUser,
+    validator.generateError({
+      code: 400,
+      msg: 'Only authenticated users can share a resource'
+    }),
+    validator.finalize(callback)
+  )(ctx);
+
+  pipe(
+    validator.isValidRole,
+    validator.generateError({
+      code: 400,
+      msg: 'Must specify a valid role'
+    }),
+    validator.finalize(callback)
+  )(role);
+
+  pipe(
+    validator.isResource,
+    validator.generateError({
+      code: 400,
+      msg: 'An invalid resource was provided'
+    }),
+    validator.finalize(callback)
+  )(resource);
+
+  pipe(
+    validator.isArrayNotEmpty,
+    validator.generateError({
       code: 400,
       msg: 'At least one user to share with should be specified'
-    })
-    .min(1);
+    }),
+    validator.finalize(callback)
+  )(targetIds);
 
   let resourceAuthzId = null;
   let resourceId = null;
@@ -166,20 +199,34 @@ const share = function(ctx, resource, targetIds, role, callback) {
   }
 
   _.each(targetIds, targetId => {
-    validator
-      .check(targetId, {
+    pipe(
+      validator.isValidShareTarget,
+      validator.generateError({
         code: 400,
         msg:
           'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
-      })
-      .isValidShareTarget();
-    validator.check(targetId, { code: 400, msg: 'You cannot share a resource with itself' }).not(resourceAuthzId);
-    validator.check(targetId, { code: 400, msg: 'You cannot share a resource with itself' }).not(resourceId);
-  });
+      }),
+      validator.finalize(callback)
+    )(targetId);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+    pipe(
+      validator.isDifferent,
+      validator.generateError({
+        code: 400,
+        msg: 'You cannot share a resource with itself'
+      }),
+      validator.finalize(callback)
+    )(targetId, resourceAuthzId);
+
+    pipe(
+      validator.isDifferent,
+      validator.generateError({
+        code: 400,
+        msg: 'You cannot share a resource with itself'
+      }),
+      validator.finalize(callback)
+    )(targetId, resourceId);
+  });
 
   // Split the targets into principal profiles and emails
   _getTargets(targetIds, (err, targetsByTargetId) => {
@@ -226,10 +273,32 @@ const share = function(ctx, resource, targetIds, role, callback) {
  * @param  {EmailChangeInfo}    callback.emailChangeInfo    Describes the resource invitation updates
  */
 const setRoles = function(ctx, resource, roles, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 400, msg: 'Only authenticated users can share a resource' }).isLoggedInUser(ctx);
-  validator.check(null, { code: 400, msg: 'An invalid resource was provided' }).isResource(resource);
-  validator.check(_.keys(roles).length, { code: 400, msg: 'At least one role update should be specified' }).min(1);
+  pipe(
+    validator.isLoggedInUser,
+    validator.generateError({
+      code: 400,
+      msg: 'Only authenticated users can share a resource'
+    }),
+    validator.finalize(callback)
+  )(ctx);
+
+  pipe(
+    validator.isResource,
+    validator.generateError({
+      code: 400,
+      msg: 'An invalid resource was provided'
+    }),
+    validator.finalize(callback)
+  )(resource);
+
+  pipe(
+    validator.isArrayNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'At least one role update should be specified'
+    }),
+    validator.finalize(callback)
+  )(_.keys(roles));
 
   let resourceAuthzId = null;
   let resourceId = null;
@@ -239,21 +308,43 @@ const setRoles = function(ctx, resource, roles, callback) {
   }
 
   _.each(roles, (role, memberId) => {
-    validator
-      .check(memberId, {
+    pipe(
+      validator.isValidShareTarget,
+      validator.generateError({
         code: 400,
         msg:
           'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
-      })
-      .isValidShareTarget();
-    validator.check(memberId, { code: 400, msg: 'You cannot share a resource with itself' }).not(resourceAuthzId);
-    validator.check(memberId, { code: 400, msg: 'You cannot share a resource with itself' }).not(resourceId);
-    validator.check(role, { code: 400, msg: 'An invalid role was provided' }).isValidRoleChange();
-  });
+      }),
+      validator.finalize(callback)
+    )(memberId);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+    pipe(
+      validator.isDifferent,
+      validator.generateError({
+        code: 400,
+        msg: 'You cannot share a resource with itself'
+      }),
+      validator.finalize(callback)
+    )(memberId, resourceAuthzId);
+
+    pipe(
+      validator.isDifferent,
+      validator.generateError({
+        code: 400,
+        msg: 'You cannot share a resource with itself'
+      }),
+      validator.finalize(callback)
+    )(memberId, resourceId);
+
+    pipe(
+      validator.isValidRoleChange,
+      validator.generateError({
+        code: 400,
+        msg: 'An invalid role was provided'
+      }),
+      validator.finalize(callback)
+    )(role);
+  });
 
   // Split the targets into principal profiles and emails
   _getTargetRoles(roles, (err, targetRolesById) => {
@@ -298,13 +389,32 @@ const setRoles = function(ctx, resource, roles, callback) {
  * @param  {Object}             callback.err    An error that occurred, if any
  */
 const resendInvitation = function(ctx, resource, email, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Only authenticated users can resend an invitation' }).isLoggedInUser(ctx);
-  validator.check(null, { code: 400, msg: 'A valid resource must be provided' }).isResource(resource);
-  validator.check(email, { code: 400, msg: 'A valid email must be provided' }).isEmail();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isLoggedInUser,
+    validator.generateError({
+      code: 401,
+      msg: 'Only authenticated users can resend an invitation'
+    }),
+    validator.finalize(callback)
+  )(ctx);
+
+  pipe(
+    validator.isResource,
+    validator.generateError({
+      code: 400,
+      msg: 'A valid resource must be provided'
+    }),
+    validator.finalize(callback)
+  )(resource);
+
+  pipe(
+    validator.isEmail,
+    validator.generateError({
+      code: 400,
+      msg: 'A valid email must be provided'
+    }),
+    validator.finalize(callback)
+  )(email);
 
   email = email.toLowerCase();
 
@@ -347,12 +457,23 @@ const resendInvitation = function(ctx, resource, email, callback) {
  * @param  {Resource[]}     callback.resources  The resources to which the user's access changed (user could have been added or promoted) while accepting this invitation
  */
 const acceptInvitation = function(ctx, token, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Only authenticated users can accept an invitation' }).isLoggedInUser(ctx);
-  validator.check(token, { code: 400, msg: 'An invitation token must be specified' }).notEmpty();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isLoggedInUser,
+    validator.generateError({
+      code: 401,
+      msg: 'Only authenticated users can accept an invitation'
+    }),
+    validator.finalize(callback)
+  )(ctx);
+
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'An invitation token must be specified'
+    }),
+    validator.finalize(callback)
+  )(token);
 
   // Perform the accept action
   _acceptInvitation(ctx, token, (err, email, invitationHashes, memberChangeInfosByResourceId) => {

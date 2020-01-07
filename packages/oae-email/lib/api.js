@@ -33,8 +33,9 @@ import * as Redis from 'oae-util/lib/redis';
 
 import * as UIAPI from 'oae-ui';
 import { htmlToText } from 'nodemailer-html-to-text';
-import { Validator } from 'oae-util/lib/validator';
 import * as TenantsAPI from 'oae-tenants';
+import { Validator as validator } from 'oae-util/lib/validator';
+import pipe from 'ramda/src/pipe';
 
 const EmailConfig = setUpConfig('oae-email');
 const log = logger('oae-email');
@@ -213,23 +214,43 @@ const refreshTemplates = function(callback) {
 const _abortIfRecipientErrors = (emailData, done) => {
   const { templateModule, templateId, recipient } = emailData;
 
-  const validator = new Validator();
-  validator.check(templateModule, { code: 400, msg: 'Must specify a template module' }).notEmpty();
-  validator.check(templateId, { code: 400, msg: 'Must specify a template id' }).notEmpty();
-  validator.check(null, { code: 400, msg: 'Must specify a user when sending an email' }).isObject(recipient);
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'Must specify a template module'
+    }),
+    validator.finalize(done)
+  )(templateModule);
+
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'Must specify a template id'
+    }),
+    validator.finalize(done)
+  )(templateId);
+
+  pipe(
+    validator.isObject,
+    validator.generateError({
+      code: 400,
+      msg: 'Must specify a user when sending an email'
+    }),
+    validator.finalize(done)
+  )(recipient);
 
   // Only validate the user email if it was a valid object
   if (recipient) {
-    validator
-      .check(recipient.email, {
+    pipe(
+      validator.isEmail,
+      validator.generateError({
         code: 400,
         msg: 'User must have a valid email address to receive email'
-      })
-      .isEmail();
-  }
-
-  if (validator.hasErrors()) {
-    return done(validator.getFirstError());
+      }),
+      validator.finalize(done)
+    )(recipient.email);
   }
 
   done();

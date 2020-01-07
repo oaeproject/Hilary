@@ -23,7 +23,9 @@ import { logger } from 'oae-logger';
 import * as AuthzPermissions from 'oae-authz/lib/permissions';
 import * as ContentUtil from 'oae-content/lib/internal/util';
 import * as ImageUtil from 'oae-util/lib/image';
-import { Validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator';
+import pipe from 'ramda/src/pipe';
+import isInt from 'validator/lib/isInt';
 import * as GroupAPI from './api.group';
 import * as PrincipalsDAO from './internal/dao';
 import PrincipalsEmitter from './internal/emitter';
@@ -56,20 +58,74 @@ const storePicture = function(ctx, principalId, file, callback) {
       }
     };
 
-  const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to update a picture' })
-    .isLoggedInUser(ctx);
-  validator.check(principalId, { code: 400, msg: 'A principal ID must be provided' }).isPrincipalId();
-  validator.check(file, { code: 400, msg: 'A file must be provided' }).notNull();
-  if (file) {
-    validator.check(file.size, { code: 400, msg: 'Missing size on the file object.' }).notEmpty();
-    validator.check(file.size, { code: 400, msg: 'The size of a picture has an upper limit of 10MB.' }).max(10485760);
-    validator.check(file.name, { code: 400, msg: 'Missing name on the file object.' }).notEmpty();
-  }
+  pipe(
+    validator.isLoggedInUser,
+    validator.generateError({
+      code: 401,
+      msg: 'You have to be logged in to be able to update a picture'
+    }),
+    error => {
+      return _cleanupOnError(error, file, callback);
+    }
+  )(ctx);
 
-  if (validator.hasErrors()) {
-    return _cleanupOnError(validator.getFirstError(), file, callback);
+  pipe(
+    validator.isPrincipalId,
+    validator.generateError({
+      code: 400,
+      msg: 'A principal ID must be provided'
+    }),
+    error => {
+      return _cleanupOnError(error, file, callback);
+    }
+  )(principalId);
+
+  pipe(
+    validator.isNotNull,
+    validator.generateError({
+      code: 400,
+      msg: 'A file must be provided'
+    }),
+    error => {
+      return _cleanupOnError(error, file, callback);
+    }
+  )(file);
+
+  if (file) {
+    pipe(
+      validator.isNotEmpty,
+      validator.generateError({
+        code: 400,
+        msg: 'Missing size on the file object.'
+      }),
+      error => {
+        return _cleanupOnError(error, file, callback);
+      }
+    )(file.size);
+
+    pipe(
+      (size, max) => {
+        return size <= max;
+      },
+      validator.generateError({
+        code: 400,
+        msg: 'The size of a picture has an upper limit of 10MB.'
+      }),
+      error => {
+        return _cleanupOnError(error, file, callback);
+      }
+    )(file.size, 10485760);
+
+    pipe(
+      validator.isNotEmpty,
+      validator.generateError({
+        code: 400,
+        msg: 'Missing name on the file object.'
+      }),
+      error => {
+        return _cleanupOnError(error, file, callback);
+      }
+    )(file.name);
   }
 
   // Check if we can edit this principal
@@ -164,25 +220,77 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
     };
 
   // Parameter validation
-  const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to update a picture' })
-    .isLoggedInUser(ctx);
-  validator.check(principalId, { code: 400, msg: 'A principal id must be provided' }).isPrincipalId();
-  validator.check(x, { code: 400, msg: 'The x value must be a positive integer' }).isInt();
-  validator.check(x, { code: 400, msg: 'The x value must be a positive integer' }).min(0);
-  validator.check(y, { code: 400, msg: 'The y value must be a positive integer' }).isInt();
-  validator.check(y, { code: 400, msg: 'The y value must be a positive integer' }).min(0);
-  validator.check(width, { code: 400, msg: 'The width value must be a positive integer' }).isInt();
-  validator
-    .check(width, {
+  pipe(
+    validator.isLoggedInUser,
+    validator.generateError({
+      code: 401,
+      msg: 'You have to be logged in to be able to update a picture'
+    }),
+    validator.finalize(callback)
+  )(ctx);
+
+  pipe(
+    validator.isPrincipalId,
+    validator.generateError({
+      code: 400,
+      msg: 'A principal id must be provided'
+    }),
+    validator.finalize(callback)
+  )(principalId);
+
+  pipe(
+    isInt,
+    validator.generateError({
+      code: 400,
+      msg: 'The x value must be a positive integer'
+    }),
+    validator.finalize(callback)
+  )(x);
+
+  pipe(
+    isInt,
+    validator.generateError({
+      code: 400,
+      msg: 'The x value must be a positive integer'
+    }),
+    validator.finalize(callback)
+  )(x, { gt: 0 });
+
+  pipe(
+    isInt,
+    validator.generateError({
+      code: 400,
+      msg: 'The y value must be a positive integer'
+    }),
+    validator.finalize(callback)
+  )(y);
+
+  pipe(
+    isInt,
+    validator.generateError({
+      code: 400,
+      msg: 'The y value must be a positive integer'
+    }),
+    validator.finalize(callback)
+  )(y, { gt: 0 });
+
+  pipe(
+    isInt,
+    validator.generateError({
+      code: 400,
+      msg: 'The width value must be a positive integer'
+    }),
+    validator.finalize(callback)
+  )(width);
+
+  pipe(
+    isInt,
+    validator.generateError({
       code: 400,
       msg: 'The width value must be a positive integer greater than or equal to 10'
-    })
-    .min(10);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+    }),
+    validator.finalize(callback)
+  )(width, { gt: 9 });
 
   // Make sure we can edit this principal
   _canManagePrincipal(ctx, principalId, (err, principal) => {

@@ -24,7 +24,11 @@ import * as TenantsAPI from 'oae-tenants';
 
 import { logger } from 'oae-logger';
 
-import { Validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator';
+import pipe from 'ramda/src/pipe';
+import isInt from 'validator/lib/isInt';
+import isIn from 'validator/lib/isIn';
+import isBefore from 'validator/lib/isBefore';
 import * as MessageBoxModel from './model';
 import { MessageBoxConstants } from './constants';
 
@@ -137,33 +141,60 @@ const replaceLinks = function(body) {
 const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
   opts = opts || {};
 
-  const validator = new Validator();
-  validator.check(messageBoxId, { code: 400, msg: 'A messageBoxId must be specified.' }).notNull();
-  validator.check(createdBy, { code: 400, msg: 'The createdBy parameter must be a valid user id.' }).isUserId();
-  validator.check(body, { code: 400, msg: 'The body of the message must be specified.' }).notNull();
+  pipe(
+    validator.isNotNull,
+    validator.generateError({
+      code: 400,
+      msg: 'A messageBoxId must be specified.'
+    }),
+    validator.finalize(callback)
+  )(messageBoxId);
+
+  pipe(
+    validator.isUserId,
+    validator.generateError({
+      code: 400,
+      msg: 'The createdBy parameter must be a valid user id.'
+    }),
+    validator.finalize(callback)
+  )(createdBy);
+
+  pipe(
+    validator.isNotNull,
+    validator.generateError({
+      code: 400,
+      msg: 'The body of the message must be specified.'
+    }),
+    validator.finalize(callback)
+  )(body);
+
   if (opts.replyToCreated) {
-    validator
-      .check(opts.replyToCreated, {
+    pipe(
+      validator.isNotNull,
+      validator.generateError({
         code: 400,
         msg: 'If the replyToCreated optional parameter is specified, it should not be null.'
-      })
-      .notNull();
-    validator
-      .check(opts.replyToCreated, {
+      }),
+      validator.finalize(callback)
+    )(opts.replyToCreated);
+
+    pipe(
+      isInt,
+      validator.generateError({
         code: 400,
         msg: 'If the replyToCreated optional parameter is specified, it should be an integer.'
-      })
-      .isInt();
-    validator
-      .check(opts.replyToCreated, {
+      }),
+      validator.finalize(callback)
+    )(opts.replyToCreated);
+
+    pipe(
+      isBefore,
+      validator.generateError({
         code: 400,
         msg: 'If the replyToCreated optional parameter is specified, it cannot be in the future.'
-      })
-      .max(Date.now());
-  }
-
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+      }),
+      validator.finalize(callback)
+    )(opts.replyToCreated);
   }
 
   const replyToCreated = OaeUtil.getNumberParam(opts.replyToCreated);
@@ -295,25 +326,50 @@ const _lockUniqueTimestamp = function(id, timestamp, callback) {
  * @param  {Object}         callback.err    An error that occurred, if any
  */
 const updateMessageBody = function(messageBoxId, created, newBody, callback) {
-  const validator = new Validator();
-  validator.check(messageBoxId, { code: 400, msg: 'A messageBoxId must be specified.' }).notNull();
-  validator.check(created, { code: 400, msg: 'The created parameter must be specified.' }).notNull();
-  validator
-    .check(created, {
+  pipe(
+    validator.isNotNull,
+    validator.generateError({
+      code: 400,
+      msg: 'A messageBoxId must be specified.'
+    }),
+    validator.finalize(callback)
+  )(messageBoxId);
+
+  pipe(
+    validator.isNotNull,
+    validator.generateError({
+      code: 400,
+      msg: 'The created parameter must be specified.'
+    }),
+    validator.finalize(callback)
+  )(created);
+
+  pipe(
+    isInt,
+    validator.generateError({
       code: 400,
       msg: 'The created parameter must be a valid timestamp (integer).'
-    })
-    .isInt();
-  validator
-    .check(created, {
+    }),
+    validator.finalize(callback)
+  )(created);
+
+  pipe(
+    isBefore,
+    validator.generateError({
       code: 400,
       msg: 'The created parameter must be a valid timestamp (integer) that is not in the future.'
-    })
-    .max(Date.now());
-  validator.check(newBody, { code: 400, msg: 'The new body of the message must be specified.' }).notNull();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+    }),
+    validator.finalize(callback)
+  )(created);
+
+  pipe(
+    validator.isNotNull,
+    validator.generateError({
+      code: 400,
+      msg: 'The new body of the message must be specified.'
+    }),
+    validator.finalize(callback)
+  )(newBody);
 
   const messageId = _createMessageId(messageBoxId, created);
 
@@ -350,11 +406,14 @@ const getMessagesFromMessageBox = function(messageBoxId, start, limit, opts, cal
   opts = opts || {};
   opts.scrubDeleted = opts.scrubDeleted !== false;
 
-  const validator = new Validator();
-  validator.check(messageBoxId, { code: 400, msg: 'A messageBoxId must be specified.' }).notNull();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isNotNull,
+    validator.generateError({
+      code: 400,
+      msg: 'A messageBoxId must be specified.'
+    }),
+    validator.finalize(callback)
+  )(messageBoxId);
 
   _getThreadKeysFromMessageBox(messageBoxId, start, limit, (err, threadKeys, nextToken) => {
     if (err) {
@@ -392,16 +451,43 @@ const getMessages = function(messageBoxId, createdTimestamps, opts, callback) {
   opts = opts || {};
   opts.scrubDeleted = opts.scrubDeleted !== false;
 
-  const validator = new Validator();
-  validator.check(messageBoxId, { code: 400, msg: 'A messageBoxId must be specified.' }).notNull();
+  pipe(
+    validator.isNotNull,
+    validator.generateError({
+      code: 400,
+      msg: 'A messageBoxId must be specified.'
+    }),
+    validator.finalize(callback)
+  )(messageBoxId);
+
   _.each(createdTimestamps, timestamp => {
-    validator.check(timestamp, { code: 400, msg: 'A timestamp cannot be null.' }).notNull();
-    validator.check(timestamp, { code: 400, msg: 'A timestamp should be an integer.' }).isInt();
-    validator.check(timestamp, { code: 400, msg: 'A timestamp cannot be in the future.' }).max(Date.now());
+    pipe(
+      validator.isNotNull,
+      validator.generateError({
+        code: 400,
+        msg: 'A timestamp cannot be null.'
+      }),
+      validator.finalize(callback)
+    )(timestamp);
+
+    pipe(
+      isInt,
+      validator.generateError({
+        code: 400,
+        msg: 'A timestamp should be an integer.'
+      }),
+      validator.finalize(callback)
+    )(timestamp);
+
+    pipe(
+      isBefore,
+      validator.generateError({
+        code: 400,
+        msg: 'A timestamp cannot be in the future.'
+      }),
+      validator.finalize(callback)
+    )(timestamp);
   });
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
 
   // Convert messagebox + createdTimestamps into the compound key containing the two
   const messageIds = _.map(createdTimestamps, created => {
@@ -489,25 +575,52 @@ const getMessagesById = function(messageIds, opts, callback) {
 const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
   opts = opts || {};
 
-  const validator = new Validator();
-  validator.check(messageBoxId, { code: 400, msg: 'A messageBoxId must be specified.' }).notNull();
-  validator.check(createdTimestamp, { code: 400, msg: 'The createdTimestamp should not be null.' }).notNull();
-  validator.check(createdTimestamp, { code: 400, msg: 'The createdTimestamp should be an integer.' }).isInt();
-  validator
-    .check(createdTimestamp, { code: 400, msg: 'The createdTimestamp cannot be in the future.' })
-    .max(Date.now());
+  pipe(
+    validator.isNotNull,
+    validator.generateError({
+      code: 400,
+      msg: 'A messageBoxId must be specified.'
+    }),
+    validator.finalize(callback)
+  )(messageBoxId);
+
+  pipe(
+    validator.isNotNull,
+    validator.generateError({
+      code: 400,
+      msg: 'The createdTimestamp should not be null.'
+    }),
+    validator.finalize(callback)
+  )(createdTimestamp);
+
+  pipe(
+    isInt,
+    validator.generateError({
+      code: 400,
+      msg: 'The createdTimestamp should be an integer.'
+    }),
+    validator.finalize(callback)
+  )(createdTimestamp);
+
+  pipe(
+    isBefore,
+    validator.generateError({
+      code: 400,
+      msg: 'The createdTimestamp cannot be in the future.'
+    }),
+    validator.finalize(callback)
+  )(createdTimestamp);
+
   if (opts.deleteType) {
     const deleteValues = _.values(MessageBoxConstants.deleteTypes);
-    validator
-      .check(opts.deleteType, {
+    pipe(
+      isIn,
+      validator.generateError({
         code: 400,
         msg: 'If the deleteType is specified it should be one of: ' + deleteValues.join(', ')
-      })
-      .isIn(deleteValues);
-  }
-
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+      }),
+      validator.finalize(callback)
+    )(opts.deleteType, deleteValues);
   }
 
   getMessages(messageBoxId, [createdTimestamp], { scrubDeleted: false }, (err, messages) => {
@@ -580,11 +693,14 @@ const getRecentContributions = function(messageBoxId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 5, 1, 100);
   start = start ? util.format('%s:%s', start.userId, start.created) : '';
 
-  const validator = new Validator();
-  validator.check(messageBoxId, { code: 400, msg: 'A messageBoxId must be specified.' }).notNull();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isNotNull,
+    validator.generateError({
+      code: 400,
+      msg: 'A messageBoxId must be specified.'
+    }),
+    validator.finalize(callback)
+  )(messageBoxId);
 
   Cassandra.runPagedQuery(
     'MessageBoxRecentContributions',

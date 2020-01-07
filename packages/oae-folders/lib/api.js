@@ -36,8 +36,11 @@ import * as ResourceActions from 'oae-resource/lib/actions';
 import * as SearchAPI from 'oae-search';
 import * as Signature from 'oae-util/lib/signature';
 import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
-import { Validator } from 'oae-util/lib/validator';
 import { AuthzConstants } from 'oae-authz/lib/constants';
+import { Validator as validator } from 'oae-util/lib/validator';
+import pipe from 'ramda/src/pipe';
+import isIn from 'validator/lib/isIn';
+import isInt from 'validator/lib/isInt';
 import * as FoldersFoldersLibrary from './internal/foldersLibrary';
 import * as FoldersAuthz from './authz';
 import * as FoldersContentLibrary from './internal/contentLibrary';
@@ -83,38 +86,64 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
   const allVisibilities = _.values(AuthzConstants.visibility);
 
   // Verify basic properties
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Anonymous users cannot create a folder' }).isLoggedInUser(ctx);
-  validator.check(displayName, { code: 400, msg: 'Must provide a display name for the folder' }).notEmpty();
-  validator
-    .check(displayName, { code: 400, msg: 'A display name can be at most 1000 characters long' })
-    .isShortString();
+  pipe(
+    validator.isLoggedInUser,
+    validator.generateError({
+      code: 401,
+      msg: 'Anonymous users cannot create a folder'
+    }),
+    validator.finalize(callback)
+  )(ctx);
+
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'Must provide a display name for the folder'
+    }),
+    validator.finalize(callback)
+  )(displayName);
+
+  pipe(
+    validator.isShortString,
+    validator.generateError({
+      code: 400,
+      msg: 'A display name can be at most 1000 characters long'
+    }),
+    validator.finalize(callback)
+  )(displayName);
+
   if (description) {
-    validator
-      .check(description, { code: 400, msg: 'A description can be at most 10000 characters long' })
-      .isMediumString();
+    pipe(
+      validator.isMediumString,
+      validator.generateError({
+        code: 400,
+        msg: 'A description can be at most 10000 characters long'
+      }),
+      validator.finalize(callback)
+    )(description);
   }
 
-  validator
-    .check(visibility, {
+  pipe(
+    isIn,
+    validator.generateError({
       code: 400,
       msg: 'An invalid folder visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
-    })
-    .isIn(allVisibilities);
+    }),
+    validator.finalize(callback)
+  )(visibility, allVisibilities);
 
   // Verify each role is valid
   _.each(roles, role => {
-    validator
-      .check(role, {
+    pipe(
+      isIn,
+      validator.generateError({
         code: 400,
         msg: util.format('The role "%s" is not a valid member role for a folder', role)
-      })
-      .isIn(FoldersConstants.role.ALL_PRIORITY);
+      }),
+      validator.finalize(callback)
+    )(role, FoldersConstants.role.ALL_PRIORITY);
   });
-
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
 
   // Check if the current user can manage any of the specified managers
   const managerIds = _.chain(roles)
@@ -171,15 +200,32 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
 const updateFolder = function(ctx, folderId, updates, callback) {
   const allVisibilities = _.values(AuthzConstants.visibility);
 
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Anonymous users cannot create a folder' }).isLoggedInUser(ctx);
-  validator
-    .check(folderId, {
+  pipe(
+    validator.isLoggedInUser,
+    validator.generateError({
+      code: 401,
+      msg: 'Anonymous users cannot create a folder'
+    }),
+    validator.finalize(callback)
+  )(ctx);
+
+  pipe(
+    validator.isResourceId,
+    validator.generateError({
       code: 400,
       msg: util.format('The folder id "%s" is not a valid resource id', folderId)
-    })
-    .isResourceId();
-  validator.check(updates, { code: 400, msg: 'Missing update information' }).isObject(updates);
+    }),
+    validator.finalize(callback)
+  )(folderId);
+
+  pipe(
+    validator.isObject,
+    validator.generateError({
+      code: 400,
+      msg: 'Missing update information'
+    }),
+    validator.finalize(callback)
+  )(updates, updates);
 
   // Ensure that at least one valid update field was provided
   const updateFields = _.keys(updates);
@@ -192,38 +238,47 @@ const updateFolder = function(ctx, folderId, updates, callback) {
     .min(1);
 
   _.each(updates, (val, key) => {
-    validator.check(key, { code: 400, msg: 'Unknown update field provided' }).isIn(legalUpdateFields);
+    pipe(
+      isIn,
+      validator.generateError({
+        code: 400,
+        msg: 'Unknown update field provided'
+      }),
+      validator.finalize(callback)
+    )(key, legalUpdateFields);
   });
 
   if (updates.displayName) {
-    validator
-      .check(updates.displayName, {
+    pipe(
+      validator.isShortString,
+      validator.generateError({
         code: 400,
         msg: 'A display name can be at most 1000 characters long'
-      })
-      .isShortString();
+      }),
+      validator.finalize(callback)
+    )(updates.displayName);
   }
 
   if (updates.description) {
-    validator
-      .check(updates.description, {
+    pipe(
+      validator.isMediumString,
+      validator.generateError({
         code: 400,
         msg: 'A description can be at most 10000 characters long'
-      })
-      .isMediumString();
+      }),
+      validator.finalize(callback)
+    )(updates.description);
   }
 
   if (updates.visibility) {
-    validator
-      .check(updates.visibility, {
+    pipe(
+      isIn,
+      validator.generateError({
         code: 400,
         msg: 'An invalid folder visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
-      })
-      .isIn(allVisibilities);
-  }
-
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+      }),
+      validator.finalize(callback)
+    )(updates.visibility, allVisibilities);
   }
 
   // Get the folder from storage to use for permission checks
@@ -266,29 +321,41 @@ const updateFolder = function(ctx, folderId, updates, callback) {
 const updateFolderContentVisibility = function(ctx, folderId, visibility, callback) {
   const allVisibilities = _.values(AuthzConstants.visibility);
 
-  const validator = new Validator();
-  validator
-    .check(null, {
+  pipe(
+    validator.isLoggedInUser,
+    validator.generateError({
       code: 401,
       msg: 'Anonymous users cannot update the visibility of items in a folder'
-    })
-    .isLoggedInUser(ctx);
-  validator
-    .check(folderId, {
+    }),
+    validator.finalize(callback)
+  )(ctx);
+
+  pipe(
+    validator.isResourceId,
+    validator.generateError({
       code: 400,
       msg: util.format('The folder id "%s" is not a valid resource id', folderId)
-    })
-    .isResourceId();
-  validator.check(visibility, { code: 400, msg: 'Missing visibility value' }).notEmpty();
-  validator
-    .check(visibility, {
+    }),
+    validator.finalize(callback)
+  )(folderId);
+
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'Missing visibility value'
+    }),
+    validator.finalize(callback)
+  )(visibility);
+
+  pipe(
+    isIn,
+    validator.generateError({
       code: 400,
       msg: 'An invalid folder visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
-    })
-    .isIn(allVisibilities);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+    }),
+    validator.finalize(callback)
+  )(visibility, allVisibilities);
 
   // Get the folder from storage to use for permission checks
   FoldersDAO.getFolder(folderId, (err, folder) => {
@@ -463,16 +530,14 @@ const _updateContentVisibility = function(ctx, content, visibility, callback) {
  * @param  {Folder}         callback.folder     The folder identified by the given id
  */
 const getFolder = function(ctx, folderId, callback) {
-  const validator = new Validator();
-  validator
-    .check(folderId, {
+  pipe(
+    validator.isResourceId,
+    validator.generateError({
       code: 400,
       msg: util.format('The folder id "%s" is not a valid resource id', folderId)
-    })
-    .isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+    }),
+    validator.finalize(callback)
+  )(folderId);
 
   // Get the folder from storage to use for permission checks
   FoldersDAO.getFolder(folderId, (err, folder) => {
@@ -510,16 +575,14 @@ const getFolder = function(ctx, folderId, callback) {
  * @param  {User}           callback.folder.createdBy       The basic profile of the user who created the folder
  */
 const getFullFolderProfile = function(ctx, folderId, callback) {
-  const validator = new Validator();
-  validator
-    .check(folderId, {
+  pipe(
+    validator.isResourceId,
+    validator.generateError({
       code: 400,
       msg: util.format('The folder id "%s" is not a valid resource id', folderId)
-    })
-    .isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+    }),
+    validator.finalize(callback)
+  )(folderId);
 
   // Get the folder from storage to use for permissions checks
   FoldersDAO.getFolder(folderId, (err, folder) => {
@@ -604,12 +667,16 @@ const _getFullFolderProfile = function(ctx, folder, callback) {
  * @param  {Content[]}      callback.failedContent      The content items that could not be deleted
  */
 const deleteFolder = function(ctx, folderId, deleteContent, callback) {
-  const validator = new Validator();
   validator.check(folderId, { code: 400, msg: 'A folder id must be provided' }).isResourceId();
-  validator.check(null, { code: 401, msg: 'You must be authenticated to delete a folder' }).isLoggedInUser(ctx);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+
+  pipe(
+    validator.isLoggedInUser,
+    validator.generateError({
+      code: 401,
+      msg: 'You must be authenticated to delete a folder'
+    }),
+    validator.finalize(callback)
+  )(ctx);
 
   FoldersDAO.getFolder(folderId, (err, folder) => {
     if (err) {
@@ -816,11 +883,14 @@ const _removeAuthzFolderFromContentItems = function(folder, contentIds, callback
 const getFolderMembers = function(ctx, folderId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  const validator = new Validator();
-  validator.check(folderId, { code: 400, msg: 'A folder id must be provided' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isResourceId,
+    validator.generateError({
+      code: 400,
+      msg: 'A folder id must be provided'
+    }),
+    validator.finalize(callback)
+  )(folderId);
 
   getFolder(ctx, folderId, (err, folder) => {
     if (err) {
@@ -863,11 +933,14 @@ const getFolderMembers = function(ctx, folderId, start, limit, callback) {
  * @param  {Invitation[]}   callback.invitations    The invitations
  */
 const getFolderInvitations = function(ctx, folderId, callback) {
-  const validator = new Validator();
-  validator.check(folderId, { code: 400, msg: 'A valid resource id must be specified' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isResourceId,
+    validator.generateError({
+      code: 400,
+      msg: 'A valid resource id must be specified'
+    }),
+    validator.finalize(callback)
+  )(folderId);
 
   FoldersDAO.getFolder(folderId, (err, folder) => {
     if (err) {
@@ -888,11 +961,14 @@ const getFolderInvitations = function(ctx, folderId, callback) {
  * @param  {Object}         callback.err    An error that occurred, if any
  */
 const resendFolderInvitation = function(ctx, folderId, email, callback) {
-  const validator = new Validator();
-  validator.check(folderId, { code: 400, msg: 'A valid resource id must be specified' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isResourceId,
+    validator.generateError({
+      code: 400,
+      msg: 'A valid resource id must be specified'
+    }),
+    validator.finalize(callback)
+  )(folderId);
 
   FoldersDAO.getFolder(folderId, (err, folder) => {
     if (err) {
@@ -915,14 +991,23 @@ const resendFolderInvitation = function(ctx, folderId, email, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const shareFolder = function(ctx, folderId, principalIds, callback) {
-  const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to share a folder' })
-    .isLoggedInUser(ctx);
-  validator.check(folderId, { code: 400, msg: 'A valid folder id must be provided' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isLoggedInUser,
+    validator.generateError({
+      code: 401,
+      msg: 'You have to be logged in to be able to share a folder'
+    }),
+    validator.finalize(callback)
+  )(ctx);
+
+  pipe(
+    validator.isResourceId,
+    validator.generateError({
+      code: 400,
+      msg: 'A valid folder id must be provided'
+    }),
+    validator.finalize(callback)
+  )(folderId);
 
   // Ensure the folder exists
   FoldersDAO.getFolder(folderId, (err, folder) => {
@@ -964,25 +1049,39 @@ const shareFolder = function(ctx, folderId, principalIds, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const setFolderPermissions = function(ctx, folderId, changes, callback) {
-  const validator = new Validator();
-  validator
-    .check(null, {
+  pipe(
+    validator.isLoggedInUser,
+    validator.generateError({
       code: 401,
       msg: 'You have to be logged in to be able to change folder permissions'
-    })
-    .isLoggedInUser(ctx);
-  validator.check(folderId, { code: 400, msg: 'A valid folder id must be provided' }).isResourceId();
+    }),
+    validator.finalize(callback)
+  )(ctx);
+
+  pipe(
+    validator.isResourceId,
+    validator.generateError({
+      code: 400,
+      msg: 'A valid folder id must be provided'
+    }),
+    validator.finalize(callback)
+  )(folderId);
+
   // eslint-disable-next-line no-unused-vars
   _.each(changes, (role, principalId) => {
-    validator
-      .check(role, {
+    pipe(
+      validator.isValidRoleChange,
+      validator.generateError({
         code: 400,
         msg: 'The role change: ' + role + ' is not a valid value. Must either be a string, or false'
-      })
-      .isValidRoleChange();
+      }),
+      validator.finalize(callback)
+    )(role);
+
     if (role) {
-      validator
-        .check(role, {
+      pipe(
+        isIn,
+        validator.generateError({
           code: 400,
           msg:
             'The role: "' +
@@ -990,8 +1089,9 @@ const setFolderPermissions = function(ctx, folderId, changes, callback) {
             '" is not a valid value. Must be one of: ' +
             FoldersConstants.role.ALL_PRIORITY.join(', ') +
             '; or false'
-        })
-        .isIn(FoldersConstants.role.ALL_PRIORITY);
+        }),
+        validator.finalize(callback)
+      )(role, FoldersConstants.role.ALL_PRIORITY);
     }
   });
 
@@ -1036,35 +1136,53 @@ const setFolderPermissions = function(ctx, folderId, changes, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const addContentItemsToFolder = function(ctx, folderId, contentIds, callback) {
-  const validator = new Validator();
-  validator
-    .check(null, {
+  pipe(
+    validator.isLoggedInUser,
+    validator.generateError({
       code: 401,
       msg: 'You have to be authenticated to be able to add an item to a folder'
-    })
-    .isLoggedInUser(ctx);
-  validator.check(folderId, { code: 400, msg: 'A valid folder id must be provided' }).isResourceId();
-  validator.check(null, { code: 400, msg: 'Must specify at least one content item to add' }).isArray(contentIds);
-  validator
-    .check(_.values(contentIds).length, {
+    }),
+    validator.finalize(callback)
+  )(ctx);
+
+  pipe(
+    validator.isResourceId,
+    validator.generateError({
+      code: 400,
+      msg: 'A valid folder id must be provided'
+    }),
+    validator.finalize(callback)
+  )(folderId);
+
+  pipe(
+    validator.isArray,
+    validator.generateError({
+      code: 400,
+      msg: 'Must specify at least one content item to add'
+    }),
+    validator.finalize(callback)
+  )(contentIds);
+
+  pipe(
+    validator.isArrayNotEmpty,
+    validator.generateError({
       code: 400,
       msg: 'You must specify at least one content item to add'
-    })
-    .min(1);
+    }),
+    validator.finalize(callback)
+  )(_.values(contentIds).length);
 
   // Ensure each content id is valid
   _.each(contentIds, contentId => {
-    validator
-      .check(contentId, {
+    pipe(
+      validator.isResourceId,
+      validator.generateError({
         code: 400,
         msg: util.format('The id "%s" is not a valid content id', contentId)
-      })
-      .isResourceId();
+      }),
+      validator.finalize(callback)
+    )(contentId);
   });
-
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
 
   // Get the folder to which we're trying to add the content items
   FoldersDAO.getFolder(folderId, (err, folder) => {
@@ -1162,21 +1280,41 @@ const _addContentItemsToFolderLibrary = function(ctx, actionContext, folder, con
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const removeContentItemsFromFolder = function(ctx, folderId, contentIds, callback) {
-  const validator = new Validator();
-  validator
-    .check(null, {
+  pipe(
+    validator.isLoggedInUser,
+    validator.generateError({
       code: 401,
       msg: 'You have to be authenticated to be able to remove an item from a folder'
-    })
-    .isLoggedInUser(ctx);
-  validator.check(folderId, { code: 400, msg: 'A valid folder id must be provided' }).isResourceId();
-  validator.check(null, { code: 400, msg: 'You must specify at least one content item to remove' }).isArray(contentIds);
-  validator
-    .check(_.values(contentIds).length, {
+    }),
+    validator.finalize(callback)
+  )(ctx);
+
+  pipe(
+    validator.isResourceId,
+    validator.generateError({
+      code: 400,
+      msg: 'A valid folder id must be provided'
+    }),
+    validator.finalize(callback)
+  )(folderId);
+
+  pipe(
+    validator.isArray,
+    validator.generateError({
       code: 400,
       msg: 'You must specify at least one content item to remove'
-    })
-    .min(1);
+    }),
+    validator.finalize(callback)
+  )(contentIds);
+
+  pipe(
+    validator.isArrayNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'You must specify at least one content item to remove'
+    }),
+    validator.finalize(callback)
+  )(_.values(contentIds).length);
 
   // Ensure each content id is valid
   _.each(contentIds, contentId => {
@@ -1261,11 +1399,14 @@ const removeContentItemsFromFolder = function(ctx, folderId, contentIds, callbac
 const getFoldersLibrary = function(ctx, principalId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  const validator = new Validator();
-  validator.check(principalId, { code: 400, msg: 'A user or group id must be provided' }).isPrincipalId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isPrincipalId,
+    validator.generateError({
+      code: 400,
+      msg: 'A user or group id must be provided'
+    }),
+    validator.finalize(callback)
+  )(principalId);
 
   // Get the principal
   PrincipalsDAO.getPrincipal(principalId, (err, principal) => {
@@ -1380,15 +1521,32 @@ const getManagedFolders = function(ctx, callback) {
  * @param  {Object}         callback.err        An error that occurred, if any
  */
 const removeFolderFromLibrary = function(ctx, principalId, folderId, callback) {
-  const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'You must be authenticated to remove a folder from a library' })
-    .isLoggedInUser(ctx);
-  validator.check(principalId, { code: 400, msg: 'A user or group id must be provided' }).isPrincipalId();
-  validator.check(folderId, { code: 400, msg: 'A valid folder id must be provided' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isLoggedInUser,
+    validator.generateError({
+      code: 401,
+      msg: 'You must be authenticated to remove a folder from a library'
+    }),
+    validator.finalize(callback)
+  )(ctx);
+
+  pipe(
+    validator.isPrincipalId,
+    validator.generateError({
+      code: 400,
+      msg: 'A user or group id must be provided'
+    }),
+    validator.finalize(callback)
+  )(principalId);
+
+  pipe(
+    validator.isResourceId,
+    validator.generateError({
+      code: 400,
+      msg: 'A valid folder id must be provided'
+    }),
+    validator.finalize(callback)
+  )(folderId);
 
   // Make sure the folder exists
   FoldersDAO.getFolder(folderId, (err, folder) => {
@@ -1442,11 +1600,14 @@ const removeFolderFromLibrary = function(ctx, principalId, folderId, callback) {
 const getFolderContentLibrary = function(ctx, folderId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  const validator = new Validator();
-  validator.check(folderId, { code: 400, msg: 'A folder id must be provided' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isResourceId,
+    validator.generateError({
+      code: 400,
+      msg: 'A folder id must be provided'
+    }),
+    validator.finalize(callback)
+  )(folderId);
 
   // Get the folder
   FoldersDAO.getFolder(folderId, (err, folder) => {
@@ -1510,17 +1671,51 @@ const getFolderContentLibrary = function(ctx, folderId, start, limit, callback) 
  * @param  {Message}            callback.message                The created message
  */
 const createMessage = function(ctx, folderId, body, replyToCreatedTimestamp, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Only authenticated users can post to folders' }).isLoggedInUser(ctx);
-  validator.check(folderId, { code: 400, msg: 'Invalid folder id provided' }).isResourceId();
-  validator.check(body, { code: 400, msg: 'A message body must be provided' }).notEmpty();
-  validator.check(body, { code: 400, msg: 'A message body can only be 100000 characters long' }).isLongString();
-  if (replyToCreatedTimestamp) {
-    validator.check(replyToCreatedTimestamp, { code: 400, msg: 'Invalid reply-to timestamp provided' }).isInt();
-  }
+  pipe(
+    validator.isLoggedInUser,
+    validator.generateError({
+      code: 401,
+      msg: 'Only authenticated users can post to folders'
+    }),
+    validator.finalize(callback)
+  )(ctx);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  pipe(
+    validator.isResourceId,
+    validator.generateError({
+      code: 400,
+      msg: 'Invalid folder id provided'
+    }),
+    validator.finalize(callback)
+  )(folderId);
+
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'A message body must be provided'
+    }),
+    validator.finalize(callback)
+  )(body);
+
+  pipe(
+    validator.isLongString,
+    validator.generateError({
+      code: 400,
+      msg: 'A message body can only be 100000 characters long'
+    }),
+    validator.finalize(callback)
+  )(body);
+
+  if (replyToCreatedTimestamp) {
+    pipe(
+      isInt,
+      validator.generateError({
+        code: 400,
+        msg: 'Invalid reply-to timestamp provided'
+      }),
+      validator.finalize(callback)
+    )(replyToCreatedTimestamp);
   }
 
   // Get the folder from storage to use for permission checks
@@ -1581,18 +1776,32 @@ const createMessage = function(ctx, folderId, body, replyToCreatedTimestamp, cal
  * @param  {Comment}        [callback.softDeleted]      When the message has been soft deleted (because it has replies), a stripped down message object representing the deleted message will be returned, with the `deleted` parameter set to `false`. If the message has been deleted from the index, no message object will be returned
  */
 const deleteMessage = function(ctx, folderId, messageCreatedDate, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Only authenticated users can delete messages' }).isLoggedInUser(ctx);
-  validator.check(folderId, { code: 400, msg: 'A folder id must be provided' }).isResourceId();
-  validator
-    .check(messageCreatedDate, {
+  pipe(
+    validator.isLoggedInUser,
+    validator.generateError({
+      code: 401,
+      msg: 'Only authenticated users can delete messages'
+    }),
+    validator.finalize(callback)
+  )(ctx);
+
+  pipe(
+    validator.isResourceId,
+    validator.generateError({
+      code: 400,
+      msg: 'A folder id must be provided'
+    }),
+    validator.finalize(callback)
+  )(folderId);
+
+  pipe(
+    isInt,
+    validator.generateError({
       code: 400,
       msg: 'A valid integer message created timestamp must be specified'
-    })
-    .isInt();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+    }),
+    validator.finalize(callback)
+  )(messageCreatedDate);
 
   // Get the folder from storage to use for permission checks
   FoldersDAO.getFolder(folderId, (err, folder) => {
@@ -1658,12 +1867,23 @@ const deleteMessage = function(ctx, folderId, messageCreatedDate, callback) {
 const getMessages = function(ctx, folderId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  const validator = new Validator();
-  validator.check(folderId, { code: 400, msg: 'Must provide a valid folder id' }).isResourceId();
-  validator.check(limit, { code: 400, msg: 'Must provide a valid limit' }).isInt();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+  pipe(
+    validator.isResourceId,
+    validator.generateError({
+      code: 400,
+      msg: 'Must provide a valid folder id'
+    }),
+    validator.finalize(callback)
+  )(folderId);
+
+  pipe(
+    isInt,
+    validator.generateError({
+      code: 400,
+      msg: 'Must provide a valid limit'
+    }),
+    validator.finalize(callback)
+  )(limit);
 
   // Get the folder from storage to use for permission checks
   FoldersDAO.getFolder(folderId, (err, folder) => {

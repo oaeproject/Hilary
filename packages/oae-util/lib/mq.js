@@ -446,8 +446,13 @@ const submit = (queueName, message, callback) => {
   )(message);
 
   const queueIsBound = queueBindings[queueName];
-  if (queueIsBound) return staticConnections.THE_PUBLISHER.lpush(queueName, message, callback);
-  return callback();
+  if (queueIsBound) {
+    staticConnections.THE_PUBLISHER.lpush(queueName, message, err => {
+      return callback(err);
+    });
+  } else {
+    return callback();
+  }
 };
 
 /**
@@ -475,9 +480,14 @@ const getAllActiveClients = () => {
  */
 const purgeQueue = (queueName, callback) => {
   callback = callback || function() {};
-  const validator = new Validator();
-  validator.check(queueName, { code: 400, msg: 'No channel was provided.' }).notEmpty();
-  if (validator.hasErrors()) return callback(validator.getFirstError());
+  pipe(
+    validator.isNotEmpty,
+    validator.generateError({
+      code: 400,
+      msg: 'No channel was provided.'
+    }),
+    validator.finalize(callback)
+  )(queueName);
 
   const theRedisPurger = staticConnections.THE_PURGER;
   theRedisPurger.del(queueName, err => {

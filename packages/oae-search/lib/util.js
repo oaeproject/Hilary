@@ -26,8 +26,9 @@ import * as TenantsUtil from 'oae-tenants/lib/util';
 import * as SearchModel from 'oae-search/lib/model';
 
 import { SearchConstants } from 'oae-search/lib/constants';
-import { Validator } from 'oae-util/lib/validator';
 import { AuthzConstants } from 'oae-authz/lib/constants';
+import { Validator as validator } from 'oae-util/lib/validator';
+import pipe from 'ramda/src/pipe';
 
 const log = logger('oae-search-util');
 
@@ -250,12 +251,17 @@ const createQuery = function(query, filter, opts) {
     [opts.sortBy]: getSortDirParam(opts.sort, SearchConstants.sort.direction.ASC, opts.sortBy)
   };
 
-  const validator = new Validator();
-  validator.check(null, new Error('createQuery expects a query object.')).isObject(query);
-  if (validator.hasErrors()) {
-    log().error({ err: validator.getFirstError() }, 'Invalid input provided to SearchUtil.createQuery');
-    throw validator.getFirstError();
-  }
+  pipe(
+    validator.isObject,
+    validator.generateError({
+      code: 400,
+      msg: 'createQuery expects a query object.'
+    }),
+    error => {
+      log().error({ err: validator.getFirstError() }, 'Invalid input provided to SearchUtil.createQuery');
+      throw error;
+    }
+  )(query);
 
   let data = null;
   if (filter) {

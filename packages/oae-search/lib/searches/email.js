@@ -20,7 +20,7 @@ import * as SearchUtil from 'oae-search/lib/util';
 import * as TenantsAPI from 'oae-tenants/lib/api';
 
 import { Validator as validator } from 'oae-util/lib/validator';
-const { otherwise } = validator;
+const { isEmail, isLoggedInUser, otherwise } = validator;
 import pipe from 'ramda/src/pipe';
 
 /**
@@ -45,7 +45,7 @@ const queryBuilder = function(ctx, opts, callback) {
 
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'Only authenticated users can use email search'
@@ -54,7 +54,7 @@ const queryBuilder = function(ctx, opts, callback) {
 
     const query = opts.q || '';
     pipe(
-      validator.isEmail,
+      isEmail,
       otherwise({
         code: 400,
         msg: 'An invalid email address has been specified'

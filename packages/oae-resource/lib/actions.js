@@ -31,7 +31,18 @@ import * as ResourceActivity from 'oae-resource/lib/activity';
 import { Invitation } from 'oae-authz/lib/invitations/model';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { Validator as validator } from 'oae-authz/lib/validator';
-const { otherwise } = validator;
+const {
+  otherwise,
+  isLoggedInUser,
+  isArrayNotEmpty,
+  isResource,
+  isValidRole,
+  isValidShareTarget,
+  isDifferent,
+  isEmail,
+  isNotEmpty,
+  isValidRoleChange
+} = validator;
 import pipe from 'ramda/src/pipe';
 import { ResourceConstants } from 'oae-resource/lib/constants';
 
@@ -61,7 +72,7 @@ const ResourceActions = new EmitterAPI.EventEmitter();
 const create = function(ctx, roles, createFn, callback) {
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 400,
         msg: 'Only authenticated users can create a new resource'
@@ -76,7 +87,7 @@ const create = function(ctx, roles, createFn, callback) {
   try {
     _.each(memberIds, memberId => {
       pipe(
-        validator.isValidShareTarget,
+        isValidShareTarget,
         otherwise({
           code: 400,
           msg:
@@ -95,7 +106,7 @@ const create = function(ctx, roles, createFn, callback) {
 
   try {
     pipe(
-      validator.isValidRole,
+      isValidRole,
       otherwise({
         code: 400,
         msg: 'There must be at least one manager specified when creating a resource'
@@ -168,7 +179,7 @@ const create = function(ctx, roles, createFn, callback) {
 const share = function(ctx, resource, targetIds, role, callback) {
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 400,
         msg: 'Only authenticated users can share a resource'
@@ -176,7 +187,7 @@ const share = function(ctx, resource, targetIds, role, callback) {
     )(ctx);
 
     pipe(
-      validator.isValidRole,
+      isValidRole,
       otherwise({
         code: 400,
         msg: 'Must specify a valid role'
@@ -184,7 +195,7 @@ const share = function(ctx, resource, targetIds, role, callback) {
     )(role);
 
     pipe(
-      validator.isResource,
+      isResource,
       otherwise({
         code: 400,
         msg: 'An invalid resource was provided'
@@ -192,7 +203,7 @@ const share = function(ctx, resource, targetIds, role, callback) {
     )(resource);
 
     pipe(
-      validator.isArrayNotEmpty,
+      isArrayNotEmpty,
       otherwise({
         code: 400,
         msg: 'At least one user to share with should be specified'
@@ -212,7 +223,7 @@ const share = function(ctx, resource, targetIds, role, callback) {
   try {
     _.each(targetIds, targetId => {
       pipe(
-        validator.isValidShareTarget,
+        isValidShareTarget,
         otherwise({
           code: 400,
           msg:
@@ -221,7 +232,7 @@ const share = function(ctx, resource, targetIds, role, callback) {
       )(targetId);
 
       pipe(
-        validator.isDifferent,
+        isDifferent,
         otherwise({
           code: 400,
           msg: 'You cannot share a resource with itself'
@@ -229,7 +240,7 @@ const share = function(ctx, resource, targetIds, role, callback) {
       )(targetId, resourceAuthzId);
 
       pipe(
-        validator.isDifferent,
+        isDifferent,
         otherwise({
           code: 400,
           msg: 'You cannot share a resource with itself'
@@ -287,7 +298,7 @@ const share = function(ctx, resource, targetIds, role, callback) {
 const setRoles = function(ctx, resource, roles, callback) {
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 400,
         msg: 'Only authenticated users can share a resource'
@@ -295,7 +306,7 @@ const setRoles = function(ctx, resource, roles, callback) {
     )(ctx);
 
     pipe(
-      validator.isResource,
+      isResource,
       otherwise({
         code: 400,
         msg: 'An invalid resource was provided'
@@ -303,7 +314,7 @@ const setRoles = function(ctx, resource, roles, callback) {
     )(resource);
 
     pipe(
-      validator.isArrayNotEmpty,
+      isArrayNotEmpty,
       otherwise({
         code: 400,
         msg: 'At least one role update should be specified'
@@ -323,7 +334,7 @@ const setRoles = function(ctx, resource, roles, callback) {
   try {
     _.each(roles, (role, memberId) => {
       pipe(
-        validator.isValidShareTarget,
+        isValidShareTarget,
         otherwise({
           code: 400,
           msg:
@@ -332,7 +343,7 @@ const setRoles = function(ctx, resource, roles, callback) {
       )(memberId);
 
       pipe(
-        validator.isDifferent,
+        isDifferent,
         otherwise({
           code: 400,
           msg: 'You cannot share a resource with itself'
@@ -340,7 +351,7 @@ const setRoles = function(ctx, resource, roles, callback) {
       )(memberId, resourceAuthzId);
 
       pipe(
-        validator.isDifferent,
+        isDifferent,
         otherwise({
           code: 400,
           msg: 'You cannot share a resource with itself'
@@ -348,7 +359,7 @@ const setRoles = function(ctx, resource, roles, callback) {
       )(memberId, resourceId);
 
       pipe(
-        validator.isValidRoleChange,
+        isValidRoleChange,
         otherwise({
           code: 400,
           msg: 'An invalid role was provided'
@@ -404,7 +415,7 @@ const setRoles = function(ctx, resource, roles, callback) {
 const resendInvitation = function(ctx, resource, email, callback) {
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'Only authenticated users can resend an invitation'
@@ -412,7 +423,7 @@ const resendInvitation = function(ctx, resource, email, callback) {
     )(ctx);
 
     pipe(
-      validator.isResource,
+      isResource,
       otherwise({
         code: 400,
         msg: 'A valid resource must be provided'
@@ -420,7 +431,7 @@ const resendInvitation = function(ctx, resource, email, callback) {
     )(resource);
 
     pipe(
-      validator.isEmail,
+      isEmail,
       otherwise({
         code: 400,
         msg: 'A valid email must be provided'
@@ -473,7 +484,7 @@ const resendInvitation = function(ctx, resource, email, callback) {
 const acceptInvitation = function(ctx, token, callback) {
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'Only authenticated users can accept an invitation'
@@ -481,7 +492,7 @@ const acceptInvitation = function(ctx, token, callback) {
     )(ctx);
 
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'An invitation token must be specified'

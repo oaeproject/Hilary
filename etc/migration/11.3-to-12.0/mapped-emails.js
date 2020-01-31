@@ -130,11 +130,12 @@ const _mapPrincipals = function(principals, callback) {
     }
 
     // Check whether the persisted email address is valid
-    const validator = new Validator();
-    validator
-      .check(email, { code: 400, msg: 'An invalid email address has been persisted' })
-      .isEmail();
-    if (validator.hasErrors()) {
+    try {
+      pipe(
+        isEmail,
+        otherwise({ code: 400, msg: 'An invalid email address has been persisted' })
+      )(email);
+    } catch (error) {
       return csvStream.write({
         principalId,
         displayName,

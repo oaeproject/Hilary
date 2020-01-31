@@ -330,7 +330,7 @@ describe('Authentication', () => {
     /**
      * Test that verifies that the Facebook authentication mechanism can deal with URL tampering
      */
-    it('verify the Facebook callback endpoint can deal with URL tampering ', callback => {
+    it('verify the Facebook callback endpoint can deal with URL tampering', callback => {
       verifyCallbackTampering('facebook', 'GET', { code: 'not-valid' }, callback);
     });
 

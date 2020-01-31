@@ -25,7 +25,7 @@ import _ from 'underscore';
 import { logger } from 'oae-logger';
 
 import { Validator as validator } from 'oae-util/lib/validator';
-const { otherwise } = validator;
+const { otherwise, isObject, isNotNull, isArrayNotEmpty } = validator;
 import pipe from 'ramda/src/pipe';
 import isInt from 'validator/lib/isInt';
 
@@ -118,7 +118,7 @@ const autoOrient = function(inputPath, opts, callback) {
 const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
   try {
     pipe(
-      validator.isNotNull,
+      isNotNull,
       otherwise({
         code: 400,
         msg: 'A path to the image that you want to crop is missing'
@@ -126,7 +126,7 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
     )(imagePath);
 
     pipe(
-      validator.isObject,
+      isObject,
       otherwise({
         code: 400,
         msg: 'The coordinates for the area you wish to crop must be specified'
@@ -208,7 +208,7 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
 
   try {
     pipe(
-      validator.isNotNull,
+      isNotNull,
       otherwise({
         code: 400,
         msg: 'The desired sizes array is missing'
@@ -221,7 +221,7 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
   if (sizes) {
     try {
       pipe(
-        validator.isArrayNotEmpty,
+        isArrayNotEmpty,
         otherwise({
           code: 400,
           msg: 'The desired sizes array is empty'
@@ -329,7 +329,7 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
 const cropImage = function(imagePath, selectedArea, callback) {
   try {
     pipe(
-      validator.isNotNull,
+      isNotNull,
       otherwise({
         code: 400,
         msg: 'A path to the image that you want to crop is missing'
@@ -337,7 +337,7 @@ const cropImage = function(imagePath, selectedArea, callback) {
     )(imagePath);
 
     pipe(
-      validator.isObject,
+      isObject,
       otherwise({
         code: 400,
         msg: 'The coordinates for the area you wish to crop must be specified'
@@ -514,7 +514,7 @@ const _cropImage = function(imagePath, selectedArea, callback) {
 const resizeImage = function(imagePath, size, callback) {
   try {
     pipe(
-      validator.isNotNull,
+      isNotNull,
       otherwise({
         code: 400,
         msg: 'A path to the image that you want to resize is missing'
@@ -522,7 +522,7 @@ const resizeImage = function(imagePath, size, callback) {
     )(imagePath);
 
     pipe(
-      validator.isObject,
+      isObject,
       otherwise({
         code: 400,
         msg: 'The size must be specified'
@@ -665,7 +665,7 @@ const getImageExtension = function(source, fallback) {
 const convertToJPG = function(inputPath, callback) {
   try {
     pipe(
-      validator.isNotNull,
+      isNotNull,
       otherwise({
         code: 400,
         msg: 'A path to the image that you want to resize is missing'

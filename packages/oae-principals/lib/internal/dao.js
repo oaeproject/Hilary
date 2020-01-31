@@ -27,7 +27,7 @@ import * as Redis from 'oae-util/lib/redis';
 
 import { Group, User } from 'oae-principals/lib/model';
 import { Validator as validator } from 'oae-authz/lib/validator';
-const { ifNotThenThrow } = validator;
+const { toBoolean, isPrincipalId, isArrayEmpty, otherwise } = validator;
 import pipe from 'ramda/src/pipe';
 
 import { LoginId } from 'oae-authentication/lib/model';
@@ -276,8 +276,8 @@ const updatePrincipal = function(principalId, profileFields, callback) {
 
   try {
     pipe(
-      validator.isArrayEmpty,
-      ifNotThenThrow({
+      isArrayEmpty,
+      otherwise({
         code: 400,
         msg: 'Attempted to update an invalid property'
       })
@@ -285,7 +285,6 @@ const updatePrincipal = function(principalId, profileFields, callback) {
   } catch (error) {
     return callback(error);
   }
-  // validator.check(, { code: 400, msg:  }).max(0);
 
   // Perform the update
   return _updatePrincipal(principalId, profileFields, callback);
@@ -403,8 +402,8 @@ const setAdmin = function(adminType, isAdmin, userId, callback) {
   // Ensure we're using a real principal id. If we weren't, we would be dangerously upserting an invalid row
   try {
     pipe(
-      validator.isPrincipalId,
-      ifNotThenThrow({
+      isPrincipalId,
+      otherwise({
         code: 400,
         msg: 'Attempted to update a principal with a non-principal id'
       })
@@ -412,12 +411,6 @@ const setAdmin = function(adminType, isAdmin, userId, callback) {
   } catch (error) {
     return callback(error);
   }
-
-  /*
-  validator
-    .check(userId, { code: 400, msg: 'Attempted to update a principal with a non-principal id' })
-    .isPrincipalId();
-    */
 
   const query = util.format('UPDATE "Principals" SET "%s" = ? WHERE "principalId" = ?', adminType);
   Cassandra.runQuery(query, [String(isAdmin), userId], err => {
@@ -637,8 +630,8 @@ const _updatePrincipal = function(principalId, profileFields, callback) {
   // Ensure we aren't updating a non-principal to avoid upserting invalid rows
   try {
     pipe(
-      validator.isPrincipalId,
-      ifNotThenThrow({
+      isPrincipalId,
+      otherwise({
         code: 400,
         msg: 'Attempted to update a principal with a non-principal id'
       })
@@ -922,8 +915,8 @@ const _hashToUser = function(hash) {
     deleted: hash.deleted,
     locale: hash.locale,
     publicAlias: hash.publicAlias,
-    isGlobalAdmin: validator.toBoolean(String(hash['admin:global']), true),
-    isTenantAdmin: validator.toBoolean(String(hash['admin:tenant']), true),
+    isGlobalAdmin: toBoolean(String(hash['admin:global']), true),
+    isTenantAdmin: toBoolean(String(hash['admin:tenant']), true),
     smallPictureUri: hash.smallPictureUri,
     mediumPictureUri: hash.mediumPictureUri,
     largePictureUri: hash.largePictureUri,

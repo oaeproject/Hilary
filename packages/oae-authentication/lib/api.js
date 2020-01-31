@@ -33,7 +33,18 @@ import * as TenantsAPI from 'oae-tenants';
 import * as TenantsUtil from 'oae-tenants/lib/util';
 import { logger } from 'oae-logger';
 import { Validator as validator } from 'oae-authz/lib/validator';
-const { getNestedObject, makeSureThat, ifNotThenThrow, otherwise, isNotEmpty } = validator;
+const {
+  getNestedObject,
+  isLoggedInUser,
+  isGlobalAdministratorUser,
+  isShortString,
+  isEmail,
+  isObject,
+  isUserId,
+  makeSureThat,
+  otherwise,
+  isNotEmpty
+} = validator;
 import pipe from 'ramda/src/pipe';
 import isLength from 'validator/lib/isLength';
 import { getTenantSkinVariables } from 'oae-ui';
@@ -142,7 +153,7 @@ const localUsernameExists = function(ctx, tenantAlias, username, callback) {
   // Parameter validation
   try {
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'Please specify a username'
@@ -191,7 +202,7 @@ const getOrCreateGlobalAdminUser = function(ctx, username, password, displayName
 
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'You must be authenticated to the global admin tenant to create a global administrator user'
@@ -199,7 +210,7 @@ const getOrCreateGlobalAdminUser = function(ctx, username, password, displayName
     )(ctx, globalTenantAlias);
 
     pipe(
-      validator.isGlobalAdministratorUser,
+      isGlobalAdministratorUser,
       otherwise({
         code: 401,
         msg: 'You must be a global administrator to create a global administrator user'
@@ -207,7 +218,7 @@ const getOrCreateGlobalAdminUser = function(ctx, username, password, displayName
     )(ctx);
 
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'You must provide a username'
@@ -215,7 +226,7 @@ const getOrCreateGlobalAdminUser = function(ctx, username, password, displayName
     )(username);
 
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'You must provide a password'
@@ -223,7 +234,7 @@ const getOrCreateGlobalAdminUser = function(ctx, username, password, displayName
     )(password);
 
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'You must provide a display name'
@@ -231,7 +242,7 @@ const getOrCreateGlobalAdminUser = function(ctx, username, password, displayName
     )(displayName);
 
     pipe(
-      validator.isShortString,
+      isShortString,
       otherwise({
         code: 400,
         msg: 'A display name can be at most 1000 characters long'
@@ -314,13 +325,13 @@ const getOrCreateUser = function(ctx, authProvider, externalId, providerProperti
   const loginId = new LoginId(ctx.tenant().alias, authProvider, externalId, providerProperties);
   try {
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'You must provide a display name'
       }),
-      makeSureThat(true, displayName, validator.isShortString),
-      ifNotThenThrow({
+      makeSureThat(true, displayName, isShortString),
+      otherwise({
         code: 400,
         msg: 'A display name can be at most 1000 characters long'
       })
@@ -387,7 +398,7 @@ const _getOrCreateUser = function(ctx, loginId, displayName, opts, callback) {
       if (opts.authoritative && opts.email) {
         try {
           pipe(
-            validator.isEmail,
+            isEmail,
             otherwise({
               code: 400,
               msg: 'Invalid email'
@@ -504,7 +515,7 @@ const createTenantAdminUser = function(ctx, loginId, displayName, opts, callback
 
   try {
     pipe(
-      validator.isObject,
+      isObject,
       otherwise({
         code: 400,
         msg: 'A LoginId must be provided'
@@ -512,7 +523,7 @@ const createTenantAdminUser = function(ctx, loginId, displayName, opts, callback
     )(loginId);
 
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'You must provide a display name'
@@ -520,7 +531,7 @@ const createTenantAdminUser = function(ctx, loginId, displayName, opts, callback
     )(displayName);
 
     pipe(
-      validator.isShortString,
+      isShortString,
       otherwise({
         code: 400,
         msg: 'A display name can be at most 1000 characters long'
@@ -594,7 +605,7 @@ const createTenantAdminUser = function(ctx, loginId, displayName, opts, callback
 const createUser = function(ctx, loginId, displayName, opts, callback) {
   try {
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'You must provide a display name'
@@ -602,7 +613,7 @@ const createUser = function(ctx, loginId, displayName, opts, callback) {
     )(displayName);
 
     pipe(
-      validator.isShortString,
+      isShortString,
       otherwise({
         code: 400,
         msg: 'A display name can be at most 1000 characters long'
@@ -741,14 +752,14 @@ const associateLoginId = function(ctx, loginId, userId, callback) {
   try {
     _validateLoginIdForPersistence(validator, loginId, callback);
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'You must be authenticated to associate a login id to a user'
       })
     )(ctx);
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'You must specify a user id'
@@ -839,21 +850,21 @@ const changePassword = function(ctx, userId, oldPassword, newPassword, callback)
   // Parameter validation
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to change a password'
       })
     )(ctx);
     pipe(
-      validator.isUserId,
+      isUserId,
       otherwise({
         code: 400,
         msg: 'A user id must be provided'
       })
     )(userId);
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'A new password must be provided'
@@ -931,7 +942,7 @@ const checkPassword = function(tenantAlias, username, password, callback) {
   // Parameter validation
   try {
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 401,
         msg: 'A tenant must be provided'
@@ -939,7 +950,7 @@ const checkPassword = function(tenantAlias, username, password, callback) {
     )(tenantAlias);
 
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'A username must be provided'
@@ -947,7 +958,7 @@ const checkPassword = function(tenantAlias, username, password, callback) {
     )(username);
 
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'A password must be provided'
@@ -1088,7 +1099,7 @@ const resetPassword = function(ctx, username, secret, newPassword, callback) {
   // Parameter validation
   try {
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'A username must be provided'
@@ -1096,7 +1107,7 @@ const resetPassword = function(ctx, username, secret, newPassword, callback) {
     )(username);
 
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'A secret must be provided'
@@ -1104,7 +1115,7 @@ const resetPassword = function(ctx, username, secret, newPassword, callback) {
     )(secret);
 
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'A new password must be provided'
@@ -1235,14 +1246,14 @@ const getUserLoginIds = function(ctx, userId, callback) {
   // Parameter validation
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'You have to be logged in to request the login ids for a user'
       })
     )(ctx);
     pipe(
-      validator.isUserId,
+      isUserId,
       otherwise({
         code: 400,
         msg: 'A user id must be provided'
@@ -1393,23 +1404,23 @@ const _validateLoginIdForLookup = function(validator, loginId) {
   const getAttribute = getNestedObject(loginId);
 
   pipe(
-    validator.isObject,
-    ifNotThenThrow({
+    isObject,
+    otherwise({
       code: 400,
       msg: 'Must specify a login id'
     }),
     makeSureThat(loginIsValid, getAttribute(['tenantAlias']), isNotEmpty),
-    ifNotThenThrow({
+    otherwise({
       code: 400,
       msg: 'Must specify a tenant id on the login id'
     }),
     makeSureThat(loginIsValid, getAttribute(['provider']), isNotEmpty),
-    ifNotThenThrow({
+    otherwise({
       code: 400,
       msg: 'Must specify an authentication provider on the login id'
     }),
     makeSureThat(loginIsValid, String(getAttribute(['externalId'])), isNotEmpty),
-    ifNotThenThrow({
+    otherwise({
       code: 400,
       msg: 'Must specify an external id on the login id'
     })
@@ -1427,7 +1438,6 @@ const _validateLoginIdForPersistence = function(validator, loginId, callback) {
   _validateLoginIdForLookup(validator, loginId, callback);
 
   // Only continue validating if the login id is valid so far
-  // if (validator.getErrorCount() === numErrors) {
   loginId.properties = loginId.properties || {};
   const password = _.isArray(loginId.properties.password)
     ? loginId.properties.password[0]

@@ -17,7 +17,7 @@ import util from 'util';
 import _ from 'underscore';
 
 import { Validator as validator } from 'oae-util/lib/validator';
-const { otherwise } = validator;
+const { otherwise, isNotEmpty, isGlobalAdministratorUser, isNotNull, isObject, isArrayNotEmpty } = validator;
 import pipe from 'ramda/src/pipe';
 import * as TenantNetworksDAO from './internal/dao.networks';
 import * as TenantsAPI from './api';
@@ -34,7 +34,7 @@ import * as TenantsAPI from './api';
 const createTenantNetwork = function(ctx, displayName, callback) {
   try {
     pipe(
-      validator.isGlobalAdministratorUser,
+      isGlobalAdministratorUser,
       otherwise({
         code: 401,
         msg: 'Must be a global administrator user to create a tenant networt'
@@ -42,7 +42,7 @@ const createTenantNetwork = function(ctx, displayName, callback) {
     )(ctx);
 
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'A tenant network must contain a display name'
@@ -66,7 +66,7 @@ const createTenantNetwork = function(ctx, displayName, callback) {
 const getTenantNetworks = function(ctx, callback) {
   try {
     pipe(
-      validator.isGlobalAdministratorUser,
+      isGlobalAdministratorUser,
       otherwise({
         code: 401,
         msg: 'Must be a global administrator user to view tenant networks'
@@ -113,7 +113,7 @@ const getTenantNetworks = function(ctx, callback) {
 const updateTenantNetwork = function(ctx, id, displayName, callback) {
   try {
     pipe(
-      validator.isGlobalAdministratorUser,
+      isGlobalAdministratorUser,
       otherwise({
         code: 401,
         msg: 'Must be a global administrator user to update a tenant network'
@@ -121,7 +121,7 @@ const updateTenantNetwork = function(ctx, id, displayName, callback) {
     )(ctx);
 
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'Must specify a tenant network id'
@@ -129,7 +129,7 @@ const updateTenantNetwork = function(ctx, id, displayName, callback) {
     )(id);
 
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'A tenant network must contain a display name'
@@ -153,7 +153,7 @@ const updateTenantNetwork = function(ctx, id, displayName, callback) {
 const deleteTenantNetwork = function(ctx, id, callback) {
   try {
     pipe(
-      validator.isGlobalAdministratorUser,
+      isGlobalAdministratorUser,
       otherwise({
         code: 401,
         msg: 'Must be a global administrator user to delete a tenant network'
@@ -161,7 +161,7 @@ const deleteTenantNetwork = function(ctx, id, callback) {
     )(ctx);
 
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'Must specify a tenant network id'
@@ -186,7 +186,7 @@ const deleteTenantNetwork = function(ctx, id, callback) {
 const addTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callback) {
   try {
     pipe(
-      validator.isGlobalAdministratorUser,
+      isGlobalAdministratorUser,
       otherwise({
         code: 401,
         msg: 'Must be a global administrator user to update a tenant network'
@@ -194,7 +194,7 @@ const addTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callback)
     )(ctx);
 
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'Must specify a tenant network id'
@@ -202,7 +202,7 @@ const addTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callback)
     )(tenantNetworkId);
 
     pipe(
-      validator.isNotNull,
+      isNotNull,
       otherwise({
         code: 400,
         msg: 'Must specify a list of tenant aliases to add'
@@ -210,7 +210,7 @@ const addTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callback)
     )(tenantAliases);
 
     pipe(
-      validator.isArrayNotEmpty,
+      isArrayNotEmpty,
       otherwise({
         code: 400,
         msg: 'Must specify at least one tenant alias to add'
@@ -219,7 +219,7 @@ const addTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callback)
 
     _.each(tenantAliases, tenantAlias => {
       pipe(
-        validator.isObject,
+        isObject,
         otherwise({
           code: 400,
           msg: util.format('Tenant with alias "%s" does not exist', tenantAlias)
@@ -245,7 +245,7 @@ const addTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callback)
 const removeTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callback) {
   try {
     pipe(
-      validator.isGlobalAdministratorUser,
+      isGlobalAdministratorUser,
       otherwise({
         code: 401,
         msg: 'Must be a global administrator user to update a tenant network'
@@ -253,7 +253,7 @@ const removeTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callba
     )(ctx);
 
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'Must specify a tenant network id'
@@ -261,7 +261,7 @@ const removeTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callba
     )(tenantNetworkId);
 
     pipe(
-      validator.isNotNull,
+      isNotNull,
       otherwise({
         code: 400,
         msg: 'Must specify a list of tenant aliases to remove'
@@ -269,7 +269,7 @@ const removeTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callba
     )(tenantAliases);
 
     pipe(
-      validator.isNotNull,
+      isNotNull,
       otherwise({
         code: 400,
         msg: 'Must specify at least one tenant alias to remove'

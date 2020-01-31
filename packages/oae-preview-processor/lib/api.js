@@ -38,7 +38,17 @@ import * as FolderProcessor from 'oae-preview-processor/lib/processors/folder';
 
 import { logger } from 'oae-logger';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { otherwise } = validator;
+const {
+  otherwise,
+  isNotEmpty,
+  isNull,
+  isObject,
+  isArrayNotEmpty,
+  isResourceId,
+  isGlobalAdministratorUser,
+  isNotNull,
+  isLoggedInUser
+} = validator;
 import PreviewConstants from './constants';
 import { FilterGenerator } from './filters';
 import { PreviewContext } from './model';
@@ -229,19 +239,16 @@ const getConfiguration = function() {
  * @param  {Function}   processor.generatePreviews  The method that generates previews for a piece of content.
  */
 const registerProcessor = function(processorId, processor) {
-  pipe(validator.isNotEmpty, otherwise(new Error('Missing processor ID')))(processorId);
+  pipe(isNotEmpty, otherwise(new Error('Missing processor ID')))(processorId);
 
-  pipe(validator.isNull, otherwise(new Error('This processor is already registerd')))(_processors[processorId]);
+  pipe(isNull, otherwise(new Error('This processor is already registerd')))(_processors[processorId]);
 
-  pipe(validator.isObject, otherwise(new Error('Missing processor')))(processor);
+  pipe(isObject, otherwise(new Error('Missing processor')))(processor);
 
-  pipe(validator.isNotNull, otherwise(new Error('The processor has no test method')))(processor.test);
+  pipe(isNotNull, otherwise(new Error('The processor has no test method')))(processor.test);
 
   // TODO not a string
-  pipe(
-    validator.isNotNull,
-    otherwise(new Error('The processor has no generatePreviews method'))
-  )(processor.generatePreviews);
+  pipe(isNotNull, otherwise(new Error('The processor has no generatePreviews method')))(processor.generatePreviews);
 
   _processors[processorId] = processor;
 };
@@ -364,7 +371,7 @@ const reprocessPreviews = function(ctx, filters, callback) {
 
   try {
     pipe(
-      validator.isGlobalAdministratorUser,
+      isGlobalAdministratorUser,
       otherwise({
         code: 401,
         msg: 'Must be global administrator to reprocess previews'
@@ -372,7 +379,7 @@ const reprocessPreviews = function(ctx, filters, callback) {
     )(ctx);
 
     pipe(
-      validator.isObject,
+      isObject,
       otherwise({
         code: 400,
         msg: 'At least one filter must be specified'
@@ -385,7 +392,7 @@ const reprocessPreviews = function(ctx, filters, callback) {
   if (_.isObject(filters)) {
     try {
       pipe(
-        validator.isArrayNotEmpty,
+        isArrayNotEmpty,
         otherwise({
           code: 400,
           msg: 'At least one filter must be specified'
@@ -414,7 +421,7 @@ const reprocessPreviews = function(ctx, filters, callback) {
 const reprocessPreview = function(ctx, contentId, revisionId, callback) {
   try {
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'A content id must be provided'
@@ -422,7 +429,7 @@ const reprocessPreview = function(ctx, contentId, revisionId, callback) {
     )(contentId);
 
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'A revision id must be provided'
@@ -430,7 +437,7 @@ const reprocessPreview = function(ctx, contentId, revisionId, callback) {
     )(revisionId);
 
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'Must be logged in to reprocess previews'

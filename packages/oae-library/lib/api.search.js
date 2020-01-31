@@ -19,7 +19,7 @@ import { ContentConstants } from 'oae-content/lib/constants';
 import { DiscussionsConstants } from 'oae-discussions/lib/constants';
 import { SearchConstants } from 'oae-search/lib/constants';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { otherwise } = validator;
+const { isResourceId, otherwise } = validator;
 import pipe from 'ramda/src/pipe';
 
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
@@ -66,7 +66,7 @@ export const registerLibrarySearch = function(searchName, resourceTypes, options
 
     try {
       pipe(
-        validator.isResourceId,
+        isResourceId,
         otherwise({
           code: 400,
           msg: 'Must specificy an id of a library to search'

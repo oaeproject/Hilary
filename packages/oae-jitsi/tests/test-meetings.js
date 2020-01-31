@@ -873,7 +873,7 @@ describe('Meeting Jitsi', () => {
       });
     });
 
-    it('should not be successfull if the user is loggedin but not a member ', callback => {
+    it('should not be successfull if the user is loggedin but not a member', callback => {
       TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, user) => {
         assert.ok(!err);
 
@@ -914,7 +914,7 @@ describe('Meeting Jitsi', () => {
       });
     });
 
-    it('should not be successfull if the user is just a member ', callback => {
+    it('should not be successfull if the user is just a member', callback => {
       TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, user) => {
         assert.ok(!err);
 

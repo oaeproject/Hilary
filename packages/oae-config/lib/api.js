@@ -25,8 +25,6 @@ import * as OaeUtil from 'oae-util/lib/util';
 import * as Pubsub from 'oae-util/lib/pubsub';
 import { logger } from 'oae-logger';
 import { Validator as validator } from 'oae-util/lib/validator';
-// const { otherwise } = validator;
-// const { makeSureThat, ifNotThenThrow } = validator;
 import pipe from 'ramda/src/pipe';
 
 const log = logger('oae-config');
@@ -161,10 +159,11 @@ const getSchema = function(ctx, callback) {
  */
 const getTenantConfig = function(ctx, tenantAlias, callback) {
   // Parameter validation
+  const { isNotEmpty, otherwise } = validator;
   try {
     pipe(
-      validator.isNotEmpty,
-      validator.otherwise({
+      isNotEmpty,
+      otherwise({
         code: 400,
         msg: 'Missing tenant parameter'
       })
@@ -587,58 +586,55 @@ const updateConfig = function(ctx, tenantAlias, configValues, callback) {
     return callback({ code: 401, msg: 'Only authorized tenant admins can change config values' });
   }
 
+  const { isNotEmpty, isDefined, otherwise, isArrayNotEmpty } = validator;
   const configFieldNames = _.keys(configValues);
 
   try {
     pipe(
-      validator.isNotEmpty,
-      validator.otherwise({
+      isNotEmpty,
+      otherwise({
         code: 400,
         msg: 'Missing tenantid'
       })
     )(tenantAlias);
 
     pipe(
-      validator.isArrayNotEmpty,
-      validator.otherwise({
+      isArrayNotEmpty,
+      otherwise({
         code: 400,
         msg: 'Missing configuration. Example configuration: {"oae-authentication/twitter/enabled": false}'
       })
     )(configFieldNames);
-  } catch (error) {
-    return callback(error);
-  }
 
-  // Since we can return out of this loop, we use `for` instead of `_.each`
-  for (const configFieldName of configFieldNames) {
-    const configFieldValue = configValues[configFieldName];
+    // Since we can return out of this loop, we use `for` instead of `_.each`
+    for (const configFieldName of configFieldNames) {
+      const configFieldValue = configValues[configFieldName];
 
-    try {
       pipe(
-        validator.isDefined,
-        validator.otherwise({
+        isDefined,
+        otherwise({
           code: 400,
           msg: util.format('The configuration value for "%s" must be specified', configFieldName)
         })
       )(configFieldValue);
-    } catch (error) {
-      return callback(error);
-    }
 
-    const parts = configFieldName.split('/');
-    if (!_element(parts[0], parts[1], parts[2])) {
-      return callback({
-        code: 404,
-        msg: util.format('Config key "%s" does not exist', configFieldName)
-      });
-    }
+      const parts = configFieldName.split('/');
+      if (!_element(parts[0], parts[1], parts[2])) {
+        return callback({
+          code: 404,
+          msg: util.format('Config key "%s" does not exist', configFieldName)
+        });
+      }
 
-    if (!_canUpdateConfigValue(ctx, tenantAlias, parts[0], parts[1], parts[2])) {
-      return callback({
-        code: 401,
-        msg: util.format('User is not allowed to update config value "%s"', configFieldName)
-      });
+      if (!_canUpdateConfigValue(ctx, tenantAlias, parts[0], parts[1], parts[2])) {
+        return callback({
+          code: 401,
+          msg: util.format('User is not allowed to update config value "%s"', configFieldName)
+        });
+      }
     }
+  } catch (error) {
+    return callback(error);
   }
 
   // Aggregate the values into module/feature/element column keys
@@ -710,58 +706,55 @@ const clearConfig = function(ctx, tenantAlias, configFields, callback) {
     return callback({ code: 401, msg: 'Only authorized tenant admins can change config values' });
   }
 
+  const { isNotEmpty, otherwise, isArrayNotEmpty, isDifferent } = validator;
   try {
     pipe(
-      validator.isNotEmpty,
-      validator.otherwise({
+      isNotEmpty,
+      otherwise({
         code: 400,
         msg: 'Missing tenant alias'
       })
     )(tenantAlias);
 
     pipe(
-      validator.isArrayNotEmpty,
-      validator.otherwise({
+      isArrayNotEmpty,
+      otherwise({
         code: 400,
         msg: 'Missing configuration. Example configuration: ["oae-authentication/twitter/enabled"]'
       })
     )(configFields);
-  } catch (error) {
-    return callback(error);
-  }
 
-  // Sort the config fields alphabetically so we can do the mixed element/optionalKey check
-  configFields = configFields.sort();
-  for (let i = 0; i < configFields.length; i++) {
-    // Check that we're not clearing both the entire element and one if its optional keys
-    if (i > 0) {
-      try {
+    // Sort the config fields alphabetically so we can do the mixed element/optionalKey check
+    configFields = configFields.sort();
+    for (let i = 0; i < configFields.length; i++) {
+      // Check that we're not clearing both the entire element and one if its optional keys
+      if (i > 0) {
         pipe(
-          validator.isDifferent,
-          validator.otherwise({
+          isDifferent,
+          otherwise({
             code: 400,
             msg: 'You cannot mix clearing an entire element and an optionalKey'
           })
         )(configFields[i].indexOf(configFields[i - 1] + '/'), '0');
-      } catch (error) {
-        return callback(error);
+      }
+
+      const configField = configFields[i].split('/');
+      if (!_element(configField[0], configField[1], configField[2])) {
+        return callback({
+          code: 404,
+          msg: util.format('Config value "%s" does not exist', configFields[i])
+        });
+      }
+
+      if (!_canUpdateConfigValue(ctx, tenantAlias, configField[0], configField[1], configField[2])) {
+        return callback({
+          code: 401,
+          msg: util.format('User is not allowed to update config value "%s"', configFields[i])
+        });
       }
     }
-
-    const configField = configFields[i].split('/');
-    if (!_element(configField[0], configField[1], configField[2])) {
-      return callback({
-        code: 404,
-        msg: util.format('Config value "%s" does not exist', configFields[i])
-      });
-    }
-
-    if (!_canUpdateConfigValue(ctx, tenantAlias, configField[0], configField[1], configField[2])) {
-      return callback({
-        code: 401,
-        msg: util.format('User is not allowed to update config value "%s"', configFields[i])
-      });
-    }
+  } catch (error) {
+    return callback(error);
   }
 
   // Keep track of what changes that should happen to the row

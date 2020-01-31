@@ -658,8 +658,8 @@ describe('Activity', () => {
         });
 
         // Simply trigger the activity
-        ActivityAPI.postActivity(anonymousCamApiContext, seed);
-      });
+      ActivityAPI.postActivity(anonymousCamApiContext, seed);
+    });
 
       /**
        * Test that verifies that the default activity transformer will return just the oae:id, oae:tenant and objectType of an entity
@@ -897,7 +897,7 @@ describe('Activity', () => {
       /**
        * Test that postActivity validates input properly
        */
-      it.only('verify postActivity validation', callback => {
+      it('verify postActivity validation', callback => {
         TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, jack) => {
           assert.ok(!err);
 

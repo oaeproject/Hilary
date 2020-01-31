@@ -185,11 +185,16 @@ describe('MQ', () => {
         MQ.submit(queueName, null, err => {
           assert.strictEqual(err.code, 400);
 
+        // A string message must be provided
+        MQ.submit(queueName, data, err => {
+          assert.strictEqual(err.code, 400);
+
           // Sanity check
-          MQ.submit(queueName, data, err => {
+          MQ.submit(queueName, JSON.stringify(data), err => {
             assert.ok(!err);
             return callback();
           });
+        });
         });
       });
     });

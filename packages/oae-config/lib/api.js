@@ -25,6 +25,7 @@ import * as OaeUtil from 'oae-util/lib/util';
 import * as Pubsub from 'oae-util/lib/pubsub';
 import { logger } from 'oae-logger';
 import { Validator as validator } from 'oae-util/lib/validator';
+// const { makeSureThat, ifNotThenThrow } = validator;
 import pipe from 'ramda/src/pipe';
 
 const log = logger('oae-config');
@@ -159,14 +160,17 @@ const getSchema = function(ctx, callback) {
  */
 const getTenantConfig = function(ctx, tenantAlias, callback) {
   // Parameter validation
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Missing tenant parameter'
-    }),
-    validator.finalize(callback)
-  )(tenantAlias);
+  try {
+    pipe(
+      validator.isNotEmpty,
+      validator.generateError({
+        code: 400,
+        msg: 'Missing tenant parameter'
+      })
+    )(tenantAlias);
+  } catch (error) {
+    return callback(error);
+  }
 
   const isGlobalAdmin = ctx.user() && ctx.user().isGlobalAdmin();
   const isTenantAdmin = ctx.user() && ctx.user().isTenantAdmin(tenantAlias);
@@ -584,36 +588,41 @@ const updateConfig = function(ctx, tenantAlias, configValues, callback) {
 
   const configFieldNames = _.keys(configValues);
 
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Missing tenantid'
-    }),
-    validator.finalize(callback)
-  )(tenantAlias);
+  try {
+    pipe(
+      validator.isNotEmpty,
+      validator.generateError({
+        code: 400,
+        msg: 'Missing tenantid'
+      })
+    )(tenantAlias);
 
-  pipe(
-    validator.isArrayNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Missing configuration. Example configuration: {"oae-authentication/twitter/enabled": false}'
-    }),
-    validator.finalize(callback)
-  )(configFieldNames);
+    pipe(
+      validator.isArrayNotEmpty,
+      validator.generateError({
+        code: 400,
+        msg: 'Missing configuration. Example configuration: {"oae-authentication/twitter/enabled": false}'
+      })
+    )(configFieldNames);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Since we can return out of this loop, we use `for` instead of `_.each`
   for (const configFieldName of configFieldNames) {
     const configFieldValue = configValues[configFieldName];
 
-    pipe(
-      validator.isDefined,
-      validator.generateError({
-        code: 400,
-        msg: util.format('The configuration value for "%s" must be specified', configFieldName)
-      }),
-      validator.finalize(callback)
-    )(configFieldValue);
+    try {
+      pipe(
+        validator.isDefined,
+        validator.generateError({
+          code: 400,
+          msg: util.format('The configuration value for "%s" must be specified', configFieldName)
+        })
+      )(configFieldValue);
+    } catch (error) {
+      return callback(error);
+    }
 
     const parts = configFieldName.split('/');
     if (!_element(parts[0], parts[1], parts[2])) {
@@ -629,10 +638,6 @@ const updateConfig = function(ctx, tenantAlias, configValues, callback) {
         msg: util.format('User is not allowed to update config value "%s"', configFieldName)
       });
     }
-  }
-
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
   }
 
   // Aggregate the values into module/feature/element column keys
@@ -704,37 +709,42 @@ const clearConfig = function(ctx, tenantAlias, configFields, callback) {
     return callback({ code: 401, msg: 'Only authorized tenant admins can change config values' });
   }
 
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Missing tenant alias'
-    }),
-    validator.finalize(callback)
-  )(tenantAlias);
+  try {
+    pipe(
+      validator.isNotEmpty,
+      validator.generateError({
+        code: 400,
+        msg: 'Missing tenant alias'
+      })
+    )(tenantAlias);
 
-  pipe(
-    validator.isArrayNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Missing configuration. Example configuration: ["oae-authentication/twitter/enabled"]'
-    }),
-    validator.finalize(callback)
-  )(configFields);
+    pipe(
+      validator.isArrayNotEmpty,
+      validator.generateError({
+        code: 400,
+        msg: 'Missing configuration. Example configuration: ["oae-authentication/twitter/enabled"]'
+      })
+    )(configFields);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Sort the config fields alphabetically so we can do the mixed element/optionalKey check
   configFields = configFields.sort();
   for (let i = 0; i < configFields.length; i++) {
     // Check that we're not clearing both the entire element and one if its optional keys
     if (i > 0) {
-      pipe(
-        validator.isDifferent,
-        validator.generateError({
-          code: 400,
-          msg: 'You cannot mix clearing an entire element and an optionalKey'
-        }),
-        validator.finalize(callback)
-      )(configFields[i].indexOf(configFields[i - 1] + '/', '0'));
+      try {
+        pipe(
+          validator.isDifferent,
+          validator.generateError({
+            code: 400,
+            msg: 'You cannot mix clearing an entire element and an optionalKey'
+          })
+        )(configFields[i].indexOf(configFields[i - 1] + '/'), '0');
+      } catch (error) {
+        return callback(error);
+      }
     }
 
     const configField = configFields[i].split('/');
@@ -751,10 +761,6 @@ const clearConfig = function(ctx, tenantAlias, configFields, callback) {
         msg: util.format('User is not allowed to update config value "%s"', configFields[i])
       });
     }
-  }
-
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
   }
 
   // Keep track of what changes that should happen to the row

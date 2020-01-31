@@ -27,6 +27,17 @@ import * as Redis from 'oae-util/lib/redis';
 
 import { Group, User } from 'oae-principals/lib/model';
 import { Validator as validator } from 'oae-authz/lib/validator';
+const {
+  getNestedObject,
+  makeSureThat,
+  ifNotThenThrow,
+  isLoggedInUser,
+  isUserId,
+  isPrincipalId,
+  isNotEmpty,
+  isANumber,
+  isObject
+} = validator;
 import pipe from 'ramda/src/pipe';
 
 import { LoginId } from 'oae-authentication/lib/model';
@@ -273,14 +284,17 @@ const updatePrincipal = function(principalId, profileFields, callback) {
   // Ensure the caller is not trying to set an invalid field
   const invalidKeys = _.intersection(RESTRICTED_FIELDS, _.keys(profileFields));
 
-  pipe(
-    validator.isEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Attempted to update an invalid property'
-    }),
-    validator.finalize(callback)
-  )(invalidKeys);
+  try {
+    pipe(
+      validator.isArrayEmpty,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'Attempted to update an invalid property'
+      })
+    )(invalidKeys);
+  } catch (error) {
+    return callback(error);
+  }
   // validator.check(, { code: 400, msg:  }).max(0);
 
   // Perform the update
@@ -397,14 +411,17 @@ const acceptTermsAndConditions = function(userId, callback) {
  */
 const setAdmin = function(adminType, isAdmin, userId, callback) {
   // Ensure we're using a real principal id. If we weren't, we would be dangerously upserting an invalid row
-  pipe(
-    validator.isPrincipalId,
-    validator.generateError({
-      code: 400,
-      msg: 'Attempted to update a principal with a non-principal id'
-    }),
-    validator.finalize(callback)
-  )(userId);
+  try {
+    pipe(
+      validator.isPrincipalId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'Attempted to update a principal with a non-principal id'
+      })
+    )(userId);
+  } catch (error) {
+    return callback(error);
+  }
 
   /*
   validator
@@ -628,14 +645,17 @@ const _updatePrincipal = function(principalId, profileFields, callback) {
     .value();
 
   // Ensure we aren't updating a non-principal to avoid upserting invalid rows
-  pipe(
-    validator.isPrincipalId,
-    validator.generateError({
-      code: 400,
-      msg: 'Attempted to update a principal with a non-principal id'
-    }),
-    validator.finalize(callback)
-  )(principalId);
+  try {
+    pipe(
+      validator.isPrincipalId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'Attempted to update a principal with a non-principal id'
+      })
+    )(principalId);
+  } catch (error) {
+    return callback(error);
+  }
 
   // If a change is being made to the email address, we need to update the mapping
   _isEmailAddressUpdate(principalId, profileFields, (err, isEmailAddressUpdate, oldEmail) => {

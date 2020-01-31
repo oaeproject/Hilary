@@ -43,6 +43,18 @@ import * as Signature from 'oae-util/lib/signature';
 import { setUpConfig } from 'oae-config';
 import { Context } from 'oae-context';
 import { Validator as validator } from 'oae-util/lib/validator';
+const {
+  getNestedObject,
+  makeSureThat,
+  ifNotThenThrow,
+  isShortString,
+  isLoggedInUser,
+  isUserId,
+  isPrincipalId,
+  isNotEmpty,
+  isANumber,
+  isObject
+} = validator;
 import pipe from 'ramda/src/pipe';
 import isIn from 'validator/lib/isIn';
 import isInt from 'validator/lib/isInt';
@@ -155,41 +167,41 @@ const createUser = function(ctx, tenantAlias, displayName, opts, callback) {
   opts.emailPreference = opts.emailPreference || PrincipalsConfig.getValue(tenantAlias, 'user', 'emailPreference');
   opts.isUserArchive = opts.isUserArchive || null;
 
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'A display name must be provided'
-    }),
-    validator.finalize(callback)
-  )(displayName);
+  try {
+    pipe(
+      validator.isNotEmpty,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A display name must be provided'
+      })
+    )(displayName);
 
-  pipe(
-    validator.isShortString,
-    validator.generateError({
-      code: 400,
-      msg: 'A display name can be at most 1000 characters long'
-    }),
-    validator.finalize(callback)
-  )(displayName);
+    pipe(
+      validator.isShortString,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A display name can be at most 1000 characters long'
+      })
+    )(displayName);
 
-  pipe(
-    isIn,
-    validator.generateError({
-      code: 400,
-      msg: 'The specified visibility setting is unknown'
-    }),
-    validator.finalize(callback)
-  )(opts.visibility, _.values(AuthzConstants.visibility));
+    pipe(
+      isIn,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'The specified visibility setting is unknown'
+      })
+    )(opts.visibility, _.values(AuthzConstants.visibility));
 
-  pipe(
-    isIn,
-    validator.generateError({
-      code: 400,
-      msg: 'The specified email preference is invalid'
-    }),
-    validator.finalize(callback)
-  )(opts.emailPreference, _.values(PrincipalsConstants.emailPreferences));
+    pipe(
+      isIn,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'The specified email preference is invalid'
+      })
+    )(opts.emailPreference, _.values(PrincipalsConstants.emailPreferences));
+  } catch (error) {
+    return callback(error);
+  }
 
   // If an administrator is creating an account, we consider the email address to be verified
   opts.emailVerified = opts.emailVerified || (ctx.user() && ctx.user().isAdmin(tenantAlias)) || false;
@@ -200,14 +212,17 @@ const createUser = function(ctx, tenantAlias, displayName, opts, callback) {
     // E-mail addresses are always lower-cased as it makes them easier to deal with
     opts.email = opts.email.toLowerCase();
 
-    pipe(
-      validator.isEmail,
-      validator.generateError({
-        code: 400,
-        msg: 'The specified email address is invalid'
-      }),
-      validator.finalize(callback)
-    )(opts.email);
+    try {
+      pipe(
+        validator.isEmail,
+        ifNotThenThrow({
+          code: 400,
+          msg: 'The specified email address is invalid'
+        })
+      )(opts.email);
+    } catch (error) {
+      return callback(error);
+    }
   } else {
     // Avoid setting a falsey email address
     delete opts.email;
@@ -312,114 +327,80 @@ const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, 
     });
   }
 
-  // Parameter validation
-  pipe(
-    validator.isNotNull,
-    validator.generateError({
-      code: 400,
-      msg: 'An existing tenant alias must be provided'
-    }),
-    error => {
-      return _cleanUpCSVFile(userCSV, () => {
-        callback(error);
-      });
+  try {
+    // Parameter validation
+    pipe(
+      validator.isNotNull,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'An existing tenant alias must be provided'
+      })
+    )(tenant);
+
+    pipe(
+      validator.isNotNull,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A CSV file must be provided'
+      })
+    )(userCSV);
+
+    if (userCSV) {
+      pipe(
+        validator.isNotEmpty,
+        ifNotThenThrow({
+          code: 400,
+          msg: 'Missing size on the CSV file'
+        })
+      )(String(userCSV.size));
+
+      pipe(
+        isInt,
+        ifNotThenThrow({
+          code: 400,
+          msg: 'Invalid size on the CSV file'
+        })
+      )(String(userCSV.size));
+
+      pipe(
+        size => {
+          return size > 0;
+        },
+        ifNotThenThrow({
+          code: 400,
+          msg: 'Invalid size on the CSV file'
+        })
+      )(String(userCSV.size));
+
+      pipe(
+        validator.isNotEmpty,
+        ifNotThenThrow({
+          code: 400,
+          msg: 'Missing name on the CSV file'
+        })
+      )(userCSV.name);
     }
-  )(tenant);
-
-  pipe(
-    validator.isNotNull,
-    validator.generateError({
-      code: 400,
-      msg: 'A CSV file must be provided'
-    }),
-    error => {
-      return _cleanUpCSVFile(userCSV, () => {
-        callback(error);
-      });
-    }
-  )(userCSV);
-
-  if (userCSV) {
-    pipe(
-      validator.isNotEmpty,
-      validator.generateError({
-        code: 400,
-        msg: 'Missing size on the CSV file'
-      }),
-      error => {
-        return _cleanUpCSVFile(userCSV, () => {
-          callback(error);
-        });
-      }
-    )(userCSV.size);
-
-    pipe(
-      isInt,
-      validator.generateError({
-        code: 400,
-        msg: 'Invalid size on the CSV file'
-      }),
-      error => {
-        return _cleanUpCSVFile(userCSV, () => {
-          callback(error);
-        });
-      }
-    )(userCSV.size);
-
-    pipe(
-      size => {
-        return size > 0;
-      },
-      validator.generateError({
-        code: 400,
-        msg: 'Invalid size on the CSV file'
-      }),
-      error => {
-        return _cleanUpCSVFile(userCSV, () => {
-          callback(error);
-        });
-      }
-    )(userCSV.size);
 
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      ifNotThenThrow({
         code: 400,
-        msg: 'Missing name on the CSV file'
-      }),
-      error => {
-        return _cleanUpCSVFile(userCSV, () => {
-          callback(error);
-        });
-      }
-    )(userCSV.name);
+        msg: 'An authentication strategy must be provided'
+      })
+    )(authenticationStrategy);
+
+    pipe(
+      isIn,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'The specified authentication strategy is unknown'
+      })
+    )(authenticationStrategy, _.values(AuthenticationConstants.providers));
+  } catch (error) {
+    return _cleanUpCSVFile(userCSV, () => {
+      callback(error);
+    });
   }
-
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'An authentication strategy must be provided'
-    }),
-    error => {
-      return _cleanUpCSVFile(userCSV, () => {
-        callback(error);
-      });
-    }
-  )(authenticationStrategy);
-
-  pipe(
-    isIn,
-    validator.generateError({
-      code: 400,
-      msg: 'The specified authentication strategy is unknown'
-    }),
-    error => {
-      return _cleanUpCSVFile(userCSV, () => {
-        callback(error);
-      });
-    }
-  )(authenticationStrategy, _.values(AuthenticationConstants.providers));
 
   // Create a new context object on the request tenant
   const adminCtx = new Context(tenant, ctx.user());
@@ -643,106 +624,98 @@ const updateUser = function(ctx, userId, profileFields, callback) {
   const profileFieldKeys = _.keys(profileFields);
 
   // Parameter validation
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'A valid user id must be provided'
-    }),
-    validator.finalize(callback)
-  )(userId);
-
-  pipe(
-    validator.isUserId,
-    validator.generateError({
-      code: 400,
-      msg: 'A valid user id must be provided'
-    }),
-    validator.finalize(callback)
-  )(userId);
-
-  // Check that there is at least one updated profile field
-  pipe(
-    validator.isArrayNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'At least one basic profile field should be specified'
-    }),
-    validator.finalize(callback)
-  )(profileFieldKeys);
-
-  // Verify that restricted properties aren't set here
-  const validKeys = ['displayName', 'visibility', 'email', 'emailPreference', 'publicAlias', 'locale'];
-  const invalidKeys = _.difference(profileFieldKeys, validKeys);
-  validator.check(invalidKeys.length, { code: 400, msg: 'Restricted property was attempted to be set.' }).max(0);
-
-  // Apply special restrictions on some profile fields
-  if (!_.isUndefined(profileFields.displayName)) {
+  try {
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      ifNotThenThrow({
         code: 400,
-        msg: 'A display name cannot be empty'
+        msg: 'A valid user id must be provided'
       }),
-      validator.finalize(callback)
-    )(profileFields.displayName);
+      makeSureThat(true, userId, isUserId),
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A valid user id must be provided'
+      })
+    )(userId);
+
+    // Check that there is at least one updated profile field
+    pipe(
+      validator.isArrayNotEmpty,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'At least one basic profile field should be specified'
+      })
+    )(profileFieldKeys);
+
+    // Verify that restricted properties aren't set here
+    const validKeys = ['displayName', 'visibility', 'email', 'emailPreference', 'publicAlias', 'locale'];
+    const invalidKeys = _.difference(profileFieldKeys, validKeys);
+    pipe(
+      validator.isArrayEmpty,
+      ifNotThenThrow({ code: 400, msg: 'Restricted property was attempted to be set.' })
+    )(invalidKeys);
+
+    // Apply special restrictions on some profile fields
+    if (!_.isUndefined(profileFields.displayName)) {
+      pipe(
+        validator.isNotEmpty,
+        ifNotThenThrow({
+          code: 400,
+          msg: 'A display name cannot be empty'
+        }),
+        makeSureThat(true, profileFields.displayName, isShortString),
+        ifNotThenThrow({
+          code: 400,
+          msg: 'A display name can be at most 1000 characters long'
+        })
+      )(profileFields.displayName);
+    }
+
+    if (!_.isUndefined(profileFields.visibility)) {
+      pipe(
+        isIn,
+        ifNotThenThrow({
+          code: 400,
+          msg: 'An invalid visibility option has been specified'
+        })
+      )(profileFields.visibility, _.values(AuthzConstants.visibility));
+    }
+
+    if (!_.isUndefined(profileFields.emailPreference)) {
+      pipe(
+        isIn,
+        ifNotThenThrow({
+          code: 400,
+          msg: 'The specified emailPreference is invalid'
+        })
+      )(profileFields.emailPreference, _.values(PrincipalsConstants.emailPreferences));
+    }
+
+    if (_.isString(profileFields.email)) {
+      // E-mail addresses are always lower-cased as it makes them easier to deal with
+      profileFields.email = profileFields.email.toLowerCase();
+      pipe(
+        validator.isEmail,
+        ifNotThenThrow({
+          code: 400,
+          msg: 'The specified email address is invalid'
+        })
+      )(profileFields.email);
+    } else {
+      // Ensure we never set a false-y email
+      delete profileFields.email;
+    }
 
     pipe(
-      validator.isShortString,
-      validator.generateError({
-        code: 400,
-        msg: 'A display name can be at most 1000 characters long'
-      }),
-      validator.finalize(callback)
-    )(profileFields.displayName);
+      validator.isLoggedInUser,
+      ifNotThenThrow({
+        code: 401,
+        msg: 'You have to be logged in to be able to update a user'
+      })
+    )(ctx);
+  } catch (error) {
+    return callback(error);
   }
-
-  if (!_.isUndefined(profileFields.visibility)) {
-    pipe(
-      isIn,
-      validator.generateError({
-        code: 400,
-        msg: 'An invalid visibility option has been specified'
-      }),
-      validator.finalize(callback)
-    )(profileFields.visibility, _.values(AuthzConstants.visibility));
-  }
-
-  if (!_.isUndefined(profileFields.emailPreference)) {
-    pipe(
-      isIn,
-      validator.generateError({
-        code: 400,
-        msg: 'The specified emailPreference is invalid'
-      }),
-      validator.finalize(callback)
-    )(profileFields.emailPreference, _.values(PrincipalsConstants.emailPreferences));
-  }
-
-  if (_.isString(profileFields.email)) {
-    // E-mail addresses are always lower-cased as it makes them easier to deal with
-    profileFields.email = profileFields.email.toLowerCase();
-    pipe(
-      validator.isEmail,
-      validator.generateError({
-        code: 400,
-        msg: 'The specified email address is invalid'
-      }),
-      validator.finalize(callback)
-    )(profileFields.email);
-  } else {
-    // Ensure we never set a false-y email
-    delete profileFields.email;
-  }
-
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'You have to be logged in to be able to update a user'
-    }),
-    validator.finalize(callback)
-  )(ctx);
 
   // Regular users cannot update other users
   const principalResource = AuthzUtil.getResourceFromId(userId);
@@ -844,14 +817,17 @@ const canDeleteUser = function(ctx, userId, callback) {
  * @param  {Object}     callback.err    An error that occured, if any
  */
 const deleteUser = function(ctx, userId, callback) {
-  pipe(
-    validator.isUserId,
-    validator.generateError({
-      code: 400,
-      msg: 'A valid user id must be provided'
-    }),
-    validator.finalize(callback)
-  )(userId);
+  try {
+    pipe(
+      validator.isUserId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A valid user id must be provided'
+      })
+    )(userId);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Check if the user has permission to delete the user
   canDeleteUser(ctx, userId, (err, canDelete) => {
@@ -1015,14 +991,17 @@ const _restorePrincipals = function(usersToRestore, afterRestored) {
  * @param  {Object}     callback.err    An error that occured, if any
  */
 const restoreUser = function(ctx, userId, callback) {
-  pipe(
-    validator.isUserId,
-    validator.generateError({
-      code: 400,
-      msg: 'A valid user id must be provided'
-    }),
-    validator.finalize(callback)
-  )(userId);
+  try {
+    pipe(
+      validator.isUserId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A valid user id must be provided'
+      })
+    )(userId);
+  } catch (error) {
+    return callback(error);
+  }
 
   canRestoreUser(ctx, userId, (err, canRestore, user) => {
     if (err) return callback(err);
@@ -1078,14 +1057,17 @@ const canRestoreUser = function(ctx, userId, callback) {
  * @param  {User}      callback.user   The user object
  */
 const getUser = function(ctx, userId, callback) {
-  pipe(
-    validator.isUserId,
-    validator.generateError({
-      code: 400,
-      msg: 'An invalid user id was provided'
-    }),
-    validator.finalize(callback)
-  )(userId);
+  try {
+    pipe(
+      validator.isUserId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'An invalid user id was provided'
+      })
+    )(userId);
+  } catch (error) {
+    return callback(error);
+  }
 
   PrincipalsUtil.getPrincipal(ctx, userId, callback);
 };
@@ -1101,14 +1083,17 @@ const getUser = function(ctx, userId, callback) {
  * @param  {Object}     callback.user   The decorated user object
  */
 const getFullUserProfile = function(ctx, userId, callback) {
-  pipe(
-    validator.isUserId,
-    validator.generateError({
-      code: 400,
-      msg: 'An invalid user id was provided'
-    }),
-    validator.finalize(callback)
-  )(userId);
+  try {
+    pipe(
+      validator.isUserId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'An invalid user id was provided'
+      })
+    )(userId);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Get and validate the basic user profile to decorate
   getUser(ctx, userId, (err, user) => {
@@ -1379,23 +1364,25 @@ const _sendEmailToken = function(ctx, user, email, token, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const resendEmailToken = function(ctx, userId, callback) {
-  pipe(
-    validator.isUserId,
-    validator.generateError({
-      code: 400,
-      msg: 'A valid user id must be provided'
-    }),
-    validator.finalize(callback)
-  )(userId);
+  try {
+    pipe(
+      validator.isUserId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A valid user id must be provided'
+      })
+    )(userId);
 
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'You have to be logged in to be able to resend an email token'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+    pipe(
+      validator.isLoggedInUser,
+      ifNotThenThrow({
+        code: 401,
+        msg: 'You have to be logged in to be able to resend an email token'
+      })
+    )(ctx);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Ensure that you need to either be the user for which a token is being sent or a tenant admin
   const principalResource = AuthzUtil.getResourceFromId(userId);
@@ -1428,41 +1415,44 @@ const resendEmailToken = function(ctx, userId, callback) {
  * @param  {User}       callback.user   The updated user
  */
 const verifyEmail = function(ctx, userId, token, callback) {
-  pipe(
-    validator.isUserId,
-    validator.generateError({
-      code: 400,
-      msg: 'A valid user id must be provided'
-    }),
-    validator.finalize(callback)
-  )(userId);
+  try {
+    pipe(
+      validator.isUserId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A valid user id must be provided'
+      })
+    )(userId);
 
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'A token must be provided'
-    }),
-    validator.finalize(callback)
-  )(token);
+    pipe(
+      validator.isNotEmpty,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A token must be provided'
+      })
+    )(token);
 
-  pipe(
-    validator.regex,
-    validator.generateError({
-      code: 400,
-      msg: 'An invalid token was provided'
-    }),
-    validator.finalize(callback)
-  )(token, /^[a-zA-Z0-9-_]{7,14}$/);
+    pipe(
+      (value, regex) => {
+        return value.match(regex);
+      },
+      // validator.regex,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'An invalid token was provided'
+      })
+    )(token, /^[a-zA-Z0-9-_]{7,14}$/);
 
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'You have to be logged in to be able to verify an email address'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+    pipe(
+      validator.isLoggedInUser,
+      ifNotThenThrow({
+        code: 401,
+        msg: 'You have to be logged in to be able to verify an email address'
+      })
+    )(ctx);
+  } catch (error) {
+    return callback(error);
+  }
 
   const principalResource = AuthzUtil.getResourceFromId(userId);
   if (ctx.user().id !== userId && !ctx.user().isAdmin(principalResource.tenantAlias)) {
@@ -1504,23 +1494,25 @@ const verifyEmail = function(ctx, userId, token, callback) {
  * @param  {String}     callback.email      The email address for which there is a token
  */
 const getEmailToken = function(ctx, userId, callback) {
-  pipe(
-    validator.isUserId,
-    validator.generateError({
-      code: 400,
-      msg: 'A valid user id must be provided'
-    }),
-    validator.finalize(callback)
-  )(userId);
+  try {
+    pipe(
+      validator.isUserId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A valid user id must be provided'
+      })
+    )(userId);
 
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'You have to be logged in to be able to check for the existence of a pending email token'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+    pipe(
+      validator.isLoggedInUser,
+      ifNotThenThrow({
+        code: 401,
+        msg: 'You have to be logged in to be able to check for the existence of a pending email token'
+      })
+    )(ctx);
+  } catch (error) {
+    return callback(error);
+  }
 
   const principalResource = AuthzUtil.getResourceFromId(userId);
   if (ctx.user().id !== userId && !ctx.user().isAdmin(principalResource.tenantAlias)) {
@@ -1549,23 +1541,25 @@ const getEmailToken = function(ctx, userId, callback) {
  * @param  {String}     callback.email      The email address for which there is a token
  */
 const deleteEmailToken = function(ctx, userId, callback) {
-  pipe(
-    validator.isUserId,
-    validator.generateError({
-      code: 400,
-      msg: 'A valid user id must be provided'
-    }),
-    validator.finalize(callback)
-  )(userId);
+  try {
+    pipe(
+      validator.isUserId,
+      validator.generateError({
+        code: 400,
+        msg: 'A valid user id must be provided'
+      })
+    )(userId);
 
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'You have to be logged in to be able to delete a pending email token'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+    pipe(
+      validator.isLoggedInUser,
+      validator.generateError({
+        code: 401,
+        msg: 'You have to be logged in to be able to delete a pending email token'
+      })
+    )(ctx);
+  } catch (error) {
+    return callback(error);
+  }
 
   const principalResource = AuthzUtil.getResourceFromId(userId);
   if (ctx.user().id !== userId && !ctx.user().isAdmin(principalResource.tenantAlias)) {
@@ -1603,32 +1597,33 @@ const deleteEmailToken = function(ctx, userId, callback) {
  * @param  {Objetc}     callback.zipFile        Zip file containing all the data
  */
 const exportData = function(ctx, userId, exportType, callback) {
-  pipe(
-    validator.isUserId,
-    validator.generateError({
-      code: 400,
-      msg: 'A valid user id must be provided'
-    }),
-    validator.finalize(callback)
-  )(userId);
+  try {
+    pipe(
+      validator.isUserId,
+      validator.generateError({
+        code: 400,
+        msg: 'A valid user id must be provided'
+      })
+    )(userId);
 
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'You have to be logged in to be able to delete a pending email token'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+    pipe(
+      validator.isLoggedInUser,
+      validator.generateError({
+        code: 401,
+        msg: 'You have to be logged in to be able to delete a pending email token'
+      })
+    )(ctx);
 
-  pipe(
-    isIn,
-    validator.generateError({
-      code: 402,
-      msg: 'An invalid exportType has been specified'
-    }),
-    validator.finalize(callback)
-  )(exportType, _.values(PrincipalsConstants.exportType));
+    pipe(
+      isIn,
+      validator.generateError({
+        code: 402,
+        msg: 'An invalid exportType has been specified'
+      })
+    )(exportType, _.values(PrincipalsConstants.exportType));
+  } catch (error) {
+    return callback(error);
+  }
 
   PrincipalsDAO.getPrincipal(userId, (err, principal) => {
     if (err) return callback(err);

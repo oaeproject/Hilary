@@ -27,6 +27,7 @@ import * as Signature from 'oae-util/lib/signature';
 import { telemetry } from 'oae-telemetry';
 import * as TenantsAPI from 'oae-tenants';
 import { Validator as validator } from 'oae-authz/lib/validator';
+const { otherwise } = validator;
 import pipe from 'ramda/src/pipe';
 
 import { ActivityConstants } from 'oae-activity/lib/constants';
@@ -346,64 +347,58 @@ const _authenticate = function(connectionInfo, message) {
     return socket.close();
   }
 
-  const handleError = () => {
-    _writeResponse(connectionInfo, message.id, validator.getFirstError());
-    log().error({ err: validator.getFirstError() }, 'Invalid auth frame');
+  const handleError = error => {
+    _writeResponse(connectionInfo, message.id, error);
+    log().error({ err: error }, 'Invalid auth frame');
     return socket.close();
   };
 
   // Parameter validation
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'A tenant needs to be provided'
-    }),
-    error => {
-      if (error) return handleError();
-    }
-  )(data.tenantAlias);
+  try {
+    pipe(
+      validator.isNotEmpty,
+      otherwise({
+        code: 400,
+        msg: 'A tenant needs to be provided'
+      })
+    )(data.tenantAlias);
 
-  pipe(
-    validator.isUserId,
-    validator.generateError({
-      code: 400,
-      msg: 'A userId needs to be provided'
-    }),
-    error => {
-      if (error) return handleError();
-    }
-  )(data.userId);
+    pipe(
+      validator.isUserId,
+      otherwise({
+        code: 400,
+        msg: 'A userId needs to be provided'
+      })
+    )(data.userId);
 
-  pipe(
-    validator.isObject,
-    validator.generateError({
-      code: 400,
-      msg: 'A signature object needs to be provided'
-    }),
-    error => {
-      if (error) return handleError();
-    }
-  )(data.signature);
+    pipe(
+      validator.isObject,
+      otherwise({
+        code: 400,
+        msg: 'A signature object needs to be provided'
+      })
+    )(data.signature);
+
+    pipe(
+      validator.isInt,
+      otherwise({
+        code: 400,
+        msg: 'Signature must contain an integer expires value'
+      })
+    )(String(data.signature.expires));
+
+    pipe(
+      validator.isNotNull,
+      otherwise({
+        code: 400,
+        msg: 'Signature must contain a string signature value'
+      })
+    )(data.signature.signature);
+  } catch (error) {
+    if (error) return handleError(error);
+  }
 
   // Do some preliminary signature validation before we access the user from the database
-  validator
-    .check(data.signature.expires, {
-      code: 400,
-      msg: 'Signature must contain an integer expires value'
-    })
-    .isInt();
-  validator
-    .check(data.signature.signature, {
-      code: 400,
-      msg: 'Signature must contain a string signature value'
-    })
-    .notNull();
-  if (validator.hasErrors()) {
-    _writeResponse(connectionInfo, message.id, validator.getFirstError());
-    log().error({ err: validator.getFirstError() }, 'Invalid auth frame');
-    return socket.close();
-  }
 
   // Get the full user object so we can build a context with which to authenticate to the signing utility
   PrincipalsDAO.getPrincipal(data.userId, (err, user) => {

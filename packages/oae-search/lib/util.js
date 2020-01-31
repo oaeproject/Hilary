@@ -251,17 +251,18 @@ const createQuery = function(query, filter, opts) {
     [opts.sortBy]: getSortDirParam(opts.sort, SearchConstants.sort.direction.ASC, opts.sortBy)
   };
 
-  pipe(
-    validator.isObject,
-    validator.generateError({
-      code: 400,
-      msg: 'createQuery expects a query object.'
-    }),
-    error => {
-      log().error({ err: validator.getFirstError() }, 'Invalid input provided to SearchUtil.createQuery');
-      throw error;
-    }
-  )(query);
+  try {
+    pipe(
+      validator.isObject,
+      validator.generateError({
+        code: 400,
+        msg: 'createQuery expects a query object.'
+      })
+    )(query);
+  } catch (error) {
+    log().error({ err: validator.getFirstError() }, 'Invalid input provided to SearchUtil.createQuery');
+    throw error;
+  }
 
   let data = null;
   if (filter) {

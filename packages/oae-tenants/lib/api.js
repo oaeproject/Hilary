@@ -33,6 +33,17 @@ import * as OAE from 'oae-util/lib/oae';
 import * as OaeUtil from 'oae-util/lib/util';
 import * as Pubsub from 'oae-util/lib/pubsub';
 import { Validator as validator } from 'oae-util/lib/validator';
+const {
+  getNestedObject,
+  makeSureThat,
+  ifNotThenThrow: otherwiseThrow,
+  isLoggedInUser,
+  isUserId,
+  isPrincipalId,
+  isNotEmpty,
+  isANumber,
+  isObject
+} = validator;
 import isIn from 'validator/lib/isIn';
 import TenantEmailDomainIndex from './internal/emailDomainIndex';
 import TenantIndex from './internal/tenantIndex';
@@ -521,14 +532,17 @@ const createTenant = function(ctx, alias, displayName, host, opts, callback) {
   opts = opts || {};
 
   // Validate that the user in context is the global admin
-  pipe(
-    validator.isGlobalAdministratorUser,
-    validator.generateError({
-      code: 401,
-      msg: 'Only global administrators can create new tenants'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+  try {
+    pipe(
+      validator.isGlobalAdministratorUser,
+      otherwiseThrow({
+        code: 401,
+        msg: 'Only global administrators can create new tenants'
+      })
+    )(ctx);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Defer the rest of the validation to the internal version of this method that does not take
   // into consideration the current context
@@ -553,140 +567,117 @@ const createTenant = function(ctx, alias, displayName, host, opts, callback) {
 const _createTenant = function(alias, displayName, host, opts, callback) {
   opts = opts || {};
 
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Missing alias'
-    }),
-    validator.finalize(callback)
-  )(alias);
+  try {
+    pipe(
+      validator.isNotEmpty,
+      otherwiseThrow({
+        code: 400,
+        msg: 'Missing alias'
+      })
+    )(alias);
 
-  pipe(
-    validator.notContains,
-    validator.generateError({
-      code: 400,
-      msg: 'The tenant alias should not contain a space'
-    }),
-    validator.finalize(callback)
-  )(alias, ' ');
+    pipe(
+      validator.notContains,
+      validator.generateError({
+        code: 400,
+        msg: 'The tenant alias should not contain a space'
+      })
+    )(alias, ' ');
 
-  pipe(
-    validator.notContains,
-    validator.generateError({
-      code: 400,
-      msg: 'The tenant alias should not contain a colon'
-    }),
-    validator.finalize(callback)
-  )(alias, ':');
-
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Missing tenant displayName'
-    }),
-    validator.finalize(callback)
-  )(displayName);
-
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Missing tenant host'
-    }),
-    validator.finalize(callback)
-  )(host);
-
-  pipe(
-    validator.isHost,
-    validator.generateError({
-      code: 400,
-      msg: 'Invalid hostname'
-    }),
-    validator.finalize(callback)
-  )(host);
+    pipe(
+      validator.notContains,
+      validator.generateError({
+        code: 400,
+        msg: 'The tenant alias should not contain a colon'
+      }),
+      makeSureThat(true, displayName, validator.isNotEmpty),
+      otherwiseThrow({
+        code: 400,
+        msg: 'Missing tenant displayName'
+      }),
+      makeSureThat(true, host, validator.isNotEmpty),
+      otherwiseThrow({
+        code: 400,
+        msg: 'Missing tenant host'
+      }),
+      makeSureThat(true, host, validator.isHost),
+      otherwiseThrow({
+        code: 400,
+        msg: 'Invalid hostname'
+      })
+    )(alias, ':');
+  } catch (error) {
+    return callback(error);
+  }
 
   // Make sure alias and host are the proper case
   alias = alias.toLowerCase();
   host = host.toLowerCase();
 
   // Ensure there are no conflicts
-
-  pipe(
-    validator.isDifferent,
-    validator.generateError({
-      code: 400,
-      msg: 'This hostname is reserved'
-    }),
-    validator.finalize(callback)
-  )(host, serverConfig.shibbolethSPHost);
-
-  pipe(
-    validator.isNull,
-    validator.generateError({
-      code: 400,
-      msg: `A tenant with the alias ${alias} already exists`
-    }),
-    validator.finalize(callback)
-  )(getTenant(alias));
-
-  pipe(
-    validator.isNull,
-    validator.generateError({
-      code: 400,
-      msg: `A tenant with the host ${host} already exists`
-    }),
-    validator.finalize(callback)
-  )(getTenantByHost(host));
-
-  // Ensure only valid optional fields are set
-  const errors = [];
-  _.each(opts, (val, key) => {
+  try {
     pipe(
-      isIn,
+      validator.isDifferent,
       validator.generateError({
         code: 400,
-        msg: `Invalid field: ${key}`
+        msg: 'This hostname is reserved'
       }),
-      someError => {
-        if (someError) errors.push(someError);
-      }
-    )(key, ['emailDomains', 'countryCode']);
+      makeSureThat(true, getTenant(alias), validator.isNull),
+      otherwiseThrow({
+        code: 400,
+        msg: `A tenant with the alias ${alias} already exists`
+      }),
+      makeSureThat(true, getTenantByHost(host), validator.isNull),
+      otherwiseThrow({
+        code: 400,
+        msg: `A tenant with the host ${host} already exists`
+      })
+    )(host, serverConfig.shibbolethSPHost);
+  } catch (error) {
+    return callback(error);
+  }
 
-    if (key === 'emailDomains') {
+  // Ensure only valid optional fields are set
+  try {
+    _.each(opts, (val, key) => {
       pipe(
-        Array.isArray,
+        isIn,
         validator.generateError({
           code: 400,
-          msg: 'One or more email domains were passed in, but not as an array'
-        }),
-        someError => {
-          if (someError) errors.push(someError);
-        }
-      )(val);
+          msg: `Invalid field: ${key}`
+        })
+      )(key, ['emailDomains', 'countryCode']);
 
-      if (errors.length === 0) {
+      if (key === 'emailDomains') {
+        pipe(
+          Array.isArray,
+          validator.generateError({
+            code: 400,
+            msg: 'One or more email domains were passed in, but not as an array'
+          })
+        )(val);
+
         // Ensure the tenant email domains are all lower case
         opts[key] = _.map(opts[key], emailDomain => {
           return emailDomain.trim().toLowerCase();
         });
-        // TODO
-        _validateEmailDomains(validator, opts[key], '', callback);
+        _validateEmailDomains(validator, opts[key]);
+      } else if (key === 'countryCode' && opts[key]) {
+        // Ensure the country code is upper case
+        opts[key] = opts[key].toUpperCase();
+        pipe(
+          validator.isISO31661Alpha2,
+          validator.generateError({
+            code: 400,
+            msg: 'The country code must be a valid ISO-3166 country code'
+          })
+        )(opts[key]);
       }
-    } else if (key === 'countryCode' && opts[key]) {
-      // Ensure the country code is upper case
-      opts[key] = opts[key].toUpperCase();
-      pipe(
-        validator.isISO31661Alpha2,
-        validator.generateError({
-          code: 400,
-          msg: 'The country code must be a valid ISO-3166 country code'
-        }),
-        validator.finalize(callback)
-      )(opts[key]);
-    }
-  });
+    });
+  } catch (error) {
+    // errors.push(error);
+    return callback(error);
+  }
 
   // Create the tenant
   const tenant = new Tenant(alias, displayName, host, opts);
@@ -740,96 +731,108 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
   }
 
   // Short-circuit validation if the tenant did not exist
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Missing alias'
-    }),
-    validator.finalize(callback)
-  )(alias);
-
-  pipe(
-    validator.isNotNull,
-    validator.generateError({
-      code: 404,
-      msg: util.format('Tenant with alias "%s" does not exist and cannot be updated', alias)
-    }),
-    validator.finalize(callback)
-  )(getTenant(alias));
+  try {
+    pipe(
+      validator.isNotEmpty,
+      validator.generateError({
+        code: 400,
+        msg: 'Missing alias'
+      }),
+      makeSureThat(true, getTenant(alias), validator.isNotNull),
+      otherwiseThrow({
+        code: 404,
+        msg: util.format('Tenant with alias "%s" does not exist and cannot be updated', alias)
+      })
+    )(alias);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Check that at least either a new display name or hostname have been provided
   const updateFields = tenantUpdates ? _.keys(tenantUpdates) : [];
-  validator
-    .check(updateFields.length, {
-      code: 400,
-      msg: 'You should at least specify a new displayName or hostname'
-    })
-    .min(1);
-  _.each(tenantUpdates, (updateValue, updateField) => {
-    pipe(
-      isIn,
-      validator.generateError({
-        code: 400,
-        msg: util.format('"%s" is not a recognized tenant update field', updateField)
-      }),
-      validator.finalize(callback)
-    )(updateField, ['displayName', 'host', 'emailDomains', 'countryCode']);
 
-    if (updateField === 'displayName') {
+  try {
+    pipe(
+      validator.isArrayNotEmpty,
+      otherwiseThrow({
+        code: 400,
+        msg: 'You should at least specify a new displayName or hostname'
+      })
+    )(updateFields);
+  } catch (error) {
+    return callback(error);
+  }
+
+  try {
+    _.each(tenantUpdates, (updateValue, updateField) => {
       pipe(
-        validator.isNotEmpty,
+        isIn,
         validator.generateError({
           code: 400,
-          msg: 'A displayName cannot be empty'
-        }),
-        validator.finalize(callback)
-      )(updateValue);
-    } else if (updateField === 'host') {
-      // Ensure the tenant host name is all lower case
-      updateValue = updateValue.toLowerCase();
-      tenantUpdates[updateField] = updateValue;
-
-      // Validate the lower-cased version
-      validator.check(updateValue, { code: 400, msg: 'Invalid host' }).isHost();
-      validator.check(updateValue, { code: 400, msg: 'A hostname cannot be empty' }).notEmpty();
-      validator
-        .check(getTenantByHost(updateValue), {
-          code: 400,
-          msg: 'The hostname has already been taken'
+          msg: util.format('"%s" is not a recognized tenant update field', updateField)
         })
-        .isNull();
-      validator
-        .check(updateValue, { code: 400, msg: 'This hostname is reserved' })
-        .not(serverConfig.shibbolethSPHost.toLowerCase());
-    } else if (updateField === 'emailDomains') {
-      // Ensure the tenant email domains are all lower case
-      updateValue = _.map(updateValue, emailDomain => {
-        return emailDomain.trim().toLowerCase();
-      });
+      )(updateField, ['displayName', 'host', 'emailDomains', 'countryCode']);
 
-      tenantUpdates[updateField] = updateValue.join(',');
+      if (updateField === 'displayName') {
+        pipe(
+          validator.isNotEmpty,
+          otherwiseThrow({
+            code: 400,
+            msg: 'A displayName cannot be empty'
+          })
+        )(updateValue);
+      } else if (updateField === 'host') {
+        // Ensure the tenant host name is all lower case
+        updateValue = updateValue.toLowerCase();
+        tenantUpdates[updateField] = updateValue;
 
-      // Only a global admin can update the email domain
-      validator
-        .check(null, { code: 401, msg: 'Only a global administrator can update the email domain' })
-        .isGlobalAdministratorUser(ctx);
+        // Validate the lower-cased version
+        pipe(
+          validator.isHost,
+          otherwiseThrow({ code: 400, msg: 'Invalid host' }),
+          makeSureThat(true, updateValue, isNotEmpty),
+          otherwiseThrow({ code: 400, msg: 'A hostname cannot be empty' }),
+          makeSureThat(true, getTenantByHost(updateValue), validator.isNull),
+          otherwiseThrow({
+            code: 400,
+            msg: 'The hostname has already been taken'
+          })
+        )(updateValue);
 
-      // Validate the lower-cased version
-      _validateEmailDomains(validator, updateValue, alias, callback);
-    } else if (updateField === 'countryCode' && tenantUpdates[updateField]) {
-      // Ensure the country code is upper case
-      tenantUpdates[updateField] = tenantUpdates[updateField].toUpperCase();
-      validator
-        .check(tenantUpdates[updateField], {
-          code: 400,
-          msg: 'The country code must be a valid ISO-3166 country code'
-        })
-        .isIso3166Country();
-    }
-  });
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+        pipe(validator.isDifferent, otherwiseThrow({ code: 400, msg: 'This hostname is reserved' }))(
+          updateValue,
+          serverConfig.shibbolethSPHost.toLowerCase()
+        );
+      } else if (updateField === 'emailDomains') {
+        // Ensure the tenant email domains are all lower case
+        updateValue = _.map(updateValue, emailDomain => {
+          return emailDomain.trim().toLowerCase();
+        });
+
+        tenantUpdates[updateField] = updateValue.join(',');
+
+        // Only a global admin can update the email domain
+        pipe(
+          validator.isGlobalAdministratorUser,
+          otherwiseThrow({ code: 401, msg: 'Only a global administrator can update the email domain' })
+        )(ctx);
+        // Validate the lower-cased version
+        // TODO remove callback from this line below
+        _validateEmailDomains(validator, updateValue, alias, callback);
+      } else if (updateField === 'countryCode' && tenantUpdates[updateField]) {
+        // Ensure the country code is upper case
+        tenantUpdates[updateField] = tenantUpdates[updateField].toUpperCase();
+        pipe(
+          validator.isIso3166Country,
+          otherwiseThrow({
+            code: 400,
+            msg: 'The country code must be a valid ISO-3166 country code'
+          })
+        )(tenantUpdates[updateField]);
+      }
+    });
+  } catch (error) {
+    return callback(error);
   }
 
   const q = Cassandra.constructUpsertCQL('Tenant', 'alias', alias, tenantUpdates);
@@ -860,34 +863,35 @@ const disableTenants = function(ctx, aliases, disabled, callback) {
   aliases = _.isArray(aliases) ? aliases : [aliases];
   aliases = _.compact(aliases);
 
-  pipe(
-    validator.isGlobalAdministratorUser,
-    validator.generateError({
-      code: 401,
-      msg: 'You must be a global admin user to enable or disable a tenant'
-    }),
-    validator.finalize(callback)
-  )(ctx);
-
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'You must provide at least one alias to enable or disable'
-    }),
-    validator.finalize(callback)
-  )(aliases);
-
-  _.each(aliases, alias => {
+  try {
     pipe(
-      validator.isNotNull,
+      validator.isGlobalAdministratorUser,
       validator.generateError({
-        code: 404,
-        msg: util.format('Tenant with alias "%s" does not exist and cannot be enabled or disabled', alias)
-      }),
-      validator.finalize(callback)
-    )(getTenant(alias));
-  });
+        code: 401,
+        msg: 'You must be a global admin user to enable or disable a tenant'
+      })
+    )(ctx);
+
+    pipe(
+      validator.isArrayNotEmpty,
+      validator.generateError({
+        code: 400,
+        msg: 'You must provide at least one alias to enable or disable'
+      })
+    )(aliases);
+
+    _.each(aliases, alias => {
+      pipe(
+        validator.isObject,
+        validator.generateError({
+          code: 404,
+          msg: util.format('Tenant with alias "%s" does not exist and cannot be enabled or disabled', alias)
+        })
+      )(getTenant(alias));
+    });
+  } catch (error) {
+    return callback(error);
+  }
 
   // Store the "active" flag in cassandra
   const queries = _.map(aliases, alias => {
@@ -1040,15 +1044,13 @@ const _setLandingPageBlockAttribute = function(ctx, block, blockName, attributeN
 const _validateEmailDomains = function(validator, emailDomains, updateTenantAlias, callback) {
   _.each(emailDomains, emailDomain => {
     // Check whether it's a valid domain
-
     pipe(
       // validator.isFQDN,
       validator.isHost,
-      validator.generateError({
+      otherwiseThrow({
         code: 400,
         msg: 'Invalid email domain'
-      }),
-      validator.finalize(callback)
+      })
     )(emailDomain);
 
     const matchingTenantAlias = tenantEmailDomainIndex.conflict(updateTenantAlias, emailDomain);
@@ -1064,8 +1066,7 @@ const _validateEmailDomains = function(validator, emailDomains, updateTenantAlia
           emailDomain,
           matchingEmailDomains
         )
-      }),
-      validator.finalize(callback)
+      })
     )(matchingTenant);
   });
 };

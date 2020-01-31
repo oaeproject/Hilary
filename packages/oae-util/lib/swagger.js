@@ -307,70 +307,50 @@ const _addSwaggerEndpoint = function(spec, resources) {
  * @param  {Object}     spec            The swagger spec to append
  */
 const _appendToApi = function(rootResource, api, spec) {
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      msg: 'Nickname must exist',
-      path: api.path
-    }),
-    error => {
-      return log().warn(
-        { swaggerValidationErrors: error },
-        'Some swagger documentation could not be parsed, the server will start but those routes may be undocumented'
-      );
-    }
-  )(spec.nickname);
-
-  pipe(
-    validator.notContains,
-    validator.generateError({
-      path: api.path,
-      msg: 'Nicknames cannot contain spaces: ' + spec.nickname
-    }),
-    error => {
-      return log().warn(
-        { swaggerValidationErrors: error },
-        'Some swagger documentation could not be parsed, the server will start but those routes may be undocumented'
-      );
-    }
-  )(spec.nickname, ' ');
-
-  // Parse and validate params
-  _.each(spec.params, param => {
+  try {
     pipe(
-      isIn,
+      validator.isNotEmpty,
+      validator.generateError({
+        msg: 'Nickname must exist',
+        path: api.path
+      })
+    )(spec.nickname);
+
+    pipe(
+      validator.notContains,
       validator.generateError({
         path: api.path,
-        name: param.name,
-        msg: 'Invalid param type: ' + param.paramType
-      }),
-      error => {
-        return log().warn(
-          { swaggerValidationErrors: error },
-          'Some swagger documentation could not be parsed, the server will start but those routes may be undocumented'
-        );
-      }
-    )(param.paramType, Swagger.Constants.paramTypes);
+        msg: 'Nicknames cannot contain spaces: ' + spec.nickname
+      })
+    )(spec.nickname, ' ');
 
-    if (param.paramType === 'path') {
+    // Parse and validate params
+    _.each(spec.params, param => {
       pipe(
         isIn,
         validator.generateError({
           path: api.path,
           name: param.name,
-          msg: 'Invalid path'
-        }),
-        error => {
-          return log().warn(
-            { swaggerValidationErrors: error },
-            'Some swagger documentation could not be parsed, the server will start but those routes may be undocumented'
-          );
-        }
-      )(param.name, api.path);
-    }
-  });
+          msg: 'Invalid param type: ' + param.paramType
+        })
+      )(param.paramType, Swagger.Constants.paramTypes);
 
-  if (validator.hasErrors()) {
+      if (param.paramType === 'path') {
+        pipe(
+          isIn,
+          validator.generateError({
+            path: api.path,
+            name: param.name,
+            msg: 'Invalid path'
+          })
+        )(param.name, api.path);
+      }
+    });
+  } catch (error) {
+    return log().warn(
+      { swaggerValidationErrors: error },
+      'Some swagger documentation could not be parsed, the server will start but those routes may be undocumented'
+    );
   }
 
   api.operations.push(spec);

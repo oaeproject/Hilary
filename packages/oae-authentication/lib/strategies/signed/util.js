@@ -37,23 +37,25 @@ const TIME_1_MINUTE_IN_SECONDS = 60;
  * @param  {Object}     callback.requestInfo.body   The signed body of the POST request to send in order to verify the authenticity of the authentication request
  */
 const getSignedTenantAuthenticationRequest = function(ctx, tenantAlias, callback) {
-  pipe(
-    validator.isGlobalAdministratorUser,
-    validator.generateError({
-      code: 401,
-      msg: 'Only global administrators are allowed to authenticate to other tenants'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+  try {
+    pipe(
+      validator.isGlobalAdministratorUser,
+      validator.generateError({
+        code: 401,
+        msg: 'Only global administrators are allowed to authenticate to other tenants'
+      })
+    )(ctx);
 
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Missing target tenant alias'
-    }),
-    validator.finalize(callback)
-  )(tenantAlias);
+    pipe(
+      validator.isNotEmpty,
+      validator.generateError({
+        code: 400,
+        msg: 'Missing target tenant alias'
+      })
+    )(tenantAlias);
+  } catch (error) {
+    return callback(error);
+  }
 
   if (ctx.imposter()) {
     return callback({
@@ -96,23 +98,25 @@ const getSignedTenantAuthenticationRequest = function(ctx, tenantAlias, callback
  * @param  {Object}     callback.requestInfo.body   The signed body of the POST request to send in order to verify the authenticity of the authentication request
  */
 const getSignedBecomeUserAuthenticationRequest = function(ctx, becomeUserId, callback) {
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'Must be authenticated in order to become another user'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+  try {
+    pipe(
+      validator.isLoggedInUser,
+      validator.generateError({
+        code: 401,
+        msg: 'Must be authenticated in order to become another user'
+      })
+    )(ctx);
 
-  pipe(
-    validator.isUserId,
-    validator.generateError({
-      code: 400,
-      msg: 'Must specific a valid user id of a user to become (becomeUserId)'
-    }),
-    validator.finalize(callback)
-  )(becomeUserId);
+    pipe(
+      validator.isUserId,
+      validator.generateError({
+        code: 400,
+        msg: 'Must specific a valid user id of a user to become (becomeUserId)'
+      })
+    )(becomeUserId);
+  } catch (error) {
+    return callback(error);
+  }
 
   if (!ctx.user().isAdmin(ctx.user().tenant.alias)) {
     // Only users who have an admin status can become someone. This check is redundant to
@@ -178,14 +182,17 @@ const getSignedBecomeUserAuthenticationRequest = function(ctx, becomeUserId, cal
  * @param  {String}     [callback.becomeUserId]     The id of the user who the authenticating user should become, if any
  */
 const verifySignedAuthenticationBody = function(ctx, body, callback) {
-  pipe(
-    validator.isUserId,
-    validator.generateError({
-      code: 400,
-      msg: 'Invalid user id provided as the authenticating user'
-    }),
-    validator.finalize(callback)
-  )(body.userId);
+  try {
+    pipe(
+      validator.isUserId,
+      validator.generateError({
+        code: 400,
+        msg: 'Invalid user id provided as the authenticating user'
+      })
+    )(body.userId);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Verify all the signed data in the request body, except the `signature` and `expires` parameters which are
   // not part of the signed data object. Include the tenant alias to ensure that the signature is being used

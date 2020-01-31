@@ -237,23 +237,25 @@ const storeMetadata = function(
  * @api private
  */
 const copyPreviewItems = function(fromRevisionId, toRevisionId, callback) {
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'Must specify a valid resource id for "fromRevisionId"'
-    }),
-    validator.finalize(callback)
-  )(fromRevisionId);
+  try {
+    pipe(
+      validator.isResourceId,
+      validator.generateError({
+        code: 400,
+        msg: 'Must specify a valid resource id for "fromRevisionId"'
+      })
+    )(fromRevisionId);
 
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'Must specify a valid resource id for "toRevisionId"'
-    }),
-    validator.finalize(callback)
-  )(toRevisionId);
+    pipe(
+      validator.isResourceId,
+      validator.generateError({
+        code: 400,
+        msg: 'Must specify a valid resource id for "toRevisionId"'
+      })
+    )(toRevisionId);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Select all the rows from the source revision preview items, then insert them into the destination revision preview items
   Cassandra.runQuery('SELECT * FROM "PreviewItems" WHERE "revisionId" = ?', [fromRevisionId], (err, rows) => {

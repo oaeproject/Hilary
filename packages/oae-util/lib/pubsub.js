@@ -88,23 +88,25 @@ const init = function(config, callback) {
  */
 const publish = function(channel, message, callback) {
   callback = callback || function() {};
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'No channel was provided.'
-    }),
-    validator.finalize(callback)
-  )(channel);
+  try {
+    pipe(
+      validator.isNotEmpty,
+      validator.generateError({
+        code: 400,
+        msg: 'No channel was provided.'
+      })
+    )(channel);
 
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'No message was provided.'
-    }),
-    validator.finalize(callback)
-  )(message);
+    pipe(
+      validator.isNotEmpty,
+      validator.generateError({
+        code: 400,
+        msg: 'No message was provided.'
+      })
+    )(message);
+  } catch (error) {
+    return callback(error);
+  }
 
   redisPublisher.publish(channel, message, callback);
 };

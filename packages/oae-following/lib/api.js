@@ -52,14 +52,17 @@ const FollowingAPI = new EmitterAPI.EventEmitter();
 const getFollowers = function(ctx, userId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  pipe(
-    validator.isUserId,
-    validator.generateError({
-      code: 400,
-      msg: 'You must specify a valid user id'
-    }),
-    validator.finalize(callback)
-  )(userId);
+  try {
+    pipe(
+      validator.isUserId,
+      validator.generateError({
+        code: 400,
+        msg: 'You must specify a valid user id'
+      })
+    )(userId);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Get the user so we can determine their visibility and permissions
   PrincipalsDAO.getPrincipal(userId, (err, user) => {
@@ -120,14 +123,17 @@ const getFollowers = function(ctx, userId, start, limit, callback) {
 const getFollowing = function(ctx, userId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  pipe(
-    validator.isUserId,
-    validator.generateError({
-      code: 400,
-      msg: 'You must specify a valid user id'
-    }),
-    validator.finalize(callback)
-  )(userId);
+  try {
+    pipe(
+      validator.isUserId,
+      validator.generateError({
+        code: 400,
+        msg: 'You must specify a valid user id'
+      })
+    )(userId);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Get the user so we can determine their visibility and permissions
   PrincipalsDAO.getPrincipal(userId, (err, user) => {
@@ -183,23 +189,25 @@ const getFollowing = function(ctx, userId, start, limit, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const follow = function(ctx, followedUserId, callback) {
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'You must be authenticated to follow a user'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+  try {
+    pipe(
+      validator.isLoggedInUser,
+      validator.generateError({
+        code: 401,
+        msg: 'You must be authenticated to follow a user'
+      })
+    )(ctx);
 
-  pipe(
-    validator.isUserId,
-    validator.generateError({
-      code: 400,
-      msg: 'You must specify a valid user id of a user to follow'
-    }),
-    validator.finalize(callback)
-  )(followedUserId);
+    pipe(
+      validator.isUserId,
+      validator.generateError({
+        code: 400,
+        msg: 'You must specify a valid user id of a user to follow'
+      })
+    )(followedUserId);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Get the user to follow to perform permission checks
   PrincipalsDAO.getPrincipal(followedUserId, (err, followedUser) => {
@@ -246,23 +254,25 @@ const follow = function(ctx, followedUserId, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  */
 const unfollow = function(ctx, unfollowedUserId, callback) {
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'You must be authenticated to unfollow a user'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+  try {
+    pipe(
+      validator.isLoggedInUser,
+      validator.generateError({
+        code: 401,
+        msg: 'You must be authenticated to unfollow a user'
+      })
+    )(ctx);
 
-  pipe(
-    validator.isUserId,
-    validator.generateError({
-      code: 400,
-      msg: 'You must specify a valid user id of a user to unfollow'
-    }),
-    validator.finalize(callback)
-  )(unfollowedUserId);
+    pipe(
+      validator.isUserId,
+      validator.generateError({
+        code: 400,
+        msg: 'You must specify a valid user id of a user to unfollow'
+      })
+    )(unfollowedUserId);
+  } catch (error) {
+    return callback(error);
+  }
 
   // A user can always try and delete followers from their list of followers
   FollowingDAO.deleteFollows(ctx.user().id, [unfollowedUserId], err => {

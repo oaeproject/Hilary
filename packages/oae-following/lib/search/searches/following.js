@@ -43,14 +43,17 @@ export default function(ctx, opts, callback) {
   opts.userId = opts.pathParams[0];
   opts.limit = OaeUtil.getNumberParam(opts.limit, 12, 1, 25);
 
-  pipe(
-    validator.isUserId,
-    validator.generateError({
-      code: 400,
-      msg: 'Must specificy an id of a user to search their following list'
-    }),
-    validator.finalize(callback)
-  )(opts.userId);
+  try {
+    pipe(
+      validator.isUserId,
+      validator.generateError({
+        code: 400,
+        msg: 'Must specificy an id of a user to search their following list'
+      })
+    )(opts.userId);
+  } catch (error) {
+    return callback(error);
+  }
 
   PrincipalsDAO.getPrincipal(opts.userId, (err, user) => {
     if (err) {

@@ -70,23 +70,25 @@ const acceptTermsAndConditions = function(ctx, userId, callback) {
   }
 
   // Perform some basic validation
-  pipe(
-    validator.isUserId,
-    validator.generateError({
-      code: 400,
-      msg: 'Invalid userId passed in'
-    }),
-    validator.finalize(callback)
-  )(userId);
+  try {
+    pipe(
+      validator.isUserId,
+      validator.generateError({
+        code: 400,
+        msg: 'Invalid userId passed in'
+      })
+    )(userId);
 
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'Only logged in users can accept the Terms and Conditions'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+    pipe(
+      validator.isLoggedInUser,
+      validator.generateError({
+        code: 401,
+        msg: 'Only logged in users can accept the Terms and Conditions'
+      })
+    )(ctx);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Only a tenant/global admin or the user themself can accept the Terms and Conditions
   const userTenant = AuthzUtil.getPrincipalFromId(userId).tenantAlias;

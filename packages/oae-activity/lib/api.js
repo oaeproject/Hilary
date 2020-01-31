@@ -763,8 +763,6 @@ const postActivity = function(ctx, activitySeed, callback) {
   try {
     runValidations(activitySeed);
   } catch (error) {
-    // debug
-    console.dir(error);
     return callback(error);
   }
 

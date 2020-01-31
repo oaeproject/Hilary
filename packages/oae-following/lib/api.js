@@ -23,6 +23,7 @@ import * as PrincipalsUtil from 'oae-principals/lib/util';
 import * as FollowingAuthz from 'oae-following/lib/authz';
 
 import { Validator as validator } from 'oae-authz/lib/validator';
+const { otherwise } = validator;
 import pipe from 'ramda/src/pipe';
 import { FollowingConstants } from 'oae-following/lib/constants';
 import * as FollowingDAO from './internal/dao';
@@ -55,7 +56,7 @@ const getFollowers = function(ctx, userId, start, limit, callback) {
   try {
     pipe(
       validator.isUserId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'You must specify a valid user id'
       })
@@ -126,7 +127,7 @@ const getFollowing = function(ctx, userId, start, limit, callback) {
   try {
     pipe(
       validator.isUserId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'You must specify a valid user id'
       })
@@ -192,7 +193,7 @@ const follow = function(ctx, followedUserId, callback) {
   try {
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'You must be authenticated to follow a user'
       })
@@ -200,7 +201,7 @@ const follow = function(ctx, followedUserId, callback) {
 
     pipe(
       validator.isUserId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'You must specify a valid user id of a user to follow'
       })
@@ -257,7 +258,7 @@ const unfollow = function(ctx, unfollowedUserId, callback) {
   try {
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'You must be authenticated to unfollow a user'
       })
@@ -265,7 +266,7 @@ const unfollow = function(ctx, unfollowedUserId, callback) {
 
     pipe(
       validator.isUserId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'You must specify a valid user id of a user to unfollow'
       })

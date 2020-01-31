@@ -17,6 +17,7 @@ import { EventEmitter } from 'oae-emitter';
 import pipe from 'ramda/src/pipe';
 import * as Redis from './redis';
 import { Validator as validator } from './validator';
+// const { otherwise } = validator;
 
 /*!
  * This module abstracts most of the redis publish/subscribe functions away.
@@ -91,7 +92,7 @@ const publish = function(channel, message, callback) {
   try {
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      validator.otherwise({
         code: 400,
         msg: 'No channel was provided.'
       })
@@ -99,7 +100,7 @@ const publish = function(channel, message, callback) {
 
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      validator.otherwise({
         code: 400,
         msg: 'No message was provided.'
       })

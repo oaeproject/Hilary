@@ -21,6 +21,7 @@ import * as Signature from 'oae-util/lib/signature';
 import * as TenantsAPI from 'oae-tenants';
 import * as TenantsUtil from 'oae-tenants/lib/util';
 import { Validator as validator } from 'oae-authz/lib/validator';
+const { otherwise } = validator;
 import pipe from 'ramda/src/pipe';
 
 const TIME_1_MINUTE_IN_SECONDS = 60;
@@ -40,7 +41,7 @@ const getSignedTenantAuthenticationRequest = function(ctx, tenantAlias, callback
   try {
     pipe(
       validator.isGlobalAdministratorUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'Only global administrators are allowed to authenticate to other tenants'
       })
@@ -48,7 +49,7 @@ const getSignedTenantAuthenticationRequest = function(ctx, tenantAlias, callback
 
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Missing target tenant alias'
       })
@@ -101,7 +102,7 @@ const getSignedBecomeUserAuthenticationRequest = function(ctx, becomeUserId, cal
   try {
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'Must be authenticated in order to become another user'
       })
@@ -109,7 +110,7 @@ const getSignedBecomeUserAuthenticationRequest = function(ctx, becomeUserId, cal
 
     pipe(
       validator.isUserId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Must specific a valid user id of a user to become (becomeUserId)'
       })
@@ -185,7 +186,7 @@ const verifySignedAuthenticationBody = function(ctx, body, callback) {
   try {
     pipe(
       validator.isUserId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Invalid user id provided as the authenticating user'
       })

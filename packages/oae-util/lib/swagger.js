@@ -25,6 +25,7 @@ import readdirp from 'readdirp';
 import * as restjsdoc from 'restjsdoc';
 import * as TenantsUtil from 'oae-tenants/lib/util';
 import { Validator as validator } from 'oae-util/lib/validator';
+const { otherwise } = validator;
 import pipe from 'ramda/src/pipe';
 import isIn from 'validator/lib/isIn';
 import * as SwaggerParamTypes from './swaggerParamTypes';
@@ -310,7 +311,7 @@ const _appendToApi = function(rootResource, api, spec) {
   try {
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      otherwise({
         msg: 'Nickname must exist',
         path: api.path
       })
@@ -318,7 +319,7 @@ const _appendToApi = function(rootResource, api, spec) {
 
     pipe(
       validator.notContains,
-      validator.generateError({
+      otherwise({
         path: api.path,
         msg: 'Nicknames cannot contain spaces: ' + spec.nickname
       })
@@ -328,17 +329,17 @@ const _appendToApi = function(rootResource, api, spec) {
     _.each(spec.params, param => {
       pipe(
         isIn,
-        validator.generateError({
+        otherwise({
           path: api.path,
           name: param.name,
           msg: 'Invalid param type: ' + param.paramType
         })
-      )(param.paramType, Swagger.Constants.paramTypes);
+      )(param.paramType, Constants.paramTypes);
 
       if (param.paramType === 'path') {
         pipe(
           isIn,
-          validator.generateError({
+          otherwise({
             path: api.path,
             name: param.name,
             msg: 'Invalid path'

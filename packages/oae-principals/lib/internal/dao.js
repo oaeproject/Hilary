@@ -27,17 +27,7 @@ import * as Redis from 'oae-util/lib/redis';
 
 import { Group, User } from 'oae-principals/lib/model';
 import { Validator as validator } from 'oae-authz/lib/validator';
-const {
-  getNestedObject,
-  makeSureThat,
-  ifNotThenThrow,
-  isLoggedInUser,
-  isUserId,
-  isPrincipalId,
-  isNotEmpty,
-  isANumber,
-  isObject
-} = validator;
+const { ifNotThenThrow } = validator;
 import pipe from 'ramda/src/pipe';
 
 import { LoginId } from 'oae-authentication/lib/model';

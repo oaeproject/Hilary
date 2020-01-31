@@ -25,10 +25,10 @@ import * as TenantsAPI from 'oae-tenants';
 import { logger } from 'oae-logger';
 
 import { Validator as validator } from 'oae-util/lib/validator';
+const { otherwise } = validator;
 import pipe from 'ramda/src/pipe';
 import isInt from 'validator/lib/isInt';
 import isIn from 'validator/lib/isIn';
-import isBefore from 'validator/lib/isBefore';
 import * as MessageBoxModel from './model';
 import { MessageBoxConstants } from './constants';
 
@@ -144,7 +144,7 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
   try {
     pipe(
       validator.isNotNull,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A messageBoxId must be specified.'
       })
@@ -152,7 +152,7 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
 
     pipe(
       validator.isUserId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'The createdBy parameter must be a valid user id.'
       })
@@ -160,7 +160,7 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
 
     pipe(
       validator.isNotNull,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'The body of the message must be specified.'
       })
@@ -173,7 +173,7 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
     try {
       pipe(
         validator.isNotNull,
-        validator.generateError({
+        otherwise({
           code: 400,
           msg: 'If the replyToCreated optional parameter is specified, it should not be null.'
         })
@@ -181,7 +181,7 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
 
       pipe(
         isInt,
-        validator.generateError({
+        otherwise({
           code: 400,
           msg: 'If the replyToCreated optional parameter is specified, it should be an integer.'
         })
@@ -189,7 +189,7 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
 
       pipe(
         validator.isNotAfter,
-        validator.generateError({
+        otherwise({
           code: 400,
           msg: 'If the replyToCreated optional parameter is specified, it cannot be in the future.'
         })
@@ -331,7 +331,7 @@ const updateMessageBody = function(messageBoxId, created, newBody, callback) {
   try {
     pipe(
       validator.isNotNull,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A messageBoxId must be specified.'
       })
@@ -339,7 +339,7 @@ const updateMessageBody = function(messageBoxId, created, newBody, callback) {
 
     pipe(
       validator.isNotNull,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'The created parameter must be specified.'
       })
@@ -347,7 +347,7 @@ const updateMessageBody = function(messageBoxId, created, newBody, callback) {
 
     pipe(
       isInt,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'The created parameter must be a valid timestamp (integer).'
       })
@@ -355,7 +355,7 @@ const updateMessageBody = function(messageBoxId, created, newBody, callback) {
 
     pipe(
       validator.isNotAfter,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'The created parameter must be a valid timestamp (integer) that is not in the future.'
       })
@@ -363,7 +363,7 @@ const updateMessageBody = function(messageBoxId, created, newBody, callback) {
 
     pipe(
       validator.isNotNull,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'The new body of the message must be specified.'
       })
@@ -410,7 +410,7 @@ const getMessagesFromMessageBox = function(messageBoxId, start, limit, opts, cal
   try {
     pipe(
       validator.isNotNull,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A messageBoxId must be specified.'
       })
@@ -458,7 +458,7 @@ const getMessages = function(messageBoxId, createdTimestamps, opts, callback) {
   try {
     pipe(
       validator.isNotNull,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A messageBoxId must be specified.'
       })
@@ -471,7 +471,7 @@ const getMessages = function(messageBoxId, createdTimestamps, opts, callback) {
     _.each(createdTimestamps, timestamp => {
       pipe(
         validator.isNotNull,
-        validator.generateError({
+        otherwise({
           code: 400,
           msg: 'A timestamp cannot be null.'
         })
@@ -479,7 +479,7 @@ const getMessages = function(messageBoxId, createdTimestamps, opts, callback) {
 
       pipe(
         isInt,
-        validator.generateError({
+        otherwise({
           code: 400,
           msg: 'A timestamp should be an integer.'
         })
@@ -487,7 +487,7 @@ const getMessages = function(messageBoxId, createdTimestamps, opts, callback) {
 
       pipe(
         validator.isNotAfter,
-        validator.generateError({
+        otherwise({
           code: 400,
           msg: 'A timestamp cannot be in the future.'
         })
@@ -586,7 +586,7 @@ const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
   try {
     pipe(
       validator.isNotNull,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A messageBoxId must be specified.'
       })
@@ -594,7 +594,7 @@ const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
 
     pipe(
       validator.isNotNull,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'The createdTimestamp should not be null.'
       })
@@ -602,7 +602,7 @@ const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
 
     pipe(
       isInt,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'The createdTimestamp should be an integer.'
       })
@@ -610,7 +610,7 @@ const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
 
     pipe(
       validator.isNotAfter,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'The createdTimestamp cannot be in the future.'
       })
@@ -624,7 +624,7 @@ const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
     try {
       pipe(
         isIn,
-        validator.generateError({
+        otherwise({
           code: 400,
           msg: 'If the deleteType is specified it should be one of: ' + deleteValues.join(', ')
         })
@@ -707,7 +707,7 @@ const getRecentContributions = function(messageBoxId, start, limit, callback) {
   try {
     pipe(
       validator.isNotNull,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A messageBoxId must be specified.'
       })

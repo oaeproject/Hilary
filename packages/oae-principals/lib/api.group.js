@@ -30,7 +30,15 @@ import * as OaeUtil from 'oae-util/lib/util';
 import * as ResourceActions from 'oae-resource/lib/actions';
 import * as Signature from 'oae-util/lib/signature';
 import { Validator as validator } from 'oae-authz/lib/validator';
-const { isShortString, isMediumString, makeSureThat, ifNotThenThrow, isLoggedInUser, isNotEmpty } = validator;
+const {
+  isShortString,
+  isMediumString,
+  makeSureThat,
+  otherwise,
+  ifNotThenThrow,
+  isLoggedInUser,
+  isNotEmpty
+} = validator;
 import pipe from 'ramda/src/pipe';
 import isIn from 'validator/lib/isIn';
 import { AuthzConstants } from 'oae-authz/lib/constants';
@@ -57,7 +65,7 @@ const getGroup = function(ctx, groupId, callback) {
   try {
     pipe(
       validator.isGroupId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'An invalid group id was specified'
       })
@@ -187,7 +195,7 @@ const getMembersLibrary = function(ctx, groupId, start, limit, callback) {
   try {
     pipe(
       validator.isGroupId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'An invalid group id was specified'
       })
@@ -224,7 +232,7 @@ const getGroupInvitations = function(ctx, groupId, callback) {
   try {
     pipe(
       validator.isGroupId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A valid group id must be specified'
       })
@@ -255,7 +263,7 @@ const resendGroupInvitation = function(ctx, groupId, email, callback) {
   try {
     pipe(
       validator.isGroupId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A valid group id must be specified'
       })
@@ -365,7 +373,7 @@ const getMembershipsLibrary = function(ctx, principalId, start, limit, callback)
   try {
     pipe(
       validator.isPrincipalId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Must specify a valid principalId'
       })
@@ -492,7 +500,7 @@ const getRecentGroupsForUserId = function(ctx, principalId, limit, callback) {
   try {
     pipe(
       validator.isPrincipalId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Must specify a valid principalId'
       })
@@ -571,7 +579,7 @@ const setGroupMembers = function(ctx, groupId, changes, callback) {
   try {
     pipe(
       validator.isGroupId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Invalid groupId specified'
       })
@@ -579,7 +587,7 @@ const setGroupMembers = function(ctx, groupId, changes, callback) {
 
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to update group membership'
       })
@@ -591,13 +599,13 @@ const setGroupMembers = function(ctx, groupId, changes, callback) {
   // Ensure each role is restricted to those supported by groups (member and manager). Resource
   // Actions will take care of the other standard checks
   const validRoles = PrincipalsConstants.role.ALL_PRIORITY;
-  // eslint-disable-next-line no-unused-vars
   try {
+    // eslint-disable-next-line no-unused-vars
     _.each(changes, (role, memberId) => {
       if (role !== false) {
         pipe(
           isIn,
-          validator.generateError({
+          otherwise({
             code: 400,
             msg: util.format('Role must be one of %s', validRoles.join(', '))
           })
@@ -664,7 +672,7 @@ const leaveGroup = function(ctx, groupId, callback) {
   try {
     pipe(
       validator.isGroupId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Invalid groupId specified'
       })
@@ -672,7 +680,7 @@ const leaveGroup = function(ctx, groupId, callback) {
 
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to join a group'
       })
@@ -726,7 +734,7 @@ const joinGroup = function(ctx, groupId, callback) {
   try {
     pipe(
       validator.isGroupId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Invalid groupId specified'
       })
@@ -734,7 +742,7 @@ const joinGroup = function(ctx, groupId, callback) {
 
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to join a group'
       })
@@ -888,8 +896,8 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
   // Ensure all roles are in the set of valid roles. ResourceActions will take care of other
   // standard validations
   const validRoles = PrincipalsConstants.role.ALL_PRIORITY;
-  // eslint-disable-next-line no-unused-vars
   try {
+    // eslint-disable-next-line no-unused-vars
     _.each(roles, (role, principalId) => {
       if (role !== false) {
         pipe(
@@ -980,7 +988,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
     fieldNames.forEach(fieldName => {
       pipe(
         isIn,
-        validator.generateError({
+        otherwise({
           code: 400,
           msg: fieldName + ' is not a recognized group profile field'
         })
@@ -989,7 +997,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
       if (fieldName === 'visibility') {
         pipe(
           isIn,
-          validator.generateError({
+          otherwise({
             code: 400,
             msg: 'The visibility setting must be one of: ' + _.values(AuthzConstants.visibility)
           })

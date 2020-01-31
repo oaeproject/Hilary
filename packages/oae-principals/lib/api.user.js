@@ -43,18 +43,7 @@ import * as Signature from 'oae-util/lib/signature';
 import { setUpConfig } from 'oae-config';
 import { Context } from 'oae-context';
 import { Validator as validator } from 'oae-util/lib/validator';
-const {
-  getNestedObject,
-  makeSureThat,
-  ifNotThenThrow,
-  isShortString,
-  isLoggedInUser,
-  isUserId,
-  isPrincipalId,
-  isNotEmpty,
-  isANumber,
-  isObject
-} = validator;
+const { makeSureThat, ifNotThenThrow, otherwise, isShortString, isUserId } = validator;
 import pipe from 'ramda/src/pipe';
 import isIn from 'validator/lib/isIn';
 import isInt from 'validator/lib/isInt';
@@ -1544,7 +1533,7 @@ const deleteEmailToken = function(ctx, userId, callback) {
   try {
     pipe(
       validator.isUserId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A valid user id must be provided'
       })
@@ -1552,7 +1541,7 @@ const deleteEmailToken = function(ctx, userId, callback) {
 
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to delete a pending email token'
       })
@@ -1600,7 +1589,7 @@ const exportData = function(ctx, userId, exportType, callback) {
   try {
     pipe(
       validator.isUserId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A valid user id must be provided'
       })
@@ -1608,7 +1597,7 @@ const exportData = function(ctx, userId, exportType, callback) {
 
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to delete a pending email token'
       })
@@ -1616,7 +1605,7 @@ const exportData = function(ctx, userId, exportType, callback) {
 
     pipe(
       isIn,
-      validator.generateError({
+      otherwise({
         code: 402,
         msg: 'An invalid exportType has been specified'
       })

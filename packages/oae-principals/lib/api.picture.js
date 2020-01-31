@@ -24,6 +24,7 @@ import * as AuthzPermissions from 'oae-authz/lib/permissions';
 import * as ContentUtil from 'oae-content/lib/internal/util';
 import * as ImageUtil from 'oae-util/lib/image';
 import { Validator as validator } from 'oae-util/lib/validator';
+const { otherwise } = validator;
 import pipe from 'ramda/src/pipe';
 import isInt from 'validator/lib/isInt';
 import * as GroupAPI from './api.group';
@@ -61,7 +62,7 @@ const storePicture = function(ctx, principalId, file, callback) {
   try {
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to update a picture'
       })
@@ -69,7 +70,7 @@ const storePicture = function(ctx, principalId, file, callback) {
 
     pipe(
       validator.isPrincipalId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A principal ID must be provided'
       })
@@ -77,7 +78,7 @@ const storePicture = function(ctx, principalId, file, callback) {
 
     pipe(
       validator.isNotNull,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A file must be provided'
       })
@@ -86,7 +87,7 @@ const storePicture = function(ctx, principalId, file, callback) {
     if (file) {
       pipe(
         validator.isNotEmpty,
-        validator.generateError({
+        otherwise({
           code: 400,
           msg: 'Missing size on the file object.'
         })
@@ -96,7 +97,7 @@ const storePicture = function(ctx, principalId, file, callback) {
         (size, max) => {
           return size <= max;
         },
-        validator.generateError({
+        otherwise({
           code: 400,
           msg: 'The size of a picture has an upper limit of 10MB.'
         })
@@ -104,7 +105,7 @@ const storePicture = function(ctx, principalId, file, callback) {
 
       pipe(
         validator.isNotEmpty,
-        validator.generateError({
+        otherwise({
           code: 400,
           msg: 'Missing name on the file object.'
         })
@@ -209,7 +210,7 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
   try {
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to update a picture'
       })
@@ -217,7 +218,7 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
 
     pipe(
       validator.isPrincipalId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A principal id must be provided'
       })
@@ -225,7 +226,7 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
 
     pipe(
       isInt,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'The x value must be a positive integer'
       })
@@ -233,7 +234,7 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
 
     pipe(
       isInt,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'The x value must be a positive integer'
       })
@@ -241,7 +242,7 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
 
     pipe(
       isInt,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'The y value must be a positive integer'
       })
@@ -249,7 +250,7 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
 
     pipe(
       isInt,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'The y value must be a positive integer'
       })
@@ -257,7 +258,7 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
 
     pipe(
       isInt,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'The width value must be a positive integer'
       })
@@ -265,7 +266,7 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
 
     pipe(
       isInt,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'The width value must be a positive integer greater than or equal to 10'
       })

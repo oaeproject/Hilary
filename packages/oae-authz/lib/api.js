@@ -24,6 +24,7 @@ import { AuthzConstants } from 'oae-authz/lib/constants';
 import AuthzGraph from 'oae-authz/lib/internal/graph';
 import * as AuthzUtil from 'oae-authz/lib/util';
 import { Validator as validator } from 'oae-authz/lib/validator';
+const { otherwise } = validator;
 import pipe from 'ramda/src/pipe';
 
 import { logger } from 'oae-logger';
@@ -67,7 +68,7 @@ const getDirectRoles = function(principalIds, resourceId, callback) {
   try {
     pipe(
       validator.isArrayNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'At least one principal id needs to be passed in'
       })
@@ -75,7 +76,7 @@ const getDirectRoles = function(principalIds, resourceId, callback) {
 
     pipe(
       validator.isNonUserResourceId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Invalid non-user resource id provided'
       })
@@ -88,7 +89,7 @@ const getDirectRoles = function(principalIds, resourceId, callback) {
     _.each(principalIds, principalId => {
       pipe(
         validator.isPrincipalId,
-        validator.generateError({
+        otherwise({
           code: 400,
           msg: 'Invalid principal id provided'
         })
@@ -131,7 +132,7 @@ const getAllRoles = function(principalId, resourceId, callback) {
   try {
     pipe(
       validator.isPrincipalId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Invalid principal id provided.'
       })
@@ -139,7 +140,7 @@ const getAllRoles = function(principalId, resourceId, callback) {
 
     pipe(
       validator.isNonUserResourceId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Invalid non-user resource id provided.'
       })
@@ -258,7 +259,7 @@ const hasRole = function(principalId, resourceId, role, callback) {
   try {
     pipe(
       validator.isPrincipalId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Invalid principal id provided'
       })
@@ -266,7 +267,7 @@ const hasRole = function(principalId, resourceId, role, callback) {
 
     pipe(
       validator.isNonUserResourceId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Invalid non-user resource id provided'
       })
@@ -274,7 +275,7 @@ const hasRole = function(principalId, resourceId, role, callback) {
 
     pipe(
       validator.isValidRole,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Invalid role provided'
       })
@@ -299,7 +300,7 @@ const hasAnyRole = function(principalId, resourceId, callback) {
   try {
     pipe(
       validator.isPrincipalId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Invalid principal id provided'
       })
@@ -307,7 +308,7 @@ const hasAnyRole = function(principalId, resourceId, callback) {
 
     pipe(
       validator.isNonUserResourceId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Invalid non-user resource id provided'
       })
@@ -379,7 +380,7 @@ const updateRoles = function(resourceId, changes, callback) {
   try {
     pipe(
       validator.isNonUserResourceId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Invalid non-user resource id provided'
       })
@@ -387,7 +388,7 @@ const updateRoles = function(resourceId, changes, callback) {
 
     pipe(
       validator.isArrayNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'At least one role change needs to be applied'
       })
@@ -400,7 +401,7 @@ const updateRoles = function(resourceId, changes, callback) {
     for (const principalId of roleChanges) {
       pipe(
         validator.isPrincipalId,
-        validator.generateError({
+        otherwise({
           code: 400,
           msg: 'Invalid principal id specified: ' + principalId
         })
@@ -408,7 +409,7 @@ const updateRoles = function(resourceId, changes, callback) {
 
       pipe(
         validator.isValidRoleChange,
-        validator.generateError({
+        otherwise({
           code: 400,
           msg: 'Invalid role provided'
         })
@@ -574,7 +575,7 @@ const getAuthzMembers = function(resourceId, start, limit, callback) {
   try {
     pipe(
       validator.isNonUserResourceId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Invalid non-user resource id provided'
       })
@@ -832,7 +833,7 @@ const getPrincipalMembershipsGraph = function(principalId, callback) {
   try {
     pipe(
       validator.isPrincipalId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Invalid principal id provided'
       })
@@ -922,7 +923,7 @@ const getPrincipalMemberships = function(principalId, start, limit, callback) {
   try {
     pipe(
       validator.isPrincipalId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Invalid principal id provided'
       })
@@ -998,7 +999,7 @@ const getAllIndirectPrincipalMemberships = function(principalId, callback, _grou
   try {
     pipe(
       validator.isPrincipalId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Invalid principal id provided'
       })
@@ -1039,7 +1040,7 @@ const getIndirectPrincipalMemberships = function(principalId, start, limit, call
   try {
     pipe(
       validator.isPrincipalId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Invalid principal id provided'
       })
@@ -1242,7 +1243,7 @@ const getAllRolesForPrincipalAndResourceType = function(principalId, resourceTyp
   try {
     pipe(
       validator.isPrincipalId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Invalid principal id specified: ' + principalId
       })
@@ -1250,7 +1251,7 @@ const getAllRolesForPrincipalAndResourceType = function(principalId, resourceTyp
 
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A resourceType needs to be provided'
       })
@@ -1301,7 +1302,7 @@ const getRolesForPrincipalAndResourceType = function(principalId, resourceType, 
   try {
     pipe(
       validator.isPrincipalId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Invalid principal id specified: ' + principalId
       })
@@ -1309,7 +1310,7 @@ const getRolesForPrincipalAndResourceType = function(principalId, resourceType, 
 
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A resourceType needs to be provided'
       })
@@ -1387,7 +1388,7 @@ const getRolesForPrincipalsAndResourceType = function(principalIds, resourceType
   try {
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A resourceType needs to be provided'
       })
@@ -1395,7 +1396,7 @@ const getRolesForPrincipalsAndResourceType = function(principalIds, resourceType
 
     pipe(
       validator.isArrayNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'At least one principal Id needs to be passed in'
       })
@@ -1408,7 +1409,7 @@ const getRolesForPrincipalsAndResourceType = function(principalIds, resourceType
     for (const principalId of principalIds) {
       pipe(
         validator.isPrincipalId,
-        validator.generateError({
+        otherwise({
           code: 400,
           msg: 'Invalid principal id specified: ' + principalId
         })

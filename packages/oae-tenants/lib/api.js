@@ -33,17 +33,7 @@ import * as OAE from 'oae-util/lib/oae';
 import * as OaeUtil from 'oae-util/lib/util';
 import * as Pubsub from 'oae-util/lib/pubsub';
 import { Validator as validator } from 'oae-util/lib/validator';
-const {
-  getNestedObject,
-  makeSureThat,
-  ifNotThenThrow: otherwiseThrow,
-  isLoggedInUser,
-  isUserId,
-  isPrincipalId,
-  isNotEmpty,
-  isANumber,
-  isObject
-} = validator;
+const { makeSureThat, ifNotThenThrow: otherwiseThrow, otherwise } = validator;
 import isIn from 'validator/lib/isIn';
 import TenantEmailDomainIndex from './internal/emailDomainIndex';
 import TenantIndex from './internal/tenantIndex';
@@ -578,7 +568,7 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
 
     pipe(
       validator.notContains,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'The tenant alias should not contain a space'
       })
@@ -586,7 +576,7 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
 
     pipe(
       validator.notContains,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'The tenant alias should not contain a colon'
       }),
@@ -618,7 +608,7 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
   try {
     pipe(
       validator.isDifferent,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'This hostname is reserved'
       }),
@@ -642,7 +632,7 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
     _.each(opts, (val, key) => {
       pipe(
         isIn,
-        validator.generateError({
+        otherwise({
           code: 400,
           msg: `Invalid field: ${key}`
         })
@@ -651,7 +641,7 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
       if (key === 'emailDomains') {
         pipe(
           Array.isArray,
-          validator.generateError({
+          otherwise({
             code: 400,
             msg: 'One or more email domains were passed in, but not as an array'
           })
@@ -667,7 +657,7 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
         opts[key] = opts[key].toUpperCase();
         pipe(
           validator.isISO31661Alpha2,
-          validator.generateError({
+          otherwise({
             code: 400,
             msg: 'The country code must be a valid ISO-3166 country code'
           })
@@ -734,7 +724,7 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
   try {
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Missing alias'
       }),
@@ -767,7 +757,7 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
     _.each(tenantUpdates, (updateValue, updateField) => {
       pipe(
         isIn,
-        validator.generateError({
+        otherwise({
           code: 400,
           msg: util.format('"%s" is not a recognized tenant update field', updateField)
         })
@@ -790,7 +780,7 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
         pipe(
           validator.isHost,
           otherwiseThrow({ code: 400, msg: 'Invalid host' }),
-          makeSureThat(true, updateValue, isNotEmpty),
+          makeSureThat(true, updateValue, validator.isNotEmpty),
           otherwiseThrow({ code: 400, msg: 'A hostname cannot be empty' }),
           makeSureThat(true, getTenantByHost(updateValue), validator.isNull),
           otherwiseThrow({
@@ -866,7 +856,7 @@ const disableTenants = function(ctx, aliases, disabled, callback) {
   try {
     pipe(
       validator.isGlobalAdministratorUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'You must be a global admin user to enable or disable a tenant'
       })
@@ -874,7 +864,7 @@ const disableTenants = function(ctx, aliases, disabled, callback) {
 
     pipe(
       validator.isArrayNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'You must provide at least one alias to enable or disable'
       })
@@ -883,7 +873,7 @@ const disableTenants = function(ctx, aliases, disabled, callback) {
     _.each(aliases, alias => {
       pipe(
         validator.isObject,
-        validator.generateError({
+        otherwise({
           code: 404,
           msg: util.format('Tenant with alias "%s" does not exist and cannot be enabled or disabled', alias)
         })
@@ -1041,7 +1031,7 @@ const _setLandingPageBlockAttribute = function(ctx, block, blockName, attributeN
  * @param  {String}     [updateTenantAlias]     The alias of the tenant being updated, if any
  * @api private
  */
-const _validateEmailDomains = function(validator, emailDomains, updateTenantAlias, callback) {
+const _validateEmailDomains = function(validator, emailDomains, updateTenantAlias) {
   _.each(emailDomains, emailDomain => {
     // Check whether it's a valid domain
     pipe(
@@ -1059,7 +1049,7 @@ const _validateEmailDomains = function(validator, emailDomains, updateTenantAlia
 
     pipe(
       validator.isNull,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: util.format(
           'The email domain "%s" conflicts with existing email domains: %s',

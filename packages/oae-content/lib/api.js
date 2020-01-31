@@ -43,17 +43,7 @@ import isUrl from 'validator/lib/isURL';
 import isInt from 'validator/lib/isInt';
 import isIn from 'validator/lib/isIn';
 import { Validator as validator } from 'oae-util/lib/validator';
-const {
-  getNestedObject,
-  makeSureThat,
-  ifNotThenThrow,
-  isLoggedInUser,
-  isUserId,
-  isPrincipalId,
-  isNotEmpty,
-  isANumber,
-  isObject
-} = validator;
+const { makeSureThat, ifNotThenThrow, otherwise, isANumber } = validator;
 import pipe from 'ramda/src/pipe';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { ContentConstants } from './constants';
@@ -284,7 +274,7 @@ const createLink = function(ctx, displayName, description, visibility, link, add
         code: 400,
         msg: 'A valid link must be provided'
       })
-    )(link, { require_tld: false });
+    )(link, { require_tld: false }); // eslint-disable-line camelcase
 
     pipe(
       validator.isLoggedInUser,
@@ -2105,7 +2095,7 @@ const setPreviewItems = function(
       try {
         pipe(
           validator.equals,
-          validator.generateError({
+          otherwise({
             code: 400,
             msg: 'Specified revisionId does not belong to the specifed content item'
           })
@@ -2365,7 +2355,7 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
     for (const fieldName of fieldNames) {
       pipe(
         isIn,
-        validator.generateError({
+        otherwise({
           code: 400,
           msg: fieldName + ' is not a recognized content profile field'
         })

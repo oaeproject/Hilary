@@ -17,6 +17,7 @@ import _ from 'underscore';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
 import { Validator as validator } from 'oae-util/lib/validator';
+const { otherwise } = validator;
 import pipe from 'ramda/src/pipe';
 
 import * as OAuthDAO from './internal/dao';
@@ -38,7 +39,7 @@ const getClients = function(ctx, userId, callback) {
   try {
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'Anonymous users do not have clients'
       })
@@ -46,7 +47,7 @@ const getClients = function(ctx, userId, callback) {
 
     pipe(
       validator.isUserId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'An invalid userId was passed in'
       })
@@ -85,7 +86,7 @@ const createClient = function(ctx, userId, displayName, callback) {
   try {
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'Anonymous users cannot create a client'
       })
@@ -93,7 +94,7 @@ const createClient = function(ctx, userId, displayName, callback) {
 
     pipe(
       validator.isUserId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A client must be bound to a user'
       })
@@ -101,7 +102,7 @@ const createClient = function(ctx, userId, displayName, callback) {
 
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Missing client displayName'
       })
@@ -137,7 +138,7 @@ const updateClient = function(ctx, clientId, displayName, secret, callback) {
   try {
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'Anonymous users cannot create a client'
       })
@@ -145,7 +146,7 @@ const updateClient = function(ctx, clientId, displayName, secret, callback) {
 
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Missing client id'
       })
@@ -199,7 +200,7 @@ const deleteClient = function(ctx, clientId, callback) {
   try {
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'Anonymous users cannot delete a client'
       })
@@ -207,7 +208,7 @@ const deleteClient = function(ctx, clientId, callback) {
 
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Missing client id'
       })

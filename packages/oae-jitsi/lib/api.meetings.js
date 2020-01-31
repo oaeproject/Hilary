@@ -16,17 +16,7 @@ import { logger } from 'oae-logger';
 
 import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
 import { Validator as validator } from 'oae-authz/lib/validator';
-const {
-  getNestedObject,
-  makeSureThat,
-  ifNotThenThrow: otherwiseThrow,
-  isLoggedInUser,
-  isUserId,
-  isPrincipalId,
-  isNotEmpty,
-  isANumber,
-  isObject
-} = validator;
+const { makeSureThat, ifNotThenThrow: otherwiseThrow, otherwise } = validator;
 import pipe from 'ramda/src/pipe';
 import isIn from 'validator/lib/isIn';
 import isInt from 'validator/lib/isInt';
@@ -85,7 +75,7 @@ const createMeeting = function(
   try {
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'Anonymous users cannot create a meeting'
       })
@@ -93,7 +83,7 @@ const createMeeting = function(
 
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Must provide a display name for the meeting'
       })
@@ -101,7 +91,7 @@ const createMeeting = function(
 
     pipe(
       validator.isShortString,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A display name can be at most 1000 characters long'
       })
@@ -109,7 +99,7 @@ const createMeeting = function(
 
     pipe(
       isIn,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'An invalid meeting visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
       })
@@ -122,7 +112,7 @@ const createMeeting = function(
     try {
       pipe(
         validator.isMediumString,
-        validator.generateError({
+        otherwise({
           code: 400,
           msg: 'A description can be at most 10000 characters long'
         })
@@ -133,12 +123,12 @@ const createMeeting = function(
   }
 
   // Verify each role is valid
-  // eslint-disable-next-line no-unused-vars
   try {
+    // eslint-disable-next-line no-unused-vars
     _.each(additionalMembers, (role, memberId) => {
       pipe(
         isIn,
-        validator.generateError({
+        otherwise({
           code: 400,
           msg: 'The role: ' + role + ' is not a valid member role for a meeting'
         })
@@ -188,7 +178,7 @@ const getFullMeetingProfile = function(ctx, meetingId, callback) {
   try {
     pipe(
       validator.isResourceId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'meetingId must be a valid resource id'
       })
@@ -258,7 +248,7 @@ const getMeeting = function(ctx, meetingId, callback) {
   try {
     pipe(
       validator.isResourceId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A valid resource id must be specified'
       })
@@ -293,7 +283,7 @@ const getMeetingInvitations = function(ctx, meetingId, callback) {
   try {
     pipe(
       validator.isResourceId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A valid resource id must be specified'
       })
@@ -324,7 +314,7 @@ const getMeetingMembers = function(ctx, meetingId, start, limit, callback) {
   try {
     pipe(
       validator.isResourceId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A valid resource id must be specified'
       })
@@ -397,7 +387,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
   try {
     pipe(
       validator.isResourceId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A valid resource id must be specified'
       })
@@ -405,7 +395,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
 
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'You must be authenticated to update a meeting'
       })
@@ -413,7 +403,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
 
     pipe(
       validator.isArrayNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'You should at least provide one profile field to update'
       })
@@ -426,7 +416,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
     _.each(profileFields, (value, field) => {
       pipe(
         isIn,
-        validator.generateError({
+        otherwise({
           code: 400,
           msg:
             "The field '" +
@@ -439,7 +429,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
       if (field === 'visibility') {
         pipe(
           isIn,
-          validator.generateError({
+          otherwise({
             code: 400,
             msg: 'An invalid visibility was specified. Must be one of: ' + allVisibilities.join(', ')
           })
@@ -447,7 +437,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
       } else if (field === 'displayName') {
         pipe(
           validator.isNotEmpty,
-          validator.generateError({
+          otherwise({
             code: 400,
             msg: 'A display name cannot be empty'
           })
@@ -455,7 +445,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
 
         pipe(
           validator.isShortString,
-          validator.generateError({
+          otherwise({
             code: 400,
             msg: 'A display name can be at most 1000 characters long'
           })
@@ -463,7 +453,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
       } else if (field === 'description' && value.length > 0) {
         pipe(
           validator.isMediumString,
-          validator.generateError({
+          otherwise({
             code: 400,
             msg: 'A description can be at most 10000 characters long'
           })
@@ -471,7 +461,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
       } else if (field === 'chat') {
         pipe(
           validator.isBoolean,
-          validator.generateError({
+          otherwise({
             code: 400,
             msg: 'An invalid chat value was specified, must be boolean'
           })
@@ -479,7 +469,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
       } else if (field === 'contactList') {
         pipe(
           validator.isBoolean,
-          validator.generateError({
+          otherwise({
             code: 400,
             msg: 'An invalid contactList value was specified, must be boolean'
           })
@@ -534,7 +524,7 @@ const deleteMeeting = function(ctx, meetingId, callback) {
   try {
     pipe(
       validator.isResourceId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A valid resource id must be specified'
       })
@@ -542,7 +532,7 @@ const deleteMeeting = function(ctx, meetingId, callback) {
 
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'You must be authenticated to delete a meeting'
       })
@@ -611,7 +601,7 @@ const setMeetingMembers = function(ctx, meetingId, changes, callback) {
   try {
     pipe(
       validator.isResourceId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A valid resource id must be specified'
       })
@@ -619,7 +609,7 @@ const setMeetingMembers = function(ctx, meetingId, changes, callback) {
 
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'You must be authenticated to update meeting members'
       })
@@ -628,12 +618,12 @@ const setMeetingMembers = function(ctx, meetingId, changes, callback) {
     return callback(error);
   }
 
-  // eslint-disable-next-line no-unused-vars
   try {
+    // eslint-disable-next-line no-unused-vars
     _.each(changes, (role, principalId) => {
       pipe(
         validator.isValidRoleChange,
-        validator.generateError({
+        otherwise({
           code: 400,
           msg: 'The role change : ' + role + ' is not a valid value. Must either be a string, or false'
         })
@@ -642,7 +632,7 @@ const setMeetingMembers = function(ctx, meetingId, changes, callback) {
       if (role) {
         pipe(
           isIn,
-          validator.generateError({
+          otherwise({
             code: 400,
             msg:
               'The role "' +
@@ -704,7 +694,7 @@ const getMessages = function(ctx, meetingId, start, limit, callback) {
   try {
     pipe(
       validator.isResourceId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Must provide a valid meeting id'
       })
@@ -712,7 +702,7 @@ const getMessages = function(ctx, meetingId, start, limit, callback) {
 
     pipe(
       isInt,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Must provide a valid limit'
       })
@@ -865,7 +855,7 @@ const deleteMessage = function(ctx, meetingId, messageCreatedDate, callback) {
   try {
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'Only authenticated users can delete messages'
       }),
@@ -958,7 +948,7 @@ const getMeetingsLibrary = function(ctx, principalId, start, limit, callback) {
   try {
     pipe(
       validator.isPrincipalId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A user or group id must be provided'
       })
@@ -1036,7 +1026,7 @@ const removeMeetingFromLibrary = function(ctx, libraryOwnerId, meetingId, callba
   try {
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'You must be authenticated to remove a meeting from a library'
       })
@@ -1044,7 +1034,7 @@ const removeMeetingFromLibrary = function(ctx, libraryOwnerId, meetingId, callba
 
     pipe(
       validator.isPrincipalId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'An user or group id must be provided'
       })
@@ -1052,7 +1042,7 @@ const removeMeetingFromLibrary = function(ctx, libraryOwnerId, meetingId, callba
 
     pipe(
       validator.isResourceId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'An invalid meeting id "' + meetingId + '" was provided'
       })

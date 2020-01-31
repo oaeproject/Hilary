@@ -37,6 +37,7 @@ const {
   getNestedObject,
   makeSureThat,
   ifNotThenThrow,
+  otherwise,
   isLoggedInUser,
   isUserId,
   isPrincipalId,
@@ -82,7 +83,7 @@ const createDiscussion = function(ctx, displayName, description, visibility, rol
   try {
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'Anonymous users cannot create a discussion'
       })
@@ -90,7 +91,7 @@ const createDiscussion = function(ctx, displayName, description, visibility, rol
 
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Must provide a display name for the discussion'
       })
@@ -98,7 +99,7 @@ const createDiscussion = function(ctx, displayName, description, visibility, rol
 
     pipe(
       validator.isShortString,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A display name can be at most 1000 characters long'
       })
@@ -106,7 +107,7 @@ const createDiscussion = function(ctx, displayName, description, visibility, rol
 
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Must provide a description for the discussion'
       })
@@ -114,7 +115,7 @@ const createDiscussion = function(ctx, displayName, description, visibility, rol
 
     pipe(
       validator.isMediumString,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A description can be at most 10000 characters long'
       })
@@ -122,7 +123,7 @@ const createDiscussion = function(ctx, displayName, description, visibility, rol
 
     pipe(
       isIn,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'An invalid discussion visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
       })
@@ -136,7 +137,7 @@ const createDiscussion = function(ctx, displayName, description, visibility, rol
     _.each(roles, (role, memberId) => {
       pipe(
         isIn,
-        validator.generateError({
+        otherwise({
           code: 400,
           msg: 'The role: ' + role + ' is not a valid member role for a discussion'
         })
@@ -188,7 +189,7 @@ const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
   try {
     pipe(
       validator.isResourceId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A discussion id must be provided'
       })
@@ -196,7 +197,7 @@ const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
 
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'You must be authenticated to update a discussion'
       })
@@ -204,7 +205,7 @@ const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
 
     pipe(
       validator.isArrayNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'You should at least one profile field to update'
       })
@@ -226,7 +227,7 @@ const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
       if (field === 'visibility') {
         pipe(
           isIn,
-          validator.generateError({
+          otherwise({
             code: 400,
             msg: 'An invalid visibility was specified. Must be one of: ' + allVisibilities.join(', ')
           })
@@ -234,7 +235,7 @@ const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
       } else if (field === 'displayName') {
         pipe(
           validator.isNotEmpty,
-          validator.generateError({
+          otherwise({
             code: 400,
             msg: 'A display name cannot be empty'
           })
@@ -242,7 +243,7 @@ const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
 
         pipe(
           validator.isShortString,
-          validator.generateError({
+          otherwise({
             code: 400,
             msg: 'A display name can be at most 1000 characters long'
           })
@@ -250,7 +251,7 @@ const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
       } else if (field === 'description') {
         pipe(
           validator.isNotEmpty,
-          validator.generateError({
+          otherwise({
             code: 400,
             msg: 'A description cannot be empty'
           })
@@ -258,7 +259,7 @@ const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
 
         pipe(
           validator.isMediumString,
-          validator.generateError({
+          otherwise({
             code: 400,
             msg: 'A description can only be 10000 characters long'
           })
@@ -319,7 +320,7 @@ const deleteDiscussion = function(ctx, discussionId, callback) {
   try {
     pipe(
       validator.isResourceId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A discussion id must be provided'
       })
@@ -327,7 +328,7 @@ const deleteDiscussion = function(ctx, discussionId, callback) {
 
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'You must be authenticated to delete a discussion'
       })
@@ -411,7 +412,7 @@ const getDiscussionsLibrary = function(ctx, principalId, start, limit, callback)
   try {
     pipe(
       validator.isPrincipalId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A user or group id must be provided'
       })
@@ -486,7 +487,7 @@ const getDiscussion = function(ctx, discussionId, callback) {
   try {
     pipe(
       validator.isResourceId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'discussionId must be a valid resource id'
       })
@@ -528,7 +529,7 @@ const getFullDiscussionProfile = function(ctx, discussionId, callback) {
   try {
     pipe(
       validator.isResourceId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'discussionId must be a valid resource id'
       })
@@ -606,7 +607,7 @@ const getDiscussionMembers = function(ctx, discussionId, start, limit, callback)
   try {
     pipe(
       validator.isResourceId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A discussion id must be provided'
       })
@@ -660,7 +661,7 @@ const getDiscussionInvitations = function(ctx, discussionId, callback) {
   try {
     pipe(
       validator.isResourceId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A valid resource id must be specified'
       })
@@ -691,7 +692,7 @@ const resendDiscussionInvitation = function(ctx, discussionId, email, callback) 
   try {
     pipe(
       validator.isResourceId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A valid resource id must be specified'
       })
@@ -724,7 +725,7 @@ const shareDiscussion = function(ctx, discussionId, principalIds, callback) {
   try {
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to share a discussion'
       })
@@ -732,7 +733,7 @@ const shareDiscussion = function(ctx, discussionId, principalIds, callback) {
 
     pipe(
       validator.isResourceId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A valid discussion id must be provided'
       })
@@ -788,7 +789,7 @@ const setDiscussionPermissions = function(ctx, discussionId, changes, callback) 
   try {
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to change discussion permissions'
       })
@@ -796,7 +797,7 @@ const setDiscussionPermissions = function(ctx, discussionId, changes, callback) 
 
     pipe(
       validator.isResourceId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A valid discussion id must be provided'
       })
@@ -809,7 +810,7 @@ const setDiscussionPermissions = function(ctx, discussionId, changes, callback) 
     _.each(changes, (role, principalId) => {
       pipe(
         validator.isValidRoleChange,
-        validator.generateError({
+        otherwise({
           code: 400,
           msg: 'The role change: ' + role + ' is not a valid value. Must either be a string, or false'
         })
@@ -818,7 +819,7 @@ const setDiscussionPermissions = function(ctx, discussionId, changes, callback) 
       if (role) {
         pipe(
           isIn,
-          validator.generateError({
+          otherwise({
             code: 400,
             msg:
               'The role: "' +
@@ -883,7 +884,7 @@ const removeDiscussionFromLibrary = function(ctx, libraryOwnerId, discussionId, 
   try {
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'You must be authenticated to remove a discussion from a library'
       })
@@ -891,7 +892,7 @@ const removeDiscussionFromLibrary = function(ctx, libraryOwnerId, discussionId, 
 
     pipe(
       validator.isPrincipalId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'A user or group id must be provided'
       })
@@ -899,7 +900,7 @@ const removeDiscussionFromLibrary = function(ctx, libraryOwnerId, discussionId, 
 
     pipe(
       validator.isResourceId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'An invalid discussion id "' + discussionId + '" was provided'
       })
@@ -966,7 +967,7 @@ const createMessage = function(ctx, discussionId, body, replyToCreatedTimestamp,
   try {
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'Only authenticated users can post on discussions'
       }),
@@ -1063,7 +1064,7 @@ const deleteMessage = function(ctx, discussionId, messageCreatedDate, callback) 
   try {
     pipe(
       validator.isLoggedInUser,
-      validator.generateError({
+      otherwise({
         code: 401,
         msg: 'Only authenticated users can delete messages'
       }),
@@ -1155,7 +1156,7 @@ const getMessages = function(ctx, discussionId, start, limit, callback) {
   try {
     pipe(
       validator.isResourceId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Must provide a valid discussion id'
       }),

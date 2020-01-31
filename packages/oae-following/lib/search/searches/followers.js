@@ -19,6 +19,7 @@ import * as SearchUtil from 'oae-search/lib/util';
 import * as FollowingAuthz from 'oae-following/lib/authz';
 
 import { Validator as validator } from 'oae-authz/lib/validator';
+const { otherwise } = validator;
 import pipe from 'ramda/src/pipe';
 import { FollowingConstants } from 'oae-following/lib/constants';
 
@@ -46,7 +47,7 @@ export default function(ctx, opts, callback) {
   try {
     pipe(
       validator.isUserId,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Must specificy an id of a user to search their followers'
       })

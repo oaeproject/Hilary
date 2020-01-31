@@ -19,6 +19,7 @@ import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as Signature from 'oae-util/lib/signature';
 import * as TenantsAPI from 'oae-tenants/lib/api';
 import { Validator as validator } from 'oae-util/lib/validator';
+const { otherwise } = validator;
 import pipe from 'ramda/src/pipe';
 import isAfter from 'validator/lib/isAfter';
 
@@ -97,7 +98,7 @@ const validateInitiateParameters = function(tenantAlias, signature, expires, cal
   try {
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Missing tenant alias parameter'
       })
@@ -105,7 +106,7 @@ const validateInitiateParameters = function(tenantAlias, signature, expires, cal
 
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Missing signature parameter'
       })
@@ -113,7 +114,7 @@ const validateInitiateParameters = function(tenantAlias, signature, expires, cal
 
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Missing expires parameter'
       })
@@ -121,7 +122,7 @@ const validateInitiateParameters = function(tenantAlias, signature, expires, cal
 
     pipe(
       validator.isNumeric,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Invalid expires parameter'
       })
@@ -129,7 +130,7 @@ const validateInitiateParameters = function(tenantAlias, signature, expires, cal
 
     pipe(
       isAfter,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Invalid expires parameter'
       })
@@ -207,7 +208,7 @@ const getUser = function(tenant, userId, signature, expires, callback) {
   try {
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Missing user id parameter'
       })
@@ -215,7 +216,7 @@ const getUser = function(tenant, userId, signature, expires, callback) {
 
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Missing signature parameter'
       })
@@ -223,7 +224,7 @@ const getUser = function(tenant, userId, signature, expires, callback) {
 
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Missing expires parameter'
       })
@@ -231,7 +232,7 @@ const getUser = function(tenant, userId, signature, expires, callback) {
 
     pipe(
       validator.isNumeric,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Invalid expires parameter'
       })
@@ -239,7 +240,7 @@ const getUser = function(tenant, userId, signature, expires, callback) {
 
     pipe(
       isAfter,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'Invalid expires parameter'
       })

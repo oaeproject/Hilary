@@ -28,6 +28,7 @@ import * as SearchModel from 'oae-search/lib/model';
 import { SearchConstants } from 'oae-search/lib/constants';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { Validator as validator } from 'oae-util/lib/validator';
+const { otherwise } = validator;
 import pipe from 'ramda/src/pipe';
 
 const log = logger('oae-search-util');
@@ -254,7 +255,7 @@ const createQuery = function(query, filter, opts) {
   try {
     pipe(
       validator.isObject,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'createQuery expects a query object.'
       })

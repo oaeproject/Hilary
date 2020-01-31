@@ -94,6 +94,14 @@ Validator.pickFirstError = allErrors => {
   return null;
 };
 
+Validator.otherwise = error => {
+  return passed => {
+    if (!passed) {
+      throw error;
+    }
+  };
+};
+
 Validator.ifNotThenThrow = error => {
   return passed => {
     if (!passed) {
@@ -101,6 +109,9 @@ Validator.ifNotThenThrow = error => {
     }
   };
 };
+
+Validator.generateError = Validator.ifNotThenThrow;
+// Validator.otherwise = Validator.ifNotThenThrow;
 
 Validator.makeSureThat = (condition, value, validation) => {
   return function() {
@@ -118,8 +129,6 @@ Validator.getNestedObject = nestedObj => {
   };
 };
 
-Validator.generateError = Validator.ifNotThenThrow;
-Validator.otherwise = Validator.ifNotThenThrow;
 /*
 function(errorMessage) {
   return function(validationPassed) {

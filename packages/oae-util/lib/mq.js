@@ -23,6 +23,7 @@ import * as Redis from './redis';
 import OaeEmitter from './emitter';
 import * as OAE from './oae';
 import { Validator as validator } from './validator';
+const { otherwise } = validator;
 
 const log = logger('mq');
 const emitter = new EventEmitter();
@@ -326,7 +327,7 @@ const subscribe = (queueName, listener, callback) => {
   try {
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'No channel was provided.'
       })
@@ -364,7 +365,7 @@ const unsubscribe = (queueName, callback) => {
   try {
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'No channel was provided.'
       })
@@ -436,7 +437,7 @@ const submit = (queueName, message, callback) => {
   try {
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'No channel was provided.'
       })
@@ -444,7 +445,7 @@ const submit = (queueName, message, callback) => {
 
     pipe(
       validator.isNotNull,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'No message was provided.'
       })
@@ -452,7 +453,7 @@ const submit = (queueName, message, callback) => {
 
     pipe(
       validator.isJSON,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'No JSON message was provided.'
       })
@@ -499,7 +500,7 @@ const purgeQueue = (queueName, callback) => {
   try {
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'No channel was provided.'
       })

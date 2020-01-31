@@ -25,6 +25,7 @@ import * as OaeUtil from 'oae-util/lib/util';
 import * as Pubsub from 'oae-util/lib/pubsub';
 import { logger } from 'oae-logger';
 import { Validator as validator } from 'oae-util/lib/validator';
+// const { otherwise } = validator;
 // const { makeSureThat, ifNotThenThrow } = validator;
 import pipe from 'ramda/src/pipe';
 
@@ -163,7 +164,7 @@ const getTenantConfig = function(ctx, tenantAlias, callback) {
   try {
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      validator.otherwise({
         code: 400,
         msg: 'Missing tenant parameter'
       })
@@ -591,7 +592,7 @@ const updateConfig = function(ctx, tenantAlias, configValues, callback) {
   try {
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      validator.otherwise({
         code: 400,
         msg: 'Missing tenantid'
       })
@@ -599,7 +600,7 @@ const updateConfig = function(ctx, tenantAlias, configValues, callback) {
 
     pipe(
       validator.isArrayNotEmpty,
-      validator.generateError({
+      validator.otherwise({
         code: 400,
         msg: 'Missing configuration. Example configuration: {"oae-authentication/twitter/enabled": false}'
       })
@@ -615,7 +616,7 @@ const updateConfig = function(ctx, tenantAlias, configValues, callback) {
     try {
       pipe(
         validator.isDefined,
-        validator.generateError({
+        validator.otherwise({
           code: 400,
           msg: util.format('The configuration value for "%s" must be specified', configFieldName)
         })
@@ -712,7 +713,7 @@ const clearConfig = function(ctx, tenantAlias, configFields, callback) {
   try {
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      validator.otherwise({
         code: 400,
         msg: 'Missing tenant alias'
       })
@@ -720,7 +721,7 @@ const clearConfig = function(ctx, tenantAlias, configFields, callback) {
 
     pipe(
       validator.isArrayNotEmpty,
-      validator.generateError({
+      validator.otherwise({
         code: 400,
         msg: 'Missing configuration. Example configuration: ["oae-authentication/twitter/enabled"]'
       })
@@ -737,7 +738,7 @@ const clearConfig = function(ctx, tenantAlias, configFields, callback) {
       try {
         pipe(
           validator.isDifferent,
-          validator.generateError({
+          validator.otherwise({
             code: 400,
             msg: 'You cannot mix clearing an entire element and an optionalKey'
           })

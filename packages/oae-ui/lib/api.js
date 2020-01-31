@@ -34,6 +34,7 @@ import * as EmitterAPI from 'oae-emitter';
 import * as Sanitization from 'oae-util/lib/sanitization';
 import * as TZ from 'oae-util/lib/tz';
 import { Validator as validator } from 'oae-util/lib/validator';
+// const { otherwise } = validator;
 import { logger } from 'oae-logger';
 
 import { JSDOM } from 'jsdom';
@@ -272,7 +273,7 @@ const getStaticBatch = function(files, callback) {
   try {
     pipe(
       validator.isNotNull,
-      validator.generateError({
+      validator.otherwise({
         code: 400,
         msg: 'The files parameter must not be null'
       }),
@@ -285,7 +286,7 @@ const getStaticBatch = function(files, callback) {
     /*
       pipe(
         validator.isArrayNotEmpty,
-        validator.generateError({ code: 400, msg: 'At least one file must be provided' })
+        validator.otherwise({ code: 400, msg: 'At least one file must be provided' })
       )(files);
       */
   } catch (error) {
@@ -299,7 +300,7 @@ const getStaticBatch = function(files, callback) {
     for (const element of files) {
       pipe(
         validator.isNotEmpty,
-        validator.generateError({
+        validator.otherwise({
           code: 400,
           msg: 'A valid file path needs to be provided'
         })
@@ -309,7 +310,7 @@ const getStaticBatch = function(files, callback) {
       // exposing private server files
       pipe(
         validator.notContains,
-        validator.generateError({
+        validator.otherwise({
           code: 400,
           msg: 'Only absolute paths are allowed'
         })

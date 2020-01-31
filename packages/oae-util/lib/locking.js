@@ -21,6 +21,7 @@ import pipe from 'ramda/src/pipe';
 import isInt from 'validator/lib/isInt';
 import * as Redis from './redis';
 import { Validator as validator } from './validator';
+const { otherwise } = validator;
 
 const log = logger('oae-util-locking');
 
@@ -66,7 +67,7 @@ const acquire = function(lockKey, expiresIn, callback) {
   try {
     pipe(
       validator.isDefined,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'The key of the lock to try and acquire needs to be specified'
       })
@@ -74,7 +75,7 @@ const acquire = function(lockKey, expiresIn, callback) {
 
     pipe(
       validator.isDefined,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'The maximum number of seconds for which to hold the lock needs to be specified'
       })
@@ -82,7 +83,7 @@ const acquire = function(lockKey, expiresIn, callback) {
 
     pipe(
       isInt,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'The maximum number of seconds for which to hold the lock needs to be an integer'
       })
@@ -116,7 +117,7 @@ const release = function(lock, callback) {
   try {
     pipe(
       validator.isNotNull,
-      validator.generateError({
+      otherwise({
         code: 400,
         msg: 'The key of the lock to try and release needs to be specified'
       })

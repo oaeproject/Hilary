@@ -33,18 +33,7 @@ import * as TenantsAPI from 'oae-tenants';
 import * as TenantsUtil from 'oae-tenants/lib/util';
 import { logger } from 'oae-logger';
 import { Validator as validator } from 'oae-authz/lib/validator';
-const {
-  getNestedObject,
-  makeSureThat,
-  ifNotThenThrow,
-  otherwise,
-  isLoggedInUser,
-  isUserId,
-  isPrincipalId,
-  isNotEmpty,
-  isANumber,
-  isObject
-} = validator;
+const { getNestedObject, makeSureThat, ifNotThenThrow, otherwise, isNotEmpty } = validator;
 import pipe from 'ramda/src/pipe';
 import isLength from 'validator/lib/isLength';
 import { getTenantSkinVariables } from 'oae-ui';
@@ -404,7 +393,7 @@ const _getOrCreateUser = function(ctx, loginId, displayName, opts, callback) {
               msg: 'Invalid email'
             })
           )(opts.email);
-        } catch (error) {
+        } catch {
           delete opts.email;
         }
       }
@@ -1398,39 +1387,33 @@ const _expandLoginId = function(loginIdStr) {
  * @param  {LoginId}         loginId     The login id to validate
  * @api private
  */
-const _validateLoginIdForLookup = function(validator, loginId, callback) {
+const _validateLoginIdForLookup = function(validator, loginId) {
   // Only validate these if loginId is a valid object
   const loginIsValid = Boolean(loginId);
   const getAttribute = getNestedObject(loginId);
 
-  try {
-    pipe(
-      validator.isObject,
-      ifNotThenThrow({
-        code: 400,
-        msg: 'Must specify a login id'
-      }),
-      makeSureThat(loginIsValid, getAttribute(['tenantAlias']), isNotEmpty),
-      ifNotThenThrow({
-        code: 400,
-        msg: 'Must specify a tenant id on the login id'
-      }),
-      makeSureThat(loginIsValid, getAttribute(['provider']), isNotEmpty),
-      ifNotThenThrow({
-        code: 400,
-        msg: 'Must specify an authentication provider on the login id'
-      }),
-      makeSureThat(loginIsValid, String(getAttribute(['externalId'])), isNotEmpty),
-      ifNotThenThrow({
-        code: 400,
-        msg: 'Must specify an external id on the login id'
-      })
-    )(loginId);
-  } catch (error) {
-    // return callback(error);
-    // log this maybe
-    throw error;
-  }
+  pipe(
+    validator.isObject,
+    ifNotThenThrow({
+      code: 400,
+      msg: 'Must specify a login id'
+    }),
+    makeSureThat(loginIsValid, getAttribute(['tenantAlias']), isNotEmpty),
+    ifNotThenThrow({
+      code: 400,
+      msg: 'Must specify a tenant id on the login id'
+    }),
+    makeSureThat(loginIsValid, getAttribute(['provider']), isNotEmpty),
+    ifNotThenThrow({
+      code: 400,
+      msg: 'Must specify an authentication provider on the login id'
+    }),
+    makeSureThat(loginIsValid, String(getAttribute(['externalId'])), isNotEmpty),
+    ifNotThenThrow({
+      code: 400,
+      msg: 'Must specify an external id on the login id'
+    })
+  )(loginId);
 };
 
 /**
@@ -1453,21 +1436,15 @@ const _validateLoginIdForPersistence = function(validator, loginId, callback) {
   // Custom handling for local authentication (i.e., username and password)
   const isItLocalAuthentication = loginId.provider === AuthenticationConstants.providers.LOCAL;
   if (isItLocalAuthentication) {
-    try {
-      pipe(
-        isLength,
-        otherwise({
-          code: 400,
-          msg: 'Must specify a password at least 6 characters long'
-        })
-        // TODO this || doesnt make much sense, does it
-        // )(loginId.properties.password || '', { min: 6 });
-      )(password || '', { min: 6 });
-    } catch (error) {
-      // return callback(error);
-      // TODO log this maybe
-      throw error;
-    }
+    pipe(
+      isLength,
+      otherwise({
+        code: 400,
+        msg: 'Must specify a password at least 6 characters long'
+      })
+      // TODO this || doesnt make much sense, does it
+      // )(loginId.properties.password || '', { min: 6 });
+    )(password || '', { min: 6 });
   }
 };
 

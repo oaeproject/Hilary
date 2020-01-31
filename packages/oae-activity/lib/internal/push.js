@@ -27,7 +27,7 @@ import * as Signature from 'oae-util/lib/signature';
 import { telemetry } from 'oae-telemetry';
 import * as TenantsAPI from 'oae-tenants';
 import { Validator as validator } from 'oae-authz/lib/validator';
-const { otherwise } = validator;
+const { otherwise, isNotEmpty, isUserId, isObject, isNotNull, isInt } = validator;
 import pipe from 'ramda/src/pipe';
 
 import { ActivityConstants } from 'oae-activity/lib/constants';
@@ -356,7 +356,7 @@ const _authenticate = function(connectionInfo, message) {
   // Parameter validation
   try {
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'A tenant needs to be provided'
@@ -364,7 +364,7 @@ const _authenticate = function(connectionInfo, message) {
     )(data.tenantAlias);
 
     pipe(
-      validator.isUserId,
+      isUserId,
       otherwise({
         code: 400,
         msg: 'A userId needs to be provided'
@@ -372,7 +372,7 @@ const _authenticate = function(connectionInfo, message) {
     )(data.userId);
 
     pipe(
-      validator.isObject,
+      isObject,
       otherwise({
         code: 400,
         msg: 'A signature object needs to be provided'
@@ -380,7 +380,7 @@ const _authenticate = function(connectionInfo, message) {
     )(data.signature);
 
     pipe(
-      validator.isInt,
+      isInt,
       otherwise({
         code: 400,
         msg: 'Signature must contain an integer expires value'
@@ -388,7 +388,7 @@ const _authenticate = function(connectionInfo, message) {
     )(String(data.signature.expires));
 
     pipe(
-      validator.isNotNull,
+      isNotNull,
       otherwise({
         code: 400,
         msg: 'Signature must contain a string signature value'

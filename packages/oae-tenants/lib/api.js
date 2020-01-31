@@ -33,7 +33,22 @@ import * as OAE from 'oae-util/lib/oae';
 import * as OaeUtil from 'oae-util/lib/util';
 import * as Pubsub from 'oae-util/lib/pubsub';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { makeSureThat, ifNotThenThrow: otherwiseThrow, otherwise } = validator;
+const {
+  makeSureThat,
+  ifNotThenThrow: otherwiseThrow,
+  otherwise,
+  isGlobalAdministratorUser,
+  isNotEmpty,
+  notContains,
+  isDifferent,
+  isHost,
+  isNull,
+  isIso3166Country,
+  isObject,
+  isNotNull,
+  isISO31661Alpha2,
+  isArrayNotEmpty
+} = validator;
 import isIn from 'validator/lib/isIn';
 import TenantEmailDomainIndex from './internal/emailDomainIndex';
 import TenantIndex from './internal/tenantIndex';
@@ -524,7 +539,7 @@ const createTenant = function(ctx, alias, displayName, host, opts, callback) {
   // Validate that the user in context is the global admin
   try {
     pipe(
-      validator.isGlobalAdministratorUser,
+      isGlobalAdministratorUser,
       otherwiseThrow({
         code: 401,
         msg: 'Only global administrators can create new tenants'
@@ -559,7 +574,7 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
 
   try {
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwiseThrow({
         code: 400,
         msg: 'Missing alias'
@@ -567,7 +582,7 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
     )(alias);
 
     pipe(
-      validator.notContains,
+      notContains,
       otherwise({
         code: 400,
         msg: 'The tenant alias should not contain a space'
@@ -575,22 +590,22 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
     )(alias, ' ');
 
     pipe(
-      validator.notContains,
+      notContains,
       otherwise({
         code: 400,
         msg: 'The tenant alias should not contain a colon'
       }),
-      makeSureThat(true, displayName, validator.isNotEmpty),
+      makeSureThat(true, displayName, isNotEmpty),
       otherwiseThrow({
         code: 400,
         msg: 'Missing tenant displayName'
       }),
-      makeSureThat(true, host, validator.isNotEmpty),
+      makeSureThat(true, host, isNotEmpty),
       otherwiseThrow({
         code: 400,
         msg: 'Missing tenant host'
       }),
-      makeSureThat(true, host, validator.isHost),
+      makeSureThat(true, host, isHost),
       otherwiseThrow({
         code: 400,
         msg: 'Invalid hostname'
@@ -607,17 +622,17 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
   // Ensure there are no conflicts
   try {
     pipe(
-      validator.isDifferent,
+      isDifferent,
       otherwise({
         code: 400,
         msg: 'This hostname is reserved'
       }),
-      makeSureThat(true, getTenant(alias), validator.isNull),
+      makeSureThat(true, getTenant(alias), isNull),
       otherwiseThrow({
         code: 400,
         msg: `A tenant with the alias ${alias} already exists`
       }),
-      makeSureThat(true, getTenantByHost(host), validator.isNull),
+      makeSureThat(true, getTenantByHost(host), isNull),
       otherwiseThrow({
         code: 400,
         msg: `A tenant with the host ${host} already exists`
@@ -656,7 +671,7 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
         // Ensure the country code is upper case
         opts[key] = opts[key].toUpperCase();
         pipe(
-          validator.isISO31661Alpha2,
+          isISO31661Alpha2,
           otherwise({
             code: 400,
             msg: 'The country code must be a valid ISO-3166 country code'
@@ -723,12 +738,12 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
   // Short-circuit validation if the tenant did not exist
   try {
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'Missing alias'
       }),
-      makeSureThat(true, getTenant(alias), validator.isNotNull),
+      makeSureThat(true, getTenant(alias), isNotNull),
       otherwiseThrow({
         code: 404,
         msg: util.format('Tenant with alias "%s" does not exist and cannot be updated', alias)
@@ -743,7 +758,7 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
 
   try {
     pipe(
-      validator.isArrayNotEmpty,
+      isArrayNotEmpty,
       otherwiseThrow({
         code: 400,
         msg: 'You should at least specify a new displayName or hostname'
@@ -765,7 +780,7 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
 
       if (updateField === 'displayName') {
         pipe(
-          validator.isNotEmpty,
+          isNotEmpty,
           otherwiseThrow({
             code: 400,
             msg: 'A displayName cannot be empty'
@@ -778,18 +793,18 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
 
         // Validate the lower-cased version
         pipe(
-          validator.isHost,
+          isHost,
           otherwiseThrow({ code: 400, msg: 'Invalid host' }),
-          makeSureThat(true, updateValue, validator.isNotEmpty),
+          makeSureThat(true, updateValue, isNotEmpty),
           otherwiseThrow({ code: 400, msg: 'A hostname cannot be empty' }),
-          makeSureThat(true, getTenantByHost(updateValue), validator.isNull),
+          makeSureThat(true, getTenantByHost(updateValue), isNull),
           otherwiseThrow({
             code: 400,
             msg: 'The hostname has already been taken'
           })
         )(updateValue);
 
-        pipe(validator.isDifferent, otherwiseThrow({ code: 400, msg: 'This hostname is reserved' }))(
+        pipe(isDifferent, otherwiseThrow({ code: 400, msg: 'This hostname is reserved' }))(
           updateValue,
           serverConfig.shibbolethSPHost.toLowerCase()
         );
@@ -803,7 +818,7 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
 
         // Only a global admin can update the email domain
         pipe(
-          validator.isGlobalAdministratorUser,
+          isGlobalAdministratorUser,
           otherwiseThrow({ code: 401, msg: 'Only a global administrator can update the email domain' })
         )(ctx);
         // Validate the lower-cased version
@@ -813,7 +828,7 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
         // Ensure the country code is upper case
         tenantUpdates[updateField] = tenantUpdates[updateField].toUpperCase();
         pipe(
-          validator.isIso3166Country,
+          isIso3166Country,
           otherwiseThrow({
             code: 400,
             msg: 'The country code must be a valid ISO-3166 country code'
@@ -855,7 +870,7 @@ const disableTenants = function(ctx, aliases, disabled, callback) {
 
   try {
     pipe(
-      validator.isGlobalAdministratorUser,
+      isGlobalAdministratorUser,
       otherwise({
         code: 401,
         msg: 'You must be a global admin user to enable or disable a tenant'
@@ -863,7 +878,7 @@ const disableTenants = function(ctx, aliases, disabled, callback) {
     )(ctx);
 
     pipe(
-      validator.isArrayNotEmpty,
+      isArrayNotEmpty,
       otherwise({
         code: 400,
         msg: 'You must provide at least one alias to enable or disable'
@@ -872,7 +887,7 @@ const disableTenants = function(ctx, aliases, disabled, callback) {
 
     _.each(aliases, alias => {
       pipe(
-        validator.isObject,
+        isObject,
         otherwise({
           code: 404,
           msg: util.format('Tenant with alias "%s" does not exist and cannot be enabled or disabled', alias)
@@ -1036,7 +1051,7 @@ const _validateEmailDomains = function(validator, emailDomains, updateTenantAlia
     // Check whether it's a valid domain
     pipe(
       // validator.isFQDN,
-      validator.isHost,
+      isHost,
       otherwiseThrow({
         code: 400,
         msg: 'Invalid email domain'
@@ -1048,7 +1063,7 @@ const _validateEmailDomains = function(validator, emailDomains, updateTenantAlia
     const matchingEmailDomains = matchingTenant && matchingTenant.emailDomains;
 
     pipe(
-      validator.isNull,
+      isNull,
       otherwise({
         code: 400,
         msg: util.format(

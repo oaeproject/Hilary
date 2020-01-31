@@ -20,7 +20,7 @@ import * as EmitterAPI from 'oae-emitter';
 import * as SearchUtil from 'oae-search/lib/util';
 
 import { Validator as validator } from 'oae-util/lib/validator';
-const { otherwise } = validator;
+const { otherwise, isNotEmpty, isArray, isObject, isArrayNotEmpty } = validator;
 import pipe from 'ramda/src/pipe';
 import { SearchConstants } from 'oae-search/lib/constants';
 import { SearchResult } from 'oae-search/lib/model';
@@ -429,7 +429,7 @@ const postIndexTask = function(resourceType, resources, index, callback) {
 
   try {
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'Must specify a resource type'
@@ -437,7 +437,7 @@ const postIndexTask = function(resourceType, resources, index, callback) {
     )(resourceType);
 
     pipe(
-      validator.isArray,
+      isArray,
       otherwise({
         code: 400,
         msg: '"resources" parameter must be an array'
@@ -445,7 +445,7 @@ const postIndexTask = function(resourceType, resources, index, callback) {
     )(resources);
 
     pipe(
-      validator.isObject,
+      isObject,
       otherwise({
         code: 400,
         msg: '"index" parameter must be an object'
@@ -453,7 +453,7 @@ const postIndexTask = function(resourceType, resources, index, callback) {
     )(index);
 
     pipe(
-      validator.isArrayNotEmpty,
+      isArrayNotEmpty,
       otherwise({
         code: 400,
         msg: '"resources" parameter must be an array with one or more entries'
@@ -466,7 +466,7 @@ const postIndexTask = function(resourceType, resources, index, callback) {
   try {
     _.each(resources, resource => {
       pipe(
-        validator.isNotEmpty,
+        isNotEmpty,
         otherwise({
           code: 400,
           msg: 'Each index resource must have an id'

@@ -35,7 +35,7 @@ import * as UIAPI from 'oae-ui';
 import { htmlToText } from 'nodemailer-html-to-text';
 import * as TenantsAPI from 'oae-tenants';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { getNestedObject, makeSureThat, otherwise } = validator;
+const { getNestedObject, makeSureThat, otherwise, isNotEmpty, isObject, isEmail } = validator;
 import pipe from 'ramda/src/pipe';
 
 const EmailConfig = setUpConfig('oae-email');
@@ -217,7 +217,7 @@ const _abortIfRecipientErrors = (emailData, done) => {
 
   try {
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'Must specify a template module'
@@ -225,7 +225,7 @@ const _abortIfRecipientErrors = (emailData, done) => {
     )(templateModule);
 
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'Must specify a template id'
@@ -234,13 +234,13 @@ const _abortIfRecipientErrors = (emailData, done) => {
 
     const getAttribute = getNestedObject(recipient);
     pipe(
-      validator.isObject,
+      isObject,
       otherwise({
         code: 400,
         msg: 'Must specify a user when sending an email'
       }),
       // Only validate the user email if it was a valid object
-      makeSureThat(recipient, String(getAttribute(['email'])), validator.isEmail),
+      makeSureThat(recipient, String(getAttribute(['email'])), isEmail),
       otherwise({
         code: 400,
         msg: 'User must have a valid email address to receive email'

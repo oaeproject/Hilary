@@ -19,7 +19,7 @@ import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as Signature from 'oae-util/lib/signature';
 import * as TenantsAPI from 'oae-tenants/lib/api';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { otherwise } = validator;
+const { otherwise, isNotEmpty, isNumeric } = validator;
 import pipe from 'ramda/src/pipe';
 import isAfter from 'validator/lib/isAfter';
 
@@ -97,7 +97,7 @@ const getServiceProviderUrl = function(ctx) {
 const validateInitiateParameters = function(tenantAlias, signature, expires, callback) {
   try {
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'Missing tenant alias parameter'
@@ -105,7 +105,7 @@ const validateInitiateParameters = function(tenantAlias, signature, expires, cal
     )(tenantAlias);
 
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'Missing signature parameter'
@@ -113,7 +113,7 @@ const validateInitiateParameters = function(tenantAlias, signature, expires, cal
     )(signature);
 
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'Missing expires parameter'
@@ -121,7 +121,7 @@ const validateInitiateParameters = function(tenantAlias, signature, expires, cal
     )(String(expires));
 
     pipe(
-      validator.isNumeric,
+      isNumeric,
       otherwise({
         code: 400,
         msg: 'Invalid expires parameter'
@@ -207,7 +207,7 @@ const getAuthenticatedUserRedirectUrl = function(tenant, user) {
 const getUser = function(tenant, userId, signature, expires, callback) {
   try {
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'Missing user id parameter'
@@ -215,7 +215,7 @@ const getUser = function(tenant, userId, signature, expires, callback) {
     )(userId);
 
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'Missing signature parameter'
@@ -223,7 +223,7 @@ const getUser = function(tenant, userId, signature, expires, callback) {
     )(signature);
 
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'Missing expires parameter'
@@ -231,7 +231,7 @@ const getUser = function(tenant, userId, signature, expires, callback) {
     )(String(expires));
 
     pipe(
-      validator.isNumeric,
+      isNumeric,
       otherwise({
         code: 400,
         msg: 'Invalid expires parameter'

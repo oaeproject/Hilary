@@ -38,7 +38,21 @@ import * as Signature from 'oae-util/lib/signature';
 import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { ifNotThenThrow, otherwise } = validator;
+const {
+  isArray,
+  isValidRoleChange,
+  ifNotThenThrow,
+  otherwise,
+  isLoggedInUser,
+  isPrincipalId,
+  isNotEmpty,
+  isObject,
+  isResourceId,
+  isShortString,
+  isMediumString,
+  isArrayNotEmpty,
+  isLongString
+} = validator;
 import pipe from 'ramda/src/pipe';
 import isIn from 'validator/lib/isIn';
 import isInt from 'validator/lib/isInt';
@@ -89,7 +103,7 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
   // Verify basic properties
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'Anonymous users cannot create a folder'
@@ -97,7 +111,7 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
     )(ctx);
 
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'Must provide a display name for the folder'
@@ -105,7 +119,7 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
     )(displayName);
 
     pipe(
-      validator.isShortString,
+      isShortString,
       otherwise({
         code: 400,
         msg: 'A display name can be at most 1000 characters long'
@@ -118,7 +132,7 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
   if (description) {
     try {
       pipe(
-        validator.isMediumString,
+        isMediumString,
         otherwise({
           code: 400,
           msg: 'A description can be at most 10000 characters long'
@@ -213,7 +227,7 @@ const updateFolder = function(ctx, folderId, updates, callback) {
 
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'Anonymous users cannot create a folder'
@@ -221,7 +235,7 @@ const updateFolder = function(ctx, folderId, updates, callback) {
     )(ctx);
 
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: util.format('The folder id "%s" is not a valid resource id', folderId)
@@ -229,7 +243,7 @@ const updateFolder = function(ctx, folderId, updates, callback) {
     )(folderId);
 
     pipe(
-      validator.isObject,
+      isObject,
       otherwise({
         code: 400,
         msg: 'Missing update information'
@@ -245,7 +259,7 @@ const updateFolder = function(ctx, folderId, updates, callback) {
 
   try {
     pipe(
-      validator.isArrayNotEmpty,
+      isArrayNotEmpty,
       ifNotThenThrow({
         code: 400,
         msg: 'One of ' + legalUpdateFields.join(', ') + ' must be provided'
@@ -272,7 +286,7 @@ const updateFolder = function(ctx, folderId, updates, callback) {
   if (updates.displayName) {
     try {
       pipe(
-        validator.isShortString,
+        isShortString,
         otherwise({
           code: 400,
           msg: 'A display name can be at most 1000 characters long'
@@ -286,7 +300,7 @@ const updateFolder = function(ctx, folderId, updates, callback) {
   if (updates.description) {
     try {
       pipe(
-        validator.isMediumString,
+        isMediumString,
         otherwise({
           code: 400,
           msg: 'A description can be at most 10000 characters long'
@@ -353,7 +367,7 @@ const updateFolderContentVisibility = function(ctx, folderId, visibility, callba
 
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'Anonymous users cannot update the visibility of items in a folder'
@@ -361,7 +375,7 @@ const updateFolderContentVisibility = function(ctx, folderId, visibility, callba
     )(ctx);
 
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: util.format('The folder id "%s" is not a valid resource id', folderId)
@@ -369,7 +383,7 @@ const updateFolderContentVisibility = function(ctx, folderId, visibility, callba
     )(folderId);
 
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'Missing visibility value'
@@ -562,7 +576,7 @@ const _updateContentVisibility = function(ctx, content, visibility, callback) {
 const getFolder = function(ctx, folderId, callback) {
   try {
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: util.format('The folder id "%s" is not a valid resource id', folderId)
@@ -610,7 +624,7 @@ const getFolder = function(ctx, folderId, callback) {
 const getFullFolderProfile = function(ctx, folderId, callback) {
   try {
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: util.format('The folder id "%s" is not a valid resource id', folderId)
@@ -704,10 +718,10 @@ const _getFullFolderProfile = function(ctx, folder, callback) {
  */
 const deleteFolder = function(ctx, folderId, deleteContent, callback) {
   try {
-    pipe(validator.isResourceId, ifNotThenThrow({ code: 400, msg: 'a folder id must be provided' }))(folderId);
+    pipe(isResourceId, ifNotThenThrow({ code: 400, msg: 'a folder id must be provided' }))(folderId);
 
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'You must be authenticated to delete a folder'
@@ -924,7 +938,7 @@ const getFolderMembers = function(ctx, folderId, start, limit, callback) {
 
   try {
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'A folder id must be provided'
@@ -977,7 +991,7 @@ const getFolderMembers = function(ctx, folderId, start, limit, callback) {
 const getFolderInvitations = function(ctx, folderId, callback) {
   try {
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'A valid resource id must be specified'
@@ -1008,7 +1022,7 @@ const getFolderInvitations = function(ctx, folderId, callback) {
 const resendFolderInvitation = function(ctx, folderId, email, callback) {
   try {
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'A valid resource id must be specified'
@@ -1041,7 +1055,7 @@ const resendFolderInvitation = function(ctx, folderId, email, callback) {
 const shareFolder = function(ctx, folderId, principalIds, callback) {
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to share a folder'
@@ -1049,7 +1063,7 @@ const shareFolder = function(ctx, folderId, principalIds, callback) {
     )(ctx);
 
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'A valid folder id must be provided'
@@ -1101,7 +1115,7 @@ const shareFolder = function(ctx, folderId, principalIds, callback) {
 const setFolderPermissions = function(ctx, folderId, changes, callback) {
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to change folder permissions'
@@ -1109,7 +1123,7 @@ const setFolderPermissions = function(ctx, folderId, changes, callback) {
     )(ctx);
 
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'A valid folder id must be provided'
@@ -1123,7 +1137,7 @@ const setFolderPermissions = function(ctx, folderId, changes, callback) {
     // eslint-disable-next-line no-unused-vars
     _.each(changes, (role, principalId) => {
       pipe(
-        validator.isValidRoleChange,
+        isValidRoleChange,
         otherwise({
           code: 400,
           msg: 'The role change: ' + role + ' is not a valid value. Must either be a string, or false'
@@ -1188,7 +1202,7 @@ const setFolderPermissions = function(ctx, folderId, changes, callback) {
 const addContentItemsToFolder = function(ctx, folderId, contentIds, callback) {
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'You have to be authenticated to be able to add an item to a folder'
@@ -1196,7 +1210,7 @@ const addContentItemsToFolder = function(ctx, folderId, contentIds, callback) {
     )(ctx);
 
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'A valid folder id must be provided'
@@ -1204,7 +1218,7 @@ const addContentItemsToFolder = function(ctx, folderId, contentIds, callback) {
     )(folderId);
 
     pipe(
-      validator.isArray,
+      isArray,
       otherwise({
         code: 400,
         msg: 'Must specify at least one content item to add'
@@ -1212,7 +1226,7 @@ const addContentItemsToFolder = function(ctx, folderId, contentIds, callback) {
     )(contentIds);
 
     pipe(
-      validator.isArrayNotEmpty,
+      isArrayNotEmpty,
       otherwise({
         code: 400,
         msg: 'You must specify at least one content item to add'
@@ -1222,7 +1236,7 @@ const addContentItemsToFolder = function(ctx, folderId, contentIds, callback) {
     // Ensure each content id is valid
     _.each(contentIds, contentId => {
       pipe(
-        validator.isResourceId,
+        isResourceId,
         otherwise({
           code: 400,
           msg: util.format('The id "%s" is not a valid content id', contentId)
@@ -1331,7 +1345,7 @@ const _addContentItemsToFolderLibrary = function(ctx, actionContext, folder, con
 const removeContentItemsFromFolder = function(ctx, folderId, contentIds, callback) {
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'You have to be authenticated to be able to remove an item from a folder'
@@ -1339,7 +1353,7 @@ const removeContentItemsFromFolder = function(ctx, folderId, contentIds, callbac
     )(ctx);
 
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'A valid folder id must be provided'
@@ -1347,7 +1361,7 @@ const removeContentItemsFromFolder = function(ctx, folderId, contentIds, callbac
     )(folderId);
 
     pipe(
-      validator.isArray,
+      isArray,
       otherwise({
         code: 400,
         msg: 'You must specify at least one content item to remove'
@@ -1355,7 +1369,7 @@ const removeContentItemsFromFolder = function(ctx, folderId, contentIds, callbac
     )(contentIds);
 
     pipe(
-      validator.isArrayNotEmpty,
+      isArrayNotEmpty,
       otherwise({
         code: 400,
         msg: 'You must specify at least one content item to remove'
@@ -1365,7 +1379,7 @@ const removeContentItemsFromFolder = function(ctx, folderId, contentIds, callbac
     // Ensure each content id is valid
     _.each(contentIds, contentId => {
       pipe(
-        validator.isResourceId,
+        isResourceId,
         ifNotThenThrow({
           code: 400,
           msg: util.format('The id "%s" is not a valid content id', contentId)
@@ -1447,7 +1461,7 @@ const getFoldersLibrary = function(ctx, principalId, start, limit, callback) {
 
   try {
     pipe(
-      validator.isPrincipalId,
+      isPrincipalId,
       otherwise({
         code: 400,
         msg: 'A user or group id must be provided'
@@ -1572,7 +1586,7 @@ const getManagedFolders = function(ctx, callback) {
 const removeFolderFromLibrary = function(ctx, principalId, folderId, callback) {
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'You must be authenticated to remove a folder from a library'
@@ -1580,7 +1594,7 @@ const removeFolderFromLibrary = function(ctx, principalId, folderId, callback) {
     )(ctx);
 
     pipe(
-      validator.isPrincipalId,
+      isPrincipalId,
       otherwise({
         code: 400,
         msg: 'A user or group id must be provided'
@@ -1588,7 +1602,7 @@ const removeFolderFromLibrary = function(ctx, principalId, folderId, callback) {
     )(principalId);
 
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'A valid folder id must be provided'
@@ -1652,7 +1666,7 @@ const getFolderContentLibrary = function(ctx, folderId, start, limit, callback) 
 
   try {
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'A folder id must be provided'
@@ -1726,7 +1740,7 @@ const getFolderContentLibrary = function(ctx, folderId, start, limit, callback) 
 const createMessage = function(ctx, folderId, body, replyToCreatedTimestamp, callback) {
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'Only authenticated users can post to folders'
@@ -1734,7 +1748,7 @@ const createMessage = function(ctx, folderId, body, replyToCreatedTimestamp, cal
     )(ctx);
 
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'Invalid folder id provided'
@@ -1742,7 +1756,7 @@ const createMessage = function(ctx, folderId, body, replyToCreatedTimestamp, cal
     )(folderId);
 
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'A message body must be provided'
@@ -1750,7 +1764,7 @@ const createMessage = function(ctx, folderId, body, replyToCreatedTimestamp, cal
     )(body);
 
     pipe(
-      validator.isLongString,
+      isLongString,
       otherwise({
         code: 400,
         msg: 'A message body can only be 100000 characters long'
@@ -1834,7 +1848,7 @@ const createMessage = function(ctx, folderId, body, replyToCreatedTimestamp, cal
 const deleteMessage = function(ctx, folderId, messageCreatedDate, callback) {
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'Only authenticated users can delete messages'
@@ -1842,7 +1856,7 @@ const deleteMessage = function(ctx, folderId, messageCreatedDate, callback) {
     )(ctx);
 
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'A folder id must be provided'
@@ -1926,7 +1940,7 @@ const getMessages = function(ctx, folderId, start, limit, callback) {
 
   try {
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'Must provide a valid folder id'

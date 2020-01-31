@@ -24,7 +24,7 @@ import * as AuthzPermissions from 'oae-authz/lib/permissions';
 import * as ContentUtil from 'oae-content/lib/internal/util';
 import * as ImageUtil from 'oae-util/lib/image';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { otherwise } = validator;
+const { otherwise, isLoggedInUser, isPrincipalId, isNotNull, isNotEmpty } = validator;
 import pipe from 'ramda/src/pipe';
 import isInt from 'validator/lib/isInt';
 import * as GroupAPI from './api.group';
@@ -61,7 +61,7 @@ const storePicture = function(ctx, principalId, file, callback) {
 
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to update a picture'
@@ -69,7 +69,7 @@ const storePicture = function(ctx, principalId, file, callback) {
     )(ctx);
 
     pipe(
-      validator.isPrincipalId,
+      isPrincipalId,
       otherwise({
         code: 400,
         msg: 'A principal ID must be provided'
@@ -77,7 +77,7 @@ const storePicture = function(ctx, principalId, file, callback) {
     )(principalId);
 
     pipe(
-      validator.isNotNull,
+      isNotNull,
       otherwise({
         code: 400,
         msg: 'A file must be provided'
@@ -86,7 +86,7 @@ const storePicture = function(ctx, principalId, file, callback) {
 
     if (file) {
       pipe(
-        validator.isNotEmpty,
+        isNotEmpty,
         otherwise({
           code: 400,
           msg: 'Missing size on the file object.'
@@ -104,7 +104,7 @@ const storePicture = function(ctx, principalId, file, callback) {
       )(file.size, 10485760);
 
       pipe(
-        validator.isNotEmpty,
+        isNotEmpty,
         otherwise({
           code: 400,
           msg: 'Missing name on the file object.'
@@ -209,7 +209,7 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
   // Parameter validation
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to update a picture'
@@ -217,7 +217,7 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
     )(ctx);
 
     pipe(
-      validator.isPrincipalId,
+      isPrincipalId,
       otherwise({
         code: 400,
         msg: 'A principal id must be provided'

@@ -37,7 +37,10 @@ const {
   otherwise,
   ifNotThenThrow,
   isLoggedInUser,
-  isNotEmpty
+  isNotEmpty,
+  isGroupId,
+  isPrincipalId,
+  isArrayNotEmpty
 } = validator;
 import pipe from 'ramda/src/pipe';
 import isIn from 'validator/lib/isIn';
@@ -64,7 +67,7 @@ const Config = setUpConfig('oae-principals');
 const getGroup = function(ctx, groupId, callback) {
   try {
     pipe(
-      validator.isGroupId,
+      isGroupId,
       otherwise({
         code: 400,
         msg: 'An invalid group id was specified'
@@ -194,7 +197,7 @@ const getMembersLibrary = function(ctx, groupId, start, limit, callback) {
 
   try {
     pipe(
-      validator.isGroupId,
+      isGroupId,
       otherwise({
         code: 400,
         msg: 'An invalid group id was specified'
@@ -231,7 +234,7 @@ const getMembersLibrary = function(ctx, groupId, start, limit, callback) {
 const getGroupInvitations = function(ctx, groupId, callback) {
   try {
     pipe(
-      validator.isGroupId,
+      isGroupId,
       otherwise({
         code: 400,
         msg: 'A valid group id must be specified'
@@ -262,7 +265,7 @@ const getGroupInvitations = function(ctx, groupId, callback) {
 const resendGroupInvitation = function(ctx, groupId, email, callback) {
   try {
     pipe(
-      validator.isGroupId,
+      isGroupId,
       otherwise({
         code: 400,
         msg: 'A valid group id must be specified'
@@ -372,7 +375,7 @@ const getMembershipsLibrary = function(ctx, principalId, start, limit, callback)
 
   try {
     pipe(
-      validator.isPrincipalId,
+      isPrincipalId,
       otherwise({
         code: 400,
         msg: 'Must specify a valid principalId'
@@ -499,7 +502,7 @@ const getRecentGroupsForUserId = function(ctx, principalId, limit, callback) {
 
   try {
     pipe(
-      validator.isPrincipalId,
+      isPrincipalId,
       otherwise({
         code: 400,
         msg: 'Must specify a valid principalId'
@@ -578,7 +581,7 @@ const setGroupMembers = function(ctx, groupId, changes, callback) {
   // Validation
   try {
     pipe(
-      validator.isGroupId,
+      isGroupId,
       otherwise({
         code: 400,
         msg: 'Invalid groupId specified'
@@ -586,7 +589,7 @@ const setGroupMembers = function(ctx, groupId, changes, callback) {
     )(groupId);
 
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to update group membership'
@@ -671,7 +674,7 @@ const setGroupMembers = function(ctx, groupId, changes, callback) {
 const leaveGroup = function(ctx, groupId, callback) {
   try {
     pipe(
-      validator.isGroupId,
+      isGroupId,
       otherwise({
         code: 400,
         msg: 'Invalid groupId specified'
@@ -679,7 +682,7 @@ const leaveGroup = function(ctx, groupId, callback) {
     )(groupId);
 
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to join a group'
@@ -733,7 +736,7 @@ const leaveGroup = function(ctx, groupId, callback) {
 const joinGroup = function(ctx, groupId, callback) {
   try {
     pipe(
-      validator.isGroupId,
+      isGroupId,
       otherwise({
         code: 400,
         msg: 'Invalid groupId specified'
@@ -741,7 +744,7 @@ const joinGroup = function(ctx, groupId, callback) {
     )(groupId);
 
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to join a group'
@@ -962,7 +965,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
   const fieldNames = profileFields ? _.keys(profileFields) : [];
   try {
     pipe(
-      validator.isGroupId,
+      isGroupId,
       ifNotThenThrow({
         code: 400,
         msg: 'A valid group id must be provided'
@@ -974,7 +977,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
 
   try {
     pipe(
-      validator.isArrayNotEmpty,
+      isArrayNotEmpty,
       ifNotThenThrow({
         code: 400,
         msg: 'You should specify at least one field'
@@ -1012,7 +1015,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
         )(profileFields.joinable, _.values(AuthzConstants.joinable));
       } else if (fieldName === 'displayName') {
         pipe(
-          validator.isNotEmpty,
+          isNotEmpty,
           ifNotThenThrow({
             code: 400,
             msg: 'A display name cannot be empty'
@@ -1020,7 +1023,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
         )(profileFields.displayName);
 
         pipe(
-          validator.isShortString,
+          isShortString,
           ifNotThenThrow({
             code: 400,
             msg: 'A display name can be at most 1000 characters long'
@@ -1028,7 +1031,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
         )(profileFields.displayName);
       } else if (fieldName === 'description' && profileFields.description) {
         pipe(
-          validator.isMediumString,
+          isMediumString,
           ifNotThenThrow({
             code: 400,
             msg: 'A description can only be 10000 characters long'
@@ -1042,7 +1045,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
 
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       ifNotThenThrow({
         code: 401,
         msg: 'You have to be logged in to be able to update a group'
@@ -1118,7 +1121,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
 const deleteGroup = function(ctx, groupId, callback) {
   try {
     pipe(
-      validator.isGroupId,
+      isGroupId,
       ifNotThenThrow({
         code: 400,
         msg: 'A valid group id must be provided'
@@ -1163,7 +1166,7 @@ const deleteGroup = function(ctx, groupId, callback) {
 const restoreGroup = function(ctx, groupId, callback) {
   try {
     pipe(
-      validator.isGroupId,
+      isGroupId,
       ifNotThenThrow({
         code: 400,
         msg: 'A valid group id must be provided'
@@ -1303,7 +1306,7 @@ const _canManageAnyGroups = function(ctx, groupIds, callback) {
 const _validateJoinGroupRequest = function(ctx, groupId, callback) {
   try {
     pipe(
-      validator.isGroupId,
+      isGroupId,
       ifNotThenThrow({
         code: 400,
         msg: 'A valid group id must be provided'
@@ -1315,7 +1318,7 @@ const _validateJoinGroupRequest = function(ctx, groupId, callback) {
 
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       ifNotThenThrow({
         code: 401,
         msg: 'You have to be logged in to be able to ask to join a group'
@@ -1416,7 +1419,7 @@ const getJoinGroupRequests = function(ctx, filter, callback) {
 const getJoinGroupRequest = function(ctx, groupId, callback) {
   try {
     pipe(
-      validator.isGroupId,
+      isGroupId,
       ifNotThenThrow({
         code: 400,
         msg: 'A valid group id must be provided'
@@ -1428,7 +1431,7 @@ const getJoinGroupRequest = function(ctx, groupId, callback) {
 
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       ifNotThenThrow({
         code: 401,
         msg: 'You have to be logged in to be able to ask to join a group'
@@ -1475,7 +1478,7 @@ const _validateUpdateJoinGroupByRequest = function(ctx, joinRequest, callback) {
 
   try {
     pipe(
-      validator.isPrincipalId,
+      isPrincipalId,
       ifNotThenThrow({
         code: 400,
         msg: 'Must specify a valid principalId'
@@ -1486,7 +1489,7 @@ const _validateUpdateJoinGroupByRequest = function(ctx, joinRequest, callback) {
   }
 
   try {
-    pipe(validator.isGroupId, ifNotThenThrow({ code: 400, msg: 'A valid group id must be provided' }))(groupId);
+    pipe(isGroupId, ifNotThenThrow({ code: 400, msg: 'A valid group id must be provided' }))(groupId);
   } catch (error) {
     return callback(error);
   }
@@ -1501,7 +1504,7 @@ const _validateUpdateJoinGroupByRequest = function(ctx, joinRequest, callback) {
     )(status, _.values(PrincipalsConstants.requestStatus));
 
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       ifNotThenThrow({
         code: 401,
         msg: 'You have to be logged in to be able to ask to join a group'

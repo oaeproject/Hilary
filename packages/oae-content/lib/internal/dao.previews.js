@@ -17,7 +17,7 @@ import _ from 'underscore';
 
 import * as Cassandra from 'oae-util/lib/cassandra';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { otherwise } = validator;
+const { otherwise, isResourceId } = validator;
 import pipe from 'ramda/src/pipe';
 
 /// ////////////
@@ -240,7 +240,7 @@ const storeMetadata = function(
 const copyPreviewItems = function(fromRevisionId, toRevisionId, callback) {
   try {
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'Must specify a valid resource id for "fromRevisionId"'
@@ -248,7 +248,7 @@ const copyPreviewItems = function(fromRevisionId, toRevisionId, callback) {
     )(fromRevisionId);
 
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'Must specify a valid resource id for "toRevisionId"'

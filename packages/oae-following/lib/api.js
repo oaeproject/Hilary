@@ -23,7 +23,7 @@ import * as PrincipalsUtil from 'oae-principals/lib/util';
 import * as FollowingAuthz from 'oae-following/lib/authz';
 
 import { Validator as validator } from 'oae-authz/lib/validator';
-const { otherwise } = validator;
+const { otherwise, isUserId, isLoggedInUser } = validator;
 import pipe from 'ramda/src/pipe';
 import { FollowingConstants } from 'oae-following/lib/constants';
 import * as FollowingDAO from './internal/dao';
@@ -55,7 +55,7 @@ const getFollowers = function(ctx, userId, start, limit, callback) {
 
   try {
     pipe(
-      validator.isUserId,
+      isUserId,
       otherwise({
         code: 400,
         msg: 'You must specify a valid user id'
@@ -126,7 +126,7 @@ const getFollowing = function(ctx, userId, start, limit, callback) {
 
   try {
     pipe(
-      validator.isUserId,
+      isUserId,
       otherwise({
         code: 400,
         msg: 'You must specify a valid user id'
@@ -192,7 +192,7 @@ const getFollowing = function(ctx, userId, start, limit, callback) {
 const follow = function(ctx, followedUserId, callback) {
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'You must be authenticated to follow a user'
@@ -200,7 +200,7 @@ const follow = function(ctx, followedUserId, callback) {
     )(ctx);
 
     pipe(
-      validator.isUserId,
+      isUserId,
       otherwise({
         code: 400,
         msg: 'You must specify a valid user id of a user to follow'
@@ -257,7 +257,7 @@ const follow = function(ctx, followedUserId, callback) {
 const unfollow = function(ctx, unfollowedUserId, callback) {
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'You must be authenticated to unfollow a user'
@@ -265,7 +265,7 @@ const unfollow = function(ctx, unfollowedUserId, callback) {
     )(ctx);
 
     pipe(
-      validator.isUserId,
+      isUserId,
       otherwise({
         code: 400,
         msg: 'You must specify a valid user id of a user to unfollow'

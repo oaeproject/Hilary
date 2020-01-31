@@ -16,7 +16,21 @@ import { logger } from 'oae-logger';
 
 import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
 import { Validator as validator } from 'oae-authz/lib/validator';
-const { makeSureThat, ifNotThenThrow: otherwiseThrow, otherwise } = validator;
+const {
+  makeSureThat,
+  ifNotThenThrow: otherwiseThrow,
+  otherwise,
+  isValidRoleChange,
+  isLoggedInUser,
+  isPrincipalId,
+  isNotEmpty,
+  isBoolean,
+  isResourceId,
+  isShortString,
+  isMediumString,
+  isArrayNotEmpty,
+  isLongString
+} = validator;
 import pipe from 'ramda/src/pipe';
 import isIn from 'validator/lib/isIn';
 import isInt from 'validator/lib/isInt';
@@ -74,7 +88,7 @@ const createMeeting = function(
   // Verify basic properties
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'Anonymous users cannot create a meeting'
@@ -82,7 +96,7 @@ const createMeeting = function(
     )(ctx);
 
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'Must provide a display name for the meeting'
@@ -90,7 +104,7 @@ const createMeeting = function(
     )(displayName);
 
     pipe(
-      validator.isShortString,
+      isShortString,
       otherwise({
         code: 400,
         msg: 'A display name can be at most 1000 characters long'
@@ -111,7 +125,7 @@ const createMeeting = function(
   if (description && description.length > 0) {
     try {
       pipe(
-        validator.isMediumString,
+        isMediumString,
         otherwise({
           code: 400,
           msg: 'A description can be at most 10000 characters long'
@@ -177,7 +191,7 @@ const createMeeting = function(
 const getFullMeetingProfile = function(ctx, meetingId, callback) {
   try {
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'meetingId must be a valid resource id'
@@ -247,7 +261,7 @@ const getFullMeetingProfile = function(ctx, meetingId, callback) {
 const getMeeting = function(ctx, meetingId, callback) {
   try {
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'A valid resource id must be specified'
@@ -282,7 +296,7 @@ const getMeeting = function(ctx, meetingId, callback) {
 const getMeetingInvitations = function(ctx, meetingId, callback) {
   try {
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'A valid resource id must be specified'
@@ -313,7 +327,7 @@ const getMeetingMembers = function(ctx, meetingId, start, limit, callback) {
 
   try {
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'A valid resource id must be specified'
@@ -386,7 +400,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
 
   try {
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'A valid resource id must be specified'
@@ -394,7 +408,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
     )(meetingId);
 
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'You must be authenticated to update a meeting'
@@ -402,7 +416,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
     )(ctx);
 
     pipe(
-      validator.isArrayNotEmpty,
+      isArrayNotEmpty,
       otherwise({
         code: 400,
         msg: 'You should at least provide one profile field to update'
@@ -436,7 +450,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
         )(value, allVisibilities);
       } else if (field === 'displayName') {
         pipe(
-          validator.isNotEmpty,
+          isNotEmpty,
           otherwise({
             code: 400,
             msg: 'A display name cannot be empty'
@@ -444,7 +458,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
         )(value);
 
         pipe(
-          validator.isShortString,
+          isShortString,
           otherwise({
             code: 400,
             msg: 'A display name can be at most 1000 characters long'
@@ -452,7 +466,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
         )(value);
       } else if (field === 'description' && value.length > 0) {
         pipe(
-          validator.isMediumString,
+          isMediumString,
           otherwise({
             code: 400,
             msg: 'A description can be at most 10000 characters long'
@@ -460,7 +474,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
         )(value);
       } else if (field === 'chat') {
         pipe(
-          validator.isBoolean,
+          isBoolean,
           otherwise({
             code: 400,
             msg: 'An invalid chat value was specified, must be boolean'
@@ -468,7 +482,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
         )(value);
       } else if (field === 'contactList') {
         pipe(
-          validator.isBoolean,
+          isBoolean,
           otherwise({
             code: 400,
             msg: 'An invalid contactList value was specified, must be boolean'
@@ -523,7 +537,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
 const deleteMeeting = function(ctx, meetingId, callback) {
   try {
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'A valid resource id must be specified'
@@ -531,7 +545,7 @@ const deleteMeeting = function(ctx, meetingId, callback) {
     )(meetingId);
 
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'You must be authenticated to delete a meeting'
@@ -600,7 +614,7 @@ const deleteMeeting = function(ctx, meetingId, callback) {
 const setMeetingMembers = function(ctx, meetingId, changes, callback) {
   try {
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'A valid resource id must be specified'
@@ -608,7 +622,7 @@ const setMeetingMembers = function(ctx, meetingId, changes, callback) {
     )(meetingId);
 
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'You must be authenticated to update meeting members'
@@ -622,7 +636,7 @@ const setMeetingMembers = function(ctx, meetingId, changes, callback) {
     // eslint-disable-next-line no-unused-vars
     _.each(changes, (role, principalId) => {
       pipe(
-        validator.isValidRoleChange,
+        isValidRoleChange,
         otherwise({
           code: 400,
           msg: 'The role change : ' + role + ' is not a valid value. Must either be a string, or false'
@@ -693,7 +707,7 @@ const getMessages = function(ctx, meetingId, start, limit, callback) {
 
   try {
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'Must provide a valid meeting id'
@@ -764,22 +778,22 @@ const getMessages = function(ctx, meetingId, start, limit, callback) {
 const createMessage = function(ctx, meetingId, body, replyToCreatedTimestamp, callback) {
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwiseThrow({
         code: 401,
         msg: 'Only authenticated users can post on meetings'
       }),
-      makeSureThat(true, meetingId, validator.isResourceId),
+      makeSureThat(true, meetingId, isResourceId),
       otherwiseThrow({
         code: 400,
         msg: 'Invalid meeting id provided'
       }),
-      makeSureThat(true, body, validator.isNotEmpty),
+      makeSureThat(true, body, isNotEmpty),
       otherwiseThrow({
         code: 400,
         msg: 'A message body must be provided'
       }),
-      makeSureThat(true, body, validator.isLongString),
+      makeSureThat(true, body, isLongString),
       otherwiseThrow({
         code: 400,
         msg: 'A message body can only be 100000 characters long'
@@ -854,12 +868,12 @@ const createMessage = function(ctx, meetingId, body, replyToCreatedTimestamp, ca
 const deleteMessage = function(ctx, meetingId, messageCreatedDate, callback) {
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'Only authenticated users can delete messages'
       }),
-      makeSureThat(true, meetingId, validator.isResourceId),
+      makeSureThat(true, meetingId, isResourceId),
       otherwiseThrow({
         code: 400,
         msg: 'A meeting id must be provided'
@@ -947,7 +961,7 @@ const getMeetingsLibrary = function(ctx, principalId, start, limit, callback) {
 
   try {
     pipe(
-      validator.isPrincipalId,
+      isPrincipalId,
       otherwise({
         code: 400,
         msg: 'A user or group id must be provided'
@@ -1025,7 +1039,7 @@ const getMeetingsLibrary = function(ctx, principalId, start, limit, callback) {
 const removeMeetingFromLibrary = function(ctx, libraryOwnerId, meetingId, callback) {
   try {
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'You must be authenticated to remove a meeting from a library'
@@ -1033,7 +1047,7 @@ const removeMeetingFromLibrary = function(ctx, libraryOwnerId, meetingId, callba
     )(ctx);
 
     pipe(
-      validator.isPrincipalId,
+      isPrincipalId,
       otherwise({
         code: 400,
         msg: 'An user or group id must be provided'
@@ -1041,7 +1055,7 @@ const removeMeetingFromLibrary = function(ctx, libraryOwnerId, meetingId, callba
     )(libraryOwnerId);
 
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'An invalid meeting id "' + meetingId + '" was provided'

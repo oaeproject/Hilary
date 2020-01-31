@@ -20,7 +20,7 @@ import Chance from 'chance';
 import * as Cassandra from 'oae-util/lib/cassandra';
 
 import { Validator as validator } from 'oae-authz/lib/validator';
-const { otherwise } = validator;
+const { otherwise, isResourceId, isEmail, isValidRole, isString, isUserId, isValidRoleChange } = validator;
 import pipe from 'ramda/src/pipe';
 
 const chance = new Chance();
@@ -230,7 +230,7 @@ const getInvitation = function(resourceId, email, callback) {
 const createInvitations = function(resourceId, emailRoles, inviterUserId, callback) {
   try {
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'Specified resource must have a valid resource id'
@@ -243,7 +243,7 @@ const createInvitations = function(resourceId, emailRoles, inviterUserId, callba
   try {
     _.each(emailRoles, (role, email) => {
       pipe(
-        validator.isEmail,
+        isEmail,
         otherwise({
           code: 400,
           msg: 'A valid email must be supplied to invite'
@@ -251,7 +251,7 @@ const createInvitations = function(resourceId, emailRoles, inviterUserId, callba
       )(email);
 
       pipe(
-        validator.isValidRole,
+        isValidRole,
         otherwise({
           code: 400,
           msg: 'A valid role must be supplied to give the invited user'
@@ -264,7 +264,7 @@ const createInvitations = function(resourceId, emailRoles, inviterUserId, callba
 
   try {
     pipe(
-      validator.isUserId,
+      isUserId,
       otherwise({
         code: 400,
         msg: util.format('Specified inviter id "%s" must be a valid user id')
@@ -328,7 +328,7 @@ const createInvitations = function(resourceId, emailRoles, inviterUserId, callba
 const updateInvitationRoles = function(resourceId, emailRoles, callback) {
   try {
     pipe(
-      validator.isResourceId,
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'Specified resource must have a valid resource id'
@@ -341,7 +341,7 @@ const updateInvitationRoles = function(resourceId, emailRoles, callback) {
   try {
     _.each(emailRoles, (role, email) => {
       pipe(
-        validator.isEmail,
+        isEmail,
         otherwise({
           code: 400,
           msg: util.format('Invalid email "%s" specified', email)
@@ -349,7 +349,7 @@ const updateInvitationRoles = function(resourceId, emailRoles, callback) {
       )(email);
 
       pipe(
-        validator.isValidRoleChange,
+        isValidRoleChange,
         otherwise({
           code: 400,
           msg: util.format('Invalid role change "%s" specified', role)
@@ -358,7 +358,7 @@ const updateInvitationRoles = function(resourceId, emailRoles, callback) {
 
       if (role !== false) {
         pipe(
-          validator.isString,
+          isString,
           otherwise({
             code: 400,
             msg: util.format('Invalid role "%s" specified', role)
@@ -428,7 +428,7 @@ const deleteInvitationsByResourceId = function(resourceId, callback) {
 const deleteInvitationsByEmail = function(email, callback) {
   try {
     pipe(
-      validator.isEmail,
+      isEmail,
       otherwise({
         code: 400,
         msg: 'Specified email is not valid'

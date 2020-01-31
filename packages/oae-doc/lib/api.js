@@ -21,7 +21,7 @@ import { getFileListForFolder } from 'oae-util/lib/io';
 import * as modules from 'oae-util/lib/modules';
 import * as OaeUtil from 'oae-util/lib/util';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { otherwise } = validator;
+const { otherwise, isNotEmpty } = validator;
 import pipe from 'ramda/src/pipe';
 import isIn from 'validator/lib/isIn';
 
@@ -229,7 +229,7 @@ const getModules = function(type, callback) {
 const getModuleDocumentation = function(moduleId, type, callback) {
   try {
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'Missing module id'
@@ -237,7 +237,7 @@ const getModuleDocumentation = function(moduleId, type, callback) {
     )(moduleId);
 
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'Missing module type'

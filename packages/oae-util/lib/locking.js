@@ -21,6 +21,7 @@ import pipe from 'ramda/src/pipe';
 import isInt from 'validator/lib/isInt';
 import * as Redis from './redis';
 import { Validator as validator } from './validator';
+const { otherwise } = validator;
 
 const log = logger('oae-util-locking');
 
@@ -63,32 +64,33 @@ const init = function() {
  * @returns {Function}                 Returns a callback
  */
 const acquire = function(lockKey, expiresIn, callback) {
-  pipe(
-    validator.isDefined,
-    validator.generateError({
-      code: 400,
-      msg: 'The key of the lock to try and acquire needs to be specified'
-    }),
-    validator.finalize(callback)
-  )(lockKey);
+  try {
+    pipe(
+      validator.isDefined,
+      otherwise({
+        code: 400,
+        msg: 'The key of the lock to try and acquire needs to be specified'
+      })
+    )(lockKey);
 
-  pipe(
-    validator.isDefined,
-    validator.generateError({
-      code: 400,
-      msg: 'The maximum number of seconds for which to hold the lock needs to be specified'
-    }),
-    validator.finalize(callback)
-  )(expiresIn);
+    pipe(
+      validator.isDefined,
+      otherwise({
+        code: 400,
+        msg: 'The maximum number of seconds for which to hold the lock needs to be specified'
+      })
+    )(expiresIn);
 
-  pipe(
-    isInt,
-    validator.generateError({
-      code: 400,
-      msg: 'The maximum number of seconds for which to hold the lock needs to be an integer'
-    }),
-    validator.finalize(callback)
-  )(String(expiresIn));
+    pipe(
+      isInt,
+      otherwise({
+        code: 400,
+        msg: 'The maximum number of seconds for which to hold the lock needs to be an integer'
+      })
+    )(String(expiresIn));
+  } catch (error) {
+    return callback(error);
+  }
 
   log().trace({ lockKey }, 'Trying to acquire lock.');
 
@@ -112,14 +114,17 @@ const acquire = function(lockKey, expiresIn, callback) {
  * @returns {Function}                      Returns a callback
  */
 const release = function(lock, callback) {
-  pipe(
-    validator.isNotNull,
-    validator.generateError({
-      code: 400,
-      msg: 'The key of the lock to try and release needs to be specified'
-    }),
-    validator.finalize(callback)
-  )(lock);
+  try {
+    pipe(
+      validator.isNotNull,
+      otherwise({
+        code: 400,
+        msg: 'The key of the lock to try and release needs to be specified'
+      })
+    )(lock);
+  } catch (error) {
+    return callback(error);
+  }
 
   // the first parameter is not necessary after the
   // migration from redback to redlock

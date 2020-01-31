@@ -43,6 +43,7 @@ import isUrl from 'validator/lib/isURL';
 import isInt from 'validator/lib/isInt';
 import isIn from 'validator/lib/isIn';
 import { Validator as validator } from 'oae-util/lib/validator';
+const { makeSureThat, ifNotThenThrow, otherwise, isANumber } = validator;
 import pipe from 'ramda/src/pipe';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { ContentConstants } from './constants';
@@ -96,14 +97,17 @@ const emitter = new EmitterAPI.EventEmitter();
  */
 const getContent = function(ctx, contentId, callback) {
   // Parameter validation
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'A content id must be provided'
-    }),
-    validator.finalize(callback)
-  )(contentId);
+  try {
+    pipe(
+      validator.isResourceId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A content id must be provided'
+      })
+    )(contentId);
+  } catch (error) {
+    return callback(error);
+  }
 
   ContentDAO.Content.getContent(contentId, (err, contentObj) => {
     if (err) {
@@ -134,14 +138,17 @@ const getContent = function(ctx, contentId, callback) {
  */
 const getFullContentProfile = function(ctx, contentId, callback) {
   // Parameter validation
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'A content id must be provided'
-    }),
-    validator.finalize(callback)
-  )(contentId);
+  try {
+    pipe(
+      validator.isResourceId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A content id must be provided'
+      })
+    )(contentId);
+  } catch (error) {
+    return callback(error);
+  }
 
   getContent(ctx, contentId, (err, contentObj) => {
     if (err) {
@@ -260,23 +267,25 @@ const createLink = function(ctx, displayName, description, visibility, link, add
   visibility = visibility || Config.getValue(ctx.tenant().alias, 'visibility', 'links');
 
   // Check if the link property is present. All other validation will be done in the _createContent function
-  pipe(
-    isUrl,
-    validator.generateError({
-      code: 400,
-      msg: 'A valid link must be provided'
-    }),
-    validator.finalize(callback)
-  )(link);
+  try {
+    pipe(
+      isUrl,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A valid link must be provided'
+      })
+    )(link, { require_tld: false }); // eslint-disable-line camelcase
 
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'You have to be logged in to be able to create a content item'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+    pipe(
+      validator.isLoggedInUser,
+      ifNotThenThrow({
+        code: 401,
+        msg: 'You have to be logged in to be able to create a content item'
+      })
+    )(ctx);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Make sure the URL starts with a protocol
   if (!link.includes('://')) {
@@ -423,89 +432,92 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
   // Setting content to default if no visibility setting is provided
   visibility = visibility || Config.getValue(ctx.tenant().alias, 'visibility', 'files');
 
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'Anonymous users are not allowed to upload files'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+  try {
+    pipe(
+      validator.isLoggedInUser,
+      ifNotThenThrow({
+        code: 401,
+        msg: 'Anonymous users are not allowed to upload files'
+      })
+    )(ctx);
 
-  pipe(
-    validator.isNotNull,
-    validator.generateError({
-      code: 400,
-      msg: 'Missing file parameter'
-    }),
-    validator.finalize(callback)
-  )(file);
+    pipe(
+      validator.isNotNull,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'Missing file parameter'
+      })
+    )(file);
 
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'A display name must be provided'
-    }),
-    validator.finalize(callback)
-  )(displayName);
+    pipe(
+      validator.isNotEmpty,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A display name must be provided'
+      })
+    )(displayName);
 
-  pipe(
-    validator.isShortString,
-    validator.generateError({
-      code: 400,
-      msg: 'A display name can be at most 1000 characters long'
-    }),
-    validator.finalize(callback)
-  )(displayName);
+    pipe(
+      validator.isShortString,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A display name can be at most 1000 characters long'
+      })
+    )(displayName);
+  } catch (error) {
+    return callback(error);
+  }
 
   if (description) {
-    pipe(
-      validator.isMediumString,
-      validator.generateError({
-        code: 400,
-        msg: 'A content description can be at most 10000 characters long'
-      }),
-      validator.finalize(callback)
-    )(description);
+    try {
+      pipe(
+        validator.isMediumString,
+        ifNotThenThrow({
+          code: 400,
+          msg: 'A content description can be at most 10000 characters long'
+        })
+      )(description);
+    } catch (error) {
+      return callback(error);
+    }
   }
 
   if (file) {
-    pipe(
-      validator.isNotEmpty,
-      validator.generateError({
-        code: 400,
-        msg: 'Missing size on the file object'
-      }),
-      validator.finalize(callback)
-    )(file.size);
+    try {
+      pipe(
+        validator.isNotEmpty,
+        ifNotThenThrow({
+          code: 400,
+          msg: 'Missing size on the file object'
+        })
+      )(String(file.size));
 
-    pipe(
-      isInt,
-      validator.generateError({
-        code: 400,
-        msg: 'Invalid size on the file object'
-      }),
-      validator.finalize(callback)
-    )(file.size);
+      pipe(
+        isInt,
+        ifNotThenThrow({
+          code: 400,
+          msg: 'Invalid size on the file object'
+        })
+      )(String(file.size));
 
-    pipe(
-      isInt,
-      validator.generateError({
-        code: 400,
-        msg: 'Invalid size on the file object'
-      }),
-      validator.finalize(callback)
-    )(String(file.size), { gt: 0 });
+      pipe(
+        isInt,
+        ifNotThenThrow({
+          code: 400,
+          msg: 'Invalid size on the file object'
+        })
+      )(String(file.size), { gt: 0 });
 
-    pipe(
-      validator.isNotEmpty,
-      validator.generateError({
-        code: 400,
-        msg: 'Missing name on the file object'
-      }),
-      validator.finalize(callback)
-    )(file.name);
+      pipe(
+        validator.isNotEmpty,
+        ifNotThenThrow({
+          code: 400,
+          msg: 'Missing name on the file object'
+        })
+      )(file.name);
+    } catch (error) {
+      return callback(error);
+    }
   }
 
   // Generate a content ID that can be used when storing the file.
@@ -741,70 +753,75 @@ const _createContent = function(
   otherValues = otherValues || {};
 
   // Parameter validation
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'A content ID must be provided'
-    }),
-    validator.finalize(callback)
-  )(contentId);
-
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'A display name must be provided'
-    }),
-    validator.finalize(callback)
-  )(displayName);
-
-  pipe(
-    validator.isShortString,
-    validator.generateError({
-      code: 400,
-      msg: 'A display name can be at most 1000 characters long'
-    }),
-    validator.finalize(callback)
-  )(displayName);
-
-  if (description) {
+  try {
     pipe(
-      validator.isMediumString,
-      validator.generateError({
+      validator.isResourceId,
+      ifNotThenThrow({
         code: 400,
-        msg: 'A description can only be 10000 characters long'
-      }),
-      validator.finalize(callback)
-    )(description);
+        msg: 'A content ID must be provided'
+      })
+    )(contentId);
+
+    pipe(
+      validator.isNotEmpty,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A display name must be provided'
+      })
+    )(displayName);
+
+    pipe(
+      validator.isShortString,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A display name can be at most 1000 characters long'
+      })
+    )(displayName);
+  } catch (error) {
+    return callback(error);
   }
 
-  pipe(
-    isIn,
-    validator.generateError({
-      code: 400,
-      msg: 'An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"'
-    }),
-    validator.finalize(callback)
-  )(visibility, _.values(AuthzConstants.visibility));
+  if (description) {
+    try {
+      pipe(
+        validator.isMediumString,
+        ifNotThenThrow({
+          code: 400,
+          msg: 'A description can only be 10000 characters long'
+        })
+      )(description);
+    } catch (error) {
+      return callback(error);
+    }
+  }
 
-  pipe(
-    isIn,
-    validator.generateError({
-      code: 400,
-      msg: 'A valid resourceSubType must be provided. This can be "file", "collabdoc" or "link"'
-    }),
-    validator.finalize(callback)
-  )(resourceSubType, ContentConstants.resourceSubTypes);
+  try {
+    pipe(
+      isIn,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"'
+      })
+    )(visibility, _.values(AuthzConstants.visibility));
 
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'You have to be logged in to be able to create a content item'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+    pipe(
+      isIn,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A valid resourceSubType must be provided. This can be "file", "collabdoc" or "link"'
+      })
+    )(resourceSubType, ContentConstants.resourceSubTypes);
+
+    pipe(
+      validator.isLoggedInUser,
+      ifNotThenThrow({
+        code: 401,
+        msg: 'You have to be logged in to be able to create a content item'
+      })
+    )(ctx);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Ensure all roles applied are valid. Editor is only valid for collabdocs
   const validRoles = [AuthzConstants.role.VIEWER, AuthzConstants.role.MANAGER];
@@ -812,16 +829,19 @@ const _createContent = function(
     validRoles.push(AuthzConstants.role.EDITOR);
   }
 
-  _.each(roles, role => {
-    pipe(
-      isIn,
-      validator.generateError({
-        code: 400,
-        msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
-      }),
-      validator.finalize(callback)
-    )(role, validRoles);
-  });
+  try {
+    _.each(roles, role => {
+      pipe(
+        isIn,
+        ifNotThenThrow({
+          code: 400,
+          msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
+        })
+      )(role, validRoles);
+    });
+  } catch (error) {
+    return callback(error);
+  }
 
   // Ensure the specified folders exist and can be managed by the current user
   canManageFolders(ctx, folderIds, (err, folders) => {
@@ -878,17 +898,20 @@ const canManageFolders = function(ctx, folderIds, callback) {
     return callback(null, []);
   }
 
-  _.each(folderIds, folderId => {
-    // Validate the folder id
-    pipe(
-      validator.isResourceId,
-      validator.generateError({
-        code: 400,
-        msg: 'Invalid folder id specified'
-      }),
-      validator.finalize(callback)
-    )(folderId);
-  });
+  try {
+    _.each(folderIds, folderId => {
+      // Validate the folder id
+      pipe(
+        validator.isResourceId,
+        ifNotThenThrow({
+          code: 400,
+          msg: 'Invalid folder id specified'
+        })
+      )(folderId);
+    });
+  } catch (error) {
+    return callback(error);
+  }
 
   getFoldersByIds(folderIds, (err, folders) => {
     if (err) {
@@ -1270,14 +1293,17 @@ const ethercalcPublish = function(data, callback) {
  */
 const joinCollabDoc = function(ctx, contentId, callback) {
   // Parameter validation
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'A content id must be provided'
-    }),
-    validator.finalize(callback)
-  )(contentId);
+  try {
+    pipe(
+      validator.isResourceId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A content id must be provided'
+      })
+    )(contentId);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Check if we have access to this piece of content.
   _canEdit(ctx, contentId, (err, contentObj) => {
@@ -1322,23 +1348,25 @@ const deleteContent = function(ctx, contentId, callback) {
   callback = callback || function() {};
 
   // Parameter validation
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'A content id must be provided'
-    }),
-    validator.finalize(callback)
-  )(contentId);
+  try {
+    pipe(
+      validator.isResourceId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A content id must be provided'
+      })
+    )(contentId);
 
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'You have to be logged in to be able to delete a content item'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+    pipe(
+      validator.isLoggedInUser,
+      ifNotThenThrow({
+        code: 401,
+        msg: 'You have to be logged in to be able to delete a content item'
+      })
+    )(ctx);
+  } catch (error) {
+    return callback(error);
+  }
 
   const done = (ctx, contentObj, members, callback) => {
     emitter.emit(ContentConstants.events.DELETED_CONTENT, ctx, contentObj, members, function(err) {
@@ -1395,23 +1423,25 @@ const deleteContent = function(ctx, contentId, callback) {
  */
 const shareContent = function(ctx, contentId, principalIds, callback) {
   // Parameter validation
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'A content id must be provided'
-    }),
-    validator.finalize(callback)
-  )(contentId);
+  try {
+    pipe(
+      validator.isResourceId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A content id must be provided'
+      })
+    )(contentId);
 
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'You have to be logged in to be able to share content'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+    pipe(
+      validator.isLoggedInUser,
+      ifNotThenThrow({
+        code: 401,
+        msg: 'You have to be logged in to be able to share content'
+      })
+    )(ctx);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Check if the content item exists
   ContentDAO.Content.getContent(contentId, (err, content) => {
@@ -1502,23 +1532,25 @@ const _canEdit = function(ctx, contentId, callback) {
  */
 const setContentPermissions = function(ctx, contentId, changes, callback) {
   // Parameter validation
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'You have to be logged in to be able to create a content item'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+  try {
+    pipe(
+      validator.isLoggedInUser,
+      ifNotThenThrow({
+        code: 401,
+        msg: 'You have to be logged in to be able to create a content item'
+      })
+    )(ctx);
 
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'A content id must be provided'
-    }),
-    validator.finalize(callback)
-  )(contentId);
+    pipe(
+      validator.isResourceId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A content id must be provided'
+      })
+    )(contentId);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Check if the content exists
   getContent(ctx, contentId, (err, content) => {
@@ -1535,21 +1567,21 @@ const setContentPermissions = function(ctx, contentId, changes, callback) {
       validRoles.push(AuthzConstants.role.EDITOR);
     }
 
-    // eslint-disable-next-line no-unused-vars
-    _.each(changes, (role, principalId) => {
-      if (role !== false) {
-        pipe(
-          isIn,
-          validator.generateError({
-            code: 400,
-            msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
-          }),
-          validator.finalize(callback)
-        )(role, validRoles);
-      }
-    });
-    if (validator.hasErrors()) {
-      return callback(validator.getFirstError());
+    try {
+      // eslint-disable-next-line no-unused-vars
+      _.each(changes, (role, principalId) => {
+        if (role !== false) {
+          pipe(
+            isIn,
+            ifNotThenThrow({
+              code: 400,
+              msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
+            })
+          )(String(role), validRoles);
+        }
+      });
+    } catch (error) {
+      return callback(error);
     }
 
     ResourceActions.setRoles(ctx, content, changes, (err, memberChangeInfo) => {
@@ -1585,32 +1617,33 @@ const setContentPermissions = function(ctx, contentId, changes, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const removeContentFromLibrary = function(ctx, libraryOwnerId, contentId, callback) {
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'You must be authenticated to remove a piece of content from a library'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+  try {
+    pipe(
+      validator.isLoggedInUser,
+      ifNotThenThrow({
+        code: 401,
+        msg: 'You must be authenticated to remove a piece of content from a library'
+      })
+    )(ctx);
 
-  pipe(
-    validator.isPrincipalId,
-    validator.generateError({
-      code: 400,
-      msg: 'A user or group id must be provided'
-    }),
-    validator.finalize(callback)
-  )(libraryOwnerId);
+    pipe(
+      validator.isPrincipalId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A user or group id must be provided'
+      })
+    )(libraryOwnerId);
 
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'A valid content id must be provided'
-    }),
-    validator.finalize(callback)
-  )(contentId);
+    pipe(
+      validator.isResourceId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A valid content id must be provided'
+      })
+    )(contentId);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Make sure the content exists
   ContentDAO.Content.getContent(contentId, (err, content) => {
@@ -1664,23 +1697,25 @@ const removeContentFromLibrary = function(ctx, libraryOwnerId, contentId, callba
 const getContentMembersLibrary = function(ctx, contentId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'A content id must be provided'
-    }),
-    validator.finalize(callback)
-  )(contentId);
+  try {
+    pipe(
+      validator.isResourceId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A content id must be provided'
+      })
+    )(contentId);
 
-  pipe(
-    isInt,
-    validator.generateError({
-      code: 400,
-      msg: 'A valid limit should be passed in'
-    }),
-    validator.finalize(callback)
-  )(limit);
+    pipe(
+      isANumber,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A valid limit should be passed in'
+      })
+    )(limit);
+  } catch (error) {
+    return callback(error);
+  }
 
   ContentDAO.Content.getContent(contentId, (err, content) => {
     if (err) {
@@ -1756,14 +1791,17 @@ const getContentMembersLibrary = function(ctx, contentId, start, limit, callback
  * @param  {Invitation[]}   callback.invitations    The invitations
  */
 const getContentInvitations = function(ctx, contentId, callback) {
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'A valid resource id must be specified'
-    }),
-    validator.finalize(callback)
-  )(contentId);
+  try {
+    pipe(
+      validator.isResourceId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A valid resource id must be specified'
+      })
+    )(contentId);
+  } catch (error) {
+    return callback(error);
+  }
 
   ContentDAO.Content.getContent(contentId, (err, content) => {
     if (err) {
@@ -1784,14 +1822,17 @@ const getContentInvitations = function(ctx, contentId, callback) {
  * @param  {Object}         callback.err    An error that occurred, if any
  */
 const resendContentInvitation = function(ctx, contentId, email, callback) {
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'A valid resource id must be specified'
-    }),
-    validator.finalize(callback)
-  )(contentId);
+  try {
+    pipe(
+      validator.isResourceId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A valid resource id must be specified'
+      })
+    )(contentId);
+  } catch (error) {
+    return callback(error);
+  }
 
   ContentDAO.Content.getContent(contentId, (err, content) => {
     if (err) {
@@ -1844,69 +1885,70 @@ const updateFileBody = function(ctx, contentId, file, callback) {
  * @api private
  */
 const _updateFileBody = function(ctx, contentId, file, callback) {
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'You have to be logged in to be able to update a content item'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+  try {
+    pipe(
+      validator.isLoggedInUser,
+      ifNotThenThrow({
+        code: 401,
+        msg: 'You have to be logged in to be able to update a content item'
+      })
+    )(ctx);
 
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'A content id must be provided'
-    }),
-    validator.finalize(callback)
-  )(contentId);
+    pipe(
+      validator.isResourceId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A content id must be provided'
+      })
+    )(contentId);
 
-  pipe(
-    validator.isNotNull,
-    validator.generateError({
-      code: 400,
-      msg: 'Missing file parameter.'
-    }),
-    validator.finalize(callback)
-  )(file);
+    pipe(
+      validator.isNotNull,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'Missing file parameter.'
+      })
+    )(file);
+  } catch (error) {
+    return callback(error);
+  }
 
   if (file) {
-    pipe(
-      validator.isNotEmpty,
-      validator.generateError({
-        code: 400,
-        msg: 'Missing size on the file object.'
-      }),
-      validator.finalize(callback)
-    )(file.size);
+    try {
+      pipe(
+        validator.isNotEmpty,
+        ifNotThenThrow({
+          code: 400,
+          msg: 'Missing size on the file object.'
+        })
+      )(String(file.size));
 
-    pipe(
-      isInt,
-      validator.generateError({
-        code: 400,
-        msg: 'Invalid size on the file object.'
-      }),
-      validator.finalize(callback)
-    )(file.size);
+      pipe(
+        isInt,
+        ifNotThenThrow({
+          code: 400,
+          msg: 'Invalid size on the file object.'
+        })
+      )(String(file.size));
 
-    pipe(
-      validator.Int,
-      validator.generateError({
-        code: 400,
-        msg: 'Invalid size on the file object.'
-      }),
-      validator.finalize(callback)
-    )(file.size, { gt: 0 });
+      pipe(
+        validator.isInt,
+        ifNotThenThrow({
+          code: 400,
+          msg: 'Invalid size on the file object.'
+        })
+      )(String(file.size), { gt: 0 });
 
-    pipe(
-      validator.isNotEmpty,
-      validator.generateError({
-        code: 400,
-        msg: 'Missing name on the file object.'
-      }),
-      validator.finalize(callback)
-    )(file.name);
+      pipe(
+        validator.isNotEmpty,
+        ifNotThenThrow({
+          code: 400,
+          msg: 'Missing name on the file object.'
+        })
+      )(file.name);
+    } catch (error) {
+      return callback(error);
+    }
   }
 
   _canManage(ctx, contentId, (err, contentObj) => {
@@ -2003,32 +2045,33 @@ const setPreviewItems = function(
   const cleanUpCallback = _getCleanUpCallback(files, callback);
 
   const validStatuses = _.values(ContentConstants.previews);
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'Missing or invalid contentId'
-    }),
-    validator.finalize(callback)
-  )(contentId);
+  try {
+    pipe(
+      validator.isResourceId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'Missing or invalid contentId'
+      })
+    )(contentId);
 
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'Missing or invalid revisionId'
-    }),
-    validator.finalize(callback)
-  )(revisionId);
+    pipe(
+      validator.isResourceId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'Missing or invalid revisionId'
+      })
+    )(revisionId);
 
-  pipe(
-    isIn,
-    validator.generateError({
-      code: 400,
-      msg: 'The status parameter must be one of: ' + validStatuses.join(', ')
-    }),
-    validator.finalize(callback)
-  )(status, validStatuses);
+    pipe(
+      isIn,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'The status parameter must be one of: ' + validStatuses.join(', ')
+      })
+    )(status, validStatuses);
+  } catch (error) {
+    return callback(error);
+  }
 
   ContentDAO.Content.getContent(contentId, (err, contentObj) => {
     if (err) {
@@ -2049,14 +2092,16 @@ const setPreviewItems = function(
       }
 
       // Ensure that the revision supplied is a revision of the specified content item
-      validator
-        .check(revision.contentId, {
-          code: 400,
-          msg: 'Specified revisionId does not belong to the specifed content item'
-        })
-        .equals(contentId);
-      if (validator.hasErrors()) {
-        return cleanUpCallback(validator.getFirstError());
+      try {
+        pipe(
+          validator.equals,
+          otherwise({
+            code: 400,
+            msg: 'Specified revisionId does not belong to the specifed content item'
+          })
+        )(revision.contentId, contentId);
+      } catch (error) {
+        return cleanUpCallback(error);
       }
 
       const fileData = {};
@@ -2193,31 +2238,32 @@ const setPreviewItems = function(
  * @param  {DownloadStrategy}   callback.downloadInfo.strategy  The DownloadStrategy that details how to download the preview
  */
 const getSignedPreviewDownloadInfo = function(ctx, contentId, revisionId, previewItem, signatureData, callback) {
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'Missing content ID'
-    }),
-    validator.finalize(callback)
-  )(contentId);
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'Missing revision ID'
-    }),
-    validator.finalize(callback)
-  )(revisionId);
+  try {
+    pipe(
+      validator.isResourceId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'Missing content ID'
+      })
+    )(contentId);
+    pipe(
+      validator.isResourceId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'Missing revision ID'
+      })
+    )(revisionId);
 
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Missing preview item'
-    }),
-    validator.finalize(callback)
-  )(previewItem);
+    pipe(
+      validator.isNotEmpty,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'Missing preview item'
+      })
+    )(previewItem);
+  } catch (error) {
+    return callback(error);
+  }
 
   if (!Signature.verifyExpiringResourceSignature(ctx, contentId, signatureData.expires, signatureData.signature)) {
     return callback({ code: 401, msg: 'Invalid content signature data for accessing previews' });
@@ -2282,95 +2328,102 @@ const getPreviewItems = function(ctx, contentId, revisionId, callback) {
 const updateContentMetadata = function(ctx, contentId, profileFields, callback) {
   callback = callback || function() {};
 
-  // Parameter validation
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'A content id must be provided'
-    }),
-    validator.finalize(callback)
-  )(contentId);
-
-  // Check that at a minimum name or description have been provided
   const fieldNames = profileFields ? _.keys(profileFields) : [];
-  pipe(
-    validator.isArrayNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'You should at least specify a new displayName, description, visibility or link'
-    }),
-    validator.finalize(callback)
-  )(fieldNames);
-
-  for (const fieldName of fieldNames) {
+  // Parameter validation
+  try {
     pipe(
-      isIn,
-      validator.generateError({
+      validator.isResourceId,
+      ifNotThenThrow({
         code: 400,
-        msg: fieldName + ' is not a recognized content profile field'
-      }),
-      validator.finalize(callback)
-    )(fieldName, ['displayName', 'description', 'visibility', 'link']);
+        msg: 'A content id must be provided'
+      })
+    )(contentId);
 
-    if (fieldName === 'displayName') {
-      pipe(
-        validator.isNotEmpty,
-        validator.generateError({
-          code: 400,
-          msg: 'A display name cannot be empty'
-        }),
-        validator.finalize(callback)
-      )(profileFields.displayName);
+    // Check that at a minimum name or description have been provided
+    pipe(
+      validator.isArrayNotEmpty,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'You should at least specify a new displayName, description, visibility or link'
+      })
+    )(fieldNames);
+  } catch (error) {
+    return callback(error);
+  }
 
+  try {
+    for (const fieldName of fieldNames) {
       pipe(
-        validator.isShortString,
-        validator.generateError({
+        isIn,
+        otherwise({
           code: 400,
-          msg: 'A display name can be at most 1000 characters long'
-        }),
-        validator.finalize(callback)
-      )(profileFields.displayName);
-    } else if (fieldName === 'description' && profileFields.description) {
-      pipe(
-        validator.isMediumString,
-        validator.generateError({
-          code: 400,
-          msg: 'A description can only be 10000 characters long'
-        }),
-        validator.finalize(callback)
-      )(profileFields.description);
-    } else if (fieldName === 'link') {
-      pipe(
-        isUrl,
-        validator.generateError({
-          code: 400,
-          msg: 'A valid link should be provided'
-        }),
-        validator.finalize(callback)
-      )(profileFields.link);
+          msg: fieldName + ' is not a recognized content profile field'
+        })
+      )(fieldName, ['displayName', 'description', 'visibility', 'link']);
+
+      if (fieldName === 'displayName') {
+        pipe(
+          validator.isNotEmpty,
+          ifNotThenThrow({
+            code: 400,
+            msg: 'A display name cannot be empty'
+          })
+        )(profileFields.displayName);
+
+        pipe(
+          validator.isShortString,
+          ifNotThenThrow({
+            code: 400,
+            msg: 'A display name can be at most 1000 characters long'
+          })
+        )(profileFields.displayName);
+      } else if (fieldName === 'description' && profileFields.description) {
+        pipe(
+          validator.isMediumString,
+          ifNotThenThrow({
+            code: 400,
+            msg: 'A description can only be 10000 characters long'
+          })
+        )(profileFields.description);
+      } else if (fieldName === 'link') {
+        pipe(
+          isUrl,
+          ifNotThenThrow({
+            code: 400,
+            msg: 'A valid link should be provided'
+          })
+        )(profileFields.link);
+      }
     }
+  } catch (error) {
+    return callback(error);
   }
 
   if (profileFields.visibility) {
-    pipe(
-      isIn,
-      validator.generateError({
-        code: 400,
-        msg: 'An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"'
-      }),
-      validator.finalize(callback)
-    )(profileFields.visibility, _.values(AuthzConstants.visibility));
+    try {
+      pipe(
+        isIn,
+        ifNotThenThrow({
+          code: 400,
+          msg: 'An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"'
+        })
+      )(profileFields.visibility, _.values(AuthzConstants.visibility));
+    } catch (error) {
+      return callback(error);
+    }
   }
 
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'You have to be logged in to be able to update a content item'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+  try {
+    pipe(
+      validator.isLoggedInUser,
+      ifNotThenThrow({
+        code: 401,
+        msg: 'You have to be logged in to be able to update a content item'
+      })
+    )(ctx);
+  } catch (error) {
+    return callback(error);
+  }
 
   // First check whether or not the current user is a manager of the piece of content
   _canManage(ctx, contentId, (err, oldContentObj) => {
@@ -2423,51 +2476,50 @@ const createComment = function(ctx, contentId, body, replyToCreatedTimestamp, ca
   callback = callback || function() {};
 
   // Parameter validation
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'Only authorized users can post comments'
-    }),
-    validator.finalize(callback)
-  )(ctx);
-
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'Invalid content resource id provided'
-    }),
-    validator.finalize(callback)
-  )(contentId);
-
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'A comment must be provided'
-    }),
-    validator.finalize(callback)
-  )(body);
-
-  pipe(
-    validator.isLongString,
-    validator.generateError({
-      code: 400,
-      msg: 'A comment can only be 100000 characters long'
-    }),
-    validator.finalize(callback)
-  )(body);
-
-  if (replyToCreatedTimestamp) {
+  try {
     pipe(
-      isInt,
-      validator.generateError({
+      validator.isLoggedInUser,
+      ifNotThenThrow({
+        code: 401,
+        msg: 'Only authorized users can post comments'
+      })
+    )(ctx);
+
+    pipe(
+      validator.isResourceId,
+      ifNotThenThrow({
         code: 400,
-        msg: 'Invalid reply-to timestamp provided'
-      }),
-      validator.finalize(callback)
-    )(replyToCreatedTimestamp);
+        msg: 'Invalid content resource id provided'
+      })
+    )(contentId);
+
+    pipe(
+      validator.isNotEmpty,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A comment must be provided'
+      })
+    )(body);
+
+    pipe(
+      validator.isLongString,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A comment can only be 100000 characters long'
+      })
+    )(body);
+
+    if (replyToCreatedTimestamp) {
+      pipe(
+        isInt,
+        ifNotThenThrow({
+          code: 400,
+          msg: 'Invalid reply-to timestamp provided'
+        })
+      )(String(replyToCreatedTimestamp));
+    }
+  } catch (error) {
+    return callback(error);
   }
 
   // Verify the user has access to the content object
@@ -2517,23 +2569,25 @@ const getComments = function(ctx, contentId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   // Parameter validation
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'Invalid content resource id provided'
-    }),
-    validator.finalize(callback)
-  )(contentId);
+  try {
+    pipe(
+      validator.isResourceId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'Invalid content resource id provided'
+      })
+    )(contentId);
 
-  pipe(
-    isInt,
-    validator.generateError({
-      code: 400,
-      msg: 'A valid limit should be passed in'
-    }),
-    validator.finalize(callback)
-  )(limit);
+    pipe(
+      isInt,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A valid limit should be passed in'
+      })
+    )(String(limit));
+  } catch (error) {
+    return callback(error);
+  }
 
   // eslint-disable-next-line no-unused-vars
   getContent(ctx, contentId, (err, contentObj) => {
@@ -2584,32 +2638,33 @@ const getComments = function(ctx, contentId, start, limit, callback) {
  * @param  {Comment}    [callback.softDeleted]  When the comment has been soft deleted (because it has replies), a stripped down comment object representing the deleted comment will be returned, with the `deleted` parameter set to `false`. If the comment has been deleted from Cassandra, no comment object will be returned.
  */
 const deleteComment = function(ctx, contentId, commentCreatedDate, callback) {
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'Only authorized users can delete comments'
-    }),
-    validator.finalize(callback)
-  )();
+  try {
+    pipe(
+      validator.isLoggedInUser,
+      ifNotThenThrow({
+        code: 401,
+        msg: 'Only authorized users can delete comments'
+      })
+    )(ctx);
 
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'A content id must be provided'
-    }),
-    validator.finalize(callback)
-  )(contentId);
+    pipe(
+      validator.isResourceId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A content id must be provided'
+      })
+    )(contentId);
 
-  pipe(
-    isInt,
-    validator.generateError({
-      code: 400,
-      msg: 'A valid integer comment created timestamp must be specified'
-    }),
-    validator.finalize(callback)
-  )(commentCreatedDate);
+    pipe(
+      isInt,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A valid integer comment created timestamp must be specified'
+      })
+    )(String(commentCreatedDate));
+  } catch (error) {
+    return callback(error);
+  }
 
   getContent(ctx, contentId, (err, content) => {
     if (err) {
@@ -2700,23 +2755,25 @@ const _deleteComment = function(ctx, content, commentToDelete, callback) {
 const getContentLibraryItems = function(ctx, principalId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  pipe(
-    validator.isPrincipalId,
-    validator.generateError({
-      code: 400,
-      msg: 'A user or group id must be provided'
-    }),
-    validator.finalize(callback)
-  )(principalId);
+  try {
+    pipe(
+      validator.isPrincipalId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A user or group id must be provided'
+      })
+    )(principalId);
 
-  pipe(
-    isInt,
-    validator.generateError({
-      code: 400,
-      msg: 'A valid limit should be passed in'
-    }),
-    validator.finalize(callback)
-  )(limit);
+    pipe(
+      isInt,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A valid limit should be passed in'
+      })
+    )(String(limit));
+  } catch (error) {
+    return callback(error);
+  }
 
   // Get the principal
   PrincipalsDAO.getPrincipal(principalId, (err, principal) => {
@@ -2785,23 +2842,25 @@ const getContentLibraryItems = function(ctx, principalId, start, limit, callback
 const getRevisions = function(ctx, contentId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'A contentId must be provided'
-    }),
-    validator.finalize(callback)
-  )(contentId);
+  try {
+    pipe(
+      validator.isResourceId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A contentId must be provided'
+      })
+    )(contentId);
 
-  pipe(
-    isInt,
-    validator.generateError({
-      code: 400,
-      msg: 'A valid limit should be passed in'
-    }),
-    validator.finalize(callback)
-  )(limit);
+    pipe(
+      isInt,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A valid limit should be passed in'
+      })
+    )(String(limit));
+  } catch (error) {
+    return callback(error);
+  }
 
   // Check if the user has access on this contentId
   getContent(ctx, contentId, (err, contentObj) => {
@@ -2887,23 +2946,30 @@ const _getRevisions = function(ctx, contentObj, start, limit, opts, callback) {
  * @param  {Revision}       callback.revision   The revision
  */
 const getRevision = function(ctx, contentId, revisionId, callback) {
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'A valid contentId must be provided'
-    }),
-    validator.finalize(callback)
-  )(contentId);
-  if (revisionId) {
+  try {
     pipe(
       validator.isResourceId,
-      validator.generateError({
+      ifNotThenThrow({
         code: 400,
-        msg: 'A valid revisionId must be provided'
-      }),
-      validator.finalize(callback)
-    )(revisionId);
+        msg: 'A valid contentId must be provided'
+      })
+    )(contentId);
+  } catch (error) {
+    return callback(error);
+  }
+
+  if (revisionId) {
+    try {
+      pipe(
+        validator.isResourceId,
+        ifNotThenThrow({
+          code: 400,
+          msg: 'A valid revisionId must be provided'
+        })
+      )(revisionId);
+    } catch (error) {
+      return callback(error);
+    }
   }
 
   // Check if the user has access to this content item
@@ -2931,23 +2997,21 @@ const getRevision = function(ctx, contentId, revisionId, callback) {
  * @param  {DownloadStrategy}   callback.downloadInfo.strategy  The DownloadStrategy that details how to download the revision
  */
 const getRevisionDownloadInfo = function(ctx, contentId, revisionId, callback) {
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'A valid contentId must be provided'
-    }),
-    validator.finalize(callback)
-  )(contentId);
-  if (revisionId) {
+  try {
     pipe(
       validator.isResourceId,
-      validator.generateError({
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A valid contentId must be provided'
+      }),
+      makeSureThat(revisionId, revisionId, validator.isResourceId),
+      ifNotThenThrow({
         code: 400,
         msg: 'A valid revisionId must be provided'
-      }),
-      validator.finalize(callback)
-    )(revisionId);
+      })
+    )(contentId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Check if the user has access to this content item
@@ -3079,23 +3143,25 @@ const _augmentRevision = function(ctx, revision, contentObj) {
  * @param  {Revision}       callback.revision   The restored revision
  */
 const restoreRevision = function(ctx, contentId, revisionId, callback) {
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'A valid contentId must be provided'
-    }),
-    validator.finalize(callback)
-  )(contentId);
+  try {
+    pipe(
+      validator.isResourceId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A valid contentId must be provided'
+      })
+    )(contentId);
 
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'A valid revisionId must be provided'
-    }),
-    validator.finalize(callback)
-  )(revisionId);
+    pipe(
+      validator.isResourceId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'A valid revisionId must be provided'
+      })
+    )(revisionId);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Make sure the user is a manager of this piece of content and the revision exists.
   _canManage(ctx, contentId, (err, contentObj) => {

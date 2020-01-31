@@ -20,6 +20,7 @@ import * as SearchUtil from 'oae-search/lib/util';
 import * as TenantsAPI from 'oae-tenants/lib/api';
 
 import { Validator as validator } from 'oae-util/lib/validator';
+const { otherwise } = validator;
 import pipe from 'ramda/src/pipe';
 
 /**
@@ -42,23 +43,26 @@ const queryBuilder = function(ctx, opts, callback) {
   opts = opts || {};
   opts.limit = OaeUtil.getNumberParam(opts.limit, 10, 1, 25);
 
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'Only authenticated users can use email search'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+  try {
+    pipe(
+      validator.isLoggedInUser,
+      otherwise({
+        code: 401,
+        msg: 'Only authenticated users can use email search'
+      })
+    )(ctx);
 
-  pipe(
-    validator.isEmail,
-    validator.generateError({
-      code: 400,
-      msg: 'An invalid email address has been specified'
-    }),
-    validator.finalize(callback)
-  )(opts.q);
+    const query = opts.q || '';
+    pipe(
+      validator.isEmail,
+      otherwise({
+        code: 400,
+        msg: 'An invalid email address has been specified'
+      })
+    )(query);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Ensure the email address being searched is lower case so it is case insensitive
   const email = opts.q.toLowerCase();

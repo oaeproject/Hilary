@@ -19,6 +19,7 @@ import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as Signature from 'oae-util/lib/signature';
 import * as TenantsAPI from 'oae-tenants/lib/api';
 import { Validator as validator } from 'oae-util/lib/validator';
+const { otherwise } = validator;
 import pipe from 'ramda/src/pipe';
 import isAfter from 'validator/lib/isAfter';
 
@@ -94,50 +95,49 @@ const getServiceProviderUrl = function(ctx) {
  * @param  {Tenant}     callback.tenant     The full tenant object for the given tenant alias
  */
 const validateInitiateParameters = function(tenantAlias, signature, expires, callback) {
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Missing tenant alias parameter'
-    }),
-    validator.finalize(callback)
-  )(tenantAlias);
+  try {
+    pipe(
+      validator.isNotEmpty,
+      otherwise({
+        code: 400,
+        msg: 'Missing tenant alias parameter'
+      })
+    )(tenantAlias);
 
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Missing signature parameter'
-    }),
-    validator.finalize(callback)
-  )(signature);
+    pipe(
+      validator.isNotEmpty,
+      otherwise({
+        code: 400,
+        msg: 'Missing signature parameter'
+      })
+    )(signature);
 
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Missing expires parameter'
-    }),
-    validator.finalize(callback)
-  )(expires);
+    pipe(
+      validator.isNotEmpty,
+      otherwise({
+        code: 400,
+        msg: 'Missing expires parameter'
+      })
+    )(String(expires));
 
-  pipe(
-    validator.isNumeric,
-    validator.generateError({
-      code: 400,
-      msg: 'Invalid expires parameter'
-    }),
-    validator.finalize(callback)
-  )(expires);
+    pipe(
+      validator.isNumeric,
+      otherwise({
+        code: 400,
+        msg: 'Invalid expires parameter'
+      })
+    )(String(expires));
 
-  pipe(
-    isAfter,
-    validator.generateError({
-      code: 400,
-      msg: 'Invalid expires parameter'
-    }),
-    validator.finalize(callback)
-  )(String(expires));
+    pipe(
+      isAfter,
+      otherwise({
+        code: 400,
+        msg: 'Invalid expires parameter'
+      })
+    )(String(new Date(parseInt(expires, 10))));
+  } catch (error) {
+    return callback(error);
+  }
 
   const data = { tenantAlias };
   const isValid = Signature.verifyExpiringSignature(data, expires, signature);
@@ -205,50 +205,49 @@ const getAuthenticatedUserRedirectUrl = function(tenant, user) {
  * @param  {User}       callback.user       The retrieved user
  */
 const getUser = function(tenant, userId, signature, expires, callback) {
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Missing user id parameter'
-    }),
-    validator.finalize(callback)
-  )(userId);
+  try {
+    pipe(
+      validator.isNotEmpty,
+      otherwise({
+        code: 400,
+        msg: 'Missing user id parameter'
+      })
+    )(userId);
 
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Missing signature parameter'
-    }),
-    validator.finalize(callback)
-  )(signature);
+    pipe(
+      validator.isNotEmpty,
+      otherwise({
+        code: 400,
+        msg: 'Missing signature parameter'
+      })
+    )(signature);
 
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Missing expires parameter'
-    }),
-    validator.finalize(callback)
-  )(expires);
+    pipe(
+      validator.isNotEmpty,
+      otherwise({
+        code: 400,
+        msg: 'Missing expires parameter'
+      })
+    )(String(expires));
 
-  pipe(
-    validator.isNumeric,
-    validator.generateError({
-      code: 400,
-      msg: 'Invalid expires parameter'
-    }),
-    validator.finalize(callback)
-  )(expires);
+    pipe(
+      validator.isNumeric,
+      otherwise({
+        code: 400,
+        msg: 'Invalid expires parameter'
+      })
+    )(String(expires));
 
-  pipe(
-    isAfter,
-    validator.generateError({
-      code: 400,
-      msg: 'Invalid expires parameter'
-    }),
-    validator.finalize(callback)
-  )(String(expires));
+    pipe(
+      isAfter,
+      otherwise({
+        code: 400,
+        msg: 'Invalid expires parameter'
+      })
+    )(String(new Date(parseInt(expires, 10))));
+  } catch (error) {
+    return callback(error);
+  }
 
   const data = { userId };
   const isValid = Signature.verifyExpiringSignature(data, expires, signature);

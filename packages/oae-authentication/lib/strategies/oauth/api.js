@@ -17,6 +17,7 @@ import _ from 'underscore';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
 import { Validator as validator } from 'oae-util/lib/validator';
+const { otherwise } = validator;
 import pipe from 'ramda/src/pipe';
 
 import * as OAuthDAO from './internal/dao';
@@ -35,23 +36,25 @@ import * as OAuthDAO from './internal/dao';
  * @param  {Client}     callback.clients    The registerd OAuth clients for the user
  */
 const getClients = function(ctx, userId, callback) {
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'Anonymous users do not have clients'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+  try {
+    pipe(
+      validator.isLoggedInUser,
+      otherwise({
+        code: 401,
+        msg: 'Anonymous users do not have clients'
+      })
+    )(ctx);
 
-  pipe(
-    validator.isUserId,
-    validator.generateError({
-      code: 400,
-      msg: 'An invalid userId was passed in'
-    }),
-    validator.finalize(callback)
-  )(userId);
+    pipe(
+      validator.isUserId,
+      otherwise({
+        code: 400,
+        msg: 'An invalid userId was passed in'
+      })
+    )(userId);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Tenant admins are the only ones who can request another user their clients, provided that they're on the same tenant
   const userTenantAlias = AuthzUtil.getResourceFromId(userId).tenantAlias;
@@ -80,32 +83,33 @@ const getClients = function(ctx, userId, callback) {
  * @param  {Client}     callback.client     The created client
  */
 const createClient = function(ctx, userId, displayName, callback) {
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'Anonymous users cannot create a client'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+  try {
+    pipe(
+      validator.isLoggedInUser,
+      otherwise({
+        code: 401,
+        msg: 'Anonymous users cannot create a client'
+      })
+    )(ctx);
 
-  pipe(
-    validator.isUserId,
-    validator.generateError({
-      code: 400,
-      msg: 'A client must be bound to a user'
-    }),
-    validator.finalize(callback)
-  )(userId);
+    pipe(
+      validator.isUserId,
+      otherwise({
+        code: 400,
+        msg: 'A client must be bound to a user'
+      })
+    )(userId);
 
-  pipe(
-    validator.notEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Missing client displayName'
-    }),
-    validator.finalize(callback)
-  )(displayName);
+    pipe(
+      validator.isNotEmpty,
+      otherwise({
+        code: 400,
+        msg: 'Missing client displayName'
+      })
+    )(displayName);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Tenant admins are the only ones who can create a client for a user, provided that they're on the same tenant
   const userTenantAlias = AuthzUtil.getResourceFromId(userId).tenantAlias;
@@ -131,23 +135,25 @@ const createClient = function(ctx, userId, displayName, callback) {
  * @param  {Client}     callback.client     The updated OAuth client
  */
 const updateClient = function(ctx, clientId, displayName, secret, callback) {
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'Anonymous users cannot create a client'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+  try {
+    pipe(
+      validator.isLoggedInUser,
+      otherwise({
+        code: 401,
+        msg: 'Anonymous users cannot create a client'
+      })
+    )(ctx);
 
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Missing client id'
-    }),
-    validator.finalize(callback)
-  )(clientId);
+    pipe(
+      validator.isNotEmpty,
+      otherwise({
+        code: 400,
+        msg: 'Missing client id'
+      })
+    )(clientId);
+  } catch (error) {
+    return callback(error);
+  }
 
   if (!displayName && !secret) {
     return callback({ code: 400, msg: 'A displayName and/or secret has to be provided' });
@@ -191,23 +197,25 @@ const updateClient = function(ctx, clientId, displayName, secret, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const deleteClient = function(ctx, clientId, callback) {
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'Anonymous users cannot delete a client'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+  try {
+    pipe(
+      validator.isLoggedInUser,
+      otherwise({
+        code: 401,
+        msg: 'Anonymous users cannot delete a client'
+      })
+    )(ctx);
 
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Missing client id'
-    }),
-    validator.finalize(callback)
-  )(clientId);
+    pipe(
+      validator.isNotEmpty,
+      otherwise({
+        code: 400,
+        msg: 'Missing client id'
+      })
+    )(clientId);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Sanity check that the client is owned by the current user, or that he is a tenant administrator
   OAuthDAO.Clients.getClientById(clientId, (err, client) => {

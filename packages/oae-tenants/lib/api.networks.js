@@ -17,6 +17,7 @@ import util from 'util';
 import _ from 'underscore';
 
 import { Validator as validator } from 'oae-util/lib/validator';
+const { otherwise } = validator;
 import pipe from 'ramda/src/pipe';
 import * as TenantNetworksDAO from './internal/dao.networks';
 import * as TenantsAPI from './api';
@@ -31,23 +32,25 @@ import * as TenantsAPI from './api';
  * @param  {TenantNetwork}  callback.tenantNetwork  The tenant network that was created
  */
 const createTenantNetwork = function(ctx, displayName, callback) {
-  pipe(
-    validator.isGlobalAdministratorUser,
-    validator.generateError({
-      code: 401,
-      msg: 'Must be a global administrator user to create a tenant networt'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+  try {
+    pipe(
+      validator.isGlobalAdministratorUser,
+      otherwise({
+        code: 401,
+        msg: 'Must be a global administrator user to create a tenant networt'
+      })
+    )(ctx);
 
-  pipe(
-    validator.notEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'A tenant network must contain a display name'
-    }),
-    validator.finalize(callback)
-  )(displayName);
+    pipe(
+      validator.isNotEmpty,
+      otherwise({
+        code: 400,
+        msg: 'A tenant network must contain a display name'
+      })
+    )(displayName);
+  } catch (error) {
+    return callback(error);
+  }
 
   return TenantNetworksDAO.createTenantNetwork(displayName, callback);
 };
@@ -61,14 +64,17 @@ const createTenantNetwork = function(ctx, displayName, callback) {
  * @param  {Object}     callback.tenantNetworks     All tenant networks in the system, keyed by their tenant network id
  */
 const getTenantNetworks = function(ctx, callback) {
-  pipe(
-    validator.isGlobalAdministratorUser,
-    validator.generateError({
-      code: 401,
-      msg: 'Must be a global administrator user to view tenant networks'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+  try {
+    pipe(
+      validator.isGlobalAdministratorUser,
+      otherwise({
+        code: 401,
+        msg: 'Must be a global administrator user to view tenant networks'
+      })
+    )(ctx);
+  } catch (error) {
+    return callback(error);
+  }
 
   TenantNetworksDAO.getAllTenantNetworks((err, tenantNetworks) => {
     if (err) {
@@ -105,32 +111,33 @@ const getTenantNetworks = function(ctx, callback) {
  * @param  {TenantNetwork}  callback.tenantNetwork  The updated tenant network
  */
 const updateTenantNetwork = function(ctx, id, displayName, callback) {
-  pipe(
-    validator.isGlobalAdministratorUser,
-    validator.generateError({
-      code: 401,
-      msg: 'Must be a global administrator user to update a tenant network'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+  try {
+    pipe(
+      validator.isGlobalAdministratorUser,
+      otherwise({
+        code: 401,
+        msg: 'Must be a global administrator user to update a tenant network'
+      })
+    )(ctx);
 
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Must specify a tenant network id'
-    }),
-    validator.finalize(callback)
-  )(id);
+    pipe(
+      validator.isNotEmpty,
+      otherwise({
+        code: 400,
+        msg: 'Must specify a tenant network id'
+      })
+    )(id);
 
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'A tenant network must contain a display name'
-    }),
-    validator.finalize(callback)
-  )(displayName);
+    pipe(
+      validator.isNotEmpty,
+      otherwise({
+        code: 400,
+        msg: 'A tenant network must contain a display name'
+      })
+    )(displayName);
+  } catch (error) {
+    return callback(error);
+  }
 
   return TenantNetworksDAO.updateTenantNetwork(id, displayName, callback);
 };
@@ -144,23 +151,25 @@ const updateTenantNetwork = function(ctx, id, displayName, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const deleteTenantNetwork = function(ctx, id, callback) {
-  pipe(
-    validator.isGlobalAdministratorUser,
-    validator.generateError({
-      code: 401,
-      msg: 'Must be a global administrator user to delete a tenant network'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+  try {
+    pipe(
+      validator.isGlobalAdministratorUser,
+      otherwise({
+        code: 401,
+        msg: 'Must be a global administrator user to delete a tenant network'
+      })
+    )(ctx);
 
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Must specify a tenant network id'
-    }),
-    validator.finalize(callback)
-  )(id);
+    pipe(
+      validator.isNotEmpty,
+      otherwise({
+        code: 400,
+        msg: 'Must specify a tenant network id'
+      })
+    )(id);
+  } catch (error) {
+    return callback(error);
+  }
 
   return TenantNetworksDAO.deleteTenantNetwork(id, callback);
 };
@@ -175,52 +184,51 @@ const deleteTenantNetwork = function(ctx, id, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  */
 const addTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callback) {
-  pipe(
-    validator.isGlobalAdministratorUser,
-    validator.generateError({
-      code: 401,
-      msg: 'Must be a global administrator user to update a tenant network'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+  try {
+    pipe(
+      validator.isGlobalAdministratorUser,
+      otherwise({
+        code: 401,
+        msg: 'Must be a global administrator user to update a tenant network'
+      })
+    )(ctx);
 
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Must specify a tenant network id'
-    }),
-    validator.finalize(callback)
-  )(tenantNetworkId);
-
-  pipe(
-    validator.isNotNull,
-    validator.generateError({
-      code: 400,
-      msg: 'Must specify a list of tenant aliases to add'
-    }),
-    validator.finalize(callback)
-  )(tenantAliases);
-
-  pipe(
-    validator.isNotNull,
-    validator.generateError({
-      code: 400,
-      msg: 'Must specify at least one tenant alias to add'
-    }),
-    validator.finalize(callback)
-  )(tenantAliases.length);
-
-  _.each(tenantAliases, tenantAlias => {
     pipe(
       validator.isNotEmpty,
-      validator.generateError({
+      otherwise({
         code: 400,
-        msg: util.format('Tenant with alias "%s" does not exist', tenantAlias)
-      }),
-      validator.finalize(callback)
-    )(TenantsAPI.getTenant(tenantAlias));
-  });
+        msg: 'Must specify a tenant network id'
+      })
+    )(tenantNetworkId);
+
+    pipe(
+      validator.isNotNull,
+      otherwise({
+        code: 400,
+        msg: 'Must specify a list of tenant aliases to add'
+      })
+    )(tenantAliases);
+
+    pipe(
+      validator.isArrayNotEmpty,
+      otherwise({
+        code: 400,
+        msg: 'Must specify at least one tenant alias to add'
+      })
+    )(tenantAliases);
+
+    _.each(tenantAliases, tenantAlias => {
+      pipe(
+        validator.isObject,
+        otherwise({
+          code: 400,
+          msg: util.format('Tenant with alias "%s" does not exist', tenantAlias)
+        })
+      )(TenantsAPI.getTenant(tenantAlias));
+    });
+  } catch (error) {
+    return callback(error);
+  }
 
   return TenantNetworksDAO.addTenantAliases(tenantNetworkId, tenantAliases, callback);
 };
@@ -235,39 +243,41 @@ const addTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callback)
  * @param  {Object}     callback.err        An error that occurred, if any
  */
 const removeTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callback) {
-  validator
-    .check(null, {
-      code: 401,
-      msg: 'Must be a global administrator user to update a tenant network'
-    })
-    .isGlobalAdministratorUser(ctx);
+  try {
+    pipe(
+      validator.isGlobalAdministratorUser,
+      otherwise({
+        code: 401,
+        msg: 'Must be a global administrator user to update a tenant network'
+      })
+    )(ctx);
 
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Must specify a tenant network id'
-    }),
-    validator.finalize(callback)
-  )(tenantNetworkId);
+    pipe(
+      validator.isNotEmpty,
+      otherwise({
+        code: 400,
+        msg: 'Must specify a tenant network id'
+      })
+    )(tenantNetworkId);
 
-  pipe(
-    validator.isNotNull,
-    validator.generateError({
-      code: 400,
-      msg: 'Must specify a list of tenant aliases to remove'
-    }),
-    validator.finalize(callback)
-  )(tenantAliases);
+    pipe(
+      validator.isNotNull,
+      otherwise({
+        code: 400,
+        msg: 'Must specify a list of tenant aliases to remove'
+      })
+    )(tenantAliases);
 
-  pipe(
-    validator.isNotNull,
-    validator.generateError({
-      code: 400,
-      msg: 'Must specify at least one tenant alias to remove'
-    }),
-    validator.finalize(callback)
-  )(tenantAliases.length);
+    pipe(
+      validator.isNotNull,
+      otherwise({
+        code: 400,
+        msg: 'Must specify at least one tenant alias to remove'
+      })
+    )(tenantAliases.length);
+  } catch (error) {
+    return callback(error);
+  }
 
   return TenantNetworksDAO.removeTenantAliases(tenantNetworkId, tenantAliases, callback);
 };

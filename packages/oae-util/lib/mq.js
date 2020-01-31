@@ -23,6 +23,7 @@ import * as Redis from './redis';
 import OaeEmitter from './emitter';
 import * as OAE from './oae';
 import { Validator as validator } from './validator';
+const { otherwise } = validator;
 
 const log = logger('mq');
 const emitter = new EventEmitter();
@@ -323,14 +324,17 @@ const sendToRedeliveryQueue = (redeliveryQueue, message, callback) => {
 const subscribe = (queueName, listener, callback) => {
   callback = callback || function() {};
 
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'No channel was provided.'
-    }),
-    validator.finalize(callback)
-  )(queueName);
+  try {
+    pipe(
+      validator.isNotEmpty,
+      otherwise({
+        code: 400,
+        msg: 'No channel was provided.'
+      })
+    )(queueName);
+  } catch (error) {
+    return callback(error);
+  }
 
   const queueIsAlreadyBound = queueBindings[queueName];
   if (queueIsAlreadyBound) return callback();
@@ -358,14 +362,17 @@ const subscribe = (queueName, listener, callback) => {
  */
 const unsubscribe = (queueName, callback) => {
   callback = callback || function() {};
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'No channel was provided.'
-    }),
-    validator.finalize(callback)
-  )(queueName);
+  try {
+    pipe(
+      validator.isNotEmpty,
+      otherwise({
+        code: 400,
+        msg: 'No channel was provided.'
+      })
+    )(queueName);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Either case, let's update the queue bindings
   delete queueBindings[queueName];
@@ -427,23 +434,33 @@ const getBoundQueues = function() {
 const submit = (queueName, message, callback) => {
   callback = callback || function() {};
 
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'No channel was provided.'
-    }),
-    validator.finalize(callback)
-  )(queueName);
+  try {
+    pipe(
+      validator.isNotEmpty,
+      otherwise({
+        code: 400,
+        msg: 'No channel was provided.'
+      })
+    )(queueName);
 
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'No message was provided.'
-    }),
-    validator.finalize(callback)
-  )(message);
+    pipe(
+      validator.isNotNull,
+      otherwise({
+        code: 400,
+        msg: 'No message was provided.'
+      })
+    )(message);
+
+    pipe(
+      validator.isJSON,
+      otherwise({
+        code: 400,
+        msg: 'No JSON message was provided.'
+      })
+    )(String(message));
+  } catch (error) {
+    return callback(error);
+  }
 
   const queueIsBound = queueBindings[queueName];
   if (queueIsBound) {
@@ -480,14 +497,17 @@ const getAllActiveClients = () => {
  */
 const purgeQueue = (queueName, callback) => {
   callback = callback || function() {};
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'No channel was provided.'
-    }),
-    validator.finalize(callback)
-  )(queueName);
+  try {
+    pipe(
+      validator.isNotEmpty,
+      otherwise({
+        code: 400,
+        msg: 'No channel was provided.'
+      })
+    )(queueName);
+  } catch (error) {
+    return callback(error);
+  }
 
   const theRedisPurger = staticConnections.THE_PURGER;
   theRedisPurger.del(queueName, err => {

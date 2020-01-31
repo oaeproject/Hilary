@@ -24,6 +24,7 @@ import * as AuthzUtil from 'oae-authz/lib/util';
 import { logger } from 'oae-logger';
 import PrincipalsApi from 'oae-principals';
 import { Validator as validator } from 'oae-authz/lib/validator';
+const { otherwise } = validator;
 import pipe from 'ramda/src/pipe';
 
 import * as LtiDAO from './internal/dao';
@@ -150,41 +151,41 @@ const addLtiTool = function(ctx, groupId, launchUrl, secret, consumerKey, opts, 
         }
 
         // Parameter validation
-        pipe(
-          validator.isGroupId,
-          validator.generateError({
-            code: 400,
-            msg: 'A valid group id must be provided'
-          }),
-          validator.finalize(callback)
-        )(groupId);
+        try {
+          pipe(
+            validator.isGroupId,
+            otherwise({
+              code: 400,
+              msg: 'A valid group id must be provided'
+            })
+          )(groupId);
 
-        pipe(
-          validator.isNotEmpty,
-          validator.generateError({
-            code: 400,
-            msg: 'You need to provide a launch URL for this LTI tool'
-          }),
-          validator.finalize(callback)
-        )(launchUrl);
+          pipe(
+            validator.isNotEmpty,
+            otherwise({
+              code: 400,
+              msg: 'You need to provide a launch URL for this LTI tool'
+            })
+          )(launchUrl);
 
-        pipe(
-          validator.isNotEmpty,
-          validator.generateError({
-            code: 400,
-            msg: 'You need to provide an OAUTH secret for this LTI tool'
-          }),
-          validator.finalize(callback)
-        )(secret);
+          pipe(
+            validator.isNotEmpty,
+            otherwise({
+              code: 400,
+              msg: 'You need to provide an OAUTH secret for this LTI tool'
+            })
+          )(secret);
 
-        pipe(
-          validator.isNotEmpty,
-          validator.generateError({
-            code: 400,
-            msg: 'You need to provide an OAUTH consumer key for this LTI tool'
-          }),
-          validator.finalize(callback)
-        )(consumerKey);
+          pipe(
+            validator.isNotEmpty,
+            otherwise({
+              code: 400,
+              msg: 'You need to provide an OAUTH consumer key for this LTI tool'
+            })
+          )(consumerKey);
+        } catch (error) {
+          return callback(error);
+        }
 
         const id = AuthzUtil.toId('lti', group.tenant.alias, ShortId.generate());
 

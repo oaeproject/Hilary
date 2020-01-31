@@ -38,6 +38,7 @@ import * as FolderProcessor from 'oae-preview-processor/lib/processors/folder';
 
 import { logger } from 'oae-logger';
 import { Validator as validator } from 'oae-util/lib/validator';
+const { otherwise } = validator;
 import PreviewConstants from './constants';
 import { FilterGenerator } from './filters';
 import { PreviewContext } from './model';
@@ -228,26 +229,19 @@ const getConfiguration = function() {
  * @param  {Function}   processor.generatePreviews  The method that generates previews for a piece of content.
  */
 const registerProcessor = function(processorId, processor) {
-  pipe(validator.isNotEmpty, validator.generateError('Missing processor ID'), someError => {
-    if (someError) throw new Error(someError);
-  })(processorId);
+  pipe(validator.isNotEmpty, otherwise(new Error('Missing processor ID')))(processorId);
 
-  pipe(validator.isNull, validator.generateError('This processor is already registerd'), someError => {
-    if (someError) throw new Error(someError);
-  })(_processors[processorId]);
+  pipe(validator.isNull, otherwise(new Error('This processor is already registerd')))(_processors[processorId]);
 
-  pipe(validator.isObject, validator.generateError('Missing processor'), someError => {
-    if (someError) throw new Error(someError);
-  })(processor);
+  pipe(validator.isObject, otherwise(new Error('Missing processor')))(processor);
 
-  pipe(validator.isNotNull, validator.generateError('The processor has no test method'), someError => {
-    if (someError) throw new Error(someError);
-  })(processor.test);
+  pipe(validator.isNotNull, otherwise(new Error('The processor has no test method')))(processor.test);
 
   // TODO not a string
-  pipe(validator.isNotNull, validator.generateError('The processor has no generatePreviews method'), someError => {
-    if (someError) throw new Error(someError);
-  })(processor.generatePreviews);
+  pipe(
+    validator.isNotNull,
+    otherwise(new Error('The processor has no generatePreviews method'))
+  )(processor.generatePreviews);
 
   _processors[processorId] = processor;
 };
@@ -368,33 +362,38 @@ const reprocessPreviews = function(ctx, filters, callback) {
       }
     };
 
-  pipe(
-    validator.isGlobalAdministratorUser,
-    validator.generateError({
-      code: 401,
-      msg: 'Must be global administrator to reprocess previews'
-    }),
-    validator.finalize(callback)
-  )(ctx);
-
-  pipe(
-    validator.isObject,
-    validator.generateError({
-      code: 400,
-      msg: 'At least one filter must be specified'
-    }),
-    validator.finalize(callback)
-  )(filters);
-
-  if (_.isObject(filters)) {
+  try {
     pipe(
-      validator.isArrayNotEmpty,
-      validator.generateError({
+      validator.isGlobalAdministratorUser,
+      otherwise({
+        code: 401,
+        msg: 'Must be global administrator to reprocess previews'
+      })
+    )(ctx);
+
+    pipe(
+      validator.isObject,
+      otherwise({
         code: 400,
         msg: 'At least one filter must be specified'
-      }),
-      validator.finalize(callback)
-    )(_.keys(filters));
+      })
+    )(filters);
+  } catch (error) {
+    return callback(error);
+  }
+
+  if (_.isObject(filters)) {
+    try {
+      pipe(
+        validator.isArrayNotEmpty,
+        otherwise({
+          code: 400,
+          msg: 'At least one filter must be specified'
+        })
+      )(_.keys(filters));
+    } catch (error) {
+      return callback(error);
+    }
   }
 
   const filterGenerator = new FilterGenerator(filters);
@@ -413,32 +412,33 @@ const reprocessPreviews = function(ctx, filters, callback) {
  * @param  {String}     revisionId  The id of the revision to reprocess
  */
 const reprocessPreview = function(ctx, contentId, revisionId, callback) {
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'A content id must be provided'
-    }),
-    validator.finalize(callback)
-  )(contentId);
+  try {
+    pipe(
+      validator.isResourceId,
+      otherwise({
+        code: 400,
+        msg: 'A content id must be provided'
+      })
+    )(contentId);
 
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'A revision id must be provided'
-    }),
-    validator.finalize(callback)
-  )(revisionId);
+    pipe(
+      validator.isResourceId,
+      otherwise({
+        code: 400,
+        msg: 'A revision id must be provided'
+      })
+    )(revisionId);
 
-  pipe(
-    validator.isLoggedInUser,
-    validator.generateError({
-      code: 401,
-      msg: 'Must be logged in to reprocess previews'
-    }),
-    validator.finalize(callback)
-  )(ctx);
+    pipe(
+      validator.isLoggedInUser,
+      otherwise({
+        code: 401,
+        msg: 'Must be logged in to reprocess previews'
+      })
+    )(ctx);
+  } catch (error) {
+    return callback(error);
+  }
 
   const contentTenantAlias = AuthzUtil.getResourceFromId(contentId).tenantAlias;
   if (!ctx.user().isAdmin(contentTenantAlias)) {

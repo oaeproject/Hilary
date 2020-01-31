@@ -55,12 +55,23 @@ Validator.getErrors = function() {
 };
 
 // TODO: documentation
-Validator.isDifferent = (string, notEqualsTo) => {
-  return !Validator.equals(string, notEqualsTo);
+Validator.isDifferent = (input, notEqualsTo) => {
+  return !Validator.equals(String(input), notEqualsTo);
 };
 
-Validator.isNotEmpty = string => {
-  return !Validator.isEmpty(string);
+// TODO: docs
+Validator.isNotAfter = date1 => {
+  return !Validator.isAfter(date1);
+};
+
+Validator.isNotBefore = date1 => {
+  return !Validator.isBefore(date1);
+};
+
+Validator.isNotEmpty = input => {
+  // input = input.trim() || '';
+  input = input || '';
+  return !Validator.isEmpty(input.trim());
 };
 
 Validator.notContains = (string, seed) => {
@@ -83,13 +94,10 @@ Validator.pickFirstError = allErrors => {
   return null;
 };
 
-Validator.finalize = function(done) {
-  return function(generatedError) {
-    if (generatedError) {
-      // debug
-      console.log('Returning the callback!');
-      console.log(generatedError);
-      return done(generatedError);
+Validator.otherwise = error => {
+  return passed => {
+    if (!passed) {
+      throw error;
     }
   };
 };
@@ -102,9 +110,16 @@ Validator.ifNotThenThrow = error => {
   };
 };
 
-Validator.makeSureThat = (value, validation) => {
+Validator.generateError = Validator.ifNotThenThrow;
+// Validator.otherwise = Validator.ifNotThenThrow;
+
+Validator.makeSureThat = (condition, value, validation) => {
   return function() {
-    return validation(value);
+    if (condition) {
+      return validation(value);
+    }
+
+    return true;
   };
 };
 
@@ -114,20 +129,17 @@ Validator.getNestedObject = nestedObj => {
   };
 };
 
-Validator.generateError = function(errorMessage) {
-  // const newError = new Error(errorMessage);
+/*
+function(errorMessage) {
   return function(validationPassed) {
     if (!validationPassed) {
-      // debug
-      console.log(errorMessage.msg);
-      console.log(errorMessage.code);
-      // return newError;
       return errorMessage;
     }
 
     return null;
   };
 };
+*/
 
 /**
  * Wrapper function around node-validator that determines how many errors have been collected.
@@ -305,6 +317,10 @@ Validator.isArrayNotEmpty = arr => {
   return Validator.isArray(arr) && _.size(arr) > 0;
 };
 
+Validator.isArrayEmpty = arr => {
+  return !Validator.isArrayNotEmpty(arr);
+};
+
 /**
  * Check whether or not the passed in object is an actual boolean
  *
@@ -399,9 +415,9 @@ Validator.isValidTimeZone = function(string) {
  * validator.check(aString, error).isShortString();
  * ```
  */
-Validator.isShortString = function(string) {
+Validator.isShortString = function(input = '') {
   // string.len(1, 1000);
-  return Validator.isLength(string, { min: 1, max: 1000 });
+  return Validator.isLength(input, { min: 1, max: 1000 });
 };
 
 /**
@@ -417,8 +433,8 @@ Validator.isShortString = function(string) {
  * validator.check(aString, error).isMediumString();
  * ```
  */
-Validator.isMediumString = function(string) {
-  return Validator.isLength(string, { min: 1, max: 10000 });
+Validator.isMediumString = function(input = '') {
+  return Validator.isLength(input, { min: 1, max: 10000 });
 };
 
 /**

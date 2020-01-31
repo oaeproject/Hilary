@@ -65,7 +65,8 @@ const init = function(config, callback) {
   // Set up application-level error handler
   process.on('uncaughtException', err => {
     log().error({ err }, 'An uncaught exception was raised to the application');
-    log().error(err.stack);
+    // log().error(err.stack);
+    log().error(err);
   });
 
   // Handle the shutdown signal

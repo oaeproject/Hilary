@@ -20,6 +20,7 @@ import Chance from 'chance';
 import * as Cassandra from 'oae-util/lib/cassandra';
 
 import { Validator as validator } from 'oae-authz/lib/validator';
+const { otherwise } = validator;
 import pipe from 'ramda/src/pipe';
 
 const chance = new Chance();
@@ -227,43 +228,51 @@ const getInvitation = function(resourceId, email, callback) {
  * @param  {Object[]}   callback.invitationHashes   All invitations that were created for the email+roles
  */
 const createInvitations = function(resourceId, emailRoles, inviterUserId, callback) {
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'Specified resource must have a valid resource id'
-    }),
-    validator.finalize(callback)
-  )(resourceId);
-
-  _.each(emailRoles, (role, email) => {
+  try {
     pipe(
-      validator.isEmail,
-      validator.generateError({
+      validator.isResourceId,
+      otherwise({
         code: 400,
-        msg: 'A valid email must be supplied to invite'
-      }),
-      validator.finalize(callback)
-    )(email);
+        msg: 'Specified resource must have a valid resource id'
+      })
+    )(resourceId);
+  } catch (error) {
+    return callback(error);
+  }
 
+  try {
+    _.each(emailRoles, (role, email) => {
+      pipe(
+        validator.isEmail,
+        otherwise({
+          code: 400,
+          msg: 'A valid email must be supplied to invite'
+        })
+      )(email);
+
+      pipe(
+        validator.isValidRole,
+        otherwise({
+          code: 400,
+          msg: 'A valid role must be supplied to give the invited user'
+        })
+      )(role);
+    });
+  } catch (error) {
+    return callback(error);
+  }
+
+  try {
     pipe(
-      validator.isValidRole,
-      validator.generateError({
+      validator.isUserId,
+      otherwise({
         code: 400,
-        msg: 'A valid role must be supplied to give the invited user'
-      }),
-      validator.finalize(callback)
-    )(role);
-  });
-
-  pipe(
-    validator.inviterUserId,
-    validator.generateError({
-      code: 400,
-      msg: util.format('Specified inviter id "%s" must be a valid user id')
-    }),
-    validator.finalize(callback)
-  )();
+        msg: util.format('Specified inviter id "%s" must be a valid user id')
+      })
+    )(inviterUserId);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Ensure all emails have invitation tokens that can be used to accept invitations
   getOrCreateTokensByEmails(_.keys(emailRoles), (err, emailTokens) => {
@@ -317,45 +326,49 @@ const createInvitations = function(resourceId, emailRoles, inviterUserId, callba
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const updateInvitationRoles = function(resourceId, emailRoles, callback) {
-  pipe(
-    validator.isResourceId,
-    validator.generateError({
-      code: 400,
-      msg: 'Specified resource must have a valid resource id'
-    }),
-    validator.finalize(callback)
-  )(resourceId);
-
-  _.each(emailRoles, (role, email) => {
+  try {
     pipe(
-      validator.isEmail,
-      validator.generateError({
+      validator.isResourceId,
+      otherwise({
         code: 400,
-        msg: util.format('Invalid email "%s" specified', email)
-      }),
-      validator.finalize(callback)
-    )(email);
+        msg: 'Specified resource must have a valid resource id'
+      })
+    )(resourceId);
+  } catch (error) {
+    return callback(error);
+  }
 
-    pipe(
-      validator.isValidRoleChange,
-      validator.generateError({
-        code: 400,
-        msg: util.format('Invalid role change "%s" specified', role)
-      }),
-      validator.finalize(callback)
-    )(role);
-
-    if (role !== false) {
+  try {
+    _.each(emailRoles, (role, email) => {
       pipe(
-        validator.isString,
-        validator.generateError({
+        validator.isEmail,
+        otherwise({
           code: 400,
-          msg: util.format('Invalid role "%s" specified', role)
-        }),
-        validator.finalize(callback)
+          msg: util.format('Invalid email "%s" specified', email)
+        })
+      )(email);
+
+      pipe(
+        validator.isValidRoleChange,
+        otherwise({
+          code: 400,
+          msg: util.format('Invalid role change "%s" specified', role)
+        })
       )(role);
-    }
-  });
+
+      if (role !== false) {
+        pipe(
+          validator.isString,
+          otherwise({
+            code: 400,
+            msg: util.format('Invalid role "%s" specified', role)
+          })
+        )(role);
+      }
+    });
+  } catch (error) {
+    return callback(error);
+  }
 
   const queries = [];
   _.each(emailRoles, (role, email) => {
@@ -413,14 +426,17 @@ const deleteInvitationsByResourceId = function(resourceId, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const deleteInvitationsByEmail = function(email, callback) {
-  pipe(
-    validator.isEmail,
-    validator.generateError({
-      code: 400,
-      msg: 'Specified email is not valid'
-    }),
-    validator.finalize(callback)
-  )(email);
+  try {
+    pipe(
+      validator.isEmail,
+      otherwise({
+        code: 400,
+        msg: 'Specified email is not valid'
+      })
+    )(email);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Get the active token for the given email
   getOrCreateTokensByEmails([email], (err, tokenByEmail) => {

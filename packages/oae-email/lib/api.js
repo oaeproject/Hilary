@@ -35,6 +35,7 @@ import * as UIAPI from 'oae-ui';
 import { htmlToText } from 'nodemailer-html-to-text';
 import * as TenantsAPI from 'oae-tenants';
 import { Validator as validator } from 'oae-util/lib/validator';
+const { getNestedObject, makeSureThat, otherwise } = validator;
 import pipe from 'ramda/src/pipe';
 
 const EmailConfig = setUpConfig('oae-email');
@@ -214,43 +215,39 @@ const refreshTemplates = function(callback) {
 const _abortIfRecipientErrors = (emailData, done) => {
   const { templateModule, templateId, recipient } = emailData;
 
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Must specify a template module'
-    }),
-    validator.finalize(done)
-  )(templateModule);
-
-  pipe(
-    validator.isNotEmpty,
-    validator.generateError({
-      code: 400,
-      msg: 'Must specify a template id'
-    }),
-    validator.finalize(done)
-  )(templateId);
-
-  pipe(
-    validator.isObject,
-    validator.generateError({
-      code: 400,
-      msg: 'Must specify a user when sending an email'
-    }),
-    validator.finalize(done)
-  )(recipient);
-
-  // Only validate the user email if it was a valid object
-  if (recipient) {
+  try {
     pipe(
-      validator.isEmail,
-      validator.generateError({
+      validator.isNotEmpty,
+      otherwise({
+        code: 400,
+        msg: 'Must specify a template module'
+      })
+    )(templateModule);
+
+    pipe(
+      validator.isNotEmpty,
+      otherwise({
+        code: 400,
+        msg: 'Must specify a template id'
+      })
+    )(templateId);
+
+    const getAttribute = getNestedObject(recipient);
+    pipe(
+      validator.isObject,
+      otherwise({
+        code: 400,
+        msg: 'Must specify a user when sending an email'
+      }),
+      // Only validate the user email if it was a valid object
+      makeSureThat(recipient, String(getAttribute(['email'])), validator.isEmail),
+      otherwise({
         code: 400,
         msg: 'User must have a valid email address to receive email'
-      }),
-      validator.finalize(done)
-    )(recipient.email);
+      })
+    )(recipient);
+  } catch (error) {
+    return done(error);
   }
 
   done();

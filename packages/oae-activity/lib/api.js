@@ -37,8 +37,6 @@ const {
   isObject
 } = validator;
 
-const ifError = validator.finalize;
-
 import pipe from 'ramda/src/pipe';
 import isIn from 'validator/lib/isIn';
 
@@ -543,23 +541,25 @@ const registerActivityEntityAssociation = function(activityEntityType, associati
 const getActivityStream = function(ctx, principalId, start, limit, transformerType, callback) {
   transformerType = transformerType || ActivityConstants.transformerTypes.ACTIVITYSTREAMS;
 
-  pipe(
-    isPrincipalId,
-    ifNotThenThrow({
-      code: 400,
-      msg: 'You can only view activity streams for a principal'
-    }),
-    ifError(callback)
-  )(principalId);
+  try {
+    pipe(
+      isPrincipalId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'You can only view activity streams for a principal'
+      })
+    )(principalId);
 
-  pipe(
-    isIn,
-    ifNotThenThrow({
-      code: 400,
-      msg: 'Unknown activity transformer type'
-    }),
-    ifError(callback)
-  )(transformerType, _.values(ActivityConstants.transformerTypes));
+    pipe(
+      isIn,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'Unknown activity transformer type'
+      })
+    )(transformerType, _.values(ActivityConstants.transformerTypes));
+  } catch (error) {
+    return callback(error);
+  }
 
   limit = OaeUtil.getNumberParam(limit, 25, 1);
 
@@ -606,32 +606,33 @@ const getActivityStream = function(ctx, principalId, start, limit, transformerTy
 const getNotificationStream = function(ctx, userId, start, limit, transformerType, callback) {
   transformerType = transformerType || ActivityConstants.transformerTypes.ACTIVITYSTREAMS;
 
-  pipe(
-    isLoggedInUser,
-    ifNotThenThrow({
-      code: 401,
-      msg: 'You must be logged in to get a notification stream'
-    }),
-    ifError(callback)
-  )(ctx);
+  try {
+    pipe(
+      isLoggedInUser,
+      ifNotThenThrow({
+        code: 401,
+        msg: 'You must be logged in to get a notification stream'
+      })
+    )(ctx);
 
-  pipe(
-    isUserId,
-    ifNotThenThrow({
-      code: 400,
-      msg: 'You can only view the notification streams for a user'
-    }),
-    ifError(callback)
-  )(userId);
+    pipe(
+      isUserId,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'You can only view the notification streams for a user'
+      })
+    )(userId);
 
-  pipe(
-    isIn,
-    ifNotThenThrow({
-      code: 400,
-      msg: 'Unknown activity transformer type'
-    }),
-    ifError(callback)
-  )(transformerType, _.values(ActivityConstants.transformerTypes));
+    pipe(
+      isIn,
+      ifNotThenThrow({
+        code: 400,
+        msg: 'Unknown activity transformer type'
+      })
+    )(transformerType, _.values(ActivityConstants.transformerTypes));
+  } catch (error) {
+    return callback(error);
+  }
 
   limit = OaeUtil.getNumberParam(limit, 25, 1);
 
@@ -653,14 +654,17 @@ const getNotificationStream = function(ctx, userId, start, limit, transformerTyp
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const markNotificationsRead = function(ctx, callback) {
-  pipe(
-    isLoggedInUser,
-    ifNotThenThrow({
-      code: 401,
-      msg: 'You must be logged in to mark notifications read'
-    }),
-    ifError(callback)
-  )(ctx);
+  try {
+    pipe(
+      isLoggedInUser,
+      ifNotThenThrow({
+        code: 401,
+        msg: 'You must be logged in to mark notifications read'
+      })
+    )(ctx);
+  } catch (error) {
+    return callback(error);
+  }
 
   ActivityNotifications.markNotificationsRead(ctx.user(), callback);
 };
@@ -693,6 +697,10 @@ const postActivity = function(ctx, activitySeed, callback) {
   }
 
   const getAttribute = getNestedObject(activitySeed);
+  const thereIsActivity = Boolean(activitySeed);
+  const thereIsActivityActor = thereIsActivity && activitySeed.actorResource;
+  const thereIsActivityObject = thereIsActivity && activitySeed.objectResource;
+  const thereIsActivityTarget = thereIsActivity && activitySeed.targetResource;
 
   const runValidations = pipe(
     isObject,
@@ -700,52 +708,52 @@ const postActivity = function(ctx, activitySeed, callback) {
       code: 400,
       msg: 'No activity seed provided.'
     }),
-    makeSureThat(getAttribute(['activityType']), isNotEmpty),
+    makeSureThat(thereIsActivity, getAttribute(['activityType']), isNotEmpty),
     ifNotThenThrow({
       code: 400,
       msg: 'Activity seed did not have an activity type.'
     }),
-    makeSureThat(getAttribute(['verb']), isNotEmpty),
+    makeSureThat(thereIsActivity, getAttribute(['verb']), isNotEmpty),
     ifNotThenThrow({
       code: 400,
       msg: 'Activity seed did not have a verb.'
     }),
-    makeSureThat(getAttribute(['published']), isANumber),
+    makeSureThat(thereIsActivity, getAttribute(['published']), isANumber),
     ifNotThenThrow({
       code: 400,
       msg: 'Activity seed did not have a valid publish date.'
     }),
-    makeSureThat(getAttribute(['actorResource']), isObject),
+    makeSureThat(thereIsActivity, getAttribute(['actorResource']), isObject),
     ifNotThenThrow({
       code: 400,
       msg: 'Activity seed did not have an actor resource'
     }),
-    makeSureThat(getAttribute(['actorResource', 'resourceId']), isNotEmpty),
+    makeSureThat(thereIsActivityActor, getAttribute(['actorResource', 'resourceId']), isNotEmpty),
     ifNotThenThrow({
       code: 400,
       msg: 'Actor of activity seed did not have a resourceId'
     }),
-    makeSureThat(getAttribute(['actorResource', 'resourceType']), isNotEmpty),
+    makeSureThat(thereIsActivityActor, getAttribute(['actorResource', 'resourceType']), isNotEmpty),
     ifNotThenThrow({
       code: 400,
       msg: 'Actor of activity seed did not have a resourceType'
     }),
-    makeSureThat(getAttribute(['objectResource', 'resourceId']), isNotEmpty),
+    makeSureThat(thereIsActivityObject, getAttribute(['objectResource', 'resourceId']), isNotEmpty),
     ifNotThenThrow({
       code: 400,
       msg: 'Object of activity seed was specified and did not have a resourceId'
     }),
-    makeSureThat(getAttribute(['objectResource', 'resourceType']), isNotEmpty),
+    makeSureThat(thereIsActivityObject, getAttribute(['objectResource', 'resourceType']), isNotEmpty),
     ifNotThenThrow({
       code: 400,
       msg: 'Object of activity seed was specified and did not have a resourceType'
     }),
-    makeSureThat(getAttribute(['targetResource', 'resourceId']), isNotEmpty),
+    makeSureThat(thereIsActivityTarget, getAttribute(['targetResource', 'resourceId']), isNotEmpty),
     ifNotThenThrow({
       code: 400,
       msg: 'Target of activity seed was specified and did not have a resourceId'
     }),
-    makeSureThat(getAttribute(['targetResource', 'resourceType']), isNotEmpty),
+    makeSureThat(thereIsActivityTarget, getAttribute(['targetResource', 'resourceType']), isNotEmpty),
     ifNotThenThrow({
       code: 400,
       msg: 'Target of activity seed was specified and did not have a resourceType'

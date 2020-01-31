@@ -19,6 +19,7 @@ import * as SearchUtil from 'oae-search/lib/util';
 import * as FollowingAuthz from 'oae-following/lib/authz';
 
 import { Validator as validator } from 'oae-authz/lib/validator';
+const { otherwise } = validator;
 import pipe from 'ramda/src/pipe';
 import { FollowingConstants } from 'oae-following/lib/constants';
 
@@ -43,14 +44,17 @@ export default function(ctx, opts, callback) {
   opts.userId = opts.pathParams[0];
   opts.limit = OaeUtil.getNumberParam(opts.limit, 12, 1, 25);
 
-  pipe(
-    validator.isUserId,
-    validator.generateError({
-      code: 400,
-      msg: 'Must specificy an id of a user to search their followers'
-    }),
-    validator.finalize(callback)
-  )(opts.userId);
+  try {
+    pipe(
+      validator.isUserId,
+      otherwise({
+        code: 400,
+        msg: 'Must specificy an id of a user to search their followers'
+      })
+    )(opts.userId);
+  } catch (error) {
+    return callback(error);
+  }
 
   PrincipalsDAO.getPrincipal(opts.userId, (err, user) => {
     if (err) {

@@ -547,7 +547,7 @@ describe('User emails', () => {
 
             // Verify the user's email address is verified
             const restContext = TestsUtil.createTenantRestContext(tenant.host, 'users-emails-abc123', 'password');
-            RestAPI.User.getMe(restContext, (err, user) => {
+            setTimeout(RestAPI.User.getMe, 15000, restContext, (err, user) => {
               assert.ok(!err);
               assert.strictEqual(user.email, 'foo@users.emails.com');
 

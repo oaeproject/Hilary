@@ -14,166 +14,104 @@
  */
 
 import assert from 'assert';
-import { Validator } from 'oae-authz/lib/validator';
+import { Validator as v } from 'oae-authz/lib/validator';
 
-describe.skip('Authz-Validator', () => {
+describe('Authz-Validator', () => {
   describe('#isResourceId()', () => {
     it('verify general functionality', callback => {
-      const v = new Validator();
-      v.check(undefined, 'undefined').isResourceId();
-      v.check(null, 'null').isResourceId();
-      v.check('', 'empty').isResourceId();
-      v.check('  ', 'blank').isResourceId();
-      v.check('not a valid id', 'malformatted').isResourceId();
-      v.check('a:valid:id', 'correct').isResourceId();
+      assert.strictEqual(v.isResourceId(undefined), false);
+      assert.strictEqual(v.isResourceId(null), false);
+      assert.strictEqual(v.isResourceId(''), false);
+      assert.strictEqual(v.isResourceId('  '), false);
+      assert.strictEqual(v.isResourceId('not a valid id'), false);
+      assert.strictEqual(v.isResourceId('a:valid:id'), true);
 
-      assert.ok(v.hasErrors());
-      assert.strictEqual(v.getErrors().length, 5);
-      assert.strictEqual(v.getErrors()[0], 'undefined');
-      assert.strictEqual(v.getErrors()[1], 'null');
-      assert.strictEqual(v.getErrors()[2], 'empty');
-      assert.strictEqual(v.getErrors()[3], 'blank');
-      assert.strictEqual(v.getErrors()[4], 'malformatted');
       callback();
     });
   });
 
   describe('#isPrincipalId()', () => {
     it('verify general functionality', callback => {
-      const v = new Validator();
-      v.check(undefined, 'undefined').isPrincipalId();
-      v.check(null, 'null').isPrincipalId();
-      v.check('', 'empty').isPrincipalId();
-      v.check('  ', 'blank').isPrincipalId();
-      v.check('not a valid id', 'malformatted').isPrincipalId();
-      v.check('not:a:principal', 'unprincipal').isPrincipalId();
-      v.check('u:valid:id', 'correct').isPrincipalId();
-      v.check('g:valid:id', 'correct').isPrincipalId();
-
-      assert.ok(v.hasErrors());
-      assert.strictEqual(v.getErrors().length, 6);
-      assert.strictEqual(v.getErrors()[0], 'undefined');
-      assert.strictEqual(v.getErrors()[1], 'null');
-      assert.strictEqual(v.getErrors()[2], 'empty');
-      assert.strictEqual(v.getErrors()[3], 'blank');
-      assert.strictEqual(v.getErrors()[4], 'malformatted');
-      assert.strictEqual(v.getErrors()[5], 'unprincipal');
+      assert.strictEqual(v.isPrincipalId(undefined), false);
+      assert.strictEqual(v.isPrincipalId(null), false);
+      assert.strictEqual(v.isPrincipalId(''), false);
+      assert.strictEqual(v.isPrincipalId('  '), false);
+      assert.strictEqual(v.isPrincipalId('not a valid id'), false);
+      assert.strictEqual(v.isPrincipalId('not:a:principal'), false);
+      assert.strictEqual(v.isPrincipalId('u:valid:id'), true);
+      assert.strictEqual(v.isPrincipalId('g:valid:id'), true);
       callback();
     });
   });
 
   describe('#isGroupId()', () => {
     it('verify general functionality', callback => {
-      const v = new Validator();
-      v.check(undefined, 'undefined').isGroupId();
-      v.check(null, 'null').isGroupId();
-      v.check('', 'empty').isGroupId();
-      v.check('  ', 'blank').isGroupId();
-      v.check('not a valid id', 'malformatted').isGroupId();
-      v.check('not:a:principal', 'unprincipal').isGroupId();
-      v.check('u:valid:id', 'ungroup').isGroupId();
-      v.check('g:valid:id', 'correct').isGroupId();
+      assert.strictEqual(v.isGroupId(undefined), false);
+      assert.strictEqual(v.isGroupId(null), false);
+      assert.strictEqual(v.isGroupId(''), false);
+      assert.strictEqual(v.isGroupId('  '), false);
+      assert.strictEqual(v.isGroupId('not a valid id'), false);
+      assert.strictEqual(v.isGroupId('not:a:principal'), false);
+      assert.strictEqual(v.isGroupId('u:valid:id'), false);
+      assert.strictEqual(v.isGroupId('g:valid:id'), true);
 
-      assert.ok(v.hasErrors());
-      assert.strictEqual(v.getErrors().length, 7);
-      assert.strictEqual(v.getErrors()[0], 'undefined');
-      assert.strictEqual(v.getErrors()[1], 'null');
-      assert.strictEqual(v.getErrors()[2], 'empty');
-      assert.strictEqual(v.getErrors()[3], 'blank');
-      assert.strictEqual(v.getErrors()[4], 'malformatted');
-      assert.strictEqual(v.getErrors()[5], 'unprincipal');
-      assert.strictEqual(v.getErrors()[6], 'ungroup');
       callback();
     });
   });
 
   describe('#isUserId()', () => {
     it('verify general functionality', callback => {
-      const v = new Validator();
-      v.check(undefined, 'undefined').isUserId();
-      v.check(null, 'null').isUserId();
-      v.check('', 'empty').isUserId();
-      v.check('  ', 'blank').isUserId();
-      v.check('not a valid id', 'malformatted').isUserId();
-      v.check('not:a:principal', 'unprincipal').isUserId();
-      v.check('g:valid:id', 'unuser').isUserId();
-      v.check('u:valid:id', 'correct').isUserId();
+      assert.strictEqual(v.isUserId(undefined), false);
+      assert.strictEqual(v.isUserId(null), false);
+      assert.strictEqual(v.isUserId(''), false);
+      assert.strictEqual(v.isUserId('  '), false);
+      assert.strictEqual(v.isUserId('not a valid id'), false);
+      assert.strictEqual(v.isUserId('not:a:principal'), false);
+      assert.strictEqual(v.isUserId('g:valid:id'), false);
+      assert.strictEqual(v.isUserId('u:valid:id'), true);
 
-      assert.ok(v.hasErrors());
-      assert.strictEqual(v.getErrors().length, 7);
-      assert.strictEqual(v.getErrors()[0], 'undefined');
-      assert.strictEqual(v.getErrors()[1], 'null');
-      assert.strictEqual(v.getErrors()[2], 'empty');
-      assert.strictEqual(v.getErrors()[3], 'blank');
-      assert.strictEqual(v.getErrors()[4], 'malformatted');
-      assert.strictEqual(v.getErrors()[5], 'unprincipal');
-      assert.strictEqual(v.getErrors()[6], 'unuser');
       callback();
     });
   });
 
   describe('#isNonUserResourceId()', () => {
     it('verify general functionality', callback => {
-      const v = new Validator();
-      v.check(undefined, 'undefined').isNonUserResourceId();
-      v.check(null, 'null').isNonUserResourceId();
-      v.check('', 'empty').isNonUserResourceId();
-      v.check('  ', 'blank').isNonUserResourceId();
-      v.check('not a valid id', 'malformatted').isNonUserResourceId();
-      v.check('u:valid:id', 'unresource').isNonUserResourceId();
-      v.check('g:valid:id', 'correct').isNonUserResourceId();
-      v.check('c:valid:id', 'correct').isNonUserResourceId();
+      assert.strictEqual(v.isNonUserResourceId(undefined), false);
+      assert.strictEqual(v.isNonUserResourceId(null), false);
+      assert.strictEqual(v.isNonUserResourceId(''), false);
+      assert.strictEqual(v.isNonUserResourceId('  '), false);
+      assert.strictEqual(v.isNonUserResourceId('not a valid id'), false);
+      assert.strictEqual(v.isNonUserResourceId('u:valid:id'), false);
+      assert.strictEqual(v.isNonUserResourceId('g:valid:id'), true);
+      assert.strictEqual(v.isNonUserResourceId('c:valid:id'), true);
 
-      assert.ok(v.hasErrors());
-      assert.strictEqual(v.getErrors().length, 6);
-      assert.strictEqual(v.getErrors()[0], 'undefined');
-      assert.strictEqual(v.getErrors()[1], 'null');
-      assert.strictEqual(v.getErrors()[2], 'empty');
-      assert.strictEqual(v.getErrors()[3], 'blank');
-      assert.strictEqual(v.getErrors()[4], 'malformatted');
-      assert.strictEqual(v.getErrors()[5], 'unresource');
       callback();
     });
   });
 
   describe('#isValidRole()', () => {
     it('verify general functionality', callback => {
-      const v = new Validator();
-      v.check(undefined, 'undefined').isValidRole();
-      v.check(null, 'null').isValidRole();
-      v.check('', 'empty').isValidRole();
-      v.check('  ', 'blank').isValidRole();
-      v.check(false, 'false').isValidRole();
-      v.check('manager', 'valid').isValidRole();
+      assert.strictEqual(v.isValidRole(undefined), false);
+      assert.strictEqual(v.isValidRole(null), false);
+      assert.strictEqual(v.isValidRole(''), false);
+      assert.strictEqual(v.isValidRole('  '), false);
+      assert.strictEqual(v.isValidRole(false), false);
+      assert.strictEqual(v.isValidRole('manager'), true);
 
-      assert.ok(v.hasErrors());
-      assert.strictEqual(v.getErrors().length, 5);
-      assert.strictEqual(v.getErrors()[0], 'undefined');
-      assert.strictEqual(v.getErrors()[1], 'null');
-      assert.strictEqual(v.getErrors()[2], 'empty');
-      assert.strictEqual(v.getErrors()[3], 'blank');
-      assert.strictEqual(v.getErrors()[4], 'false');
       callback();
     });
   });
 
   describe('#isValidRoleChange()', () => {
     it('verify general functionality', callback => {
-      const v = new Validator();
-      v.check(undefined, 'undefined').isValidRoleChange();
-      v.check(null, 'null').isValidRoleChange();
-      v.check('', 'empty').isValidRoleChange();
-      v.check('  ', 'blank').isValidRoleChange();
+      assert.strictEqual(v.isValidRoleChange(undefined), false);
+      assert.strictEqual(v.isValidRoleChange(null), false);
+      assert.strictEqual(v.isValidRoleChange(''), false);
+      assert.strictEqual(v.isValidRoleChange('  '), false);
       // 'false' is valid as a 'role change' value, as it indicates remove the role
-      v.check(false, 'false').isValidRoleChange();
-      v.check('manager', 'valid').isValidRoleChange();
+      assert.strictEqual(v.isValidRoleChange(false), true);
+      assert.strictEqual(v.isValidRoleChange('manager'), true);
 
-      assert.ok(v.hasErrors());
-      assert.strictEqual(v.getErrors().length, 4);
-      assert.strictEqual(v.getErrors()[0], 'undefined');
-      assert.strictEqual(v.getErrors()[1], 'null');
-      assert.strictEqual(v.getErrors()[2], 'empty');
-      assert.strictEqual(v.getErrors()[3], 'blank');
       callback();
     });
   });

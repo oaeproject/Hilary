@@ -25,7 +25,7 @@ import readdirp from 'readdirp';
 import * as restjsdoc from 'restjsdoc';
 import * as TenantsUtil from 'oae-tenants/lib/util';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { otherwise } = validator;
+const { isNotEmpty, notContains, otherwise } = validator;
 import pipe from 'ramda/src/pipe';
 import isIn from 'validator/lib/isIn';
 import * as SwaggerParamTypes from './swaggerParamTypes';
@@ -310,7 +310,7 @@ const _addSwaggerEndpoint = function(spec, resources) {
 const _appendToApi = function(rootResource, api, spec) {
   try {
     pipe(
-      validator.isNotEmpty,
+      isNotEmpty,
       otherwise({
         msg: 'Nickname must exist',
         path: api.path
@@ -318,7 +318,7 @@ const _appendToApi = function(rootResource, api, spec) {
     )(spec.nickname);
 
     pipe(
-      validator.notContains,
+      notContains,
       otherwise({
         path: api.path,
         msg: 'Nicknames cannot contain spaces: ' + spec.nickname

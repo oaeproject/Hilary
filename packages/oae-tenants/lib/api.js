@@ -1049,7 +1049,6 @@ const _validateEmailDomains = function(validator, emailDomains, updateTenantAlia
   _.each(emailDomains, emailDomain => {
     // Check whether it's a valid domain
     pipe(
-      // validator.isFQDN,
       isHost,
       otherwise({
         code: 400,

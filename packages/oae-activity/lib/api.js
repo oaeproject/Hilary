@@ -543,18 +543,15 @@ const getActivityStream = function(ctx, principalId, start, limit, transformerTy
 
   try {
     pipe(
-      isPrincipalId,
-      otherwise({
-        code: 400,
-        msg: 'You can only view activity streams for a principal'
-      })
-    )(principalId);
-
-    pipe(
       isIn,
       otherwise({
         code: 400,
         msg: 'Unknown activity transformer type'
+      }),
+      makeSureThat(true, principalId, isPrincipalId),
+      otherwise({
+        code: 400,
+        msg: 'You can only view activity streams for a principal'
       })
     )(transformerType, _.values(ActivityConstants.transformerTypes));
   } catch (error) {
@@ -608,26 +605,20 @@ const getNotificationStream = function(ctx, userId, start, limit, transformerTyp
 
   try {
     pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You must be logged in to get a notification stream'
-      })
-    )(ctx);
-
-    pipe(
-      isUserId,
-      otherwise({
-        code: 400,
-        msg: 'You can only view the notification streams for a user'
-      })
-    )(userId);
-
-    pipe(
       isIn,
       otherwise({
         code: 400,
         msg: 'Unknown activity transformer type'
+      }),
+      makeSureThat(true, ctx, isLoggedInUser),
+      otherwise({
+        code: 401,
+        msg: 'You must be logged in to get a notification stream'
+      }),
+      makeSureThat(true, userId, isUserId),
+      otherwise({
+        code: 400,
+        msg: 'You can only view the notification streams for a user'
       })
     )(transformerType, _.values(ActivityConstants.transformerTypes));
   } catch (error) {
@@ -703,7 +694,7 @@ const postActivity = function(ctx, activitySeed, callback) {
   const thereIsActivityTarget = thereIsActivity && activitySeed.targetResource;
 
   const runValidations = pipe(
-    isObject,
+    makeSureThat(true, activitySeed, isObject),
     otherwise({
       code: 400,
       msg: 'No activity seed provided.'
@@ -761,7 +752,7 @@ const postActivity = function(ctx, activitySeed, callback) {
   );
 
   try {
-    runValidations(activitySeed);
+    runValidations();
   } catch (error) {
     return callback(error);
   }

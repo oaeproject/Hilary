@@ -20,12 +20,13 @@ import { Tenant } from 'oae-tenants/lib/model';
 import { User } from 'oae-principals/lib/model.user';
 import { Validator as validator } from 'oae-util/lib/validator';
 
+const { isDefined, isShortString, isMediumString, isLongString, isBoolean, isArray, isGlobalAdministratorUser, isHost, isLoggedInUser, isValidTimeZone, isURL, isEmail, isInt, isNotEmpty }= validator;
 import * as TestsUtil from 'oae-tests/lib/util';
 
 describe('Utilities', () => {
   describe('Validator', () => {
     it('verify undefined gets checked as empty', callback => {
-      assert.strictEqual(validator.isNotEmpty(undefined), false);
+      assert.strictEqual(isNotEmpty(undefined), false);
       return callback();
     });
 
@@ -34,45 +35,13 @@ describe('Utilities', () => {
      * is working as intended
      */
     it('verify empty validator', callback => {
-      // Single test successful
-      assert.strictEqual(validator.isNotEmpty('Non-empty string'), true);
+      assert.strictEqual(isNotEmpty('Non'), true);
+      assert.strictEqual(isNotEmpty('Empty'), true);
+      assert.strictEqual(isNotEmpty('String'), true);
 
-      // Single test failed
-      assert.strictEqual(validator.isNotEmpty(''), false);
-      assert.strictEqual(validator.isNotEmpty(' '), false);
-      /*
-      validator.check(' ').notEmpty();
-      assert.ok(validator.hasErrors());
-      assert.ok(validator.getErrors());
-      assert.strictEqual(validator.getErrorCount(), 1);
-      */
-
-      // Multiple success
-      assert.strictEqual(validator.isNotEmpty('Non'), true);
-      assert.strictEqual(validator.isNotEmpty('Empty'), true);
-      assert.strictEqual(validator.isNotEmpty('String'), true);
-      /*
-      validator.check('Non').notEmpty();
-      validator.check('Empty').notEmpty();
-      validator.check('String').notEmpty();
-      assert.ok(!validator.hasErrors());
-      assert.ok(!validator.getErrors());
-      assert.strictEqual(validator.getErrorCount(), 0);
-      */
-
-      // Multiple fail
-      assert.strictEqual(validator.isNotEmpty(''), false)
-      assert.strictEqual(validator.isNotEmpty(' '), false)
-      assert.strictEqual(validator.isNotEmpty('    '), false)
-      /*
-      validator.check('').notEmpty();
-      validator.check(' ').notEmpty();
-      validator.check('   ').notEmpty();
-      validator.check('String').notEmpty();
-      assert.ok(validator.hasErrors());
-      assert.strictEqual(validator.getErrors().length, 3);
-      assert.strictEqual(validator.getErrorCount(), 3);
-      */
+      assert.strictEqual(isNotEmpty(''), false);
+      assert.strictEqual(isNotEmpty(' '), false);
+      assert.strictEqual(isNotEmpty('    '), false)
 
       return callback();
     });
@@ -83,35 +52,35 @@ describe('Utilities', () => {
      */
     it('verify integer validator', callback => {
       // string numbers succeed
-      assert.strictEqual(validator.isInt('0'), true);
-      assert.strictEqual(validator.isInt('10'), true);
-      assert.strictEqual(validator.isInt('-10'), true);
+      assert.strictEqual(isInt('0'), true);
+      assert.strictEqual(isInt('10'), true);
+      assert.strictEqual(isInt('-10'), true);
 
       // int numbers will throw error (only strings are validated)
       try {
-        assert.strictEqual(validator.isInt(0), false);
+        assert.strictEqual(isInt(0), false);
       } catch (error) {
         assert.ok(error);
       }
       try {
-        assert.strictEqual(validator.isInt(10), false);
+        assert.strictEqual(isInt(10), false);
       } catch (error) {
         assert.ok(error);
       }
       try {
-        assert.strictEqual(validator.isInt(-10), false);
+        assert.strictEqual(isInt(-10), false);
       } catch (error) {
         assert.ok(error);
       }
 
       // Non numeric strings will fail
-      assert.strictEqual(validator.isInt('String'), false)
-      assert.strictEqual(validator.isInt(''), false);
+      assert.strictEqual(isInt('String'), false)
+      assert.strictEqual(isInt(''), false);
 
       // Somewhat numeric strings will fail
-      assert.strictEqual(validator.isInt('100%'), false);
-      assert.strictEqual(validator.isInt(' 10'), false);
-      assert.strictEqual(validator.isInt('-10 '), false);
+      assert.strictEqual(isInt('100%'), false);
+      assert.strictEqual(isInt(' 10'), false);
+      assert.strictEqual(isInt('-10 '), false);
 
       return callback();
     });
@@ -121,18 +90,18 @@ describe('Utilities', () => {
      * is working as intended
      */
     it('verify email validator', callback => {
-      assert.strictEqual(validator.isEmail('miguel.laginha@oae.project.org'), true)
-      assert.strictEqual(validator.isEmail('miguel_laginha@oae.project.org'), true);
-      assert.strictEqual(validator.isEmail('miguel@oae.project'), true);
+      assert.strictEqual(isEmail('miguel.laginha@oae.project.org'), true)
+      assert.strictEqual(isEmail('miguel_laginha@oae.project.org'), true);
+      assert.strictEqual(isEmail('miguel@oae.project'), true);
 
-      assert.strictEqual(validator.isEmail('miguel.laginha@oae.project.'), false);
-      assert.strictEqual(validator.isEmail('miguel laginha@oae.project.org'), false);
-      assert.strictEqual(validator.isEmail('miguel"laginha@oae.project.org'), false);
-      assert.strictEqual(validator.isEmail(' '), false);
-      assert.strictEqual(validator.isEmail('String'), false);
-      assert.strictEqual(validator.isEmail('miguel laginha@'), false);
-      assert.strictEqual(validator.isEmail('@.'), false);
-      assert.strictEqual(validator.isEmail('http://www.google.pt'), false);
+      assert.strictEqual(isEmail('miguel.laginha@oae.project.'), false);
+      assert.strictEqual(isEmail('miguel laginha@oae.project.org'), false);
+      assert.strictEqual(isEmail('miguel"laginha@oae.project.org'), false);
+      assert.strictEqual(isEmail(' '), false);
+      assert.strictEqual(isEmail('String'), false);
+      assert.strictEqual(isEmail('miguel laginha@'), false);
+      assert.strictEqual(isEmail('@.'), false);
+      assert.strictEqual(isEmail('http://www.google.pt'), false);
 
       return callback();
     });
@@ -144,16 +113,16 @@ describe('Utilities', () => {
      */
     it('verify URL validator', callback => {
 
-      assert.strictEqual(validator.isURL('http://www.oaeproject.org'), true);
-      assert.strictEqual(validator.isURL('http://example.com/assert.html'), true);
-      assert.strictEqual(validator.isURL('https://oae-widgets.oaeproject.org/sdk'), true);
-      assert.strictEqual(validator.isURL('http://support.google.com/docs/bin/answer.py?hl=en&answer=66343'), true);
-      assert.strictEqual(validator.isURL('http://www.w3.org/2004/02/skos/core#broader'), true);
-      assert.strictEqual(validator.isURL('https://wordpress.org/support/topic/plugin-addthis-odd-url-string?replies=5'), true);
-      assert.strictEqual(validator.isURL('https://twimg0-a.akamaihd.net/profile_images/300425859/ls_1278_Nicolaas-website.jpg'), true);
+      assert.strictEqual(isURL('http://www.oaeproject.org'), true);
+      assert.strictEqual(isURL('http://example.com/assert.html'), true);
+      assert.strictEqual(isURL('https://oae-widgets.oaeproject.org/sdk'), true);
+      assert.strictEqual(isURL('http://support.google.com/docs/bin/answer.py?hl=en&answer=66343'), true);
+      assert.strictEqual(isURL('http://www.w3.org/2004/02/skos/core#broader'), true);
+      assert.strictEqual(isURL('https://wordpress.org/support/topic/plugin-addthis-odd-url-string?replies=5'), true);
+      assert.strictEqual(isURL('https://twimg0-a.akamaihd.net/profile_images/300425859/ls_1278_Nicolaas-website.jpg'), true);
 
-      assert.strictEqual(validator.isURL('String'), false);
-      assert.strictEqual(validator.isURL('://www.google.pt'), false);
+      assert.strictEqual(isURL('String'), false);
+      assert.strictEqual(isURL('://www.google.pt'), false);
 
       return callback();
     });
@@ -171,23 +140,23 @@ describe('Utilities', () => {
       const user2 = new User(tenant1.alias, 'u:camtest:nm417', 'nm417', 'nm417@example.com');
       const user3 = new User(tenant1.alias, 'u:camtest:nm417', 'nm417', 'nm417@example.com');
 
-      assert.strictEqual(validator.isLoggedInUser(new Context(tenant1, user1)), true)
-      assert.strictEqual(validator.isLoggedInUser(new Context(tenant1, user2)), true)
-      assert.strictEqual(validator.isLoggedInUser(new Context(tenant1, user3)), true)
+      assert.strictEqual(isLoggedInUser(new Context(tenant1, user1)), true)
+      assert.strictEqual(isLoggedInUser(new Context(tenant1, user2)), true)
+      assert.strictEqual(isLoggedInUser(new Context(tenant1, user3)), true)
 
       // Empty context
-      assert.strictEqual(validator.isLoggedInUser(null), false)
+      assert.strictEqual(isLoggedInUser(null), false)
 
       // Tenant, no user
-      assert.strictEqual(validator.isLoggedInUser(new Context(tenant1, null)), false);
+      assert.strictEqual(isLoggedInUser(new Context(tenant1, null)), false);
 
       // No tenant, user
-      assert.strictEqual(validator.isLoggedInUser(new Context(null, user1)), false);
+      assert.strictEqual(isLoggedInUser(new Context(null, user1)), false);
 
       // Invalid tenant, user
-      assert.strictEqual(validator.isLoggedInUser(new Context(tenant2, user1)), false);
-      assert.strictEqual(validator.isLoggedInUser(new Context(tenant2, user2)), false)
-      assert.strictEqual(validator.isLoggedInUser(new Context(tenant2, user3)), false)
+      assert.strictEqual(isLoggedInUser(new Context(tenant2, user1)), false);
+      assert.strictEqual(isLoggedInUser(new Context(tenant2, user2)), false)
+      assert.strictEqual(isLoggedInUser(new Context(tenant2, user3)), false)
 
       return callback();
     });
@@ -205,21 +174,21 @@ describe('Utilities', () => {
       const user1 = new User(camTenant.alias, 'u:camtest:nm417', 'nm417', 'nm417@example.com');
 
       // Ensure it gives a validation error when not authenticated
-      assert.strictEqual(validator.isLoggedInUser(new Context(camTenant), camTenant.alias), false);
+      assert.strictEqual(isLoggedInUser(new Context(camTenant), camTenant.alias), false);
 
       // Ensure it gives a validation error when authenticated to a different tenant
-      assert.strictEqual(validator.isLoggedInUser(new Context(gtTenant, user1), camTenant.alias), false);
+      assert.strictEqual(isLoggedInUser(new Context(gtTenant, user1), camTenant.alias), false);
 
       // Ensure it succeeds when validator the proper tenant
-      assert.strictEqual(validator.isLoggedInUser(new Context(camTenant, user1), camTenant.alias), true);
-      assert.strictEqual(validator.isLoggedInUser(new Context(gtTenant, user1), gtTenant.alias), true);
+      assert.strictEqual(isLoggedInUser(new Context(camTenant, user1), camTenant.alias), true);
+      assert.strictEqual(isLoggedInUser(new Context(gtTenant, user1), gtTenant.alias), true);
 
       return callback();
     });
 
     it('verify timezone validation', callback => {
       const validateTimeZone = (timezone, isValid) => {
-        assert.strictEqual(validator.isValidTimeZone(timezone), isValid);
+        assert.strictEqual(isValidTimeZone(timezone), isValid);
       };
 
       // We only support timezones of the format
@@ -264,13 +233,13 @@ describe('Utilities', () => {
       delete invalidUserCtx.user().isGlobalAdmin;
 
       try {
-        assert.strictEqual(validator.isGlobalAdministratorUser(undefined), false);
+        assert.strictEqual(isGlobalAdministratorUser(undefined), false);
       } catch (error) {
       assert.strictEqual(error.msg, 'An empty context has been passed in');
       }
       
       try {
-        assert.strictEqual(validator.isGlobalAdministratorUser(null), false);
+        assert.strictEqual(isGlobalAdministratorUser(null), false);
       } catch (error) {
         assert.strictEqual(error.msg, 'An empty context has been passed in');
       }
@@ -278,28 +247,28 @@ describe('Utilities', () => {
       try {
       assert.strictEqual(error.msg, 'The context is not associated to a tenant');
       } catch (error) {
-        assert.strictEqual(validator.isGlobalAdministratorUser({}), false);
+        assert.strictEqual(isGlobalAdministratorUser({}), false);
       }
       
       try {
-        assert.strictEqual(validator.isGlobalAdministratorUser(anonymousCtx), false);
+        assert.strictEqual(isGlobalAdministratorUser(anonymousCtx), false);
       } catch (error) {
         assert.strictEqual(errors[3], 'The user is not logged in');
       }
       
       try {
-        assert.strictEqual(validator.isGlobalAdministratorUser(invalidUserCtx), false);
+        assert.strictEqual(isGlobalAdministratorUser(invalidUserCtx), false);
       } catch (error) {
         assert.strictEqual(error.msg, 'The user object is invalid');
       }
       
       try {
-        assert.strictEqual(validator.isGlobalAdministratorUser(tenantAdminCtx), false);
+        assert.strictEqual(isGlobalAdministratorUser(tenantAdminCtx), false);
       } catch (error) {
         assert.strictEqual(error.msg, 'The user is not a global administrator');
       }
       
-      assert.strictEqual(validator.isGlobalAdministratorUser(globalAdminCtx), true);
+      assert.strictEqual(isGlobalAdministratorUser(globalAdminCtx), true);
 
       return callback();
     });
@@ -308,10 +277,10 @@ describe('Utilities', () => {
      * Test that verifies validation results for a variety of inputs to validator.isArray
      */
     it('verify isArray validation', callback => {
-      assert.strictEqual(validator.isArray([1, 2, 3]), true);
-      assert.strictEqual(validator.isArray(null), false);
-      assert.strictEqual(validator.isArray(undefined), false);
-      assert.strictEqual(validator.isArray('a string'), false);
+      assert.strictEqual(isArray([1, 2, 3]), true);
+      assert.strictEqual(isArray(null), false);
+      assert.strictEqual(isArray(undefined), false);
+      assert.strictEqual(isArray('a string'), false);
 
       return callback();
     });
@@ -320,14 +289,14 @@ describe('Utilities', () => {
      * Test that verifies validation results for a variety of inputs to validator.isBoolean
      */
     it('verify isBoolean validation', callback => {
-      assert.strictEqual(validator.isBoolean(true), true);
-      assert.strictEqual(validator.isBoolean(false), true);
-      assert.strictEqual(validator.isBoolean('true'), false);
-      assert.strictEqual(validator.isBoolean('false'), false);
-      assert.strictEqual(validator.isBoolean(0), false);
-      assert.strictEqual(validator.isBoolean(1), false);
-      assert.strictEqual(validator.isBoolean({}), false);
-      assert.strictEqual(validator.isBoolean([]), false);
+      assert.strictEqual(isBoolean(true), true);
+      assert.strictEqual(isBoolean(false), true);
+      assert.strictEqual(isBoolean('true'), false);
+      assert.strictEqual(isBoolean('false'), false);
+      assert.strictEqual(isBoolean(0), false);
+      assert.strictEqual(isBoolean(1), false);
+      assert.strictEqual(isBoolean({}), false);
+      assert.strictEqual(isBoolean([]), false);
 
       return callback();
     });
@@ -336,15 +305,15 @@ describe('Utilities', () => {
      * Test that verifies validation results for a variety of inputs to validator.isShortString
      */
     it('verify isShortString validation', callback => {
-      const bigString = TestsUtil.generateRandomText(100);
+      const bigString = TestsUtil.generateRandomText(1001);
       try {
-        assert.strictEqual(validator.isShortString(null), false);
+        assert.strictEqual(isShortString(null), false);
       } catch (error) {
         assert.ok(error);
       }
-      assert.strictEqual(validator.isShortString(''), false);
-      assert.strictEqual(validator.isShortString('valid'), true);
-      assert.strictEqual(validator.isShortString(bigString), false);
+      assert.strictEqual(isShortString(''), false);
+      assert.strictEqual(isShortString('valid'), true);
+      assert.strictEqual(isShortString(bigString), false);
 
       return callback();
     });
@@ -353,15 +322,15 @@ describe('Utilities', () => {
      * Test that verifies validation results for a variety of inputs to validator.isMediumString
      */
     it('verify isMediumString validation', callback => {
-      const bigString = TestsUtil.generateRandomText(1000);
+      const bigString = TestsUtil.generateRandomText(10001);
       try {
-        validator.isMediumString(null);
+        isMediumString(null);
       } catch (error) {
         assert.ok(error);
       }
-      validator.isMediumString('');
-      validator.isMediumString('valid');
-      validator.isMediumString(bigString);
+      assert.strictEqual(isMediumString(''), false);
+      assert.strictEqual(isMediumString('valid'), true);
+      assert.strictEqual(isMediumString(bigString), false);
 
       return callback();
     });
@@ -370,15 +339,15 @@ describe('Utilities', () => {
      * Test that verifies validation results for a variety of inputs to validator.isLongString
      */
     it('verify isLongString validation', callback => {
-      const bigString = TestsUtil.generateRandomText(10000);
+      const bigString = TestsUtil.generateRandomText(100001);
       try {
-        validator.check(null).isLongString();
+        isLongString(null);
       } catch (error) {
         assert.ok(error);
       }
-      validator.isLongString('');
-      validator.isLongString('valid');
-      validator.isLongString(bigString);
+      assert.strictEqual(isLongString(''), false);
+      assert.strictEqual(isLongString('valid'), true);
+      assert.strictEqual(isLongString(bigString), false);
 
       return callback();
     });
@@ -390,34 +359,34 @@ describe('Utilities', () => {
       const err = { code: 400, msg: 'Funny error object, LOL' };
 
       try {
-        validator.isDefined(null);
+        isDefined(null);
       } catch (error) {
         assert.ok(error);
         assert.strictEqual(error.msg, err.msg);
         assert.strictEqual(error.code, err.code);
       }
       try {
-        validator.isDefined(undefined);
+        isDefined(undefined);
       } catch (error) {
         assert.ok(error);
         assert.strictEqual(error.msg, err.msg);
         assert.strictEqual(error.code, err.code);
       }
       try {
-        validator.isDefined();
+        isDefined();
       } catch (error) {
         assert.ok(error);
         assert.strictEqual(error.msg, err.msg);
         assert.strictEqual(error.code, err.code);
       }
 
-      assert.strictEqual(validator.isDefined(''), true);
-      assert.strictEqual(validator.isDefined('proper string'), true);
-      assert.strictEqual(validator.isDefined(0), true);
-      assert.strictEqual(validator.isDefined({}), true);
-      assert.strictEqual(validator.isDefined([]), true);
-      assert.strictEqual(validator.isDefined(false), true);
-      assert.strictEqual(validator.isDefined(true), true);
+      assert.strictEqual(isDefined(''), true);
+      assert.strictEqual(isDefined('proper string'), true);
+      assert.strictEqual(isDefined(0), true);
+      assert.strictEqual(isDefined({}), true);
+      assert.strictEqual(isDefined([]), true);
+      assert.strictEqual(isDefined(false), true);
+      assert.strictEqual(isDefined(true), true);
 
       return callback();
     });
@@ -430,7 +399,7 @@ describe('Utilities', () => {
 
       // A set of invalid hosts
       try {
-        validator.isHost('not a valid host');
+        isHost('not a valid host');
       } catch (error) {
         assert.ok(error);
         assert.strictEqual(error.msg, err.msg);
@@ -438,7 +407,7 @@ describe('Utilities', () => {
       }
       
       try {
-        validator.isHost('invalid,character.com');
+        isHost('invalid,character.com');
       } catch (error) {
           assert.ok(error);
         assert.strictEqual(error.msg, err.msg);
@@ -446,7 +415,7 @@ describe('Utilities', () => {
       }
 
       try {
-        validator.isHost('almost.but.not.quite com');
+        isHost('almost.but.not.quite com');
       } catch (error) {
         assert.ok(error);
         assert.strictEqual(error.msg, err.msg);
@@ -454,7 +423,7 @@ describe('Utilities', () => {
       }
 
       try {
-        validator.isHost('localhost:');
+        isHost('localhost:');
       } catch (error) {
         assert.ok(error);
         assert.strictEqual(error.msg, err.msg);
@@ -462,7 +431,7 @@ describe('Utilities', () => {
       }
 
       try {
-        validator.isHost('localhost:2000:');
+        isHost('localhost:2000:');
       } catch (error) {
         assert.ok(error);
         assert.strictEqual(error.msg, err.msg);
@@ -470,10 +439,10 @@ describe('Utilities', () => {
       }
 
       // A set of valid hosts
-      validator.isHost('www.google.com');
-      validator.isHost('unity.ac');
-      validator.isHost('localhost:2000');
-      validator.isHost('trailing.dots.are.valid.too.');
+      isHost('www.google.com');
+      isHost('unity.ac');
+      isHost('localhost:2000');
+      isHost('trailing.dots.are.valid.too.');
       return callback();
     });
   });

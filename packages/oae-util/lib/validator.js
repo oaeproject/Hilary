@@ -28,15 +28,6 @@ Validator.isDifferent = (input, notEqualsTo) => {
   return !Validator.equals(String(input), notEqualsTo);
 };
 
-// TODO: docs
-Validator.isNotAfter = date1 => {
-  return !Validator.isAfter(date1);
-};
-
-Validator.isNotBefore = date1 => {
-  return !Validator.isBefore(date1);
-};
-
 Validator.isNotEmpty = input => {
   input = input || '';
   return !Validator.isEmpty(input.trim());

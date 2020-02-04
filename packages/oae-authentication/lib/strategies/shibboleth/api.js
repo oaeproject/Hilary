@@ -21,7 +21,7 @@ import * as TenantsAPI from 'oae-tenants/lib/api';
 import { Validator as validator } from 'oae-util/lib/validator';
 const { otherwise, isNotEmpty, isNumeric } = validator;
 import pipe from 'ramda/src/pipe';
-import isAfter from 'validator/lib/isAfter';
+import { isFuture, toDate } from 'date-fns';
 
 import { AuthenticationConstants } from 'oae-authentication/lib/constants';
 import { setUpConfig } from 'oae-config';
@@ -129,12 +129,12 @@ const validateInitiateParameters = function(tenantAlias, signature, expires, cal
     )(String(expires));
 
     pipe(
-      isAfter,
+      isFuture,
       otherwise({
         code: 400,
         msg: 'Invalid expires parameter'
       })
-    )(String(new Date(parseInt(expires, 10))));
+    )(toDate(parseInt(expires, 10)));
   } catch (error) {
     return callback(error);
   }
@@ -239,12 +239,12 @@ const getUser = function(tenant, userId, signature, expires, callback) {
     )(String(expires));
 
     pipe(
-      isAfter,
+      isFuture,
       otherwise({
         code: 400,
         msg: 'Invalid expires parameter'
       })
-    )(String(new Date(parseInt(expires, 10))));
+    )(toDate(parseInt(expires, 10)));
   } catch (error) {
     return callback(error);
   }

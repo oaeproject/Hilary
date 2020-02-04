@@ -113,6 +113,7 @@ Validator.isValidRole = function(string) {
  * ```
  */
 Validator.isValidRoleChange = function(string) {
+  // return string === false || AuthzUtil.isRole(string);
   if (string !== false && !AuthzUtil.isRole(string)) {
     return false;
   }

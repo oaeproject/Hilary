@@ -21,11 +21,11 @@ import * as EmitterAPI from 'oae-emitter';
 import * as Locking from 'oae-util/lib/locking';
 import * as OaeUtil from 'oae-util/lib/util';
 import * as TenantsAPI from 'oae-tenants';
-
 import { logger } from 'oae-logger';
 
 import { Validator as validator } from 'oae-util/lib/validator';
-const { isUserId, otherwise, isNotNull, isNotAfter } = validator;
+const { isUserId, otherwise, isNotNull } = validator;
+import { isPast, toDate } from 'date-fns';
 import pipe from 'ramda/src/pipe';
 import isInt from 'validator/lib/isInt';
 import isIn from 'validator/lib/isIn';
@@ -188,12 +188,12 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
       )(String(opts.replyToCreated));
 
       pipe(
-        isNotAfter,
+        isPast,
         otherwise({
           code: 400,
           msg: 'If the replyToCreated optional parameter is specified, it cannot be in the future.'
         })
-      )(String(new Date(parseInt(opts.replyToCreated, 10))));
+      )(new Date(parseInt(opts.replyToCreated, 10)));
     } catch (error) {
       return callback(error);
     }
@@ -354,12 +354,12 @@ const updateMessageBody = function(messageBoxId, created, newBody, callback) {
     )(String(created));
 
     pipe(
-      isNotAfter,
+      isPast,
       otherwise({
         code: 400,
         msg: 'The created parameter must be a valid timestamp (integer) that is not in the future.'
       })
-    )(String(new Date(created)));
+    )(toDate(parseInt(created, 10)));
 
     pipe(
       isNotNull,
@@ -486,12 +486,12 @@ const getMessages = function(messageBoxId, createdTimestamps, opts, callback) {
       )(String(timestamp));
 
       pipe(
-        isNotAfter,
+        isPast,
         otherwise({
           code: 400,
           msg: 'A timestamp cannot be in the future.'
         })
-      )(String(new Date(parseInt(timestamp, 10))));
+      )(new Date(parseInt(timestamp, 10)));
     });
   } catch (error) {
     return callback(error);
@@ -609,12 +609,12 @@ const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
     )(String(createdTimestamp));
 
     pipe(
-      isNotAfter,
+      isPast,
       otherwise({
         code: 400,
         msg: 'The createdTimestamp cannot be in the future.'
       })
-    )(String(new Date(createdTimestamp)));
+    )(toDate(parseInt(createdTimestamp, 10)));
   } catch (error) {
     return callback(error);
   }

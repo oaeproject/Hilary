@@ -1433,7 +1433,6 @@ const verifyEmail = function(ctx, userId, token, callback) {
       (value, regex) => {
         return value.match(regex);
       },
-      // validator.regex,
       otherwise({
         code: 400,
         msg: 'An invalid token was provided'

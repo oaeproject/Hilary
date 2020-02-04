@@ -41,7 +41,6 @@ import { Validator as validator } from 'oae-util/lib/validator';
 const {
   isArray,
   isValidRoleChange,
-  ifNotThenThrow,
   otherwise,
   isLoggedInUser,
   isPrincipalId,
@@ -260,7 +259,7 @@ const updateFolder = function(ctx, folderId, updates, callback) {
   try {
     pipe(
       isArrayNotEmpty,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'One of ' + legalUpdateFields.join(', ') + ' must be provided'
       })
@@ -718,7 +717,7 @@ const _getFullFolderProfile = function(ctx, folder, callback) {
  */
 const deleteFolder = function(ctx, folderId, deleteContent, callback) {
   try {
-    pipe(isResourceId, ifNotThenThrow({ code: 400, msg: 'a folder id must be provided' }))(folderId);
+    pipe(isResourceId, otherwise({ code: 400, msg: 'a folder id must be provided' }))(folderId);
 
     pipe(
       isLoggedInUser,
@@ -1380,7 +1379,7 @@ const removeContentItemsFromFolder = function(ctx, folderId, contentIds, callbac
     _.each(contentIds, contentId => {
       pipe(
         isResourceId,
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: util.format('The id "%s" is not a valid content id', contentId)
         })

@@ -42,7 +42,6 @@ const {
   isObject,
   isUserId,
   makeSureThat,
-  ifNotThenThrow,
   otherwise,
   isNotEmpty
 } = validator;
@@ -332,7 +331,7 @@ const getOrCreateUser = function(ctx, authProvider, externalId, providerProperti
         msg: 'You must provide a display name'
       }),
       makeSureThat(true, displayName, isShortString),
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A display name can be at most 1000 characters long'
       })
@@ -1406,22 +1405,22 @@ const _validateLoginIdForLookup = function(validator, loginId) {
 
   pipe(
     isObject,
-    ifNotThenThrow({
+    otherwise({
       code: 400,
       msg: 'Must specify a login id'
     }),
     makeSureThat(loginIsValid, getAttribute(['tenantAlias']), isNotEmpty),
-    ifNotThenThrow({
+    otherwise({
       code: 400,
       msg: 'Must specify a tenant id on the login id'
     }),
     makeSureThat(loginIsValid, getAttribute(['provider']), isNotEmpty),
-    ifNotThenThrow({
+    otherwise({
       code: 400,
       msg: 'Must specify an authentication provider on the login id'
     }),
     makeSureThat(loginIsValid, String(getAttribute(['externalId'])), isNotEmpty),
-    ifNotThenThrow({
+    otherwise({
       code: 400,
       msg: 'Must specify an external id on the login id'
     })
@@ -1439,7 +1438,6 @@ const _validateLoginIdForPersistence = function(validator, loginId, callback) {
   _validateLoginIdForLookup(validator, loginId, callback);
 
   // Only continue validating if the login id is valid so far
-  // if (validator.getErrorCount() === numErrors) {
   loginId.properties = loginId.properties || {};
   const password = _.isArray(loginId.properties.password)
     ? loginId.properties.password[0]

@@ -45,7 +45,6 @@ import { Context } from 'oae-context';
 import { Validator as validator } from 'oae-util/lib/validator';
 const {
   makeSureThat,
-  ifNotThenThrow,
   otherwise,
   isShortString,
   isUserId,
@@ -171,7 +170,7 @@ const createUser = function(ctx, tenantAlias, displayName, opts, callback) {
   try {
     pipe(
       isNotEmpty,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A display name must be provided'
       })
@@ -179,7 +178,7 @@ const createUser = function(ctx, tenantAlias, displayName, opts, callback) {
 
     pipe(
       isShortString,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A display name can be at most 1000 characters long'
       })
@@ -187,7 +186,7 @@ const createUser = function(ctx, tenantAlias, displayName, opts, callback) {
 
     pipe(
       isIn,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'The specified visibility setting is unknown'
       })
@@ -195,7 +194,7 @@ const createUser = function(ctx, tenantAlias, displayName, opts, callback) {
 
     pipe(
       isIn,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'The specified email preference is invalid'
       })
@@ -216,7 +215,7 @@ const createUser = function(ctx, tenantAlias, displayName, opts, callback) {
     try {
       pipe(
         isEmail,
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: 'The specified email address is invalid'
         })
@@ -332,7 +331,7 @@ const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, 
     // Parameter validation
     pipe(
       isNotNull,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'An existing tenant alias must be provided'
       })
@@ -340,7 +339,7 @@ const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, 
 
     pipe(
       isNotNull,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A CSV file must be provided'
       })
@@ -349,7 +348,7 @@ const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, 
     if (userCSV) {
       pipe(
         isNotEmpty,
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: 'Missing size on the CSV file'
         })
@@ -357,7 +356,7 @@ const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, 
 
       pipe(
         isInt,
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: 'Invalid size on the CSV file'
         })
@@ -367,7 +366,7 @@ const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, 
         size => {
           return size > 0;
         },
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: 'Invalid size on the CSV file'
         })
@@ -375,7 +374,7 @@ const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, 
 
       pipe(
         isNotEmpty,
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: 'Missing name on the CSV file'
         })
@@ -384,7 +383,7 @@ const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, 
 
     pipe(
       isNotEmpty,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'An authentication strategy must be provided'
       })
@@ -392,7 +391,7 @@ const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, 
 
     pipe(
       isIn,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'The specified authentication strategy is unknown'
       })
@@ -628,12 +627,12 @@ const updateUser = function(ctx, userId, profileFields, callback) {
   try {
     pipe(
       isNotEmpty,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid user id must be provided'
       }),
       makeSureThat(true, userId, isUserId),
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid user id must be provided'
       })
@@ -642,7 +641,7 @@ const updateUser = function(ctx, userId, profileFields, callback) {
     // Check that there is at least one updated profile field
     pipe(
       isArrayNotEmpty,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'At least one basic profile field should be specified'
       })
@@ -651,18 +650,18 @@ const updateUser = function(ctx, userId, profileFields, callback) {
     // Verify that restricted properties aren't set here
     const validKeys = ['displayName', 'visibility', 'email', 'emailPreference', 'publicAlias', 'locale'];
     const invalidKeys = _.difference(profileFieldKeys, validKeys);
-    pipe(isArrayEmpty, ifNotThenThrow({ code: 400, msg: 'Restricted property was attempted to be set.' }))(invalidKeys);
+    pipe(isArrayEmpty, otherwise({ code: 400, msg: 'Restricted property was attempted to be set.' }))(invalidKeys);
 
     // Apply special restrictions on some profile fields
     if (!_.isUndefined(profileFields.displayName)) {
       pipe(
         isNotEmpty,
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: 'A display name cannot be empty'
         }),
         makeSureThat(true, profileFields.displayName, isShortString),
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: 'A display name can be at most 1000 characters long'
         })
@@ -672,7 +671,7 @@ const updateUser = function(ctx, userId, profileFields, callback) {
     if (!_.isUndefined(profileFields.visibility)) {
       pipe(
         isIn,
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: 'An invalid visibility option has been specified'
         })
@@ -682,7 +681,7 @@ const updateUser = function(ctx, userId, profileFields, callback) {
     if (!_.isUndefined(profileFields.emailPreference)) {
       pipe(
         isIn,
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: 'The specified emailPreference is invalid'
         })
@@ -694,7 +693,7 @@ const updateUser = function(ctx, userId, profileFields, callback) {
       profileFields.email = profileFields.email.toLowerCase();
       pipe(
         isEmail,
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: 'The specified email address is invalid'
         })
@@ -706,7 +705,7 @@ const updateUser = function(ctx, userId, profileFields, callback) {
 
     pipe(
       isLoggedInUser,
-      ifNotThenThrow({
+      otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to update a user'
       })
@@ -818,7 +817,7 @@ const deleteUser = function(ctx, userId, callback) {
   try {
     pipe(
       isUserId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid user id must be provided'
       })
@@ -992,7 +991,7 @@ const restoreUser = function(ctx, userId, callback) {
   try {
     pipe(
       isUserId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid user id must be provided'
       })
@@ -1058,7 +1057,7 @@ const getUser = function(ctx, userId, callback) {
   try {
     pipe(
       isUserId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'An invalid user id was provided'
       })
@@ -1084,7 +1083,7 @@ const getFullUserProfile = function(ctx, userId, callback) {
   try {
     pipe(
       isUserId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'An invalid user id was provided'
       })
@@ -1365,7 +1364,7 @@ const resendEmailToken = function(ctx, userId, callback) {
   try {
     pipe(
       isUserId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid user id must be provided'
       })
@@ -1373,7 +1372,7 @@ const resendEmailToken = function(ctx, userId, callback) {
 
     pipe(
       isLoggedInUser,
-      ifNotThenThrow({
+      otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to resend an email token'
       })
@@ -1416,7 +1415,7 @@ const verifyEmail = function(ctx, userId, token, callback) {
   try {
     pipe(
       isUserId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid user id must be provided'
       })
@@ -1424,7 +1423,7 @@ const verifyEmail = function(ctx, userId, token, callback) {
 
     pipe(
       isNotEmpty,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A token must be provided'
       })
@@ -1435,7 +1434,7 @@ const verifyEmail = function(ctx, userId, token, callback) {
         return value.match(regex);
       },
       // validator.regex,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'An invalid token was provided'
       })
@@ -1443,7 +1442,7 @@ const verifyEmail = function(ctx, userId, token, callback) {
 
     pipe(
       isLoggedInUser,
-      ifNotThenThrow({
+      otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to verify an email address'
       })
@@ -1495,7 +1494,7 @@ const getEmailToken = function(ctx, userId, callback) {
   try {
     pipe(
       isUserId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid user id must be provided'
       })
@@ -1503,7 +1502,7 @@ const getEmailToken = function(ctx, userId, callback) {
 
     pipe(
       isLoggedInUser,
-      ifNotThenThrow({
+      otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to check for the existence of a pending email token'
       })

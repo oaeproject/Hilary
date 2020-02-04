@@ -33,27 +33,6 @@ Validator.error = function(msg) {
   this._errors.push(new Error(msg));
 };
 
-/**
- * Wrapper function around node-validator that retrieves all of the validation
- * errors that have been encountered for a given Validator instance
- *
- * Usage:
- * ```
- * var validator = new Validator();
- * ...
- * var errors = validator.getErrors();
- * ```
- *
- * @return {Object[]}     Array containing all of the validation errors
- */
-Validator.getErrors = function() {
-  if (this._errors && this._errors.length > 0) {
-    return this._errors;
-  }
-
-  return null;
-};
-
 // TODO: documentation
 Validator.isDifferent = (input, notEqualsTo) => {
   return !Validator.equals(String(input), notEqualsTo);
@@ -69,7 +48,6 @@ Validator.isNotBefore = date1 => {
 };
 
 Validator.isNotEmpty = input => {
-  // input = input.trim() || '';
   input = input || '';
   return !Validator.isEmpty(input.trim());
 };
@@ -86,14 +64,7 @@ Validator.isNotNull = whatever => {
   return !Validator.isNull(whatever);
 };
 
-Validator.pickFirstError = allErrors => {
-  if (allErrors && allErrors.length > 0) {
-    return allErrors[0];
-  }
-
-  return null;
-};
-
+// TODO JSdoc
 Validator.otherwise = error => {
   return passed => {
     if (!passed) {
@@ -102,17 +73,7 @@ Validator.otherwise = error => {
   };
 };
 
-Validator.ifNotThenThrow = error => {
-  return passed => {
-    if (!passed) {
-      throw error;
-    }
-  };
-};
-
-Validator.generateError = Validator.ifNotThenThrow;
-// Validator.otherwise = Validator.ifNotThenThrow;
-
+// TODO JSdoc
 Validator.makeSureThat = (condition, value, validation) => {
   return function() {
     if (condition) {
@@ -128,18 +89,6 @@ Validator.getNestedObject = nestedObj => {
     return attrPath.reduce((obj, key) => (obj && obj[key] !== 'undefined' ? obj[key] : undefined), nestedObj);
   };
 };
-
-/*
-function(errorMessage) {
-  return function(validationPassed) {
-    if (!validationPassed) {
-      return errorMessage;
-    }
-
-    return null;
-  };
-};
-*/
 
 /**
  * Wrapper function around node-validator that determines how many errors have been collected.

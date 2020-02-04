@@ -37,7 +37,6 @@ const {
   getNestedObject,
   isValidRoleChange,
   makeSureThat,
-  ifNotThenThrow,
   otherwise,
   isLoggedInUser,
   isUserId,
@@ -226,7 +225,7 @@ const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
     _.each(profileFields, (value, field) => {
       pipe(
         isIn,
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: "The field '" + field + "' is not a valid field. Must be one of: " + DISCUSSION_UPDATE_FIELDS.join(', ')
         })
@@ -980,22 +979,22 @@ const createMessage = function(ctx, discussionId, body, replyToCreatedTimestamp,
         msg: 'Only authenticated users can post on discussions'
       }),
       makeSureThat(true, discussionId, isResourceId),
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'Invalid discussion id provided'
       }),
       makeSureThat(true, body, isNotEmpty),
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A discussion body must be provided'
       }),
       makeSureThat(true, body, isLongString),
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A discussion body can only be 100000 characters long'
       }),
       makeSureThat(Boolean(replyToCreatedTimestamp), replyToCreatedTimestamp, isInt),
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'Invalid reply-to timestamp provided'
       })
@@ -1077,12 +1076,12 @@ const deleteMessage = function(ctx, discussionId, messageCreatedDate, callback) 
         msg: 'Only authenticated users can delete messages'
       }),
       makeSureThat(inAnyCase, discussionId, isResourceId),
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A discussion id must be provided'
       }),
       makeSureThat(inAnyCase, messageCreatedDate, isInt),
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid integer message created timestamp must be specified'
       })
@@ -1169,7 +1168,7 @@ const getMessages = function(ctx, discussionId, start, limit, callback) {
         msg: 'Must provide a valid discussion id'
       }),
       makeSureThat(true, String(limit), isInt),
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'Must provide a valid limit'
       })

@@ -35,7 +35,6 @@ const {
   isMediumString,
   makeSureThat,
   otherwise,
-  ifNotThenThrow,
   isLoggedInUser,
   isNotEmpty,
   isGroupId,
@@ -834,7 +833,7 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
   try {
     pipe(
       isLoggedInUser,
-      ifNotThenThrow({
+      otherwise({
         code: 401,
         msg: 'Cannot create a group anonymously'
       })
@@ -846,12 +845,12 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
   try {
     pipe(
       isNotEmpty,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'You need to provide a display name for this group'
       }),
       makeSureThat(true, displayName, isShortString),
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A display name can be at most 1000 characters long'
       })
@@ -863,7 +862,7 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
   try {
     pipe(
       isIn,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'The visibility setting must be one of: ' + _.values(AuthzConstants.visibility)
       })
@@ -875,7 +874,7 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
   try {
     pipe(
       isIn,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'The joinable setting must be one of: ' + _.values(AuthzConstants.joinable)
       })
@@ -887,7 +886,7 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
   try {
     pipe(
       makeSureThat(Boolean(description), description, isMediumString),
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A description can only be 10000 characters long'
       })
@@ -905,7 +904,7 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
       if (role !== false) {
         pipe(
           isIn,
-          ifNotThenThrow({
+          otherwise({
             code: 400,
             msg: util.format('Role must be one of %s', validRoles.join(', '))
           })
@@ -966,7 +965,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
   try {
     pipe(
       isGroupId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid group id must be provided'
       })
@@ -978,7 +977,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
   try {
     pipe(
       isArrayNotEmpty,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'You should specify at least one field'
       })
@@ -1008,7 +1007,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
       } else if (fieldName === 'joinable') {
         pipe(
           isIn,
-          ifNotThenThrow({
+          otherwise({
             code: 400,
             msg: 'The joinable setting must be one of: ' + _.values(AuthzConstants.joinable)
           })
@@ -1016,7 +1015,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
       } else if (fieldName === 'displayName') {
         pipe(
           isNotEmpty,
-          ifNotThenThrow({
+          otherwise({
             code: 400,
             msg: 'A display name cannot be empty'
           })
@@ -1024,7 +1023,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
 
         pipe(
           isShortString,
-          ifNotThenThrow({
+          otherwise({
             code: 400,
             msg: 'A display name can be at most 1000 characters long'
           })
@@ -1032,7 +1031,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
       } else if (fieldName === 'description' && profileFields.description) {
         pipe(
           isMediumString,
-          ifNotThenThrow({
+          otherwise({
             code: 400,
             msg: 'A description can only be 10000 characters long'
           })
@@ -1046,7 +1045,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
   try {
     pipe(
       isLoggedInUser,
-      ifNotThenThrow({
+      otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to update a group'
       })
@@ -1122,7 +1121,7 @@ const deleteGroup = function(ctx, groupId, callback) {
   try {
     pipe(
       isGroupId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid group id must be provided'
       })
@@ -1167,7 +1166,7 @@ const restoreGroup = function(ctx, groupId, callback) {
   try {
     pipe(
       isGroupId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid group id must be provided'
       })
@@ -1307,7 +1306,7 @@ const _validateJoinGroupRequest = function(ctx, groupId, callback) {
   try {
     pipe(
       isGroupId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid group id must be provided'
       })
@@ -1319,7 +1318,7 @@ const _validateJoinGroupRequest = function(ctx, groupId, callback) {
   try {
     pipe(
       isLoggedInUser,
-      ifNotThenThrow({
+      otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to ask to join a group'
       })
@@ -1420,7 +1419,7 @@ const getJoinGroupRequest = function(ctx, groupId, callback) {
   try {
     pipe(
       isGroupId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid group id must be provided'
       })
@@ -1432,7 +1431,7 @@ const getJoinGroupRequest = function(ctx, groupId, callback) {
   try {
     pipe(
       isLoggedInUser,
-      ifNotThenThrow({
+      otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to ask to join a group'
       })
@@ -1466,7 +1465,7 @@ const _validateUpdateJoinGroupByRequest = function(ctx, joinRequest, callback) {
     try {
       pipe(
         isIn,
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: role + ' is not a recognized role group'
         })
@@ -1479,7 +1478,7 @@ const _validateUpdateJoinGroupByRequest = function(ctx, joinRequest, callback) {
   try {
     pipe(
       isPrincipalId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'Must specify a valid principalId'
       })
@@ -1489,7 +1488,7 @@ const _validateUpdateJoinGroupByRequest = function(ctx, joinRequest, callback) {
   }
 
   try {
-    pipe(isGroupId, ifNotThenThrow({ code: 400, msg: 'A valid group id must be provided' }))(groupId);
+    pipe(isGroupId, otherwise({ code: 400, msg: 'A valid group id must be provided' }))(groupId);
   } catch (error) {
     return callback(error);
   }
@@ -1497,7 +1496,7 @@ const _validateUpdateJoinGroupByRequest = function(ctx, joinRequest, callback) {
   try {
     pipe(
       isIn,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: status + ' is not a recognized request status'
       })
@@ -1505,7 +1504,7 @@ const _validateUpdateJoinGroupByRequest = function(ctx, joinRequest, callback) {
 
     pipe(
       isLoggedInUser,
-      ifNotThenThrow({
+      otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to ask to join a group'
       })

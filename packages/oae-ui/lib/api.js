@@ -34,7 +34,6 @@ import * as EmitterAPI from 'oae-emitter';
 import * as Sanitization from 'oae-util/lib/sanitization';
 import * as TZ from 'oae-util/lib/tz';
 import { Validator as validator } from 'oae-util/lib/validator';
-// const { otherwise } = validator;
 import { logger } from 'oae-logger';
 
 import { JSDOM } from 'jsdom';
@@ -270,37 +269,28 @@ const _widgetDirectoryFilter = function(entry) {
  * @param  {Object}      callback.data   JSON Object representing the retrieved files
  */
 const getStaticBatch = function(files, callback) {
+  const { isNotNull, isArrayNotEmpty, notContains, otherwise, makeSureThat, isNotEmpty } = validator;
   try {
     pipe(
-      validator.isNotNull,
-      validator.otherwise({
+      isNotNull,
+      otherwise({
         code: 400,
         msg: 'The files parameter must not be null'
       }),
-      validator.makeSureThat(true, files, validator.isArrayNotEmpty),
-      validator.ifNotThenThrow({
+      makeSureThat(true, files, isArrayNotEmpty),
+      otherwise({
         code: 400,
         msg: 'At least one file must be provided'
       })
     )(files);
-    /*
-      pipe(
-        validator.isArrayNotEmpty,
-        validator.otherwise({ code: 400, msg: 'At least one file must be provided' })
-      )(files);
-      */
-  } catch (error) {
-    return callback(error);
-  }
 
-  // Filter out the duplicate ones
-  files = _.uniq(files);
-  // Make sure that all provided filenames are real strings
-  try {
+    // Filter out the duplicate ones
+    files = _.uniq(files);
+    // Make sure that all provided filenames are real strings
     for (const element of files) {
       pipe(
-        validator.isNotEmpty,
-        validator.otherwise({
+        isNotEmpty,
+        otherwise({
           code: 400,
           msg: 'A valid file path needs to be provided'
         })
@@ -309,8 +299,8 @@ const getStaticBatch = function(files, callback) {
       // Make sure that only absolute paths are allowed. All paths that contain a '../' have the potential of
       // exposing private server files
       pipe(
-        validator.notContains,
-        validator.otherwise({
+        notContains,
+        otherwise({
           code: 400,
           msg: 'Only absolute paths are allowed'
         })

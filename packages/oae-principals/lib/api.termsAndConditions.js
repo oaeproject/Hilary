@@ -16,7 +16,7 @@
 /* eslint-disable unicorn/filename-case */
 import { setUpConfig } from 'oae-config';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { otherwise } = validator;
+const { isUserId, isLoggedInUser, otherwise } = validator;
 import pipe from 'ramda/src/pipe';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
@@ -73,7 +73,7 @@ const acceptTermsAndConditions = function(ctx, userId, callback) {
   // Perform some basic validation
   try {
     pipe(
-      validator.isUserId,
+      isUserId,
       otherwise({
         code: 400,
         msg: 'Invalid userId passed in'
@@ -81,7 +81,7 @@ const acceptTermsAndConditions = function(ctx, userId, callback) {
     )(userId);
 
     pipe(
-      validator.isLoggedInUser,
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'Only logged in users can accept the Terms and Conditions'

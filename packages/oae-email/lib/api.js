@@ -35,7 +35,7 @@ import * as UIAPI from 'oae-ui';
 import { htmlToText } from 'nodemailer-html-to-text';
 import * as TenantsAPI from 'oae-tenants';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { getNestedObject, makeSureThat, otherwise, isNotEmpty, isObject, isEmail } = validator;
+const { getNestedObject, isDefined, makeSureThat, otherwise, isNotEmpty, isObject, isEmail } = validator;
 import pipe from 'ramda/src/pipe';
 
 const EmailConfig = setUpConfig('oae-email');
@@ -412,26 +412,31 @@ const sendEmail = function(templateModule, templateId, recipient, data, opts, ca
       }
     };
 
-  /*
-  Const validator = new Validator();
-  validator.check(templateModule, { code: 400, msg: 'Must specify a template module' }).notEmpty();
-  validator.check(templateId, { code: 400, msg: 'Must specify a template id' }).notEmpty();
-  validator.check(null, { code: 400, msg: 'Must specify a user when sending an email' }).isObject(recipient);
+  try {
+    pipe(isNotEmpty, otherwise({ code: 400, msg: 'Must specify a template module' }))(templateModule);
+    pipe(isNotEmpty, otherwise({ code: 400, msg: 'Must specify a template id' }))(templateId);
+    pipe(isObject, otherwise({ code: 400, msg: 'Must specify a user when sending an email' }))(recipient);
 
-  // Only validate the user email if it was a valid object
-  if (recipient) {
-    validator
-      .check(recipient.email, {
-        code: 400,
-        msg: 'User must have a valid email address to receive email'
-      })
-      .isEmail();
+    // Only validate the user email if it was a valid object
+    if (recipient) {
+      pipe(
+        isDefined,
+        otherwise({
+          code: 400,
+          msg: 'User must have a valid email address to receive email'
+        })
+      )(recipient.email);
+      pipe(
+        isEmail,
+        otherwise({
+          code: 400,
+          msg: 'User must have a valid email address to receive email'
+        })
+      )(recipient.email);
+    }
+  } catch (error) {
+    return callback(error);
   }
-
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
-  */
 
   _abortIfRecipientErrors({ templateModule, templateId, recipient }, err => {
     if (err) return callback(err);

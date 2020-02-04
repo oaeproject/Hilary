@@ -18,7 +18,6 @@ import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
 import { Validator as validator } from 'oae-authz/lib/validator';
 const {
   makeSureThat,
-  ifNotThenThrow: otherwiseThrow,
   otherwise,
   isValidRoleChange,
   isLoggedInUser,
@@ -779,27 +778,27 @@ const createMessage = function(ctx, meetingId, body, replyToCreatedTimestamp, ca
   try {
     pipe(
       isLoggedInUser,
-      otherwiseThrow({
+      otherwise({
         code: 401,
         msg: 'Only authenticated users can post on meetings'
       }),
       makeSureThat(true, meetingId, isResourceId),
-      otherwiseThrow({
+      otherwise({
         code: 400,
         msg: 'Invalid meeting id provided'
       }),
       makeSureThat(true, body, isNotEmpty),
-      otherwiseThrow({
+      otherwise({
         code: 400,
         msg: 'A message body must be provided'
       }),
       makeSureThat(true, body, isLongString),
-      otherwiseThrow({
+      otherwise({
         code: 400,
         msg: 'A message body can only be 100000 characters long'
       }),
       makeSureThat(Boolean(replyToCreatedTimestamp), replyToCreatedTimestamp, isInt),
-      otherwiseThrow({
+      otherwise({
         code: 400,
         msg: 'Invalid reply-to timestamp provided'
       })
@@ -874,12 +873,12 @@ const deleteMessage = function(ctx, meetingId, messageCreatedDate, callback) {
         msg: 'Only authenticated users can delete messages'
       }),
       makeSureThat(true, meetingId, isResourceId),
-      otherwiseThrow({
+      otherwise({
         code: 400,
         msg: 'A meeting id must be provided'
       }),
       makeSureThat(true, messageCreatedDate, isInt),
-      otherwiseThrow({
+      otherwise({
         code: 400,
         msg: 'A valid integer message created timestamp must be specified'
       })

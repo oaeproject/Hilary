@@ -35,7 +35,6 @@ import * as Pubsub from 'oae-util/lib/pubsub';
 import { Validator as validator } from 'oae-util/lib/validator';
 const {
   makeSureThat,
-  ifNotThenThrow: otherwiseThrow,
   otherwise,
   isGlobalAdministratorUser,
   isNotEmpty,
@@ -540,7 +539,7 @@ const createTenant = function(ctx, alias, displayName, host, opts, callback) {
   try {
     pipe(
       isGlobalAdministratorUser,
-      otherwiseThrow({
+      otherwise({
         code: 401,
         msg: 'Only global administrators can create new tenants'
       })
@@ -575,7 +574,7 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
   try {
     pipe(
       isNotEmpty,
-      otherwiseThrow({
+      otherwise({
         code: 400,
         msg: 'Missing alias'
       })
@@ -596,17 +595,17 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
         msg: 'The tenant alias should not contain a colon'
       }),
       makeSureThat(true, displayName, isNotEmpty),
-      otherwiseThrow({
+      otherwise({
         code: 400,
         msg: 'Missing tenant displayName'
       }),
       makeSureThat(true, host, isNotEmpty),
-      otherwiseThrow({
+      otherwise({
         code: 400,
         msg: 'Missing tenant host'
       }),
       makeSureThat(true, host, isHost),
-      otherwiseThrow({
+      otherwise({
         code: 400,
         msg: 'Invalid hostname'
       })
@@ -628,12 +627,12 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
         msg: 'This hostname is reserved'
       }),
       makeSureThat(true, getTenant(alias), isNull),
-      otherwiseThrow({
+      otherwise({
         code: 400,
         msg: `A tenant with the alias ${alias} already exists`
       }),
       makeSureThat(true, getTenantByHost(host), isNull),
-      otherwiseThrow({
+      otherwise({
         code: 400,
         msg: `A tenant with the host ${host} already exists`
       })
@@ -744,7 +743,7 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
         msg: 'Missing alias'
       }),
       makeSureThat(true, getTenant(alias), isNotNull),
-      otherwiseThrow({
+      otherwise({
         code: 404,
         msg: util.format('Tenant with alias "%s" does not exist and cannot be updated', alias)
       })
@@ -759,7 +758,7 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
   try {
     pipe(
       isArrayNotEmpty,
-      otherwiseThrow({
+      otherwise({
         code: 400,
         msg: 'You should at least specify a new displayName or hostname'
       })
@@ -781,7 +780,7 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
       if (updateField === 'displayName') {
         pipe(
           isNotEmpty,
-          otherwiseThrow({
+          otherwise({
             code: 400,
             msg: 'A displayName cannot be empty'
           })
@@ -794,17 +793,17 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
         // Validate the lower-cased version
         pipe(
           isHost,
-          otherwiseThrow({ code: 400, msg: 'Invalid host' }),
+          otherwise({ code: 400, msg: 'Invalid host' }),
           makeSureThat(true, updateValue, isNotEmpty),
-          otherwiseThrow({ code: 400, msg: 'A hostname cannot be empty' }),
+          otherwise({ code: 400, msg: 'A hostname cannot be empty' }),
           makeSureThat(true, getTenantByHost(updateValue), isNull),
-          otherwiseThrow({
+          otherwise({
             code: 400,
             msg: 'The hostname has already been taken'
           })
         )(updateValue);
 
-        pipe(isDifferent, otherwiseThrow({ code: 400, msg: 'This hostname is reserved' }))(
+        pipe(isDifferent, otherwise({ code: 400, msg: 'This hostname is reserved' }))(
           updateValue,
           serverConfig.shibbolethSPHost.toLowerCase()
         );
@@ -819,7 +818,7 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
         // Only a global admin can update the email domain
         pipe(
           isGlobalAdministratorUser,
-          otherwiseThrow({ code: 401, msg: 'Only a global administrator can update the email domain' })
+          otherwise({ code: 401, msg: 'Only a global administrator can update the email domain' })
         )(ctx);
         // Validate the lower-cased version
         // TODO remove callback from this line below
@@ -829,7 +828,7 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
         tenantUpdates[updateField] = tenantUpdates[updateField].toUpperCase();
         pipe(
           isIso3166Country,
-          otherwiseThrow({
+          otherwise({
             code: 400,
             msg: 'The country code must be a valid ISO-3166 country code'
           })
@@ -1052,7 +1051,7 @@ const _validateEmailDomains = function(validator, emailDomains, updateTenantAlia
     pipe(
       // validator.isFQDN,
       isHost,
-      otherwiseThrow({
+      otherwise({
         code: 400,
         msg: 'Invalid email domain'
       })

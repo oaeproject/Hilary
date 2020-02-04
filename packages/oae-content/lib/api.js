@@ -45,7 +45,6 @@ import isIn from 'validator/lib/isIn';
 import { Validator as validator } from 'oae-util/lib/validator';
 const {
   makeSureThat,
-  ifNotThenThrow,
   otherwise,
   isANumber,
   isResourceId,
@@ -115,7 +114,7 @@ const getContent = function(ctx, contentId, callback) {
   try {
     pipe(
       isResourceId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A content id must be provided'
       })
@@ -156,7 +155,7 @@ const getFullContentProfile = function(ctx, contentId, callback) {
   try {
     pipe(
       isResourceId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A content id must be provided'
       })
@@ -285,7 +284,7 @@ const createLink = function(ctx, displayName, description, visibility, link, add
   try {
     pipe(
       isUrl,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid link must be provided'
       })
@@ -293,7 +292,7 @@ const createLink = function(ctx, displayName, description, visibility, link, add
 
     pipe(
       isLoggedInUser,
-      ifNotThenThrow({
+      otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to create a content item'
       })
@@ -450,7 +449,7 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
   try {
     pipe(
       isLoggedInUser,
-      ifNotThenThrow({
+      otherwise({
         code: 401,
         msg: 'Anonymous users are not allowed to upload files'
       })
@@ -458,7 +457,7 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
 
     pipe(
       isNotNull,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'Missing file parameter'
       })
@@ -466,7 +465,7 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
 
     pipe(
       isNotEmpty,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A display name must be provided'
       })
@@ -474,7 +473,7 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
 
     pipe(
       isShortString,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A display name can be at most 1000 characters long'
       })
@@ -487,7 +486,7 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
     try {
       pipe(
         isMediumString,
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: 'A content description can be at most 10000 characters long'
         })
@@ -501,7 +500,7 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
     try {
       pipe(
         isNotEmpty,
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: 'Missing size on the file object'
         })
@@ -509,7 +508,7 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
 
       pipe(
         isInt,
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: 'Invalid size on the file object'
         })
@@ -517,7 +516,7 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
 
       pipe(
         isInt,
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: 'Invalid size on the file object'
         })
@@ -525,7 +524,7 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
 
       pipe(
         isNotEmpty,
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: 'Missing name on the file object'
         })
@@ -771,7 +770,7 @@ const _createContent = function(
   try {
     pipe(
       isResourceId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A content ID must be provided'
       })
@@ -779,7 +778,7 @@ const _createContent = function(
 
     pipe(
       isNotEmpty,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A display name must be provided'
       })
@@ -787,7 +786,7 @@ const _createContent = function(
 
     pipe(
       isShortString,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A display name can be at most 1000 characters long'
       })
@@ -800,7 +799,7 @@ const _createContent = function(
     try {
       pipe(
         isMediumString,
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: 'A description can only be 10000 characters long'
         })
@@ -813,7 +812,7 @@ const _createContent = function(
   try {
     pipe(
       isIn,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"'
       })
@@ -821,7 +820,7 @@ const _createContent = function(
 
     pipe(
       isIn,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid resourceSubType must be provided. This can be "file", "collabdoc" or "link"'
       })
@@ -829,7 +828,7 @@ const _createContent = function(
 
     pipe(
       isLoggedInUser,
-      ifNotThenThrow({
+      otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to create a content item'
       })
@@ -848,7 +847,7 @@ const _createContent = function(
     _.each(roles, role => {
       pipe(
         isIn,
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
         })
@@ -918,7 +917,7 @@ const canManageFolders = function(ctx, folderIds, callback) {
       // Validate the folder id
       pipe(
         isResourceId,
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: 'Invalid folder id specified'
         })
@@ -1311,7 +1310,7 @@ const joinCollabDoc = function(ctx, contentId, callback) {
   try {
     pipe(
       isResourceId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A content id must be provided'
       })
@@ -1366,7 +1365,7 @@ const deleteContent = function(ctx, contentId, callback) {
   try {
     pipe(
       isResourceId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A content id must be provided'
       })
@@ -1374,7 +1373,7 @@ const deleteContent = function(ctx, contentId, callback) {
 
     pipe(
       isLoggedInUser,
-      ifNotThenThrow({
+      otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to delete a content item'
       })
@@ -1441,7 +1440,7 @@ const shareContent = function(ctx, contentId, principalIds, callback) {
   try {
     pipe(
       isResourceId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A content id must be provided'
       })
@@ -1449,7 +1448,7 @@ const shareContent = function(ctx, contentId, principalIds, callback) {
 
     pipe(
       isLoggedInUser,
-      ifNotThenThrow({
+      otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to share content'
       })
@@ -1550,7 +1549,7 @@ const setContentPermissions = function(ctx, contentId, changes, callback) {
   try {
     pipe(
       isLoggedInUser,
-      ifNotThenThrow({
+      otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to create a content item'
       })
@@ -1558,7 +1557,7 @@ const setContentPermissions = function(ctx, contentId, changes, callback) {
 
     pipe(
       isResourceId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A content id must be provided'
       })
@@ -1588,7 +1587,7 @@ const setContentPermissions = function(ctx, contentId, changes, callback) {
         if (role !== false) {
           pipe(
             isIn,
-            ifNotThenThrow({
+            otherwise({
               code: 400,
               msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
             })
@@ -1635,7 +1634,7 @@ const removeContentFromLibrary = function(ctx, libraryOwnerId, contentId, callba
   try {
     pipe(
       isLoggedInUser,
-      ifNotThenThrow({
+      otherwise({
         code: 401,
         msg: 'You must be authenticated to remove a piece of content from a library'
       })
@@ -1643,7 +1642,7 @@ const removeContentFromLibrary = function(ctx, libraryOwnerId, contentId, callba
 
     pipe(
       isPrincipalId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A user or group id must be provided'
       })
@@ -1651,7 +1650,7 @@ const removeContentFromLibrary = function(ctx, libraryOwnerId, contentId, callba
 
     pipe(
       isResourceId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid content id must be provided'
       })
@@ -1715,7 +1714,7 @@ const getContentMembersLibrary = function(ctx, contentId, start, limit, callback
   try {
     pipe(
       isResourceId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A content id must be provided'
       })
@@ -1723,7 +1722,7 @@ const getContentMembersLibrary = function(ctx, contentId, start, limit, callback
 
     pipe(
       isANumber,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid limit should be passed in'
       })
@@ -1809,7 +1808,7 @@ const getContentInvitations = function(ctx, contentId, callback) {
   try {
     pipe(
       isResourceId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid resource id must be specified'
       })
@@ -1840,7 +1839,7 @@ const resendContentInvitation = function(ctx, contentId, email, callback) {
   try {
     pipe(
       isResourceId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid resource id must be specified'
       })
@@ -1903,7 +1902,7 @@ const _updateFileBody = function(ctx, contentId, file, callback) {
   try {
     pipe(
       isLoggedInUser,
-      ifNotThenThrow({
+      otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to update a content item'
       })
@@ -1911,7 +1910,7 @@ const _updateFileBody = function(ctx, contentId, file, callback) {
 
     pipe(
       isResourceId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A content id must be provided'
       })
@@ -1919,7 +1918,7 @@ const _updateFileBody = function(ctx, contentId, file, callback) {
 
     pipe(
       isNotNull,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'Missing file parameter.'
       })
@@ -1932,7 +1931,7 @@ const _updateFileBody = function(ctx, contentId, file, callback) {
     try {
       pipe(
         isNotEmpty,
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: 'Missing size on the file object.'
         })
@@ -1940,7 +1939,7 @@ const _updateFileBody = function(ctx, contentId, file, callback) {
 
       pipe(
         isInt,
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: 'Invalid size on the file object.'
         })
@@ -1948,7 +1947,7 @@ const _updateFileBody = function(ctx, contentId, file, callback) {
 
       pipe(
         isInt,
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: 'Invalid size on the file object.'
         })
@@ -1956,7 +1955,7 @@ const _updateFileBody = function(ctx, contentId, file, callback) {
 
       pipe(
         isNotEmpty,
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: 'Missing name on the file object.'
         })
@@ -2063,7 +2062,7 @@ const setPreviewItems = function(
   try {
     pipe(
       isResourceId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'Missing or invalid contentId'
       })
@@ -2071,7 +2070,7 @@ const setPreviewItems = function(
 
     pipe(
       isResourceId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'Missing or invalid revisionId'
       })
@@ -2079,7 +2078,7 @@ const setPreviewItems = function(
 
     pipe(
       isIn,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'The status parameter must be one of: ' + validStatuses.join(', ')
       })
@@ -2256,14 +2255,14 @@ const getSignedPreviewDownloadInfo = function(ctx, contentId, revisionId, previe
   try {
     pipe(
       isResourceId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'Missing content ID'
       })
     )(contentId);
     pipe(
       isResourceId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'Missing revision ID'
       })
@@ -2271,7 +2270,7 @@ const getSignedPreviewDownloadInfo = function(ctx, contentId, revisionId, previe
 
     pipe(
       isNotEmpty,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'Missing preview item'
       })
@@ -2348,7 +2347,7 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
   try {
     pipe(
       isResourceId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A content id must be provided'
       })
@@ -2357,7 +2356,7 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
     // Check that at a minimum name or description have been provided
     pipe(
       isArrayNotEmpty,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'You should at least specify a new displayName, description, visibility or link'
       })
@@ -2379,7 +2378,7 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
       if (fieldName === 'displayName') {
         pipe(
           isNotEmpty,
-          ifNotThenThrow({
+          otherwise({
             code: 400,
             msg: 'A display name cannot be empty'
           })
@@ -2387,7 +2386,7 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
 
         pipe(
           isShortString,
-          ifNotThenThrow({
+          otherwise({
             code: 400,
             msg: 'A display name can be at most 1000 characters long'
           })
@@ -2395,7 +2394,7 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
       } else if (fieldName === 'description' && profileFields.description) {
         pipe(
           isMediumString,
-          ifNotThenThrow({
+          otherwise({
             code: 400,
             msg: 'A description can only be 10000 characters long'
           })
@@ -2403,7 +2402,7 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
       } else if (fieldName === 'link') {
         pipe(
           isUrl,
-          ifNotThenThrow({
+          otherwise({
             code: 400,
             msg: 'A valid link should be provided'
           })
@@ -2418,7 +2417,7 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
     try {
       pipe(
         isIn,
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: 'An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"'
         })
@@ -2431,7 +2430,7 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
   try {
     pipe(
       isLoggedInUser,
-      ifNotThenThrow({
+      otherwise({
         code: 401,
         msg: 'You have to be logged in to be able to update a content item'
       })
@@ -2494,7 +2493,7 @@ const createComment = function(ctx, contentId, body, replyToCreatedTimestamp, ca
   try {
     pipe(
       isLoggedInUser,
-      ifNotThenThrow({
+      otherwise({
         code: 401,
         msg: 'Only authorized users can post comments'
       })
@@ -2502,7 +2501,7 @@ const createComment = function(ctx, contentId, body, replyToCreatedTimestamp, ca
 
     pipe(
       isResourceId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'Invalid content resource id provided'
       })
@@ -2510,7 +2509,7 @@ const createComment = function(ctx, contentId, body, replyToCreatedTimestamp, ca
 
     pipe(
       isNotEmpty,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A comment must be provided'
       })
@@ -2518,7 +2517,7 @@ const createComment = function(ctx, contentId, body, replyToCreatedTimestamp, ca
 
     pipe(
       isLongString,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A comment can only be 100000 characters long'
       })
@@ -2527,7 +2526,7 @@ const createComment = function(ctx, contentId, body, replyToCreatedTimestamp, ca
     if (replyToCreatedTimestamp) {
       pipe(
         isInt,
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: 'Invalid reply-to timestamp provided'
         })
@@ -2587,7 +2586,7 @@ const getComments = function(ctx, contentId, start, limit, callback) {
   try {
     pipe(
       isResourceId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'Invalid content resource id provided'
       })
@@ -2595,7 +2594,7 @@ const getComments = function(ctx, contentId, start, limit, callback) {
 
     pipe(
       isInt,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid limit should be passed in'
       })
@@ -2656,7 +2655,7 @@ const deleteComment = function(ctx, contentId, commentCreatedDate, callback) {
   try {
     pipe(
       isLoggedInUser,
-      ifNotThenThrow({
+      otherwise({
         code: 401,
         msg: 'Only authorized users can delete comments'
       })
@@ -2664,7 +2663,7 @@ const deleteComment = function(ctx, contentId, commentCreatedDate, callback) {
 
     pipe(
       isResourceId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A content id must be provided'
       })
@@ -2672,7 +2671,7 @@ const deleteComment = function(ctx, contentId, commentCreatedDate, callback) {
 
     pipe(
       isInt,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid integer comment created timestamp must be specified'
       })
@@ -2773,7 +2772,7 @@ const getContentLibraryItems = function(ctx, principalId, start, limit, callback
   try {
     pipe(
       isPrincipalId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A user or group id must be provided'
       })
@@ -2781,7 +2780,7 @@ const getContentLibraryItems = function(ctx, principalId, start, limit, callback
 
     pipe(
       isInt,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid limit should be passed in'
       })
@@ -2860,7 +2859,7 @@ const getRevisions = function(ctx, contentId, start, limit, callback) {
   try {
     pipe(
       isResourceId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A contentId must be provided'
       })
@@ -2868,7 +2867,7 @@ const getRevisions = function(ctx, contentId, start, limit, callback) {
 
     pipe(
       isInt,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid limit should be passed in'
       })
@@ -2964,7 +2963,7 @@ const getRevision = function(ctx, contentId, revisionId, callback) {
   try {
     pipe(
       isResourceId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid contentId must be provided'
       })
@@ -2977,7 +2976,7 @@ const getRevision = function(ctx, contentId, revisionId, callback) {
     try {
       pipe(
         isResourceId,
-        ifNotThenThrow({
+        otherwise({
           code: 400,
           msg: 'A valid revisionId must be provided'
         })
@@ -3015,12 +3014,12 @@ const getRevisionDownloadInfo = function(ctx, contentId, revisionId, callback) {
   try {
     pipe(
       isResourceId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid contentId must be provided'
       }),
       makeSureThat(revisionId, revisionId, isResourceId),
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid revisionId must be provided'
       })
@@ -3161,7 +3160,7 @@ const restoreRevision = function(ctx, contentId, revisionId, callback) {
   try {
     pipe(
       isResourceId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid contentId must be provided'
       })
@@ -3169,7 +3168,7 @@ const restoreRevision = function(ctx, contentId, revisionId, callback) {
 
     pipe(
       isResourceId,
-      ifNotThenThrow({
+      otherwise({
         code: 400,
         msg: 'A valid revisionId must be provided'
       })

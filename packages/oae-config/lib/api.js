@@ -159,10 +159,11 @@ const getSchema = function(ctx, callback) {
  */
 const getTenantConfig = function(ctx, tenantAlias, callback) {
   // Parameter validation
+  const { isNotEmpty, otherwise } = validator;
   try {
     pipe(
-      validator.isNotEmpty,
-      validator.otherwise({
+      isNotEmpty,
+      otherwise({
         code: 400,
         msg: 'Missing tenant parameter'
       })
@@ -585,20 +586,21 @@ const updateConfig = function(ctx, tenantAlias, configValues, callback) {
     return callback({ code: 401, msg: 'Only authorized tenant admins can change config values' });
   }
 
+  const { isNotEmpty, isDefined, otherwise, isArrayNotEmpty } = validator;
   const configFieldNames = _.keys(configValues);
 
   try {
     pipe(
-      validator.isNotEmpty,
-      validator.otherwise({
+      isNotEmpty,
+      otherwise({
         code: 400,
         msg: 'Missing tenantid'
       })
     )(tenantAlias);
 
     pipe(
-      validator.isArrayNotEmpty,
-      validator.otherwise({
+      isArrayNotEmpty,
+      otherwise({
         code: 400,
         msg: 'Missing configuration. Example configuration: {"oae-authentication/twitter/enabled": false}'
       })
@@ -609,8 +611,8 @@ const updateConfig = function(ctx, tenantAlias, configValues, callback) {
       const configFieldValue = configValues[configFieldName];
 
       pipe(
-        validator.isDefined,
-        validator.otherwise({
+        isDefined,
+        otherwise({
           code: 400,
           msg: util.format('The configuration value for "%s" must be specified', configFieldName)
         })
@@ -704,18 +706,19 @@ const clearConfig = function(ctx, tenantAlias, configFields, callback) {
     return callback({ code: 401, msg: 'Only authorized tenant admins can change config values' });
   }
 
+  const { isNotEmpty, otherwise, isArrayNotEmpty, isDifferent } = validator;
   try {
     pipe(
-      validator.isNotEmpty,
-      validator.otherwise({
+      isNotEmpty,
+      otherwise({
         code: 400,
         msg: 'Missing tenant alias'
       })
     )(tenantAlias);
 
     pipe(
-      validator.isArrayNotEmpty,
-      validator.otherwise({
+      isArrayNotEmpty,
+      otherwise({
         code: 400,
         msg: 'Missing configuration. Example configuration: ["oae-authentication/twitter/enabled"]'
       })
@@ -727,8 +730,8 @@ const clearConfig = function(ctx, tenantAlias, configFields, callback) {
       // Check that we're not clearing both the entire element and one if its optional keys
       if (i > 0) {
         pipe(
-          validator.isDifferent,
-          validator.otherwise({
+          isDifferent,
+          otherwise({
             code: 400,
             msg: 'You cannot mix clearing an entire element and an optionalKey'
           })

@@ -54,6 +54,13 @@ Validator.otherwise = error => {
   };
 };
 
+// TODO JSDoc
+Validator.checkIfExists = validation => {
+  return function(value) {
+    return value ? validation(value) : true;
+  };
+};
+
 // TODO JSdoc
 Validator.makeSureThat = (condition, value, validation) => {
   return function() {

@@ -42,6 +42,7 @@ const {
   isObject,
   isUserId,
   makeSureThat,
+  checkIfExists,
   otherwise,
   isNotEmpty
 } = validator;
@@ -329,13 +330,17 @@ const getOrCreateUser = function(ctx, authProvider, externalId, providerProperti
       otherwise({
         code: 400,
         msg: 'You must provide a display name'
-      }),
-      makeSureThat(true, displayName, isShortString),
+      })
+    )(displayName);
+
+    pipe(
+      isShortString,
       otherwise({
         code: 400,
         msg: 'A display name can be at most 1000 characters long'
       })
     )(displayName);
+
     _validateLoginIdForPersistence(validator, loginId, callback);
   } catch (error) {
     return callback(error);
@@ -1400,7 +1405,7 @@ const _expandLoginId = function(loginIdStr) {
  */
 const _validateLoginIdForLookup = function(validator, loginId) {
   // Only validate these if loginId is a valid object
-  const loginIsValid = Boolean(loginId);
+  const ifLoginIsValid = Boolean(loginId);
   const getAttribute = getNestedObject(loginId);
 
   pipe(
@@ -1409,17 +1414,17 @@ const _validateLoginIdForLookup = function(validator, loginId) {
       code: 400,
       msg: 'Must specify a login id'
     }),
-    makeSureThat(loginIsValid, getAttribute(['tenantAlias']), isNotEmpty),
+    makeSureThat(ifLoginIsValid, getAttribute(['tenantAlias']), isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Must specify a tenant id on the login id'
     }),
-    makeSureThat(loginIsValid, getAttribute(['provider']), isNotEmpty),
+    makeSureThat(ifLoginIsValid, getAttribute(['provider']), isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Must specify an authentication provider on the login id'
     }),
-    makeSureThat(loginIsValid, String(getAttribute(['externalId'])), isNotEmpty),
+    makeSureThat(ifLoginIsValid, String(getAttribute(['externalId'])), isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Must specify an external id on the login id'

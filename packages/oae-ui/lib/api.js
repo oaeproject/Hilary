@@ -269,15 +269,18 @@ const _widgetDirectoryFilter = function(entry) {
  * @param  {Object}      callback.data   JSON Object representing the retrieved files
  */
 const getStaticBatch = function(files, callback) {
-  const { isNotNull, isArrayNotEmpty, notContains, otherwise, makeSureThat, isNotEmpty } = validator;
+  const { isNotNull, isArrayNotEmpty, notContains, otherwise, isNotEmpty } = validator;
   try {
     pipe(
       isNotNull,
       otherwise({
         code: 400,
         msg: 'The files parameter must not be null'
-      }),
-      makeSureThat(true, files, isArrayNotEmpty),
+      })
+    )(files);
+
+    pipe(
+      isArrayNotEmpty,
       otherwise({
         code: 400,
         msg: 'At least one file must be provided'

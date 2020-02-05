@@ -547,13 +547,16 @@ const getActivityStream = function(ctx, principalId, start, limit, transformerTy
       otherwise({
         code: 400,
         msg: 'Unknown activity transformer type'
-      }),
-      makeSureThat(true, principalId, isPrincipalId),
+      })
+    )(transformerType, _.values(ActivityConstants.transformerTypes));
+
+    pipe(
+      isPrincipalId,
       otherwise({
         code: 400,
         msg: 'You can only view activity streams for a principal'
       })
-    )(transformerType, _.values(ActivityConstants.transformerTypes));
+    )(principalId);
   } catch (error) {
     return callback(error);
   }
@@ -609,18 +612,24 @@ const getNotificationStream = function(ctx, userId, start, limit, transformerTyp
       otherwise({
         code: 400,
         msg: 'Unknown activity transformer type'
-      }),
-      makeSureThat(true, ctx, isLoggedInUser),
+      })
+    )(transformerType, _.values(ActivityConstants.transformerTypes));
+
+    pipe(
+      isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'You must be logged in to get a notification stream'
-      }),
-      makeSureThat(true, userId, isUserId),
+      })
+    )(ctx);
+
+    pipe(
+      isUserId,
       otherwise({
         code: 400,
         msg: 'You can only view the notification streams for a user'
       })
-    )(transformerType, _.values(ActivityConstants.transformerTypes));
+    )(userId);
   } catch (error) {
     return callback(error);
   }
@@ -688,63 +697,63 @@ const postActivity = function(ctx, activitySeed, callback) {
   }
 
   const getAttribute = getNestedObject(activitySeed);
-  const thereIsActivity = Boolean(activitySeed);
-  const thereIsActivityActor = thereIsActivity && activitySeed.actorResource;
-  const thereIsActivityObject = thereIsActivity && activitySeed.objectResource;
-  const thereIsActivityTarget = thereIsActivity && activitySeed.targetResource;
+  const ifThereIsActivity = Boolean(activitySeed);
+  const ifThereIsActivityActor = ifThereIsActivity && activitySeed.actorResource;
+  const ifThereIsActivityObject = ifThereIsActivity && activitySeed.objectResource;
+  const ifThereIsActivityTarget = ifThereIsActivity && activitySeed.targetResource;
 
   const runValidations = pipe(
-    makeSureThat(true, activitySeed, isObject),
+    isObject,
     otherwise({
       code: 400,
       msg: 'No activity seed provided.'
     }),
-    makeSureThat(thereIsActivity, getAttribute(['activityType']), isNotEmpty),
+    makeSureThat(ifThereIsActivity, getAttribute(['activityType']), isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Activity seed did not have an activity type.'
     }),
-    makeSureThat(thereIsActivity, getAttribute(['verb']), isNotEmpty),
+    makeSureThat(ifThereIsActivity, getAttribute(['verb']), isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Activity seed did not have a verb.'
     }),
-    makeSureThat(thereIsActivity, getAttribute(['published']), isANumber),
+    makeSureThat(ifThereIsActivity, getAttribute(['published']), isANumber),
     otherwise({
       code: 400,
       msg: 'Activity seed did not have a valid publish date.'
     }),
-    makeSureThat(thereIsActivity, getAttribute(['actorResource']), isObject),
+    makeSureThat(ifThereIsActivity, getAttribute(['actorResource']), isObject),
     otherwise({
       code: 400,
       msg: 'Activity seed did not have an actor resource'
     }),
-    makeSureThat(thereIsActivityActor, getAttribute(['actorResource', 'resourceId']), isNotEmpty),
+    makeSureThat(ifThereIsActivityActor, getAttribute(['actorResource', 'resourceId']), isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Actor of activity seed did not have a resourceId'
     }),
-    makeSureThat(thereIsActivityActor, getAttribute(['actorResource', 'resourceType']), isNotEmpty),
+    makeSureThat(ifThereIsActivityActor, getAttribute(['actorResource', 'resourceType']), isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Actor of activity seed did not have a resourceType'
     }),
-    makeSureThat(thereIsActivityObject, getAttribute(['objectResource', 'resourceId']), isNotEmpty),
+    makeSureThat(ifThereIsActivityObject, getAttribute(['objectResource', 'resourceId']), isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Object of activity seed was specified and did not have a resourceId'
     }),
-    makeSureThat(thereIsActivityObject, getAttribute(['objectResource', 'resourceType']), isNotEmpty),
+    makeSureThat(ifThereIsActivityObject, getAttribute(['objectResource', 'resourceType']), isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Object of activity seed was specified and did not have a resourceType'
     }),
-    makeSureThat(thereIsActivityTarget, getAttribute(['targetResource', 'resourceId']), isNotEmpty),
+    makeSureThat(ifThereIsActivityTarget, getAttribute(['targetResource', 'resourceId']), isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Target of activity seed was specified and did not have a resourceId'
     }),
-    makeSureThat(thereIsActivityTarget, getAttribute(['targetResource', 'resourceType']), isNotEmpty),
+    makeSureThat(ifThereIsActivityTarget, getAttribute(['targetResource', 'resourceType']), isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Target of activity seed was specified and did not have a resourceType'
@@ -752,7 +761,7 @@ const postActivity = function(ctx, activitySeed, callback) {
   );
 
   try {
-    runValidations();
+    runValidations(activitySeed);
   } catch (error) {
     return callback(error);
   }

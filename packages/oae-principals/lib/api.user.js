@@ -44,7 +44,7 @@ import { setUpConfig } from 'oae-config';
 import { Context } from 'oae-context';
 import { Validator as validator } from 'oae-util/lib/validator';
 const {
-  makeSureThat,
+  checkIfExists,
   otherwise,
   isShortString,
   isUserId,
@@ -630,8 +630,11 @@ const updateUser = function(ctx, userId, profileFields, callback) {
       otherwise({
         code: 400,
         msg: 'A valid user id must be provided'
-      }),
-      makeSureThat(true, userId, isUserId),
+      })
+    )(userId);
+
+    pipe(
+      isUserId,
       otherwise({
         code: 400,
         msg: 'A valid user id must be provided'
@@ -659,8 +662,11 @@ const updateUser = function(ctx, userId, profileFields, callback) {
         otherwise({
           code: 400,
           msg: 'A display name cannot be empty'
-        }),
-        makeSureThat(true, profileFields.displayName, isShortString),
+        })
+      )(profileFields.displayName);
+
+      pipe(
+        isShortString,
         otherwise({
           code: 400,
           msg: 'A display name can be at most 1000 characters long'

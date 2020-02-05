@@ -44,7 +44,7 @@ import isInt from 'validator/lib/isInt';
 import isIn from 'validator/lib/isIn';
 import { Validator as validator } from 'oae-util/lib/validator';
 const {
-  makeSureThat,
+  checkIfExists,
   otherwise,
   isANumber,
   isResourceId,
@@ -3017,13 +3017,16 @@ const getRevisionDownloadInfo = function(ctx, contentId, revisionId, callback) {
       otherwise({
         code: 400,
         msg: 'A valid contentId must be provided'
-      }),
-      makeSureThat(revisionId, revisionId, isResourceId),
+      })
+    )(contentId);
+
+    pipe(
+      checkIfExists(isResourceId),
       otherwise({
         code: 400,
         msg: 'A valid revisionId must be provided'
       })
-    )(contentId);
+    )(revisionId);
   } catch (error) {
     return callback(error);
   }

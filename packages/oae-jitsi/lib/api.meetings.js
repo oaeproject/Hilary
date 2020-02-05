@@ -17,7 +17,7 @@ import { logger } from 'oae-logger';
 import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
 import { Validator as validator } from 'oae-authz/lib/validator';
 const {
-  makeSureThat,
+  checkIfExists,
   otherwise,
   isValidRoleChange,
   isLoggedInUser,
@@ -781,28 +781,40 @@ const createMessage = function(ctx, meetingId, body, replyToCreatedTimestamp, ca
       otherwise({
         code: 401,
         msg: 'Only authenticated users can post on meetings'
-      }),
-      makeSureThat(true, meetingId, isResourceId),
+      })
+    )(ctx);
+
+    pipe(
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'Invalid meeting id provided'
-      }),
-      makeSureThat(true, body, isNotEmpty),
+      })
+    )(meetingId);
+
+    pipe(
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'A message body must be provided'
-      }),
-      makeSureThat(true, body, isLongString),
+      })
+    )(body);
+
+    pipe(
+      isLongString,
       otherwise({
         code: 400,
         msg: 'A message body can only be 100000 characters long'
-      }),
-      makeSureThat(Boolean(replyToCreatedTimestamp), replyToCreatedTimestamp, isInt),
+      })
+    )(body);
+
+    pipe(
+      checkIfExists(isInt),
       otherwise({
         code: 400,
         msg: 'Invalid reply-to timestamp provided'
       })
-    )(ctx);
+    )(replyToCreatedTimestamp);
   } catch (error) {
     return callback(error);
   }
@@ -871,18 +883,24 @@ const deleteMessage = function(ctx, meetingId, messageCreatedDate, callback) {
       otherwise({
         code: 401,
         msg: 'Only authenticated users can delete messages'
-      }),
-      makeSureThat(true, meetingId, isResourceId),
+      })
+    )(ctx);
+
+    pipe(
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'A meeting id must be provided'
-      }),
-      makeSureThat(true, messageCreatedDate, isInt),
+      })
+    )(meetingId);
+
+    pipe(
+      isInt,
       otherwise({
         code: 400,
         msg: 'A valid integer message created timestamp must be specified'
       })
-    )(ctx);
+    )(messageCreatedDate);
   } catch (error) {
     return callback(error);
   }

@@ -34,7 +34,6 @@ import * as OaeUtil from 'oae-util/lib/util';
 import * as Pubsub from 'oae-util/lib/pubsub';
 import { Validator as validator } from 'oae-util/lib/validator';
 const {
-  makeSureThat,
   otherwise,
   isGlobalAdministratorUser,
   isNotEmpty,
@@ -593,23 +592,32 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
       otherwise({
         code: 400,
         msg: 'The tenant alias should not contain a colon'
-      }),
-      makeSureThat(true, displayName, isNotEmpty),
+      })
+    )(alias, ':');
+
+    pipe(
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'Missing tenant displayName'
-      }),
-      makeSureThat(true, host, isNotEmpty),
+      })
+    )(displayName);
+
+    pipe(
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'Missing tenant host'
-      }),
-      makeSureThat(true, host, isHost),
+      })
+    )(host);
+
+    pipe(
+      isHost,
       otherwise({
         code: 400,
         msg: 'Invalid hostname'
       })
-    )(alias, ':');
+    )(host);
   } catch (error) {
     return callback(error);
   }
@@ -625,18 +633,24 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
       otherwise({
         code: 400,
         msg: 'This hostname is reserved'
-      }),
-      makeSureThat(true, getTenant(alias), isNull),
+      })
+    )(host, serverConfig.shibbolethSPHost);
+
+    pipe(
+      isNull,
       otherwise({
         code: 400,
         msg: `A tenant with the alias ${alias} already exists`
-      }),
-      makeSureThat(true, getTenantByHost(host), isNull),
+      })
+    )(getTenant(alias));
+
+    pipe(
+      isNull,
       otherwise({
         code: 400,
         msg: `A tenant with the host ${host} already exists`
       })
-    )(host, serverConfig.shibbolethSPHost);
+    )(getTenantByHost(host));
   } catch (error) {
     return callback(error);
   }
@@ -741,13 +755,16 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
       otherwise({
         code: 400,
         msg: 'Missing alias'
-      }),
-      makeSureThat(true, getTenant(alias), isNotNull),
+      })
+    )(alias);
+
+    pipe(
+      isNotNull,
       otherwise({
         code: 404,
         msg: util.format('Tenant with alias "%s" does not exist and cannot be updated', alias)
       })
-    )(alias);
+    )(getTenant(alias));
   } catch (error) {
     return callback(error);
   }
@@ -791,17 +808,17 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
         tenantUpdates[updateField] = updateValue;
 
         // Validate the lower-cased version
+        pipe(isHost, otherwise({ code: 400, msg: 'Invalid host' }))(updateValue);
+
+        pipe(isNotEmpty, otherwise({ code: 400, msg: 'A hostname cannot be empty' }))(updateValue);
+
         pipe(
-          isHost,
-          otherwise({ code: 400, msg: 'Invalid host' }),
-          makeSureThat(true, updateValue, isNotEmpty),
-          otherwise({ code: 400, msg: 'A hostname cannot be empty' }),
-          makeSureThat(true, getTenantByHost(updateValue), isNull),
+          isNull,
           otherwise({
             code: 400,
             msg: 'The hostname has already been taken'
           })
-        )(updateValue);
+        )(getTenantByHost(updateValue));
 
         pipe(isDifferent, otherwise({ code: 400, msg: 'This hostname is reserved' }))(
           updateValue,
@@ -821,8 +838,7 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
           otherwise({ code: 401, msg: 'Only a global administrator can update the email domain' })
         )(ctx);
         // Validate the lower-cased version
-        // TODO remove callback from this line below
-        _validateEmailDomains(validator, updateValue, alias, callback);
+        _validateEmailDomains(validator, updateValue, alias);
       } else if (updateField === 'countryCode' && tenantUpdates[updateField]) {
         // Ensure the country code is upper case
         tenantUpdates[updateField] = tenantUpdates[updateField].toUpperCase();

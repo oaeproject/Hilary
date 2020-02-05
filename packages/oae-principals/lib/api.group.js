@@ -33,7 +33,7 @@ import { Validator as validator } from 'oae-authz/lib/validator';
 const {
   isShortString,
   isMediumString,
-  makeSureThat,
+  checkIfExists,
   otherwise,
   isLoggedInUser,
   isNotEmpty,
@@ -838,28 +838,20 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
         msg: 'Cannot create a group anonymously'
       })
     )(ctx);
-  } catch (error) {
-    return callback(error);
-  }
-
-  try {
     pipe(
       isNotEmpty,
       otherwise({
         code: 400,
         msg: 'You need to provide a display name for this group'
-      }),
-      makeSureThat(true, displayName, isShortString),
+      })
+    )(displayName);
+    pipe(
+      isShortString,
       otherwise({
         code: 400,
         msg: 'A display name can be at most 1000 characters long'
       })
     )(displayName);
-  } catch (error) {
-    return callback(error);
-  }
-
-  try {
     pipe(
       isIn,
       otherwise({
@@ -867,11 +859,6 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
         msg: 'The visibility setting must be one of: ' + _.values(AuthzConstants.visibility)
       })
     )(visibility, _.values(AuthzConstants.visibility));
-  } catch (error) {
-    return callback(error);
-  }
-
-  try {
     pipe(
       isIn,
       otherwise({
@@ -879,13 +866,8 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
         msg: 'The joinable setting must be one of: ' + _.values(AuthzConstants.joinable)
       })
     )(joinable, _.values(AuthzConstants.joinable));
-  } catch (error) {
-    return callback(error);
-  }
-
-  try {
     pipe(
-      makeSureThat(Boolean(description), description, isMediumString),
+      checkIfExists(isMediumString),
       otherwise({
         code: 400,
         msg: 'A description can only be 10000 characters long'

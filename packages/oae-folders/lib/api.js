@@ -124,12 +124,8 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
         msg: 'A display name can be at most 1000 characters long'
       })
     )(displayName);
-  } catch (error) {
-    return callback(error);
-  }
 
-  if (description) {
-    try {
+    if (description) {
       pipe(
         isMediumString,
         otherwise({
@@ -137,12 +133,8 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
           msg: 'A description can be at most 10000 characters long'
         })
       )(description);
-    } catch (error) {
-      return callback(error);
     }
-  }
 
-  try {
     pipe(
       isIn,
       otherwise({

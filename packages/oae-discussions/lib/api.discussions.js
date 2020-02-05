@@ -36,7 +36,6 @@ import { Validator as validator } from 'oae-authz/lib/validator';
 const {
   getNestedObject,
   isValidRoleChange,
-  makeSureThat,
   otherwise,
   isLoggedInUser,
   isUserId,
@@ -135,12 +134,8 @@ const createDiscussion = function(ctx, displayName, description, visibility, rol
         msg: 'An invalid discussion visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
       })
     )(visibility, allVisibilities);
-  } catch (error) {
-    return callback(error);
-  }
 
-  // Verify each role is valid
-  try {
+    // Verify each role is valid
     _.each(roles, (role, memberId) => {
       pipe(
         isIn,
@@ -217,11 +212,7 @@ const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
         msg: 'You should at least one profile field to update'
       })
     )(_.keys(profileFields));
-  } catch (error) {
-    return callback(error);
-  }
 
-  try {
     _.each(profileFields, (value, field) => {
       pipe(
         isIn,
@@ -809,11 +800,7 @@ const setDiscussionPermissions = function(ctx, discussionId, changes, callback) 
         msg: 'A valid discussion id must be provided'
       })
     )(discussionId);
-  } catch (error) {
-    return callback(error);
-  }
 
-  try {
     _.each(changes, (role, principalId) => {
       pipe(
         isValidRoleChange,
@@ -977,28 +964,38 @@ const createMessage = function(ctx, discussionId, body, replyToCreatedTimestamp,
       otherwise({
         code: 401,
         msg: 'Only authenticated users can post on discussions'
-      }),
-      makeSureThat(true, discussionId, isResourceId),
+      })
+    )(ctx);
+    pipe(
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'Invalid discussion id provided'
-      }),
-      makeSureThat(true, body, isNotEmpty),
+      })
+    )(discussionId);
+    pipe(
+      isNotEmpty,
       otherwise({
         code: 400,
         msg: 'A discussion body must be provided'
-      }),
-      makeSureThat(true, body, isLongString),
+      })
+    )(body);
+    pipe(
+      isLongString,
       otherwise({
         code: 400,
         msg: 'A discussion body can only be 100000 characters long'
-      }),
-      makeSureThat(Boolean(replyToCreatedTimestamp), replyToCreatedTimestamp, isInt),
-      otherwise({
-        code: 400,
-        msg: 'Invalid reply-to timestamp provided'
       })
-    )(ctx);
+    )(body);
+    if (replyToCreatedTimestamp) {
+      pipe(
+        isInt,
+        otherwise({
+          code: 400,
+          msg: 'Invalid reply-to timestamp provided'
+        })
+      )(replyToCreatedTimestamp);
+    }
   } catch (error) {
     return callback(error);
   }
@@ -1067,25 +1064,28 @@ const createMessage = function(ctx, discussionId, body, replyToCreatedTimestamp,
  * @param  {Comment}    [callback.softDeleted]  When the message has been soft deleted (because it has replies), a stripped down message object representing the deleted message will be returned, with the `deleted` parameter set to `false`. If the message has been deleted from the index, no message object will be returned
  */
 const deleteMessage = function(ctx, discussionId, messageCreatedDate, callback) {
-  const inAnyCase = true;
   try {
     pipe(
       isLoggedInUser,
       otherwise({
         code: 401,
         msg: 'Only authenticated users can delete messages'
-      }),
-      makeSureThat(inAnyCase, discussionId, isResourceId),
+      })
+    )(ctx);
+    pipe(
+      isResourceId,
       otherwise({
         code: 400,
         msg: 'A discussion id must be provided'
-      }),
-      makeSureThat(inAnyCase, messageCreatedDate, isInt),
+      })
+    )(discussionId);
+    pipe(
+      isInt,
       otherwise({
         code: 400,
         msg: 'A valid integer message created timestamp must be specified'
       })
-    )(ctx);
+    )(messageCreatedDate);
   } catch (error) {
     return callback(error);
   }
@@ -1166,13 +1166,15 @@ const getMessages = function(ctx, discussionId, start, limit, callback) {
       otherwise({
         code: 400,
         msg: 'Must provide a valid discussion id'
-      }),
-      makeSureThat(true, String(limit), isInt),
+      })
+    )(discussionId);
+    pipe(
+      isInt,
       otherwise({
         code: 400,
         msg: 'Must provide a valid limit'
       })
-    )(discussionId);
+    )(String(limit));
   } catch (error) {
     return callback(error);
   }

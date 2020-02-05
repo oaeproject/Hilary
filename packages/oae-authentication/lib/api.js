@@ -42,7 +42,6 @@ const {
   isObject,
   isUserId,
   makeSureThat,
-  checkIfExists,
   otherwise,
   isNotEmpty
 } = validator;

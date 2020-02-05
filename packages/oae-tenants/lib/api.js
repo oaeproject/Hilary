@@ -34,7 +34,6 @@ import * as OaeUtil from 'oae-util/lib/util';
 import * as Pubsub from 'oae-util/lib/pubsub';
 import { Validator as validator } from 'oae-util/lib/validator';
 const {
-  checkIfExists,
   otherwise,
   isGlobalAdministratorUser,
   isNotEmpty,

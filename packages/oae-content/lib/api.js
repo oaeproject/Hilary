@@ -478,12 +478,8 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
         msg: 'A display name can be at most 1000 characters long'
       })
     )(displayName);
-  } catch (error) {
-    return callback(error);
-  }
 
-  if (description) {
-    try {
+    if (description) {
       pipe(
         isMediumString,
         otherwise({
@@ -491,13 +487,9 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
           msg: 'A content description can be at most 10000 characters long'
         })
       )(description);
-    } catch (error) {
-      return callback(error);
     }
-  }
 
-  if (file) {
-    try {
+    if (file) {
       pipe(
         isNotEmpty,
         otherwise({
@@ -529,9 +521,9 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
           msg: 'Missing name on the file object'
         })
       )(file.name);
-    } catch (error) {
-      return callback(error);
     }
+  } catch (error) {
+    return callback(error);
   }
 
   // Generate a content ID that can be used when storing the file.
@@ -791,12 +783,8 @@ const _createContent = function(
         msg: 'A display name can be at most 1000 characters long'
       })
     )(displayName);
-  } catch (error) {
-    return callback(error);
-  }
 
-  if (description) {
-    try {
+    if (description) {
       pipe(
         isMediumString,
         otherwise({
@@ -804,12 +792,8 @@ const _createContent = function(
           msg: 'A description can only be 10000 characters long'
         })
       )(description);
-    } catch (error) {
-      return callback(error);
     }
-  }
 
-  try {
     pipe(
       isIn,
       otherwise({
@@ -833,17 +817,13 @@ const _createContent = function(
         msg: 'You have to be logged in to be able to create a content item'
       })
     )(ctx);
-  } catch (error) {
-    return callback(error);
-  }
 
-  // Ensure all roles applied are valid. Editor is only valid for collabdocs
-  const validRoles = [AuthzConstants.role.VIEWER, AuthzConstants.role.MANAGER];
-  if (ContentUtils.isResourceACollabDoc(resourceSubType) || ContentUtils.isResourceACollabSheet(resourceSubType)) {
-    validRoles.push(AuthzConstants.role.EDITOR);
-  }
+    // Ensure all roles applied are valid. Editor is only valid for collabdocs
+    const validRoles = [AuthzConstants.role.VIEWER, AuthzConstants.role.MANAGER];
+    if (ContentUtils.isResourceACollabDoc(resourceSubType) || ContentUtils.isResourceACollabSheet(resourceSubType)) {
+      validRoles.push(AuthzConstants.role.EDITOR);
+    }
 
-  try {
     _.each(roles, role => {
       pipe(
         isIn,
@@ -1923,12 +1903,8 @@ const _updateFileBody = function(ctx, contentId, file, callback) {
         msg: 'Missing file parameter.'
       })
     )(file);
-  } catch (error) {
-    return callback(error);
-  }
 
-  if (file) {
-    try {
+    if (file) {
       pipe(
         isNotEmpty,
         otherwise({
@@ -1960,9 +1936,9 @@ const _updateFileBody = function(ctx, contentId, file, callback) {
           msg: 'Missing name on the file object.'
         })
       )(file.name);
-    } catch (error) {
-      return callback(error);
     }
+  } catch (error) {
+    return callback(error);
   }
 
   _canManage(ctx, contentId, (err, contentObj) => {
@@ -2361,11 +2337,7 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
         msg: 'You should at least specify a new displayName, description, visibility or link'
       })
     )(fieldNames);
-  } catch (error) {
-    return callback(error);
-  }
 
-  try {
     for (const fieldName of fieldNames) {
       pipe(
         isIn,
@@ -2409,12 +2381,8 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
         )(profileFields.link);
       }
     }
-  } catch (error) {
-    return callback(error);
-  }
 
-  if (profileFields.visibility) {
-    try {
+    if (profileFields.visibility) {
       pipe(
         isIn,
         otherwise({
@@ -2422,12 +2390,8 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
           msg: 'An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"'
         })
       )(profileFields.visibility, _.values(AuthzConstants.visibility));
-    } catch (error) {
-      return callback(error);
     }
-  }
 
-  try {
     pipe(
       isLoggedInUser,
       otherwise({
@@ -2968,12 +2932,8 @@ const getRevision = function(ctx, contentId, revisionId, callback) {
         msg: 'A valid contentId must be provided'
       })
     )(contentId);
-  } catch (error) {
-    return callback(error);
-  }
 
-  if (revisionId) {
-    try {
+    if (revisionId) {
       pipe(
         isResourceId,
         otherwise({
@@ -2981,9 +2941,9 @@ const getRevision = function(ctx, contentId, revisionId, callback) {
           msg: 'A valid revisionId must be provided'
         })
       )(revisionId);
-    } catch (error) {
-      return callback(error);
     }
+  } catch (error) {
+    return callback(error);
   }
 
   // Check if the user has access to this content item

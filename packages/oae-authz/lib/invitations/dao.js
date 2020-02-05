@@ -236,11 +236,7 @@ const createInvitations = function(resourceId, emailRoles, inviterUserId, callba
         msg: 'Specified resource must have a valid resource id'
       })
     )(resourceId);
-  } catch (error) {
-    return callback(error);
-  }
 
-  try {
     _.each(emailRoles, (role, email) => {
       pipe(
         isEmail,
@@ -258,11 +254,7 @@ const createInvitations = function(resourceId, emailRoles, inviterUserId, callba
         })
       )(role);
     });
-  } catch (error) {
-    return callback(error);
-  }
 
-  try {
     pipe(
       isUserId,
       otherwise({
@@ -334,11 +326,7 @@ const updateInvitationRoles = function(resourceId, emailRoles, callback) {
         msg: 'Specified resource must have a valid resource id'
       })
     )(resourceId);
-  } catch (error) {
-    return callback(error);
-  }
 
-  try {
     _.each(emailRoles, (role, email) => {
       pipe(
         isEmail,

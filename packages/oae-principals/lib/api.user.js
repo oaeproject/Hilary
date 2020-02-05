@@ -44,7 +44,6 @@ import { setUpConfig } from 'oae-config';
 import { Context } from 'oae-context';
 import { Validator as validator } from 'oae-util/lib/validator';
 const {
-  checkIfExists,
   otherwise,
   isShortString,
   isUserId,

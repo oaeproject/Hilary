@@ -89,11 +89,7 @@ const getDirectRoles = function(principalIds, resourceId, callback) {
         msg: 'Invalid non-user resource id provided'
       })
     )(resourceId);
-  } catch (error) {
-    return callback(error);
-  }
 
-  try {
     _.each(principalIds, principalId => {
       pipe(
         isPrincipalId,
@@ -401,11 +397,7 @@ const updateRoles = function(resourceId, changes, callback) {
         msg: 'At least one role change needs to be applied'
       })
     )(roleChanges);
-  } catch (error) {
-    return callback(error);
-  }
 
-  try {
     for (const principalId of roleChanges) {
       pipe(
         isPrincipalId,
@@ -1409,11 +1401,7 @@ const getRolesForPrincipalsAndResourceType = function(principalIds, resourceType
         msg: 'At least one principal Id needs to be passed in'
       })
     )(principalIds);
-  } catch (error) {
-    return callback(error);
-  }
 
-  try {
     for (const principalId of principalIds) {
       pipe(
         isPrincipalId,

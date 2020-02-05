@@ -134,12 +134,8 @@ const createDiscussion = function(ctx, displayName, description, visibility, rol
         msg: 'An invalid discussion visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
       })
     )(visibility, allVisibilities);
-  } catch (error) {
-    return callback(error);
-  }
 
-  // Verify each role is valid
-  try {
+    // Verify each role is valid
     _.each(roles, (role, memberId) => {
       pipe(
         isIn,
@@ -216,11 +212,7 @@ const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
         msg: 'You should at least one profile field to update'
       })
     )(_.keys(profileFields));
-  } catch (error) {
-    return callback(error);
-  }
 
-  try {
     _.each(profileFields, (value, field) => {
       pipe(
         isIn,
@@ -808,11 +800,7 @@ const setDiscussionPermissions = function(ctx, discussionId, changes, callback) 
         msg: 'A valid discussion id must be provided'
       })
     )(discussionId);
-  } catch (error) {
-    return callback(error);
-  }
 
-  try {
     _.each(changes, (role, principalId) => {
       pipe(
         isValidRoleChange,

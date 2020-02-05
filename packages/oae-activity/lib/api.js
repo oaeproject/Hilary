@@ -669,7 +669,11 @@ const markNotificationsRead = function(ctx, callback) {
   ActivityNotifications.markNotificationsRead(ctx.user(), callback);
 };
 
-// TODO Jsdoc
+/**
+ * @function isActivityFeedDisabled
+ * @param  {Context}       ctx              Standard context object containing the current user and the current tenant
+ * @return {Boolean|String|Number|Object}   cachedConfiguration     The requested config value e.g. `true`. This will be null if the config element cannot be found
+ */
 const isActivityFeedDisabled = ctx => {
   return !ActivityConfig.getValue(ctx.tenant().alias, 'activity', 'enabled');
 };

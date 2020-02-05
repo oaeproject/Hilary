@@ -838,8 +838,7 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
           otherwise({ code: 401, msg: 'Only a global administrator can update the email domain' })
         )(ctx);
         // Validate the lower-cased version
-        // TODO remove callback from this line below
-        _validateEmailDomains(validator, updateValue, alias, callback);
+        _validateEmailDomains(validator, updateValue, alias);
       } else if (updateField === 'countryCode' && tenantUpdates[updateField]) {
         // Ensure the country code is upper case
         tenantUpdates[updateField] = tenantUpdates[updateField].toUpperCase();

@@ -1456,8 +1456,6 @@ const _validateLoginIdForPersistence = function(validator, loginId, callback) {
         code: 400,
         msg: 'Must specify a password at least 6 characters long'
       })
-      // TODO this || doesnt make much sense, does it
-      // )(loginId.properties.password || '', { min: 6 });
     )(password || '', { min: 6 });
   }
 };

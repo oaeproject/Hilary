@@ -16,7 +16,8 @@
 import _ from 'underscore';
 import * as tz from 'oae-util/lib/tz';
 import * as OAEUI from 'oae-ui';
-import { is, isNil, isEmpty } from 'ramda';
+import { is } from 'ramda';
+// import { is, isNil, isEmpty } from 'ramda';
 
 import Validator from 'validator';
 
@@ -24,17 +25,31 @@ const HOST_REGEX = /^(?=.{1,255}$)[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-
 
 let countriesByCode = null;
 
-const _isNumber = value => {
-  return is(Number, value);
-};
-
 const _isString = value => {
   return is(String, value);
 };
 
-const _isObject = value => {
-  return is(Object, value);
-};
+/**
+ const _isNumber = value => {
+   return is(Number, value);
+  };
+  
+  const _isArray = value => {
+    return is(Array, value);
+  };
+  
+  const _isObject = value => {
+    return is(Object, value);
+  };
+  
+  const _isFunction = value => {
+    return is(Function, value);
+  };
+  
+  const _isBoolean = value => {
+    return is(Boolean, value);
+  };
+  */
 
 /**
  * @function isDifferent
@@ -47,7 +62,7 @@ const _isObject = value => {
  * isDifferent('abcd', 'abcde'); // true
  * ```
  */
-// TODO optimise
+// TODO optimise with equals
 Validator.isDifferent = (input, notEqualsTo) => {
   return !Validator.equals(String(input), notEqualsTo);
 };
@@ -62,7 +77,7 @@ Validator.isDifferent = (input, notEqualsTo) => {
  * isNotEmpty('abcd'); // true
  * ```
  */
-// TODO optimise
+// TODO optimise with isEmpty from R
 Validator.isNotEmpty = input => {
   input = input || '';
   return !Validator.isEmpty(input.trim());
@@ -79,7 +94,6 @@ Validator.isNotEmpty = input => {
  * notContains('abcde', 'org'); // true
  * ```
  */
-// TODO optimise
 Validator.notContains = (string, seed) => {
   return !Validator.contains(string, seed);
 };
@@ -94,8 +108,8 @@ Validator.notContains = (string, seed) => {
  * isNull(true); // false
  * ```
  */
-// TODO optimise
 Validator.isNull = input => {
+  // return isNil(input);
   return !input;
 };
 
@@ -109,8 +123,8 @@ Validator.isNull = input => {
  * isNotNull(null); // false
  * ```
  */
-// TODO optimise
 Validator.isNotNull = input => {
+  // return !isNil(input);
   return !Validator.isNull(input);
 };
 
@@ -272,7 +286,7 @@ Validator.isGlobalAdministratorUser = ctx => {
  * validator.check(null, error).isObject(obj);
  * ```
  */
-// TODO optimise
+// TODO optimise with isObject from R
 Validator.isObject = function(obj) {
   return _.isObject(obj);
 };
@@ -287,8 +301,8 @@ Validator.isObject = function(obj) {
  * isANumber('popo'); // false
  * ```
  */
-// TODO optimise
 Validator.isANumber = input => {
+  // return _isNumber(input);
   return Validator.isNumeric(String(input));
 };
 
@@ -304,8 +318,9 @@ Validator.isANumber = input => {
  * validator.isArray(arr); // true
  * ```
  */
-// TODO optimise
+// TODO optimise with isArray from R
 Validator.isArray = function(arr) {
+  // return Validator.isArray(arr);
   return _.isArray(arr);
 };
 
@@ -319,8 +334,9 @@ Validator.isArray = function(arr) {
  * isArrayNotEmpty(new Array()); // false
  * ```
  */
-// TODO optimise
+// TODO optimise with isEmpty from R
 Validator.isArrayNotEmpty = arr => {
+  // return _isArray(arr) && isEmpty(arr);
   return Validator.isArray(arr) && _.size(arr) > 0;
 };
 
@@ -334,8 +350,9 @@ Validator.isArrayNotEmpty = arr => {
  * isArrayEmpty(new Array()); // true
  * ```
  */
-// TODO optimise
+// TODO optimise with isEmpty from R
 Validator.isArrayEmpty = arr => {
+  // return isEmpty(arr);
   return Validator.isArray(arr) && _.size(arr) === 0;
 };
 
@@ -351,7 +368,7 @@ Validator.isArrayEmpty = arr => {
  * validator.isBoolean(val); // true
  * ```
  */
-// TODO optimise
+// TODO optimise with isBoolean from R
 Validator.isBoolean = function(val) {
   return _.isBoolean(val);
 };
@@ -370,8 +387,9 @@ Validator.isBoolean = function(val) {
  * validator.isDefined(val); // true
  * ```
  */
-// TODO optimise
+// TODO optimise with isNil
 Validator.isDefined = function(val) {
+  // return !isNil(val) && !_.isUndefined(val);
   return !_.isNull(val) && !_.isUndefined(val);
 };
 
@@ -388,7 +406,6 @@ Validator.isDefined = function(val) {
  * validator.isString(val); // true
  * ```
  */
-// TODO optimise
 Validator.isString = function(val) {
   return _.isString(val);
 };
@@ -406,7 +423,6 @@ Validator.isString = function(val) {
  * validator.isValidTimeZone(timezone); // false
  * ```
  */
-// TODO optimise
 Validator.isValidTimeZone = function(string) {
   // Only timezones of the following format are supported: `foo/bar[/optional]`
   const isSupportedTimezone = Boolean(tz.timezone.timezone.zones[string]);
@@ -431,9 +447,9 @@ Validator.isValidTimeZone = function(string) {
  * validator.isShortString(string); // true
  * ```
  */
-// TODO optimise
-Validator.isShortString = function(input = '') {
-  return Validator.isLength(input, { min: 1, max: 1000 });
+Validator.isShortString = function(value = '') {
+  return _isString(value) && Validator.isLength(value, { min: 1, max: 1000 });
+  // return Validator.isLength(value, { min: 1, max: 1000 });
 };
 
 /**
@@ -453,9 +469,9 @@ Validator.isShortString = function(input = '') {
  * validator.isMediumString(string); // true
  * ```
  */
-// TODO optimise
-Validator.isMediumString = function(input = '') {
-  return Validator.isLength(input, { min: 1, max: 10000 });
+Validator.isMediumString = function(value = '') {
+  return _isString(value) && Validator.isLength(value, { min: 1, max: 10000 });
+  // return Validator.isLength(value, { min: 1, max: 10000 });
 };
 
 /**
@@ -475,10 +491,9 @@ Validator.isMediumString = function(input = '') {
  * validator.isLongString(string); // true
  * ```
  */
-// TODO optimise
-Validator.isLongString = function(string) {
-  // this.len(1, 100000);
-  return Validator.isLength(string, { min: 1, max: 100000 });
+Validator.isLongString = function(value) {
+  return _isString(value) && Validator.isLength(value, { min: 1, max: 100000 });
+  // return Validator.isLength(value, { min: 1, max: 100000 });
 };
 
 /**
@@ -494,7 +509,7 @@ Validator.isLongString = function(string) {
  * validator.istHost(string); // true
  * ```
  */
-// TODO optimise
+// TODO optimise with FQQN maybe?
 Validator.isHost = function(hostString) {
   return Validator.isShortString(hostString) && hostString.match(HOST_REGEX);
 };
@@ -513,7 +528,7 @@ Validator.isHost = function(hostString) {
  */
 // TODO optimise
 Validator.isIso3166Country = function(string) {
-  if (!_.isString(string)) {
+  if (!_isString(string)) {
     return false;
   }
 

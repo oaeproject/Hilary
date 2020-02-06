@@ -343,12 +343,8 @@ const cropImage = function(imagePath, selectedArea, callback) {
         msg: 'The coordinates for the area you wish to crop must be specified'
       })
     )(selectedArea);
-  } catch (error) {
-    return callback(error);
-  }
 
-  if (selectedArea) {
-    try {
+    if (selectedArea) {
       pipe(
         isInt,
         otherwise({
@@ -412,9 +408,9 @@ const cropImage = function(imagePath, selectedArea, callback) {
           msg: 'The height value must be an integer larger than 0'
         })
       )(String(selectedArea.height), { min: 1 });
-    } catch (error) {
-      return callback(error);
     }
+  } catch (error) {
+    return callback(error);
   }
 
   _cropImage(imagePath, selectedArea, callback);

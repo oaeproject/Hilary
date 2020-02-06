@@ -27,7 +27,7 @@ import * as Signature from 'oae-util/lib/signature';
 import { telemetry } from 'oae-telemetry';
 import * as TenantsAPI from 'oae-tenants';
 import { Validator as validator } from 'oae-authz/lib/validator';
-const { otherwise, isNotEmpty, isUserId, isObject, isNotNull, isInt } = validator;
+const { otherwise, isNotEmpty, isUserId, isObject, isNotNull, isANumber } = validator;
 import pipe from 'ramda/src/pipe';
 
 import { ActivityConstants } from 'oae-activity/lib/constants';
@@ -380,12 +380,12 @@ const _authenticate = function(connectionInfo, message) {
     )(data.signature);
 
     pipe(
-      isInt,
+      isANumber,
       otherwise({
         code: 400,
         msg: 'Signature must contain an integer expires value'
       })
-    )(String(data.signature.expires));
+    )(data.signature.expires);
 
     pipe(
       isNotNull,

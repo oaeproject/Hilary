@@ -20,13 +20,14 @@ import { Tenant } from 'oae-tenants/lib/model';
 import { User } from 'oae-principals/lib/model.user';
 import { Validator as validator } from 'oae-util/lib/validator';
 
-const { isDefined, isShortString, isMediumString, isLongString, isBoolean, isArray, isGlobalAdministratorUser, isHost, isLoggedInUser, isValidTimeZone, isURL, isEmail, isInt, isNotEmpty }= validator;
+const { isDefined, isShortString, isMediumString, isLongString, isBoolean, isArray, isGlobalAdministratorUser, isHost, isLoggedInUser, isValidTimeZone, isURL, isEmail, isInt, isNotEmpty, isEmpty }= validator;
 import * as TestsUtil from 'oae-tests/lib/util';
 
 describe('Utilities', () => {
   describe('Validator', () => {
     it('verify undefined gets checked as empty', callback => {
       assert.strictEqual(isNotEmpty(undefined), false);
+      assert.strictEqual(isEmpty(undefined), false);
       return callback();
     });
 

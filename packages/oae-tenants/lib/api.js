@@ -40,7 +40,7 @@ const {
   notContains,
   isDifferent,
   isHost,
-  isNull,
+  isNil,
   isIso3166Country,
   isObject,
   isNotNull,
@@ -618,16 +618,12 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
         msg: 'Invalid hostname'
       })
     )(host);
-  } catch (error) {
-    return callback(error);
-  }
 
-  // Make sure alias and host are the proper case
-  alias = alias.toLowerCase();
-  host = host.toLowerCase();
+    // Make sure alias and host are the proper case
+    alias = alias.toLowerCase();
+    host = host.toLowerCase();
 
-  // Ensure there are no conflicts
-  try {
+    // Ensure there are no conflicts
     pipe(
       isDifferent,
       otherwise({
@@ -637,7 +633,7 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
     )(host, serverConfig.shibbolethSPHost);
 
     pipe(
-      isNull,
+      isNil,
       otherwise({
         code: 400,
         msg: `A tenant with the alias ${alias} already exists`
@@ -645,7 +641,7 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
     )(getTenant(alias));
 
     pipe(
-      isNull,
+      isNil,
       otherwise({
         code: 400,
         msg: `A tenant with the host ${host} already exists`
@@ -765,14 +761,10 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
         msg: util.format('Tenant with alias "%s" does not exist and cannot be updated', alias)
       })
     )(getTenant(alias));
-  } catch (error) {
-    return callback(error);
-  }
 
-  // Check that at least either a new display name or hostname have been provided
-  const updateFields = tenantUpdates ? _.keys(tenantUpdates) : [];
+    // Check that at least either a new display name or hostname have been provided
+    const updateFields = tenantUpdates ? _.keys(tenantUpdates) : [];
 
-  try {
     pipe(
       isArrayNotEmpty,
       otherwise({
@@ -780,11 +772,7 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
         msg: 'You should at least specify a new displayName or hostname'
       })
     )(updateFields);
-  } catch (error) {
-    return callback(error);
-  }
 
-  try {
     _.each(tenantUpdates, (updateValue, updateField) => {
       pipe(
         isIn,
@@ -813,7 +801,7 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
         pipe(isNotEmpty, otherwise({ code: 400, msg: 'A hostname cannot be empty' }))(updateValue);
 
         pipe(
-          isNull,
+          isNil,
           otherwise({
             code: 400,
             msg: 'The hostname has already been taken'
@@ -1077,7 +1065,7 @@ const _validateEmailDomains = function(validator, emailDomains, updateTenantAlia
     const matchingEmailDomains = matchingTenant && matchingTenant.emailDomains;
 
     pipe(
-      isNull,
+      isNil,
       otherwise({
         code: 400,
         msg: util.format(

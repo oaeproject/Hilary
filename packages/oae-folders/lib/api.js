@@ -42,6 +42,8 @@ const {
   isArray,
   isValidRoleChange,
   otherwise,
+  checkIfExists,
+  isANumber,
   isLoggedInUser,
   isPrincipalId,
   isNotEmpty,
@@ -1761,22 +1763,16 @@ const createMessage = function(ctx, folderId, body, replyToCreatedTimestamp, cal
         msg: 'A message body can only be 100000 characters long'
       })
     )(body);
+
+    pipe(
+      checkIfExists(isInt),
+      otherwise({
+        code: 400,
+        msg: 'Invalid reply-to timestamp provided'
+      })
+    )(replyToCreatedTimestamp);
   } catch (error) {
     return callback(error);
-  }
-
-  if (replyToCreatedTimestamp) {
-    try {
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'Invalid reply-to timestamp provided'
-        })
-      )(String(replyToCreatedTimestamp));
-    } catch (error) {
-      return callback(error);
-    }
   }
 
   // Get the folder from storage to use for permission checks
@@ -1860,7 +1856,7 @@ const deleteMessage = function(ctx, folderId, messageCreatedDate, callback) {
         code: 400,
         msg: 'A valid integer message created timestamp must be specified'
       })
-    )(String(messageCreatedDate));
+    )(messageCreatedDate);
   } catch (error) {
     return callback(error);
   }
@@ -1939,12 +1935,12 @@ const getMessages = function(ctx, folderId, start, limit, callback) {
     )(folderId);
 
     pipe(
-      isInt,
+      isANumber,
       otherwise({
         code: 400,
         msg: 'Must provide a valid limit'
       })
-    )(String(limit));
+    )(limit);
   } catch (error) {
     return callback(error);
   }

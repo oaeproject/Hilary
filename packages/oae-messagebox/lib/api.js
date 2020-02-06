@@ -24,7 +24,7 @@ import * as TenantsAPI from 'oae-tenants';
 import { logger } from 'oae-logger';
 
 import { Validator as validator } from 'oae-util/lib/validator';
-const { isUserId, otherwise, isNotNull } = validator;
+const { isString, isUserId, otherwise, isNotNull } = validator;
 import { isPast, toDate } from 'date-fns';
 import pipe from 'ramda/src/pipe';
 import isInt from 'validator/lib/isInt';
@@ -165,17 +165,21 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
         msg: 'The body of the message must be specified.'
       })
     )(body);
-  } catch (error) {
-    return callback(error);
-  }
 
-  if (opts.replyToCreated) {
-    try {
+    if (opts.replyToCreated) {
       pipe(
         isNotNull,
         otherwise({
           code: 400,
-          msg: 'If the replyToCreated optional parameter is specified, it should not be null.'
+          msg: 'If the replyToCreated optional parameter is specified, it should not be null nor undefined.'
+        })
+      )(opts.replyToCreated);
+
+      pipe(
+        isString,
+        otherwise({
+          code: 400,
+          msg: 'If the replyToCreated optional parameter is specified, it should not be a String.'
         })
       )(opts.replyToCreated);
 
@@ -185,7 +189,7 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
           code: 400,
           msg: 'If the replyToCreated optional parameter is specified, it should be an integer.'
         })
-      )(String(opts.replyToCreated));
+      )(opts.replyToCreated);
 
       pipe(
         isPast,
@@ -194,9 +198,9 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
           msg: 'If the replyToCreated optional parameter is specified, it cannot be in the future.'
         })
       )(new Date(parseInt(opts.replyToCreated, 10)));
-    } catch (error) {
-      return callback(error);
     }
+  } catch (error) {
+    return callback(error);
   }
 
   const replyToCreated = OaeUtil.getNumberParam(opts.replyToCreated);
@@ -346,12 +350,20 @@ const updateMessageBody = function(messageBoxId, created, newBody, callback) {
     )(created);
 
     pipe(
+      isString,
+      otherwise({
+        code: 400,
+        msg: 'The created parameter must be a valid timestamp (string).'
+      })
+    )(created);
+
+    pipe(
       isInt,
       otherwise({
         code: 400,
-        msg: 'The created parameter must be a valid timestamp (integer).'
+        msg: 'The created parameter must be a valid timestamp (numeric string).'
       })
-    )(String(created));
+    )(created);
 
     pipe(
       isPast,
@@ -463,11 +475,7 @@ const getMessages = function(messageBoxId, createdTimestamps, opts, callback) {
         msg: 'A messageBoxId must be specified.'
       })
     )(messageBoxId);
-  } catch (error) {
-    return callback(error);
-  }
 
-  try {
     _.each(createdTimestamps, timestamp => {
       pipe(
         isNotNull,
@@ -604,7 +612,7 @@ const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
       isInt,
       otherwise({
         code: 400,
-        msg: 'The createdTimestamp should be an integer.'
+        msg: 'The createdTimestamp should be a string.'
       })
     )(String(createdTimestamp));
 
@@ -615,13 +623,9 @@ const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
         msg: 'The createdTimestamp cannot be in the future.'
       })
     )(toDate(parseInt(createdTimestamp, 10)));
-  } catch (error) {
-    return callback(error);
-  }
 
-  if (opts.deleteType) {
-    const deleteValues = _.values(MessageBoxConstants.deleteTypes);
-    try {
+    if (opts.deleteType) {
+      const deleteValues = _.values(MessageBoxConstants.deleteTypes);
       pipe(
         isIn,
         otherwise({
@@ -629,9 +633,9 @@ const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
           msg: 'If the deleteType is specified it should be one of: ' + deleteValues.join(', ')
         })
       )(opts.deleteType, deleteValues);
-    } catch (error) {
-      return callback(error);
     }
+  } catch (error) {
+    return callback(error);
   }
 
   getMessages(messageBoxId, [createdTimestamp], { scrubDeleted: false }, (err, messages) => {

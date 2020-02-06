@@ -362,14 +362,12 @@ const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, 
       )(String(userCSV.size));
 
       pipe(
-        size => {
-          return size > 0;
-        },
+        isInt,
         otherwise({
           code: 400,
           msg: 'Invalid size on the CSV file'
         })
-      )(String(userCSV.size));
+      )(String(userCSV.size), { gt: 0 });
 
       pipe(
         isNotEmpty,

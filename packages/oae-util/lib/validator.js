@@ -17,7 +17,7 @@ import _ from 'underscore';
 import * as tz from 'oae-util/lib/tz';
 import * as OAEUI from 'oae-ui';
 // import { is, isNil, isEmpty } from 'ramda';
-import { is } from 'ramda';
+import { is, isEmpty } from 'ramda';
 
 import Validator from 'validator';
 
@@ -37,13 +37,13 @@ const _isFunction = value => {
   return is(Function, value);
 };
 
+const _isArray = value => {
+  return is(Array, value);
+};
+
 /**
  const _isNumber = value => {
    return is(Number, value);
-  };
-  
-  const _isArray = value => {
-    return is(Array, value);
   };
   
   const _isObject = value => {
@@ -319,10 +319,8 @@ Validator.isANumber = input => {
  * validator.isArray(arr); // true
  * ```
  */
-// TODO optimise with isArray from R
 Validator.isArray = function(arr) {
-  // return Validator.isArray(arr);
-  return _.isArray(arr);
+  return _isArray(arr);
 };
 
 /**
@@ -335,10 +333,8 @@ Validator.isArray = function(arr) {
  * isArrayNotEmpty(new Array()); // false
  * ```
  */
-// TODO optimise with isEmpty from R
 Validator.isArrayNotEmpty = arr => {
-  // return _isArray(arr) && isEmpty(arr);
-  return Validator.isArray(arr) && _.size(arr) > 0;
+  return _isArray(arr) && !isEmpty(arr);
 };
 
 /**

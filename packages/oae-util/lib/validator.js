@@ -16,8 +16,8 @@
 import _ from 'underscore';
 import * as tz from 'oae-util/lib/tz';
 import * as OAEUI from 'oae-ui';
-import { is } from 'ramda';
 // import { is, isNil, isEmpty } from 'ramda';
+import { is } from 'ramda';
 
 import Validator from 'validator';
 
@@ -27,6 +27,14 @@ let countriesByCode = null;
 
 const _isString = value => {
   return is(String, value);
+};
+
+const _isBoolean = value => {
+  return is(Boolean, value);
+};
+
+const _isFunction = value => {
+  return is(Function, value);
 };
 
 /**
@@ -42,13 +50,6 @@ const _isString = value => {
     return is(Object, value);
   };
   
-  const _isFunction = value => {
-    return is(Function, value);
-  };
-  
-  const _isBoolean = value => {
-    return is(Boolean, value);
-  };
   */
 
 /**
@@ -256,15 +257,15 @@ Validator.isGlobalAdministratorUser = ctx => {
     return false;
   }
 
-  if (!_.isFunction(ctx.tenant) || !_.isObject(ctx.tenant()) || !ctx.tenant().alias) {
+  if (!_isFunction(ctx.tenant) || !_.isObject(ctx.tenant()) || !ctx.tenant().alias) {
     return false;
   }
 
-  if (!_.isFunction(ctx.user) || !_.isObject(ctx.user()) || !ctx.user().id) {
+  if (!_isFunction(ctx.user) || !_.isObject(ctx.user()) || !ctx.user().id) {
     return false;
   }
 
-  if (!_.isFunction(ctx.user().isGlobalAdmin)) {
+  if (!_isFunction(ctx.user().isGlobalAdmin)) {
     return false;
   }
 
@@ -368,9 +369,8 @@ Validator.isArrayEmpty = arr => {
  * validator.isBoolean(val); // true
  * ```
  */
-// TODO optimise with isBoolean from R
 Validator.isBoolean = function(val) {
-  return _.isBoolean(val);
+  return _isBoolean(val);
 };
 
 /**

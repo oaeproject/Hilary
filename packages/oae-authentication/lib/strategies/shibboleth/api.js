@@ -19,7 +19,7 @@ import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as Signature from 'oae-util/lib/signature';
 import * as TenantsAPI from 'oae-tenants/lib/api';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { otherwise, isNotEmpty, isNumeric } = validator;
+const { isDefined, otherwise, isNotEmpty, isInt } = validator;
 import pipe from 'ramda/src/pipe';
 import { isFuture, toDate } from 'date-fns';
 
@@ -121,12 +121,20 @@ const validateInitiateParameters = function(tenantAlias, signature, expires, cal
     )(String(expires));
 
     pipe(
-      isNumeric,
+      isDefined,
       otherwise({
         code: 400,
         msg: 'Invalid expires parameter'
       })
-    )(String(expires));
+    )(expires);
+
+    pipe(
+      isInt,
+      otherwise({
+        code: 400,
+        msg: 'Invalid expires parameter'
+      })
+    )(expires);
 
     pipe(
       isFuture,
@@ -231,12 +239,20 @@ const getUser = function(tenant, userId, signature, expires, callback) {
     )(String(expires));
 
     pipe(
-      isNumeric,
+      isDefined,
       otherwise({
         code: 400,
         msg: 'Invalid expires parameter'
       })
-    )(String(expires));
+    )(expires);
+
+    pipe(
+      isInt,
+      otherwise({
+        code: 400,
+        msg: 'Invalid expires parameter'
+      })
+    )(expires);
 
     pipe(
       isFuture,

@@ -16,8 +16,8 @@
 import _ from 'underscore';
 import * as tz from 'oae-util/lib/tz';
 import * as OAEUI from 'oae-ui';
-// import { is, isNil, isEmpty } from 'ramda';
-import { is, isEmpty } from 'ramda';
+// import { is, equals, isNil, isEmpty } from 'ramda';
+import { is, isNil, isEmpty } from 'ramda';
 
 import Validator from 'validator';
 
@@ -46,6 +46,14 @@ const _isNumber = value => {
 };
 
 /**
+const _equalsTo = (value1, value2) => {
+  return equals(value1, value2);
+};
+
+const _isNull = value => {
+  return value === null;
+};
+
   const _isObject = value => {
     return is(Object, value);
   };
@@ -101,7 +109,7 @@ Validator.notContains = (string, seed) => {
 
 /**
  * @function isNull
- * @param  {Object} input   Value being compared to null
+ * @param  {Object} value   Value being compared to null
  * @return {Boolean}        Whether `input` is null or not
  *
  * Usage:
@@ -109,9 +117,8 @@ Validator.notContains = (string, seed) => {
  * isNull(true); // false
  * ```
  */
-Validator.isNull = input => {
-  // return isNil(input);
-  return !input;
+Validator.isNull = value => {
+  return !value;
 };
 
 /**
@@ -124,9 +131,8 @@ Validator.isNull = input => {
  * isNotNull(null); // false
  * ```
  */
-Validator.isNotNull = input => {
-  // return !isNil(input);
-  return !Validator.isNull(input);
+Validator.isNotNull = value => {
+  return !Validator.isNull(value);
 };
 
 /**
@@ -346,10 +352,8 @@ Validator.isArrayNotEmpty = arr => {
  * isArrayEmpty(new Array()); // true
  * ```
  */
-// TODO optimise with isEmpty from R
 Validator.isArrayEmpty = arr => {
-  // return isEmpty(arr);
-  return Validator.isArray(arr) && _.size(arr) === 0;
+  return _isArray(arr) && isEmpty(arr);
 };
 
 /**
@@ -383,9 +387,15 @@ Validator.isBoolean = function(val) {
  * ```
  */
 // TODO optimise with isNil
-Validator.isDefined = function(val) {
-  // return !isNil(val) && !_.isUndefined(val);
-  return !_.isNull(val) && !_.isUndefined(val);
+Validator.isDefined = function(value) {
+  return !_.isNull(value) && !_.isUndefined(value);
+  // return !isNil(value);
+};
+
+// TODO JSDoc
+// Make this the isDefined default
+Validator.isNotNil = input => {
+  return !isNil(input);
 };
 
 /**
@@ -401,8 +411,8 @@ Validator.isDefined = function(val) {
  * validator.isString(val); // true
  * ```
  */
-Validator.isString = function(val) {
-  return _.isString(val);
+Validator.isString = function(value) {
+  return _isString(value);
 };
 
 /**
@@ -444,7 +454,6 @@ Validator.isValidTimeZone = function(string) {
  */
 Validator.isShortString = function(value = '') {
   return _isString(value) && Validator.isLength(value, { min: 1, max: 1000 });
-  // return Validator.isLength(value, { min: 1, max: 1000 });
 };
 
 /**
@@ -466,7 +475,6 @@ Validator.isShortString = function(value = '') {
  */
 Validator.isMediumString = function(value = '') {
   return _isString(value) && Validator.isLength(value, { min: 1, max: 10000 });
-  // return Validator.isLength(value, { min: 1, max: 10000 });
 };
 
 /**
@@ -488,7 +496,6 @@ Validator.isMediumString = function(value = '') {
  */
 Validator.isLongString = function(value) {
   return _isString(value) && Validator.isLength(value, { min: 1, max: 100000 });
-  // return Validator.isLength(value, { min: 1, max: 100000 });
 };
 
 /**

@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable no-unused-vars */
 import _ from 'underscore';
 import DiscussionsAPI from 'oae-discussions';
 
@@ -34,21 +33,17 @@ import { AuthzConstants } from 'oae-authz/lib/constants';
 import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
 import { Validator as validator } from 'oae-authz/lib/validator';
 const {
-  getNestedObject,
   isValidRoleChange,
   otherwise,
+  isANumber,
+  checkIfExists,
   isLoggedInUser,
-  isUserId,
   isPrincipalId,
   isNotEmpty,
-  isANumber,
-  isObject,
   isResourceId,
-  isNotNull,
   isShortString,
   isMediumString,
   isArrayNotEmpty,
-  equals,
   isLongString
 } = validator;
 import pipe from 'ramda/src/pipe';
@@ -136,7 +131,7 @@ const createDiscussion = function(ctx, displayName, description, visibility, rol
     )(visibility, allVisibilities);
 
     // Verify each role is valid
-    _.each(roles, (role, memberId) => {
+    _.each(roles, (role /* , memberId */) => {
       pipe(
         isIn,
         otherwise({
@@ -614,7 +609,7 @@ const getDiscussionMembers = function(ctx, discussionId, start, limit, callback)
     return callback(error);
   }
 
-  getDiscussion(ctx, discussionId, (err, discussion) => {
+  getDiscussion(ctx, discussionId, (err /* , discussion */) => {
     if (err) {
       return callback(err);
     }
@@ -801,7 +796,7 @@ const setDiscussionPermissions = function(ctx, discussionId, changes, callback) 
       })
     )(discussionId);
 
-    _.each(changes, (role, principalId) => {
+    _.each(changes, (role /* , principalId */) => {
       pipe(
         isValidRoleChange,
         otherwise({
@@ -987,15 +982,13 @@ const createMessage = function(ctx, discussionId, body, replyToCreatedTimestamp,
         msg: 'A discussion body can only be 100000 characters long'
       })
     )(body);
-    if (replyToCreatedTimestamp) {
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'Invalid reply-to timestamp provided'
-        })
-      )(replyToCreatedTimestamp);
-    }
+    pipe(
+      checkIfExists(isInt),
+      otherwise({
+        code: 400,
+        msg: 'Invalid reply-to timestamp provided'
+      })
+    )(replyToCreatedTimestamp);
   } catch (error) {
     return callback(error);
   }
@@ -1169,18 +1162,18 @@ const getMessages = function(ctx, discussionId, start, limit, callback) {
       })
     )(discussionId);
     pipe(
-      isInt,
+      isANumber,
       otherwise({
         code: 400,
         msg: 'Must provide a valid limit'
       })
-    )(String(limit));
+    )(limit);
   } catch (error) {
     return callback(error);
   }
 
   // Get the discussion, throwing an error if the user in context doesn't have view access or if it doesn't exist
-  getDiscussion(ctx, discussionId, (err, discussion) => {
+  getDiscussion(ctx, discussionId, (err /* , discussion */) => {
     if (err) {
       return callback(err);
     }

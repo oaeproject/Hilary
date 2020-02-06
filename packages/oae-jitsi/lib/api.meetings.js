@@ -19,6 +19,7 @@ import { Validator as validator } from 'oae-authz/lib/validator';
 const {
   checkIfExists,
   otherwise,
+  isANumber,
   isValidRoleChange,
   isLoggedInUser,
   isPrincipalId,
@@ -714,12 +715,12 @@ const getMessages = function(ctx, meetingId, start, limit, callback) {
     )(meetingId);
 
     pipe(
-      isInt,
+      isANumber,
       otherwise({
         code: 400,
         msg: 'Must provide a valid limit'
       })
-    )(String(limit));
+    )(limit);
   } catch (error) {
     return callback(error);
   }

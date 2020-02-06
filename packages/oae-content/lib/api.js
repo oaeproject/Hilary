@@ -499,12 +499,12 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
       )(String(file.size));
 
       pipe(
-        isInt,
+        isANumber,
         otherwise({
           code: 400,
           msg: 'Invalid size on the file object'
         })
-      )(String(file.size));
+      )(file.size);
 
       pipe(
         isInt,
@@ -1914,12 +1914,12 @@ const _updateFileBody = function(ctx, contentId, file, callback) {
       )(String(file.size));
 
       pipe(
-        isInt,
+        isANumber,
         otherwise({
           code: 400,
           msg: 'Invalid size on the file object.'
         })
-      )(String(file.size));
+      )(file.size);
 
       pipe(
         isInt,
@@ -2487,15 +2487,13 @@ const createComment = function(ctx, contentId, body, replyToCreatedTimestamp, ca
       })
     )(body);
 
-    if (replyToCreatedTimestamp) {
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'Invalid reply-to timestamp provided'
-        })
-      )(String(replyToCreatedTimestamp));
-    }
+    pipe(
+      checkIfExists(isInt),
+      otherwise({
+        code: 400,
+        msg: 'Invalid reply-to timestamp provided'
+      })
+    )(replyToCreatedTimestamp);
   } catch (error) {
     return callback(error);
   }
@@ -2557,12 +2555,12 @@ const getComments = function(ctx, contentId, start, limit, callback) {
     )(contentId);
 
     pipe(
-      isInt,
+      isANumber,
       otherwise({
         code: 400,
         msg: 'A valid limit should be passed in'
       })
-    )(String(limit));
+    )(limit);
   } catch (error) {
     return callback(error);
   }
@@ -2639,7 +2637,7 @@ const deleteComment = function(ctx, contentId, commentCreatedDate, callback) {
         code: 400,
         msg: 'A valid integer comment created timestamp must be specified'
       })
-    )(String(commentCreatedDate));
+    )(commentCreatedDate);
   } catch (error) {
     return callback(error);
   }
@@ -2743,12 +2741,12 @@ const getContentLibraryItems = function(ctx, principalId, start, limit, callback
     )(principalId);
 
     pipe(
-      isInt,
+      isANumber,
       otherwise({
         code: 400,
         msg: 'A valid limit should be passed in'
       })
-    )(String(limit));
+    )(limit);
   } catch (error) {
     return callback(error);
   }
@@ -2830,12 +2828,12 @@ const getRevisions = function(ctx, contentId, start, limit, callback) {
     )(contentId);
 
     pipe(
-      isInt,
+      isANumber,
       otherwise({
         code: 400,
         msg: 'A valid limit should be passed in'
       })
-    )(String(limit));
+    )(limit);
   } catch (error) {
     return callback(error);
   }

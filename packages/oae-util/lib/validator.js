@@ -41,11 +41,11 @@ const _isArray = value => {
   return is(Array, value);
 };
 
+const _isNumber = value => {
+  return is(Number, value);
+};
+
 /**
- const _isNumber = value => {
-   return is(Number, value);
-  };
-  
   const _isObject = value => {
     return is(Object, value);
   };
@@ -303,8 +303,7 @@ Validator.isObject = function(obj) {
  * ```
  */
 Validator.isANumber = input => {
-  // return _isNumber(input);
-  return Validator.isNumeric(String(input));
+  return _isNumber(input);
 };
 
 /**

@@ -43,6 +43,7 @@ const {
   isNotEmpty,
   isNull,
   isObject,
+  isModule,
   isArrayNotEmpty,
   isResourceId,
   isGlobalAdministratorUser,
@@ -241,7 +242,7 @@ const getConfiguration = function() {
 const registerProcessor = function(processorId, processor) {
   pipe(isNotEmpty, otherwise(new Error('Missing processor ID')))(processorId);
   pipe(isNull, otherwise(new Error('This processor is already registerd')))(_processors[processorId]);
-  pipe(isObject, otherwise(new Error('Missing processor')))(processor);
+  pipe(isModule, otherwise(new Error('Missing processor')))(processor);
   pipe(isNotNull, otherwise(new Error('The processor has no test method')))(processor.test);
   pipe(isNotNull, otherwise(new Error('The processor has no generatePreviews method')))(processor.generatePreviews);
 

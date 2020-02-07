@@ -15,7 +15,7 @@
 
 import _ from 'underscore';
 import * as tz from 'oae-util/lib/tz';
-import { is, equals, isNil, isEmpty } from 'ramda';
+import { pipe, not, any, and, or, type, is, equals, isNil, isEmpty } from 'ramda';
 
 import Validator from 'validator';
 
@@ -48,16 +48,19 @@ const _isNull = value => {
 const _isEqualsTo = (value1, value2) => {
   return equals(value1, value2);
 };
-/**
 
-  const _isObject = value => {
-    return is(Object, value);
-  };
-  */
-//
+const _isObject = value => {
+  return is(Object, value);
+};
+
+const _isTrue = value => {
+  return value === true;
+};
+
 // TODO
 // isNil
 // isObject
+// and / or from R
 
 /**
  * @function isDifferent
@@ -219,25 +222,15 @@ Validator.getNestedObject = nestedObj => {
  * isLoggedInUser(ctx);
  * ```
  */
-// TODO optimise
 Validator.isLoggedInUser = function(ctx, tenantAlias) {
-  if (!_.isObject(ctx)) {
-    return false;
-  }
+  const condition1 = not(_isObject(ctx));
+  const condition2 = or(not(_isObject(ctx.tenant())), not(ctx.tenant().alias));
+  const condition3 = not(_isObject(ctx.user())) || not(ctx.user().id);
+  const condition4 = tenantAlias && ctx.tenant().alias !== tenantAlias;
+  const allConditions = [condition1, condition2, condition3, condition4];
 
-  if (!_.isObject(ctx.tenant()) || !ctx.tenant().alias) {
-    return false;
-  }
-
-  if (!_.isObject(ctx.user()) || !ctx.user().id) {
-    return false;
-  }
-
-  if (tenantAlias && ctx.tenant().alias !== tenantAlias) {
-    return false;
-  }
-
-  return true;
+  const isAnyTrue = any(_isTrue);
+  return pipe(isAnyTrue, not)([condition1, condition2, condition3, condition4]);
 };
 
 /**
@@ -276,6 +269,7 @@ Validator.isGlobalAdministratorUser = ctx => {
   return true;
 };
 
+// TODO: say what????
 /**
  * Check whether or not the passed in object is an actual JSON object
  *
@@ -288,9 +282,24 @@ Validator.isGlobalAdministratorUser = ctx => {
  * isObject(obj); // true
  * ```
  */
-// TODO optimise with isObject from R
 Validator.isObject = function(obj) {
-  return _.isObject(obj);
+  return _isObject(obj);
+};
+
+/**
+ * Check whether or not the passed value is a Module OR an Object (dont ask)
+ *
+ * @function isModule
+ * @param  {Module}     value   Value that needs to be checked for validity
+ *
+ * Usage:
+ * ```
+ * let obj = { foo: 'bar' };
+ * isModule(obj); // true
+ * ```
+ */
+Validator.isModule = value => {
+  return or(type(value) === 'Module', _isObject(value));
 };
 
 /**
@@ -303,8 +312,8 @@ Validator.isObject = function(obj) {
  * isANumber('popo'); // false
  * ```
  */
-Validator.isANumber = input => {
-  return _isNumber(input);
+Validator.isANumber = value => {
+  return _isNumber(value);
 };
 
 /**
@@ -319,7 +328,7 @@ Validator.isANumber = input => {
  * isArray(arr); // true
  * ```
  */
-Validator.isArray = function(arr) {
+Validator.isArray = arr => {
   return _isArray(arr);
 };
 
@@ -363,8 +372,8 @@ Validator.isArrayEmpty = arr => {
  * isBoolean(val); // true
  * ```
  */
-Validator.isBoolean = function(val) {
-  return _isBoolean(val);
+Validator.isBoolean = value => {
+  return _isBoolean(value);
 };
 
 /**

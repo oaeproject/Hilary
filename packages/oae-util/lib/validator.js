@@ -15,7 +15,7 @@
 
 import _ from 'underscore';
 import * as tz from 'oae-util/lib/tz';
-import { pipe, not, any, and, or, type, is, equals, isNil, isEmpty } from 'ramda';
+import { isDifferent, pipe, not, any, and, or, type, is, equals, isNil, isEmpty } from 'ramda';
 
 import Validator from 'validator';
 
@@ -61,6 +61,7 @@ const _isTrue = value => {
 // isNil
 // isObject
 // and / or from R
+// TODO: say what???? JSON what
 
 /**
  * @function isDifferent
@@ -223,14 +224,18 @@ Validator.getNestedObject = nestedObj => {
  * ```
  */
 Validator.isLoggedInUser = function(ctx, tenantAlias) {
+  // debug
+  and(true, true);
+
+  const notTheSameAlias = isDifferent(ctx.tenant().alias, tenantAlias);
   const condition1 = not(_isObject(ctx));
   const condition2 = or(not(_isObject(ctx.tenant())), not(ctx.tenant().alias));
   const condition3 = not(_isObject(ctx.user())) || not(ctx.user().id);
-  const condition4 = tenantAlias && ctx.tenant().alias !== tenantAlias;
+  const condition4 = tenantAlias && notTheSameAlias;
   const allConditions = [condition1, condition2, condition3, condition4];
 
   const isAnyTrue = any(_isTrue);
-  return pipe(isAnyTrue, not)([condition1, condition2, condition3, condition4]);
+  return pipe(isAnyTrue, not)(allConditions);
 };
 
 /**
@@ -246,30 +251,17 @@ Validator.isLoggedInUser = function(ctx, tenantAlias) {
  */
 // TODO optimise
 Validator.isGlobalAdministratorUser = ctx => {
-  if (!_.isObject(ctx)) {
-    return false;
-  }
+  const condition1 = !_isObject(ctx);
+  const condition2 = !_isFunction(ctx.tenant) || !_isObject(ctx.tenant()) || !ctx.tenant().alias;
+  const condition3 = !_isFunction(ctx.user) || !_isObject(ctx.user()) || !ctx.user().id;
+  const condition4 = !_isFunction(ctx.user().isGlobalAdmin);
+  const condition5 = ctx.user().isGlobalAdmin() !== true;
+  const allConditions = [condition1, condition2, condition3, condition4, condition5];
 
-  if (!_isFunction(ctx.tenant) || !_.isObject(ctx.tenant()) || !ctx.tenant().alias) {
-    return false;
-  }
-
-  if (!_isFunction(ctx.user) || !_.isObject(ctx.user()) || !ctx.user().id) {
-    return false;
-  }
-
-  if (!_isFunction(ctx.user().isGlobalAdmin)) {
-    return false;
-  }
-
-  if (ctx.user().isGlobalAdmin() !== true) {
-    return false;
-  }
-
-  return true;
+  const isAnyTrue = any(_isTrue);
+  return pipe(isAnyTrue, not)(allConditions);
 };
 
-// TODO: say what????
 /**
  * Check whether or not the passed in object is an actual JSON object
  *

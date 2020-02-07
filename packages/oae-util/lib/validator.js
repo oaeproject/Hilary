@@ -251,11 +251,11 @@ Validator.isLoggedInUser = function(ctx, tenantAlias) {
  */
 // TODO optimise
 Validator.isGlobalAdministratorUser = ctx => {
-  const condition1 = !_isObject(ctx);
-  const condition2 = !_isFunction(ctx.tenant) || !_isObject(ctx.tenant()) || !ctx.tenant().alias;
-  const condition3 = !_isFunction(ctx.user) || !_isObject(ctx.user()) || !ctx.user().id;
-  const condition4 = !_isFunction(ctx.user().isGlobalAdmin);
-  const condition5 = ctx.user().isGlobalAdmin() !== true;
+  const condition1 = not(_isObject(ctx));
+  const condition2 = not(_isFunction(ctx.tenant)) || not(_isObject(ctx.tenant())) || not(ctx.tenant().alias);
+  const condition3 = not(_isFunction(ctx.user)) || not(_isObject(ctx.user())) || not(ctx.user().id);
+  const condition4 = not(_isFunction(ctx.user().isGlobalAdmin));
+  const condition5 = isDifferent(ctx.user().isGlobalAdmin(), true);
   const allConditions = [condition1, condition2, condition3, condition4, condition5];
 
   const isAnyTrue = any(_isTrue);

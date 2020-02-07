@@ -765,14 +765,10 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
         msg: util.format('Tenant with alias "%s" does not exist and cannot be updated', alias)
       })
     )(getTenant(alias));
-  } catch (error) {
-    return callback(error);
-  }
 
-  // Check that at least either a new display name or hostname have been provided
-  const updateFields = tenantUpdates ? _.keys(tenantUpdates) : [];
+    // Check that at least either a new display name or hostname have been provided
+    const updateFields = tenantUpdates ? _.keys(tenantUpdates) : [];
 
-  try {
     pipe(
       isArrayNotEmpty,
       otherwise({
@@ -780,11 +776,7 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
         msg: 'You should at least specify a new displayName or hostname'
       })
     )(updateFields);
-  } catch (error) {
-    return callback(error);
-  }
 
-  try {
     _.each(tenantUpdates, (updateValue, updateField) => {
       pipe(
         isIn,

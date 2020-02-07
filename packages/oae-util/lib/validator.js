@@ -15,15 +15,11 @@
 
 import _ from 'underscore';
 import * as tz from 'oae-util/lib/tz';
-import * as OAEUI from 'oae-ui';
-// import { is, equals, isNil, isEmpty } from 'ramda';
-import { is, isNil, isEmpty } from 'ramda';
+import { is, equals, isNil, isEmpty } from 'ramda';
 
 import Validator from 'validator';
 
 const HOST_REGEX = /^(?=.{1,255}$)[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?(?:\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?)*\.?(:\d+)?$/i;
-
-let countriesByCode = null;
 
 const _isString = value => {
   return is(String, value);
@@ -45,20 +41,23 @@ const _isNumber = value => {
   return is(Number, value);
 };
 
-/**
-const _equalsTo = (value1, value2) => {
-  return equals(value1, value2);
-};
-
 const _isNull = value => {
   return value === null;
 };
 
+const _isEqualsTo = (value1, value2) => {
+  return equals(value1, value2);
+};
+/**
+
   const _isObject = value => {
     return is(Object, value);
   };
-  
   */
+//
+// TODO
+// isNil
+// isObject
 
 /**
  * @function isDifferent
@@ -71,9 +70,8 @@ const _isNull = value => {
  * isDifferent('abcd', 'abcde'); // true
  * ```
  */
-// TODO optimise with equals
-Validator.isDifferent = (input, notEqualsTo) => {
-  return !Validator.equals(String(input), notEqualsTo);
+Validator.isDifferent = (a, b) => {
+  return !_isEqualsTo(String(a), b);
 };
 
 /**
@@ -86,10 +84,9 @@ Validator.isDifferent = (input, notEqualsTo) => {
  * isNotEmpty('abcd'); // true
  * ```
  */
-// TODO optimise with isEmpty from R
 Validator.isNotEmpty = input => {
   input = input || '';
-  return !Validator.isEmpty(input.trim());
+  return !isEmpty(input.trim());
 };
 
 /**
@@ -146,12 +143,9 @@ Validator.isNotNull = value => {
  * func(false); // throws an error
  * ```
  */
-// TODO optimise
 Validator.otherwise = error => {
-  return passed => {
-    if (!passed) {
-      throw error;
-    }
+  return function(validationPassed) {
+    if (!validationPassed) throw error;
   };
 };
 
@@ -222,7 +216,7 @@ Validator.getNestedObject = nestedObj => {
  *
  * Usage:
  * ```
- * validator.isLoggedInUser(ctx);
+ * isLoggedInUser(ctx);
  * ```
  */
 // TODO optimise
@@ -254,7 +248,7 @@ Validator.isLoggedInUser = function(ctx, tenantAlias) {
  *
  * Usage:
  * ```
- * validator.isGlobalAdministratorUser(ctx);
+ * isGlobalAdministratorUser(ctx);
  * ```
  */
 // TODO optimise
@@ -290,7 +284,8 @@ Validator.isGlobalAdministratorUser = ctx => {
  *
  * Usage:
  * ```
- * validator.check(null, error).isObject(obj);
+ * let obj = { foo: 'bar' };
+ * isObject(obj); // true
  * ```
  */
 // TODO optimise with isObject from R
@@ -321,7 +316,7 @@ Validator.isANumber = input => {
  * Usage:
  * ```
  * let arr = [];
- * validator.isArray(arr); // true
+ * isArray(arr); // true
  * ```
  */
 Validator.isArray = function(arr) {
@@ -365,7 +360,7 @@ Validator.isArrayEmpty = arr => {
  * Usage:
  * ```
  * let val = false;
- * validator.isBoolean(val); // true
+ * isBoolean(val); // true
  * ```
  */
 Validator.isBoolean = function(val) {
@@ -383,12 +378,12 @@ Validator.isBoolean = function(val) {
  * Usage:
  * ```
  * let val = true;
- * validator.isDefined(val); // true
+ * isDefined(val); // true
  * ```
  */
 // TODO optimise with isNil
 Validator.isDefined = function(value) {
-  return !_.isNull(value) && !_.isUndefined(value);
+  return !_isNull(value) && !_.isUndefined(value);
   // return !isNil(value);
 };
 
@@ -408,7 +403,7 @@ Validator.isNotNil = input => {
  * Usage:
  * ```
  * let val = 'popo';
- * validator.isString(val); // true
+ * isString(val); // true
  * ```
  */
 Validator.isString = function(value) {
@@ -425,7 +420,7 @@ Validator.isString = function(value) {
  * Usage:
  * ```
  * let timezone = 'Portugal\Lisbon';
- * validator.isValidTimeZone(timezone); // false
+ * isValidTimeZone(timezone); // false
  * ```
  */
 Validator.isValidTimeZone = function(string) {
@@ -449,7 +444,7 @@ Validator.isValidTimeZone = function(string) {
  * Usage:
  * ```
  * let string = 'popo';
- * validator.isShortString(string); // true
+ * isShortString(string); // true
  * ```
  */
 Validator.isShortString = function(value = '') {
@@ -470,7 +465,7 @@ Validator.isShortString = function(value = '') {
  * Usage:
  * ```
  * let string = 'popo';
- * validator.isMediumString(string); // true
+ * isMediumString(string); // true
  * ```
  */
 Validator.isMediumString = function(value = '') {
@@ -491,7 +486,7 @@ Validator.isMediumString = function(value = '') {
  * Usage:
  * ```
  * let string = 'popo';
- * validator.isLongString(string); // true
+ * isLongString(string); // true
  * ```
  */
 Validator.isLongString = function(value) {
@@ -508,7 +503,7 @@ Validator.isLongString = function(value) {
  * Usage:
  * ```
  * let string = 'oaeproject.org';
- * validator.istHost(string); // true
+ * istHost(string); // true
  * ```
  */
 // TODO optimise with FQQN maybe?
@@ -525,44 +520,11 @@ Validator.isHost = function(hostString) {
  *
  * Usage:
  * ```
- * validator.check(isIso3166Country(string);
+ * isIso3166Country(string); // maybe
  * ```
  */
-// TODO optimise
-Validator.isIso3166Country = function(string) {
-  if (!_isString(string)) {
-    return false;
-  }
-
-  if (!_hasCountryCode(string.toUpperCase())) {
-    return false;
-  }
-
-  return true;
-};
-
-/**
- * Determine if the given country code is known
- *
- * @function _hasCountryCode
- * @param  {String}     code    The ISO-3166-1 country code to check
- * @return {Boolean}            Whether or not the code is a known ISO-3166-1 country code
- * @api private
- */
-// TODO optimise
-const _hasCountryCode = function(code) {
-  if (!countriesByCode) {
-    // Lazy initialize the country code array so as to not form an cross-
-    // dependency on `oae-ui`
-    countriesByCode = _.chain(OAEUI.getIso3166CountryInfo().countries)
-      .indexBy('code')
-      .mapObject(() => {
-        return true;
-      })
-      .value();
-  }
-
-  return countriesByCode[code];
+Validator.isIso3166Country = function(value) {
+  return _isString(value) && Validator.isISO31661Alpha2(value);
 };
 
 export { Validator };

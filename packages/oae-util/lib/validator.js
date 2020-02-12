@@ -240,14 +240,12 @@ Validator.getNestedObject = nestedObj => {
 Validator.isLoggedInUser = function(ctx, tenantAlias) {
   const checkCondition1 = () => {
     return not(_isObject(ctx));
-    // return !_.isObject(ctx);
   };
 
   const checkCondition2 = () => {
     const isTenantNotValid = () => not(_isObject(ctx.tenant()));
     const isAliasNotValid = () => not(ctx.tenant().alias);
     return either(isTenantNotValid, isAliasNotValid)();
-    // return !_isObject(ctx.tenant()) || !ctx.tenant().alias;
   };
 
   const checkCondition3 = () => {
@@ -260,7 +258,6 @@ Validator.isLoggedInUser = function(ctx, tenantAlias) {
     const isTenantAliasValid = () => not(isNil(tenantAlias));
     const aliasesAreDifferent = () => _isDifferent(ctx.tenant().alias, tenantAlias);
     return both(isTenantAliasValid, aliasesAreDifferent)();
-    // return tenantAlias && ctx.tenant().alias !== tenantAlias;
   };
 
   if (checkCondition1()) return false;
@@ -302,7 +299,6 @@ Validator.isLoggedInUser = function(ctx, tenantAlias) {
 Validator.isGlobalAdministratorUser = ctx => {
   const checkCondition1 = () => {
     return not(_isObject(ctx));
-    // return !_.isObject(ctx);
   };
 
   const checkCondition2 = () => {
@@ -311,7 +307,6 @@ Validator.isGlobalAdministratorUser = ctx => {
     const isTenantNotValid = () => either(isTenantNotAFunction, isTenantNotAnObject)();
     const isAliasNotValid = () => not(ctx.tenant().alias);
     return either(isTenantNotValid, isAliasNotValid)();
-    // return !_isFunction(ctx.tenant) || !_.isObject(ctx.tenant()) || !ctx.tenant().alias;
   };
 
   const checkCondition3 = () => {
@@ -320,9 +315,6 @@ Validator.isGlobalAdministratorUser = ctx => {
     const isUserNotValid = () => either(isUserNotAFunction, isUserNotAnObject)();
     const doesUserNotExist = () => not(ctx.user().id);
     return either(isUserNotValid, doesUserNotExist)();
-
-    // return not(_isFunction(ctx.user)) || not(_isObject(ctx.user())) || not(ctx.user().id);
-    // return !_isFunction(ctx.user) || !_.isObject(ctx.user()) || !ctx.user().id;
   };
 
   const checkCondition4 = () => {
@@ -350,10 +342,12 @@ Validator.isGlobalAdministratorUser = ctx => {
     checkCondition5
   ]);
 
+  const conditionsPassed = conditionsCount === 5;
+
   // debug
   console.log(`(globalUser?) conditionsCount: ${conditionsCount}`);
-  const conditionsPassed = conditionsCount === 5;
-  // console.log(`Conditions passed? ${conditionsPassed} (${conditionsCount})`);
+  console.log(`Conditions passed? ${conditionsPassed} (${conditionsCount})`);
+
   return conditionsPassed; //  ? false : true;
   */
 };
@@ -371,7 +365,7 @@ Validator.isGlobalAdministratorUser = ctx => {
  * ```
  */
 Validator.isObject = function(obj) {
-  return _.isObject(obj);
+  return _isObject(obj);
 };
 
 /**
@@ -387,7 +381,7 @@ Validator.isObject = function(obj) {
  * ```
  */
 Validator.isModule = value => {
-  return or(type(value) === 'Module', _.isObject(value));
+  return or(type(value) === 'Module', _isObject(value));
 };
 
 /**

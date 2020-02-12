@@ -447,14 +447,13 @@ Validator.isBoolean = value => {
  */
 // TODO optimise with isNil
 Validator.isDefined = function(value) {
-  // return !_isNull(value) && !_.isUndefined(value);
-  return !isNil(value);
+  return not(isNil(value));
 };
 
 // TODO JSDoc
 // Make this the isDefined default
 Validator.isNotNil = input => {
-  return !isNil(input);
+  return not(isNil(input));
 };
 
 /**

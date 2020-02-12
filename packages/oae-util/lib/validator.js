@@ -189,11 +189,7 @@ Validator.otherwise = error => {
  * func('someId'); // false, because 'someId' is not null
  * ```
  */
-Validator.checkIfExists = validation => {
-  return function(value) {
-    return value ? validation(value) : true;
-  };
-};
+Validator.checkIfExists = validation => value => (value ? validation(value) : true);
 
 /**
  * @function makeSureThat
@@ -208,11 +204,7 @@ Validator.checkIfExists = validation => {
  * func(); // returns false
  * ```
  */
-Validator.makeSureThat = (condition, value, validation) => {
-  return function() {
-    return condition ? validation(value) : true;
-  };
-};
+Validator.makeSureThat = (condition, value, validation) => () => (condition ? validation(value) : true);
 
 /**
  * @function getNestedObject
@@ -569,7 +561,6 @@ Validator.isLongString = function(value) {
  * istHost(string); // true
  * ```
  */
-// TODO optimise with FQQN maybe?
 Validator.isHost = function(hostString) {
   return both(Validator.isShortString, string =>
     // eslint-disable-next-line camelcase
@@ -590,7 +581,7 @@ Validator.isHost = function(hostString) {
  * ```
  */
 Validator.isIso3166Country = function(value) {
-  return _isString(value) && Validator.isISO31661Alpha2(value);
+  return both(_isString, Validator.isISO31661Alpha2)(value);
 };
 
 export { Validator };

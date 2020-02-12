@@ -15,7 +15,7 @@
 
 import _ from 'underscore';
 import * as tz from 'oae-util/lib/tz';
-import { isDifferent, pipe, not, any, and, or, type, is, equals, isNil, isEmpty } from 'ramda';
+import { reduceWhile, pipe, not, any, and, or, type, is, equals, isNil, isEmpty } from 'ramda';
 
 import Validator from 'validator';
 
@@ -49,6 +49,10 @@ const _isEqualsTo = (value1, value2) => {
   return equals(value1, value2);
 };
 
+const _isDifferent = (a, b) => {
+  return not(_isEqualsTo(a, b));
+};
+
 const _isObject = value => {
   return is(Object, value);
 };
@@ -57,15 +61,21 @@ const _isTrue = value => {
   return value === true;
 };
 
+const _isFalse = value => {
+  return value === false;
+};
+
 // TODO
 // isNil
 // isObject
 // and / or from R
-// TODO: say what???? JSON what
+// Exclamation marks!
+// say what???? JSON what
+// default instead of || ''
 
 /**
  * @function isDifferent
- * @param  {String} input       Value being compared
+ * @param  {String} input       Value being compared, **which will be converted to a String**
  * @param  {String} notEqualsTo Value being compared to
  * @return {Boolean}            Whether `input` is different to `notEqualsTo`
  *
@@ -75,7 +85,7 @@ const _isTrue = value => {
  * ```
  */
 Validator.isDifferent = (a, b) => {
-  return !_isEqualsTo(String(a), b);
+  return _isDifferent(String(a), b);
 };
 
 /**
@@ -90,7 +100,7 @@ Validator.isDifferent = (a, b) => {
  */
 Validator.isNotEmpty = input => {
   input = input || '';
-  return !isEmpty(input.trim());
+  return not(isEmpty(input.trim()));
 };
 
 /**
@@ -118,6 +128,7 @@ Validator.notContains = (string, seed) => {
  * isNull(true); // false
  * ```
  */
+// TODO this is so wrong
 Validator.isNull = value => {
   return !value;
 };
@@ -133,7 +144,7 @@ Validator.isNull = value => {
  * ```
  */
 Validator.isNotNull = value => {
-  return !Validator.isNull(value);
+  return not(Validator.isNull(value));
 };
 
 /**
@@ -149,7 +160,7 @@ Validator.isNotNull = value => {
  */
 Validator.otherwise = error => {
   return function(validationPassed) {
-    if (!validationPassed) throw error;
+    if (not(validationPassed)) throw error;
   };
 };
 
@@ -224,18 +235,44 @@ Validator.getNestedObject = nestedObj => {
  * ```
  */
 Validator.isLoggedInUser = function(ctx, tenantAlias) {
+  const checkCondition1 = () => {
+    return not(_isObject(ctx));
+  };
+  if (checkCondition1()) return false;
+
+  const checkCondition2 = () => {
+    return or(not(_isObject(ctx.tenant())), not(ctx.tenant().alias));
+  };
+  if (checkCondition2()) return false;
+
+  const checkCondition3 = () => {
+    return not(_isObject(ctx.user())) || not(ctx.user().id);
+  };
+  if (checkCondition3()) return false;
+
+  const checkCondition4 = () => {
+    const notTheSameAlias = _isDifferent(ctx.tenant().alias, tenantAlias);
+    return tenantAlias && notTheSameAlias;
+  };
+  if (checkCondition4()) return false;
+  return true;
+
+  /*
+  const _mustBeFalse = (acc, currentFn) => _isFalse(currentFn());
+  const conditionsCount = reduceWhile(_mustBeFalse, (acc, currentFn) => acc + 1, 0, [
+    checkCondition1,
+    checkCondition2,
+    checkCondition3,
+    checkCondition4
+  ]);
+
   // debug
-  and(true, true);
+  console.log(`(loggedUser?) conditionsCount: ${conditionsCount}`);
 
-  const notTheSameAlias = isDifferent(ctx.tenant().alias, tenantAlias);
-  const condition1 = not(_isObject(ctx));
-  const condition2 = or(not(_isObject(ctx.tenant())), not(ctx.tenant().alias));
-  const condition3 = not(_isObject(ctx.user())) || not(ctx.user().id);
-  const condition4 = tenantAlias && notTheSameAlias;
-  const allConditions = [condition1, condition2, condition3, condition4];
-
-  const isAnyTrue = any(_isTrue);
-  return pipe(isAnyTrue, not)(allConditions);
+  const conditionsPassed = conditionsCount === 4;
+  // console.log(`Conditions passed? ${conditionsPassed} (${conditionsCount})`);
+  return conditionsPassed; //  ? false : true;
+  */
 };
 
 /**
@@ -251,15 +288,48 @@ Validator.isLoggedInUser = function(ctx, tenantAlias) {
  */
 // TODO optimise
 Validator.isGlobalAdministratorUser = ctx => {
-  const condition1 = not(_isObject(ctx));
-  const condition2 = not(_isFunction(ctx.tenant)) || not(_isObject(ctx.tenant())) || not(ctx.tenant().alias);
-  const condition3 = not(_isFunction(ctx.user)) || not(_isObject(ctx.user())) || not(ctx.user().id);
-  const condition4 = not(_isFunction(ctx.user().isGlobalAdmin));
-  const condition5 = isDifferent(ctx.user().isGlobalAdmin(), true);
-  const allConditions = [condition1, condition2, condition3, condition4, condition5];
+  const checkCondition1 = () => {
+    return not(_isObject(ctx));
+  };
+  if (checkCondition1()) return false;
 
-  const isAnyTrue = any(_isTrue);
-  return pipe(isAnyTrue, not)(allConditions);
+  const checkCondition2 = () => {
+    return not(_isFunction(ctx.tenant)) || not(_isObject(ctx.tenant())) || not(ctx.tenant().alias);
+  };
+  if (checkCondition2()) return false;
+
+  const checkCondition3 = () => {
+    return not(_isFunction(ctx.user)) || not(_isObject(ctx.user())) || not(ctx.user().id);
+  };
+  if (checkCondition3()) return false;
+
+  const checkCondition4 = () => {
+    return not(_isFunction(ctx.user().isGlobalAdmin));
+  };
+  if (checkCondition4()) return false;
+
+  const checkCondition5 = () => {
+    return _isDifferent(ctx.user().isGlobalAdmin(), true);
+  };
+  if (checkCondition5()) return false;
+  return true;
+
+  /*
+  const _mustBeFalse = (acc, currentFn) => _isFalse(currentFn());
+  const conditionsCount = reduceWhile(_mustBeFalse, (acc, currentFn) => acc + 1, 0, [
+    checkCondition1,
+    checkCondition2,
+    checkCondition3,
+    checkCondition4,
+    checkCondition5
+  ]);
+
+  // debug
+  console.log(`(globalUser?) conditionsCount: ${conditionsCount}`);
+  const conditionsPassed = conditionsCount === 5;
+  // console.log(`Conditions passed? ${conditionsPassed} (${conditionsCount})`);
+  return conditionsPassed; //  ? false : true;
+  */
 };
 
 /**
@@ -335,7 +405,7 @@ Validator.isArray = arr => {
  * ```
  */
 Validator.isArrayNotEmpty = arr => {
-  return _isArray(arr) && !isEmpty(arr);
+  return _isArray(arr) && not(isEmpty(arr));
 };
 
 /**

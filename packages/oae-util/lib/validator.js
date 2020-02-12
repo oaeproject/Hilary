@@ -33,8 +33,6 @@ import {
 
 import Validator from 'validator';
 
-const HOST_REGEX = /^(?=.{1,255}$)[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?(?:\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?)*\.?(:\d+)?$/i;
-
 const _isString = value => {
   return is(String, value);
 };
@@ -575,6 +573,7 @@ Validator.isLongString = function(value) {
 // TODO optimise with FQQN maybe?
 Validator.isHost = function(hostString) {
   return both(Validator.isShortString, string =>
+    // eslint-disable-next-line camelcase
     Validator.isURL(string, { allow_trailing_dot: true, require_tld: false })
   )(hostString);
 };

@@ -71,6 +71,7 @@ const _isFalse = value => {
   return value === false;
 };
 
+const _isItLengthy = interval => value => Validator.isLength(value, interval);
 /*
 const _isTrue = value => {
   return value === true;
@@ -513,7 +514,7 @@ Validator.isValidTimeZone = function(string) {
  * ```
  */
 Validator.isShortString = function(value = '') {
-  return _isString(value) && Validator.isLength(value, { min: 1, max: 1000 });
+  return both(_isString, _isItLengthy({ min: 1, max: 1000 }))(value);
 };
 
 /**
@@ -534,7 +535,7 @@ Validator.isShortString = function(value = '') {
  * ```
  */
 Validator.isMediumString = function(value = '') {
-  return _isString(value) && Validator.isLength(value, { min: 1, max: 10000 });
+  return both(_isString, _isItLengthy({ min: 1, max: 10000 }))(value);
 };
 
 /**
@@ -555,7 +556,7 @@ Validator.isMediumString = function(value = '') {
  * ```
  */
 Validator.isLongString = function(value) {
-  return _isString(value) && Validator.isLength(value, { min: 1, max: 100000 });
+  return both(_isString, _isItLengthy({ min: 1, max: 100000 }))(value);
 };
 
 /**
@@ -573,7 +574,9 @@ Validator.isLongString = function(value) {
  */
 // TODO optimise with FQQN maybe?
 Validator.isHost = function(hostString) {
-  return Validator.isShortString(hostString) && hostString.match(HOST_REGEX);
+  return both(Validator.isShortString, string =>
+    Validator.isURL(string, { allow_trailing_dot: true, require_tld: false })
+  )(hostString);
 };
 
 /**

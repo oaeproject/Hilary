@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-import _ from 'underscore';
 import * as tz from 'oae-util/lib/tz';
 // import { reduceWhile, pipe, not, any, and, or, type, is, equals, isNil, isEmpty } from 'ramda';
 import { both, either, not, or, type, is, equals, isNil, isEmpty } from 'ramda';
@@ -42,10 +41,6 @@ const _isNumber = value => {
   return is(Number, value);
 };
 
-const _isNull = value => {
-  return value === null;
-};
-
 const _isEqualsTo = (value1, value2) => {
   return equals(value1, value2);
 };
@@ -66,6 +61,11 @@ const _isTrue = value => {
 const _isFalse = value => {
   return value === false;
 };
+
+const _isNull = value => {
+  return value === null;
+};
+
 */
 
 // TODO

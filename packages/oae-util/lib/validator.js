@@ -15,7 +15,7 @@
 
 import * as tz from 'oae-util/lib/tz';
 // import { reduceWhile, pipe, not, any, and, or, type, is, equals, isNil, isEmpty } from 'ramda';
-import { both, either, not, or, type, is, equals, isNil, isEmpty } from 'ramda';
+import { reduceWhile, both, either, not, or, type, is, equals, isNil, isEmpty } from 'ramda';
 
 import Validator from 'validator';
 
@@ -53,19 +53,18 @@ const _isObject = value => {
   return is(Object, value);
 };
 
+const _isFalse = value => {
+  return value === false;
+};
+
 /*
 const _isTrue = value => {
   return value === true;
 };
 
-const _isFalse = value => {
-  return value === false;
-};
-
 const _isNull = value => {
   return value === null;
 };
-
 */
 
 // TODO
@@ -260,28 +259,17 @@ Validator.isLoggedInUser = function(ctx, tenantAlias) {
     return both(isTenantAliasValid, aliasesAreDifferent)();
   };
 
-  if (checkCondition1()) return false;
-  if (checkCondition2()) return false;
-  if (checkCondition3()) return false;
-  if (checkCondition4()) return false;
-  return true;
-
-  /*
   const _mustBeFalse = (acc, currentFn) => _isFalse(currentFn());
-  const conditionsCount = reduceWhile(_mustBeFalse, (acc, currentFn) => acc + 1, 0, [
+  const conditionsCount = reduceWhile(_mustBeFalse, (acc /* , currentFn */) => acc + 1, 0, [
     checkCondition1,
     checkCondition2,
     checkCondition3,
     checkCondition4
   ]);
 
-  // debug
-  console.log(`(loggedUser?) conditionsCount: ${conditionsCount}`);
-
   const conditionsPassed = conditionsCount === 4;
-  // console.log(`Conditions passed? ${conditionsPassed} (${conditionsCount})`);
-  return conditionsPassed; //  ? false : true;
-  */
+
+  return conditionsPassed;
 };
 
 /**
@@ -325,16 +313,8 @@ Validator.isGlobalAdministratorUser = ctx => {
     return _isDifferent(ctx.user().isGlobalAdmin(), true);
   };
 
-  if (checkCondition1()) return false;
-  if (checkCondition2()) return false;
-  if (checkCondition3()) return false;
-  if (checkCondition4()) return false;
-  if (checkCondition5()) return false;
-  return true;
-
-  /*
   const _mustBeFalse = (acc, currentFn) => _isFalse(currentFn());
-  const conditionsCount = reduceWhile(_mustBeFalse, (acc, currentFn) => acc + 1, 0, [
+  const conditionsCount = reduceWhile(_mustBeFalse, (acc /* , currentFn */) => acc + 1, 0, [
     checkCondition1,
     checkCondition2,
     checkCondition3,
@@ -344,12 +324,7 @@ Validator.isGlobalAdministratorUser = ctx => {
 
   const conditionsPassed = conditionsCount === 5;
 
-  // debug
-  console.log(`(globalUser?) conditionsCount: ${conditionsCount}`);
-  console.log(`Conditions passed? ${conditionsPassed} (${conditionsCount})`);
-
-  return conditionsPassed; //  ? false : true;
-  */
+  return conditionsPassed;
 };
 
 /**
@@ -474,8 +449,8 @@ Validator.isBoolean = value => {
  */
 // TODO optimise with isNil
 Validator.isDefined = function(value) {
-  return !_isNull(value) && !_.isUndefined(value);
-  // return !isNil(value);
+  // return !_isNull(value) && !_.isUndefined(value);
+  return !isNil(value);
 };
 
 // TODO JSDoc

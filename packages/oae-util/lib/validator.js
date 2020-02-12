@@ -34,60 +34,40 @@ import {
 
 import Validator from 'validator';
 
-const _isString = value => {
-  return is(String, value);
-};
+const _isString = value => is(String, value);
 
-const _isBoolean = value => {
-  return is(Boolean, value);
-};
+const _isBoolean = value => is(Boolean, value);
 
-const _isFunction = value => {
-  return is(Function, value);
-};
+const _isFunction = value => is(Function, value);
 
-const _isArray = value => {
-  return is(Array, value);
-};
+const _isArray = value => is(Array, value);
 
-const _isNumber = value => {
-  return is(Number, value);
-};
+const _isNumber = value => is(Number, value);
 
-const _isEqualsTo = (value1, value2) => {
-  return equals(value1, value2);
-};
+const _isEqualsTo = (value1, value2) => equals(value1, value2);
 
-const _isDifferent = (a, b) => {
-  return not(_isEqualsTo(a, b));
-};
+const _isDifferent = (a, b) => not(_isEqualsTo(a, b));
 
-const _isObject = value => {
-  return is(Object, value);
-};
+const _isObject = value => is(Object, value);
 
-const _isFalse = value => {
-  return value === false;
-};
+const _isFalse = value => value === false;
 
 const _isItLengthy = interval => value => Validator.isLength(value, interval);
+
 /*
+const _isNull = value => value === null;
 const _isTrue = value => {
   return value === true;
 };
 
-const _isNull = value => {
-  return value === null;
-};
 */
 
 // TODO
-// isNil
-// and / or from R
 // Exclamation marks!
 // say what???? JSON what
 // default instead of || ''
 // isNull and isNotNull
+// short-hand form for functions
 
 /**
  * @function isDifferent
@@ -100,9 +80,7 @@ const _isNull = value => {
  * isDifferent('abcd', 'abcde'); // true
  * ```
  */
-Validator.isDifferent = (a, b) => {
-  return _isDifferent(String(a), b);
-};
+Validator.isDifferent = (a, b) => _isDifferent(String(a), b);
 
 /**
  * @function isNotEmpty
@@ -114,10 +92,7 @@ Validator.isDifferent = (a, b) => {
  * isNotEmpty('abcd'); // true
  * ```
  */
-Validator.isNotEmpty = input => {
-  const defaultToEmptyString = defaultTo('');
-  return pipe(defaultToEmptyString, trim, isEmpty, not)(input);
-};
+Validator.isNotEmpty = input => pipe(defaultTo(''), trim, isEmpty, not)(input);
 
 /**
  * @function notContains
@@ -130,9 +105,7 @@ Validator.isNotEmpty = input => {
  * notContains('abcde', 'org'); // true
  * ```
  */
-Validator.notContains = (string, seed) => {
-  return not(Validator.contains(string, seed));
-};
+Validator.notContains = (string, seed) => not(Validator.contains(string, seed));
 
 /**
  * @function isNull
@@ -144,9 +117,7 @@ Validator.notContains = (string, seed) => {
  * isNull(true); // false
  * ```
  */
-Validator.isNull = value => {
-  return !value;
-};
+Validator.isNull = value => !value;
 
 /**
  * @function isNotNull
@@ -158,9 +129,7 @@ Validator.isNull = value => {
  * isNotNull(null); // false
  * ```
  */
-Validator.isNotNull = value => {
-  return not(Validator.isNull(value));
-};
+Validator.isNotNull = value => not(Validator.isNull(value));
 
 /**
  * @function otherwise
@@ -330,9 +299,7 @@ Validator.isGlobalAdministratorUser = ctx => {
  * isObject(obj); // true
  * ```
  */
-Validator.isObject = function(obj) {
-  return _isObject(obj);
-};
+Validator.isObject = obj => _isObject(obj);
 
 /**
  * Check whether or not the passed value is a Module OR an Object (dont ask)
@@ -346,9 +313,7 @@ Validator.isObject = function(obj) {
  * isModule(obj); // true
  * ```
  */
-Validator.isModule = value => {
-  return or(type(value) === 'Module', _isObject(value));
-};
+Validator.isModule = value => or(_isEqualsTo(type(value), 'Module'), _isObject(value));
 
 /**
  * @function isANumber
@@ -360,9 +325,7 @@ Validator.isModule = value => {
  * isANumber('popo'); // false
  * ```
  */
-Validator.isANumber = value => {
-  return _isNumber(value);
-};
+Validator.isANumber = value => _isNumber(value);
 
 /**
  * Check whether or not the passed in object is an actual array
@@ -376,9 +339,7 @@ Validator.isANumber = value => {
  * isArray(arr); // true
  * ```
  */
-Validator.isArray = arr => {
-  return _isArray(arr);
-};
+Validator.isArray = arr => _isArray(arr);
 
 /**
  * @function isArrayNotEmpty
@@ -390,9 +351,7 @@ Validator.isArray = arr => {
  * isArrayNotEmpty(new Array()); // false
  * ```
  */
-Validator.isArrayNotEmpty = arr => {
-  return both(_isArray, pipe(isEmpty, not))(arr);
-};
+Validator.isArrayNotEmpty = arr => both(_isArray, pipe(isEmpty, not))(arr);
 
 /**
  * @function isArrayEmpty
@@ -404,9 +363,7 @@ Validator.isArrayNotEmpty = arr => {
  * isArrayEmpty(new Array()); // true
  * ```
  */
-Validator.isArrayEmpty = arr => {
-  return both(_isArray, isEmpty)(arr);
-};
+Validator.isArrayEmpty = arr => both(_isArray, isEmpty)(arr);
 
 /**
  * Check whether or not the passed in object is an actual boolean
@@ -420,9 +377,7 @@ Validator.isArrayEmpty = arr => {
  * isBoolean(val); // true
  * ```
  */
-Validator.isBoolean = value => {
-  return _isBoolean(value);
-};
+Validator.isBoolean = value => _isBoolean(value);
 
 /**
  * Check whether or not the passed in value is defined. Will result in

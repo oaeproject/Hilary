@@ -83,11 +83,11 @@ const _isNull = value => {
 
 // TODO
 // isNil
-// isObject
 // and / or from R
 // Exclamation marks!
 // say what???? JSON what
 // default instead of || ''
+// isNull and isNotNull
 
 /**
  * @function isDifferent
@@ -131,7 +131,7 @@ Validator.isNotEmpty = input => {
  * ```
  */
 Validator.notContains = (string, seed) => {
-  return !Validator.contains(string, seed);
+  return not(Validator.contains(string, seed));
 };
 
 /**
@@ -144,7 +144,6 @@ Validator.notContains = (string, seed) => {
  * isNull(true); // false
  * ```
  */
-// TODO this is so wrong
 Validator.isNull = value => {
   return !value;
 };
@@ -400,7 +399,7 @@ Validator.isArray = arr => {
  * ```
  */
 Validator.isArrayNotEmpty = arr => {
-  return _isArray(arr) && not(isEmpty(arr));
+  return both(_isArray, pipe(isEmpty, not))(arr);
 };
 
 /**
@@ -414,7 +413,7 @@ Validator.isArrayNotEmpty = arr => {
  * ```
  */
 Validator.isArrayEmpty = arr => {
-  return _isArray(arr) && isEmpty(arr);
+  return both(_isArray, isEmpty)(arr);
 };
 
 /**
@@ -491,9 +490,9 @@ Validator.isString = function(value) {
  */
 Validator.isValidTimeZone = function(string) {
   // Only timezones of the following format are supported: `foo/bar[/optional]`
-  const isSupportedTimezone = Boolean(tz.timezone.timezone.zones[string]);
-  const hasRightFormat = string.includes('/');
-  return isSupportedTimezone && hasRightFormat;
+  const isSupportedTimezone = string => Boolean(tz.timezone.timezone.zones[string]);
+  const hasRightFormat = string => string.includes('/');
+  return both(isSupportedTimezone, hasRightFormat)(string);
 };
 
 /**

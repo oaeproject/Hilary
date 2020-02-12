@@ -16,7 +16,7 @@
 import _ from 'underscore';
 import * as tz from 'oae-util/lib/tz';
 // import { reduceWhile, pipe, not, any, and, or, type, is, equals, isNil, isEmpty } from 'ramda';
-import { not, or, type, is, equals, isNil, isEmpty } from 'ramda';
+import { both, either, not, or, type, is, equals, isNil, isEmpty } from 'ramda';
 
 import Validator from 'validator';
 
@@ -240,29 +240,33 @@ Validator.getNestedObject = nestedObj => {
 Validator.isLoggedInUser = function(ctx, tenantAlias) {
   const checkCondition1 = () => {
     return not(_isObject(ctx));
+    // return !_.isObject(ctx);
+  };
+
+  const checkCondition2 = () => {
+    const isTenantNotValid = () => not(_isObject(ctx.tenant()));
+    const isAliasNotValid = () => not(ctx.tenant().alias);
+    return either(isTenantNotValid, isAliasNotValid)();
+    // return !_isObject(ctx.tenant()) || !ctx.tenant().alias;
+  };
+
+  const checkCondition3 = () => {
+    const isContextNotValid = () => not(_isObject(ctx.user()));
+    const isUserIdNotValid = () => not(ctx.user().id);
+    return either(isContextNotValid, isUserIdNotValid)();
+  };
+
+  const checkCondition4 = () => {
+    const isTenantAliasValid = () => not(isNil(tenantAlias));
+    const aliasesAreDifferent = () => _isDifferent(ctx.tenant().alias, tenantAlias);
+    return both(isTenantAliasValid, aliasesAreDifferent)();
+    // return tenantAlias && ctx.tenant().alias !== tenantAlias;
   };
 
   if (checkCondition1()) return false;
-
-  const checkCondition2 = () => {
-    return or(not(_isObject(ctx.tenant())), not(ctx.tenant().alias));
-  };
-
   if (checkCondition2()) return false;
-
-  const checkCondition3 = () => {
-    return not(_isObject(ctx.user())) || not(ctx.user().id);
-  };
-
   if (checkCondition3()) return false;
-
-  const checkCondition4 = () => {
-    const notTheSameAlias = _isDifferent(ctx.tenant().alias, tenantAlias);
-    return tenantAlias && notTheSameAlias;
-  };
-
   if (checkCondition4()) return false;
-
   return true;
 
   /*
@@ -298,34 +302,42 @@ Validator.isLoggedInUser = function(ctx, tenantAlias) {
 Validator.isGlobalAdministratorUser = ctx => {
   const checkCondition1 = () => {
     return not(_isObject(ctx));
+    // return !_.isObject(ctx);
   };
-
-  if (checkCondition1()) return false;
 
   const checkCondition2 = () => {
-    return not(_isFunction(ctx.tenant)) || not(_isObject(ctx.tenant())) || not(ctx.tenant().alias);
+    const isTenantNotAFunction = () => not(_isFunction(ctx.tenant));
+    const isTenantNotAnObject = () => not(_isObject(ctx.tenant()));
+    const isTenantNotValid = () => either(isTenantNotAFunction, isTenantNotAnObject)();
+    const isAliasNotValid = () => not(ctx.tenant().alias);
+    return either(isTenantNotValid, isAliasNotValid)();
+    // return !_isFunction(ctx.tenant) || !_.isObject(ctx.tenant()) || !ctx.tenant().alias;
   };
-
-  if (checkCondition2()) return false;
 
   const checkCondition3 = () => {
-    return not(_isFunction(ctx.user)) || not(_isObject(ctx.user())) || not(ctx.user().id);
-  };
+    const isUserNotAFunction = () => not(_isFunction(ctx.user));
+    const isUserNotAnObject = () => not(_isObject(ctx.user()));
+    const isUserNotValid = () => either(isUserNotAFunction, isUserNotAnObject)();
+    const doesUserNotExist = () => not(ctx.user().id);
+    return either(isUserNotValid, doesUserNotExist)();
 
-  if (checkCondition3()) return false;
+    // return not(_isFunction(ctx.user)) || not(_isObject(ctx.user())) || not(ctx.user().id);
+    // return !_isFunction(ctx.user) || !_.isObject(ctx.user()) || !ctx.user().id;
+  };
 
   const checkCondition4 = () => {
     return not(_isFunction(ctx.user().isGlobalAdmin));
   };
 
-  if (checkCondition4()) return false;
-
   const checkCondition5 = () => {
     return _isDifferent(ctx.user().isGlobalAdmin(), true);
   };
 
+  if (checkCondition1()) return false;
+  if (checkCondition2()) return false;
+  if (checkCondition3()) return false;
+  if (checkCondition4()) return false;
   if (checkCondition5()) return false;
-
   return true;
 
   /*
@@ -359,7 +371,7 @@ Validator.isGlobalAdministratorUser = ctx => {
  * ```
  */
 Validator.isObject = function(obj) {
-  return _isObject(obj);
+  return _.isObject(obj);
 };
 
 /**
@@ -375,7 +387,7 @@ Validator.isObject = function(obj) {
  * ```
  */
 Validator.isModule = value => {
-  return or(type(value) === 'Module', _isObject(value));
+  return or(type(value) === 'Module', _.isObject(value));
 };
 
 /**

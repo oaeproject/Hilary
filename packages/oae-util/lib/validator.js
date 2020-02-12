@@ -17,6 +17,7 @@ import * as tz from 'oae-util/lib/tz';
 import {
   defaultTo,
   trim,
+  when,
   length,
   reduceWhile,
   pipe,
@@ -172,10 +173,10 @@ Validator.isNotNull = value => {
  * func(false); // throws an error
  * ```
  */
-Validator.otherwise = error => {
-  return function(validationPassed) {
-    if (not(validationPassed)) throw error;
-  };
+Validator.otherwise = error => validationPassed => {
+  when(not, () => {
+    throw error;
+  })(validationPassed);
 };
 
 /**

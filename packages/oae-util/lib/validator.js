@@ -14,8 +14,22 @@
  */
 
 import * as tz from 'oae-util/lib/tz';
-// import { reduceWhile, pipe, not, any, and, or, type, is, equals, isNil, isEmpty } from 'ramda';
-import { reduceWhile, both, either, not, or, type, is, equals, isNil, isEmpty } from 'ramda';
+import {
+  defaultTo,
+  trim,
+  length,
+  reduceWhile,
+  pipe,
+  both,
+  either,
+  not,
+  or,
+  type,
+  is,
+  equals,
+  isNil,
+  isEmpty
+} from 'ramda';
 
 import Validator from 'validator';
 
@@ -101,8 +115,8 @@ Validator.isDifferent = (a, b) => {
  * ```
  */
 Validator.isNotEmpty = input => {
-  input = input || '';
-  return not(isEmpty(input.trim()));
+  const defaultToEmptyString = defaultTo('');
+  return pipe(defaultToEmptyString, trim, isEmpty, not)(input);
 };
 
 /**
@@ -259,17 +273,11 @@ Validator.isLoggedInUser = function(ctx, tenantAlias) {
     return both(isTenantAliasValid, aliasesAreDifferent)();
   };
 
+  const allConditions = [checkCondition1, checkCondition2, checkCondition3, checkCondition4];
   const _mustBeFalse = (acc, currentFn) => _isFalse(currentFn());
-  const conditionsCount = reduceWhile(_mustBeFalse, (acc /* , currentFn */) => acc + 1, 0, [
-    checkCondition1,
-    checkCondition2,
-    checkCondition3,
-    checkCondition4
-  ]);
+  const conditionsPassed = reduceWhile(_mustBeFalse, (acc /* , currentFn */) => acc + 1, 0, allConditions);
 
-  const conditionsPassed = conditionsCount === 4;
-
-  return conditionsPassed;
+  return _isEqualsTo(conditionsPassed, length(allConditions));
 };
 
 /**
@@ -283,7 +291,6 @@ Validator.isLoggedInUser = function(ctx, tenantAlias) {
  * isGlobalAdministratorUser(ctx);
  * ```
  */
-// TODO optimise
 Validator.isGlobalAdministratorUser = ctx => {
   const checkCondition1 = () => {
     return not(_isObject(ctx));
@@ -313,18 +320,11 @@ Validator.isGlobalAdministratorUser = ctx => {
     return _isDifferent(ctx.user().isGlobalAdmin(), true);
   };
 
+  const allConditions = [checkCondition1, checkCondition2, checkCondition3, checkCondition4, checkCondition5];
   const _mustBeFalse = (acc, currentFn) => _isFalse(currentFn());
-  const conditionsCount = reduceWhile(_mustBeFalse, (acc /* , currentFn */) => acc + 1, 0, [
-    checkCondition1,
-    checkCondition2,
-    checkCondition3,
-    checkCondition4,
-    checkCondition5
-  ]);
+  const conditionsPassed = reduceWhile(_mustBeFalse, (acc /* , currentFn */) => acc + 1, 0, allConditions);
 
-  const conditionsPassed = conditionsCount === 5;
-
-  return conditionsPassed;
+  return _isEqualsTo(conditionsPassed, length(allConditions));
 };
 
 /**

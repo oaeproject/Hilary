@@ -15,7 +15,8 @@
 
 import _ from 'underscore';
 import * as tz from 'oae-util/lib/tz';
-import { reduceWhile, pipe, not, any, and, or, type, is, equals, isNil, isEmpty } from 'ramda';
+// import { reduceWhile, pipe, not, any, and, or, type, is, equals, isNil, isEmpty } from 'ramda';
+import { not, or, type, is, equals, isNil, isEmpty } from 'ramda';
 
 import Validator from 'validator';
 
@@ -57,6 +58,7 @@ const _isObject = value => {
   return is(Object, value);
 };
 
+/*
 const _isTrue = value => {
   return value === true;
 };
@@ -64,6 +66,7 @@ const _isTrue = value => {
 const _isFalse = value => {
   return value === false;
 };
+*/
 
 // TODO
 // isNil
@@ -238,23 +241,28 @@ Validator.isLoggedInUser = function(ctx, tenantAlias) {
   const checkCondition1 = () => {
     return not(_isObject(ctx));
   };
+
   if (checkCondition1()) return false;
 
   const checkCondition2 = () => {
     return or(not(_isObject(ctx.tenant())), not(ctx.tenant().alias));
   };
+
   if (checkCondition2()) return false;
 
   const checkCondition3 = () => {
     return not(_isObject(ctx.user())) || not(ctx.user().id);
   };
+
   if (checkCondition3()) return false;
 
   const checkCondition4 = () => {
     const notTheSameAlias = _isDifferent(ctx.tenant().alias, tenantAlias);
     return tenantAlias && notTheSameAlias;
   };
+
   if (checkCondition4()) return false;
+
   return true;
 
   /*
@@ -291,27 +299,33 @@ Validator.isGlobalAdministratorUser = ctx => {
   const checkCondition1 = () => {
     return not(_isObject(ctx));
   };
+
   if (checkCondition1()) return false;
 
   const checkCondition2 = () => {
     return not(_isFunction(ctx.tenant)) || not(_isObject(ctx.tenant())) || not(ctx.tenant().alias);
   };
+
   if (checkCondition2()) return false;
 
   const checkCondition3 = () => {
     return not(_isFunction(ctx.user)) || not(_isObject(ctx.user())) || not(ctx.user().id);
   };
+
   if (checkCondition3()) return false;
 
   const checkCondition4 = () => {
     return not(_isFunction(ctx.user().isGlobalAdmin));
   };
+
   if (checkCondition4()) return false;
 
   const checkCondition5 = () => {
     return _isDifferent(ctx.user().isGlobalAdmin(), true);
   };
+
   if (checkCondition5()) return false;
+
   return true;
 
   /*

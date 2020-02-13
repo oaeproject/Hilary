@@ -21,6 +21,7 @@ import {
   length,
   reduceWhile,
   pipe,
+  compose,
   both,
   either,
   not,
@@ -44,30 +45,26 @@ const _isArray = value => is(Array, value);
 
 const _isNumber = value => is(Number, value);
 
-const _isEqualsTo = (value1, value2) => equals(value1, value2);
-
-const _isDifferent = (a, b) => not(_isEqualsTo(a, b));
+const _isDifferent = (a, b) => compose(not, equals)(a, b); // not(equals(a, b));
 
 const _isObject = value => is(Object, value);
 
-const _isFalse = value => value === false;
+const _isFalse = value => equals(value, false); // value === false;
 
 const _isItLengthy = interval => value => Validator.isLength(value, interval);
 
-/*
-const _isNull = value => value === null;
-const _isTrue = value => {
-  return value === true;
-};
-
-*/
+// override the isEmpty method from Validator and use R instead
+Validator.isEmpty = isEmpty;
+Validator.isNil = isNil;
 
 // TODO
 // Exclamation marks!
+// Compose and pipes everywhere!
 // say what???? JSON what
 // default instead of || ''
 // isNull and isNotNull
 // short-hand form for functions
+// Tests for Defined and Undefined / isNotNull
 
 /**
  * @function isDifferent
@@ -92,6 +89,7 @@ Validator.isDifferent = (a, b) => _isDifferent(String(a), b);
  * isNotEmpty('abcd'); // true
  * ```
  */
+// TODO test: Validator.isNotEmpty = input => compose(not, isEmpty, trim, defaultTo(''))(input);
 Validator.isNotEmpty = input => pipe(defaultTo(''), trim, isEmpty, not)(input);
 
 /**
@@ -105,31 +103,29 @@ Validator.isNotEmpty = input => pipe(defaultTo(''), trim, isEmpty, not)(input);
  * notContains('abcde', 'org'); // true
  * ```
  */
+// TODO test: Validator.notContains = (string, seed) => compose(not, Validator.contains)(string, seed);
 Validator.notContains = (string, seed) => not(Validator.contains(string, seed));
 
 /**
- * @function isNull
- * @param  {Object} value   Value being compared to null
- * @return {Boolean}        Whether `input` is null or not
+ * Check whether or not the passed in value is defined. Will result in
+ * an error if the value is `null` or `undefined`. However other falsey
+ * values like `false` and `''` will not trigger a validation error.
+ *
+ * @function isDefined
+ * @param  {Object}     val     Value that needs to be checked if it is defined (i.e., not `null` or `undefined`)
  *
  * Usage:
  * ```
- * isNull(true); // false
+ * let val = true;
+ * isDefined(val); // true
  * ```
  */
-Validator.isNull = value => !value;
-
-/**
- * @function isNotNull
- * @param  {Object} input   Value being compared to null
- * @return {Boolean}        Whether `input` is null or not
- *
- * Usage:
- * ```
- * isNotNull(null); // false
- * ```
- */
-Validator.isNotNull = value => not(Validator.isNull(value));
+Validator.isDefined = value => compose(not, isNil)(value);
+// Make this the isDefined default
+// Validator.isNotNull = value => both(Validator.isDefined, compose(not, isEmpty))(value);
+Validator.isNotNull = value => both(compose(not, isNil), compose(not, isEmpty))(value);
+// Validator.isNotNull = value => value !== null && value !== undefined && value !== '';
+// Validator.isNotNil = input => compose(not, isNil)(input);
 
 /**
  * @function otherwise
@@ -194,10 +190,6 @@ Validator.getNestedObject = nestedObj => {
   };
 };
 
-/// ////////////////////
-// Custom validators //
-/// ////////////////////
-
 /**
  * Check whether or not a context represents a logged in user
  *
@@ -237,7 +229,7 @@ Validator.isLoggedInUser = function(ctx, tenantAlias) {
   const _mustBeFalse = (acc, currentFn) => _isFalse(currentFn());
   const conditionsPassed = reduceWhile(_mustBeFalse, (acc /* , currentFn */) => acc + 1, 0, allConditions);
 
-  return _isEqualsTo(conditionsPassed, length(allConditions));
+  return equals(conditionsPassed, length(allConditions));
 };
 
 /**
@@ -284,7 +276,7 @@ Validator.isGlobalAdministratorUser = ctx => {
   const _mustBeFalse = (acc, currentFn) => _isFalse(currentFn());
   const conditionsPassed = reduceWhile(_mustBeFalse, (acc /* , currentFn */) => acc + 1, 0, allConditions);
 
-  return _isEqualsTo(conditionsPassed, length(allConditions));
+  return equals(conditionsPassed, length(allConditions));
 };
 
 /**
@@ -313,7 +305,7 @@ Validator.isObject = obj => _isObject(obj);
  * isModule(obj); // true
  * ```
  */
-Validator.isModule = value => or(_isEqualsTo(type(value), 'Module'), _isObject(value));
+Validator.isModule = value => or(equals(type(value), 'Module'), _isObject(value));
 
 /**
  * @function isANumber
@@ -351,7 +343,7 @@ Validator.isArray = arr => _isArray(arr);
  * isArrayNotEmpty(new Array()); // false
  * ```
  */
-Validator.isArrayNotEmpty = arr => both(_isArray, pipe(isEmpty, not))(arr);
+Validator.isArrayNotEmpty = arr => both(_isArray, compose(not, isEmpty))(arr);
 
 /**
  * @function isArrayEmpty
@@ -380,31 +372,6 @@ Validator.isArrayEmpty = arr => both(_isArray, isEmpty)(arr);
 Validator.isBoolean = value => _isBoolean(value);
 
 /**
- * Check whether or not the passed in value is defined. Will result in
- * an error if the value is `null` or `undefined`. However other falsey
- * values like `false` and `''` will not trigger a validation error.
- *
- * @function isDefined
- * @param  {Object}     val     Value that needs to be checked if it is defined (i.e., not `null` or `undefined`)
- *
- * Usage:
- * ```
- * let val = true;
- * isDefined(val); // true
- * ```
- */
-// TODO optimise with isNil
-Validator.isDefined = function(value) {
-  return not(isNil(value));
-};
-
-// TODO JSDoc
-// Make this the isDefined default
-Validator.isNotNil = input => {
-  return not(isNil(input));
-};
-
-/**
  * Check whether or not the passed in valid is a string
  *
  * @function isString
@@ -417,9 +384,7 @@ Validator.isNotNil = input => {
  * isString(val); // true
  * ```
  */
-Validator.isString = function(value) {
-  return _isString(value);
-};
+Validator.isString = value => _isString(value);
 
 /**
  * Checks whether or not the provided string is a valid time zone.
@@ -458,9 +423,7 @@ Validator.isValidTimeZone = function(string) {
  * isShortString(string); // true
  * ```
  */
-Validator.isShortString = function(value = '') {
-  return both(_isString, _isItLengthy({ min: 1, max: 1000 }))(value);
-};
+Validator.isShortString = (value = '') => both(_isString, _isItLengthy({ min: 1, max: 1000 }))(value);
 
 /**
  * Checks whether the string that was passed in the `check` method is a medium string.
@@ -479,9 +442,7 @@ Validator.isShortString = function(value = '') {
  * isMediumString(string); // true
  * ```
  */
-Validator.isMediumString = function(value = '') {
-  return both(_isString, _isItLengthy({ min: 1, max: 10000 }))(value);
-};
+Validator.isMediumString = (value = '') => both(_isString, _isItLengthy({ min: 1, max: 10000 }))(value);
 
 /**
  * Checks whether the string that was passed in the `check` method is a long string.
@@ -500,9 +461,7 @@ Validator.isMediumString = function(value = '') {
  * isLongString(string); // true
  * ```
  */
-Validator.isLongString = function(value) {
-  return both(_isString, _isItLengthy({ min: 1, max: 100000 }))(value);
-};
+Validator.isLongString = value => both(_isString, _isItLengthy({ min: 1, max: 100000 }))(value);
 
 /**
  * Checks whether the string is a valid host
@@ -536,8 +495,6 @@ Validator.isHost = function(hostString) {
  * isIso3166Country(string); // maybe
  * ```
  */
-Validator.isIso3166Country = function(value) {
-  return both(_isString, Validator.isISO31661Alpha2)(value);
-};
+Validator.isIso3166Country = value => both(_isString, Validator.isISO31661Alpha2)(value);
 
 export { Validator };

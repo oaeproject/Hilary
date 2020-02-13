@@ -24,7 +24,7 @@ import * as TenantsAPI from 'oae-tenants';
 import { logger } from 'oae-logger';
 
 import { Validator as validator } from 'oae-util/lib/validator';
-const { isString, isNotNil, isUserId, otherwise, isNotNull } = validator;
+const { isString, isUserId, otherwise, isNotNull } = validator;
 import { isPast, toDate } from 'date-fns';
 import pipe from 'ramda/src/pipe';
 import isInt from 'validator/lib/isInt';
@@ -168,7 +168,7 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
 
     if (opts.replyToCreated) {
       pipe(
-        isNotNil,
+        isNotNull,
         otherwise({
           code: 400,
           msg: 'If the replyToCreated optional parameter is specified, it should not be null nor undefined.'
@@ -593,7 +593,7 @@ const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
 
   try {
     pipe(
-      isNotNil,
+      isNotNull,
       otherwise({
         code: 400,
         msg: 'A messageBoxId must be specified.'
@@ -601,7 +601,7 @@ const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
     )(messageBoxId);
 
     pipe(
-      isNotNil,
+      isNotNull,
       otherwise({
         code: 400,
         msg: 'The createdTimestamp should not be null.'

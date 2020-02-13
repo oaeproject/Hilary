@@ -20,7 +20,6 @@ import {
   when,
   length,
   reduceWhile,
-  pipe,
   compose,
   both,
   either,
@@ -35,6 +34,8 @@ import {
 
 import Validator from 'validator';
 
+const { isURL, isISO31661Alpha2, contains, isLength } = Validator;
+
 const _isString = value => is(String, value);
 
 const _isBoolean = value => is(Boolean, value);
@@ -45,17 +46,13 @@ const _isArray = value => is(Array, value);
 
 const _isNumber = value => is(Number, value);
 
-const _isDifferent = (a, b) => compose(not, equals)(a, b); // not(equals(a, b));
+const _isDifferent = (a, b) => compose(not, equals)(a, b);
 
 const _isObject = value => is(Object, value);
 
-const _isFalse = value => equals(value, false); // value === false;
+const _isFalse = value => equals(value, false);
 
-const _isItLengthy = interval => value => Validator.isLength(value, interval);
-
-// override the isEmpty method from Validator and use R instead
-Validator.isEmpty = isEmpty;
-Validator.isNil = isNil;
+const _isItLengthy = interval => value => isLength(value, interval);
 
 // TODO
 // Exclamation marks!
@@ -63,8 +60,6 @@ Validator.isNil = isNil;
 // say what???? JSON what
 // default instead of || ''
 // isNull and isNotNull
-// short-hand form for functions
-// Tests for Defined and Undefined / isNotNull
 
 /**
  * @function isDifferent
@@ -77,7 +72,7 @@ Validator.isNil = isNil;
  * isDifferent('abcd', 'abcde'); // true
  * ```
  */
-Validator.isDifferent = (a, b) => _isDifferent(String(a), b);
+const isDifferent = (a, b) => _isDifferent(String(a), b);
 
 /**
  * @function isNotEmpty
@@ -89,8 +84,7 @@ Validator.isDifferent = (a, b) => _isDifferent(String(a), b);
  * isNotEmpty('abcd'); // true
  * ```
  */
-// TODO test: Validator.isNotEmpty = input => compose(not, isEmpty, trim, defaultTo(''))(input);
-Validator.isNotEmpty = input => pipe(defaultTo(''), trim, isEmpty, not)(input);
+const isNotEmpty = input => compose(not, isEmpty, trim, defaultTo(''))(input);
 
 /**
  * @function notContains
@@ -103,8 +97,7 @@ Validator.isNotEmpty = input => pipe(defaultTo(''), trim, isEmpty, not)(input);
  * notContains('abcde', 'org'); // true
  * ```
  */
-// TODO test: Validator.notContains = (string, seed) => compose(not, Validator.contains)(string, seed);
-Validator.notContains = (string, seed) => not(Validator.contains(string, seed));
+const notContains = (string, seed) => compose(not, contains)(string, seed);
 
 /**
  * Check whether or not the passed in value is defined. Will result in
@@ -120,10 +113,11 @@ Validator.notContains = (string, seed) => not(Validator.contains(string, seed));
  * isDefined(val); // true
  * ```
  */
-Validator.isDefined = value => compose(not, isNil)(value);
-// Make this the isDefined default
+const isDefined = value => compose(not, isNil)(value);
+
+// TODO JsDoc
+const isNotNull = value => both(isDefined, compose(not, isEmpty))(value);
 // Validator.isNotNull = value => both(Validator.isDefined, compose(not, isEmpty))(value);
-Validator.isNotNull = value => both(compose(not, isNil), compose(not, isEmpty))(value);
 // Validator.isNotNull = value => value !== null && value !== undefined && value !== '';
 // Validator.isNotNil = input => compose(not, isNil)(input);
 
@@ -138,7 +132,7 @@ Validator.isNotNull = value => both(compose(not, isNil), compose(not, isEmpty))(
  * func(false); // throws an error
  * ```
  */
-Validator.otherwise = error => validationPassed => {
+const otherwise = error => validationPassed => {
   when(not, () => {
     throw error;
   })(validationPassed);
@@ -155,7 +149,7 @@ Validator.otherwise = error => validationPassed => {
  * func('someId'); // false, because 'someId' is not null
  * ```
  */
-Validator.checkIfExists = validation => value => (value ? validation(value) : true);
+const checkIfExists = validation => value => (value ? validation(value) : true);
 
 /**
  * @function makeSureThat
@@ -170,7 +164,7 @@ Validator.checkIfExists = validation => value => (value ? validation(value) : tr
  * func(); // returns false
  * ```
  */
-Validator.makeSureThat = (condition, value, validation) => () => (condition ? validation(value) : true);
+const makeSureThat = (condition, value, validation) => () => (condition ? validation(value) : true);
 
 /**
  * @function getNestedObject
@@ -184,7 +178,7 @@ Validator.makeSureThat = (condition, value, validation) => () => (condition ? va
  * func(['something']); // returns 'true'
  * ```
  */
-Validator.getNestedObject = nestedObj => {
+const getNestedObject = nestedObj => {
   return attrPath => {
     return attrPath.reduce((obj, key) => (obj && obj[key] !== 'undefined' ? obj[key] : undefined), nestedObj);
   };
@@ -202,7 +196,7 @@ Validator.getNestedObject = nestedObj => {
  * isLoggedInUser(ctx);
  * ```
  */
-Validator.isLoggedInUser = function(ctx, tenantAlias) {
+const isLoggedInUser = function(ctx, tenantAlias) {
   const checkCondition1 = () => {
     return not(_isObject(ctx));
   };
@@ -243,7 +237,7 @@ Validator.isLoggedInUser = function(ctx, tenantAlias) {
  * isGlobalAdministratorUser(ctx);
  * ```
  */
-Validator.isGlobalAdministratorUser = ctx => {
+const isGlobalAdministratorUser = ctx => {
   const checkCondition1 = () => {
     return not(_isObject(ctx));
   };
@@ -291,7 +285,7 @@ Validator.isGlobalAdministratorUser = ctx => {
  * isObject(obj); // true
  * ```
  */
-Validator.isObject = obj => _isObject(obj);
+const isObject = obj => _isObject(obj);
 
 /**
  * Check whether or not the passed value is a Module OR an Object (dont ask)
@@ -305,7 +299,7 @@ Validator.isObject = obj => _isObject(obj);
  * isModule(obj); // true
  * ```
  */
-Validator.isModule = value => or(equals(type(value), 'Module'), _isObject(value));
+const isModule = value => or(equals(type(value), 'Module'), _isObject(value));
 
 /**
  * @function isANumber
@@ -317,7 +311,7 @@ Validator.isModule = value => or(equals(type(value), 'Module'), _isObject(value)
  * isANumber('popo'); // false
  * ```
  */
-Validator.isANumber = value => _isNumber(value);
+const isANumber = value => _isNumber(value);
 
 /**
  * Check whether or not the passed in object is an actual array
@@ -331,7 +325,7 @@ Validator.isANumber = value => _isNumber(value);
  * isArray(arr); // true
  * ```
  */
-Validator.isArray = arr => _isArray(arr);
+const isArray = arr => _isArray(arr);
 
 /**
  * @function isArrayNotEmpty
@@ -343,7 +337,7 @@ Validator.isArray = arr => _isArray(arr);
  * isArrayNotEmpty(new Array()); // false
  * ```
  */
-Validator.isArrayNotEmpty = arr => both(_isArray, compose(not, isEmpty))(arr);
+const isArrayNotEmpty = arr => both(_isArray, compose(not, isEmpty))(arr);
 
 /**
  * @function isArrayEmpty
@@ -355,7 +349,7 @@ Validator.isArrayNotEmpty = arr => both(_isArray, compose(not, isEmpty))(arr);
  * isArrayEmpty(new Array()); // true
  * ```
  */
-Validator.isArrayEmpty = arr => both(_isArray, isEmpty)(arr);
+const isArrayEmpty = arr => both(_isArray, isEmpty)(arr);
 
 /**
  * Check whether or not the passed in object is an actual boolean
@@ -369,7 +363,7 @@ Validator.isArrayEmpty = arr => both(_isArray, isEmpty)(arr);
  * isBoolean(val); // true
  * ```
  */
-Validator.isBoolean = value => _isBoolean(value);
+const isBoolean = value => _isBoolean(value);
 
 /**
  * Check whether or not the passed in valid is a string
@@ -384,7 +378,7 @@ Validator.isBoolean = value => _isBoolean(value);
  * isString(val); // true
  * ```
  */
-Validator.isString = value => _isString(value);
+const isString = value => _isString(value);
 
 /**
  * Checks whether or not the provided string is a valid time zone.
@@ -399,7 +393,7 @@ Validator.isString = value => _isString(value);
  * isValidTimeZone(timezone); // false
  * ```
  */
-Validator.isValidTimeZone = function(string) {
+const isValidTimeZone = function(string) {
   // Only timezones of the following format are supported: `foo/bar[/optional]`
   const isSupportedTimezone = string => Boolean(tz.timezone.timezone.zones[string]);
   const hasRightFormat = string => string.includes('/');
@@ -423,7 +417,7 @@ Validator.isValidTimeZone = function(string) {
  * isShortString(string); // true
  * ```
  */
-Validator.isShortString = (value = '') => both(_isString, _isItLengthy({ min: 1, max: 1000 }))(value);
+const isShortString = (value = '') => both(_isString, _isItLengthy({ min: 1, max: 1000 }))(value);
 
 /**
  * Checks whether the string that was passed in the `check` method is a medium string.
@@ -442,7 +436,7 @@ Validator.isShortString = (value = '') => both(_isString, _isItLengthy({ min: 1,
  * isMediumString(string); // true
  * ```
  */
-Validator.isMediumString = (value = '') => both(_isString, _isItLengthy({ min: 1, max: 10000 }))(value);
+const isMediumString = (value = '') => both(_isString, _isItLengthy({ min: 1, max: 10000 }))(value);
 
 /**
  * Checks whether the string that was passed in the `check` method is a long string.
@@ -461,7 +455,7 @@ Validator.isMediumString = (value = '') => both(_isString, _isItLengthy({ min: 1
  * isLongString(string); // true
  * ```
  */
-Validator.isLongString = value => both(_isString, _isItLengthy({ min: 1, max: 100000 }))(value);
+const isLongString = value => both(_isString, _isItLengthy({ min: 1, max: 100000 }))(value);
 
 /**
  * Checks whether the string is a valid host
@@ -476,10 +470,10 @@ Validator.isLongString = value => both(_isString, _isItLengthy({ min: 1, max: 10
  * istHost(string); // true
  * ```
  */
-Validator.isHost = function(hostString) {
-  return both(Validator.isShortString, string =>
+const isHost = hostString => {
+  return both(isShortString, string =>
     // eslint-disable-next-line camelcase
-    Validator.isURL(string, { allow_trailing_dot: true, require_tld: false })
+    isURL(string, { allow_trailing_dot: true, require_tld: false })
   )(hostString);
 };
 
@@ -495,6 +489,35 @@ Validator.isHost = function(hostString) {
  * isIso3166Country(string); // maybe
  * ```
  */
-Validator.isIso3166Country = value => both(_isString, Validator.isISO31661Alpha2)(value);
+const isIso3166Country = value => both(_isString, isISO31661Alpha2)(value);
+
+// override the isEmpty method from Validator and use R instead
+Validator.isEmpty = isEmpty;
+Validator.isNil = isNil;
+Validator.isDefined = isDefined;
+Validator.isDifferent = isDifferent;
+Validator.isNotEmpty = isNotEmpty;
+Validator.notContains = notContains;
+Validator.isNotNull = isNotNull;
+Validator.otherwise = otherwise;
+Validator.checkIfExists = checkIfExists;
+Validator.makeSureThat = makeSureThat;
+Validator.getNestedObject = getNestedObject;
+Validator.isIso3166Country = isIso3166Country;
+Validator.isHost = isHost;
+Validator.isShortString = isShortString;
+Validator.isMediumString = isMediumString;
+Validator.isLongString = isLongString;
+Validator.isValidTimeZone = isValidTimeZone;
+Validator.isString = isString;
+Validator.isBoolean = isBoolean;
+Validator.isLoggedInUser = isLoggedInUser;
+Validator.isArrayEmpty = isArrayEmpty;
+Validator.isArrayNotEmpty = isArrayNotEmpty;
+Validator.isArray = isArray;
+Validator.isGlobalAdministratorUser = isGlobalAdministratorUser;
+Validator.isObject = isObject;
+Validator.isModule = isModule;
+Validator.isANumber = isANumber;
 
 export { Validator };

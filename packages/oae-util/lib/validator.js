@@ -54,13 +54,6 @@ const _isFalse = value => equals(value, false);
 
 const _isItLengthy = interval => value => isLength(value, interval);
 
-// TODO
-// Exclamation marks!
-// Compose and pipes everywhere!
-// say what???? JSON what
-// default instead of || ''
-// isNull and isNotNull
-
 /**
  * @function isDifferent
  * @param  {String} input       Value being compared, **which will be converted to a String**
@@ -115,11 +108,27 @@ const notContains = (string, seed) => compose(not, contains)(string, seed);
  */
 const isDefined = value => compose(not, isNil)(value);
 
-// TODO JsDoc
+/**
+ * Checks if a value is present or defined, often used for parameter validation
+ * In this case notNull means that it must be defined but also not empty (strings, arrays, etc)
+ * This includes empty strings. I know. Dont ask.
+ *
+ * @function isNotNull
+ * @param  {Object} value  Value being checked for not null (defined and not empty)
+ * @return {Boolean}       Whether `value` is not null
+ *
+ * Usage:
+ * ````
+ * let string = '';
+ * let foo = null;
+ * let bar = undefined;
+ * isNotNull(string); // false
+ * isNotNull(foo); // false
+ * isNotNull(bar); // false
+ * isNotNull([1,2,3]); // true
+ * ````
+ */
 const isNotNull = value => both(isDefined, compose(not, isEmpty))(value);
-// Validator.isNotNull = value => both(Validator.isDefined, compose(not, isEmpty))(value);
-// Validator.isNotNull = value => value !== null && value !== undefined && value !== '';
-// Validator.isNotNil = input => compose(not, isNil)(input);
 
 /**
  * @function otherwise
@@ -179,9 +188,7 @@ const makeSureThat = (condition, value, validation) => () => (condition ? valida
  * ```
  */
 const getNestedObject = nestedObj => {
-  return attrPath => {
-    return attrPath.reduce((obj, key) => (obj && obj[key] !== 'undefined' ? obj[key] : undefined), nestedObj);
-  };
+  return attrPath => attrPath.reduce((obj, key) => (obj && obj[key] !== 'undefined' ? obj[key] : undefined), nestedObj);
 };
 
 /**
@@ -274,7 +281,7 @@ const isGlobalAdministratorUser = ctx => {
 };
 
 /**
- * Check whether or not the passed in object is an actual JSON object
+ * Check whether or not the passed in object is an actual object
  *
  * @function isObject
  * @param  {Object}     obj   Object that needs to be checked for validity
@@ -491,33 +498,35 @@ const isHost = hostString => {
  */
 const isIso3166Country = value => both(_isString, isISO31661Alpha2)(value);
 
-// override the isEmpty method from Validator and use R instead
-Validator.isEmpty = isEmpty;
-Validator.isNil = isNil;
-Validator.isDefined = isDefined;
-Validator.isDifferent = isDifferent;
-Validator.isNotEmpty = isNotEmpty;
-Validator.notContains = notContains;
-Validator.isNotNull = isNotNull;
-Validator.otherwise = otherwise;
-Validator.checkIfExists = checkIfExists;
-Validator.makeSureThat = makeSureThat;
-Validator.getNestedObject = getNestedObject;
-Validator.isIso3166Country = isIso3166Country;
-Validator.isHost = isHost;
-Validator.isShortString = isShortString;
-Validator.isMediumString = isMediumString;
-Validator.isLongString = isLongString;
-Validator.isValidTimeZone = isValidTimeZone;
-Validator.isString = isString;
-Validator.isBoolean = isBoolean;
-Validator.isLoggedInUser = isLoggedInUser;
-Validator.isArrayEmpty = isArrayEmpty;
-Validator.isArrayNotEmpty = isArrayNotEmpty;
-Validator.isArray = isArray;
-Validator.isGlobalAdministratorUser = isGlobalAdministratorUser;
-Validator.isObject = isObject;
-Validator.isModule = isModule;
-Validator.isANumber = isANumber;
+const completeValidations = {
+  ...Validator,
+  isEmpty, // override the isEmpty method from Validator and use R instead
+  isNil,
+  isDifferent,
+  isDefined,
+  isNotEmpty,
+  notContains,
+  isNotNull,
+  otherwise,
+  checkIfExists,
+  makeSureThat,
+  getNestedObject,
+  isIso3166Country,
+  isHost,
+  isShortString,
+  isMediumString,
+  isLongString,
+  isValidTimeZone,
+  isString,
+  isBoolean,
+  isLoggedInUser,
+  isArrayEmpty,
+  isArrayNotEmpty,
+  isArray,
+  isGlobalAdministratorUser,
+  isObject,
+  isModule,
+  isANumber
+};
 
-export { Validator };
+export { completeValidations as Validator };

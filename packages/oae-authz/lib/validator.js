@@ -15,7 +15,7 @@
 
 import * as AuthzUtil from 'oae-authz/lib/util';
 import { Validator } from 'oae-util/lib/validator';
-import { compose, either, not, equals } from 'ramda';
+// import { compose, either, not, equals } from 'ramda';
 
 /**
  * Checks whether or not the string in context is a valid principal id

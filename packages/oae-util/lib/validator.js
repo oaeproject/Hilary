@@ -204,27 +204,17 @@ const getNestedObject = nestedObj => {
  * ```
  */
 const isLoggedInUser = function(ctx, tenantAlias) {
-  const checkCondition1 = () => {
-    return not(_isObject(ctx));
-  };
+  const isTenantNotValid = () => compose(not, _isObject)(ctx.tenant());
+  const isContextNotValid = () => compose(not, _isObject)(ctx.user());
+  const isTenantAliasValid = () => compose(not, isNil)(tenantAlias);
+  const isAliasNotValid = () => not(ctx.tenant().alias);
+  const isUserIdNotValid = () => not(ctx.user().id);
+  const aliasesAreDifferent = () => _isDifferent(ctx.tenant().alias, tenantAlias);
 
-  const checkCondition2 = () => {
-    const isTenantNotValid = () => not(_isObject(ctx.tenant()));
-    const isAliasNotValid = () => not(ctx.tenant().alias);
-    return either(isTenantNotValid, isAliasNotValid)();
-  };
-
-  const checkCondition3 = () => {
-    const isContextNotValid = () => not(_isObject(ctx.user()));
-    const isUserIdNotValid = () => not(ctx.user().id);
-    return either(isContextNotValid, isUserIdNotValid)();
-  };
-
-  const checkCondition4 = () => {
-    const isTenantAliasValid = () => not(isNil(tenantAlias));
-    const aliasesAreDifferent = () => _isDifferent(ctx.tenant().alias, tenantAlias);
-    return both(isTenantAliasValid, aliasesAreDifferent)();
-  };
+  const checkCondition1 = () => compose(not, _isObject)(ctx);
+  const checkCondition2 = () => either(isTenantNotValid, isAliasNotValid)();
+  const checkCondition3 = () => either(isContextNotValid, isUserIdNotValid)();
+  const checkCondition4 = () => both(isTenantAliasValid, aliasesAreDifferent)();
 
   const allConditions = [checkCondition1, checkCondition2, checkCondition3, checkCondition4];
   const _mustBeFalse = (acc, currentFn) => _isFalse(currentFn());
@@ -245,33 +235,20 @@ const isLoggedInUser = function(ctx, tenantAlias) {
  * ```
  */
 const isGlobalAdministratorUser = ctx => {
-  const checkCondition1 = () => {
-    return not(_isObject(ctx));
-  };
+  const isTenantNotAFunction = () => compose(not, _isFunction)(ctx.tenant);
+  const isTenantNotAnObject = () => compose(not, _isObject)(ctx.tenant());
+  const isUserNotAFunction = () => compose(not, _isFunction)(ctx.user);
+  const isUserNotAnObject = () => compose(not, _isObject)(ctx.user());
+  const isTenantNotValid = () => either(isTenantNotAFunction, isTenantNotAnObject)();
+  const isUserNotValid = () => either(isUserNotAFunction, isUserNotAnObject)();
+  const isAliasNotValid = () => not(ctx.tenant().alias);
+  const doesUserNotExist = () => not(ctx.user().id);
 
-  const checkCondition2 = () => {
-    const isTenantNotAFunction = () => not(_isFunction(ctx.tenant));
-    const isTenantNotAnObject = () => not(_isObject(ctx.tenant()));
-    const isTenantNotValid = () => either(isTenantNotAFunction, isTenantNotAnObject)();
-    const isAliasNotValid = () => not(ctx.tenant().alias);
-    return either(isTenantNotValid, isAliasNotValid)();
-  };
-
-  const checkCondition3 = () => {
-    const isUserNotAFunction = () => not(_isFunction(ctx.user));
-    const isUserNotAnObject = () => not(_isObject(ctx.user()));
-    const isUserNotValid = () => either(isUserNotAFunction, isUserNotAnObject)();
-    const doesUserNotExist = () => not(ctx.user().id);
-    return either(isUserNotValid, doesUserNotExist)();
-  };
-
-  const checkCondition4 = () => {
-    return not(_isFunction(ctx.user().isGlobalAdmin));
-  };
-
-  const checkCondition5 = () => {
-    return _isDifferent(ctx.user().isGlobalAdmin(), true);
-  };
+  const checkCondition1 = () => compose(not, _isObject)(ctx);
+  const checkCondition4 = () => compose(not, _isFunction)(ctx.user().isGlobalAdmin);
+  const checkCondition2 = () => either(isTenantNotValid, isAliasNotValid)();
+  const checkCondition3 = () => either(isUserNotValid, doesUserNotExist)();
+  const checkCondition5 = () => _isDifferent(ctx.user().isGlobalAdmin(), true);
 
   const allConditions = [checkCondition1, checkCondition2, checkCondition3, checkCondition4, checkCondition5];
   const _mustBeFalse = (acc, currentFn) => _isFalse(currentFn());

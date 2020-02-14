@@ -15,7 +15,7 @@
 
 import * as AuthzUtil from 'oae-authz/lib/util';
 import { Validator } from 'oae-util/lib/validator';
-// import { compose, either, not, equals } from 'ramda';
+import { compose, either, not, equals } from 'ramda';
 
 /**
  * Checks whether or not the string in context is a valid principal id
@@ -55,10 +55,10 @@ Validator.isUserId = string => AuthzUtil.isUserId(string);
  * validator.isNonUserResourceId(resourceId);
  * ```
  */
-Validator.isNonUserResourceId = function(string) {
-  const isItNotResourceId = !AuthzUtil.isResourceId(string);
-  const isItUserId = AuthzUtil.isUserId(string);
-  return !(isItUserId || isItNotResourceId);
+Validator.isNonUserResourceId = string => {
+  const isItNotResourceId = string => compose(not, AuthzUtil.isResourceId)(string);
+  const isItUserId = string => AuthzUtil.isUserId(string);
+  return compose(not, either(isItNotResourceId, isItUserId))(string);
 };
 
 /**
@@ -101,13 +101,9 @@ Validator.isValidRole = string => AuthzUtil.isRole(string);
  * validator.isValidRoleChange(newRole);
  * ```
  */
-Validator.isValidRoleChange = function(string) {
-  // return string === false || AuthzUtil.isRole(string);
-  if (string !== false && !AuthzUtil.isRole(string)) {
-    return false;
-  }
-
-  return true;
+Validator.isValidRoleChange = string => {
+  const isStringFalse = string => equals(string, false);
+  return either(isStringFalse, AuthzUtil.isRole)(string);
 };
 
 /**

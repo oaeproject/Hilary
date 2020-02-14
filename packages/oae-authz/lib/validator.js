@@ -15,6 +15,7 @@
 
 import * as AuthzUtil from 'oae-authz/lib/util';
 import { Validator } from 'oae-util/lib/validator';
+import { compose, either, not, equals } from 'ramda';
 
 /**
  * Checks whether or not the string in context is a valid principal id
@@ -24,9 +25,7 @@ import { Validator } from 'oae-util/lib/validator';
  * validator.isPrincipalId(principalId);
  * ```
  */
-Validator.isPrincipalId = function(string) {
-  return AuthzUtil.isPrincipalId(string);
-};
+Validator.isPrincipalId = string => AuthzUtil.isPrincipalId(string);
 
 /**
  * Checks whether or not the string in context is a valid group principal id
@@ -36,9 +35,7 @@ Validator.isPrincipalId = function(string) {
  * validator.isGroupId(groupId);
  * ```
  */
-Validator.isGroupId = function(string) {
-  return AuthzUtil.isGroupId(string);
-};
+Validator.isGroupId = string => AuthzUtil.isGroupId(string);
 
 /**
  * Checks whether or not the string in context is a valid user principal id
@@ -48,9 +45,7 @@ Validator.isGroupId = function(string) {
  * validator.isUserId(userId);
  * ```
  */
-Validator.isUserId = string => {
-  return AuthzUtil.isUserId(string);
-};
+Validator.isUserId = string => AuthzUtil.isUserId(string);
 
 /**
  * Checks whether or not the string in context is a resource id that is not a user id
@@ -74,9 +69,7 @@ Validator.isNonUserResourceId = function(string) {
  * validator.isResourceId(resourceId);
  * ```
  */
-Validator.isResourceId = function(string) {
-  return AuthzUtil.isResourceId(string);
-};
+Validator.isResourceId = string => AuthzUtil.isResourceId(string);
 
 /**
  * Checks whether or not the specified object is a valid resource object
@@ -86,9 +79,7 @@ Validator.isResourceId = function(string) {
  * validator.isResource(resource);
  * ```
  */
-Validator.isResource = function(resource) {
-  return AuthzUtil.isResource(resource);
-};
+Validator.isResource = resource => AuthzUtil.isResource(resource);
 
 /**
  * Checks whether or not the string in context is a valid role name
@@ -98,9 +89,7 @@ Validator.isResource = function(resource) {
  * validator.isValidRole(role);
  * ```
  */
-Validator.isValidRole = function(string) {
-  return AuthzUtil.isRole(string);
-};
+Validator.isValidRole = string => AuthzUtil.isRole(string);
 
 /**
  * Checks whether or not a set of principals and their new role is formatted correctly.
@@ -131,8 +120,6 @@ Validator.isValidRoleChange = function(string) {
  *
  * @see AuthzUtil#parseShareTarget for specification
  */
-Validator.isValidShareTarget = function(string) {
-  return AuthzUtil.parseShareTarget(string);
-};
+Validator.isValidShareTarget = string => AuthzUtil.parseShareTarget(string);
 
 export { Validator };

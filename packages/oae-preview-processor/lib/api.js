@@ -43,10 +43,11 @@ const {
   isNotEmpty,
   isNil,
   isObject,
-  isModule,
   isArrayNotEmpty,
+  isModule,
   isResourceId,
   isGlobalAdministratorUser,
+  validateInCase,
   isNotNull,
   isLoggedInUser
 } = validator;
@@ -196,7 +197,11 @@ const refreshPreviewConfiguration = function(_config, callback) {
         }
 
         // Register the processors.
-        _registerDefaultProcessors();
+        try {
+          _registerDefaultProcessors();
+        } catch (error) {
+          return callback(error);
+        }
 
         // Start listening for messages by enabling it.
         enable(callback);
@@ -381,22 +386,17 @@ const reprocessPreviews = function(ctx, filters, callback) {
         msg: 'At least one filter must be specified'
       })
     )(filters);
+
+    const areThereFilters = isModule(filters);
+    pipe(
+      validateInCase(areThereFilters, isArrayNotEmpty),
+      otherwise({
+        code: 400,
+        msg: 'At least one filter must be specified'
+      })
+    )(_.keys(filters));
   } catch (error) {
     return callback(error);
-  }
-
-  if (_.isObject(filters)) {
-    try {
-      pipe(
-        isArrayNotEmpty,
-        otherwise({
-          code: 400,
-          msg: 'At least one filter must be specified'
-        })
-      )(_.keys(filters));
-    } catch (error) {
-      return callback(error);
-    }
   }
 
   const filterGenerator = new FilterGenerator(filters);

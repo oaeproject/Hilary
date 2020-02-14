@@ -459,12 +459,8 @@ const postIndexTask = function(resourceType, resources, index, callback) {
         msg: '"resources" parameter must be an array with one or more entries'
       })
     )(resources);
-  } catch (error) {
-    return callback(error);
-  }
 
-  try {
-    _.each(resources, resource => {
+    resources.forEach(resource => {
       pipe(
         isNotEmpty,
         otherwise({

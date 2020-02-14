@@ -20,8 +20,17 @@ import Chance from 'chance';
 import * as Cassandra from 'oae-util/lib/cassandra';
 
 import { Validator as validator } from 'oae-authz/lib/validator';
-const { otherwise, isResourceId, isEmail, isValidRole, isString, isUserId, isValidRoleChange } = validator;
-import pipe from 'ramda/src/pipe';
+const {
+  otherwise,
+  validateInCase,
+  isResourceId,
+  isEmail,
+  isValidRole,
+  isString,
+  isUserId,
+  isValidRoleChange
+} = validator;
+import { not, equals, pipe, forEachObjIndexed } from 'ramda';
 
 const chance = new Chance();
 
@@ -237,7 +246,7 @@ const createInvitations = function(resourceId, emailRoles, inviterUserId, callba
       })
     )(resourceId);
 
-    _.each(emailRoles, (role, email) => {
+    const validateEachRole = (role, email) => {
       pipe(
         isEmail,
         otherwise({
@@ -253,7 +262,9 @@ const createInvitations = function(resourceId, emailRoles, inviterUserId, callba
           msg: 'A valid role must be supplied to give the invited user'
         })
       )(role);
-    });
+    };
+
+    forEachObjIndexed(validateEachRole, emailRoles);
 
     pipe(
       isUserId,
@@ -327,7 +338,7 @@ const updateInvitationRoles = function(resourceId, emailRoles, callback) {
       })
     )(resourceId);
 
-    _.each(emailRoles, (role, email) => {
+    const validateEachRole = (role, email) => {
       pipe(
         isEmail,
         otherwise({
@@ -344,16 +355,17 @@ const updateInvitationRoles = function(resourceId, emailRoles, callback) {
         })
       )(role);
 
-      if (role !== false) {
-        pipe(
-          isString,
-          otherwise({
-            code: 400,
-            msg: util.format('Invalid role "%s" specified', role)
-          })
-        )(role);
-      }
-    });
+      const roleAintFalse = not(equals(role, false));
+      pipe(
+        validateInCase(roleAintFalse, isString),
+        otherwise({
+          code: 400,
+          msg: util.format('Invalid role "%s" specified', role)
+        })
+      )(role);
+    };
+
+    forEachObjIndexed(validateEachRole, emailRoles);
   } catch (error) {
     return callback(error);
   }

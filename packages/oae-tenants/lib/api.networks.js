@@ -217,7 +217,7 @@ const addTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callback)
       })
     )(tenantAliases);
 
-    _.each(tenantAliases, tenantAlias => {
+    tenantAliases.forEach(tenantAlias => {
       pipe(
         isObject,
         otherwise({

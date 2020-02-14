@@ -17,7 +17,8 @@ import { logger } from 'oae-logger';
 import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
 import { Validator as validator } from 'oae-authz/lib/validator';
 const {
-  checkIfExists,
+  validateInCase,
+  isDefined,
   otherwise,
   isANumber,
   isValidRoleChange,
@@ -29,18 +30,23 @@ const {
   isShortString,
   isMediumString,
   isArrayNotEmpty,
+  getNestedObject,
   isLongString
 } = validator;
-import pipe from 'ramda/src/pipe';
+import { compose, equals, length, and, pipe, gt as greaterThan, forEachObjIndexed } from 'ramda';
 import isIn from 'validator/lib/isIn';
 import isInt from 'validator/lib/isInt';
 import { AuthzConstants } from 'oae-authz/lib/constants';
+
 import { MeetingsConstants } from './constants';
 import * as MeetingsDAO from './internal/dao';
 
 const Config = setUpConfig('oae-jitsi');
 
 const log = logger('meetings-jitsi-api');
+
+const TRUE = 'true';
+const FALSE = 'false';
 /**
  * PUBLIC FUNCTIONS
  */
@@ -77,13 +83,8 @@ const createMeeting = function(
   const allVisibilities = _.values(AuthzConstants.visibility);
 
   // Convert chat and contactList value to boolean for validation (if there are present)
-  if (chat) {
-    chat = String(chat) === 'true';
-  }
-
-  if (contactList) {
-    contactList = String(contactList) === 'true';
-  }
+  if (chat) chat = _convertToBoolean(String(chat));
+  if (contactList) contactList = _convertToBoolean(String(contactList));
 
   // Verify basic properties
   try {
@@ -118,28 +119,18 @@ const createMeeting = function(
         msg: 'An invalid meeting visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
       })
     )(visibility, allVisibilities);
-  } catch (error) {
-    return callback(error);
-  }
 
-  if (description && description.length > 0) {
-    try {
-      pipe(
-        isMediumString,
-        otherwise({
-          code: 400,
-          msg: 'A description can be at most 10000 characters long'
-        })
-      )(description);
-    } catch (error) {
-      return callback(error);
-    }
-  }
+    const descriptionIsValid = and(isDefined(description), greaterThan(length(description), 0));
+    pipe(
+      validateInCase(descriptionIsValid, isMediumString),
+      otherwise({
+        code: 400,
+        msg: 'A description can be at most 10000 characters long'
+      })
+    )(description);
 
-  // Verify each role is valid
-  try {
-    // eslint-disable-next-line no-unused-vars
-    _.each(additionalMembers, (role, memberId) => {
+    // Verify each role is valid
+    forEachObjIndexed((role /* , memberId */) => {
       pipe(
         isIn,
         otherwise({
@@ -147,7 +138,7 @@ const createMeeting = function(
           msg: 'The role: ' + role + ' is not a valid member role for a meeting'
         })
       )(role, MeetingsConstants.roles.ALL_PRIORITY);
-    });
+    }, additionalMembers);
   } catch (error) {
     return callback(error);
   }
@@ -382,21 +373,13 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
   const allVisibilities = _.values(AuthzConstants.visibility);
 
   // Convert chat and contactList value to boolean for validation (if there are present)
-  if (profileFields.chat) {
-    if (profileFields.chat === 'true') {
-      profileFields.chat = true;
-    } else if (profileFields.chat === 'false') {
-      profileFields.chat = false;
-    }
-  }
+  const getAttribute = getNestedObject(profileFields);
+  const isDefined = attr => compose(Boolean, getAttribute, x => [x])(attr);
 
-  if (profileFields.contactList) {
-    if (profileFields.contactList === 'true') {
-      profileFields.contactList = true;
-    } else if (profileFields.contactList === 'false') {
-      profileFields.contactList = false;
-    }
-  }
+  const CHAT = 'chat';
+  const CONTACT_LIST = 'contactList';
+  if (isDefined(CHAT)) profileFields.chat = _convertToBoolean(getAttribute([CHAT]));
+  if (isDefined(CONTACT_LIST)) profileFields.contactList = _convertToBoolean(getAttribute([CONTACT_LIST]));
 
   try {
     pipe(
@@ -422,12 +405,8 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
         msg: 'You should at least provide one profile field to update'
       })
     )(_.keys(profileFields));
-  } catch (error) {
-    return callback(error);
-  }
 
-  try {
-    _.each(profileFields, (value, field) => {
+    forEachObjIndexed((value, field) => {
       pipe(
         isIn,
         otherwise({
@@ -440,56 +419,61 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
         })
       )(field, MeetingsConstants.updateFields);
 
-      if (field === 'visibility') {
-        pipe(
-          isIn,
-          otherwise({
-            code: 400,
-            msg: 'An invalid visibility was specified. Must be one of: ' + allVisibilities.join(', ')
-          })
-        )(value, allVisibilities);
-      } else if (field === 'displayName') {
-        pipe(
-          isNotEmpty,
-          otherwise({
-            code: 400,
-            msg: 'A display name cannot be empty'
-          })
-        )(value);
+      const VISIBILITY = 'visibility';
+      const DISPLAY_NAME = 'displayName';
+      const DESCRIPTION = 'description';
+      const CHAT = 'chat';
+      const CONTACT_LIST = 'contactList';
+      const ifFieldIs = attr => equals(field, attr);
 
-        pipe(
-          isShortString,
-          otherwise({
-            code: 400,
-            msg: 'A display name can be at most 1000 characters long'
-          })
-        )(value);
-      } else if (field === 'description' && value.length > 0) {
-        pipe(
-          isMediumString,
-          otherwise({
-            code: 400,
-            msg: 'A description can be at most 10000 characters long'
-          })
-        )(value);
-      } else if (field === 'chat') {
-        pipe(
-          isBoolean,
-          otherwise({
-            code: 400,
-            msg: 'An invalid chat value was specified, must be boolean'
-          })
-        )(value);
-      } else if (field === 'contactList') {
-        pipe(
-          isBoolean,
-          otherwise({
-            code: 400,
-            msg: 'An invalid contactList value was specified, must be boolean'
-          })
-        )(value);
-      }
-    });
+      pipe(
+        validateInCase(ifFieldIs(VISIBILITY), isIn),
+        otherwise({
+          code: 400,
+          msg: 'An invalid visibility was specified. Must be one of: ' + allVisibilities.join(', ')
+        })
+      )(value, allVisibilities);
+
+      pipe(
+        validateInCase(ifFieldIs(DISPLAY_NAME), isNotEmpty),
+        otherwise({
+          code: 400,
+          msg: 'A display name cannot be empty'
+        })
+      )(value);
+
+      pipe(
+        validateInCase(ifFieldIs(DISPLAY_NAME), isShortString),
+        otherwise({
+          code: 400,
+          msg: 'A display name can be at most 1000 characters long'
+        })
+      )(value);
+
+      pipe(
+        validateInCase(and(ifFieldIs(DESCRIPTION), greaterThan(length(value), 0)), isMediumString),
+        otherwise({
+          code: 400,
+          msg: 'A description can be at most 10000 characters long'
+        })
+      )(value);
+
+      pipe(
+        validateInCase(ifFieldIs(CHAT), isBoolean),
+        otherwise({
+          code: 400,
+          msg: 'An invalid chat value was specified, must be boolean'
+        })
+      )(value);
+
+      pipe(
+        validateInCase(ifFieldIs(CONTACT_LIST), isBoolean),
+        otherwise({
+          code: 400,
+          msg: 'An invalid contactList value was specified, must be boolean'
+        })
+      )(value);
+    }, profileFields);
   } catch (error) {
     return callback(error);
   }
@@ -628,13 +612,8 @@ const setMeetingMembers = function(ctx, meetingId, changes, callback) {
         msg: 'You must be authenticated to update meeting members'
       })
     )(ctx);
-  } catch (error) {
-    return callback(error);
-  }
 
-  try {
-    // eslint-disable-next-line no-unused-vars
-    _.each(changes, (role, principalId) => {
+    forEachObjIndexed((role /* , principalId */) => {
       pipe(
         isValidRoleChange,
         otherwise({
@@ -643,21 +622,20 @@ const setMeetingMembers = function(ctx, meetingId, changes, callback) {
         })
       )(role);
 
-      if (role) {
-        pipe(
-          isIn,
-          otherwise({
-            code: 400,
-            msg:
-              'The role "' +
-              role +
-              '" is not a valid value. Must be one of : ' +
-              MeetingsConstants.roles.ALL_PRIORITY.join(', ') +
-              ', or false'
-          })
-        )(role, MeetingsConstants.roles.ALL_PRIORITY);
-      }
-    });
+      const thereIsRole = Boolean(role);
+      pipe(
+        validateInCase(thereIsRole, isIn),
+        otherwise({
+          code: 400,
+          msg:
+            'The role "' +
+            role +
+            '" is not a valid value. Must be one of : ' +
+            MeetingsConstants.roles.ALL_PRIORITY.join(', ') +
+            ', or false'
+        })
+      )(role, MeetingsConstants.roles.ALL_PRIORITY);
+    }, changes);
   } catch (error) {
     return callback(error);
   }
@@ -809,8 +787,9 @@ const createMessage = function(ctx, meetingId, body, replyToCreatedTimestamp, ca
       })
     )(body);
 
+    const timestampIsDefined = Boolean(replyToCreatedTimestamp);
     pipe(
-      checkIfExists(isInt),
+      validateInCase(timestampIsDefined, isInt),
       otherwise({
         code: 400,
         msg: 'Invalid reply-to timestamp provided'
@@ -1149,6 +1128,11 @@ const _getMeeting = function(meetingId, callback) {
 
     return callback(null, meeting);
   });
+};
+
+const _convertToBoolean = attr => {
+  if (equals(attr, TRUE)) return true;
+  if (equals(attr, FALSE)) return false;
 };
 
 export {

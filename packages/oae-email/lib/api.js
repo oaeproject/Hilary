@@ -35,7 +35,7 @@ import * as UIAPI from 'oae-ui';
 import { htmlToText } from 'nodemailer-html-to-text';
 import * as TenantsAPI from 'oae-tenants';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { getNestedObject, isDefined, makeSureThat, otherwise, isNotEmpty, isObject, isEmail } = validator;
+const { validateInCase, getNestedObject, isDefined, otherwise, isNotEmpty, isObject, isEmail } = validator;
 import pipe from 'ramda/src/pipe';
 
 const EmailConfig = setUpConfig('oae-email');
@@ -214,6 +214,7 @@ const refreshTemplates = function(callback) {
 
 const _abortIfRecipientErrors = (emailData, done) => {
   const { templateModule, templateId, recipient } = emailData;
+  const ifThereIsRecipient = () => Boolean(recipient);
 
   try {
     pipe(
@@ -238,14 +239,17 @@ const _abortIfRecipientErrors = (emailData, done) => {
       otherwise({
         code: 400,
         msg: 'Must specify a user when sending an email'
-      }),
-      // Only validate the user email if it was a valid object
-      makeSureThat(recipient, String(getAttribute(['email'])), isEmail),
+      })
+    )(recipient);
+
+    pipe(
+      String,
+      validateInCase(ifThereIsRecipient, isEmail),
       otherwise({
         code: 400,
         msg: 'User must have a valid email address to receive email'
       })
-    )(recipient);
+    )(getAttribute(['email']));
   } catch (error) {
     return done(error);
   }
@@ -418,22 +422,21 @@ const sendEmail = function(templateModule, templateId, recipient, data, opts, ca
     pipe(isObject, otherwise({ code: 400, msg: 'Must specify a user when sending an email' }))(recipient);
 
     // Only validate the user email if it was a valid object
-    if (recipient) {
-      pipe(
-        isDefined,
-        otherwise({
-          code: 400,
-          msg: 'User must have a valid email address to receive email'
-        })
-      )(recipient.email);
-      pipe(
-        isEmail,
-        otherwise({
-          code: 400,
-          msg: 'User must have a valid email address to receive email'
-        })
-      )(recipient.email);
-    }
+    const recipientIsDefined = Boolean(recipient);
+    pipe(
+      validateInCase(recipientIsDefined, isDefined),
+      otherwise({
+        code: 400,
+        msg: 'User must have a valid email address to receive email'
+      })
+    )(recipient.email);
+    pipe(
+      validateInCase(recipientIsDefined, isEmail),
+      otherwise({
+        code: 400,
+        msg: 'User must have a valid email address to receive email'
+      })
+    )(recipient.email);
   } catch (error) {
     return callback(error);
   }

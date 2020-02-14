@@ -44,8 +44,9 @@ import isInt from 'validator/lib/isInt';
 import isIn from 'validator/lib/isIn';
 import { Validator as validator } from 'oae-util/lib/validator';
 const {
-  checkIfExists,
+  validateInCase,
   otherwise,
+  isDefined,
   isANumber,
   isResourceId,
   isLoggedInUser,
@@ -55,10 +56,9 @@ const {
   isMediumString,
   isArrayNotEmpty,
   isPrincipalId,
-  equals,
   isLongString
 } = validator;
-import pipe from 'ramda/src/pipe';
+import { curry, __, equals, not, and, gt as greaterThan, pipe, forEach, forEachObjIndexed } from 'ramda';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { ContentConstants } from './constants';
 import * as ContentDAO from './internal/dao';
@@ -72,6 +72,11 @@ const log = logger('oae-content');
 
 const COLLABDOC = 'collabdoc';
 const COLLABSHEET = 'collabsheet';
+
+const DISPLAY_NAME = 'displayName';
+const DESCRIPTION = 'description';
+const VISIBILITY = 'visibility';
+const LINK = 'link';
 
 /**
  * ### Events
@@ -479,49 +484,46 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
       })
     )(displayName);
 
-    if (description) {
-      pipe(
-        isMediumString,
-        otherwise({
-          code: 400,
-          msg: 'A content description can be at most 10000 characters long'
-        })
-      )(description);
-    }
+    pipe(
+      validateInCase(Boolean(description), isMediumString),
+      otherwise({
+        code: 400,
+        msg: 'A content description can be at most 10000 characters long'
+      })
+    )(description);
 
-    if (file) {
-      pipe(
-        isNotEmpty,
-        otherwise({
-          code: 400,
-          msg: 'Missing size on the file object'
-        })
-      )(String(file.size));
+    const fileIsDefined = Boolean(file);
+    pipe(
+      validateInCase(fileIsDefined, isNotNull),
+      otherwise({
+        code: 400,
+        msg: 'Missing size on the file object'
+      })
+    )(file.size);
 
-      pipe(
-        isANumber,
-        otherwise({
-          code: 400,
-          msg: 'Invalid size on the file object'
-        })
-      )(file.size);
+    pipe(
+      validateInCase(fileIsDefined, isANumber),
+      otherwise({
+        code: 400,
+        msg: 'Invalid size on the file object'
+      })
+    )(file.size);
 
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'Invalid size on the file object'
-        })
-      )(String(file.size), { gt: 0 });
+    pipe(
+      validateInCase(fileIsDefined, greaterThan),
+      otherwise({
+        code: 400,
+        msg: 'Invalid size on the file object'
+      })
+    )(file.size, 0);
 
-      pipe(
-        isNotEmpty,
-        otherwise({
-          code: 400,
-          msg: 'Missing name on the file object'
-        })
-      )(file.name);
-    }
+    pipe(
+      validateInCase(fileIsDefined, isNotEmpty),
+      otherwise({
+        code: 400,
+        msg: 'Missing name on the file object'
+      })
+    )(file.name);
   } catch (error) {
     return callback(error);
   }
@@ -784,15 +786,13 @@ const _createContent = function(
       })
     )(displayName);
 
-    if (description) {
-      pipe(
-        isMediumString,
-        otherwise({
-          code: 400,
-          msg: 'A description can only be 10000 characters long'
-        })
-      )(description);
-    }
+    pipe(
+      validateInCase(Boolean(description), isMediumString),
+      otherwise({
+        code: 400,
+        msg: 'A description can only be 10000 characters long'
+      })
+    )(description);
 
     pipe(
       isIn,
@@ -824,7 +824,7 @@ const _createContent = function(
       validRoles.push(AuthzConstants.role.EDITOR);
     }
 
-    _.each(roles, role => {
+    forEach(role => {
       pipe(
         isIn,
         otherwise({
@@ -832,7 +832,7 @@ const _createContent = function(
           msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
         })
       )(role, validRoles);
-    });
+    }, roles);
   } catch (error) {
     return callback(error);
   }
@@ -893,7 +893,7 @@ const canManageFolders = function(ctx, folderIds, callback) {
   }
 
   try {
-    _.each(folderIds, folderId => {
+    folderIds.forEach(folderId => {
       // Validate the folder id
       pipe(
         isResourceId,
@@ -1562,18 +1562,18 @@ const setContentPermissions = function(ctx, contentId, changes, callback) {
     }
 
     try {
-      // eslint-disable-next-line no-unused-vars
-      _.each(changes, (role, principalId) => {
-        if (role !== false) {
-          pipe(
-            isIn,
-            otherwise({
-              code: 400,
-              msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
-            })
-          )(String(role), validRoles);
-        }
-      });
+      const isOneOfValidRoles = curry(isIn)(__, validRoles);
+      forEachObjIndexed((role /* , principalId */) => {
+        const roleAintFalse = not(equals(role, false));
+        pipe(
+          String,
+          validateInCase(roleAintFalse, isOneOfValidRoles),
+          otherwise({
+            code: 400,
+            msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
+          })
+        )(role);
+      }, changes);
     } catch (error) {
       return callback(error);
     }
@@ -1904,39 +1904,38 @@ const _updateFileBody = function(ctx, contentId, file, callback) {
       })
     )(file);
 
-    if (file) {
-      pipe(
-        isNotEmpty,
-        otherwise({
-          code: 400,
-          msg: 'Missing size on the file object.'
-        })
-      )(String(file.size));
+    const fileIsDefined = Boolean(file);
+    pipe(
+      validateInCase(fileIsDefined, isNotNull),
+      otherwise({
+        code: 400,
+        msg: 'Missing size on the file object.'
+      })
+    )(file.size);
 
-      pipe(
-        isANumber,
-        otherwise({
-          code: 400,
-          msg: 'Invalid size on the file object.'
-        })
-      )(file.size);
+    pipe(
+      validateInCase(fileIsDefined, isANumber),
+      otherwise({
+        code: 400,
+        msg: 'Invalid size on the file object.'
+      })
+    )(file.size);
 
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'Invalid size on the file object.'
-        })
-      )(String(file.size), { gt: 0 });
+    pipe(
+      validateInCase(fileIsDefined, greaterThan),
+      otherwise({
+        code: 400,
+        msg: 'Invalid size on the file object.'
+      })
+    )(file.size, 0);
 
-      pipe(
-        isNotEmpty,
-        otherwise({
-          code: 400,
-          msg: 'Missing name on the file object.'
-        })
-      )(file.name);
-    }
+    pipe(
+      validateInCase(fileIsDefined, isNotEmpty),
+      otherwise({
+        code: 400,
+        msg: 'Missing name on the file object.'
+      })
+    )(file.name);
   } catch (error) {
     return callback(error);
   }
@@ -2236,6 +2235,7 @@ const getSignedPreviewDownloadInfo = function(ctx, contentId, revisionId, previe
         msg: 'Missing content ID'
       })
     )(contentId);
+
     pipe(
       isResourceId,
       otherwise({
@@ -2338,59 +2338,60 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
       })
     )(fieldNames);
 
-    for (const fieldName of fieldNames) {
+    fieldNames.forEach(fieldName => {
       pipe(
         isIn,
         otherwise({
           code: 400,
           msg: fieldName + ' is not a recognized content profile field'
         })
-      )(fieldName, ['displayName', 'description', 'visibility', 'link']);
+      )(fieldName, [DISPLAY_NAME, DESCRIPTION, VISIBILITY, LINK]);
 
-      if (fieldName === 'displayName') {
-        pipe(
-          isNotEmpty,
-          otherwise({
-            code: 400,
-            msg: 'A display name cannot be empty'
-          })
-        )(profileFields.displayName);
+      const fieldIsDisplayName = equals(fieldName, DISPLAY_NAME);
+      const fieldIsDescription = and(equals(fieldName, DESCRIPTION), profileFields.description);
+      const fieldIsLink = equals(fieldName, LINK);
 
-        pipe(
-          isShortString,
-          otherwise({
-            code: 400,
-            msg: 'A display name can be at most 1000 characters long'
-          })
-        )(profileFields.displayName);
-      } else if (fieldName === 'description' && profileFields.description) {
-        pipe(
-          isMediumString,
-          otherwise({
-            code: 400,
-            msg: 'A description can only be 10000 characters long'
-          })
-        )(profileFields.description);
-      } else if (fieldName === 'link') {
-        pipe(
-          isUrl,
-          otherwise({
-            code: 400,
-            msg: 'A valid link should be provided'
-          })
-        )(profileFields.link);
-      }
-    }
-
-    if (profileFields.visibility) {
       pipe(
-        isIn,
+        validateInCase(fieldIsDisplayName, isNotEmpty),
         otherwise({
           code: 400,
-          msg: 'An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"'
+          msg: 'A display name cannot be empty'
         })
-      )(profileFields.visibility, _.values(AuthzConstants.visibility));
-    }
+      )(profileFields.displayName);
+
+      pipe(
+        validateInCase(fieldIsDisplayName, isShortString),
+        otherwise({
+          code: 400,
+          msg: 'A display name can be at most 1000 characters long'
+        })
+      )(profileFields.displayName);
+
+      pipe(
+        validateInCase(fieldIsDescription, isMediumString),
+        otherwise({
+          code: 400,
+          msg: 'A description can only be 10000 characters long'
+        })
+      )(profileFields.description);
+
+      pipe(
+        validateInCase(fieldIsLink, isUrl),
+        otherwise({
+          code: 400,
+          msg: 'A valid link should be provided'
+        })
+      )(profileFields.link);
+    });
+
+    const fieldIsVisibility = Boolean(profileFields.visibility);
+    pipe(
+      validateInCase(fieldIsVisibility, isIn),
+      otherwise({
+        code: 400,
+        msg: 'An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"'
+      })
+    )(profileFields.visibility, _.values(AuthzConstants.visibility));
 
     pipe(
       isLoggedInUser,
@@ -2488,7 +2489,7 @@ const createComment = function(ctx, contentId, body, replyToCreatedTimestamp, ca
     )(body);
 
     pipe(
-      checkIfExists(isInt),
+      validateInCase(isDefined(replyToCreatedTimestamp), isInt),
       otherwise({
         code: 400,
         msg: 'Invalid reply-to timestamp provided'
@@ -2931,15 +2932,14 @@ const getRevision = function(ctx, contentId, revisionId, callback) {
       })
     )(contentId);
 
-    if (revisionId) {
-      pipe(
-        isResourceId,
-        otherwise({
-          code: 400,
-          msg: 'A valid revisionId must be provided'
-        })
-      )(revisionId);
-    }
+    const revisionIdIsDefined = Boolean(revisionId);
+    pipe(
+      validateInCase(revisionIdIsDefined, isResourceId),
+      otherwise({
+        code: 400,
+        msg: 'A valid revisionId must be provided'
+      })
+    )(revisionId);
   } catch (error) {
     return callback(error);
   }
@@ -2979,7 +2979,7 @@ const getRevisionDownloadInfo = function(ctx, contentId, revisionId, callback) {
     )(contentId);
 
     pipe(
-      checkIfExists(isResourceId),
+      validateInCase(Boolean(revisionId), isResourceId),
       otherwise({
         code: 400,
         msg: 'A valid revisionId must be provided'

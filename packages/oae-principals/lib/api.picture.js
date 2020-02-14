@@ -24,7 +24,7 @@ import * as AuthzPermissions from 'oae-authz/lib/permissions';
 import * as ContentUtil from 'oae-content/lib/internal/util';
 import * as ImageUtil from 'oae-util/lib/image';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { otherwise, isLoggedInUser, isPrincipalId, isNotNull, isNotEmpty } = validator;
+const { validateInCase, otherwise, isLoggedInUser, isPrincipalId, isNotNull, isNotEmpty } = validator;
 import pipe from 'ramda/src/pipe';
 import isInt from 'validator/lib/isInt';
 import * as GroupAPI from './api.group';
@@ -84,33 +84,34 @@ const storePicture = function(ctx, principalId, file, callback) {
       })
     )(file);
 
-    if (file) {
-      pipe(
-        isNotEmpty,
-        otherwise({
-          code: 400,
-          msg: 'Missing size on the file object.'
-        })
-      )(String(file.size));
+    const fileIsThere = Boolean(file);
+    pipe(
+      String,
+      validateInCase(fileIsThere, isNotEmpty),
+      otherwise({
+        code: 400,
+        msg: 'Missing size on the file object.'
+      })
+    )(file.size);
 
-      pipe(
-        (size, max) => {
-          return size <= max;
-        },
-        otherwise({
-          code: 400,
-          msg: 'The size of a picture has an upper limit of 10MB.'
-        })
-      )(file.size, 10485760);
+    const UPLOAD_LIMIT = 10485760;
+    pipe(
+      validateInCase(fileIsThere, (size, max) => {
+        return size <= max;
+      }),
+      otherwise({
+        code: 400,
+        msg: 'The size of a picture has an upper limit of 10MB.'
+      })
+    )(file.size, UPLOAD_LIMIT);
 
-      pipe(
-        isNotEmpty,
-        otherwise({
-          code: 400,
-          msg: 'Missing name on the file object.'
-        })
-      )(file.name);
-    }
+    pipe(
+      validateInCase(fileIsThere, isNotEmpty),
+      otherwise({
+        code: 400,
+        msg: 'Missing name on the file object.'
+      })
+    )(file.name);
   } catch (error) {
     return _cleanupOnError(error, file, callback);
   }
@@ -225,52 +226,58 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
     )(principalId);
 
     pipe(
+      String,
       isInt,
       otherwise({
         code: 400,
         msg: 'The x value must be a positive integer'
       })
-    )(String(x));
+    )(x);
 
     pipe(
+      String,
       isInt,
       otherwise({
         code: 400,
         msg: 'The x value must be a positive integer'
       })
-    )(String(x), { min: 0 });
+    )(x, { min: 0 });
 
     pipe(
+      String,
       isInt,
       otherwise({
         code: 400,
         msg: 'The y value must be a positive integer'
       })
-    )(String(y));
+    )(y);
 
     pipe(
+      String,
       isInt,
       otherwise({
         code: 400,
         msg: 'The y value must be a positive integer'
       })
-    )(String(y), { min: 0 });
+    )(y, { min: 0 });
 
     pipe(
+      String,
       isInt,
       otherwise({
         code: 400,
         msg: 'The width value must be a positive integer'
       })
-    )(String(width));
+    )(width);
 
     pipe(
+      String,
       isInt,
       otherwise({
         code: 400,
         msg: 'The width value must be a positive integer greater than or equal to 10'
       })
-    )(String(width), { gt: 9 });
+    )(width, { gt: 9 });
   } catch (error) {
     return callback(error);
   }

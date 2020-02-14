@@ -452,12 +452,13 @@ const submit = (queueName, message, callback) => {
     )(message);
 
     pipe(
+      String,
       isJSON,
       otherwise({
         code: 400,
         msg: 'No JSON message was provided.'
       })
-    )(String(message));
+    )(message);
   } catch (error) {
     return callback(error);
   }

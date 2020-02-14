@@ -25,8 +25,8 @@ import readdirp from 'readdirp';
 import * as restjsdoc from 'restjsdoc';
 import * as TenantsUtil from 'oae-tenants/lib/util';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { isNotEmpty, notContains, otherwise } = validator;
-import pipe from 'ramda/src/pipe';
+const { validateInCase, isNotEmpty, notContains, otherwise } = validator;
+import { pipe, equals, forEachObjIndexed } from 'ramda';
 import isIn from 'validator/lib/isIn';
 import * as SwaggerParamTypes from './swaggerParamTypes';
 
@@ -326,7 +326,7 @@ const _appendToApi = function(rootResource, api, spec) {
     )(spec.nickname, ' ');
 
     // Parse and validate params
-    _.each(spec.params, param => {
+    forEachObjIndexed(param => {
       pipe(
         isIn,
         otherwise({
@@ -336,17 +336,16 @@ const _appendToApi = function(rootResource, api, spec) {
         })
       )(param.paramType, Constants.paramTypes);
 
-      if (param.paramType === 'path') {
-        pipe(
-          isIn,
-          otherwise({
-            path: api.path,
-            name: param.name,
-            msg: 'Invalid path'
-          })
-        )(param.name, api.path);
-      }
-    });
+      const pathIsValid = equals(param.paramType, 'path');
+      pipe(
+        validateInCase(pathIsValid, isIn),
+        otherwise({
+          path: api.path,
+          name: param.name,
+          msg: 'Invalid path'
+        })
+      )(param.name, api.path);
+    }, spec.params);
   } catch (error) {
     return log().warn(
       { swaggerValidationErrors: error },

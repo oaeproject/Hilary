@@ -42,7 +42,7 @@ const {
   isArray,
   isValidRoleChange,
   otherwise,
-  checkIfExists,
+  validateInCase,
   isANumber,
   isLoggedInUser,
   isPrincipalId,
@@ -57,6 +57,7 @@ const {
 import pipe from 'ramda/src/pipe';
 import isIn from 'validator/lib/isIn';
 import isInt from 'validator/lib/isInt';
+import { forEachObjIndexed } from 'ramda';
 import * as FoldersFoldersLibrary from './internal/foldersLibrary';
 import * as FoldersAuthz from './authz';
 import * as FoldersContentLibrary from './internal/contentLibrary';
@@ -68,6 +69,9 @@ const log = logger('oae-folders-api');
 
 const FoldersConfig = setUpConfig('oae-folders');
 
+const DISPLAY_NAME = 'displayName';
+const DESCRIPTION = 'description';
+const VISIBILITY = 'visibility';
 /*!
  * ### Events
  *
@@ -127,15 +131,14 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
       })
     )(displayName);
 
-    if (description) {
-      pipe(
-        isMediumString,
-        otherwise({
-          code: 400,
-          msg: 'A description can be at most 10000 characters long'
-        })
-      )(description);
-    }
+    const descriptionIsThere = Boolean(description);
+    pipe(
+      validateInCase(descriptionIsThere, isMediumString),
+      otherwise({
+        code: 400,
+        msg: 'A description can be at most 10000 characters long'
+      })
+    )(description);
 
     pipe(
       isIn,
@@ -144,13 +147,9 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
         msg: 'An invalid folder visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
       })
     )(visibility, allVisibilities);
-  } catch (error) {
-    return callback(error);
-  }
 
-  // Verify each role is valid
-  try {
-    _.each(roles, role => {
+    // Verify each role is valid
+    forEachObjIndexed(role => {
       pipe(
         isIn,
         otherwise({
@@ -158,7 +157,7 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
           msg: util.format('The role "%s" is not a valid member role for a folder', role)
         })
       )(role, FoldersConstants.role.ALL_PRIORITY);
-    });
+    }, roles);
   } catch (error) {
     return callback(error);
   }
@@ -242,15 +241,11 @@ const updateFolder = function(ctx, folderId, updates, callback) {
         msg: 'Missing update information'
       })
     )(updates, updates);
-  } catch (error) {
-    return callback(error);
-  }
 
-  // Ensure that at least one valid update field was provided
-  const updateFields = _.keys(updates);
-  const legalUpdateFields = ['displayName', 'description', 'visibility'];
+    // Ensure that at least one valid update field was provided
+    const updateFields = _.keys(updates);
+    const legalUpdateFields = [DISPLAY_NAME, DESCRIPTION, VISIBILITY];
 
-  try {
     pipe(
       isArrayNotEmpty,
       otherwise({
@@ -258,12 +253,8 @@ const updateFolder = function(ctx, folderId, updates, callback) {
         msg: 'One of ' + legalUpdateFields.join(', ') + ' must be provided'
       })
     )(_.intersection(updateFields, legalUpdateFields));
-  } catch (error) {
-    return callback(error);
-  }
 
-  try {
-    _.each(updates, (val, key) => {
+    forEachObjIndexed((val, key) => {
       pipe(
         isIn,
         otherwise({
@@ -271,51 +262,36 @@ const updateFolder = function(ctx, folderId, updates, callback) {
           msg: 'Unknown update field provided'
         })
       )(key, legalUpdateFields);
-    });
+    }, updates);
+
+    const isThereDisplayName = Boolean(updates.displayName);
+    pipe(
+      validateInCase(isThereDisplayName, isShortString),
+      otherwise({
+        code: 400,
+        msg: 'A display name can be at most 1000 characters long'
+      })
+    )(updates.displayName);
+
+    const isThereDescription = Boolean(updates.description);
+    pipe(
+      validateInCase(isThereDescription, isMediumString),
+      otherwise({
+        code: 400,
+        msg: 'A description can be at most 10000 characters long'
+      })
+    )(updates.description);
+
+    const isThereVisibility = Boolean(updates.visibility);
+    pipe(
+      validateInCase(isThereVisibility, isIn),
+      otherwise({
+        code: 400,
+        msg: 'An invalid folder visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
+      })
+    )(updates.visibility, allVisibilities);
   } catch (error) {
     return callback(error);
-  }
-
-  if (updates.displayName) {
-    try {
-      pipe(
-        isShortString,
-        otherwise({
-          code: 400,
-          msg: 'A display name can be at most 1000 characters long'
-        })
-      )(updates.displayName);
-    } catch (error) {
-      return callback(error);
-    }
-  }
-
-  if (updates.description) {
-    try {
-      pipe(
-        isMediumString,
-        otherwise({
-          code: 400,
-          msg: 'A description can be at most 10000 characters long'
-        })
-      )(updates.description);
-    } catch (error) {
-      return callback(error);
-    }
-  }
-
-  if (updates.visibility) {
-    try {
-      pipe(
-        isIn,
-        otherwise({
-          code: 400,
-          msg: 'An invalid folder visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
-        })
-      )(updates.visibility, allVisibilities);
-    } catch (error) {
-      return callback(error);
-    }
   }
 
   // Get the folder from storage to use for permission checks
@@ -1122,13 +1098,8 @@ const setFolderPermissions = function(ctx, folderId, changes, callback) {
         msg: 'A valid folder id must be provided'
       })
     )(folderId);
-  } catch (error) {
-    return callback(error);
-  }
 
-  try {
-    // eslint-disable-next-line no-unused-vars
-    _.each(changes, (role, principalId) => {
+    forEachObjIndexed((role /* , principalId */) => {
       pipe(
         isValidRoleChange,
         otherwise({
@@ -1137,21 +1108,20 @@ const setFolderPermissions = function(ctx, folderId, changes, callback) {
         })
       )(role);
 
-      if (role) {
-        pipe(
-          isIn,
-          otherwise({
-            code: 400,
-            msg:
-              'The role: "' +
-              role +
-              '" is not a valid value. Must be one of: ' +
-              FoldersConstants.role.ALL_PRIORITY.join(', ') +
-              '; or false'
-          })
-        )(role, FoldersConstants.role.ALL_PRIORITY);
-      }
-    });
+      const thereIsRole = Boolean(role);
+      pipe(
+        validateInCase(thereIsRole, isIn),
+        otherwise({
+          code: 400,
+          msg:
+            'The role: "' +
+            role +
+            '" is not a valid value. Must be one of: ' +
+            FoldersConstants.role.ALL_PRIORITY.join(', ') +
+            '; or false'
+        })
+      )(role, FoldersConstants.role.ALL_PRIORITY);
+    }, changes);
   } catch (error) {
     return callback(error);
   }
@@ -1227,7 +1197,7 @@ const addContentItemsToFolder = function(ctx, folderId, contentIds, callback) {
     )(_.values(contentIds));
 
     // Ensure each content id is valid
-    _.each(contentIds, contentId => {
+    forEachObjIndexed(contentId => {
       pipe(
         isResourceId,
         otherwise({
@@ -1235,7 +1205,7 @@ const addContentItemsToFolder = function(ctx, folderId, contentIds, callback) {
           msg: util.format('The id "%s" is not a valid content id', contentId)
         })
       )(contentId);
-    });
+    }, contentIds);
   } catch (error) {
     return callback(error);
   }
@@ -1370,7 +1340,7 @@ const removeContentItemsFromFolder = function(ctx, folderId, contentIds, callbac
     )(_.values(contentIds));
 
     // Ensure each content id is valid
-    _.each(contentIds, contentId => {
+    forEachObjIndexed(contentId => {
       pipe(
         isResourceId,
         otherwise({
@@ -1378,7 +1348,7 @@ const removeContentItemsFromFolder = function(ctx, folderId, contentIds, callbac
           msg: util.format('The id "%s" is not a valid content id', contentId)
         })
       )(contentId);
-    });
+    }, contentIds);
   } catch (error) {
     return callback(error);
   }
@@ -1764,8 +1734,9 @@ const createMessage = function(ctx, folderId, body, replyToCreatedTimestamp, cal
       })
     )(body);
 
+    const timestampIsDefined = Boolean(replyToCreatedTimestamp);
     pipe(
-      checkIfExists(isInt),
+      validateInCase(timestampIsDefined, isInt),
       otherwise({
         code: 400,
         msg: 'Invalid reply-to timestamp provided'

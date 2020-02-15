@@ -17,7 +17,7 @@ import { logger } from 'oae-logger';
 import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
 import { Validator as validator } from 'oae-authz/lib/validator';
 const {
-  checkIfExists,
+  ifDefinedMakeSureThat,
   otherwise,
   isANumber,
   isValidRoleChange,
@@ -810,7 +810,7 @@ const createMessage = function(ctx, meetingId, body, replyToCreatedTimestamp, ca
     )(body);
 
     pipe(
-      checkIfExists(isInt),
+      ifDefinedMakeSureThat(isInt),
       otherwise({
         code: 400,
         msg: 'Invalid reply-to timestamp provided'

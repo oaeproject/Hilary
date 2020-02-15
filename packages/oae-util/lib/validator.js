@@ -158,7 +158,7 @@ const otherwise = error => validationPassed => {
  * func('someId'); // false, because 'someId' is not null
  * ```
  */
-const checkIfExists = validation => value => (value ? validation(value) : true);
+const ifDefinedMakeSureThat = validation => value => (value ? validation(value) : true);
 
 /**
  * @function makeSureThat
@@ -484,7 +484,7 @@ const completeValidations = {
   notContains,
   isNotNull,
   otherwise,
-  checkIfExists,
+  ifDefinedMakeSureThat,
   makeSureThat,
   getNestedObject,
   isIso3166Country,

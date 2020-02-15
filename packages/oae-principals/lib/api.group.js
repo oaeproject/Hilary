@@ -33,7 +33,7 @@ import { Validator as validator } from 'oae-authz/lib/validator';
 const {
   isShortString,
   isMediumString,
-  checkIfExists,
+  ifDefinedMakeSureThat,
   otherwise,
   isLoggedInUser,
   isNotEmpty,
@@ -867,7 +867,7 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
       })
     )(joinable, _.values(AuthzConstants.joinable));
     pipe(
-      checkIfExists(isMediumString),
+      ifDefinedMakeSureThat(isMediumString),
       otherwise({
         code: 400,
         msg: 'A description can only be 10000 characters long'

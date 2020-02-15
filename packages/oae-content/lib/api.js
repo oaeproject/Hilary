@@ -44,7 +44,7 @@ import isInt from 'validator/lib/isInt';
 import isIn from 'validator/lib/isIn';
 import { Validator as validator } from 'oae-util/lib/validator';
 const {
-  checkIfExists,
+  ifDefinedMakeSureThat,
   otherwise,
   isANumber,
   isResourceId,
@@ -2488,7 +2488,7 @@ const createComment = function(ctx, contentId, body, replyToCreatedTimestamp, ca
     )(body);
 
     pipe(
-      checkIfExists(isInt),
+      ifDefinedMakeSureThat(isInt),
       otherwise({
         code: 400,
         msg: 'Invalid reply-to timestamp provided'
@@ -2979,7 +2979,7 @@ const getRevisionDownloadInfo = function(ctx, contentId, revisionId, callback) {
     )(contentId);
 
     pipe(
-      checkIfExists(isResourceId),
+      ifDefinedMakeSureThat(isResourceId),
       otherwise({
         code: 400,
         msg: 'A valid revisionId must be provided'

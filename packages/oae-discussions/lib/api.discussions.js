@@ -36,7 +36,7 @@ const {
   isValidRoleChange,
   otherwise,
   isANumber,
-  checkIfExists,
+  ifDefinedMakeSureThat,
   isLoggedInUser,
   isPrincipalId,
   isNotEmpty,
@@ -983,7 +983,7 @@ const createMessage = function(ctx, discussionId, body, replyToCreatedTimestamp,
       })
     )(body);
     pipe(
-      checkIfExists(isInt),
+      ifDefinedMakeSureThat(isInt),
       otherwise({
         code: 400,
         msg: 'Invalid reply-to timestamp provided'

@@ -214,6 +214,7 @@ const refreshTemplates = function(callback) {
 
 const _abortIfRecipientErrors = (emailData, done) => {
   const { templateModule, templateId, recipient } = emailData;
+  const ifThereIsRecipient = () => Boolean(recipient);
 
   try {
     pipe(
@@ -240,7 +241,8 @@ const _abortIfRecipientErrors = (emailData, done) => {
         msg: 'Must specify a user when sending an email'
       }),
       // Only validate the user email if it was a valid object
-      makeSureThat(recipient, String(getAttribute(['email'])), isEmail),
+      ifThereIsRecipient,
+      makeSureThat(String(getAttribute(['email'])), isEmail),
       otherwise({
         code: 400,
         msg: 'User must have a valid email address to receive email'

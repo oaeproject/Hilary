@@ -162,18 +162,17 @@ const checkIfExists = validation => value => (value ? validation(value) : true);
 
 /**
  * @function makeSureThat
- * @param  {Boolean} condition    Whether we should validate or not
  * @param  {Object}  value        Value to be validated
  * @param  {Function} validation  Function used to validate value if condition is true
  * @return {Function}             A function to be chained in validation steps
  *
  * Usage:
  * ```
- * let func = makeSureThat(true, 'popo', isEmpty);
- * func(); // returns false
+ * let func = makeSureThat('popo', isEmpty);
+ * func(); // returns function which will NOT run the validation (parameter is false)
  * ```
  */
-const makeSureThat = (condition, value, validation) => () => (condition ? validation(value) : true);
+const makeSureThat = (value, validation) => condition => (condition ? validation(value) : true);
 
 /**
  * @function getNestedObject

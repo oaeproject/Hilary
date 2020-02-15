@@ -27,7 +27,7 @@ import * as Signature from 'oae-util/lib/signature';
 import { telemetry } from 'oae-telemetry';
 import * as TenantsAPI from 'oae-tenants';
 import { Validator as validator } from 'oae-authz/lib/validator';
-const { otherwise, isNotEmpty, isUserId, isObject, isNotNull, isANumber } = validator;
+const { getNestedObject, makeSureThat, otherwise, isNotEmpty, isUserId, isObject, isNotNull, isANumber } = validator;
 import pipe from 'ramda/src/pipe';
 
 import { ActivityConstants } from 'oae-activity/lib/constants';
@@ -371,34 +371,36 @@ const _authenticate = function(connectionInfo, message) {
       })
     )(data.userId);
 
+    // Do some preliminary signature validation before we access the user from the database
+    const getAttribute = getNestedObject(data.signature);
+    const expiryDate = getAttribute(['expires']);
+    const signature = getAttribute(['signature']);
+
+    const ifThereIsExpiryDate = () => Boolean(expiryDate);
+    const ifThereIsSignature = () => Boolean(signature);
+
     pipe(
       isObject,
       otherwise({
         code: 400,
         msg: 'A signature object needs to be provided'
-      })
-    )(data.signature);
-
-    pipe(
-      isANumber,
+      }),
+      ifThereIsExpiryDate,
+      makeSureThat(expiryDate, isANumber),
       otherwise({
         code: 400,
         msg: 'Signature must contain an integer expires value'
-      })
-    )(data.signature.expires);
-
-    pipe(
-      isNotNull,
+      }),
+      ifThereIsSignature,
+      makeSureThat(signature, isNotNull),
       otherwise({
         code: 400,
         msg: 'Signature must contain a string signature value'
       })
-    )(data.signature.signature);
+    )(data.signature);
   } catch (error) {
     if (error) return handleError(error);
   }
-
-  // Do some preliminary signature validation before we access the user from the database
 
   // Get the full user object so we can build a context with which to authenticate to the signing utility
   PrincipalsDAO.getPrincipal(data.userId, (err, user) => {

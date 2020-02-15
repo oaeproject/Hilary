@@ -37,7 +37,7 @@ const {
   isObject
 } = validator;
 
-import pipe from 'ramda/src/pipe';
+import { pipe, both } from 'ramda';
 import isIn from 'validator/lib/isIn';
 
 import { setUpConfig } from 'oae-config';
@@ -701,10 +701,13 @@ const postActivity = function(ctx, activitySeed, callback) {
   }
 
   const getAttribute = getNestedObject(activitySeed);
-  const ifThereIsActivity = Boolean(activitySeed);
-  const ifThereIsActivityActor = ifThereIsActivity && activitySeed.actorResource;
-  const ifThereIsActivityObject = ifThereIsActivity && activitySeed.objectResource;
-  const ifThereIsActivityTarget = ifThereIsActivity && activitySeed.targetResource;
+  const ifThereIsActivity = () => Boolean(activitySeed);
+  const isThereActor = () => Boolean(activitySeed.actorResource);
+  const isThereObject = () => Boolean(activitySeed.objectResource);
+  const isThereTarget = () => Boolean(activitySeed.targetResource);
+  const ifThereIsActivityActor = () => both(ifThereIsActivity, isThereActor)();
+  const ifThereIsActivityObject = () => both(ifThereIsActivity, isThereObject)();
+  const ifThereIsActivityTarget = () => both(ifThereIsActivity, isThereTarget)();
 
   const runValidations = pipe(
     isObject,
@@ -712,52 +715,62 @@ const postActivity = function(ctx, activitySeed, callback) {
       code: 400,
       msg: 'No activity seed provided.'
     }),
-    makeSureThat(ifThereIsActivity, getAttribute(['activityType']), isNotEmpty),
+    ifThereIsActivity,
+    makeSureThat(getAttribute(['activityType']), isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Activity seed did not have an activity type.'
     }),
-    makeSureThat(ifThereIsActivity, getAttribute(['verb']), isNotEmpty),
+    ifThereIsActivity,
+    makeSureThat(getAttribute(['verb']), isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Activity seed did not have a verb.'
     }),
-    makeSureThat(ifThereIsActivity, getAttribute(['published']), isANumber),
+    ifThereIsActivity,
+    makeSureThat(getAttribute(['published']), isANumber),
     otherwise({
       code: 400,
       msg: 'Activity seed did not have a valid publish date.'
     }),
-    makeSureThat(ifThereIsActivity, getAttribute(['actorResource']), isObject),
+    ifThereIsActivity,
+    makeSureThat(getAttribute(['actorResource']), isObject),
     otherwise({
       code: 400,
       msg: 'Activity seed did not have an actor resource'
     }),
-    makeSureThat(ifThereIsActivityActor, getAttribute(['actorResource', 'resourceId']), isNotEmpty),
+    ifThereIsActivityActor,
+    makeSureThat(getAttribute(['actorResource', 'resourceId']), isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Actor of activity seed did not have a resourceId'
     }),
-    makeSureThat(ifThereIsActivityActor, getAttribute(['actorResource', 'resourceType']), isNotEmpty),
+    ifThereIsActivityActor,
+    makeSureThat(getAttribute(['actorResource', 'resourceType']), isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Actor of activity seed did not have a resourceType'
     }),
-    makeSureThat(ifThereIsActivityObject, getAttribute(['objectResource', 'resourceId']), isNotEmpty),
+    ifThereIsActivityObject,
+    makeSureThat(getAttribute(['objectResource', 'resourceId']), isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Object of activity seed was specified and did not have a resourceId'
     }),
-    makeSureThat(ifThereIsActivityObject, getAttribute(['objectResource', 'resourceType']), isNotEmpty),
+    ifThereIsActivityObject,
+    makeSureThat(getAttribute(['objectResource', 'resourceType']), isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Object of activity seed was specified and did not have a resourceType'
     }),
-    makeSureThat(ifThereIsActivityTarget, getAttribute(['targetResource', 'resourceId']), isNotEmpty),
+    ifThereIsActivityTarget,
+    makeSureThat(getAttribute(['targetResource', 'resourceId']), isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Target of activity seed was specified and did not have a resourceId'
     }),
-    makeSureThat(ifThereIsActivityTarget, getAttribute(['targetResource', 'resourceType']), isNotEmpty),
+    ifThereIsActivityTarget,
+    makeSureThat(getAttribute(['targetResource', 'resourceType']), isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Target of activity seed was specified and did not have a resourceType'

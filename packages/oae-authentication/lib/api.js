@@ -1404,7 +1404,7 @@ const _expandLoginId = function(loginIdStr) {
  */
 const _validateLoginIdForLookup = function(validator, loginId) {
   // Only validate these if loginId is a valid object
-  const ifLoginIsValid = Boolean(loginId);
+  const ifLoginIsValid = () => Boolean(loginId);
   const getAttribute = getNestedObject(loginId);
 
   pipe(
@@ -1413,17 +1413,20 @@ const _validateLoginIdForLookup = function(validator, loginId) {
       code: 400,
       msg: 'Must specify a login id'
     }),
-    makeSureThat(ifLoginIsValid, getAttribute(['tenantAlias']), isNotEmpty),
+    ifLoginIsValid,
+    makeSureThat(getAttribute(['tenantAlias']), isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Must specify a tenant id on the login id'
     }),
-    makeSureThat(ifLoginIsValid, getAttribute(['provider']), isNotEmpty),
+    ifLoginIsValid,
+    makeSureThat(getAttribute(['provider']), isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Must specify an authentication provider on the login id'
     }),
-    makeSureThat(ifLoginIsValid, String(getAttribute(['externalId'])), isNotEmpty),
+    ifLoginIsValid,
+    makeSureThat(String(getAttribute(['externalId'])), isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Must specify an external id on the login id'

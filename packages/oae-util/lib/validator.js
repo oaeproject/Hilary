@@ -485,7 +485,6 @@ const completeValidations = {
   isNotNull,
   otherwise,
   ifDefinedMakeSureThat,
-  thenValidate,
   makeSureThat,
   getNestedObject,
   isIso3166Country,

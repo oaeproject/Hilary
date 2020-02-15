@@ -21,7 +21,7 @@ import * as Cassandra from 'oae-util/lib/cassandra';
 
 import { Validator as validator } from 'oae-authz/lib/validator';
 const { otherwise, isResourceId, isEmail, isValidRole, isString, isUserId, isValidRoleChange } = validator;
-import pipe from 'ramda/src/pipe';
+import { pipe, forEachObjIndexed } from 'ramda';
 
 const chance = new Chance();
 
@@ -237,7 +237,7 @@ const createInvitations = function(resourceId, emailRoles, inviterUserId, callba
       })
     )(resourceId);
 
-    _.each(emailRoles, (role, email) => {
+    const validateEachRole = (role, email) => {
       pipe(
         isEmail,
         otherwise({
@@ -253,7 +253,9 @@ const createInvitations = function(resourceId, emailRoles, inviterUserId, callba
           msg: 'A valid role must be supplied to give the invited user'
         })
       )(role);
-    });
+    };
+
+    forEachObjIndexed(validateEachRole, emailRoles);
 
     pipe(
       isUserId,

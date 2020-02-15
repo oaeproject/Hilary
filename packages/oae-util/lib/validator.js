@@ -148,7 +148,7 @@ const otherwise = error => validationPassed => {
 };
 
 /**
- * @function checkIfExists
+ * @function ifDefinedMakeSureThat
  * @param  {Function} validation Function used to validate if Boolean(value) is true
  * @return {Boolean} Whether the validation passes or not, in case value exists
  *
@@ -485,6 +485,7 @@ const completeValidations = {
   isNotNull,
   otherwise,
   ifDefinedMakeSureThat,
+  thenValidate,
   makeSureThat,
   getNestedObject,
   isIso3166Country,

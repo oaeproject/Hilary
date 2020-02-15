@@ -90,7 +90,7 @@ const getDirectRoles = function(principalIds, resourceId, callback) {
       })
     )(resourceId);
 
-    _.each(principalIds, principalId => {
+    principalIds.forEach(principalId => {
       pipe(
         isPrincipalId,
         otherwise({

@@ -329,7 +329,7 @@ const updateInvitationRoles = function(resourceId, emailRoles, callback) {
       })
     )(resourceId);
 
-    _.each(emailRoles, (role, email) => {
+    const validateEachRole = (role, email) => {
       pipe(
         isEmail,
         otherwise({
@@ -355,7 +355,9 @@ const updateInvitationRoles = function(resourceId, emailRoles, callback) {
           })
         )(role);
       }
-    });
+    };
+
+    forEachObjIndexed(validateEachRole, emailRoles);
   } catch (error) {
     return callback(error);
   }

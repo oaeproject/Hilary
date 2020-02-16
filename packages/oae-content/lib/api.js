@@ -45,6 +45,7 @@ import isIn from 'validator/lib/isIn';
 import { Validator as validator } from 'oae-util/lib/validator';
 const {
   ifDefinedMakeSureThat,
+  makeSureThatOnlyIf,
   otherwise,
   isANumber,
   isResourceId,
@@ -58,7 +59,7 @@ const {
   equals,
   isLongString
 } = validator;
-import pipe from 'ramda/src/pipe';
+import { pipe, not } from 'ramda';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { ContentConstants } from './constants';
 import * as ContentDAO from './internal/dao';
@@ -479,49 +480,46 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
       })
     )(displayName);
 
-    if (description) {
-      pipe(
-        isMediumString,
-        otherwise({
-          code: 400,
-          msg: 'A content description can be at most 10000 characters long'
-        })
-      )(description);
-    }
+    pipe(
+      ifDefinedMakeSureThat(isMediumString),
+      otherwise({
+        code: 400,
+        msg: 'A content description can be at most 10000 characters long'
+      })
+    )(description);
 
-    if (file) {
-      pipe(
-        isNotEmpty,
-        otherwise({
-          code: 400,
-          msg: 'Missing size on the file object'
-        })
-      )(String(file.size));
+    const fileIsDefined = Boolean(file);
+    pipe(
+      makeSureThatOnlyIf(fileIsDefined, isNotEmpty),
+      otherwise({
+        code: 400,
+        msg: 'Missing size on the file object'
+      })
+    )(String(file.size));
 
-      pipe(
-        isANumber,
-        otherwise({
-          code: 400,
-          msg: 'Invalid size on the file object'
-        })
-      )(file.size);
+    pipe(
+      makeSureThatOnlyIf(fileIsDefined, isANumber),
+      otherwise({
+        code: 400,
+        msg: 'Invalid size on the file object'
+      })
+    )(file.size);
 
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'Invalid size on the file object'
-        })
-      )(String(file.size), { gt: 0 });
+    pipe(
+      makeSureThatOnlyIf(fileIsDefined, isInt),
+      otherwise({
+        code: 400,
+        msg: 'Invalid size on the file object'
+      })
+    )(String(file.size), { gt: 0 });
 
-      pipe(
-        isNotEmpty,
-        otherwise({
-          code: 400,
-          msg: 'Missing name on the file object'
-        })
-      )(file.name);
-    }
+    pipe(
+      makeSureThatOnlyIf(fileIsDefined, isNotEmpty),
+      otherwise({
+        code: 400,
+        msg: 'Missing name on the file object'
+      })
+    )(file.name);
   } catch (error) {
     return callback(error);
   }
@@ -784,15 +782,13 @@ const _createContent = function(
       })
     )(displayName);
 
-    if (description) {
-      pipe(
-        isMediumString,
-        otherwise({
-          code: 400,
-          msg: 'A description can only be 10000 characters long'
-        })
-      )(description);
-    }
+    pipe(
+      makeSureThatOnlyIf(Boolean(description), isMediumString),
+      otherwise({
+        code: 400,
+        msg: 'A description can only be 10000 characters long'
+      })
+    )(description);
 
     pipe(
       isIn,

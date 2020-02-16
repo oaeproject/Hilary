@@ -161,6 +161,15 @@ const otherwise = error => validationPassed => {
 const ifDefinedMakeSureThat = validation => value => (value ? validation(value) : true);
 
 /**
+ * @function makeSureThatOnlyIf
+ * @param  {Boolean} condition    Condition that needs to be checked to validate
+ * @param  {Function} validation  Validation function to be applied if condition is true
+ * @param  {Array} ...args        Extra arguments for validation
+ * @return {Boolean}              Result of validation if condition is true, otherwise return true (no error thrown)
+ */
+const makeSureThatOnlyIf = (condition, validation, ...args) => value => (condition ? validation(value, ...args) : true);
+
+/**
  * @function makeSureThat
  * @param  {Object}  value        Value to be validated
  * @param  {Function} validation  Function used to validate value if condition is true
@@ -485,6 +494,7 @@ const completeValidations = {
   isNotNull,
   otherwise,
   ifDefinedMakeSureThat,
+  makeSureThatOnlyIf,
   makeSureThat,
   getNestedObject,
   isIso3166Country,

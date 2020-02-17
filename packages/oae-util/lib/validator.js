@@ -167,7 +167,8 @@ const ifDefinedMakeSureThat = validation => value => (value ? validation(value) 
  * @param  {Array} ...args        Extra arguments for validation
  * @return {Boolean}              Result of validation if condition is true, otherwise return true (no error thrown)
  */
-const makeSureThatOnlyIf = (condition, validation, ...args) => value => (condition ? validation(value, ...args) : true);
+const makeSureThatOnlyIf = (condition, validation) => (value, ...args) =>
+  condition ? validation(value, ...args) : true;
 
 /**
  * @function makeSureThat

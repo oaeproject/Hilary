@@ -34,6 +34,7 @@ import * as TenantsUtil from 'oae-tenants/lib/util';
 import { logger } from 'oae-logger';
 import { Validator as validator } from 'oae-authz/lib/validator';
 const {
+  makeSureThatOnlyIf,
   getNestedObject,
   isLoggedInUser,
   isGlobalAdministratorUser,
@@ -45,7 +46,7 @@ const {
   otherwise,
   isNotEmpty
 } = validator;
-import pipe from 'ramda/src/pipe';
+import { pipe, and } from 'ramda';
 import isLength from 'validator/lib/isLength';
 import { getTenantSkinVariables } from 'oae-ui';
 import { AuthenticationConstants } from 'oae-authentication/lib/constants';
@@ -399,18 +400,17 @@ const _getOrCreateUser = function(ctx, loginId, displayName, opts, callback) {
 
       // Remove invalid email address if they come from authoritative sources. This happens
       // when a Shib or Cas IdP has been misconfigured
-      if (opts.authoritative && opts.email) {
-        try {
-          pipe(
-            isEmail,
-            otherwise({
-              code: 400,
-              msg: 'Invalid email'
-            })
-          )(opts.email);
-        } catch {
-          delete opts.email;
-        }
+      try {
+        const isValidEmail = and(opts.authoritative, opts.email);
+        pipe(
+          makeSureThatOnlyIf(isValidEmail, isEmail),
+          otherwise({
+            code: 400,
+            msg: 'Invalid email'
+          })
+        )(opts.email);
+      } catch {
+        delete opts.email;
       }
 
       OaeUtil.invokeIfNecessary(
@@ -1452,15 +1452,13 @@ const _validateLoginIdForPersistence = function(validator, loginId, callback) {
 
   // Custom handling for local authentication (i.e., username and password)
   const isItLocalAuthentication = loginId.provider === AuthenticationConstants.providers.LOCAL;
-  if (isItLocalAuthentication) {
-    pipe(
-      isLength,
-      otherwise({
-        code: 400,
-        msg: 'Must specify a password at least 6 characters long'
-      })
-    )(password || '', { min: 6 });
-  }
+  pipe(
+    makeSureThatOnlyIf(isItLocalAuthentication, isLength),
+    otherwise({
+      code: 400,
+      msg: 'Must specify a password at least 6 characters long'
+    })
+  )(password || '', { min: 6 });
 };
 
 /// ////////////////////////////

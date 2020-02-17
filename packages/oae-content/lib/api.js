@@ -59,7 +59,7 @@ const {
   equals,
   isLongString
 } = validator;
-import { pipe, forEach } from 'ramda';
+import { pipe, forEach, forEachObjIndexed } from 'ramda';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { ContentConstants } from './constants';
 import * as ContentDAO from './internal/dao';
@@ -889,7 +889,7 @@ const canManageFolders = function(ctx, folderIds, callback) {
   }
 
   try {
-    _.each(folderIds, folderId => {
+    folderIds.forEach(folderId => {
       // Validate the folder id
       pipe(
         isResourceId,
@@ -1558,18 +1558,17 @@ const setContentPermissions = function(ctx, contentId, changes, callback) {
     }
 
     try {
-      // eslint-disable-next-line no-unused-vars
-      _.each(changes, (role, principalId) => {
-        if (role !== false) {
-          pipe(
-            isIn,
-            otherwise({
-              code: 400,
-              msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
-            })
-          )(String(role), validRoles);
-        }
-      });
+      const validateRoles = (role /* , principalId */) => {
+        pipe(
+          makeSureThatOnlyIf(role !== false, isIn),
+          otherwise({
+            code: 400,
+            msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
+          })
+        )(String(role), validRoles);
+      };
+
+      forEachObjIndexed(validateRoles, changes);
     } catch (error) {
       return callback(error);
     }

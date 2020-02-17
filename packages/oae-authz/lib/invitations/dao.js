@@ -20,8 +20,17 @@ import Chance from 'chance';
 import * as Cassandra from 'oae-util/lib/cassandra';
 
 import { Validator as validator } from 'oae-authz/lib/validator';
-const { otherwise, isResourceId, isEmail, isValidRole, isString, isUserId, isValidRoleChange } = validator;
-import { pipe, forEachObjIndexed } from 'ramda';
+const {
+  otherwise,
+  makeSureThatOnlyIf,
+  isResourceId,
+  isEmail,
+  isValidRole,
+  isString,
+  isUserId,
+  isValidRoleChange
+} = validator;
+import { not, equals, pipe, forEachObjIndexed } from 'ramda';
 
 const chance = new Chance();
 
@@ -346,15 +355,14 @@ const updateInvitationRoles = function(resourceId, emailRoles, callback) {
         })
       )(role);
 
-      if (role !== false) {
-        pipe(
-          isString,
-          otherwise({
-            code: 400,
-            msg: util.format('Invalid role "%s" specified', role)
-          })
-        )(role);
-      }
+      const roleAintFalse = not(equals(role, false));
+      pipe(
+        makeSureThatOnlyIf(roleAintFalse, isString),
+        otherwise({
+          code: 400,
+          msg: util.format('Invalid role "%s" specified', role)
+        })
+      )(role);
     };
 
     forEachObjIndexed(validateEachRole, emailRoles);

@@ -398,7 +398,7 @@ const updateRoles = function(resourceId, changes, callback) {
       })
     )(roleChanges);
 
-    for (const principalId of roleChanges) {
+    roleChanges.forEach(principalId => {
       pipe(
         isPrincipalId,
         otherwise({
@@ -414,7 +414,7 @@ const updateRoles = function(resourceId, changes, callback) {
           msg: 'Invalid role provided'
         })
       )(changes[principalId]);
-    }
+    });
   } catch (error) {
     return callback(error);
   }
@@ -1402,7 +1402,7 @@ const getRolesForPrincipalsAndResourceType = function(principalIds, resourceType
       })
     )(principalIds);
 
-    for (const principalId of principalIds) {
+    principalIds.forEach(principalId => {
       pipe(
         isPrincipalId,
         otherwise({
@@ -1410,7 +1410,7 @@ const getRolesForPrincipalsAndResourceType = function(principalIds, resourceType
           msg: 'Invalid principal id specified: ' + principalId
         })
       )(principalId);
-    }
+    });
   } catch (error) {
     return callback(error);
   }

@@ -43,6 +43,7 @@ const {
   isValidRoleChange,
   otherwise,
   ifDefinedMakeSureThat,
+  makeSureThatOnlyIf,
   isANumber,
   isLoggedInUser,
   isPrincipalId,
@@ -57,6 +58,7 @@ const {
 import pipe from 'ramda/src/pipe';
 import isIn from 'validator/lib/isIn';
 import isInt from 'validator/lib/isInt';
+import { forEachObjIndexed } from 'ramda';
 import * as FoldersFoldersLibrary from './internal/foldersLibrary';
 import * as FoldersAuthz from './authz';
 import * as FoldersContentLibrary from './internal/contentLibrary';
@@ -68,6 +70,9 @@ const log = logger('oae-folders-api');
 
 const FoldersConfig = setUpConfig('oae-folders');
 
+const DISPLAY_NAME = 'displayName';
+const DESCRIPTION = 'description';
+const VISIBILITY = 'visibility';
 /*!
  * ### Events
  *
@@ -127,15 +132,14 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
       })
     )(displayName);
 
-    if (description) {
-      pipe(
-        isMediumString,
-        otherwise({
-          code: 400,
-          msg: 'A description can be at most 10000 characters long'
-        })
-      )(description);
-    }
+    const descriptionIsThere = Boolean(description);
+    pipe(
+      makeSureThatOnlyIf(descriptionIsThere, isMediumString),
+      otherwise({
+        code: 400,
+        msg: 'A description can be at most 10000 characters long'
+      })
+    )(description);
 
     pipe(
       isIn,
@@ -144,13 +148,9 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
         msg: 'An invalid folder visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
       })
     )(visibility, allVisibilities);
-  } catch (error) {
-    return callback(error);
-  }
 
-  // Verify each role is valid
-  try {
-    _.each(roles, role => {
+    // Verify each role is valid
+    forEachObjIndexed(role => {
       pipe(
         isIn,
         otherwise({
@@ -158,7 +158,7 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
           msg: util.format('The role "%s" is not a valid member role for a folder', role)
         })
       )(role, FoldersConstants.role.ALL_PRIORITY);
-    });
+    }, roles);
   } catch (error) {
     return callback(error);
   }
@@ -242,15 +242,11 @@ const updateFolder = function(ctx, folderId, updates, callback) {
         msg: 'Missing update information'
       })
     )(updates, updates);
-  } catch (error) {
-    return callback(error);
-  }
 
-  // Ensure that at least one valid update field was provided
-  const updateFields = _.keys(updates);
-  const legalUpdateFields = ['displayName', 'description', 'visibility'];
+    // Ensure that at least one valid update field was provided
+    const updateFields = _.keys(updates);
+    const legalUpdateFields = [DISPLAY_NAME, DESCRIPTION, VISIBILITY];
 
-  try {
     pipe(
       isArrayNotEmpty,
       otherwise({
@@ -258,12 +254,8 @@ const updateFolder = function(ctx, folderId, updates, callback) {
         msg: 'One of ' + legalUpdateFields.join(', ') + ' must be provided'
       })
     )(_.intersection(updateFields, legalUpdateFields));
-  } catch (error) {
-    return callback(error);
-  }
 
-  try {
-    _.each(updates, (val, key) => {
+    forEachObjIndexed((val, key) => {
       pipe(
         isIn,
         otherwise({
@@ -271,51 +263,36 @@ const updateFolder = function(ctx, folderId, updates, callback) {
           msg: 'Unknown update field provided'
         })
       )(key, legalUpdateFields);
-    });
+    }, updates);
+
+    const isThereDisplayName = Boolean(updates.displayName);
+    pipe(
+      makeSureThatOnlyIf(isThereDisplayName, isShortString),
+      otherwise({
+        code: 400,
+        msg: 'A display name can be at most 1000 characters long'
+      })
+    )(updates.displayName);
+
+    const isThereDescription = Boolean(updates.description);
+    pipe(
+      makeSureThatOnlyIf(isThereDescription, isMediumString),
+      otherwise({
+        code: 400,
+        msg: 'A description can be at most 10000 characters long'
+      })
+    )(updates.description);
+
+    const isThereVisibility = Boolean(updates.visibility);
+    pipe(
+      makeSureThatOnlyIf(isThereVisibility, isIn),
+      otherwise({
+        code: 400,
+        msg: 'An invalid folder visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
+      })
+    )(updates.visibility, allVisibilities);
   } catch (error) {
     return callback(error);
-  }
-
-  if (updates.displayName) {
-    try {
-      pipe(
-        isShortString,
-        otherwise({
-          code: 400,
-          msg: 'A display name can be at most 1000 characters long'
-        })
-      )(updates.displayName);
-    } catch (error) {
-      return callback(error);
-    }
-  }
-
-  if (updates.description) {
-    try {
-      pipe(
-        isMediumString,
-        otherwise({
-          code: 400,
-          msg: 'A description can be at most 10000 characters long'
-        })
-      )(updates.description);
-    } catch (error) {
-      return callback(error);
-    }
-  }
-
-  if (updates.visibility) {
-    try {
-      pipe(
-        isIn,
-        otherwise({
-          code: 400,
-          msg: 'An invalid folder visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
-        })
-      )(updates.visibility, allVisibilities);
-    } catch (error) {
-      return callback(error);
-    }
   }
 
   // Get the folder from storage to use for permission checks

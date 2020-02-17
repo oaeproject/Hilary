@@ -59,7 +59,7 @@ const {
   equals,
   isLongString
 } = validator;
-import { gt as greaterThan, pipe, forEach, forEachObjIndexed } from 'ramda';
+import { and, gt as greaterThan, pipe, forEach, forEachObjIndexed } from 'ramda';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { ContentConstants } from './constants';
 import * as ContentDAO from './internal/dao';
@@ -73,6 +73,11 @@ const log = logger('oae-content');
 
 const COLLABDOC = 'collabdoc';
 const COLLABSHEET = 'collabsheet';
+
+const DISPLAY_NAME = 'displayName';
+const DESCRIPTION = 'description';
+const VISIBILITY = 'visibility';
+const LINK = 'link';
 
 /**
  * ### Events
@@ -2230,6 +2235,7 @@ const getSignedPreviewDownloadInfo = function(ctx, contentId, revisionId, previe
         msg: 'Missing content ID'
       })
     )(contentId);
+
     pipe(
       isResourceId,
       otherwise({
@@ -2332,59 +2338,60 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
       })
     )(fieldNames);
 
-    for (const fieldName of fieldNames) {
+    fieldNames.forEach(fieldName => {
       pipe(
         isIn,
         otherwise({
           code: 400,
           msg: fieldName + ' is not a recognized content profile field'
         })
-      )(fieldName, ['displayName', 'description', 'visibility', 'link']);
+      )(fieldName, [DISPLAY_NAME, DESCRIPTION, VISIBILITY, LINK]);
 
-      if (fieldName === 'displayName') {
-        pipe(
-          isNotEmpty,
-          otherwise({
-            code: 400,
-            msg: 'A display name cannot be empty'
-          })
-        )(profileFields.displayName);
+      const fieldIsDisplayName = equals(fieldName, DISPLAY_NAME);
+      const fieldIsDescription = and(equals(fieldName, DESCRIPTION), profileFields.description);
+      const fieldIsLink = equals(fieldName, LINK);
 
-        pipe(
-          isShortString,
-          otherwise({
-            code: 400,
-            msg: 'A display name can be at most 1000 characters long'
-          })
-        )(profileFields.displayName);
-      } else if (fieldName === 'description' && profileFields.description) {
-        pipe(
-          isMediumString,
-          otherwise({
-            code: 400,
-            msg: 'A description can only be 10000 characters long'
-          })
-        )(profileFields.description);
-      } else if (fieldName === 'link') {
-        pipe(
-          isUrl,
-          otherwise({
-            code: 400,
-            msg: 'A valid link should be provided'
-          })
-        )(profileFields.link);
-      }
-    }
-
-    if (profileFields.visibility) {
       pipe(
-        isIn,
+        makeSureThatOnlyIf(fieldIsDisplayName, isNotEmpty),
         otherwise({
           code: 400,
-          msg: 'An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"'
+          msg: 'A display name cannot be empty'
         })
-      )(profileFields.visibility, _.values(AuthzConstants.visibility));
-    }
+      )(profileFields.displayName);
+
+      pipe(
+        makeSureThatOnlyIf(fieldIsDisplayName, isShortString),
+        otherwise({
+          code: 400,
+          msg: 'A display name can be at most 1000 characters long'
+        })
+      )(profileFields.displayName);
+
+      pipe(
+        makeSureThatOnlyIf(fieldIsDescription, isMediumString),
+        otherwise({
+          code: 400,
+          msg: 'A description can only be 10000 characters long'
+        })
+      )(profileFields.description);
+
+      pipe(
+        makeSureThatOnlyIf(fieldIsLink, isUrl),
+        otherwise({
+          code: 400,
+          msg: 'A valid link should be provided'
+        })
+      )(profileFields.link);
+    });
+
+    const fieldIsVisibility = Boolean(profileFields.visibility);
+    pipe(
+      makeSureThatOnlyIf(fieldIsVisibility, isIn),
+      otherwise({
+        code: 400,
+        msg: 'An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"'
+      })
+    )(profileFields.visibility, _.values(AuthzConstants.visibility));
 
     pipe(
       isLoggedInUser,

@@ -44,12 +44,14 @@ const {
   isShortString,
   isMediumString,
   isArrayNotEmpty,
+  makeSureThatOnlyIf,
   isLongString
 } = validator;
 import pipe from 'ramda/src/pipe';
 import isIn from 'validator/lib/isIn';
 import isInt from 'validator/lib/isInt';
 
+import { equals, not, forEachObjIndexed, unless } from 'ramda';
 import * as DiscussionsDAO from './internal/dao';
 import { DiscussionsConstants } from './constants';
 
@@ -58,7 +60,10 @@ const log = logger('discussions-api');
 const DiscussionsConfig = setUpConfig('oae-discussions');
 
 // Discussion fields that are allowed to be updated
-const DISCUSSION_UPDATE_FIELDS = ['displayName', 'description', 'visibility'];
+const VISIBILITY = 'visibility';
+const DISPLAY_NAME = 'displayName';
+const DESCRIPTION = 'description';
+const DISCUSSION_UPDATE_FIELDS = [DISPLAY_NAME, DESCRIPTION, VISIBILITY];
 
 /**
  * Create a new discussion
@@ -131,7 +136,7 @@ const createDiscussion = function(ctx, displayName, description, visibility, rol
     )(visibility, allVisibilities);
 
     // Verify each role is valid
-    _.each(roles, (role /* , memberId */) => {
+    forEachObjIndexed((role /* , memberId */) => {
       pipe(
         isIn,
         otherwise({
@@ -139,7 +144,7 @@ const createDiscussion = function(ctx, displayName, description, visibility, rol
           msg: 'The role: ' + role + ' is not a valid member role for a discussion'
         })
       )(role, DiscussionsConstants.role.ALL_PRIORITY);
-    });
+    }, roles);
   } catch (error) {
     return callback(error);
   }
@@ -208,7 +213,11 @@ const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
       })
     )(_.keys(profileFields));
 
-    _.each(profileFields, (value, field) => {
+    forEachObjIndexed((value, field) => {
+      const fieldIsVisibility = equals(field, VISIBILITY);
+      const fieldIsDisplayName = equals(field, DISPLAY_NAME);
+      const fieldIsDescription = equals(field, DESCRIPTION);
+
       pipe(
         isIn,
         otherwise({
@@ -216,49 +225,42 @@ const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
           msg: "The field '" + field + "' is not a valid field. Must be one of: " + DISCUSSION_UPDATE_FIELDS.join(', ')
         })
       )(field, DISCUSSION_UPDATE_FIELDS);
-
-      if (field === 'visibility') {
-        pipe(
-          isIn,
-          otherwise({
-            code: 400,
-            msg: 'An invalid visibility was specified. Must be one of: ' + allVisibilities.join(', ')
-          })
-        )(value, allVisibilities);
-      } else if (field === 'displayName') {
-        pipe(
-          isNotEmpty,
-          otherwise({
-            code: 400,
-            msg: 'A display name cannot be empty'
-          })
-        )(value);
-
-        pipe(
-          isShortString,
-          otherwise({
-            code: 400,
-            msg: 'A display name can be at most 1000 characters long'
-          })
-        )(value);
-      } else if (field === 'description') {
-        pipe(
-          isNotEmpty,
-          otherwise({
-            code: 400,
-            msg: 'A description cannot be empty'
-          })
-        )(value);
-
-        pipe(
-          isMediumString,
-          otherwise({
-            code: 400,
-            msg: 'A description can only be 10000 characters long'
-          })
-        )(value);
-      }
-    });
+      pipe(
+        makeSureThatOnlyIf(fieldIsVisibility, isIn),
+        otherwise({
+          code: 400,
+          msg: 'An invalid visibility was specified. Must be one of: ' + allVisibilities.join(', ')
+        })
+      )(value, allVisibilities);
+      pipe(
+        makeSureThatOnlyIf(fieldIsDisplayName, isNotEmpty),
+        otherwise({
+          code: 400,
+          msg: 'A display name cannot be empty'
+        })
+      )(value);
+      pipe(
+        makeSureThatOnlyIf(fieldIsDisplayName, isShortString),
+        otherwise({
+          code: 400,
+          msg: 'A display name can be at most 1000 characters long'
+        })
+      )(value);
+      pipe(
+        makeSureThatOnlyIf(fieldIsDescription, isNotEmpty),
+        otherwise({
+          code: 400,
+          msg: 'A description cannot be empty'
+        })
+      )(value);
+      pipe(
+        makeSureThatOnlyIf(fieldIsDescription, isMediumString),
+        otherwise({
+          code: 400,
+          msg: 'A description can only be 10000 characters long'
+        })
+      )(value);
+    }, profileFields);
   } catch (error) {
     return callback(error);
   }
@@ -796,7 +798,7 @@ const setDiscussionPermissions = function(ctx, discussionId, changes, callback) 
       })
     )(discussionId);
 
-    _.each(changes, (role /* , principalId */) => {
+    forEachObjIndexed((role /* , principalId */) => {
       pipe(
         isValidRoleChange,
         otherwise({
@@ -805,21 +807,20 @@ const setDiscussionPermissions = function(ctx, discussionId, changes, callback) 
         })
       )(role);
 
-      if (role) {
-        pipe(
-          isIn,
-          otherwise({
-            code: 400,
-            msg:
-              'The role: "' +
-              role +
-              '" is not a valid value. Must be one of: ' +
-              DiscussionsConstants.role.ALL_PRIORITY.join(', ') +
-              '; or false'
-          })
-        )(role, DiscussionsConstants.role.ALL_PRIORITY);
-      }
-    });
+      const thereIsARole = Boolean(role);
+      pipe(
+        makeSureThatOnlyIf(thereIsARole, isIn),
+        otherwise({
+          code: 400,
+          msg:
+            'The role: "' +
+            role +
+            '" is not a valid value. Must be one of: ' +
+            DiscussionsConstants.role.ALL_PRIORITY.join(', ') +
+            '; or false'
+        })
+      )(role, DiscussionsConstants.role.ALL_PRIORITY);
+    }, changes);
   } catch (error) {
     return callback(error);
   }

@@ -56,10 +56,9 @@ const {
   isMediumString,
   isArrayNotEmpty,
   isPrincipalId,
-  equals,
   isLongString
 } = validator;
-import { and, gt as greaterThan, pipe, forEach, forEachObjIndexed } from 'ramda';
+import { equals, not, and, gt as greaterThan, pipe, forEach, forEachObjIndexed } from 'ramda';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { ContentConstants } from './constants';
 import * as ContentDAO from './internal/dao';
@@ -1563,17 +1562,16 @@ const setContentPermissions = function(ctx, contentId, changes, callback) {
     }
 
     try {
-      const validateRoles = (role /* , principalId */) => {
+      forEachObjIndexed((role /* , principalId */) => {
+        const roleAintFalse = not(equals(role, false));
         pipe(
-          makeSureThatOnlyIf(role !== false, isIn),
+          makeSureThatOnlyIf(roleAintFalse, isIn),
           otherwise({
             code: 400,
             msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
           })
         )(String(role), validRoles);
-      };
-
-      forEachObjIndexed(validateRoles, changes);
+      }, changes);
     } catch (error) {
       return callback(error);
     }
@@ -2932,15 +2930,14 @@ const getRevision = function(ctx, contentId, revisionId, callback) {
       })
     )(contentId);
 
-    if (revisionId) {
-      pipe(
-        isResourceId,
-        otherwise({
-          code: 400,
-          msg: 'A valid revisionId must be provided'
-        })
-      )(revisionId);
-    }
+    const revisionIdIsDefined = Boolean(revisionId);
+    pipe(
+      makeSureThatOnlyIf(revisionIdIsDefined, isResourceId),
+      otherwise({
+        code: 400,
+        msg: 'A valid revisionId must be provided'
+      })
+    )(revisionId);
   } catch (error) {
     return callback(error);
   }

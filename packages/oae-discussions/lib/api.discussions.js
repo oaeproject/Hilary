@@ -51,7 +51,7 @@ import pipe from 'ramda/src/pipe';
 import isIn from 'validator/lib/isIn';
 import isInt from 'validator/lib/isInt';
 
-import { equals, not, forEachObjIndexed, unless } from 'ramda';
+import { equals, forEachObjIndexed } from 'ramda';
 import * as DiscussionsDAO from './internal/dao';
 import { DiscussionsConstants } from './constants';
 

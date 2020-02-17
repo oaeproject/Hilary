@@ -59,7 +59,7 @@ const {
   equals,
   isLongString
 } = validator;
-import { pipe, not } from 'ramda';
+import { pipe, forEach } from 'ramda';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { ContentConstants } from './constants';
 import * as ContentDAO from './internal/dao';
@@ -820,7 +820,7 @@ const _createContent = function(
       validRoles.push(AuthzConstants.role.EDITOR);
     }
 
-    _.each(roles, role => {
+    forEach(role => {
       pipe(
         isIn,
         otherwise({
@@ -828,7 +828,7 @@ const _createContent = function(
           msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
         })
       )(role, validRoles);
-    });
+    }, roles);
   } catch (error) {
     return callback(error);
   }

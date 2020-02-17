@@ -59,7 +59,7 @@ const {
   equals,
   isLongString
 } = validator;
-import { pipe, forEach, forEachObjIndexed } from 'ramda';
+import { gt as greaterThan, pipe, forEach, forEachObjIndexed } from 'ramda';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { ContentConstants } from './constants';
 import * as ContentDAO from './internal/dao';
@@ -490,12 +490,12 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
 
     const fileIsDefined = Boolean(file);
     pipe(
-      makeSureThatOnlyIf(fileIsDefined, isNotEmpty),
+      makeSureThatOnlyIf(fileIsDefined, isNotNull),
       otherwise({
         code: 400,
         msg: 'Missing size on the file object'
       })
-    )(String(file.size));
+    )(file.size);
 
     pipe(
       makeSureThatOnlyIf(fileIsDefined, isANumber),
@@ -506,12 +506,12 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
     )(file.size);
 
     pipe(
-      makeSureThatOnlyIf(fileIsDefined, isInt),
+      makeSureThatOnlyIf(fileIsDefined, greaterThan),
       otherwise({
         code: 400,
         msg: 'Invalid size on the file object'
       })
-    )(String(file.size), { gt: 0 });
+    )(file.size, 0);
 
     pipe(
       makeSureThatOnlyIf(fileIsDefined, isNotEmpty),
@@ -1899,39 +1899,38 @@ const _updateFileBody = function(ctx, contentId, file, callback) {
       })
     )(file);
 
-    if (file) {
-      pipe(
-        isNotEmpty,
-        otherwise({
-          code: 400,
-          msg: 'Missing size on the file object.'
-        })
-      )(String(file.size));
+    const fileIsDefined = Boolean(file);
+    pipe(
+      makeSureThatOnlyIf(fileIsDefined, isNotNull),
+      otherwise({
+        code: 400,
+        msg: 'Missing size on the file object.'
+      })
+    )(file.size);
 
-      pipe(
-        isANumber,
-        otherwise({
-          code: 400,
-          msg: 'Invalid size on the file object.'
-        })
-      )(file.size);
+    pipe(
+      makeSureThatOnlyIf(fileIsDefined, isANumber),
+      otherwise({
+        code: 400,
+        msg: 'Invalid size on the file object.'
+      })
+    )(file.size);
 
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'Invalid size on the file object.'
-        })
-      )(String(file.size), { gt: 0 });
+    pipe(
+      makeSureThatOnlyIf(fileIsDefined, greaterThan),
+      otherwise({
+        code: 400,
+        msg: 'Invalid size on the file object.'
+      })
+    )(file.size, 0);
 
-      pipe(
-        isNotEmpty,
-        otherwise({
-          code: 400,
-          msg: 'Missing name on the file object.'
-        })
-      )(file.name);
-    }
+    pipe(
+      makeSureThatOnlyIf(fileIsDefined, isNotEmpty),
+      otherwise({
+        code: 400,
+        msg: 'Missing name on the file object.'
+      })
+    )(file.name);
   } catch (error) {
     return callback(error);
   }

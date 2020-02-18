@@ -25,7 +25,7 @@ import _ from 'underscore';
 import { logger } from 'oae-logger';
 
 import { Validator as validator } from 'oae-util/lib/validator';
-const { otherwise, isObject, isNotNull, isArrayNotEmpty } = validator;
+const { makeSureThatOnlyIf, otherwise, isObject, isNotNull, isArrayNotEmpty } = validator;
 import pipe from 'ramda/src/pipe';
 import isInt from 'validator/lib/isInt';
 
@@ -132,81 +132,48 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
         msg: 'The coordinates for the area you wish to crop must be specified'
       })
     )(selectedArea);
-  } catch (error) {
-    return callback(error);
-  }
 
-  if (selectedArea) {
-    try {
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'The x-coordinate needs to be a valid integer'
-        })
-      )(String(selectedArea.x));
+    const selectedAreaIsDefined = Boolean(selectedArea);
+    pipe(
+      makeSureThatOnlyIf(selectedAreaIsDefined, isInt),
+      otherwise({
+        code: 400,
+        msg: 'The x-coordinate needs to be a valid integer'
+      })
+    )(String(selectedArea.x));
 
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'The x-coordinate needs to be a valid integer'
-        })
-      )(String(selectedArea.x), { min: 0 });
+    pipe(
+      makeSureThatOnlyIf(selectedAreaIsDefined, isInt),
+      otherwise({
+        code: 400,
+        msg: 'The x-coordinate needs to be a valid integer'
+      })
+    )(String(selectedArea.x), { min: 0 });
 
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'The y-coordinate needs to be a valid integer'
-        })
-      )(String(selectedArea.y));
+    pipe(
+      makeSureThatOnlyIf(selectedAreaIsDefined, isInt),
+      otherwise({
+        code: 400,
+        msg: 'The y-coordinate needs to be a valid integer'
+      })
+    )(String(selectedArea.y), { min: 0 });
 
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'The y-coordinate needs to be a valid integer'
-        })
-      )(String(selectedArea.y), { min: 0 });
+    pipe(
+      makeSureThatOnlyIf(selectedAreaIsDefined, isInt),
+      otherwise({
+        code: 400,
+        msg: 'The width value must be an integer larger than 0'
+      })
+    )(String(selectedArea.width), { min: 1 });
 
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'The width value must be an integer larger than 0'
-        })
-      )(String(selectedArea.width));
+    pipe(
+      makeSureThatOnlyIf(selectedAreaIsDefined, isInt),
+      otherwise({
+        code: 400,
+        msg: 'The height value must be an integer larger than 0'
+      })
+    )(String(selectedArea.height), { min: 1 });
 
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'The width value must be an integer larger than 0'
-        })
-      )(String(selectedArea.width), { min: 1 });
-
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'The height value must be an integer larger than 0'
-        })
-      )(String(selectedArea.height));
-
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'The height value must be an integer larger than 0'
-        })
-      )(String(selectedArea.height), { min: 1 });
-    } catch (error) {
-      return callback(error);
-    }
-  }
-
-  try {
     pipe(
       isNotNull,
       otherwise({
@@ -214,60 +181,51 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
         msg: 'The desired sizes array is missing'
       })
     )(sizes);
-  } catch (error) {
-    return callback(error);
-  }
 
-  if (sizes) {
-    try {
+    const sizesAreDefined = Boolean(sizes);
+    pipe(
+      makeSureThatOnlyIf(sizesAreDefined, isArrayNotEmpty),
+      otherwise({
+        code: 400,
+        msg: 'The desired sizes array is empty'
+      })
+    )(sizes);
+
+    for (const element of sizes) {
       pipe(
-        isArrayNotEmpty,
+        makeSureThatOnlyIf(sizesAreDefined, isInt),
         otherwise({
           code: 400,
-          msg: 'The desired sizes array is empty'
+          msg: 'The width needs to be a valid integer larger than 0'
         })
-      )(sizes);
-    } catch (error) {
-      return callback(error);
+      )(String(element.width));
+
+      pipe(
+        makeSureThatOnlyIf(sizesAreDefined, isInt),
+        otherwise({
+          code: 400,
+          msg: 'The width needs to be a valid integer larger than 0'
+        })
+      )(String(element.width), { min: 0 });
+
+      pipe(
+        makeSureThatOnlyIf(sizesAreDefined, isInt),
+        otherwise({
+          code: 400,
+          msg: 'The width needs to be a valid integer larger than 0'
+        })
+      )(String(element.height));
+
+      pipe(
+        makeSureThatOnlyIf(sizesAreDefined, isInt),
+        otherwise({
+          code: 400,
+          msg: 'The height needs to be a valid integer larger than 0'
+        })
+      )(String(element.height), { min: 0 });
     }
-
-    try {
-      for (const element of sizes) {
-        pipe(
-          isInt,
-          otherwise({
-            code: 400,
-            msg: 'The width needs to be a valid integer larger than 0'
-          })
-        )(String(element.width));
-
-        pipe(
-          isInt,
-          otherwise({
-            code: 400,
-            msg: 'The width needs to be a valid integer larger than 0'
-          })
-        )(String(element.width), { min: 0 });
-
-        pipe(
-          isInt,
-          otherwise({
-            code: 400,
-            msg: 'The width needs to be a valid integer larger than 0'
-          })
-        )(String(element.height));
-
-        pipe(
-          isInt,
-          otherwise({
-            code: 400,
-            msg: 'The height needs to be a valid integer larger than 0'
-          })
-        )(String(element.height), { min: 0 });
-      }
-    } catch (error) {
-      return callback(error);
-    }
+  } catch (error) {
+    return callback(error);
   }
 
   // Crop the image
@@ -344,71 +302,70 @@ const cropImage = function(imagePath, selectedArea, callback) {
       })
     )(selectedArea);
 
-    if (selectedArea) {
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'The x-coordinate needs to be a valid integer'
-        })
-      )(String(selectedArea.x));
+    const selectedAreaIsDefined = Boolean(selectedArea);
+    pipe(
+      makeSureThatOnlyIf(selectedArea, isInt),
+      otherwise({
+        code: 400,
+        msg: 'The x-coordinate needs to be a valid integer'
+      })
+    )(String(selectedArea.x));
 
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'The x-coordinate needs to be a valid integer'
-        })
-      )(String(selectedArea.x), { min: 0 });
+    pipe(
+      makeSureThatOnlyIf(selectedArea, isInt),
+      otherwise({
+        code: 400,
+        msg: 'The x-coordinate needs to be a valid integer'
+      })
+    )(String(selectedArea.x), { min: 0 });
 
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'The y-coordinate needs to be a valid integer'
-        })
-      )(String(selectedArea.y));
+    pipe(
+      makeSureThatOnlyIf(selectedArea, isInt),
+      otherwise({
+        code: 400,
+        msg: 'The y-coordinate needs to be a valid integer'
+      })
+    )(String(selectedArea.y));
 
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'The y-coordinate needs to be a valid integer'
-        })
-      )(String(selectedArea.y), { min: 0 });
+    pipe(
+      makeSureThatOnlyIf(selectedArea, isInt),
+      otherwise({
+        code: 400,
+        msg: 'The y-coordinate needs to be a valid integer'
+      })
+    )(String(selectedArea.y), { min: 0 });
 
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'The width value must be an integer larger than 0'
-        })
-      )(String(selectedArea.width));
+    pipe(
+      makeSureThatOnlyIf(selectedArea, isInt),
+      otherwise({
+        code: 400,
+        msg: 'The width value must be an integer larger than 0'
+      })
+    )(String(selectedArea.width));
 
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'The width value must be an integer larger than 0'
-        })
-      )(String(selectedArea.width), { min: 1 });
+    pipe(
+      makeSureThatOnlyIf(selectedArea, isInt),
+      otherwise({
+        code: 400,
+        msg: 'The width value must be an integer larger than 0'
+      })
+    )(String(selectedArea.width), { min: 1 });
 
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'The height value must be an integer larger than 0'
-        })
-      )(String(selectedArea.height));
+    pipe(
+      makeSureThatOnlyIf(selectedArea, isInt),
+      otherwise({
+        code: 400,
+        msg: 'The height value must be an integer larger than 0'
+      })
+    )(String(selectedArea.height));
 
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'The height value must be an integer larger than 0'
-        })
-      )(String(selectedArea.height), { min: 1 });
-    }
+    pipe(
+      makeSureThatOnlyIf(selectedArea, isInt),
+      otherwise({
+        code: 400,
+        msg: 'The height value must be an integer larger than 0'
+      })
+    )(String(selectedArea.height), { min: 1 });
   } catch (error) {
     return callback(error);
   }
@@ -524,46 +481,41 @@ const resizeImage = function(imagePath, size, callback) {
         msg: 'The size must be specified'
       })
     )(size);
+
+    const sizeIsDefined = Boolean(size);
+    pipe(
+      makeSureThatOnlyIf(sizeIsDefined, isInt),
+      otherwise({
+        code: 400,
+        msg: 'The width needs to be a valid integer larger than 0'
+      })
+    )(String(size.width));
+
+    pipe(
+      makeSureThatOnlyIf(sizeIsDefined, isInt),
+      otherwise({
+        code: 400,
+        msg: 'The width needs to be a valid integer larger than 0'
+      })
+    )(String(size.width), { min: 0 });
+
+    pipe(
+      makeSureThatOnlyIf(sizeIsDefined, isInt),
+      otherwise({
+        code: 400,
+        msg: 'The height needs to be a valid integer larger than 0'
+      })
+    )(String(size.height));
+
+    pipe(
+      makeSureThatOnlyIf(sizeIsDefined, isInt),
+      otherwise({
+        code: 400,
+        msg: 'The height needs to be a valid integer larger than 0'
+      })
+    )(String(size.height), { min: 0 });
   } catch (error) {
     return callback(error);
-  }
-
-  if (size) {
-    try {
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'The width needs to be a valid integer larger than 0'
-        })
-      )(String(size.width));
-
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'The width needs to be a valid integer larger than 0'
-        })
-      )(String(size.width), { min: 0 });
-
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'The height needs to be a valid integer larger than 0'
-        })
-      )(String(size.height));
-
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'The height needs to be a valid integer larger than 0'
-        })
-      )(String(size.height), { min: 0 });
-    } catch (error) {
-      return callback(error);
-    }
   }
 
   _resizeImage(imagePath, size, callback);

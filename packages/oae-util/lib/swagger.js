@@ -336,8 +336,7 @@ const _appendToApi = function(rootResource, api, spec) {
         })
       )(param.paramType, Constants.paramTypes);
 
-      const pathIsValid = param.paramType === 'path';
-      // const pathIsValid = equals(param.paramType, 'path');
+      const pathIsValid = equals(param.paramType, 'path');
       pipe(
         makeSureThatOnlyIf(pathIsValid, isIn),
         otherwise({

@@ -45,6 +45,7 @@ const {
 } = validator;
 import pipe from 'ramda/src/pipe';
 import { ResourceConstants } from 'oae-resource/lib/constants';
+import { forEachObjIndexed } from 'ramda';
 
 const log = logger('oae-resource-actions');
 
@@ -78,14 +79,10 @@ const create = function(ctx, roles, createFn, callback) {
         msg: 'Only authenticated users can create a new resource'
       })
     )(ctx);
-  } catch (error) {
-    return callback(error);
-  }
 
-  // Ensure all member ids are valid members
-  const memberIds = _.keys(roles);
-  try {
-    _.each(memberIds, memberId => {
+    // Ensure all member ids are valid members
+    const memberIds = _.keys(roles);
+    memberIds.forEach(memberId => {
       pipe(
         isValidShareTarget,
         otherwise({
@@ -95,16 +92,12 @@ const create = function(ctx, roles, createFn, callback) {
         })
       )(memberId);
     });
-  } catch (error) {
-    return callback(error);
-  }
 
-  // Ensure there is at least one manager member in the list of roles
-  const firstManagerRole = _.find(roles, (role, memberId) => {
-    return AuthzUtil.isPrincipalId(memberId) && role === AuthzConstants.role.MANAGER;
-  });
+    // Ensure there is at least one manager member in the list of roles
+    const firstManagerRole = _.find(roles, (role, memberId) => {
+      return AuthzUtil.isPrincipalId(memberId) && role === AuthzConstants.role.MANAGER;
+    });
 
-  try {
     pipe(
       isValidRole,
       otherwise({
@@ -209,19 +202,15 @@ const share = function(ctx, resource, targetIds, role, callback) {
         msg: 'At least one user to share with should be specified'
       })
     )(targetIds);
-  } catch (error) {
-    return callback(error);
-  }
 
-  let resourceAuthzId = null;
-  let resourceId = null;
-  if (resource) {
-    resourceAuthzId = AuthzUtil.getAuthzId(resource);
-    resourceId = resource.id;
-  }
+    let resourceAuthzId = null;
+    let resourceId = null;
+    if (resource) {
+      resourceAuthzId = AuthzUtil.getAuthzId(resource);
+      resourceId = resource.id;
+    }
 
-  try {
-    _.each(targetIds, targetId => {
+    targetIds.forEach(targetId => {
       pipe(
         isValidShareTarget,
         otherwise({
@@ -320,19 +309,15 @@ const setRoles = function(ctx, resource, roles, callback) {
         msg: 'At least one role update should be specified'
       })
     )(_.keys(roles));
-  } catch (error) {
-    return callback(error);
-  }
 
-  let resourceAuthzId = null;
-  let resourceId = null;
-  if (resource) {
-    resourceAuthzId = AuthzUtil.getAuthzId(resource);
-    resourceId = resource.id;
-  }
+    let resourceAuthzId = null;
+    let resourceId = null;
+    if (resource) {
+      resourceAuthzId = AuthzUtil.getAuthzId(resource);
+      resourceId = resource.id;
+    }
 
-  try {
-    _.each(roles, (role, memberId) => {
+    forEachObjIndexed((role, memberId) => {
       pipe(
         isValidShareTarget,
         otherwise({
@@ -365,7 +350,7 @@ const setRoles = function(ctx, resource, roles, callback) {
           msg: 'An invalid role was provided'
         })
       )(role);
-    });
+    }, roles);
   } catch (error) {
     return callback(error);
   }

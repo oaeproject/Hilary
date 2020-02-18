@@ -46,6 +46,7 @@ import { Validator as validator } from 'oae-util/lib/validator';
 const {
   otherwise,
   isShortString,
+  makeSureThatOnlyIf,
   isUserId,
   isNotNull,
   isArrayEmpty,
@@ -54,7 +55,7 @@ const {
   isEmail,
   isArrayNotEmpty
 } = validator;
-import pipe from 'ramda/src/pipe';
+import { pipe, not, isNil } from 'ramda';
 import isIn from 'validator/lib/isIn';
 import isInt from 'validator/lib/isInt';
 import { AuthenticationConstants } from 'oae-authentication/lib/constants';
@@ -198,20 +199,16 @@ const createUser = function(ctx, tenantAlias, displayName, opts, callback) {
         msg: 'The specified email preference is invalid'
       })
     )(opts.emailPreference, _.values(PrincipalsConstants.emailPreferences));
-  } catch (error) {
-    return callback(error);
-  }
 
-  // If an administrator is creating an account, we consider the email address to be verified
-  opts.emailVerified = opts.emailVerified || (ctx.user() && ctx.user().isAdmin(tenantAlias)) || false;
+    // If an administrator is creating an account, we consider the email address to be verified
+    opts.emailVerified = opts.emailVerified || (ctx.user() && ctx.user().isAdmin(tenantAlias)) || false;
 
-  // Because some SSO strategies do not release an email address, we allow user accounts to be
-  // created without providing the email
-  if (_.isString(opts.email)) {
-    // E-mail addresses are always lower-cased as it makes them easier to deal with
-    opts.email = opts.email.toLowerCase();
+    // Because some SSO strategies do not release an email address, we allow user accounts to be
+    // created without providing the email
+    if (_.isString(opts.email)) {
+      // E-mail addresses are always lower-cased as it makes them easier to deal with
+      opts.email = opts.email.toLowerCase();
 
-    try {
       pipe(
         isEmail,
         otherwise({
@@ -219,12 +216,12 @@ const createUser = function(ctx, tenantAlias, displayName, opts, callback) {
           msg: 'The specified email address is invalid'
         })
       )(opts.email);
-    } catch (error) {
-      return callback(error);
+    } else {
+      // Avoid setting a falsey email address
+      delete opts.email;
     }
-  } else {
-    // Avoid setting a falsey email address
-    delete opts.email;
+  } catch (error) {
+    return callback(error);
   }
 
   const id = AuthzUtil.toId('u', tenantAlias, ShortId.generate());
@@ -344,39 +341,38 @@ const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, 
       })
     )(userCSV);
 
-    if (userCSV) {
-      pipe(
-        isNotEmpty,
-        otherwise({
-          code: 400,
-          msg: 'Missing size on the CSV file'
-        })
-      )(String(userCSV.size));
+    const isUserCSVDefined = Boolean(userCSV);
+    pipe(
+      makeSureThatOnlyIf(isUserCSVDefined, isNotEmpty),
+      otherwise({
+        code: 400,
+        msg: 'Missing size on the CSV file'
+      })
+    )(String(userCSV.size));
 
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'Invalid size on the CSV file'
-        })
-      )(String(userCSV.size));
+    pipe(
+      makeSureThatOnlyIf(isUserCSVDefined, isInt),
+      otherwise({
+        code: 400,
+        msg: 'Invalid size on the CSV file'
+      })
+    )(String(userCSV.size));
 
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'Invalid size on the CSV file'
-        })
-      )(String(userCSV.size), { gt: 0 });
+    pipe(
+      makeSureThatOnlyIf(isUserCSVDefined, isInt),
+      otherwise({
+        code: 400,
+        msg: 'Invalid size on the CSV file'
+      })
+    )(String(userCSV.size), { gt: 0 });
 
-      pipe(
-        isNotEmpty,
-        otherwise({
-          code: 400,
-          msg: 'Missing name on the CSV file'
-        })
-      )(userCSV.name);
-    }
+    pipe(
+      makeSureThatOnlyIf(isUserCSVDefined, isNotEmpty),
+      otherwise({
+        code: 400,
+        msg: 'Missing name on the CSV file'
+      })
+    )(userCSV.name);
 
     pipe(
       isNotEmpty,
@@ -653,43 +649,40 @@ const updateUser = function(ctx, userId, profileFields, callback) {
     pipe(isArrayEmpty, otherwise({ code: 400, msg: 'Restricted property was attempted to be set.' }))(invalidKeys);
 
     // Apply special restrictions on some profile fields
-    if (!_.isUndefined(profileFields.displayName)) {
-      pipe(
-        isNotEmpty,
-        otherwise({
-          code: 400,
-          msg: 'A display name cannot be empty'
-        })
-      )(profileFields.displayName);
+    const displayNameIsDefined = not(isNil(profileFields.displayName));
+    pipe(
+      makeSureThatOnlyIf(displayNameIsDefined, isNotEmpty),
+      otherwise({
+        code: 400,
+        msg: 'A display name cannot be empty'
+      })
+    )(profileFields.displayName);
 
-      pipe(
-        isShortString,
-        otherwise({
-          code: 400,
-          msg: 'A display name can be at most 1000 characters long'
-        })
-      )(profileFields.displayName);
-    }
+    pipe(
+      makeSureThatOnlyIf(displayNameIsDefined, isShortString),
+      otherwise({
+        code: 400,
+        msg: 'A display name can be at most 1000 characters long'
+      })
+    )(profileFields.displayName);
 
-    if (!_.isUndefined(profileFields.visibility)) {
-      pipe(
-        isIn,
-        otherwise({
-          code: 400,
-          msg: 'An invalid visibility option has been specified'
-        })
-      )(profileFields.visibility, _.values(AuthzConstants.visibility));
-    }
+    const visibilityIsDefined = not(isNil(profileFields.visibility));
+    pipe(
+      makeSureThatOnlyIf(visibilityIsDefined, isIn),
+      otherwise({
+        code: 400,
+        msg: 'An invalid visibility option has been specified'
+      })
+    )(profileFields.visibility, _.values(AuthzConstants.visibility));
 
-    if (!_.isUndefined(profileFields.emailPreference)) {
-      pipe(
-        isIn,
-        otherwise({
-          code: 400,
-          msg: 'The specified emailPreference is invalid'
-        })
-      )(profileFields.emailPreference, _.values(PrincipalsConstants.emailPreferences));
-    }
+    const emailIsDefined = not(isNil(profileFields.emailPreference));
+    pipe(
+      makeSureThatOnlyIf(emailIsDefined, isIn),
+      otherwise({
+        code: 400,
+        msg: 'The specified emailPreference is invalid'
+      })
+    )(profileFields.emailPreference, _.values(PrincipalsConstants.emailPreferences));
 
     if (_.isString(profileFields.email)) {
       // E-mail addresses are always lower-cased as it makes them easier to deal with
@@ -1433,9 +1426,7 @@ const verifyEmail = function(ctx, userId, token, callback) {
     )(token);
 
     pipe(
-      (value, regex) => {
-        return value.match(regex);
-      },
+      (value, regex) => value.match(regex),
       otherwise({
         code: 400,
         msg: 'An invalid token was provided'

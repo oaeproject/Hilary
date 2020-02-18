@@ -17,7 +17,7 @@
 import { setUpConfig } from 'oae-config';
 import { Validator as validator } from 'oae-util/lib/validator';
 const { isUserId, isLoggedInUser, otherwise } = validator;
-import pipe from 'ramda/src/pipe';
+import { pipe, not } from 'ramda';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
 import * as PrincipalsDAO from './internal/dao';
@@ -62,8 +62,8 @@ const getTermsAndConditions = function(ctx, locale) {
  */
 const acceptTermsAndConditions = function(ctx, userId, callback) {
   // One cannot accept the Terms and Conditions if it has not been enabled
-  const isEnabled = PrincipalsConfig.getValue(ctx.tenant().alias, 'termsAndConditions', 'enabled');
-  if (!isEnabled) {
+  const isDisabled = not(PrincipalsConfig.getValue(ctx.tenant().alias, 'termsAndConditions', 'enabled'));
+  if (isDisabled) {
     return callback({
       code: 400,
       msg: 'The Terms and Conditions are not enabled, there is no need to accept them'

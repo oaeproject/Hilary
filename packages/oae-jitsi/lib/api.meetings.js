@@ -83,13 +83,8 @@ const createMeeting = function(
   const allVisibilities = _.values(AuthzConstants.visibility);
 
   // Convert chat and contactList value to boolean for validation (if there are present)
-  if (chat) {
-    chat = String(chat) === 'true';
-  }
-
-  if (contactList) {
-    contactList = String(contactList) === 'true';
-  }
+  if (chat) chat = _convertToBoolean(String(chat));
+  if (contactList) contactList = _convertToBoolean(String(contactList));
 
   // Verify basic properties
   try {
@@ -380,16 +375,11 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
   // Convert chat and contactList value to boolean for validation (if there are present)
   const getAttribute = getNestedObject(profileFields);
   const isDefined = attr => compose(Boolean, getAttribute, x => [x])(attr);
-  const convertToBoolean = attr => {
-    attr = getAttribute([attr]);
-    if (equals(attr, TRUE)) return true;
-    if (equals(attr, FALSE)) return false;
-  };
 
   const CHAT = 'chat';
   const CONTACT_LIST = 'contactList';
-  if (isDefined(CHAT)) profileFields.chat = convertToBoolean(CHAT);
-  if (isDefined(CONTACT_LIST)) profileFields.contactList = convertToBoolean(CONTACT_LIST);
+  if (isDefined(CHAT)) profileFields.chat = _convertToBoolean(getAttribute([CHAT]));
+  if (isDefined(CONTACT_LIST)) profileFields.contactList = _convertToBoolean(getAttribute([CONTACT_LIST]));
 
   try {
     pipe(
@@ -622,13 +612,8 @@ const setMeetingMembers = function(ctx, meetingId, changes, callback) {
         msg: 'You must be authenticated to update meeting members'
       })
     )(ctx);
-  } catch (error) {
-    return callback(error);
-  }
 
-  try {
-    // eslint-disable-next-line no-unused-vars
-    _.each(changes, (role, principalId) => {
+    forEachObjIndexed((role /* , principalId */) => {
       pipe(
         isValidRoleChange,
         otherwise({
@@ -637,21 +622,20 @@ const setMeetingMembers = function(ctx, meetingId, changes, callback) {
         })
       )(role);
 
-      if (role) {
-        pipe(
-          isIn,
-          otherwise({
-            code: 400,
-            msg:
-              'The role "' +
-              role +
-              '" is not a valid value. Must be one of : ' +
-              MeetingsConstants.roles.ALL_PRIORITY.join(', ') +
-              ', or false'
-          })
-        )(role, MeetingsConstants.roles.ALL_PRIORITY);
-      }
-    });
+      const thereIsRole = Boolean(role);
+      pipe(
+        makeSureThatOnlyIf(thereIsRole, isIn),
+        otherwise({
+          code: 400,
+          msg:
+            'The role "' +
+            role +
+            '" is not a valid value. Must be one of : ' +
+            MeetingsConstants.roles.ALL_PRIORITY.join(', ') +
+            ', or false'
+        })
+      )(role, MeetingsConstants.roles.ALL_PRIORITY);
+    }, changes);
   } catch (error) {
     return callback(error);
   }
@@ -1143,6 +1127,11 @@ const _getMeeting = function(meetingId, callback) {
 
     return callback(null, meeting);
   });
+};
+
+const _convertToBoolean = attr => {
+  if (equals(attr, TRUE)) return true;
+  if (equals(attr, FALSE)) return false;
 };
 
 export {

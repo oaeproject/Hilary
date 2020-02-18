@@ -304,7 +304,7 @@ const cropImage = function(imagePath, selectedArea, callback) {
 
     const selectedAreaIsDefined = Boolean(selectedArea);
     pipe(
-      makeSureThatOnlyIf(selectedArea, isInt),
+      makeSureThatOnlyIf(selectedAreaIsDefined, isInt),
       otherwise({
         code: 400,
         msg: 'The x-coordinate needs to be a valid integer'
@@ -312,7 +312,7 @@ const cropImage = function(imagePath, selectedArea, callback) {
     )(String(selectedArea.x));
 
     pipe(
-      makeSureThatOnlyIf(selectedArea, isInt),
+      makeSureThatOnlyIf(selectedAreaIsDefined, isInt),
       otherwise({
         code: 400,
         msg: 'The x-coordinate needs to be a valid integer'
@@ -320,7 +320,7 @@ const cropImage = function(imagePath, selectedArea, callback) {
     )(String(selectedArea.x), { min: 0 });
 
     pipe(
-      makeSureThatOnlyIf(selectedArea, isInt),
+      makeSureThatOnlyIf(selectedAreaIsDefined, isInt),
       otherwise({
         code: 400,
         msg: 'The y-coordinate needs to be a valid integer'
@@ -328,7 +328,7 @@ const cropImage = function(imagePath, selectedArea, callback) {
     )(String(selectedArea.y));
 
     pipe(
-      makeSureThatOnlyIf(selectedArea, isInt),
+      makeSureThatOnlyIf(selectedAreaIsDefined, isInt),
       otherwise({
         code: 400,
         msg: 'The y-coordinate needs to be a valid integer'
@@ -336,7 +336,7 @@ const cropImage = function(imagePath, selectedArea, callback) {
     )(String(selectedArea.y), { min: 0 });
 
     pipe(
-      makeSureThatOnlyIf(selectedArea, isInt),
+      makeSureThatOnlyIf(selectedAreaIsDefined, isInt),
       otherwise({
         code: 400,
         msg: 'The width value must be an integer larger than 0'
@@ -344,7 +344,7 @@ const cropImage = function(imagePath, selectedArea, callback) {
     )(String(selectedArea.width));
 
     pipe(
-      makeSureThatOnlyIf(selectedArea, isInt),
+      makeSureThatOnlyIf(selectedAreaIsDefined, isInt),
       otherwise({
         code: 400,
         msg: 'The width value must be an integer larger than 0'
@@ -352,7 +352,7 @@ const cropImage = function(imagePath, selectedArea, callback) {
     )(String(selectedArea.width), { min: 1 });
 
     pipe(
-      makeSureThatOnlyIf(selectedArea, isInt),
+      makeSureThatOnlyIf(selectedAreaIsDefined, isInt),
       otherwise({
         code: 400,
         msg: 'The height value must be an integer larger than 0'
@@ -360,7 +360,7 @@ const cropImage = function(imagePath, selectedArea, callback) {
     )(String(selectedArea.height));
 
     pipe(
-      makeSureThatOnlyIf(selectedArea, isInt),
+      makeSureThatOnlyIf(selectedAreaIsDefined, isInt),
       otherwise({
         code: 400,
         msg: 'The height value must be an integer larger than 0'

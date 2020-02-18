@@ -24,9 +24,9 @@ import * as TenantsAPI from 'oae-tenants';
 import { logger } from 'oae-logger';
 
 import { Validator as validator } from 'oae-util/lib/validator';
-const { isString, isUserId, otherwise, isNotNull } = validator;
+const { makeSureThatOnlyIf, isString, isUserId, otherwise, isNotNull } = validator;
 import { isPast, toDate } from 'date-fns';
-import pipe from 'ramda/src/pipe';
+import { not, pipe, head } from 'ramda';
 import isInt from 'validator/lib/isInt';
 import isIn from 'validator/lib/isIn';
 import * as MessageBoxModel from './model';
@@ -166,39 +166,38 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
       })
     )(body);
 
-    if (opts.replyToCreated) {
-      pipe(
-        isNotNull,
-        otherwise({
-          code: 400,
-          msg: 'If the replyToCreated optional parameter is specified, it should not be null nor undefined.'
-        })
-      )(opts.replyToCreated);
+    const isReplyToDefined = Boolean(opts.replyToCreated);
+    pipe(
+      makeSureThatOnlyIf(isReplyToDefined, isNotNull),
+      otherwise({
+        code: 400,
+        msg: 'If the replyToCreated optional parameter is specified, it should not be null nor undefined.'
+      })
+    )(opts.replyToCreated);
 
-      pipe(
-        isString,
-        otherwise({
-          code: 400,
-          msg: 'If the replyToCreated optional parameter is specified, it should not be a String.'
-        })
-      )(opts.replyToCreated);
+    pipe(
+      makeSureThatOnlyIf(isReplyToDefined, isString),
+      otherwise({
+        code: 400,
+        msg: 'If the replyToCreated optional parameter is specified, it should not be a String.'
+      })
+    )(opts.replyToCreated);
 
-      pipe(
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'If the replyToCreated optional parameter is specified, it should be an integer.'
-        })
-      )(opts.replyToCreated);
+    pipe(
+      makeSureThatOnlyIf(isReplyToDefined, isInt),
+      otherwise({
+        code: 400,
+        msg: 'If the replyToCreated optional parameter is specified, it should be an integer.'
+      })
+    )(opts.replyToCreated);
 
-      pipe(
-        isPast,
-        otherwise({
-          code: 400,
-          msg: 'If the replyToCreated optional parameter is specified, it cannot be in the future.'
-        })
-      )(new Date(parseInt(opts.replyToCreated, 10)));
-    }
+    pipe(
+      makeSureThatOnlyIf(isReplyToDefined, isPast),
+      otherwise({
+        code: 400,
+        msg: 'If the replyToCreated optional parameter is specified, it cannot be in the future.'
+      })
+    )(new Date(parseInt(opts.replyToCreated, 10)));
   } catch (error) {
     return callback(error);
   }
@@ -476,7 +475,7 @@ const getMessages = function(messageBoxId, createdTimestamps, opts, callback) {
       })
     )(messageBoxId);
 
-    _.each(createdTimestamps, timestamp => {
+    createdTimestamps.forEach(timestamp => {
       pipe(
         isNotNull,
         otherwise({
@@ -624,28 +623,23 @@ const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
       })
     )(toDate(parseInt(createdTimestamp, 10)));
 
-    if (opts.deleteType) {
-      const deleteValues = _.values(MessageBoxConstants.deleteTypes);
-      pipe(
-        isIn,
-        otherwise({
-          code: 400,
-          msg: 'If the deleteType is specified it should be one of: ' + deleteValues.join(', ')
-        })
-      )(opts.deleteType, deleteValues);
-    }
+    const isDeleteTypeDefined = Boolean(opts.deleteType);
+    const deleteValues = _.values(MessageBoxConstants.deleteTypes);
+    pipe(
+      makeSureThatOnlyIf(isDeleteTypeDefined, isIn),
+      otherwise({
+        code: 400,
+        msg: 'If the deleteType is specified it should be one of: ' + deleteValues.join(', ')
+      })
+    )(opts.deleteType, deleteValues);
   } catch (error) {
     return callback(error);
   }
 
   getMessages(messageBoxId, [createdTimestamp], { scrubDeleted: false }, (err, messages) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
-    if (!messages[0]) {
-      return callback({ code: 404, msg: 'Message not found.' });
-    }
+    if (not(head(messages))) return callback({ code: 404, msg: 'Message not found.' });
 
     const message = messages[0];
     if (message) {

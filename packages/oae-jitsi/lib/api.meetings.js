@@ -18,6 +18,7 @@ import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
 import { Validator as validator } from 'oae-authz/lib/validator';
 const {
   ifDefinedMakeSureThat,
+  makeSureThatOnlyIf,
   otherwise,
   isANumber,
   isValidRoleChange,
@@ -31,10 +32,11 @@ const {
   isArrayNotEmpty,
   isLongString
 } = validator;
-import pipe from 'ramda/src/pipe';
+import { length, and, pipe, gt as greaterThan, forEachObjIndexed } from 'ramda';
 import isIn from 'validator/lib/isIn';
 import isInt from 'validator/lib/isInt';
 import { AuthzConstants } from 'oae-authz/lib/constants';
+
 import { MeetingsConstants } from './constants';
 import * as MeetingsDAO from './internal/dao';
 
@@ -118,28 +120,18 @@ const createMeeting = function(
         msg: 'An invalid meeting visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
       })
     )(visibility, allVisibilities);
-  } catch (error) {
-    return callback(error);
-  }
 
-  if (description && description.length > 0) {
-    try {
-      pipe(
-        isMediumString,
-        otherwise({
-          code: 400,
-          msg: 'A description can be at most 10000 characters long'
-        })
-      )(description);
-    } catch (error) {
-      return callback(error);
-    }
-  }
+    const descriptionIsValid = and(Boolean(description), greaterThan(length(description), 0));
+    pipe(
+      makeSureThatOnlyIf(descriptionIsValid, isMediumString),
+      otherwise({
+        code: 400,
+        msg: 'A description can be at most 10000 characters long'
+      })
+    )(description);
 
-  // Verify each role is valid
-  try {
-    // eslint-disable-next-line no-unused-vars
-    _.each(additionalMembers, (role, memberId) => {
+    // Verify each role is valid
+    forEachObjIndexed((role /* , memberId */) => {
       pipe(
         isIn,
         otherwise({
@@ -147,7 +139,7 @@ const createMeeting = function(
           msg: 'The role: ' + role + ' is not a valid member role for a meeting'
         })
       )(role, MeetingsConstants.roles.ALL_PRIORITY);
-    });
+    }, additionalMembers);
   } catch (error) {
     return callback(error);
   }

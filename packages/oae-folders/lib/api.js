@@ -1099,13 +1099,8 @@ const setFolderPermissions = function(ctx, folderId, changes, callback) {
         msg: 'A valid folder id must be provided'
       })
     )(folderId);
-  } catch (error) {
-    return callback(error);
-  }
 
-  try {
-    // eslint-disable-next-line no-unused-vars
-    _.each(changes, (role, principalId) => {
+    forEachObjIndexed((role /* , principalId */) => {
       pipe(
         isValidRoleChange,
         otherwise({
@@ -1114,21 +1109,20 @@ const setFolderPermissions = function(ctx, folderId, changes, callback) {
         })
       )(role);
 
-      if (role) {
-        pipe(
-          isIn,
-          otherwise({
-            code: 400,
-            msg:
-              'The role: "' +
-              role +
-              '" is not a valid value. Must be one of: ' +
-              FoldersConstants.role.ALL_PRIORITY.join(', ') +
-              '; or false'
-          })
-        )(role, FoldersConstants.role.ALL_PRIORITY);
-      }
-    });
+      const thereIsRole = Boolean(role);
+      pipe(
+        makeSureThatOnlyIf(thereIsRole, isIn),
+        otherwise({
+          code: 400,
+          msg:
+            'The role: "' +
+            role +
+            '" is not a valid value. Must be one of: ' +
+            FoldersConstants.role.ALL_PRIORITY.join(', ') +
+            '; or false'
+        })
+      )(role, FoldersConstants.role.ALL_PRIORITY);
+    }, changes);
   } catch (error) {
     return callback(error);
   }
@@ -1204,7 +1198,7 @@ const addContentItemsToFolder = function(ctx, folderId, contentIds, callback) {
     )(_.values(contentIds));
 
     // Ensure each content id is valid
-    _.each(contentIds, contentId => {
+    forEachObjIndexed(contentId => {
       pipe(
         isResourceId,
         otherwise({
@@ -1212,7 +1206,7 @@ const addContentItemsToFolder = function(ctx, folderId, contentIds, callback) {
           msg: util.format('The id "%s" is not a valid content id', contentId)
         })
       )(contentId);
-    });
+    }, contentIds);
   } catch (error) {
     return callback(error);
   }
@@ -1347,7 +1341,7 @@ const removeContentItemsFromFolder = function(ctx, folderId, contentIds, callbac
     )(_.values(contentIds));
 
     // Ensure each content id is valid
-    _.each(contentIds, contentId => {
+    forEachObjIndexed(contentId => {
       pipe(
         isResourceId,
         otherwise({
@@ -1355,7 +1349,7 @@ const removeContentItemsFromFolder = function(ctx, folderId, contentIds, callbac
           msg: util.format('The id "%s" is not a valid content id', contentId)
         })
       )(contentId);
-    });
+    }, contentIds);
   } catch (error) {
     return callback(error);
   }

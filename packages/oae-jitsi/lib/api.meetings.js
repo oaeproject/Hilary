@@ -17,8 +17,8 @@ import { logger } from 'oae-logger';
 import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
 import { Validator as validator } from 'oae-authz/lib/validator';
 const {
-  ifDefinedMakeSureThat,
   makeSureThatOnlyIf,
+  isDefined,
   otherwise,
   isANumber,
   isValidRoleChange,
@@ -120,7 +120,7 @@ const createMeeting = function(
       })
     )(visibility, allVisibilities);
 
-    const descriptionIsValid = and(Boolean(description), greaterThan(length(description), 0));
+    const descriptionIsValid = and(isDefined(description), greaterThan(length(description), 0));
     pipe(
       makeSureThatOnlyIf(descriptionIsValid, isMediumString),
       otherwise({
@@ -787,8 +787,9 @@ const createMessage = function(ctx, meetingId, body, replyToCreatedTimestamp, ca
       })
     )(body);
 
+    const timestampIsDefined = Boolean(replyToCreatedTimestamp);
     pipe(
-      ifDefinedMakeSureThat(isInt),
+      makeSureThatOnlyIf(timestampIsDefined, isInt),
       otherwise({
         code: 400,
         msg: 'Invalid reply-to timestamp provided'

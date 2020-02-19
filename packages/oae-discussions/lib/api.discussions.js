@@ -36,7 +36,7 @@ const {
   isValidRoleChange,
   otherwise,
   isANumber,
-  ifDefinedMakeSureThat,
+  isDefined,
   isLoggedInUser,
   isPrincipalId,
   isNotEmpty,
@@ -983,8 +983,10 @@ const createMessage = function(ctx, discussionId, body, replyToCreatedTimestamp,
         msg: 'A discussion body can only be 100000 characters long'
       })
     )(body);
+
+    const timestampIsDefined = isDefined(replyToCreatedTimestamp);
     pipe(
-      ifDefinedMakeSureThat(isInt),
+      makeSureThatOnlyIf(timestampIsDefined, isInt),
       otherwise({
         code: 400,
         msg: 'Invalid reply-to timestamp provided'

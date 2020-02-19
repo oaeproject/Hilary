@@ -34,7 +34,6 @@ const {
   isShortString,
   isMediumString,
   makeSureThatOnlyIf,
-  ifDefinedMakeSureThat,
   otherwise,
   isLoggedInUser,
   isNotEmpty,
@@ -866,8 +865,10 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
         msg: 'The joinable setting must be one of: ' + _.values(AuthzConstants.joinable)
       })
     )(joinable, _.values(AuthzConstants.joinable));
+
+    const descriptionIsDefined = Boolean(description);
     pipe(
-      ifDefinedMakeSureThat(isMediumString),
+      makeSureThatOnlyIf(descriptionIsDefined, isMediumString),
       otherwise({
         code: 400,
         msg: 'A description can only be 10000 characters long'

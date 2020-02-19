@@ -148,19 +148,6 @@ const otherwise = error => validationPassed => {
 };
 
 /**
- * @function ifDefinedMakeSureThat
- * @param  {Function} validation Function used to validate if Boolean(value) is true
- * @return {Boolean} Whether the validation passes or not, in case value exists
- *
- * Usage:
- * ```
- * let func = checkIfExists(isNull);
- * func('someId'); // false, because 'someId' is not null
- * ```
- */
-const ifDefinedMakeSureThat = validation => value => (value ? validation(value) : true);
-
-/**
  * @function makeSureThatOnlyIf
  * @param  {Boolean} condition    Condition that needs to be checked to validate
  * @param  {Function} validation  Validation function to be applied if condition is true
@@ -494,7 +481,6 @@ const completeValidations = {
   notContains,
   isNotNull,
   otherwise,
-  ifDefinedMakeSureThat,
   makeSureThatOnlyIf,
   makeSureThat,
   getNestedObject,

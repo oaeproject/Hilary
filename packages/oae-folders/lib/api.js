@@ -42,7 +42,6 @@ const {
   isArray,
   isValidRoleChange,
   otherwise,
-  ifDefinedMakeSureThat,
   makeSureThatOnlyIf,
   isANumber,
   isLoggedInUser,
@@ -1735,8 +1734,9 @@ const createMessage = function(ctx, folderId, body, replyToCreatedTimestamp, cal
       })
     )(body);
 
+    const timestampIsDefined = Boolean(replyToCreatedTimestamp);
     pipe(
-      ifDefinedMakeSureThat(isInt),
+      makeSureThatOnlyIf(timestampIsDefined, isInt),
       otherwise({
         code: 400,
         msg: 'Invalid reply-to timestamp provided'

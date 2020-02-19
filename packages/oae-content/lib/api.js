@@ -44,9 +44,9 @@ import isInt from 'validator/lib/isInt';
 import isIn from 'validator/lib/isIn';
 import { Validator as validator } from 'oae-util/lib/validator';
 const {
-  ifDefinedMakeSureThat,
   makeSureThatOnlyIf,
   otherwise,
+  isDefined,
   isANumber,
   isResourceId,
   isLoggedInUser,
@@ -485,7 +485,7 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
     )(displayName);
 
     pipe(
-      ifDefinedMakeSureThat(isMediumString),
+      makeSureThatOnlyIf(Boolean(description), isMediumString),
       otherwise({
         code: 400,
         msg: 'A content description can be at most 10000 characters long'
@@ -2487,7 +2487,7 @@ const createComment = function(ctx, contentId, body, replyToCreatedTimestamp, ca
     )(body);
 
     pipe(
-      ifDefinedMakeSureThat(isInt),
+      makeSureThatOnlyIf(isDefined(replyToCreatedTimestamp), isInt),
       otherwise({
         code: 400,
         msg: 'Invalid reply-to timestamp provided'
@@ -2977,7 +2977,7 @@ const getRevisionDownloadInfo = function(ctx, contentId, revisionId, callback) {
     )(contentId);
 
     pipe(
-      ifDefinedMakeSureThat(isResourceId),
+      makeSureThatOnlyIf(Boolean(revisionId), isResourceId),
       otherwise({
         code: 400,
         msg: 'A valid revisionId must be provided'

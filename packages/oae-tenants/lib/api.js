@@ -34,7 +34,6 @@ import * as Pubsub from 'oae-util/lib/pubsub';
 import { Validator as validator } from 'oae-util/lib/validator';
 const {
   otherwise,
-  defaultTo,
   isString,
   isGlobalAdministratorUser,
   isNotEmpty,
@@ -44,6 +43,7 @@ const {
   isNil,
   isIso3166Country,
   isObject,
+  isBoolean,
   isNotNull,
   getNestedObject,
   isISO31661Alpha2,
@@ -264,12 +264,12 @@ const getNonInteractingTenants = () => mapObjIndexed(_copyTenant, tenantsNotInte
  * @return {SearchResult}                       The search result object containing the tenants
  */
 const searchTenants = function(q, opts) {
-  q = isString(q) ? trim(q) : null;
-  opts = defaultTo(opts, {});
+  q = isString(q) ? q.trim() : null;
+  opts = opts || {};
   opts.start = OaeUtil.getNumberParam(opts.start, 0);
 
   // Determine if we should included disabled/deleted tenants
-  const includeDisabled = _.isBoolean(opts.disabled) ? opts.disabled : false;
+  const includeDisabled = isBoolean(opts.disabled) ? opts.disabled : false;
 
   // Create a sorted result of tenants based on the user's query. If there was no query, we will
   // pull the pre-sorted list of tenants from the global cache
@@ -286,15 +286,14 @@ const searchTenants = function(q, opts) {
   }
 
   results = _.filter(results, result => {
+    let newResult = true;
     if (result.isGlobalAdminServer) {
-      return false;
+      newResult = false;
+    } else if (not(includeDisabled)) {
+      newResult = and(result.active, not(result.deleted));
     }
 
-    if (!includeDisabled) {
-      return result.active && !result.deleted;
-    }
-
-    return true;
+    return newResult;
   });
 
   // Keep track of how many results we had in total
@@ -307,7 +306,7 @@ const searchTenants = function(q, opts) {
   // Cut down to just the requested page, and clone the tenants to avoid tenants being updated
   // in the cache
   results = results.slice(opts.start, end);
-  results = _.map(results, _copyTenant);
+  results = results.map(_copyTenant);
 
   return {
     total,

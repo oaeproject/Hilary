@@ -55,6 +55,11 @@ import { PrincipalsConstants } from './constants';
 const log = logger('oae-principals');
 const Config = setUpConfig('oae-principals');
 
+const DISPLAY_NAME = 'displayName';
+const DESCRIPTION = 'description';
+const VISIBILITY = 'visibility';
+const JOINABLE = 'joinable';
+
 /**
  * Get the basic profile for a group.
  *
@@ -949,11 +954,6 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
         msg: 'You should specify at least one field'
       })
     )(fieldNames);
-
-    const DISPLAY_NAME = 'displayName';
-    const DESCRIPTION = 'description';
-    const VISIBILITY = 'visibility';
-    const JOINABLE = 'joinable';
 
     fieldNames.forEach(fieldName => {
       const isField = field => equals(fieldName, field);

@@ -19,7 +19,6 @@ import { logger } from 'oae-logger';
 import _ from 'underscore';
 import async from 'async';
 
-import pipe from 'ramda/src/pipe';
 // We have to require the config api inline, as this would
 // otherwise lead to circular require calls
 import { setUpConfig, eventEmitter } from 'oae-config';
@@ -35,6 +34,8 @@ import * as Pubsub from 'oae-util/lib/pubsub';
 import { Validator as validator } from 'oae-util/lib/validator';
 const {
   otherwise,
+  defaultTo,
+  isString,
   isGlobalAdministratorUser,
   isNotEmpty,
   notContains,
@@ -44,9 +45,27 @@ const {
   isIso3166Country,
   isObject,
   isNotNull,
+  getNestedObject,
   isISO31661Alpha2,
+  makeSureThatOnlyIf,
   isArrayNotEmpty
 } = validator;
+import {
+  or,
+  mapObjIndexed,
+  pick,
+  compose,
+  either,
+  keys,
+  not,
+  trim,
+  toUpper,
+  toLower,
+  pipe,
+  and,
+  equals,
+  forEachObjIndexed
+} from 'ramda';
 import isIn from 'validator/lib/isIn';
 import TenantEmailDomainIndex from './internal/emailDomainIndex';
 import TenantIndex from './internal/tenantIndex';
@@ -58,6 +77,13 @@ import { Tenant } from './model';
 const TenantsConfig = setUpConfig('oae-tenants');
 
 const log = logger('oae-tenants');
+
+const DISPLAY_NAME = 'displayName';
+const HOST = 'host';
+const EMAIL_DOMAINS = 'emailDomains';
+const COUNTRY_CODE = 'countryCode';
+const ACTIVE = 'active';
+const ALL_UPDATE_FIELDS = [DISPLAY_NAME, HOST, EMAIL_DOMAINS, COUNTRY_CODE];
 
 // Caches the server configuration as specified in the config.js file
 let serverConfig = null;
@@ -205,12 +231,16 @@ const getTenants = function(excludeDisabled) {
   excludeDisabled = OaeUtil.castToBoolean(excludeDisabled);
 
   const filteredTenants = {};
-  _.each(tenants, (tenant, tenantAlias) => {
+  forEachObjIndexed((tenant, tenantAlias) => {
     // Exclude all disabled tenants when `exludeDisabled` has been provided
-    if (!tenant.isGlobalAdminServer && (!excludeDisabled || tenant.active)) {
+    const notAnAdmin = compose(not, Boolean)(tenant.isGlobalAdminServer);
+    const notExcluded = not(excludeDisabled);
+    const tenantIsActive = Boolean(tenant.active);
+    const activeOrNotExcluded = or(notExcluded, tenantIsActive);
+    if (and(notAnAdmin, activeOrNotExcluded)) {
       filteredTenants[tenantAlias] = _copyTenant(tenant);
     }
-  });
+  }, tenants);
 
   return filteredTenants;
 };
@@ -221,9 +251,7 @@ const getTenants = function(excludeDisabled) {
  *
  * @return {Tenant[]}   The list of tenants that cannot be interacted with
  */
-const getNonInteractingTenants = function() {
-  return _.map(tenantsNotInteractable, _copyTenant);
-};
+const getNonInteractingTenants = () => mapObjIndexed(_copyTenant, tenantsNotInteractable);
 
 /**
  * Search for tenants based on a full-text search query
@@ -236,8 +264,8 @@ const getNonInteractingTenants = function() {
  * @return {SearchResult}                       The search result object containing the tenants
  */
 const searchTenants = function(q, opts) {
-  q = _.isString(q) ? q.trim() : null;
-  opts = opts || {};
+  q = isString(q) ? trim(q) : null;
+  opts = defaultTo(opts, {});
   opts.start = OaeUtil.getNumberParam(opts.start, 0);
 
   // Determine if we should included disabled/deleted tenants
@@ -633,38 +661,39 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
     )(host, serverConfig.shibbolethSPHost);
 
     pipe(
+      getTenant,
       isNil,
       otherwise({
         code: 400,
         msg: `A tenant with the alias ${alias} already exists`
       })
-    )(getTenant(alias));
+    )(alias);
 
     pipe(
+      getTenantByHost,
       isNil,
       otherwise({
         code: 400,
         msg: `A tenant with the host ${host} already exists`
       })
-    )(getTenantByHost(host));
-  } catch (error) {
-    return callback(error);
-  }
+    )(host);
 
-  // Ensure only valid optional fields are set
-  try {
-    _.each(opts, (val, key) => {
+    // Ensure only valid optional fields are set
+    forEachObjIndexed((val, key) => {
       pipe(
         isIn,
         otherwise({
           code: 400,
           msg: `Invalid field: ${key}`
         })
-      )(key, ['emailDomains', 'countryCode']);
+      )(key, [EMAIL_DOMAINS, COUNTRY_CODE]);
 
-      if (key === 'emailDomains') {
+      const eachFieldValue = opts[key];
+      const isKey = value => equals(key, value);
+
+      if (isKey(EMAIL_DOMAINS)) {
         pipe(
-          Array.isArray,
+          makeSureThatOnlyIf(isKey(EMAIL_DOMAINS), Array.isArray),
           otherwise({
             code: 400,
             msg: 'One or more email domains were passed in, but not as an array'
@@ -672,13 +701,12 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
         )(val);
 
         // Ensure the tenant email domains are all lower case
-        opts[key] = _.map(opts[key], emailDomain => {
-          return emailDomain.trim().toLowerCase();
-        });
-        _validateEmailDomains(validator, opts[key]);
-      } else if (key === 'countryCode' && opts[key]) {
+        opts[key] = _.map(opts[key], emailDomain => pipe(trim, toLower)(emailDomain));
+        _validateEmailDomains(validator, eachFieldValue);
+      } else if (and(isKey(COUNTRY_CODE), Boolean(eachFieldValue))) {
         // Ensure the country code is upper case
-        opts[key] = opts[key].toUpperCase();
+        opts[key] = toUpper(opts[key]);
+
         pipe(
           isISO31661Alpha2,
           otherwise({
@@ -687,9 +715,8 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
           })
         )(opts[key]);
       }
-    });
+    }, opts);
   } catch (error) {
-    // errors.push(error);
     return callback(error);
   }
 
@@ -740,7 +767,11 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
  * @param  {Object}     callback.err                    An error that occurred, if any
  */
 const updateTenant = function(ctx, alias, tenantUpdates, callback) {
-  if (!ctx.user() || !ctx.user().isAdmin(ctx.user().tenant.alias)) {
+  const notAValidUser = ctx => not(ctx.user());
+  const notAValidAdmin = ctx => not(ctx.user().isAdmin(ctx.user().tenant.alias));
+  const notAuthorized = either(notAValidUser, notAValidAdmin)(ctx);
+
+  if (notAuthorized) {
     return callback({ code: 401, msg: 'Unauthorized users cannot update tenants' });
   }
 
@@ -755,15 +786,16 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
     )(alias);
 
     pipe(
+      getTenant,
       isNotNull,
       otherwise({
         code: 404,
         msg: util.format('Tenant with alias "%s" does not exist and cannot be updated', alias)
       })
-    )(getTenant(alias));
+    )(alias);
 
     // Check that at least either a new display name or hostname have been provided
-    const updateFields = tenantUpdates ? _.keys(tenantUpdates) : [];
+    const updateFields = tenantUpdates ? keys(tenantUpdates) : [];
 
     pipe(
       isArrayNotEmpty,
@@ -773,51 +805,48 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
       })
     )(updateFields);
 
-    _.each(tenantUpdates, (updateValue, updateField) => {
+    forEachObjIndexed((updateValue, updateField) => {
       pipe(
         isIn,
         otherwise({
           code: 400,
           msg: util.format('"%s" is not a recognized tenant update field', updateField)
         })
-      )(updateField, ['displayName', 'host', 'emailDomains', 'countryCode']);
+      )(updateField, ALL_UPDATE_FIELDS);
 
-      if (updateField === 'displayName') {
-        pipe(
-          isNotEmpty,
-          otherwise({
-            code: 400,
-            msg: 'A displayName cannot be empty'
-          })
-        )(updateValue);
-      } else if (updateField === 'host') {
+      const isField = value => equals(updateField, value);
+
+      pipe(
+        makeSureThatOnlyIf(isField(DISPLAY_NAME), isNotEmpty),
+        otherwise({
+          code: 400,
+          msg: 'A displayName cannot be empty'
+        })
+      )(updateValue);
+
+      if (equals(updateField, HOST)) {
         // Ensure the tenant host name is all lower case
-        updateValue = updateValue.toLowerCase();
+        updateValue = toLower(updateValue);
         tenantUpdates[updateField] = updateValue;
 
         // Validate the lower-cased version
         pipe(isHost, otherwise({ code: 400, msg: 'Invalid host' }))(updateValue);
-
         pipe(isNotEmpty, otherwise({ code: 400, msg: 'A hostname cannot be empty' }))(updateValue);
-
         pipe(
+          getTenantByHost,
           isNil,
           otherwise({
             code: 400,
             msg: 'The hostname has already been taken'
           })
-        )(getTenantByHost(updateValue));
-
+        )(updateValue);
         pipe(isDifferent, otherwise({ code: 400, msg: 'This hostname is reserved' }))(
           updateValue,
-          serverConfig.shibbolethSPHost.toLowerCase()
+          toLower(serverConfig.shibbolethSPHost)
         );
-      } else if (updateField === 'emailDomains') {
+      } else if (equals(updateField, EMAIL_DOMAINS)) {
         // Ensure the tenant email domains are all lower case
-        updateValue = _.map(updateValue, emailDomain => {
-          return emailDomain.trim().toLowerCase();
-        });
-
+        updateValue = updateValue.map(emailDomain => pipe(trim, toLower)(emailDomain));
         tenantUpdates[updateField] = updateValue.join(',');
 
         // Only a global admin can update the email domain
@@ -825,20 +854,23 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
           isGlobalAdministratorUser,
           otherwise({ code: 401, msg: 'Only a global administrator can update the email domain' })
         )(ctx);
+
         // Validate the lower-cased version
         _validateEmailDomains(validator, updateValue, alias);
-      } else if (updateField === 'countryCode' && tenantUpdates[updateField]) {
+      } else if (and(equals(updateField, COUNTRY_CODE), Boolean(tenantUpdates[updateField]))) {
         // Ensure the country code is upper case
-        tenantUpdates[updateField] = tenantUpdates[updateField].toUpperCase();
+        tenantUpdates[updateField] = toUpper(tenantUpdates[updateField]);
+
         pipe(
+          key => tenantUpdates[key],
           isIso3166Country,
           otherwise({
             code: 400,
             msg: 'The country code must be a valid ISO-3166 country code'
           })
-        )(tenantUpdates[updateField]);
+        )(updateField);
       }
-    });
+    }, tenantUpdates);
   } catch (error) {
     return callback(error);
   }
@@ -888,14 +920,15 @@ const disableTenants = function(ctx, aliases, disabled, callback) {
       })
     )(aliases);
 
-    _.each(aliases, alias => {
+    aliases.forEach(alias => {
       pipe(
+        getTenant,
         isObject,
         otherwise({
           code: 404,
           msg: util.format('Tenant with alias "%s" does not exist and cannot be enabled or disabled', alias)
         })
-      )(getTenant(alias));
+      )(alias);
     });
   } catch (error) {
     return callback(error);
@@ -1050,7 +1083,7 @@ const _setLandingPageBlockAttribute = function(ctx, block, blockName, attributeN
  * @api private
  */
 const _validateEmailDomains = function(validator, emailDomains, updateTenantAlias) {
-  _.each(emailDomains, emailDomain => {
+  emailDomains.forEach(emailDomain => {
     // Check whether it's a valid domain
     pipe(
       isHost,
@@ -1062,7 +1095,7 @@ const _validateEmailDomains = function(validator, emailDomains, updateTenantAlia
 
     const matchingTenantAlias = tenantEmailDomainIndex.conflict(updateTenantAlias, emailDomain);
     const matchingTenant = tenants[matchingTenantAlias];
-    const matchingEmailDomains = matchingTenant && matchingTenant.emailDomains;
+    const matchingEmailDomains = compose(Boolean, getNestedObject(matchingTenant))(['emailDomains']);
 
     pipe(
       isNil,
@@ -1086,9 +1119,7 @@ const _validateEmailDomains = function(validator, emailDomains, updateTenantAlia
  * @api private
  */
 const _copyTenant = function(tenant) {
-  if (!tenant) {
-    return null;
-  }
+  if (isNil(tenant)) return null;
 
   // Copy the tenant by converting it to a storage hash and then back
   const tenantCopy = _storageHashToTenant(tenant.alias, _tenantToStorageHash(tenant));
@@ -1106,18 +1137,15 @@ const _copyTenant = function(tenant) {
  * @api private
  */
 const _storageHashToTenant = function(alias, hash) {
-  let emailDomains = [];
-  if (hash.emailDomains) {
-    emailDomains = _.map(hash.emailDomains.split(','), emailDomain => {
-      return emailDomain.trim().toLowerCase();
-    });
-  }
+  const emailDomains = hash.emailDomains
+    ? hash.emailDomains.split(',').map(emailDomain => pipe(trim, toLower)(emailDomain))
+    : [];
 
   return new Tenant(alias, hash.displayName, hash.host.toLowerCase(), {
     emailDomains,
     countryCode: hash.countryCode,
     active: hash.active,
-    isGuestTenant: alias === serverConfig.guestTenantAlias
+    isGuestTenant: equals(alias, serverConfig.guestTenantAlias)
   });
 };
 
@@ -1131,10 +1159,9 @@ const _storageHashToTenant = function(alias, hash) {
  * @api private
  */
 const _tenantToStorageHash = function(tenant) {
-  const hash = _.pick(tenant, 'displayName', 'host', 'emailDomains', 'countryCode', 'active');
-  if (hash.emailDomains) {
-    hash.emailDomains = hash.emailDomains.join(',');
-  }
+  const attributes = [DISPLAY_NAME, HOST, EMAIL_DOMAINS, COUNTRY_CODE, ACTIVE];
+  const hash = pick(attributes, tenant);
+  if (hash.emailDomains) hash.emailDomains = hash.emailDomains.join(',');
 
   return hash;
 };

@@ -82,12 +82,13 @@ const acquire = function(lockKey, expiresIn, callback) {
     )(expiresIn);
 
     pipe(
+      String,
       isInt,
       otherwise({
         code: 400,
         msg: 'The maximum number of seconds for which to hold the lock needs to be an integer'
       })
-    )(String(expiresIn));
+    )(expiresIn);
   } catch (error) {
     return callback(error);
   }

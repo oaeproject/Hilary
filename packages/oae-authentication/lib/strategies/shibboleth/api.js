@@ -20,7 +20,7 @@ import * as Signature from 'oae-util/lib/signature';
 import * as TenantsAPI from 'oae-tenants/lib/api';
 import { Validator as validator } from 'oae-util/lib/validator';
 const { isDefined, otherwise, isNotEmpty, isInt } = validator;
-import pipe from 'ramda/src/pipe';
+import { pipe, curry, __ } from 'ramda';
 import { isFuture, toDate } from 'date-fns';
 
 import { AuthenticationConstants } from 'oae-authentication/lib/constants';
@@ -113,12 +113,13 @@ const validateInitiateParameters = function(tenantAlias, signature, expires, cal
     )(signature);
 
     pipe(
+      String,
       isNotEmpty,
       otherwise({
         code: 400,
         msg: 'Missing expires parameter'
       })
-    )(String(expires));
+    )(expires);
 
     pipe(
       isDefined,
@@ -136,13 +137,16 @@ const validateInitiateParameters = function(tenantAlias, signature, expires, cal
       })
     )(expires);
 
+    const toInt = curry(parseInt)(__, 10);
     pipe(
+      toInt,
+      toDate,
       isFuture,
       otherwise({
         code: 400,
         msg: 'Invalid expires parameter'
       })
-    )(toDate(parseInt(expires, 10)));
+    )(expires);
   } catch (error) {
     return callback(error);
   }
@@ -231,12 +235,13 @@ const getUser = function(tenant, userId, signature, expires, callback) {
     )(signature);
 
     pipe(
+      String,
       isNotEmpty,
       otherwise({
         code: 400,
         msg: 'Missing expires parameter'
       })
-    )(String(expires));
+    )(expires);
 
     pipe(
       isDefined,
@@ -254,13 +259,16 @@ const getUser = function(tenant, userId, signature, expires, callback) {
       })
     )(expires);
 
+    const toInt = curry(parseInt)(__, 10);
     pipe(
+      toInt,
+      toDate,
       isFuture,
       otherwise({
         code: 400,
         msg: 'Invalid expires parameter'
       })
-    )(toDate(parseInt(expires, 10)));
+    )(expires);
   } catch (error) {
     return callback(error);
   }

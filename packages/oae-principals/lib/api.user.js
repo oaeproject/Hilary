@@ -343,20 +343,22 @@ const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, 
 
     const isUserCSVDefined = Boolean(userCSV);
     pipe(
+      String,
       makeSureThatOnlyIf(isUserCSVDefined, isNotEmpty),
       otherwise({
         code: 400,
         msg: 'Missing size on the CSV file'
       })
-    )(String(userCSV.size));
+    )(userCSV.size);
 
     pipe(
+      String,
       makeSureThatOnlyIf(isUserCSVDefined, isInt),
       otherwise({
         code: 400,
         msg: 'Invalid size on the CSV file'
       })
-    )(String(userCSV.size));
+    )(userCSV.size);
 
     pipe(
       makeSureThatOnlyIf(isUserCSVDefined, isInt),

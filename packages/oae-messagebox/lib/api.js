@@ -26,7 +26,7 @@ import { logger } from 'oae-logger';
 import { Validator as validator } from 'oae-util/lib/validator';
 const { makeSureThatOnlyIf, isString, isUserId, otherwise, isNotNull } = validator;
 import { isPast, toDate } from 'date-fns';
-import { not, pipe, head } from 'ramda';
+import { curry, __, not, pipe, head } from 'ramda';
 import isInt from 'validator/lib/isInt';
 import isIn from 'validator/lib/isIn';
 import * as MessageBoxModel from './model';
@@ -364,13 +364,16 @@ const updateMessageBody = function(messageBoxId, created, newBody, callback) {
       })
     )(created);
 
+    const toInt = curry(parseInt)(__, 10);
     pipe(
+      toInt,
+      toDate,
       isPast,
       otherwise({
         code: 400,
         msg: 'The created parameter must be a valid timestamp (integer) that is not in the future.'
       })
-    )(toDate(parseInt(created, 10)));
+    )(created);
 
     pipe(
       isNotNull,
@@ -485,12 +488,13 @@ const getMessages = function(messageBoxId, createdTimestamps, opts, callback) {
       )(timestamp);
 
       pipe(
+        String,
         isInt,
         otherwise({
           code: 400,
           msg: 'A timestamp should be an integer.'
         })
-      )(String(timestamp));
+      )(timestamp);
 
       pipe(
         isPast,
@@ -608,20 +612,24 @@ const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
     )(createdTimestamp);
 
     pipe(
+      String,
       isInt,
       otherwise({
         code: 400,
         msg: 'The createdTimestamp should be a string.'
       })
-    )(String(createdTimestamp));
+    )(createdTimestamp);
 
+    const toInt = curry(parseInt)(__, 10);
     pipe(
+      toInt,
+      toDate,
       isPast,
       otherwise({
         code: 400,
         msg: 'The createdTimestamp cannot be in the future.'
       })
-    )(toDate(parseInt(createdTimestamp, 10)));
+    )(createdTimestamp);
 
     const isDeleteTypeDefined = Boolean(opts.deleteType);
     const deleteValues = _.values(MessageBoxConstants.deleteTypes);

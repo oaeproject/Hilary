@@ -25,7 +25,7 @@ import _ from 'underscore';
 import { logger } from 'oae-logger';
 
 import { Validator as validator } from 'oae-util/lib/validator';
-const { makeSureThatOnlyIf, otherwise, isObject, isNotNull, isArrayNotEmpty } = validator;
+const { validateInCase, otherwise, isObject, isNotNull, isArrayNotEmpty } = validator;
 import { curry, __, pipe, gte as greaterOrEqualThan, gt as greaterThan } from 'ramda';
 
 const log = logger('oae-util-image');
@@ -138,7 +138,7 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
     const selectedAreaIsDefined = Boolean(selectedArea);
     pipe(
       toInt,
-      makeSureThatOnlyIf(selectedAreaIsDefined, zeroOrGreater),
+      validateInCase(selectedAreaIsDefined, zeroOrGreater),
       otherwise({
         code: 400,
         msg: 'The x-coordinate needs to be an integer larger than 0'
@@ -147,7 +147,7 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
 
     pipe(
       toInt,
-      makeSureThatOnlyIf(selectedAreaIsDefined, zeroOrGreater),
+      validateInCase(selectedAreaIsDefined, zeroOrGreater),
       otherwise({
         code: 400,
         msg: 'The y-coordinate needs to be an integer larger than 0'
@@ -156,7 +156,7 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
 
     pipe(
       toInt,
-      makeSureThatOnlyIf(selectedAreaIsDefined, oneOrGreater),
+      validateInCase(selectedAreaIsDefined, oneOrGreater),
       otherwise({
         code: 400,
         msg: 'The width value must be an integer larger than 0'
@@ -165,7 +165,7 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
 
     pipe(
       toInt,
-      makeSureThatOnlyIf(selectedAreaIsDefined, oneOrGreater),
+      validateInCase(selectedAreaIsDefined, oneOrGreater),
       otherwise({
         code: 400,
         msg: 'The height value must be an integer larger than 1'
@@ -182,7 +182,7 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
 
     const sizesAreDefined = Boolean(sizes);
     pipe(
-      makeSureThatOnlyIf(sizesAreDefined, isArrayNotEmpty),
+      validateInCase(sizesAreDefined, isArrayNotEmpty),
       otherwise({
         code: 400,
         msg: 'The desired sizes array is empty'
@@ -192,7 +192,7 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
     for (const element of sizes) {
       pipe(
         toInt,
-        makeSureThatOnlyIf(sizesAreDefined, zeroOrGreater),
+        validateInCase(sizesAreDefined, zeroOrGreater),
         otherwise({
           code: 400,
           msg: 'The width needs to be a valid integer larger than 0'
@@ -200,7 +200,7 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
       )(element.width);
 
       pipe(
-        makeSureThatOnlyIf(sizesAreDefined, oneOrGreater),
+        validateInCase(sizesAreDefined, oneOrGreater),
         otherwise({
           code: 400,
           msg: 'The height needs to be a valid integer larger than 0'
@@ -287,7 +287,7 @@ const cropImage = function(imagePath, selectedArea, callback) {
 
     const selectedAreaIsDefined = Boolean(selectedArea);
     pipe(
-      makeSureThatOnlyIf(selectedAreaIsDefined, zeroOrGreater),
+      validateInCase(selectedAreaIsDefined, zeroOrGreater),
       otherwise({
         code: 400,
         msg: 'The x-coordinate needs to be a valid integer'
@@ -295,7 +295,7 @@ const cropImage = function(imagePath, selectedArea, callback) {
     )(selectedArea.x);
 
     pipe(
-      makeSureThatOnlyIf(selectedAreaIsDefined, zeroOrGreater),
+      validateInCase(selectedAreaIsDefined, zeroOrGreater),
       otherwise({
         code: 400,
         msg: 'The y-coordinate needs to be a valid integer'
@@ -303,7 +303,7 @@ const cropImage = function(imagePath, selectedArea, callback) {
     )(selectedArea.y);
 
     pipe(
-      makeSureThatOnlyIf(selectedAreaIsDefined, zeroOrGreater),
+      validateInCase(selectedAreaIsDefined, zeroOrGreater),
       otherwise({
         code: 400,
         msg: 'The width value must be an integer larger than 0'
@@ -311,7 +311,7 @@ const cropImage = function(imagePath, selectedArea, callback) {
     )(selectedArea.width);
 
     pipe(
-      makeSureThatOnlyIf(selectedAreaIsDefined, oneOrGreater),
+      validateInCase(selectedAreaIsDefined, oneOrGreater),
       otherwise({
         code: 400,
         msg: 'The height value must be an integer larger than 0'
@@ -435,7 +435,7 @@ const resizeImage = function(imagePath, size, callback) {
 
     const sizeIsDefined = Boolean(size);
     pipe(
-      makeSureThatOnlyIf(sizeIsDefined, oneOrGreater),
+      validateInCase(sizeIsDefined, oneOrGreater),
       otherwise({
         code: 400,
         msg: 'The width needs to be a valid integer larger than 0'
@@ -443,7 +443,7 @@ const resizeImage = function(imagePath, size, callback) {
     )(size.width);
 
     pipe(
-      makeSureThatOnlyIf(sizeIsDefined, oneOrGreater),
+      validateInCase(sizeIsDefined, oneOrGreater),
       otherwise({
         code: 400,
         msg: 'The height needs to be a valid integer larger than 0'

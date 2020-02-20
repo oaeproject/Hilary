@@ -22,7 +22,7 @@ import * as Cassandra from 'oae-util/lib/cassandra';
 import { Validator as validator } from 'oae-authz/lib/validator';
 const {
   otherwise,
-  makeSureThatOnlyIf,
+  validateInCase,
   isResourceId,
   isEmail,
   isValidRole,
@@ -357,7 +357,7 @@ const updateInvitationRoles = function(resourceId, emailRoles, callback) {
 
       const roleAintFalse = not(equals(role, false));
       pipe(
-        makeSureThatOnlyIf(roleAintFalse, isString),
+        validateInCase(roleAintFalse, isString),
         otherwise({
           code: 400,
           msg: util.format('Invalid role "%s" specified', role)

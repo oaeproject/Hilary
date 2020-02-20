@@ -47,7 +47,7 @@ const {
   isNotNull,
   getNestedObject,
   isISO31661Alpha2,
-  makeSureThatOnlyIf,
+  validateInCase,
   isArrayNotEmpty
 } = validator;
 import {
@@ -692,7 +692,7 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
 
       if (isKey(EMAIL_DOMAINS)) {
         pipe(
-          makeSureThatOnlyIf(isKey(EMAIL_DOMAINS), Array.isArray),
+          validateInCase(isKey(EMAIL_DOMAINS), Array.isArray),
           otherwise({
             code: 400,
             msg: 'One or more email domains were passed in, but not as an array'
@@ -816,7 +816,7 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
       const isField = value => equals(updateField, value);
 
       pipe(
-        makeSureThatOnlyIf(isField(DISPLAY_NAME), isNotEmpty),
+        validateInCase(isField(DISPLAY_NAME), isNotEmpty),
         otherwise({
           code: 400,
           msg: 'A displayName cannot be empty'

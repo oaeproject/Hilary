@@ -27,7 +27,7 @@ import { Validator as validator } from 'oae-authz/lib/validator';
 
 const {
   getNestedObject,
-  makeSureThatOnlyIf,
+  validateInCase,
   otherwise,
   isLoggedInUser,
   isUserId,
@@ -717,7 +717,7 @@ const postActivity = function(ctx, activitySeed, callback) {
     )(activitySeed);
 
     pipe(
-      makeSureThatOnlyIf(ifThereIsActivity(), isNotEmpty),
+      validateInCase(ifThereIsActivity(), isNotEmpty),
       otherwise({
         code: 400,
         msg: 'Activity seed did not have an activity type.'
@@ -725,7 +725,7 @@ const postActivity = function(ctx, activitySeed, callback) {
     )(getAttribute(['activityType']));
 
     pipe(
-      makeSureThatOnlyIf(ifThereIsActivity(), isNotEmpty),
+      validateInCase(ifThereIsActivity(), isNotEmpty),
       otherwise({
         code: 400,
         msg: 'Activity seed did not have a verb.'
@@ -733,7 +733,7 @@ const postActivity = function(ctx, activitySeed, callback) {
     )(getAttribute(['verb']));
 
     pipe(
-      makeSureThatOnlyIf(ifThereIsActivity(), isANumber),
+      validateInCase(ifThereIsActivity(), isANumber),
       otherwise({
         code: 400,
         msg: 'Activity seed did not have a valid publish date.'
@@ -741,7 +741,7 @@ const postActivity = function(ctx, activitySeed, callback) {
     )(getAttribute(['published']));
 
     pipe(
-      makeSureThatOnlyIf(ifThereIsActivity(), isObject),
+      validateInCase(ifThereIsActivity(), isObject),
       otherwise({
         code: 400,
         msg: 'Activity seed did not have an actor resource'
@@ -749,7 +749,7 @@ const postActivity = function(ctx, activitySeed, callback) {
     )(getAttribute(['actorResource']));
 
     pipe(
-      makeSureThatOnlyIf(ifThereIsActivityActor(), isNotEmpty),
+      validateInCase(ifThereIsActivityActor(), isNotEmpty),
       otherwise({
         code: 400,
         msg: 'Actor of activity seed did not have a resourceId'
@@ -757,7 +757,7 @@ const postActivity = function(ctx, activitySeed, callback) {
     )(getAttribute(['actorResource', 'resourceId']));
 
     pipe(
-      makeSureThatOnlyIf(ifThereIsActivityActor(), isNotEmpty),
+      validateInCase(ifThereIsActivityActor(), isNotEmpty),
       otherwise({
         code: 400,
         msg: 'Actor of activity seed did not have a resourceType'
@@ -765,7 +765,7 @@ const postActivity = function(ctx, activitySeed, callback) {
     )(getAttribute(['actorResource', 'resourceType']));
 
     pipe(
-      makeSureThatOnlyIf(ifThereIsActivityObject(), isNotEmpty),
+      validateInCase(ifThereIsActivityObject(), isNotEmpty),
       otherwise({
         code: 400,
         msg: 'Object of activity seed was specified and did not have a resourceId'
@@ -773,7 +773,7 @@ const postActivity = function(ctx, activitySeed, callback) {
     )(getAttribute(['objectResource', 'resourceId']));
 
     pipe(
-      makeSureThatOnlyIf(ifThereIsActivityObject(), isNotEmpty),
+      validateInCase(ifThereIsActivityObject(), isNotEmpty),
       otherwise({
         code: 400,
         msg: 'Object of activity seed was specified and did not have a resourceType'
@@ -781,7 +781,7 @@ const postActivity = function(ctx, activitySeed, callback) {
     )(getAttribute(['objectResource', 'resourceType']));
 
     pipe(
-      makeSureThatOnlyIf(ifThereIsActivityTarget(), isNotEmpty),
+      validateInCase(ifThereIsActivityTarget(), isNotEmpty),
       otherwise({
         code: 400,
         msg: 'Target of activity seed was specified and did not have a resourceId'
@@ -789,7 +789,7 @@ const postActivity = function(ctx, activitySeed, callback) {
     )(getAttribute(['targetResource', 'resourceId']));
 
     pipe(
-      makeSureThatOnlyIf(ifThereIsActivityTarget(), isNotEmpty),
+      validateInCase(ifThereIsActivityTarget(), isNotEmpty),
       otherwise({
         code: 400,
         msg: 'Target of activity seed was specified and did not have a resourceType'

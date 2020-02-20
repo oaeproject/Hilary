@@ -46,7 +46,7 @@ import { Validator as validator } from 'oae-util/lib/validator';
 const {
   otherwise,
   isShortString,
-  makeSureThatOnlyIf,
+  validateInCase,
   isUserId,
   isNotNull,
   isArrayEmpty,
@@ -55,7 +55,7 @@ const {
   isEmail,
   isArrayNotEmpty
 } = validator;
-import { pipe, not, isNil } from 'ramda';
+import { gt as greaterThan, __, pipe, not, isNil } from 'ramda';
 import isIn from 'validator/lib/isIn';
 import isInt from 'validator/lib/isInt';
 import { AuthenticationConstants } from 'oae-authentication/lib/constants';
@@ -72,9 +72,10 @@ const log = logger('oae-principals');
 const PrincipalsConfig = setUpConfig('oae-principals');
 
 const fullUserProfileDecorators = {};
-
 const HTTP_PROTOCOL = 'http';
 const HTTPS_PROTOCOL = 'https';
+
+const isGreaterThanZero = greaterThan(__, 0);
 
 /**
  * Register a decorator for the full user profile. A decorator will, at read time, provide additional data about the user
@@ -344,7 +345,7 @@ const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, 
     const isUserCSVDefined = Boolean(userCSV);
     pipe(
       String,
-      makeSureThatOnlyIf(isUserCSVDefined, isNotEmpty),
+      validateInCase(isUserCSVDefined, isNotEmpty),
       otherwise({
         code: 400,
         msg: 'Missing size on the CSV file'
@@ -353,7 +354,7 @@ const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, 
 
     pipe(
       String,
-      makeSureThatOnlyIf(isUserCSVDefined, isInt),
+      validateInCase(isUserCSVDefined, isInt),
       otherwise({
         code: 400,
         msg: 'Invalid size on the CSV file'
@@ -361,15 +362,15 @@ const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, 
     )(userCSV.size);
 
     pipe(
-      makeSureThatOnlyIf(isUserCSVDefined, isInt),
+      validateInCase(isUserCSVDefined, isGreaterThanZero),
       otherwise({
         code: 400,
         msg: 'Invalid size on the CSV file'
       })
-    )(String(userCSV.size), { gt: 0 });
+    )(userCSV.size);
 
     pipe(
-      makeSureThatOnlyIf(isUserCSVDefined, isNotEmpty),
+      validateInCase(isUserCSVDefined, isNotEmpty),
       otherwise({
         code: 400,
         msg: 'Missing name on the CSV file'
@@ -653,7 +654,7 @@ const updateUser = function(ctx, userId, profileFields, callback) {
     // Apply special restrictions on some profile fields
     const displayNameIsDefined = not(isNil(profileFields.displayName));
     pipe(
-      makeSureThatOnlyIf(displayNameIsDefined, isNotEmpty),
+      validateInCase(displayNameIsDefined, isNotEmpty),
       otherwise({
         code: 400,
         msg: 'A display name cannot be empty'
@@ -661,7 +662,7 @@ const updateUser = function(ctx, userId, profileFields, callback) {
     )(profileFields.displayName);
 
     pipe(
-      makeSureThatOnlyIf(displayNameIsDefined, isShortString),
+      validateInCase(displayNameIsDefined, isShortString),
       otherwise({
         code: 400,
         msg: 'A display name can be at most 1000 characters long'
@@ -670,7 +671,7 @@ const updateUser = function(ctx, userId, profileFields, callback) {
 
     const visibilityIsDefined = not(isNil(profileFields.visibility));
     pipe(
-      makeSureThatOnlyIf(visibilityIsDefined, isIn),
+      validateInCase(visibilityIsDefined, isIn),
       otherwise({
         code: 400,
         msg: 'An invalid visibility option has been specified'
@@ -679,7 +680,7 @@ const updateUser = function(ctx, userId, profileFields, callback) {
 
     const emailIsDefined = not(isNil(profileFields.emailPreference));
     pipe(
-      makeSureThatOnlyIf(emailIsDefined, isIn),
+      validateInCase(emailIsDefined, isIn),
       otherwise({
         code: 400,
         msg: 'The specified emailPreference is invalid'

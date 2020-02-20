@@ -24,7 +24,7 @@ import * as AuthzPermissions from 'oae-authz/lib/permissions';
 import * as ContentUtil from 'oae-content/lib/internal/util';
 import * as ImageUtil from 'oae-util/lib/image';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { makeSureThatOnlyIf, otherwise, isLoggedInUser, isPrincipalId, isNotNull, isNotEmpty } = validator;
+const { validateInCase, otherwise, isLoggedInUser, isPrincipalId, isNotNull, isNotEmpty } = validator;
 import pipe from 'ramda/src/pipe';
 import isInt from 'validator/lib/isInt';
 import * as GroupAPI from './api.group';
@@ -87,7 +87,7 @@ const storePicture = function(ctx, principalId, file, callback) {
     const fileIsThere = Boolean(file);
     pipe(
       String,
-      makeSureThatOnlyIf(fileIsThere, isNotEmpty),
+      validateInCase(fileIsThere, isNotEmpty),
       otherwise({
         code: 400,
         msg: 'Missing size on the file object.'
@@ -96,7 +96,7 @@ const storePicture = function(ctx, principalId, file, callback) {
 
     const UPLOAD_LIMIT = 10485760;
     pipe(
-      makeSureThatOnlyIf(fileIsThere, (size, max) => {
+      validateInCase(fileIsThere, (size, max) => {
         return size <= max;
       }),
       otherwise({
@@ -106,7 +106,7 @@ const storePicture = function(ctx, principalId, file, callback) {
     )(file.size, UPLOAD_LIMIT);
 
     pipe(
-      makeSureThatOnlyIf(fileIsThere, isNotEmpty),
+      validateInCase(fileIsThere, isNotEmpty),
       otherwise({
         code: 400,
         msg: 'Missing name on the file object.'

@@ -33,7 +33,7 @@ import { Validator as validator } from 'oae-authz/lib/validator';
 const {
   isShortString,
   isMediumString,
-  makeSureThatOnlyIf,
+  validateInCase,
   otherwise,
   isLoggedInUser,
   isNotEmpty,
@@ -606,7 +606,7 @@ const setGroupMembers = function(ctx, groupId, changes, callback) {
     forEachObjIndexed((role /* , memberId */) => {
       const roleIsDefined = compose(not, equals)(role, false);
       pipe(
-        makeSureThatOnlyIf(roleIsDefined, isIn),
+        validateInCase(roleIsDefined, isIn),
         otherwise({
           code: 400,
           msg: util.format('Role must be one of %s', validRoles.join(', '))
@@ -868,7 +868,7 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
 
     const descriptionIsDefined = Boolean(description);
     pipe(
-      makeSureThatOnlyIf(descriptionIsDefined, isMediumString),
+      validateInCase(descriptionIsDefined, isMediumString),
       otherwise({
         code: 400,
         msg: 'A description can only be 10000 characters long'
@@ -881,7 +881,7 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
     forEachObjIndexed((role /* , principalId */) => {
       const roleIsValid = compose(not, equals)(role, false);
       pipe(
-        makeSureThatOnlyIf(roleIsValid, isIn),
+        validateInCase(roleIsValid, isIn),
         otherwise({
           code: 400,
           msg: util.format('Role must be one of %s', validRoles.join(', '))
@@ -967,21 +967,21 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
       )(fieldName, [DISPLAY_NAME, DESCRIPTION, VISIBILITY, JOINABLE]);
 
       pipe(
-        makeSureThatOnlyIf(isField(VISIBILITY), isIn),
+        validateInCase(isField(VISIBILITY), isIn),
         otherwise({
           code: 400,
           msg: 'The visibility setting must be one of: ' + _.values(AuthzConstants.visibility)
         })
       )(profileFields.visibility, _.values(AuthzConstants.visibility));
       pipe(
-        makeSureThatOnlyIf(isField(JOINABLE), isIn),
+        validateInCase(isField(JOINABLE), isIn),
         otherwise({
           code: 400,
           msg: 'The joinable setting must be one of: ' + _.values(AuthzConstants.joinable)
         })
       )(profileFields.joinable, _.values(AuthzConstants.joinable));
       pipe(
-        makeSureThatOnlyIf(isField(DISPLAY_NAME), isNotEmpty),
+        validateInCase(isField(DISPLAY_NAME), isNotEmpty),
         otherwise({
           code: 400,
           msg: 'A display name cannot be empty'
@@ -989,14 +989,14 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
       )(profileFields.displayName);
 
       pipe(
-        makeSureThatOnlyIf(isField(DISPLAY_NAME), isShortString),
+        validateInCase(isField(DISPLAY_NAME), isShortString),
         otherwise({
           code: 400,
           msg: 'A display name can be at most 1000 characters long'
         })
       )(profileFields.displayName);
       pipe(
-        makeSureThatOnlyIf(both(isField, x => Boolean(profileFields[x]))(DESCRIPTION), isMediumString),
+        validateInCase(both(isField, x => Boolean(profileFields[x]))(DESCRIPTION), isMediumString),
         otherwise({
           code: 400,
           msg: 'A description can only be 10000 characters long'
@@ -1417,7 +1417,7 @@ const _validateUpdateJoinGroupByRequest = function(ctx, joinRequest, callback) {
   const roleIsValid = Boolean(role);
   try {
     pipe(
-      makeSureThatOnlyIf(roleIsValid, isIn),
+      validateInCase(roleIsValid, isIn),
       otherwise({
         code: 400,
         msg: role + ' is not a recognized role group'

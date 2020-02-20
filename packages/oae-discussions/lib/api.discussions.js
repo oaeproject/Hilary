@@ -44,7 +44,7 @@ const {
   isShortString,
   isMediumString,
   isArrayNotEmpty,
-  makeSureThatOnlyIf,
+  validateInCase,
   isLongString
 } = validator;
 import pipe from 'ramda/src/pipe';
@@ -226,35 +226,35 @@ const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
         })
       )(field, DISCUSSION_UPDATE_FIELDS);
       pipe(
-        makeSureThatOnlyIf(fieldIsVisibility, isIn),
+        validateInCase(fieldIsVisibility, isIn),
         otherwise({
           code: 400,
           msg: 'An invalid visibility was specified. Must be one of: ' + allVisibilities.join(', ')
         })
       )(value, allVisibilities);
       pipe(
-        makeSureThatOnlyIf(fieldIsDisplayName, isNotEmpty),
+        validateInCase(fieldIsDisplayName, isNotEmpty),
         otherwise({
           code: 400,
           msg: 'A display name cannot be empty'
         })
       )(value);
       pipe(
-        makeSureThatOnlyIf(fieldIsDisplayName, isShortString),
+        validateInCase(fieldIsDisplayName, isShortString),
         otherwise({
           code: 400,
           msg: 'A display name can be at most 1000 characters long'
         })
       )(value);
       pipe(
-        makeSureThatOnlyIf(fieldIsDescription, isNotEmpty),
+        validateInCase(fieldIsDescription, isNotEmpty),
         otherwise({
           code: 400,
           msg: 'A description cannot be empty'
         })
       )(value);
       pipe(
-        makeSureThatOnlyIf(fieldIsDescription, isMediumString),
+        validateInCase(fieldIsDescription, isMediumString),
         otherwise({
           code: 400,
           msg: 'A description can only be 10000 characters long'
@@ -809,7 +809,7 @@ const setDiscussionPermissions = function(ctx, discussionId, changes, callback) 
 
       const thereIsARole = Boolean(role);
       pipe(
-        makeSureThatOnlyIf(thereIsARole, isIn),
+        validateInCase(thereIsARole, isIn),
         otherwise({
           code: 400,
           msg:
@@ -986,7 +986,7 @@ const createMessage = function(ctx, discussionId, body, replyToCreatedTimestamp,
 
     const timestampIsDefined = isDefined(replyToCreatedTimestamp);
     pipe(
-      makeSureThatOnlyIf(timestampIsDefined, isInt),
+      validateInCase(timestampIsDefined, isInt),
       otherwise({
         code: 400,
         msg: 'Invalid reply-to timestamp provided'

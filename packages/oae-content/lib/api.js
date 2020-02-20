@@ -44,7 +44,7 @@ import isInt from 'validator/lib/isInt';
 import isIn from 'validator/lib/isIn';
 import { Validator as validator } from 'oae-util/lib/validator';
 const {
-  makeSureThatOnlyIf,
+  validateInCase,
   otherwise,
   isDefined,
   isANumber,
@@ -58,7 +58,7 @@ const {
   isPrincipalId,
   isLongString
 } = validator;
-import { equals, not, and, gt as greaterThan, pipe, forEach, forEachObjIndexed } from 'ramda';
+import { curry, __, equals, not, and, gt as greaterThan, pipe, forEach, forEachObjIndexed } from 'ramda';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { ContentConstants } from './constants';
 import * as ContentDAO from './internal/dao';
@@ -485,7 +485,7 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
     )(displayName);
 
     pipe(
-      makeSureThatOnlyIf(Boolean(description), isMediumString),
+      validateInCase(Boolean(description), isMediumString),
       otherwise({
         code: 400,
         msg: 'A content description can be at most 10000 characters long'
@@ -494,7 +494,7 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
 
     const fileIsDefined = Boolean(file);
     pipe(
-      makeSureThatOnlyIf(fileIsDefined, isNotNull),
+      validateInCase(fileIsDefined, isNotNull),
       otherwise({
         code: 400,
         msg: 'Missing size on the file object'
@@ -502,7 +502,7 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
     )(file.size);
 
     pipe(
-      makeSureThatOnlyIf(fileIsDefined, isANumber),
+      validateInCase(fileIsDefined, isANumber),
       otherwise({
         code: 400,
         msg: 'Invalid size on the file object'
@@ -510,7 +510,7 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
     )(file.size);
 
     pipe(
-      makeSureThatOnlyIf(fileIsDefined, greaterThan),
+      validateInCase(fileIsDefined, greaterThan),
       otherwise({
         code: 400,
         msg: 'Invalid size on the file object'
@@ -518,7 +518,7 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
     )(file.size, 0);
 
     pipe(
-      makeSureThatOnlyIf(fileIsDefined, isNotEmpty),
+      validateInCase(fileIsDefined, isNotEmpty),
       otherwise({
         code: 400,
         msg: 'Missing name on the file object'
@@ -787,7 +787,7 @@ const _createContent = function(
     )(displayName);
 
     pipe(
-      makeSureThatOnlyIf(Boolean(description), isMediumString),
+      validateInCase(Boolean(description), isMediumString),
       otherwise({
         code: 400,
         msg: 'A description can only be 10000 characters long'
@@ -1562,15 +1562,17 @@ const setContentPermissions = function(ctx, contentId, changes, callback) {
     }
 
     try {
+      const isOneOfValidRoles = curry(isIn)(__, validRoles);
       forEachObjIndexed((role /* , principalId */) => {
         const roleAintFalse = not(equals(role, false));
         pipe(
-          makeSureThatOnlyIf(roleAintFalse, isIn),
+          String,
+          validateInCase(roleAintFalse, isOneOfValidRoles),
           otherwise({
             code: 400,
             msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
           })
-        )(String(role), validRoles);
+        )(role);
       }, changes);
     } catch (error) {
       return callback(error);
@@ -1904,7 +1906,7 @@ const _updateFileBody = function(ctx, contentId, file, callback) {
 
     const fileIsDefined = Boolean(file);
     pipe(
-      makeSureThatOnlyIf(fileIsDefined, isNotNull),
+      validateInCase(fileIsDefined, isNotNull),
       otherwise({
         code: 400,
         msg: 'Missing size on the file object.'
@@ -1912,7 +1914,7 @@ const _updateFileBody = function(ctx, contentId, file, callback) {
     )(file.size);
 
     pipe(
-      makeSureThatOnlyIf(fileIsDefined, isANumber),
+      validateInCase(fileIsDefined, isANumber),
       otherwise({
         code: 400,
         msg: 'Invalid size on the file object.'
@@ -1920,7 +1922,7 @@ const _updateFileBody = function(ctx, contentId, file, callback) {
     )(file.size);
 
     pipe(
-      makeSureThatOnlyIf(fileIsDefined, greaterThan),
+      validateInCase(fileIsDefined, greaterThan),
       otherwise({
         code: 400,
         msg: 'Invalid size on the file object.'
@@ -1928,7 +1930,7 @@ const _updateFileBody = function(ctx, contentId, file, callback) {
     )(file.size, 0);
 
     pipe(
-      makeSureThatOnlyIf(fileIsDefined, isNotEmpty),
+      validateInCase(fileIsDefined, isNotEmpty),
       otherwise({
         code: 400,
         msg: 'Missing name on the file object.'
@@ -2350,7 +2352,7 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
       const fieldIsLink = equals(fieldName, LINK);
 
       pipe(
-        makeSureThatOnlyIf(fieldIsDisplayName, isNotEmpty),
+        validateInCase(fieldIsDisplayName, isNotEmpty),
         otherwise({
           code: 400,
           msg: 'A display name cannot be empty'
@@ -2358,7 +2360,7 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
       )(profileFields.displayName);
 
       pipe(
-        makeSureThatOnlyIf(fieldIsDisplayName, isShortString),
+        validateInCase(fieldIsDisplayName, isShortString),
         otherwise({
           code: 400,
           msg: 'A display name can be at most 1000 characters long'
@@ -2366,7 +2368,7 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
       )(profileFields.displayName);
 
       pipe(
-        makeSureThatOnlyIf(fieldIsDescription, isMediumString),
+        validateInCase(fieldIsDescription, isMediumString),
         otherwise({
           code: 400,
           msg: 'A description can only be 10000 characters long'
@@ -2374,7 +2376,7 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
       )(profileFields.description);
 
       pipe(
-        makeSureThatOnlyIf(fieldIsLink, isUrl),
+        validateInCase(fieldIsLink, isUrl),
         otherwise({
           code: 400,
           msg: 'A valid link should be provided'
@@ -2384,7 +2386,7 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
 
     const fieldIsVisibility = Boolean(profileFields.visibility);
     pipe(
-      makeSureThatOnlyIf(fieldIsVisibility, isIn),
+      validateInCase(fieldIsVisibility, isIn),
       otherwise({
         code: 400,
         msg: 'An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"'
@@ -2487,7 +2489,7 @@ const createComment = function(ctx, contentId, body, replyToCreatedTimestamp, ca
     )(body);
 
     pipe(
-      makeSureThatOnlyIf(isDefined(replyToCreatedTimestamp), isInt),
+      validateInCase(isDefined(replyToCreatedTimestamp), isInt),
       otherwise({
         code: 400,
         msg: 'Invalid reply-to timestamp provided'
@@ -2932,7 +2934,7 @@ const getRevision = function(ctx, contentId, revisionId, callback) {
 
     const revisionIdIsDefined = Boolean(revisionId);
     pipe(
-      makeSureThatOnlyIf(revisionIdIsDefined, isResourceId),
+      validateInCase(revisionIdIsDefined, isResourceId),
       otherwise({
         code: 400,
         msg: 'A valid revisionId must be provided'
@@ -2977,7 +2979,7 @@ const getRevisionDownloadInfo = function(ctx, contentId, revisionId, callback) {
     )(contentId);
 
     pipe(
-      makeSureThatOnlyIf(Boolean(revisionId), isResourceId),
+      validateInCase(Boolean(revisionId), isResourceId),
       otherwise({
         code: 400,
         msg: 'A valid revisionId must be provided'

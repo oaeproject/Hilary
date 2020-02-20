@@ -47,7 +47,7 @@ const {
   isModule,
   isResourceId,
   isGlobalAdministratorUser,
-  makeSureThatOnlyIf,
+  validateInCase,
   isNotNull,
   isLoggedInUser
 } = validator;
@@ -389,7 +389,7 @@ const reprocessPreviews = function(ctx, filters, callback) {
 
     const areThereFilters = isModule(filters);
     pipe(
-      makeSureThatOnlyIf(areThereFilters, isArrayNotEmpty),
+      validateInCase(areThereFilters, isArrayNotEmpty),
       otherwise({
         code: 400,
         msg: 'At least one filter must be specified'

@@ -34,7 +34,7 @@ import * as TenantsUtil from 'oae-tenants/lib/util';
 import { logger } from 'oae-logger';
 import { Validator as validator } from 'oae-authz/lib/validator';
 const {
-  makeSureThatOnlyIf,
+  validateInCase,
   getNestedObject,
   isLoggedInUser,
   isGlobalAdministratorUser,
@@ -402,7 +402,7 @@ const _getOrCreateUser = function(ctx, loginId, displayName, opts, callback) {
       try {
         const isValidEmail = and(opts.authoritative, opts.email);
         pipe(
-          makeSureThatOnlyIf(isValidEmail, isEmail),
+          validateInCase(isValidEmail, isEmail),
           otherwise({
             code: 400,
             msg: 'Invalid email'
@@ -1415,7 +1415,7 @@ const _validateLoginIdForLookup = function(validator, loginId) {
   )(loginId);
 
   pipe(
-    makeSureThatOnlyIf(ifLoginIsValid, isNotEmpty),
+    validateInCase(ifLoginIsValid, isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Must specify a tenant id on the login id'
@@ -1423,7 +1423,7 @@ const _validateLoginIdForLookup = function(validator, loginId) {
   )(getAttribute(['tenantAlias']));
 
   pipe(
-    makeSureThatOnlyIf(ifLoginIsValid, isNotEmpty),
+    validateInCase(ifLoginIsValid, isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Must specify an authentication provider on the login id'
@@ -1432,7 +1432,7 @@ const _validateLoginIdForLookup = function(validator, loginId) {
 
   pipe(
     String,
-    makeSureThatOnlyIf(ifLoginIsValid, isNotEmpty),
+    validateInCase(ifLoginIsValid, isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Must specify an external id on the login id'
@@ -1459,7 +1459,7 @@ const _validateLoginIdForPersistence = function(validator, loginId, callback) {
   // Custom handling for local authentication (i.e., username and password)
   const isItLocalAuthentication = loginId.provider === AuthenticationConstants.providers.LOCAL;
   pipe(
-    makeSureThatOnlyIf(isItLocalAuthentication, isLength),
+    validateInCase(isItLocalAuthentication, isLength),
     otherwise({
       code: 400,
       msg: 'Must specify a password at least 6 characters long'

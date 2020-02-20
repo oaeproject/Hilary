@@ -24,7 +24,7 @@ import * as TenantsAPI from 'oae-tenants';
 import { logger } from 'oae-logger';
 
 import { Validator as validator } from 'oae-util/lib/validator';
-const { makeSureThatOnlyIf, isString, isUserId, otherwise, isNotNull } = validator;
+const { validateInCase, isString, isUserId, otherwise, isNotNull } = validator;
 import { isPast, toDate } from 'date-fns';
 import { curry, __, not, pipe, head } from 'ramda';
 import isInt from 'validator/lib/isInt';
@@ -168,7 +168,7 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
 
     const isReplyToDefined = Boolean(opts.replyToCreated);
     pipe(
-      makeSureThatOnlyIf(isReplyToDefined, isNotNull),
+      validateInCase(isReplyToDefined, isNotNull),
       otherwise({
         code: 400,
         msg: 'If the replyToCreated optional parameter is specified, it should not be null nor undefined.'
@@ -176,7 +176,7 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
     )(opts.replyToCreated);
 
     pipe(
-      makeSureThatOnlyIf(isReplyToDefined, isString),
+      validateInCase(isReplyToDefined, isString),
       otherwise({
         code: 400,
         msg: 'If the replyToCreated optional parameter is specified, it should not be a String.'
@@ -184,7 +184,7 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
     )(opts.replyToCreated);
 
     pipe(
-      makeSureThatOnlyIf(isReplyToDefined, isInt),
+      validateInCase(isReplyToDefined, isInt),
       otherwise({
         code: 400,
         msg: 'If the replyToCreated optional parameter is specified, it should be an integer.'
@@ -192,7 +192,7 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
     )(opts.replyToCreated);
 
     pipe(
-      makeSureThatOnlyIf(isReplyToDefined, isPast),
+      validateInCase(isReplyToDefined, isPast),
       otherwise({
         code: 400,
         msg: 'If the replyToCreated optional parameter is specified, it cannot be in the future.'
@@ -634,7 +634,7 @@ const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
     const isDeleteTypeDefined = Boolean(opts.deleteType);
     const deleteValues = _.values(MessageBoxConstants.deleteTypes);
     pipe(
-      makeSureThatOnlyIf(isDeleteTypeDefined, isIn),
+      validateInCase(isDeleteTypeDefined, isIn),
       otherwise({
         code: 400,
         msg: 'If the deleteType is specified it should be one of: ' + deleteValues.join(', ')

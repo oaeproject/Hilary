@@ -148,28 +148,13 @@ const otherwise = error => validationPassed => {
 };
 
 /**
- * @function makeSureThatOnlyIf
+ * @function validateInCase
  * @param  {Boolean} condition    Condition that needs to be checked to validate
  * @param  {Function} validation  Validation function to be applied if condition is true
  * @param  {Array} ...args        Extra arguments for validation
  * @return {Boolean}              Result of validation if condition is true, otherwise return true (no error thrown)
  */
-const makeSureThatOnlyIf = (condition, validation) => (value, ...args) =>
-  condition ? validation(value, ...args) : true;
-
-/**
- * @function makeSureThat
- * @param  {Object}  value        Value to be validated
- * @param  {Function} validation  Function used to validate value if condition is true
- * @return {Function}             A function to be chained in validation steps
- *
- * Usage:
- * ```
- * let func = makeSureThat('popo', isEmpty);
- * func(); // returns function which will NOT run the validation (parameter is false)
- * ```
- */
-const makeSureThat = (value, validation) => condition => (condition ? validation(value) : true);
+const validateInCase = (condition, validation) => (value, ...args) => (condition ? validation(value, ...args) : true);
 
 /**
  * @function getNestedObject
@@ -481,8 +466,7 @@ const completeValidations = {
   notContains,
   isNotNull,
   otherwise,
-  makeSureThatOnlyIf,
-  makeSureThat,
+  validateInCase,
   getNestedObject,
   isIso3166Country,
   isHost,

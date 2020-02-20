@@ -42,7 +42,7 @@ const {
   isArray,
   isValidRoleChange,
   otherwise,
-  makeSureThatOnlyIf,
+  validateInCase,
   isANumber,
   isLoggedInUser,
   isPrincipalId,
@@ -133,7 +133,7 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
 
     const descriptionIsThere = Boolean(description);
     pipe(
-      makeSureThatOnlyIf(descriptionIsThere, isMediumString),
+      validateInCase(descriptionIsThere, isMediumString),
       otherwise({
         code: 400,
         msg: 'A description can be at most 10000 characters long'
@@ -266,7 +266,7 @@ const updateFolder = function(ctx, folderId, updates, callback) {
 
     const isThereDisplayName = Boolean(updates.displayName);
     pipe(
-      makeSureThatOnlyIf(isThereDisplayName, isShortString),
+      validateInCase(isThereDisplayName, isShortString),
       otherwise({
         code: 400,
         msg: 'A display name can be at most 1000 characters long'
@@ -275,7 +275,7 @@ const updateFolder = function(ctx, folderId, updates, callback) {
 
     const isThereDescription = Boolean(updates.description);
     pipe(
-      makeSureThatOnlyIf(isThereDescription, isMediumString),
+      validateInCase(isThereDescription, isMediumString),
       otherwise({
         code: 400,
         msg: 'A description can be at most 10000 characters long'
@@ -284,7 +284,7 @@ const updateFolder = function(ctx, folderId, updates, callback) {
 
     const isThereVisibility = Boolean(updates.visibility);
     pipe(
-      makeSureThatOnlyIf(isThereVisibility, isIn),
+      validateInCase(isThereVisibility, isIn),
       otherwise({
         code: 400,
         msg: 'An invalid folder visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
@@ -1110,7 +1110,7 @@ const setFolderPermissions = function(ctx, folderId, changes, callback) {
 
       const thereIsRole = Boolean(role);
       pipe(
-        makeSureThatOnlyIf(thereIsRole, isIn),
+        validateInCase(thereIsRole, isIn),
         otherwise({
           code: 400,
           msg:
@@ -1736,7 +1736,7 @@ const createMessage = function(ctx, folderId, body, replyToCreatedTimestamp, cal
 
     const timestampIsDefined = Boolean(replyToCreatedTimestamp);
     pipe(
-      makeSureThatOnlyIf(timestampIsDefined, isInt),
+      validateInCase(timestampIsDefined, isInt),
       otherwise({
         code: 400,
         msg: 'Invalid reply-to timestamp provided'

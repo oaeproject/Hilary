@@ -17,7 +17,7 @@ import { logger } from 'oae-logger';
 import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
 import { Validator as validator } from 'oae-authz/lib/validator';
 const {
-  makeSureThatOnlyIf,
+  validateInCase,
   isDefined,
   otherwise,
   isANumber,
@@ -122,7 +122,7 @@ const createMeeting = function(
 
     const descriptionIsValid = and(isDefined(description), greaterThan(length(description), 0));
     pipe(
-      makeSureThatOnlyIf(descriptionIsValid, isMediumString),
+      validateInCase(descriptionIsValid, isMediumString),
       otherwise({
         code: 400,
         msg: 'A description can be at most 10000 characters long'
@@ -427,7 +427,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
       const ifFieldIs = attr => equals(field, attr);
 
       pipe(
-        makeSureThatOnlyIf(ifFieldIs(VISIBILITY), isIn),
+        validateInCase(ifFieldIs(VISIBILITY), isIn),
         otherwise({
           code: 400,
           msg: 'An invalid visibility was specified. Must be one of: ' + allVisibilities.join(', ')
@@ -435,7 +435,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
       )(value, allVisibilities);
 
       pipe(
-        makeSureThatOnlyIf(ifFieldIs(DISPLAY_NAME), isNotEmpty),
+        validateInCase(ifFieldIs(DISPLAY_NAME), isNotEmpty),
         otherwise({
           code: 400,
           msg: 'A display name cannot be empty'
@@ -443,7 +443,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
       )(value);
 
       pipe(
-        makeSureThatOnlyIf(ifFieldIs(DISPLAY_NAME), isShortString),
+        validateInCase(ifFieldIs(DISPLAY_NAME), isShortString),
         otherwise({
           code: 400,
           msg: 'A display name can be at most 1000 characters long'
@@ -451,7 +451,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
       )(value);
 
       pipe(
-        makeSureThatOnlyIf(and(ifFieldIs(DESCRIPTION), greaterThan(length(value), 0)), isMediumString),
+        validateInCase(and(ifFieldIs(DESCRIPTION), greaterThan(length(value), 0)), isMediumString),
         otherwise({
           code: 400,
           msg: 'A description can be at most 10000 characters long'
@@ -459,7 +459,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
       )(value);
 
       pipe(
-        makeSureThatOnlyIf(ifFieldIs(CHAT), isBoolean),
+        validateInCase(ifFieldIs(CHAT), isBoolean),
         otherwise({
           code: 400,
           msg: 'An invalid chat value was specified, must be boolean'
@@ -467,7 +467,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
       )(value);
 
       pipe(
-        makeSureThatOnlyIf(ifFieldIs(CONTACT_LIST), isBoolean),
+        validateInCase(ifFieldIs(CONTACT_LIST), isBoolean),
         otherwise({
           code: 400,
           msg: 'An invalid contactList value was specified, must be boolean'
@@ -624,7 +624,7 @@ const setMeetingMembers = function(ctx, meetingId, changes, callback) {
 
       const thereIsRole = Boolean(role);
       pipe(
-        makeSureThatOnlyIf(thereIsRole, isIn),
+        validateInCase(thereIsRole, isIn),
         otherwise({
           code: 400,
           msg:
@@ -789,7 +789,7 @@ const createMessage = function(ctx, meetingId, body, replyToCreatedTimestamp, ca
 
     const timestampIsDefined = Boolean(replyToCreatedTimestamp);
     pipe(
-      makeSureThatOnlyIf(timestampIsDefined, isInt),
+      validateInCase(timestampIsDefined, isInt),
       otherwise({
         code: 400,
         msg: 'Invalid reply-to timestamp provided'

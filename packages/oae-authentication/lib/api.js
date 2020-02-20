@@ -42,7 +42,6 @@ const {
   isEmail,
   isObject,
   isUserId,
-  makeSureThat,
   otherwise,
   isNotEmpty
 } = validator;
@@ -1412,26 +1411,33 @@ const _validateLoginIdForLookup = function(validator, loginId) {
     otherwise({
       code: 400,
       msg: 'Must specify a login id'
-    }),
-    ifLoginIsValid,
-    makeSureThat(getAttribute(['tenantAlias']), isNotEmpty),
+    })
+  )(loginId);
+
+  pipe(
+    makeSureThatOnlyIf(ifLoginIsValid, isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Must specify a tenant id on the login id'
-    }),
-    ifLoginIsValid,
-    makeSureThat(getAttribute(['provider']), isNotEmpty),
+    })
+  )(getAttribute(['tenantAlias']));
+
+  pipe(
+    makeSureThatOnlyIf(ifLoginIsValid, isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Must specify an authentication provider on the login id'
-    }),
-    ifLoginIsValid,
-    makeSureThat(String(getAttribute(['externalId'])), isNotEmpty),
+    })
+  )(getAttribute(['provider']));
+
+  pipe(
+    String,
+    makeSureThatOnlyIf(ifLoginIsValid, isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Must specify an external id on the login id'
     })
-  )(loginId);
+  )(getAttribute(['externalId']));
 };
 
 /**

@@ -27,7 +27,16 @@ import * as Signature from 'oae-util/lib/signature';
 import { telemetry } from 'oae-telemetry';
 import * as TenantsAPI from 'oae-tenants';
 import { Validator as validator } from 'oae-authz/lib/validator';
-const { getNestedObject, makeSureThat, otherwise, isNotEmpty, isUserId, isObject, isNotNull, isANumber } = validator;
+const {
+  makeSureThatOnlyIf,
+  getNestedObject,
+  otherwise,
+  isNotEmpty,
+  isUserId,
+  isObject,
+  isNotNull,
+  isANumber
+} = validator;
 import pipe from 'ramda/src/pipe';
 
 import { ActivityConstants } from 'oae-activity/lib/constants';
@@ -384,20 +393,24 @@ const _authenticate = function(connectionInfo, message) {
       otherwise({
         code: 400,
         msg: 'A signature object needs to be provided'
-      }),
-      ifThereIsExpiryDate,
-      makeSureThat(expiryDate, isANumber),
+      })
+    )(data.signature);
+
+    pipe(
+      makeSureThatOnlyIf(ifThereIsExpiryDate, isANumber),
       otherwise({
         code: 400,
         msg: 'Signature must contain an integer expires value'
-      }),
-      ifThereIsSignature,
-      makeSureThat(signature, isNotNull),
+      })
+    )(expiryDate);
+
+    pipe(
+      makeSureThatOnlyIf(ifThereIsSignature, isNotNull),
       otherwise({
         code: 400,
         msg: 'Signature must contain a string signature value'
       })
-    )(data.signature);
+    )(signature);
   } catch (error) {
     if (error) return handleError(error);
   }

@@ -27,7 +27,7 @@ import { Validator as validator } from 'oae-authz/lib/validator';
 
 const {
   getNestedObject,
-  makeSureThat,
+  makeSureThatOnlyIf,
   otherwise,
   isLoggedInUser,
   isUserId,
@@ -696,9 +696,7 @@ const postActivity = function(ctx, activitySeed, callback) {
     };
 
   // Short-circuit if we find that activities are disabled for this tenant
-  if (isActivityFeedDisabled(ctx)) {
-    return callback();
-  }
+  if (isActivityFeedDisabled(ctx)) return callback();
 
   const getAttribute = getNestedObject(activitySeed);
   const ifThereIsActivity = () => Boolean(activitySeed);
@@ -709,76 +707,94 @@ const postActivity = function(ctx, activitySeed, callback) {
   const ifThereIsActivityObject = () => both(ifThereIsActivity, isThereObject)();
   const ifThereIsActivityTarget = () => both(ifThereIsActivity, isThereTarget)();
 
-  const runValidations = pipe(
-    isObject,
-    otherwise({
-      code: 400,
-      msg: 'No activity seed provided.'
-    }),
-    ifThereIsActivity,
-    makeSureThat(getAttribute(['activityType']), isNotEmpty),
-    otherwise({
-      code: 400,
-      msg: 'Activity seed did not have an activity type.'
-    }),
-    ifThereIsActivity,
-    makeSureThat(getAttribute(['verb']), isNotEmpty),
-    otherwise({
-      code: 400,
-      msg: 'Activity seed did not have a verb.'
-    }),
-    ifThereIsActivity,
-    makeSureThat(getAttribute(['published']), isANumber),
-    otherwise({
-      code: 400,
-      msg: 'Activity seed did not have a valid publish date.'
-    }),
-    ifThereIsActivity,
-    makeSureThat(getAttribute(['actorResource']), isObject),
-    otherwise({
-      code: 400,
-      msg: 'Activity seed did not have an actor resource'
-    }),
-    ifThereIsActivityActor,
-    makeSureThat(getAttribute(['actorResource', 'resourceId']), isNotEmpty),
-    otherwise({
-      code: 400,
-      msg: 'Actor of activity seed did not have a resourceId'
-    }),
-    ifThereIsActivityActor,
-    makeSureThat(getAttribute(['actorResource', 'resourceType']), isNotEmpty),
-    otherwise({
-      code: 400,
-      msg: 'Actor of activity seed did not have a resourceType'
-    }),
-    ifThereIsActivityObject,
-    makeSureThat(getAttribute(['objectResource', 'resourceId']), isNotEmpty),
-    otherwise({
-      code: 400,
-      msg: 'Object of activity seed was specified and did not have a resourceId'
-    }),
-    ifThereIsActivityObject,
-    makeSureThat(getAttribute(['objectResource', 'resourceType']), isNotEmpty),
-    otherwise({
-      code: 400,
-      msg: 'Object of activity seed was specified and did not have a resourceType'
-    }),
-    ifThereIsActivityTarget,
-    makeSureThat(getAttribute(['targetResource', 'resourceId']), isNotEmpty),
-    otherwise({
-      code: 400,
-      msg: 'Target of activity seed was specified and did not have a resourceId'
-    }),
-    ifThereIsActivityTarget,
-    makeSureThat(getAttribute(['targetResource', 'resourceType']), isNotEmpty),
-    otherwise({
-      code: 400,
-      msg: 'Target of activity seed was specified and did not have a resourceType'
-    })
-  );
-
   try {
-    runValidations(activitySeed);
+    pipe(
+      isObject,
+      otherwise({
+        code: 400,
+        msg: 'No activity seed provided.'
+      })
+    )(activitySeed);
+
+    pipe(
+      makeSureThatOnlyIf(ifThereIsActivity(), isNotEmpty),
+      otherwise({
+        code: 400,
+        msg: 'Activity seed did not have an activity type.'
+      })
+    )(getAttribute(['activityType']));
+
+    pipe(
+      makeSureThatOnlyIf(ifThereIsActivity(), isNotEmpty),
+      otherwise({
+        code: 400,
+        msg: 'Activity seed did not have a verb.'
+      })
+    )(getAttribute(['verb']));
+
+    pipe(
+      makeSureThatOnlyIf(ifThereIsActivity(), isANumber),
+      otherwise({
+        code: 400,
+        msg: 'Activity seed did not have a valid publish date.'
+      })
+    )(getAttribute(['published']));
+
+    pipe(
+      makeSureThatOnlyIf(ifThereIsActivity(), isObject),
+      otherwise({
+        code: 400,
+        msg: 'Activity seed did not have an actor resource'
+      })
+    )(getAttribute(['actorResource']));
+
+    pipe(
+      makeSureThatOnlyIf(ifThereIsActivityActor(), isNotEmpty),
+      otherwise({
+        code: 400,
+        msg: 'Actor of activity seed did not have a resourceId'
+      })
+    )(getAttribute(['actorResource', 'resourceId']));
+
+    pipe(
+      makeSureThatOnlyIf(ifThereIsActivityActor(), isNotEmpty),
+      otherwise({
+        code: 400,
+        msg: 'Actor of activity seed did not have a resourceType'
+      })
+    )(getAttribute(['actorResource', 'resourceType']));
+
+    pipe(
+      makeSureThatOnlyIf(ifThereIsActivityObject(), isNotEmpty),
+      otherwise({
+        code: 400,
+        msg: 'Object of activity seed was specified and did not have a resourceId'
+      })
+    )(getAttribute(['objectResource', 'resourceId']));
+
+    pipe(
+      makeSureThatOnlyIf(ifThereIsActivityObject(), isNotEmpty),
+      otherwise({
+        code: 400,
+        msg: 'Object of activity seed was specified and did not have a resourceType'
+      })
+    )(getAttribute(['objectResource', 'resourceType']));
+
+    pipe(
+      makeSureThatOnlyIf(ifThereIsActivityTarget(), isNotEmpty),
+      otherwise({
+        code: 400,
+        msg: 'Target of activity seed was specified and did not have a resourceId'
+      })
+    )(getAttribute(['targetResource', 'resourceId']));
+
+    pipe(
+      makeSureThatOnlyIf(ifThereIsActivityTarget(), isNotEmpty),
+      otherwise({
+        code: 400,
+        msg: 'Target of activity seed was specified and did not have a resourceType'
+      })
+    )(getAttribute(['targetResource', 'resourceType']));
   } catch (error) {
     return callback(error);
   }

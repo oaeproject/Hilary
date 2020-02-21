@@ -19,7 +19,7 @@ import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as Signature from 'oae-util/lib/signature';
 import * as TenantsAPI from 'oae-tenants/lib/api';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { isDefined, otherwise, isNotEmpty, isInt } = validator;
+const { isDefined, unless, otherwise, isNotEmpty, isInt } = validator;
 import { pipe, curry, __ } from 'ramda';
 import { isFuture, toDate } from 'date-fns';
 
@@ -96,21 +96,15 @@ const getServiceProviderUrl = function(ctx) {
  */
 const validateInitiateParameters = function(tenantAlias, signature, expires, callback) {
   try {
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Missing tenant alias parameter'
-      })
-    )(tenantAlias);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing tenant alias parameter'
+    })(tenantAlias);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Missing signature parameter'
-      })
-    )(signature);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing signature parameter'
+    })(signature);
 
     pipe(
       String,
@@ -121,21 +115,15 @@ const validateInitiateParameters = function(tenantAlias, signature, expires, cal
       })
     )(expires);
 
-    pipe(
-      isDefined,
-      otherwise({
-        code: 400,
-        msg: 'Invalid expires parameter'
-      })
-    )(expires);
+    unless(isDefined, {
+      code: 400,
+      msg: 'Invalid expires parameter'
+    })(expires);
 
-    pipe(
-      isInt,
-      otherwise({
-        code: 400,
-        msg: 'Invalid expires parameter'
-      })
-    )(expires);
+    unless(isInt, {
+      code: 400,
+      msg: 'Invalid expires parameter'
+    })(expires);
 
     const toInt = curry(parseInt)(__, 10);
     pipe(
@@ -218,21 +206,15 @@ const getAuthenticatedUserRedirectUrl = function(tenant, user) {
  */
 const getUser = function(tenant, userId, signature, expires, callback) {
   try {
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Missing user id parameter'
-      })
-    )(userId);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing user id parameter'
+    })(userId);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Missing signature parameter'
-      })
-    )(signature);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing signature parameter'
+    })(signature);
 
     pipe(
       String,
@@ -243,21 +225,15 @@ const getUser = function(tenant, userId, signature, expires, callback) {
       })
     )(expires);
 
-    pipe(
-      isDefined,
-      otherwise({
-        code: 400,
-        msg: 'Invalid expires parameter'
-      })
-    )(expires);
+    unless(isDefined, {
+      code: 400,
+      msg: 'Invalid expires parameter'
+    })(expires);
 
-    pipe(
-      isInt,
-      otherwise({
-        code: 400,
-        msg: 'Invalid expires parameter'
-      })
-    )(expires);
+    unless(isInt, {
+      code: 400,
+      msg: 'Invalid expires parameter'
+    })(expires);
 
     const toInt = curry(parseInt)(__, 10);
     pipe(

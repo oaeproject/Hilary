@@ -17,8 +17,7 @@ import _ from 'underscore';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { otherwise, isLoggedInUser, isUserId, isNotEmpty } = validator;
-import pipe from 'ramda/src/pipe';
+const { unless, isLoggedInUser, isUserId, isNotEmpty } = validator;
 
 import * as OAuthDAO from './internal/dao';
 
@@ -37,21 +36,15 @@ import * as OAuthDAO from './internal/dao';
  */
 const getClients = function(ctx, userId, callback) {
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'Anonymous users do not have clients'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Anonymous users do not have clients'
+    })(ctx);
 
-    pipe(
-      isUserId,
-      otherwise({
-        code: 400,
-        msg: 'An invalid userId was passed in'
-      })
-    )(userId);
+    unless(isUserId, {
+      code: 400,
+      msg: 'An invalid userId was passed in'
+    })(userId);
   } catch (error) {
     return callback(error);
   }
@@ -84,29 +77,20 @@ const getClients = function(ctx, userId, callback) {
  */
 const createClient = function(ctx, userId, displayName, callback) {
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'Anonymous users cannot create a client'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Anonymous users cannot create a client'
+    })(ctx);
 
-    pipe(
-      isUserId,
-      otherwise({
-        code: 400,
-        msg: 'A client must be bound to a user'
-      })
-    )(userId);
+    unless(isUserId, {
+      code: 400,
+      msg: 'A client must be bound to a user'
+    })(userId);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Missing client displayName'
-      })
-    )(displayName);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing client displayName'
+    })(displayName);
   } catch (error) {
     return callback(error);
   }
@@ -136,21 +120,15 @@ const createClient = function(ctx, userId, displayName, callback) {
  */
 const updateClient = function(ctx, clientId, displayName, secret, callback) {
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'Anonymous users cannot create a client'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Anonymous users cannot create a client'
+    })(ctx);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Missing client id'
-      })
-    )(clientId);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing client id'
+    })(clientId);
   } catch (error) {
     return callback(error);
   }
@@ -198,21 +176,15 @@ const updateClient = function(ctx, clientId, displayName, secret, callback) {
  */
 const deleteClient = function(ctx, clientId, callback) {
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'Anonymous users cannot delete a client'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Anonymous users cannot delete a client'
+    })(ctx);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Missing client id'
-      })
-    )(clientId);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing client id'
+    })(clientId);
   } catch (error) {
     return callback(error);
   }

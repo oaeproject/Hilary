@@ -60,10 +60,8 @@ const storePicture = function(ctx, principalId, file, callback) {
     };
 
   try {
-    unless(isLoggedInUser, {
-      code: 401,
-      msg: 'You have to be logged in to be able to update a picture'
-    })(ctx);
+    const msg = 'You have to be logged in to be able to update a picture';
+    unless(isLoggedInUser, { code: 401, msg })(ctx);
 
     unless(isPrincipalId, {
       code: 400,

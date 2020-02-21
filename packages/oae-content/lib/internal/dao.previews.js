@@ -17,8 +17,7 @@ import _ from 'underscore';
 
 import * as Cassandra from 'oae-util/lib/cassandra';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { otherwise, isResourceId } = validator;
-import pipe from 'ramda/src/pipe';
+const { unless, isResourceId } = validator;
 
 /// ////////////
 // Retrieval //
@@ -239,21 +238,15 @@ const storeMetadata = function(
  */
 const copyPreviewItems = function(fromRevisionId, toRevisionId, callback) {
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'Must specify a valid resource id for "fromRevisionId"'
-      })
-    )(fromRevisionId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Must specify a valid resource id for "fromRevisionId"'
+    })(fromRevisionId);
 
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'Must specify a valid resource id for "toRevisionId"'
-      })
-    )(toRevisionId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Must specify a valid resource id for "toRevisionId"'
+    })(toRevisionId);
   } catch (error) {
     return callback(error);
   }

@@ -33,8 +33,8 @@ import { Validator as validator } from 'oae-authz/lib/validator';
 const {
   isShortString,
   isMediumString,
-  validateInCase,
-  otherwise,
+  validateInCase: bothCheck,
+  unless,
   isLoggedInUser,
   isNotEmpty,
   isGroupId,
@@ -43,7 +43,7 @@ const {
 } = validator;
 import isIn from 'validator/lib/isIn';
 import { AuthzConstants } from 'oae-authz/lib/constants';
-import { both, pipe, not, compose, forEachObjIndexed, equals } from 'ramda';
+import { both, not, compose, forEachObjIndexed, equals } from 'ramda';
 import * as PrincipalsDAO from './internal/dao';
 import * as PrincipalsMembersLibrary from './libraries/members';
 import PrincipalsEmitter from './internal/emitter';
@@ -70,13 +70,10 @@ const JOINABLE = 'joinable';
  */
 const getGroup = function(ctx, groupId, callback) {
   try {
-    pipe(
-      isGroupId,
-      otherwise({
-        code: 400,
-        msg: 'An invalid group id was specified'
-      })
-    )(groupId);
+    unless(isGroupId, {
+      code: 400,
+      msg: 'An invalid group id was specified'
+    })(groupId);
   } catch (error) {
     return callback(error);
   }
@@ -200,13 +197,10 @@ const getMembersLibrary = function(ctx, groupId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
-    pipe(
-      isGroupId,
-      otherwise({
-        code: 400,
-        msg: 'An invalid group id was specified'
-      })
-    )(groupId);
+    unless(isGroupId, {
+      code: 400,
+      msg: 'An invalid group id was specified'
+    })(groupId);
   } catch (error) {
     return callback(error);
   }
@@ -237,13 +231,10 @@ const getMembersLibrary = function(ctx, groupId, start, limit, callback) {
  */
 const getGroupInvitations = function(ctx, groupId, callback) {
   try {
-    pipe(
-      isGroupId,
-      otherwise({
-        code: 400,
-        msg: 'A valid group id must be specified'
-      })
-    )(groupId);
+    unless(isGroupId, {
+      code: 400,
+      msg: 'A valid group id must be specified'
+    })(groupId);
   } catch (error) {
     return callback(error);
   }
@@ -268,13 +259,10 @@ const getGroupInvitations = function(ctx, groupId, callback) {
  */
 const resendGroupInvitation = function(ctx, groupId, email, callback) {
   try {
-    pipe(
-      isGroupId,
-      otherwise({
-        code: 400,
-        msg: 'A valid group id must be specified'
-      })
-    )(groupId);
+    unless(isGroupId, {
+      code: 400,
+      msg: 'A valid group id must be specified'
+    })(groupId);
   } catch (error) {
     return callback(error);
   }
@@ -378,13 +366,10 @@ const getMembershipsLibrary = function(ctx, principalId, start, limit, callback)
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
-    pipe(
-      isPrincipalId,
-      otherwise({
-        code: 400,
-        msg: 'Must specify a valid principalId'
-      })
-    )(principalId);
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'Must specify a valid principalId'
+    })(principalId);
   } catch (error) {
     return callback(error);
   }
@@ -505,13 +490,10 @@ const getRecentGroupsForUserId = function(ctx, principalId, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 5, 1);
 
   try {
-    pipe(
-      isPrincipalId,
-      otherwise({
-        code: 400,
-        msg: 'Must specify a valid principalId'
-      })
-    )(principalId);
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'Must specify a valid principalId'
+    })(principalId);
   } catch (error) {
     return callback(error);
   }
@@ -584,34 +566,25 @@ const _getRecentGroupsForUserId = function(ctx, principalId, limit, callback) {
 const setGroupMembers = function(ctx, groupId, changes, callback) {
   // Validation
   try {
-    pipe(
-      isGroupId,
-      otherwise({
-        code: 400,
-        msg: 'Invalid groupId specified'
-      })
-    )(groupId);
+    unless(isGroupId, {
+      code: 400,
+      msg: 'Invalid groupId specified'
+    })(groupId);
 
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to update group membership'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to update group membership'
+    })(ctx);
 
     // Ensure each role is restricted to those supported by groups (member and manager). Resource
     // Actions will take care of the other standard checks
     const validRoles = PrincipalsConstants.role.ALL_PRIORITY;
     forEachObjIndexed((role /* , memberId */) => {
       const roleIsDefined = compose(not, equals)(role, false);
-      pipe(
-        validateInCase(roleIsDefined, isIn),
-        otherwise({
-          code: 400,
-          msg: util.format('Role must be one of %s', validRoles.join(', '))
-        })
-      )(role, validRoles);
+      unless(bothCheck(roleIsDefined, isIn), {
+        code: 400,
+        msg: util.format('Role must be one of %s', validRoles.join(', '))
+      })(role, validRoles);
     }, changes);
   } catch (error) {
     return callback(error);
@@ -671,21 +644,15 @@ const setGroupMembers = function(ctx, groupId, changes, callback) {
  */
 const leaveGroup = function(ctx, groupId, callback) {
   try {
-    pipe(
-      isGroupId,
-      otherwise({
-        code: 400,
-        msg: 'Invalid groupId specified'
-      })
-    )(groupId);
+    unless(isGroupId, {
+      code: 400,
+      msg: 'Invalid groupId specified'
+    })(groupId);
 
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to join a group'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to join a group'
+    })(ctx);
   } catch (error) {
     return callback(error);
   }
@@ -733,21 +700,15 @@ const leaveGroup = function(ctx, groupId, callback) {
  */
 const joinGroup = function(ctx, groupId, callback) {
   try {
-    pipe(
-      isGroupId,
-      otherwise({
-        code: 400,
-        msg: 'Invalid groupId specified'
-      })
-    )(groupId);
+    unless(isGroupId, {
+      code: 400,
+      msg: 'Invalid groupId specified'
+    })(groupId);
 
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to join a group'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to join a group'
+    })(ctx);
   } catch (error) {
     return callback(error);
   }
@@ -830,63 +791,42 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
 
   // Parameter validation
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'Cannot create a group anonymously'
-      })
-    )(ctx);
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'You need to provide a display name for this group'
-      })
-    )(displayName);
-    pipe(
-      isShortString,
-      otherwise({
-        code: 400,
-        msg: 'A display name can be at most 1000 characters long'
-      })
-    )(displayName);
-    pipe(
-      isIn,
-      otherwise({
-        code: 400,
-        msg: 'The visibility setting must be one of: ' + _.values(AuthzConstants.visibility)
-      })
-    )(visibility, _.values(AuthzConstants.visibility));
-    pipe(
-      isIn,
-      otherwise({
-        code: 400,
-        msg: 'The joinable setting must be one of: ' + _.values(AuthzConstants.joinable)
-      })
-    )(joinable, _.values(AuthzConstants.joinable));
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Cannot create a group anonymously'
+    })(ctx);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'You need to provide a display name for this group'
+    })(displayName);
+    unless(isShortString, {
+      code: 400,
+      msg: 'A display name can be at most 1000 characters long'
+    })(displayName);
+    unless(isIn, {
+      code: 400,
+      msg: 'The visibility setting must be one of: ' + _.values(AuthzConstants.visibility)
+    })(visibility, _.values(AuthzConstants.visibility));
+    unless(isIn, {
+      code: 400,
+      msg: 'The joinable setting must be one of: ' + _.values(AuthzConstants.joinable)
+    })(joinable, _.values(AuthzConstants.joinable));
 
     const descriptionIsDefined = Boolean(description);
-    pipe(
-      validateInCase(descriptionIsDefined, isMediumString),
-      otherwise({
-        code: 400,
-        msg: 'A description can only be 10000 characters long'
-      })
-    )(description);
+    unless(bothCheck(descriptionIsDefined, isMediumString), {
+      code: 400,
+      msg: 'A description can only be 10000 characters long'
+    })(description);
 
     // Ensure all roles are in the set of valid roles. ResourceActions will take care of other
     // standard validations
     const validRoles = PrincipalsConstants.role.ALL_PRIORITY;
     forEachObjIndexed((role /* , principalId */) => {
       const roleIsValid = compose(not, equals)(role, false);
-      pipe(
-        validateInCase(roleIsValid, isIn),
-        otherwise({
-          code: 400,
-          msg: util.format('Role must be one of %s', validRoles.join(', '))
-        })
-      )(role, validRoles);
+      unless(bothCheck(roleIsValid, isIn), {
+        code: 400,
+        msg: util.format('Role must be one of %s', validRoles.join(', '))
+      })(role, validRoles);
     }, roles);
   } catch (error) {
     return callback(error);
@@ -940,77 +880,50 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
   // Parameter validation
   const fieldNames = profileFields ? _.keys(profileFields) : [];
   try {
-    pipe(
-      isGroupId,
-      otherwise({
-        code: 400,
-        msg: 'A valid group id must be provided'
-      })
-    )(groupId);
+    unless(isGroupId, {
+      code: 400,
+      msg: 'A valid group id must be provided'
+    })(groupId);
 
-    pipe(
-      isArrayNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'You should specify at least one field'
-      })
-    )(fieldNames);
+    unless(isArrayNotEmpty, {
+      code: 400,
+      msg: 'You should specify at least one field'
+    })(fieldNames);
 
     fieldNames.forEach(fieldName => {
       const isField = field => equals(fieldName, field);
-      pipe(
-        isIn,
-        otherwise({
-          code: 400,
-          msg: fieldName + ' is not a recognized group profile field'
-        })
-      )(fieldName, [DISPLAY_NAME, DESCRIPTION, VISIBILITY, JOINABLE]);
+      unless(isIn, {
+        code: 400,
+        msg: fieldName + ' is not a recognized group profile field'
+      })(fieldName, [DISPLAY_NAME, DESCRIPTION, VISIBILITY, JOINABLE]);
 
-      pipe(
-        validateInCase(isField(VISIBILITY), isIn),
-        otherwise({
-          code: 400,
-          msg: 'The visibility setting must be one of: ' + _.values(AuthzConstants.visibility)
-        })
-      )(profileFields.visibility, _.values(AuthzConstants.visibility));
-      pipe(
-        validateInCase(isField(JOINABLE), isIn),
-        otherwise({
-          code: 400,
-          msg: 'The joinable setting must be one of: ' + _.values(AuthzConstants.joinable)
-        })
-      )(profileFields.joinable, _.values(AuthzConstants.joinable));
-      pipe(
-        validateInCase(isField(DISPLAY_NAME), isNotEmpty),
-        otherwise({
-          code: 400,
-          msg: 'A display name cannot be empty'
-        })
-      )(profileFields.displayName);
+      unless(bothCheck(isField(VISIBILITY), isIn), {
+        code: 400,
+        msg: 'The visibility setting must be one of: ' + _.values(AuthzConstants.visibility)
+      })(profileFields.visibility, _.values(AuthzConstants.visibility));
+      unless(bothCheck(isField(JOINABLE), isIn), {
+        code: 400,
+        msg: 'The joinable setting must be one of: ' + _.values(AuthzConstants.joinable)
+      })(profileFields.joinable, _.values(AuthzConstants.joinable));
+      unless(bothCheck(isField(DISPLAY_NAME), isNotEmpty), {
+        code: 400,
+        msg: 'A display name cannot be empty'
+      })(profileFields.displayName);
 
-      pipe(
-        validateInCase(isField(DISPLAY_NAME), isShortString),
-        otherwise({
-          code: 400,
-          msg: 'A display name can be at most 1000 characters long'
-        })
-      )(profileFields.displayName);
-      pipe(
-        validateInCase(both(isField, x => Boolean(profileFields[x]))(DESCRIPTION), isMediumString),
-        otherwise({
-          code: 400,
-          msg: 'A description can only be 10000 characters long'
-        })
-      )(profileFields.description);
+      unless(bothCheck(isField(DISPLAY_NAME), isShortString), {
+        code: 400,
+        msg: 'A display name can be at most 1000 characters long'
+      })(profileFields.displayName);
+      unless(bothCheck(both(isField, x => Boolean(profileFields[x]))(DESCRIPTION), isMediumString), {
+        code: 400,
+        msg: 'A description can only be 10000 characters long'
+      })(profileFields.description);
     });
 
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to update a group'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to update a group'
+    })(ctx);
   } catch (error) {
     return callback(error);
   }
@@ -1080,13 +993,10 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
  */
 const deleteGroup = function(ctx, groupId, callback) {
   try {
-    pipe(
-      isGroupId,
-      otherwise({
-        code: 400,
-        msg: 'A valid group id must be provided'
-      })
-    )(groupId);
+    unless(isGroupId, {
+      code: 400,
+      msg: 'A valid group id must be provided'
+    })(groupId);
   } catch (error) {
     return callback(error);
   }
@@ -1125,13 +1035,10 @@ const deleteGroup = function(ctx, groupId, callback) {
  */
 const restoreGroup = function(ctx, groupId, callback) {
   try {
-    pipe(
-      isGroupId,
-      otherwise({
-        code: 400,
-        msg: 'A valid group id must be provided'
-      })
-    )(groupId);
+    unless(isGroupId, {
+      code: 400,
+      msg: 'A valid group id must be provided'
+    })(groupId);
   } catch (error) {
     return callback(error);
   }
@@ -1265,21 +1172,15 @@ const _canManageAnyGroups = function(ctx, groupIds, callback) {
 
 const _validateJoinGroupRequest = function(ctx, groupId, callback) {
   try {
-    pipe(
-      isGroupId,
-      otherwise({
-        code: 400,
-        msg: 'A valid group id must be provided'
-      })
-    )(groupId);
+    unless(isGroupId, {
+      code: 400,
+      msg: 'A valid group id must be provided'
+    })(groupId);
 
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to ask to join a group'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to ask to join a group'
+    })(ctx);
   } catch (error) {
     return callback(error);
   }
@@ -1374,21 +1275,15 @@ const getJoinGroupRequests = function(ctx, filter, callback) {
  */
 const getJoinGroupRequest = function(ctx, groupId, callback) {
   try {
-    pipe(
-      isGroupId,
-      otherwise({
-        code: 400,
-        msg: 'A valid group id must be provided'
-      })
-    )(groupId);
+    unless(isGroupId, {
+      code: 400,
+      msg: 'A valid group id must be provided'
+    })(groupId);
 
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to ask to join a group'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to ask to join a group'
+    })(ctx);
   } catch (error) {
     return callback(error);
   }
@@ -1416,39 +1311,27 @@ const _validateUpdateJoinGroupByRequest = function(ctx, joinRequest, callback) {
   const { groupId, principalId, role, status } = joinRequest;
   const roleIsValid = Boolean(role);
   try {
-    pipe(
-      validateInCase(roleIsValid, isIn),
-      otherwise({
-        code: 400,
-        msg: role + ' is not a recognized role group'
-      })
-    )(role, PrincipalsConstants.role.ALL_PRIORITY);
+    unless(bothCheck(roleIsValid, isIn), {
+      code: 400,
+      msg: role + ' is not a recognized role group'
+    })(role, PrincipalsConstants.role.ALL_PRIORITY);
 
-    pipe(
-      isPrincipalId,
-      otherwise({
-        code: 400,
-        msg: 'Must specify a valid principalId'
-      })
-    )(principalId);
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'Must specify a valid principalId'
+    })(principalId);
 
-    pipe(isGroupId, otherwise({ code: 400, msg: 'A valid group id must be provided' }))(groupId);
+    unless(isGroupId, { code: 400, msg: 'A valid group id must be provided' })(groupId);
 
-    pipe(
-      isIn,
-      otherwise({
-        code: 400,
-        msg: status + ' is not a recognized request status'
-      })
-    )(status, _.values(PrincipalsConstants.requestStatus));
+    unless(isIn, {
+      code: 400,
+      msg: status + ' is not a recognized request status'
+    })(status, _.values(PrincipalsConstants.requestStatus));
 
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to ask to join a group'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to ask to join a group'
+    })(ctx);
   } catch (error) {
     return callback(error);
   }

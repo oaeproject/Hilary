@@ -44,8 +44,9 @@ import isInt from 'validator/lib/isInt';
 import isIn from 'validator/lib/isIn';
 import { Validator as validator } from 'oae-util/lib/validator';
 const {
-  validateInCase,
-  otherwise,
+  validateInCase: bothCheck,
+  unless,
+  isGreaterThanZero,
   isDefined,
   isANumber,
   isResourceId,
@@ -58,7 +59,7 @@ const {
   isPrincipalId,
   isLongString
 } = validator;
-import { curry, __, equals, not, and, gt as greaterThan, pipe, forEach, forEachObjIndexed } from 'ramda';
+import { curry, __, equals, not, and, compose, forEach, forEachObjIndexed } from 'ramda';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { ContentConstants } from './constants';
 import * as ContentDAO from './internal/dao';
@@ -117,13 +118,10 @@ const emitter = new EmitterAPI.EventEmitter();
 const getContent = function(ctx, contentId, callback) {
   // Parameter validation
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A content id must be provided'
-      })
-    )(contentId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A content id must be provided'
+    })(contentId);
   } catch (error) {
     return callback(error);
   }
@@ -158,13 +156,10 @@ const getContent = function(ctx, contentId, callback) {
 const getFullContentProfile = function(ctx, contentId, callback) {
   // Parameter validation
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A content id must be provided'
-      })
-    )(contentId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A content id must be provided'
+    })(contentId);
   } catch (error) {
     return callback(error);
   }
@@ -287,21 +282,15 @@ const createLink = function(ctx, displayName, description, visibility, link, add
 
   // Check if the link property is present. All other validation will be done in the _createContent function
   try {
-    pipe(
-      isUrl,
-      otherwise({
-        code: 400,
-        msg: 'A valid link must be provided'
-      })
-    )(link, { require_tld: false }); // eslint-disable-line camelcase
+    unless(isUrl, {
+      code: 400,
+      msg: 'A valid link must be provided'
+    })(link, { require_tld: false }); // eslint-disable-line camelcase
 
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to create a content item'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to create a content item'
+    })(ctx);
   } catch (error) {
     return callback(error);
   }
@@ -452,78 +441,51 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
   visibility = visibility || Config.getValue(ctx.tenant().alias, 'visibility', 'files');
 
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'Anonymous users are not allowed to upload files'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Anonymous users are not allowed to upload files'
+    })(ctx);
 
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'Missing file parameter'
-      })
-    )(file);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'Missing file parameter'
+    })(file);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'A display name must be provided'
-      })
-    )(displayName);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A display name must be provided'
+    })(displayName);
 
-    pipe(
-      isShortString,
-      otherwise({
-        code: 400,
-        msg: 'A display name can be at most 1000 characters long'
-      })
-    )(displayName);
+    unless(isShortString, {
+      code: 400,
+      msg: 'A display name can be at most 1000 characters long'
+    })(displayName);
 
-    pipe(
-      validateInCase(Boolean(description), isMediumString),
-      otherwise({
-        code: 400,
-        msg: 'A content description can be at most 10000 characters long'
-      })
-    )(description);
+    unless(bothCheck(Boolean(description), isMediumString), {
+      code: 400,
+      msg: 'A content description can be at most 10000 characters long'
+    })(description);
 
     const fileIsDefined = Boolean(file);
-    pipe(
-      validateInCase(fileIsDefined, isNotNull),
-      otherwise({
-        code: 400,
-        msg: 'Missing size on the file object'
-      })
-    )(file.size);
+    unless(bothCheck(fileIsDefined, isNotNull), {
+      code: 400,
+      msg: 'Missing size on the file object'
+    })(file.size);
 
-    pipe(
-      validateInCase(fileIsDefined, isANumber),
-      otherwise({
-        code: 400,
-        msg: 'Invalid size on the file object'
-      })
-    )(file.size);
+    unless(bothCheck(fileIsDefined, isANumber), {
+      code: 400,
+      msg: 'Invalid size on the file object'
+    })(file.size);
 
-    pipe(
-      validateInCase(fileIsDefined, greaterThan),
-      otherwise({
-        code: 400,
-        msg: 'Invalid size on the file object'
-      })
-    )(file.size, 0);
+    unless(bothCheck(fileIsDefined, isGreaterThanZero), {
+      code: 400,
+      msg: 'Invalid size on the file object'
+    })(file.size);
 
-    pipe(
-      validateInCase(fileIsDefined, isNotEmpty),
-      otherwise({
-        code: 400,
-        msg: 'Missing name on the file object'
-      })
-    )(file.name);
+    unless(bothCheck(fileIsDefined, isNotEmpty), {
+      code: 400,
+      msg: 'Missing name on the file object'
+    })(file.name);
   } catch (error) {
     return callback(error);
   }
@@ -762,61 +724,40 @@ const _createContent = function(
 
   // Parameter validation
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A content ID must be provided'
-      })
-    )(contentId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A content ID must be provided'
+    })(contentId);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'A display name must be provided'
-      })
-    )(displayName);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A display name must be provided'
+    })(displayName);
 
-    pipe(
-      isShortString,
-      otherwise({
-        code: 400,
-        msg: 'A display name can be at most 1000 characters long'
-      })
-    )(displayName);
+    unless(isShortString, {
+      code: 400,
+      msg: 'A display name can be at most 1000 characters long'
+    })(displayName);
 
-    pipe(
-      validateInCase(Boolean(description), isMediumString),
-      otherwise({
-        code: 400,
-        msg: 'A description can only be 10000 characters long'
-      })
-    )(description);
+    unless(bothCheck(Boolean(description), isMediumString), {
+      code: 400,
+      msg: 'A description can only be 10000 characters long'
+    })(description);
 
-    pipe(
-      isIn,
-      otherwise({
-        code: 400,
-        msg: 'An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"'
-      })
-    )(visibility, _.values(AuthzConstants.visibility));
+    unless(isIn, {
+      code: 400,
+      msg: 'An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"'
+    })(visibility, _.values(AuthzConstants.visibility));
 
-    pipe(
-      isIn,
-      otherwise({
-        code: 400,
-        msg: 'A valid resourceSubType must be provided. This can be "file", "collabdoc" or "link"'
-      })
-    )(resourceSubType, ContentConstants.resourceSubTypes);
+    unless(isIn, {
+      code: 400,
+      msg: 'A valid resourceSubType must be provided. This can be "file", "collabdoc" or "link"'
+    })(resourceSubType, ContentConstants.resourceSubTypes);
 
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to create a content item'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to create a content item'
+    })(ctx);
 
     // Ensure all roles applied are valid. Editor is only valid for collabdocs
     const validRoles = [AuthzConstants.role.VIEWER, AuthzConstants.role.MANAGER];
@@ -825,13 +766,10 @@ const _createContent = function(
     }
 
     forEach(role => {
-      pipe(
-        isIn,
-        otherwise({
-          code: 400,
-          msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
-        })
-      )(role, validRoles);
+      unless(isIn, {
+        code: 400,
+        msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
+      })(role, validRoles);
     }, roles);
   } catch (error) {
     return callback(error);
@@ -895,13 +833,10 @@ const canManageFolders = function(ctx, folderIds, callback) {
   try {
     folderIds.forEach(folderId => {
       // Validate the folder id
-      pipe(
-        isResourceId,
-        otherwise({
-          code: 400,
-          msg: 'Invalid folder id specified'
-        })
-      )(folderId);
+      unless(isResourceId, {
+        code: 400,
+        msg: 'Invalid folder id specified'
+      })(folderId);
     });
   } catch (error) {
     return callback(error);
@@ -1288,13 +1223,10 @@ const ethercalcPublish = function(data, callback) {
 const joinCollabDoc = function(ctx, contentId, callback) {
   // Parameter validation
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A content id must be provided'
-      })
-    )(contentId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A content id must be provided'
+    })(contentId);
   } catch (error) {
     return callback(error);
   }
@@ -1343,21 +1275,15 @@ const deleteContent = function(ctx, contentId, callback) {
 
   // Parameter validation
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A content id must be provided'
-      })
-    )(contentId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A content id must be provided'
+    })(contentId);
 
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to delete a content item'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to delete a content item'
+    })(ctx);
   } catch (error) {
     return callback(error);
   }
@@ -1418,21 +1344,15 @@ const deleteContent = function(ctx, contentId, callback) {
 const shareContent = function(ctx, contentId, principalIds, callback) {
   // Parameter validation
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A content id must be provided'
-      })
-    )(contentId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A content id must be provided'
+    })(contentId);
 
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to share content'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to share content'
+    })(ctx);
   } catch (error) {
     return callback(error);
   }
@@ -1527,21 +1447,15 @@ const _canEdit = function(ctx, contentId, callback) {
 const setContentPermissions = function(ctx, contentId, changes, callback) {
   // Parameter validation
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to create a content item'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to create a content item'
+    })(ctx);
 
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A content id must be provided'
-      })
-    )(contentId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A content id must be provided'
+    })(contentId);
   } catch (error) {
     return callback(error);
   }
@@ -1562,17 +1476,13 @@ const setContentPermissions = function(ctx, contentId, changes, callback) {
     }
 
     try {
-      const isOneOfValidRoles = curry(isIn)(__, validRoles);
+      const isOneOfValidRoles = compose(curry(isIn)(__, validRoles), String);
       forEachObjIndexed((role /* , principalId */) => {
         const roleAintFalse = not(equals(role, false));
-        pipe(
-          String,
-          validateInCase(roleAintFalse, isOneOfValidRoles),
-          otherwise({
-            code: 400,
-            msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
-          })
-        )(role);
+        unless(bothCheck(roleAintFalse, isOneOfValidRoles), {
+          code: 400,
+          msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
+        })(role);
       }, changes);
     } catch (error) {
       return callback(error);
@@ -1612,29 +1522,20 @@ const setContentPermissions = function(ctx, contentId, changes, callback) {
  */
 const removeContentFromLibrary = function(ctx, libraryOwnerId, contentId, callback) {
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You must be authenticated to remove a piece of content from a library'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You must be authenticated to remove a piece of content from a library'
+    })(ctx);
 
-    pipe(
-      isPrincipalId,
-      otherwise({
-        code: 400,
-        msg: 'A user or group id must be provided'
-      })
-    )(libraryOwnerId);
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'A user or group id must be provided'
+    })(libraryOwnerId);
 
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A valid content id must be provided'
-      })
-    )(contentId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid content id must be provided'
+    })(contentId);
   } catch (error) {
     return callback(error);
   }
@@ -1692,21 +1593,15 @@ const getContentMembersLibrary = function(ctx, contentId, start, limit, callback
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A content id must be provided'
-      })
-    )(contentId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A content id must be provided'
+    })(contentId);
 
-    pipe(
-      isANumber,
-      otherwise({
-        code: 400,
-        msg: 'A valid limit should be passed in'
-      })
-    )(limit);
+    unless(isANumber, {
+      code: 400,
+      msg: 'A valid limit should be passed in'
+    })(limit);
   } catch (error) {
     return callback(error);
   }
@@ -1786,13 +1681,10 @@ const getContentMembersLibrary = function(ctx, contentId, start, limit, callback
  */
 const getContentInvitations = function(ctx, contentId, callback) {
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A valid resource id must be specified'
-      })
-    )(contentId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid resource id must be specified'
+    })(contentId);
   } catch (error) {
     return callback(error);
   }
@@ -1817,13 +1709,10 @@ const getContentInvitations = function(ctx, contentId, callback) {
  */
 const resendContentInvitation = function(ctx, contentId, email, callback) {
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A valid resource id must be specified'
-      })
-    )(contentId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid resource id must be specified'
+    })(contentId);
   } catch (error) {
     return callback(error);
   }
@@ -1880,62 +1769,41 @@ const updateFileBody = function(ctx, contentId, file, callback) {
  */
 const _updateFileBody = function(ctx, contentId, file, callback) {
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to update a content item'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to update a content item'
+    })(ctx);
 
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A content id must be provided'
-      })
-    )(contentId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A content id must be provided'
+    })(contentId);
 
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'Missing file parameter.'
-      })
-    )(file);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'Missing file parameter.'
+    })(file);
 
     const fileIsDefined = Boolean(file);
-    pipe(
-      validateInCase(fileIsDefined, isNotNull),
-      otherwise({
-        code: 400,
-        msg: 'Missing size on the file object.'
-      })
-    )(file.size);
+    unless(bothCheck(fileIsDefined, isNotNull), {
+      code: 400,
+      msg: 'Missing size on the file object.'
+    })(file.size);
 
-    pipe(
-      validateInCase(fileIsDefined, isANumber),
-      otherwise({
-        code: 400,
-        msg: 'Invalid size on the file object.'
-      })
-    )(file.size);
+    unless(bothCheck(fileIsDefined, isANumber), {
+      code: 400,
+      msg: 'Invalid size on the file object.'
+    })(file.size);
 
-    pipe(
-      validateInCase(fileIsDefined, greaterThan),
-      otherwise({
-        code: 400,
-        msg: 'Invalid size on the file object.'
-      })
-    )(file.size, 0);
+    unless(bothCheck(fileIsDefined, isGreaterThanZero), {
+      code: 400,
+      msg: 'Invalid size on the file object.'
+    })(file.size);
 
-    pipe(
-      validateInCase(fileIsDefined, isNotEmpty),
-      otherwise({
-        code: 400,
-        msg: 'Missing name on the file object.'
-      })
-    )(file.name);
+    unless(bothCheck(fileIsDefined, isNotEmpty), {
+      code: 400,
+      msg: 'Missing name on the file object.'
+    })(file.name);
   } catch (error) {
     return callback(error);
   }
@@ -2035,29 +1903,20 @@ const setPreviewItems = function(
 
   const validStatuses = _.values(ContentConstants.previews);
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'Missing or invalid contentId'
-      })
-    )(contentId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Missing or invalid contentId'
+    })(contentId);
 
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'Missing or invalid revisionId'
-      })
-    )(revisionId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Missing or invalid revisionId'
+    })(revisionId);
 
-    pipe(
-      isIn,
-      otherwise({
-        code: 400,
-        msg: 'The status parameter must be one of: ' + validStatuses.join(', ')
-      })
-    )(status, validStatuses);
+    unless(isIn, {
+      code: 400,
+      msg: 'The status parameter must be one of: ' + validStatuses.join(', ')
+    })(status, validStatuses);
   } catch (error) {
     return callback(error);
   }
@@ -2082,13 +1941,10 @@ const setPreviewItems = function(
 
       // Ensure that the revision supplied is a revision of the specified content item
       try {
-        pipe(
-          equals,
-          otherwise({
-            code: 400,
-            msg: 'Specified revisionId does not belong to the specifed content item'
-          })
-        )(revision.contentId, contentId);
+        unless(equals, {
+          code: 400,
+          msg: 'Specified revisionId does not belong to the specifed content item'
+        })(revision.contentId, contentId);
       } catch (error) {
         return cleanUpCallback(error);
       }
@@ -2228,29 +2084,20 @@ const setPreviewItems = function(
  */
 const getSignedPreviewDownloadInfo = function(ctx, contentId, revisionId, previewItem, signatureData, callback) {
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'Missing content ID'
-      })
-    )(contentId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Missing content ID'
+    })(contentId);
 
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'Missing revision ID'
-      })
-    )(revisionId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Missing revision ID'
+    })(revisionId);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Missing preview item'
-      })
-    )(previewItem);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing preview item'
+    })(previewItem);
   } catch (error) {
     return callback(error);
   }
@@ -2321,85 +2168,58 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
   const fieldNames = profileFields ? _.keys(profileFields) : [];
   // Parameter validation
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A content id must be provided'
-      })
-    )(contentId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A content id must be provided'
+    })(contentId);
 
     // Check that at a minimum name or description have been provided
-    pipe(
-      isArrayNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'You should at least specify a new displayName, description, visibility or link'
-      })
-    )(fieldNames);
+    unless(isArrayNotEmpty, {
+      code: 400,
+      msg: 'You should at least specify a new displayName, description, visibility or link'
+    })(fieldNames);
 
     fieldNames.forEach(fieldName => {
-      pipe(
-        isIn,
-        otherwise({
-          code: 400,
-          msg: fieldName + ' is not a recognized content profile field'
-        })
-      )(fieldName, [DISPLAY_NAME, DESCRIPTION, VISIBILITY, LINK]);
+      unless(isIn, {
+        code: 400,
+        msg: fieldName + ' is not a recognized content profile field'
+      })(fieldName, [DISPLAY_NAME, DESCRIPTION, VISIBILITY, LINK]);
 
       const fieldIsDisplayName = equals(fieldName, DISPLAY_NAME);
       const fieldIsDescription = and(equals(fieldName, DESCRIPTION), profileFields.description);
       const fieldIsLink = equals(fieldName, LINK);
 
-      pipe(
-        validateInCase(fieldIsDisplayName, isNotEmpty),
-        otherwise({
-          code: 400,
-          msg: 'A display name cannot be empty'
-        })
-      )(profileFields.displayName);
+      unless(bothCheck(fieldIsDisplayName, isNotEmpty), {
+        code: 400,
+        msg: 'A display name cannot be empty'
+      })(profileFields.displayName);
 
-      pipe(
-        validateInCase(fieldIsDisplayName, isShortString),
-        otherwise({
-          code: 400,
-          msg: 'A display name can be at most 1000 characters long'
-        })
-      )(profileFields.displayName);
+      unless(bothCheck(fieldIsDisplayName, isShortString), {
+        code: 400,
+        msg: 'A display name can be at most 1000 characters long'
+      })(profileFields.displayName);
 
-      pipe(
-        validateInCase(fieldIsDescription, isMediumString),
-        otherwise({
-          code: 400,
-          msg: 'A description can only be 10000 characters long'
-        })
-      )(profileFields.description);
+      unless(bothCheck(fieldIsDescription, isMediumString), {
+        code: 400,
+        msg: 'A description can only be 10000 characters long'
+      })(profileFields.description);
 
-      pipe(
-        validateInCase(fieldIsLink, isUrl),
-        otherwise({
-          code: 400,
-          msg: 'A valid link should be provided'
-        })
-      )(profileFields.link);
+      unless(bothCheck(fieldIsLink, isUrl), {
+        code: 400,
+        msg: 'A valid link should be provided'
+      })(profileFields.link);
     });
 
     const fieldIsVisibility = Boolean(profileFields.visibility);
-    pipe(
-      validateInCase(fieldIsVisibility, isIn),
-      otherwise({
-        code: 400,
-        msg: 'An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"'
-      })
-    )(profileFields.visibility, _.values(AuthzConstants.visibility));
+    unless(bothCheck(fieldIsVisibility, isIn), {
+      code: 400,
+      msg: 'An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"'
+    })(profileFields.visibility, _.values(AuthzConstants.visibility));
 
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to update a content item'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to update a content item'
+    })(ctx);
   } catch (error) {
     return callback(error);
   }
@@ -2456,45 +2276,30 @@ const createComment = function(ctx, contentId, body, replyToCreatedTimestamp, ca
 
   // Parameter validation
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'Only authorized users can post comments'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Only authorized users can post comments'
+    })(ctx);
 
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'Invalid content resource id provided'
-      })
-    )(contentId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Invalid content resource id provided'
+    })(contentId);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'A comment must be provided'
-      })
-    )(body);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A comment must be provided'
+    })(body);
 
-    pipe(
-      isLongString,
-      otherwise({
-        code: 400,
-        msg: 'A comment can only be 100000 characters long'
-      })
-    )(body);
+    unless(isLongString, {
+      code: 400,
+      msg: 'A comment can only be 100000 characters long'
+    })(body);
 
-    pipe(
-      validateInCase(isDefined(replyToCreatedTimestamp), isInt),
-      otherwise({
-        code: 400,
-        msg: 'Invalid reply-to timestamp provided'
-      })
-    )(replyToCreatedTimestamp);
+    unless(bothCheck(isDefined(replyToCreatedTimestamp), isInt), {
+      code: 400,
+      msg: 'Invalid reply-to timestamp provided'
+    })(replyToCreatedTimestamp);
   } catch (error) {
     return callback(error);
   }
@@ -2547,21 +2352,15 @@ const getComments = function(ctx, contentId, start, limit, callback) {
 
   // Parameter validation
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'Invalid content resource id provided'
-      })
-    )(contentId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Invalid content resource id provided'
+    })(contentId);
 
-    pipe(
-      isANumber,
-      otherwise({
-        code: 400,
-        msg: 'A valid limit should be passed in'
-      })
-    )(limit);
+    unless(isANumber, {
+      code: 400,
+      msg: 'A valid limit should be passed in'
+    })(limit);
   } catch (error) {
     return callback(error);
   }
@@ -2616,29 +2415,20 @@ const getComments = function(ctx, contentId, start, limit, callback) {
  */
 const deleteComment = function(ctx, contentId, commentCreatedDate, callback) {
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'Only authorized users can delete comments'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Only authorized users can delete comments'
+    })(ctx);
 
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A content id must be provided'
-      })
-    )(contentId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A content id must be provided'
+    })(contentId);
 
-    pipe(
-      isInt,
-      otherwise({
-        code: 400,
-        msg: 'A valid integer comment created timestamp must be specified'
-      })
-    )(commentCreatedDate);
+    unless(isInt, {
+      code: 400,
+      msg: 'A valid integer comment created timestamp must be specified'
+    })(commentCreatedDate);
   } catch (error) {
     return callback(error);
   }
@@ -2733,21 +2523,15 @@ const getContentLibraryItems = function(ctx, principalId, start, limit, callback
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
-    pipe(
-      isPrincipalId,
-      otherwise({
-        code: 400,
-        msg: 'A user or group id must be provided'
-      })
-    )(principalId);
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'A user or group id must be provided'
+    })(principalId);
 
-    pipe(
-      isANumber,
-      otherwise({
-        code: 400,
-        msg: 'A valid limit should be passed in'
-      })
-    )(limit);
+    unless(isANumber, {
+      code: 400,
+      msg: 'A valid limit should be passed in'
+    })(limit);
   } catch (error) {
     return callback(error);
   }
@@ -2820,21 +2604,15 @@ const getRevisions = function(ctx, contentId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A contentId must be provided'
-      })
-    )(contentId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A contentId must be provided'
+    })(contentId);
 
-    pipe(
-      isANumber,
-      otherwise({
-        code: 400,
-        msg: 'A valid limit should be passed in'
-      })
-    )(limit);
+    unless(isANumber, {
+      code: 400,
+      msg: 'A valid limit should be passed in'
+    })(limit);
   } catch (error) {
     return callback(error);
   }
@@ -2924,22 +2702,16 @@ const _getRevisions = function(ctx, contentObj, start, limit, opts, callback) {
  */
 const getRevision = function(ctx, contentId, revisionId, callback) {
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A valid contentId must be provided'
-      })
-    )(contentId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid contentId must be provided'
+    })(contentId);
 
     const revisionIdIsDefined = Boolean(revisionId);
-    pipe(
-      validateInCase(revisionIdIsDefined, isResourceId),
-      otherwise({
-        code: 400,
-        msg: 'A valid revisionId must be provided'
-      })
-    )(revisionId);
+    unless(bothCheck(revisionIdIsDefined, isResourceId), {
+      code: 400,
+      msg: 'A valid revisionId must be provided'
+    })(revisionId);
   } catch (error) {
     return callback(error);
   }
@@ -2970,21 +2742,15 @@ const getRevision = function(ctx, contentId, revisionId, callback) {
  */
 const getRevisionDownloadInfo = function(ctx, contentId, revisionId, callback) {
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A valid contentId must be provided'
-      })
-    )(contentId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid contentId must be provided'
+    })(contentId);
 
-    pipe(
-      validateInCase(Boolean(revisionId), isResourceId),
-      otherwise({
-        code: 400,
-        msg: 'A valid revisionId must be provided'
-      })
-    )(revisionId);
+    unless(bothCheck(Boolean(revisionId), isResourceId), {
+      code: 400,
+      msg: 'A valid revisionId must be provided'
+    })(revisionId);
   } catch (error) {
     return callback(error);
   }
@@ -3119,21 +2885,15 @@ const _augmentRevision = function(ctx, revision, contentObj) {
  */
 const restoreRevision = function(ctx, contentId, revisionId, callback) {
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A valid contentId must be provided'
-      })
-    )(contentId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid contentId must be provided'
+    })(contentId);
 
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A valid revisionId must be provided'
-      })
-    )(revisionId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid revisionId must be provided'
+    })(revisionId);
   } catch (error) {
     return callback(error);
   }

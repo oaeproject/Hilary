@@ -27,11 +27,18 @@ import * as Signature from 'oae-util/lib/signature';
 import { telemetry } from 'oae-telemetry';
 import * as TenantsAPI from 'oae-tenants';
 import { Validator as validator } from 'oae-authz/lib/validator';
-const { validateInCase, getNestedObject, otherwise, isNotEmpty, isUserId, isObject, isNotNull, isANumber } = validator;
-import pipe from 'ramda/src/pipe';
+const {
+  validateInCase: bothCheck,
+  getNestedObject,
+  unless,
+  isNotEmpty,
+  isUserId,
+  isObject,
+  isNotNull,
+  isANumber
+} = validator;
 
 import { ActivityConstants } from 'oae-activity/lib/constants';
-
 import * as ActivityRegistry from 'oae-activity/lib/internal/registry';
 import * as ActivityTransformer from 'oae-activity/lib/internal/transformer';
 import * as ActivityUtil from 'oae-activity/lib/util';
@@ -355,21 +362,15 @@ const _authenticate = function(connectionInfo, message) {
 
   // Parameter validation
   try {
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'A tenant needs to be provided'
-      })
-    )(data.tenantAlias);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A tenant needs to be provided'
+    })(data.tenantAlias);
 
-    pipe(
-      isUserId,
-      otherwise({
-        code: 400,
-        msg: 'A userId needs to be provided'
-      })
-    )(data.userId);
+    unless(isUserId, {
+      code: 400,
+      msg: 'A userId needs to be provided'
+    })(data.userId);
 
     // Do some preliminary signature validation before we access the user from the database
     const getAttribute = getNestedObject(data.signature);
@@ -379,29 +380,20 @@ const _authenticate = function(connectionInfo, message) {
     const ifThereIsExpiryDate = () => Boolean(expiryDate);
     const ifThereIsSignature = () => Boolean(signature);
 
-    pipe(
-      isObject,
-      otherwise({
-        code: 400,
-        msg: 'A signature object needs to be provided'
-      })
-    )(data.signature);
+    unless(isObject, {
+      code: 400,
+      msg: 'A signature object needs to be provided'
+    })(data.signature);
 
-    pipe(
-      validateInCase(ifThereIsExpiryDate, isANumber),
-      otherwise({
-        code: 400,
-        msg: 'Signature must contain an integer expires value'
-      })
-    )(expiryDate);
+    unless(bothCheck(ifThereIsExpiryDate, isANumber), {
+      code: 400,
+      msg: 'Signature must contain an integer expires value'
+    })(expiryDate);
 
-    pipe(
-      validateInCase(ifThereIsSignature, isNotNull),
-      otherwise({
-        code: 400,
-        msg: 'Signature must contain a string signature value'
-      })
-    )(signature);
+    unless(bothCheck(ifThereIsSignature, isNotNull), {
+      code: 400,
+      msg: 'Signature must contain a string signature value'
+    })(signature);
   } catch (error) {
     if (error) return handleError(error);
   }

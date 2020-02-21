@@ -17,9 +17,9 @@ import { logger } from 'oae-logger';
 import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
 import { Validator as validator } from 'oae-authz/lib/validator';
 const {
-  validateInCase,
+  validateInCase: bothCheck,
   isDefined,
-  otherwise,
+  unless,
   isANumber,
   isValidRoleChange,
   isLoggedInUser,
@@ -31,9 +31,10 @@ const {
   isMediumString,
   isArrayNotEmpty,
   getNestedObject,
-  isLongString
+  isLongString,
+  isGreaterThanZero
 } = validator;
-import { compose, equals, length, and, pipe, gt as greaterThan, forEachObjIndexed } from 'ramda';
+import { compose, equals, length, and, forEachObjIndexed } from 'ramda';
 import isIn from 'validator/lib/isIn';
 import isInt from 'validator/lib/isInt';
 import { AuthzConstants } from 'oae-authz/lib/constants';
@@ -88,56 +89,38 @@ const createMeeting = function(
 
   // Verify basic properties
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'Anonymous users cannot create a meeting'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Anonymous users cannot create a meeting'
+    })(ctx);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Must provide a display name for the meeting'
-      })
-    )(displayName);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Must provide a display name for the meeting'
+    })(displayName);
 
-    pipe(
-      isShortString,
-      otherwise({
-        code: 400,
-        msg: 'A display name can be at most 1000 characters long'
-      })
-    )(displayName);
+    unless(isShortString, {
+      code: 400,
+      msg: 'A display name can be at most 1000 characters long'
+    })(displayName);
 
-    pipe(
-      isIn,
-      otherwise({
-        code: 400,
-        msg: 'An invalid meeting visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
-      })
-    )(visibility, allVisibilities);
+    unless(isIn, {
+      code: 400,
+      msg: 'An invalid meeting visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
+    })(visibility, allVisibilities);
 
-    const descriptionIsValid = and(isDefined(description), greaterThan(length(description), 0));
-    pipe(
-      validateInCase(descriptionIsValid, isMediumString),
-      otherwise({
-        code: 400,
-        msg: 'A description can be at most 10000 characters long'
-      })
-    )(description);
+    const descriptionIsValid = and(isDefined(description), isGreaterThanZero(length(description)));
+    unless(bothCheck(descriptionIsValid, isMediumString), {
+      code: 400,
+      msg: 'A description can be at most 10000 characters long'
+    })(description);
 
     // Verify each role is valid
     forEachObjIndexed((role /* , memberId */) => {
-      pipe(
-        isIn,
-        otherwise({
-          code: 400,
-          msg: 'The role: ' + role + ' is not a valid member role for a meeting'
-        })
-      )(role, MeetingsConstants.roles.ALL_PRIORITY);
+      unless(isIn, {
+        code: 400,
+        msg: 'The role: ' + role + ' is not a valid member role for a meeting'
+      })(role, MeetingsConstants.roles.ALL_PRIORITY);
     }, additionalMembers);
   } catch (error) {
     return callback(error);
@@ -181,13 +164,10 @@ const createMeeting = function(
  */
 const getFullMeetingProfile = function(ctx, meetingId, callback) {
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'meetingId must be a valid resource id'
-      })
-    )(meetingId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'meetingId must be a valid resource id'
+    })(meetingId);
   } catch (error) {
     return callback(error);
   }
@@ -251,13 +231,10 @@ const getFullMeetingProfile = function(ctx, meetingId, callback) {
  */
 const getMeeting = function(ctx, meetingId, callback) {
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A valid resource id must be specified'
-      })
-    )(meetingId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid resource id must be specified'
+    })(meetingId);
   } catch (error) {
     return callback(error);
   }
@@ -286,13 +263,10 @@ const getMeeting = function(ctx, meetingId, callback) {
  */
 const getMeetingInvitations = function(ctx, meetingId, callback) {
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A valid resource id must be specified'
-      })
-    )(meetingId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid resource id must be specified'
+    })(meetingId);
   } catch (error) {
     return callback(error);
   }
@@ -317,13 +291,10 @@ const getMeetingMembers = function(ctx, meetingId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A valid resource id must be specified'
-      })
-    )(meetingId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid resource id must be specified'
+    })(meetingId);
   } catch (error) {
     return callback(error);
   }
@@ -382,42 +353,27 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
   if (isDefined(CONTACT_LIST)) profileFields.contactList = _convertToBoolean(getAttribute([CONTACT_LIST]));
 
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A valid resource id must be specified'
-      })
-    )(meetingId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid resource id must be specified'
+    })(meetingId);
 
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You must be authenticated to update a meeting'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You must be authenticated to update a meeting'
+    })(ctx);
 
-    pipe(
-      isArrayNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'You should at least provide one profile field to update'
-      })
-    )(_.keys(profileFields));
+    unless(isArrayNotEmpty, {
+      code: 400,
+      msg: 'You should at least provide one profile field to update'
+    })(_.keys(profileFields));
 
     forEachObjIndexed((value, field) => {
-      pipe(
-        isIn,
-        otherwise({
-          code: 400,
-          msg:
-            "The field '" +
-            field +
-            "' is not a valid field. Must be one of: " +
-            MeetingsConstants.updateFields.join(', ')
-        })
-      )(field, MeetingsConstants.updateFields);
+      unless(isIn, {
+        code: 400,
+        msg:
+          "The field '" + field + "' is not a valid field. Must be one of: " + MeetingsConstants.updateFields.join(', ')
+      })(field, MeetingsConstants.updateFields);
 
       const VISIBILITY = 'visibility';
       const DISPLAY_NAME = 'displayName';
@@ -426,53 +382,35 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
       const CONTACT_LIST = 'contactList';
       const ifFieldIs = attr => equals(field, attr);
 
-      pipe(
-        validateInCase(ifFieldIs(VISIBILITY), isIn),
-        otherwise({
-          code: 400,
-          msg: 'An invalid visibility was specified. Must be one of: ' + allVisibilities.join(', ')
-        })
-      )(value, allVisibilities);
+      unless(bothCheck(ifFieldIs(VISIBILITY), isIn), {
+        code: 400,
+        msg: 'An invalid visibility was specified. Must be one of: ' + allVisibilities.join(', ')
+      })(value, allVisibilities);
 
-      pipe(
-        validateInCase(ifFieldIs(DISPLAY_NAME), isNotEmpty),
-        otherwise({
-          code: 400,
-          msg: 'A display name cannot be empty'
-        })
-      )(value);
+      unless(bothCheck(ifFieldIs(DISPLAY_NAME), isNotEmpty), {
+        code: 400,
+        msg: 'A display name cannot be empty'
+      })(value);
 
-      pipe(
-        validateInCase(ifFieldIs(DISPLAY_NAME), isShortString),
-        otherwise({
-          code: 400,
-          msg: 'A display name can be at most 1000 characters long'
-        })
-      )(value);
+      unless(bothCheck(ifFieldIs(DISPLAY_NAME), isShortString), {
+        code: 400,
+        msg: 'A display name can be at most 1000 characters long'
+      })(value);
 
-      pipe(
-        validateInCase(and(ifFieldIs(DESCRIPTION), greaterThan(length(value), 0)), isMediumString),
-        otherwise({
-          code: 400,
-          msg: 'A description can be at most 10000 characters long'
-        })
-      )(value);
+      unless(bothCheck(and(ifFieldIs(DESCRIPTION), isGreaterThanZero(length(value))), isMediumString), {
+        code: 400,
+        msg: 'A description can be at most 10000 characters long'
+      })(value);
 
-      pipe(
-        validateInCase(ifFieldIs(CHAT), isBoolean),
-        otherwise({
-          code: 400,
-          msg: 'An invalid chat value was specified, must be boolean'
-        })
-      )(value);
+      unless(bothCheck(ifFieldIs(CHAT), isBoolean), {
+        code: 400,
+        msg: 'An invalid chat value was specified, must be boolean'
+      })(value);
 
-      pipe(
-        validateInCase(ifFieldIs(CONTACT_LIST), isBoolean),
-        otherwise({
-          code: 400,
-          msg: 'An invalid contactList value was specified, must be boolean'
-        })
-      )(value);
+      unless(bothCheck(ifFieldIs(CONTACT_LIST), isBoolean), {
+        code: 400,
+        msg: 'An invalid contactList value was specified, must be boolean'
+      })(value);
     }, profileFields);
   } catch (error) {
     return callback(error);
@@ -520,21 +458,15 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
  */
 const deleteMeeting = function(ctx, meetingId, callback) {
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A valid resource id must be specified'
-      })
-    )(meetingId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid resource id must be specified'
+    })(meetingId);
 
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You must be authenticated to delete a meeting'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You must be authenticated to delete a meeting'
+    })(ctx);
   } catch (error) {
     return callback(error);
   }
@@ -597,44 +529,32 @@ const deleteMeeting = function(ctx, meetingId, callback) {
  */
 const setMeetingMembers = function(ctx, meetingId, changes, callback) {
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A valid resource id must be specified'
-      })
-    )(meetingId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid resource id must be specified'
+    })(meetingId);
 
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You must be authenticated to update meeting members'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You must be authenticated to update meeting members'
+    })(ctx);
 
     forEachObjIndexed((role /* , principalId */) => {
-      pipe(
-        isValidRoleChange,
-        otherwise({
-          code: 400,
-          msg: 'The role change : ' + role + ' is not a valid value. Must either be a string, or false'
-        })
-      )(role);
+      unless(isValidRoleChange, {
+        code: 400,
+        msg: 'The role change : ' + role + ' is not a valid value. Must either be a string, or false'
+      })(role);
 
       const thereIsRole = Boolean(role);
-      pipe(
-        validateInCase(thereIsRole, isIn),
-        otherwise({
-          code: 400,
-          msg:
-            'The role "' +
-            role +
-            '" is not a valid value. Must be one of : ' +
-            MeetingsConstants.roles.ALL_PRIORITY.join(', ') +
-            ', or false'
-        })
-      )(role, MeetingsConstants.roles.ALL_PRIORITY);
+      unless(bothCheck(thereIsRole, isIn), {
+        code: 400,
+        msg:
+          'The role "' +
+          role +
+          '" is not a valid value. Must be one of : ' +
+          MeetingsConstants.roles.ALL_PRIORITY.join(', ') +
+          ', or false'
+      })(role, MeetingsConstants.roles.ALL_PRIORITY);
     }, changes);
   } catch (error) {
     return callback(error);
@@ -684,21 +604,15 @@ const getMessages = function(ctx, meetingId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'Must provide a valid meeting id'
-      })
-    )(meetingId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Must provide a valid meeting id'
+    })(meetingId);
 
-    pipe(
-      isANumber,
-      otherwise({
-        code: 400,
-        msg: 'Must provide a valid limit'
-      })
-    )(limit);
+    unless(isANumber, {
+      code: 400,
+      msg: 'Must provide a valid limit'
+    })(limit);
   } catch (error) {
     return callback(error);
   }
@@ -755,46 +669,31 @@ const getMessages = function(ctx, meetingId, start, limit, callback) {
  */
 const createMessage = function(ctx, meetingId, body, replyToCreatedTimestamp, callback) {
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'Only authenticated users can post on meetings'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Only authenticated users can post on meetings'
+    })(ctx);
 
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'Invalid meeting id provided'
-      })
-    )(meetingId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Invalid meeting id provided'
+    })(meetingId);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'A message body must be provided'
-      })
-    )(body);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A message body must be provided'
+    })(body);
 
-    pipe(
-      isLongString,
-      otherwise({
-        code: 400,
-        msg: 'A message body can only be 100000 characters long'
-      })
-    )(body);
+    unless(isLongString, {
+      code: 400,
+      msg: 'A message body can only be 100000 characters long'
+    })(body);
 
     const timestampIsDefined = Boolean(replyToCreatedTimestamp);
-    pipe(
-      validateInCase(timestampIsDefined, isInt),
-      otherwise({
-        code: 400,
-        msg: 'Invalid reply-to timestamp provided'
-      })
-    )(replyToCreatedTimestamp);
+    unless(bothCheck(timestampIsDefined, isInt), {
+      code: 400,
+      msg: 'Invalid reply-to timestamp provided'
+    })(replyToCreatedTimestamp);
   } catch (error) {
     return callback(error);
   }
@@ -858,29 +757,20 @@ const createMessage = function(ctx, meetingId, body, replyToCreatedTimestamp, ca
  */
 const deleteMessage = function(ctx, meetingId, messageCreatedDate, callback) {
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'Only authenticated users can delete messages'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Only authenticated users can delete messages'
+    })(ctx);
 
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A meeting id must be provided'
-      })
-    )(meetingId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A meeting id must be provided'
+    })(meetingId);
 
-    pipe(
-      isInt,
-      otherwise({
-        code: 400,
-        msg: 'A valid integer message created timestamp must be specified'
-      })
-    )(messageCreatedDate);
+    unless(isInt, {
+      code: 400,
+      msg: 'A valid integer message created timestamp must be specified'
+    })(messageCreatedDate);
   } catch (error) {
     return callback(error);
   }
@@ -957,13 +847,10 @@ const getMeetingsLibrary = function(ctx, principalId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
-    pipe(
-      isPrincipalId,
-      otherwise({
-        code: 400,
-        msg: 'A user or group id must be provided'
-      })
-    )(principalId);
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'A user or group id must be provided'
+    })(principalId);
   } catch (error) {
     return callback(error);
   }
@@ -1035,29 +922,20 @@ const getMeetingsLibrary = function(ctx, principalId, start, limit, callback) {
  */
 const removeMeetingFromLibrary = function(ctx, libraryOwnerId, meetingId, callback) {
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You must be authenticated to remove a meeting from a library'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You must be authenticated to remove a meeting from a library'
+    })(ctx);
 
-    pipe(
-      isPrincipalId,
-      otherwise({
-        code: 400,
-        msg: 'An user or group id must be provided'
-      })
-    )(libraryOwnerId);
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'An user or group id must be provided'
+    })(libraryOwnerId);
 
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'An invalid meeting id "' + meetingId + '" was provided'
-      })
-    )(meetingId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'An invalid meeting id "' + meetingId + '" was provided'
+    })(meetingId);
   } catch (error) {
     return callback(error);
   }

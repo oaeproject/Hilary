@@ -32,7 +32,7 @@ import { Invitation } from 'oae-authz/lib/invitations/model';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { Validator as validator } from 'oae-authz/lib/validator';
 const {
-  otherwise,
+  unless,
   isLoggedInUser,
   isArrayNotEmpty,
   isResource,
@@ -43,7 +43,6 @@ const {
   isNotEmpty,
   isValidRoleChange
 } = validator;
-import pipe from 'ramda/src/pipe';
 import { ResourceConstants } from 'oae-resource/lib/constants';
 import { forEachObjIndexed } from 'ramda';
 
@@ -72,25 +71,19 @@ const ResourceActions = new EmitterAPI.EventEmitter();
  */
 const create = function(ctx, roles, createFn, callback) {
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 400,
-        msg: 'Only authenticated users can create a new resource'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 400,
+      msg: 'Only authenticated users can create a new resource'
+    })(ctx);
 
     // Ensure all member ids are valid members
     const memberIds = _.keys(roles);
     memberIds.forEach(memberId => {
-      pipe(
-        isValidShareTarget,
-        otherwise({
-          code: 400,
-          msg:
-            'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
-        })
-      )(memberId);
+      unless(isValidShareTarget, {
+        code: 400,
+        msg:
+          'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
+      })(memberId);
     });
 
     // Ensure there is at least one manager member in the list of roles
@@ -98,13 +91,10 @@ const create = function(ctx, roles, createFn, callback) {
       return AuthzUtil.isPrincipalId(memberId) && role === AuthzConstants.role.MANAGER;
     });
 
-    pipe(
-      isValidRole,
-      otherwise({
-        code: 400,
-        msg: 'There must be at least one manager specified when creating a resource'
-      })
-    )(firstManagerRole);
+    unless(isValidRole, {
+      code: 400,
+      msg: 'There must be at least one manager specified when creating a resource'
+    })(firstManagerRole);
   } catch (error) {
     return callback(error);
   }
@@ -171,37 +161,25 @@ const create = function(ctx, roles, createFn, callback) {
  */
 const share = function(ctx, resource, targetIds, role, callback) {
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 400,
-        msg: 'Only authenticated users can share a resource'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 400,
+      msg: 'Only authenticated users can share a resource'
+    })(ctx);
 
-    pipe(
-      isValidRole,
-      otherwise({
-        code: 400,
-        msg: 'Must specify a valid role'
-      })
-    )(role);
+    unless(isValidRole, {
+      code: 400,
+      msg: 'Must specify a valid role'
+    })(role);
 
-    pipe(
-      isResource,
-      otherwise({
-        code: 400,
-        msg: 'An invalid resource was provided'
-      })
-    )(resource);
+    unless(isResource, {
+      code: 400,
+      msg: 'An invalid resource was provided'
+    })(resource);
 
-    pipe(
-      isArrayNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'At least one user to share with should be specified'
-      })
-    )(targetIds);
+    unless(isArrayNotEmpty, {
+      code: 400,
+      msg: 'At least one user to share with should be specified'
+    })(targetIds);
 
     let resourceAuthzId = null;
     let resourceId = null;
@@ -211,30 +189,21 @@ const share = function(ctx, resource, targetIds, role, callback) {
     }
 
     targetIds.forEach(targetId => {
-      pipe(
-        isValidShareTarget,
-        otherwise({
-          code: 400,
-          msg:
-            'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
-        })
-      )(targetId);
+      unless(isValidShareTarget, {
+        code: 400,
+        msg:
+          'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
+      })(targetId);
 
-      pipe(
-        isDifferent,
-        otherwise({
-          code: 400,
-          msg: 'You cannot share a resource with itself'
-        })
-      )(targetId, resourceAuthzId);
+      unless(isDifferent, {
+        code: 400,
+        msg: 'You cannot share a resource with itself'
+      })(targetId, resourceAuthzId);
 
-      pipe(
-        isDifferent,
-        otherwise({
-          code: 400,
-          msg: 'You cannot share a resource with itself'
-        })
-      )(targetId, resourceId);
+      unless(isDifferent, {
+        code: 400,
+        msg: 'You cannot share a resource with itself'
+      })(targetId, resourceId);
     });
   } catch (error) {
     return callback(error);
@@ -286,29 +255,20 @@ const share = function(ctx, resource, targetIds, role, callback) {
  */
 const setRoles = function(ctx, resource, roles, callback) {
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 400,
-        msg: 'Only authenticated users can share a resource'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 400,
+      msg: 'Only authenticated users can share a resource'
+    })(ctx);
 
-    pipe(
-      isResource,
-      otherwise({
-        code: 400,
-        msg: 'An invalid resource was provided'
-      })
-    )(resource);
+    unless(isResource, {
+      code: 400,
+      msg: 'An invalid resource was provided'
+    })(resource);
 
-    pipe(
-      isArrayNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'At least one role update should be specified'
-      })
-    )(_.keys(roles));
+    unless(isArrayNotEmpty, {
+      code: 400,
+      msg: 'At least one role update should be specified'
+    })(_.keys(roles));
 
     let resourceAuthzId = null;
     let resourceId = null;
@@ -318,38 +278,26 @@ const setRoles = function(ctx, resource, roles, callback) {
     }
 
     forEachObjIndexed((role, memberId) => {
-      pipe(
-        isValidShareTarget,
-        otherwise({
-          code: 400,
-          msg:
-            'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
-        })
-      )(memberId);
+      unless(isValidShareTarget, {
+        code: 400,
+        msg:
+          'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
+      })(memberId);
 
-      pipe(
-        isDifferent,
-        otherwise({
-          code: 400,
-          msg: 'You cannot share a resource with itself'
-        })
-      )(memberId, resourceAuthzId);
+      unless(isDifferent, {
+        code: 400,
+        msg: 'You cannot share a resource with itself'
+      })(memberId, resourceAuthzId);
 
-      pipe(
-        isDifferent,
-        otherwise({
-          code: 400,
-          msg: 'You cannot share a resource with itself'
-        })
-      )(memberId, resourceId);
+      unless(isDifferent, {
+        code: 400,
+        msg: 'You cannot share a resource with itself'
+      })(memberId, resourceId);
 
-      pipe(
-        isValidRoleChange,
-        otherwise({
-          code: 400,
-          msg: 'An invalid role was provided'
-        })
-      )(role);
+      unless(isValidRoleChange, {
+        code: 400,
+        msg: 'An invalid role was provided'
+      })(role);
     }, roles);
   } catch (error) {
     return callback(error);
@@ -399,29 +347,20 @@ const setRoles = function(ctx, resource, roles, callback) {
  */
 const resendInvitation = function(ctx, resource, email, callback) {
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'Only authenticated users can resend an invitation'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Only authenticated users can resend an invitation'
+    })(ctx);
 
-    pipe(
-      isResource,
-      otherwise({
-        code: 400,
-        msg: 'A valid resource must be provided'
-      })
-    )(resource);
+    unless(isResource, {
+      code: 400,
+      msg: 'A valid resource must be provided'
+    })(resource);
 
-    pipe(
-      isEmail,
-      otherwise({
-        code: 400,
-        msg: 'A valid email must be provided'
-      })
-    )(email);
+    unless(isEmail, {
+      code: 400,
+      msg: 'A valid email must be provided'
+    })(email);
   } catch (error) {
     return callback(error);
   }
@@ -468,21 +407,15 @@ const resendInvitation = function(ctx, resource, email, callback) {
  */
 const acceptInvitation = function(ctx, token, callback) {
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'Only authenticated users can accept an invitation'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Only authenticated users can accept an invitation'
+    })(ctx);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'An invitation token must be specified'
-      })
-    )(token);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'An invitation token must be specified'
+    })(token);
   } catch (error) {
     return callback(error);
   }

@@ -18,6 +18,9 @@ import {
   defaultTo,
   trim,
   when,
+  pipe,
+  curry,
+  __,
   length,
   reduceWhile,
   compose,
@@ -29,13 +32,19 @@ import {
   is,
   equals,
   isNil,
-  isEmpty
+  isEmpty,
+  gte as greaterOrEqualThan,
+  gt as greaterThan
 } from 'ramda';
+import { isPast, isFuture, toDate } from 'date-fns';
 
 import Validator from 'validator';
 
 const { isURL, isISO31661Alpha2, contains, isLength } = Validator;
 
+/**
+ * Private utility functions
+ */
 const _isString = value => is(String, value);
 
 const _isBoolean = value => is(Boolean, value);
@@ -53,6 +62,16 @@ const _isObject = value => is(Object, value);
 const _isFalse = value => equals(value, false);
 
 const _isItLengthy = interval => value => isLength(value, interval);
+
+/**
+ * Composed functions
+ */
+const toInt = curry(parseInt)(__, 10);
+const isGreaterThanZero = greaterThan(__, 0);
+const isZeroOrGreater = greaterOrEqualThan(__, 0);
+const isOneOrGreater = greaterThan(__, 0);
+const dateIsIntoTheFuture = pipe(toInt, toDate, isFuture);
+const dateIsInThePast = pipe(toInt, toDate, isPast);
 
 /**
  * @function isDifferent
@@ -145,6 +164,13 @@ const otherwise = error => validationPassed => {
   when(not, () => {
     throw error;
   })(validationPassed);
+};
+
+const unless = (validation, error) => {
+  return (...args) => {
+    const validationFails = compose(not, validation)(...args);
+    if (validationFails) throw error;
+  };
 };
 
 /**
@@ -463,8 +489,15 @@ const completeValidations = {
   isDifferent,
   isDefined,
   isNotEmpty,
+  isGreaterThanZero,
+  isZeroOrGreater,
+  isOneOrGreater,
+  toInt,
   notContains,
+  dateIsIntoTheFuture,
+  dateIsInThePast,
   isNotNull,
+  unless,
   otherwise,
   validateInCase,
   getNestedObject,

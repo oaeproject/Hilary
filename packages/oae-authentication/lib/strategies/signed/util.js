@@ -21,8 +21,7 @@ import * as Signature from 'oae-util/lib/signature';
 import * as TenantsAPI from 'oae-tenants';
 import * as TenantsUtil from 'oae-tenants/lib/util';
 import { Validator as validator } from 'oae-authz/lib/validator';
-const { otherwise, isGlobalAdministratorUser, isNotEmpty, isLoggedInUser, isUserId } = validator;
-import pipe from 'ramda/src/pipe';
+const { unless, isGlobalAdministratorUser, isNotEmpty, isLoggedInUser, isUserId } = validator;
 
 const TIME_1_MINUTE_IN_SECONDS = 60;
 
@@ -39,21 +38,15 @@ const TIME_1_MINUTE_IN_SECONDS = 60;
  */
 const getSignedTenantAuthenticationRequest = function(ctx, tenantAlias, callback) {
   try {
-    pipe(
-      isGlobalAdministratorUser,
-      otherwise({
-        code: 401,
-        msg: 'Only global administrators are allowed to authenticate to other tenants'
-      })
-    )(ctx);
+    unless(isGlobalAdministratorUser, {
+      code: 401,
+      msg: 'Only global administrators are allowed to authenticate to other tenants'
+    })(ctx);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Missing target tenant alias'
-      })
-    )(tenantAlias);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing target tenant alias'
+    })(tenantAlias);
   } catch (error) {
     return callback(error);
   }
@@ -100,21 +93,15 @@ const getSignedTenantAuthenticationRequest = function(ctx, tenantAlias, callback
  */
 const getSignedBecomeUserAuthenticationRequest = function(ctx, becomeUserId, callback) {
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'Must be authenticated in order to become another user'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Must be authenticated in order to become another user'
+    })(ctx);
 
-    pipe(
-      isUserId,
-      otherwise({
-        code: 400,
-        msg: 'Must specific a valid user id of a user to become (becomeUserId)'
-      })
-    )(becomeUserId);
+    unless(isUserId, {
+      code: 400,
+      msg: 'Must specific a valid user id of a user to become (becomeUserId)'
+    })(becomeUserId);
   } catch (error) {
     return callback(error);
   }
@@ -184,13 +171,10 @@ const getSignedBecomeUserAuthenticationRequest = function(ctx, becomeUserId, cal
  */
 const verifySignedAuthenticationBody = function(ctx, body, callback) {
   try {
-    pipe(
-      isUserId,
-      otherwise({
-        code: 400,
-        msg: 'Invalid user id provided as the authenticating user'
-      })
-    )(body.userId);
+    unless(isUserId, {
+      code: 400,
+      msg: 'Invalid user id provided as the authenticating user'
+    })(body.userId);
   } catch (error) {
     return callback(error);
   }

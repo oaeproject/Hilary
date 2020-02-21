@@ -20,8 +20,7 @@ import * as SearchUtil from 'oae-search/lib/util';
 import * as TenantsAPI from 'oae-tenants/lib/api';
 
 import { Validator as validator } from 'oae-util/lib/validator';
-const { isEmail, isLoggedInUser, otherwise } = validator;
-import pipe from 'ramda/src/pipe';
+const { isEmail, isLoggedInUser, unless } = validator;
 
 /**
  * A search that searches on an exact "email" match, scoping its results by the specified scope and
@@ -44,22 +43,16 @@ const queryBuilder = function(ctx, opts, callback) {
   opts.limit = OaeUtil.getNumberParam(opts.limit, 10, 1, 25);
 
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'Only authenticated users can use email search'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Only authenticated users can use email search'
+    })(ctx);
 
     const query = opts.q || '';
-    pipe(
-      isEmail,
-      otherwise({
-        code: 400,
-        msg: 'An invalid email address has been specified'
-      })
-    )(query);
+    unless(isEmail, {
+      code: 400,
+      msg: 'An invalid email address has been specified'
+    })(query);
   } catch (error) {
     return callback(error);
   }

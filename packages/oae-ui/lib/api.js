@@ -269,45 +269,33 @@ const _widgetDirectoryFilter = function(entry) {
  * @param  {Object}      callback.data   JSON Object representing the retrieved files
  */
 const getStaticBatch = function(files, callback) {
-  const { isNotNull, isArrayNotEmpty, notContains, otherwise, isNotEmpty } = validator;
+  const { isNotNull, isArrayNotEmpty, notContains, unless, isNotEmpty } = validator;
   try {
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'The files parameter must not be null'
-      })
-    )(files);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'The files parameter must not be null'
+    })(files);
 
-    pipe(
-      isArrayNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'At least one file must be provided'
-      })
-    )(files);
+    unless(isArrayNotEmpty, {
+      code: 400,
+      msg: 'At least one file must be provided'
+    })(files);
 
     // Filter out the duplicate ones
     files = _.uniq(files);
     // Make sure that all provided filenames are real strings
     for (const element of files) {
-      pipe(
-        isNotEmpty,
-        otherwise({
-          code: 400,
-          msg: 'A valid file path needs to be provided'
-        })
-      )(element);
+      unless(isNotEmpty, {
+        code: 400,
+        msg: 'A valid file path needs to be provided'
+      })(element);
 
       // Make sure that only absolute paths are allowed. All paths that contain a '../' have the potential of
       // exposing private server files
-      pipe(
-        notContains,
-        otherwise({
-          code: 400,
-          msg: 'Only absolute paths are allowed'
-        })
-      )(element, '../');
+      unless(notContains, {
+        code: 400,
+        msg: 'Only absolute paths are allowed'
+      })(element, '../');
     }
   } catch (error) {
     return callback(error);

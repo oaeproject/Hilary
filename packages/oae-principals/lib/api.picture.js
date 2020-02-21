@@ -24,9 +24,17 @@ import * as AuthzPermissions from 'oae-authz/lib/permissions';
 import * as ContentUtil from 'oae-content/lib/internal/util';
 import * as ImageUtil from 'oae-util/lib/image';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { validateInCase, otherwise, isLoggedInUser, isPrincipalId, isNotNull, isNotEmpty } = validator;
-import pipe from 'ramda/src/pipe';
-import isInt from 'validator/lib/isInt';
+const {
+  validateInCase: bothCheck,
+  unless,
+  isLoggedInUser,
+  isPrincipalId,
+  isNotNull,
+  isNotEmpty,
+  isZeroOrGreater,
+  isInt
+} = validator;
+import { compose, curry, __, pipe } from 'ramda';
 import * as GroupAPI from './api.group';
 import * as PrincipalsDAO from './internal/dao';
 import PrincipalsEmitter from './internal/emitter';
@@ -35,6 +43,9 @@ import * as PrincipalsUtil from './util';
 import { PrincipalsConstants } from './constants';
 
 const log = logger('oae-principals-shared');
+
+const toInt = curry(parseInt)(__, 10);
+const zeroOrGreater = pipe(String, toInt, isZeroOrGreater);
 
 /**
  * Store the large picture for a principal that can be re-used later on
@@ -60,58 +71,40 @@ const storePicture = function(ctx, principalId, file, callback) {
     };
 
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to update a picture'
-      })
-    )(ctx);
+    const msg = 'You have to be logged in to be able to update a picture';
+    unless(isLoggedInUser, { code: 401, msg })(ctx);
 
-    pipe(
-      isPrincipalId,
-      otherwise({
-        code: 400,
-        msg: 'A principal ID must be provided'
-      })
-    )(principalId);
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'A principal ID must be provided'
+    })(principalId);
 
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'A file must be provided'
-      })
-    )(file);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'A file must be provided'
+    })(file);
 
     const fileIsThere = Boolean(file);
-    pipe(
-      String,
-      validateInCase(fileIsThere, isNotEmpty),
-      otherwise({
-        code: 400,
-        msg: 'Missing size on the file object.'
-      })
-    )(file.size);
+    unless(bothCheck(fileIsThere, compose(isNotEmpty, String)), {
+      code: 400,
+      msg: 'Missing size on the file object.'
+    })(file.size);
 
     const UPLOAD_LIMIT = 10485760;
-    pipe(
-      validateInCase(fileIsThere, (size, max) => {
+    unless(
+      bothCheck(fileIsThere, (size, max) => {
         return size <= max;
       }),
-      otherwise({
+      {
         code: 400,
         msg: 'The size of a picture has an upper limit of 10MB.'
-      })
+      }
     )(file.size, UPLOAD_LIMIT);
 
-    pipe(
-      validateInCase(fileIsThere, isNotEmpty),
-      otherwise({
-        code: 400,
-        msg: 'Missing name on the file object.'
-      })
-    )(file.name);
+    unless(bothCheck(fileIsThere, isNotEmpty), {
+      code: 400,
+      msg: 'Missing name on the file object.'
+    })(file.name);
   } catch (error) {
     return _cleanupOnError(error, file, callback);
   }
@@ -209,75 +202,45 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
 
   // Parameter validation
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to update a picture'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to update a picture'
+    })(ctx);
 
-    pipe(
-      isPrincipalId,
-      otherwise({
-        code: 400,
-        msg: 'A principal id must be provided'
-      })
-    )(principalId);
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'A principal id must be provided'
+    })(principalId);
 
-    pipe(
-      String,
-      isInt,
-      otherwise({
-        code: 400,
-        msg: 'The x value must be a positive integer'
-      })
-    )(x);
+    unless(compose(isInt, String), {
+      code: 400,
+      msg: 'The x value must be a positive integer'
+    })(x);
 
-    pipe(
-      String,
-      isInt,
-      otherwise({
-        code: 400,
-        msg: 'The x value must be a positive integer'
-      })
-    )(x, { min: 0 });
+    unless(zeroOrGreater, {
+      code: 400,
+      msg: 'The x value must be a positive integer'
+    })(x);
 
-    pipe(
-      String,
-      isInt,
-      otherwise({
-        code: 400,
-        msg: 'The y value must be a positive integer'
-      })
-    )(y);
+    unless(compose(isInt, String), {
+      code: 400,
+      msg: 'The y value must be a positive integer'
+    })(y);
 
-    pipe(
-      String,
-      isInt,
-      otherwise({
-        code: 400,
-        msg: 'The y value must be a positive integer'
-      })
-    )(y, { min: 0 });
+    unless(zeroOrGreater, {
+      code: 400,
+      msg: 'The y value must be a positive integer'
+    })(y);
 
-    pipe(
-      String,
-      isInt,
-      otherwise({
-        code: 400,
-        msg: 'The width value must be a positive integer'
-      })
-    )(width);
+    unless(compose(isInt, String), {
+      code: 400,
+      msg: 'The width value must be a positive integer'
+    })(width);
 
-    pipe(
-      String,
-      isInt,
-      otherwise({
-        code: 400,
-        msg: 'The width value must be a positive integer greater than or equal to 10'
-      })
-    )(width, { gt: 9 });
+    unless(compose(isInt, String), {
+      code: 400,
+      msg: 'The width value must be a positive integer greater than or equal to 10'
+    })(width, { gt: 9 });
   } catch (error) {
     return callback(error);
   }

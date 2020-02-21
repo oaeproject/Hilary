@@ -34,7 +34,7 @@ import * as TenantsUtil from 'oae-tenants/lib/util';
 import { logger } from 'oae-logger';
 import { Validator as validator } from 'oae-authz/lib/validator';
 const {
-  validateInCase,
+  validateInCase: bothCheck,
   getNestedObject,
   isLoggedInUser,
   isGlobalAdministratorUser,
@@ -42,10 +42,11 @@ const {
   isEmail,
   isObject,
   isUserId,
-  otherwise,
+  unless,
   isNotEmpty
 } = validator;
-import { pipe, and } from 'ramda';
+
+import { compose, and } from 'ramda';
 import isLength from 'validator/lib/isLength';
 import { getTenantSkinVariables } from 'oae-ui';
 import { AuthenticationConstants } from 'oae-authentication/lib/constants';
@@ -152,13 +153,10 @@ const localUsernameExists = function(ctx, tenantAlias, username, callback) {
 
   // Parameter validation
   try {
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Please specify a username'
-      })
-    )(username);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Please specify a username'
+    })(username);
     _validateLoginIdForLookup(validator, loginId, callback);
   } catch (error) {
     return callback(error);
@@ -201,53 +199,35 @@ const getOrCreateGlobalAdminUser = function(ctx, username, password, displayName
   opts = opts || {};
 
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You must be authenticated to the global admin tenant to create a global administrator user'
-      })
-    )(ctx, globalTenantAlias);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You must be authenticated to the global admin tenant to create a global administrator user'
+    })(ctx, globalTenantAlias);
 
-    pipe(
-      isGlobalAdministratorUser,
-      otherwise({
-        code: 401,
-        msg: 'You must be a global administrator to create a global administrator user'
-      })
-    )(ctx);
+    unless(isGlobalAdministratorUser, {
+      code: 401,
+      msg: 'You must be a global administrator to create a global administrator user'
+    })(ctx);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'You must provide a username'
-      })
-    )(username);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'You must provide a username'
+    })(username);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'You must provide a password'
-      })
-    )(password);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'You must provide a password'
+    })(password);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'You must provide a display name'
-      })
-    )(displayName);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'You must provide a display name'
+    })(displayName);
 
-    pipe(
-      isShortString,
-      otherwise({
-        code: 400,
-        msg: 'A display name can be at most 1000 characters long'
-      })
-    )(displayName);
+    unless(isShortString, {
+      code: 400,
+      msg: 'A display name can be at most 1000 characters long'
+    })(displayName);
   } catch (error) {
     return callback(error);
   }
@@ -324,21 +304,15 @@ const getOrCreateUser = function(ctx, authProvider, externalId, providerProperti
   // Create the expected login id and ensure it is valid for potentially persisting into storage
   const loginId = new LoginId(ctx.tenant().alias, authProvider, externalId, providerProperties);
   try {
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'You must provide a display name'
-      })
-    )(displayName);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'You must provide a display name'
+    })(displayName);
 
-    pipe(
-      isShortString,
-      otherwise({
-        code: 400,
-        msg: 'A display name can be at most 1000 characters long'
-      })
-    )(displayName);
+    unless(isShortString, {
+      code: 400,
+      msg: 'A display name can be at most 1000 characters long'
+    })(displayName);
 
     _validateLoginIdForPersistence(validator, loginId, callback);
   } catch (error) {
@@ -401,13 +375,10 @@ const _getOrCreateUser = function(ctx, loginId, displayName, opts, callback) {
       // when a Shib or Cas IdP has been misconfigured
       try {
         const isValidEmail = and(opts.authoritative, opts.email);
-        pipe(
-          validateInCase(isValidEmail, isEmail),
-          otherwise({
-            code: 400,
-            msg: 'Invalid email'
-          })
-        )(opts.email);
+        unless(bothCheck(isValidEmail, isEmail), {
+          code: 400,
+          msg: 'Invalid email'
+        })(opts.email);
       } catch {
         delete opts.email;
       }
@@ -517,29 +488,20 @@ const createTenantAdminUser = function(ctx, loginId, displayName, opts, callback
   opts = opts || {};
 
   try {
-    pipe(
-      isObject,
-      otherwise({
-        code: 400,
-        msg: 'A LoginId must be provided'
-      })
-    )(loginId);
+    unless(isObject, {
+      code: 400,
+      msg: 'A LoginId must be provided'
+    })(loginId);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'You must provide a display name'
-      })
-    )(displayName);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'You must provide a display name'
+    })(displayName);
 
-    pipe(
-      isShortString,
-      otherwise({
-        code: 400,
-        msg: 'A display name can be at most 1000 characters long'
-      })
-    )(displayName);
+    unless(isShortString, {
+      code: 400,
+      msg: 'A display name can be at most 1000 characters long'
+    })(displayName);
     _validateLoginIdForPersistence(validator, loginId, callback);
   } catch (error) {
     return callback(error);
@@ -607,21 +569,15 @@ const createTenantAdminUser = function(ctx, loginId, displayName, opts, callback
  */
 const createUser = function(ctx, loginId, displayName, opts, callback) {
   try {
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'You must provide a display name'
-      })
-    )(displayName);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'You must provide a display name'
+    })(displayName);
 
-    pipe(
-      isShortString,
-      otherwise({
-        code: 400,
-        msg: 'A display name can be at most 1000 characters long'
-      })
-    )(displayName);
+    unless(isShortString, {
+      code: 400,
+      msg: 'A display name can be at most 1000 characters long'
+    })(displayName);
     _validateLoginIdForPersistence(validator, loginId, callback);
   } catch (error) {
     return callback(error);
@@ -754,20 +710,14 @@ const _createUser = function(ctx, loginId, displayName, opts, callback) {
 const associateLoginId = function(ctx, loginId, userId, callback) {
   try {
     _validateLoginIdForPersistence(validator, loginId, callback);
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You must be authenticated to associate a login id to a user'
-      })
-    )(ctx);
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'You must specify a user id'
-      })
-    )(userId);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You must be authenticated to associate a login id to a user'
+    })(ctx);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'You must specify a user id'
+    })(userId);
   } catch (error) {
     return callback(error);
   }
@@ -852,27 +802,18 @@ const associateLoginId = function(ctx, loginId, userId, callback) {
 const changePassword = function(ctx, userId, oldPassword, newPassword, callback) {
   // Parameter validation
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to change a password'
-      })
-    )(ctx);
-    pipe(
-      isUserId,
-      otherwise({
-        code: 400,
-        msg: 'A user id must be provided'
-      })
-    )(userId);
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'A new password must be provided'
-      })
-    )(newPassword);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to change a password'
+    })(ctx);
+    unless(isUserId, {
+      code: 400,
+      msg: 'A user id must be provided'
+    })(userId);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A new password must be provided'
+    })(newPassword);
   } catch (error) {
     return callback(error);
   }
@@ -944,29 +885,20 @@ const checkPassword = function(tenantAlias, username, password, callback) {
 
   // Parameter validation
   try {
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 401,
-        msg: 'A tenant must be provided'
-      })
-    )(tenantAlias);
+    unless(isNotEmpty, {
+      code: 401,
+      msg: 'A tenant must be provided'
+    })(tenantAlias);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'A username must be provided'
-      })
-    )(username);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A username must be provided'
+    })(username);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'A password must be provided'
-      })
-    )(password);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A password must be provided'
+    })(password);
     _validateLoginIdForLookup(validator, loginId, callback);
   } catch (error) {
     return callback(error);
@@ -1101,37 +1033,25 @@ const getResetPasswordSecret = function(ctx, username, callback) {
 const resetPassword = function(ctx, username, secret, newPassword, callback) {
   // Parameter validation
   try {
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'A username must be provided'
-      })
-    )(username);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A username must be provided'
+    })(username);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'A secret must be provided'
-      })
-    )(secret);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A secret must be provided'
+    })(secret);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'A new password must be provided'
-      })
-    )(newPassword);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A new password must be provided'
+    })(newPassword);
 
-    pipe(
-      isLength,
-      otherwise({
-        code: 400,
-        msg: 'Must specify a password at least 6 characters long'
-      })
-    )(newPassword, { min: 6 });
+    unless(isLength, {
+      code: 400,
+      msg: 'Must specify a password at least 6 characters long'
+    })(newPassword, { min: 6 });
   } catch (error) {
     return callback(error);
   }
@@ -1248,20 +1168,14 @@ const _associateLoginId = function(loginId, userId, callback) {
 const getUserLoginIds = function(ctx, userId, callback) {
   // Parameter validation
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to request the login ids for a user'
-      })
-    )(ctx);
-    pipe(
-      isUserId,
-      otherwise({
-        code: 400,
-        msg: 'A user id must be provided'
-      })
-    )(userId);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to request the login ids for a user'
+    })(ctx);
+    unless(isUserId, {
+      code: 400,
+      msg: 'A user id must be provided'
+    })(userId);
   } catch (error) {
     return callback(error);
   }
@@ -1406,38 +1320,25 @@ const _validateLoginIdForLookup = function(validator, loginId) {
   const ifLoginIsValid = () => Boolean(loginId);
   const getAttribute = getNestedObject(loginId);
 
-  pipe(
-    isObject,
-    otherwise({
-      code: 400,
-      msg: 'Must specify a login id'
-    })
-  )(loginId);
+  unless(isObject, {
+    code: 400,
+    msg: 'Must specify a login id'
+  })(loginId);
 
-  pipe(
-    validateInCase(ifLoginIsValid, isNotEmpty),
-    otherwise({
-      code: 400,
-      msg: 'Must specify a tenant id on the login id'
-    })
-  )(getAttribute(['tenantAlias']));
+  unless(bothCheck(ifLoginIsValid, isNotEmpty), {
+    code: 400,
+    msg: 'Must specify a tenant id on the login id'
+  })(getAttribute(['tenantAlias']));
 
-  pipe(
-    validateInCase(ifLoginIsValid, isNotEmpty),
-    otherwise({
-      code: 400,
-      msg: 'Must specify an authentication provider on the login id'
-    })
-  )(getAttribute(['provider']));
+  unless(bothCheck(ifLoginIsValid, isNotEmpty), {
+    code: 400,
+    msg: 'Must specify an authentication provider on the login id'
+  })(getAttribute(['provider']));
 
-  pipe(
-    String,
-    validateInCase(ifLoginIsValid, isNotEmpty),
-    otherwise({
-      code: 400,
-      msg: 'Must specify an external id on the login id'
-    })
-  )(getAttribute(['externalId']));
+  unless(bothCheck(ifLoginIsValid, compose(isNotEmpty, String)), {
+    code: 400,
+    msg: 'Must specify an external id on the login id'
+  })(getAttribute(['externalId']));
 };
 
 /**
@@ -1458,13 +1359,10 @@ const _validateLoginIdForPersistence = function(validator, loginId, callback) {
 
   // Custom handling for local authentication (i.e., username and password)
   const isItLocalAuthentication = loginId.provider === AuthenticationConstants.providers.LOCAL;
-  pipe(
-    validateInCase(isItLocalAuthentication, isLength),
-    otherwise({
-      code: 400,
-      msg: 'Must specify a password at least 6 characters long'
-    })
-  )(password || '', { min: 6 });
+  unless(bothCheck(isItLocalAuthentication, isLength), {
+    code: 400,
+    msg: 'Must specify a password at least 6 characters long'
+  })(password || '', { min: 6 });
 };
 
 /// ////////////////////////////

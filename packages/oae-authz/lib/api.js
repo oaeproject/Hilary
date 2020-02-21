@@ -25,7 +25,7 @@ import AuthzGraph from 'oae-authz/lib/internal/graph';
 import * as AuthzUtil from 'oae-authz/lib/util';
 import { Validator as validator } from 'oae-authz/lib/validator';
 const {
-  otherwise,
+  unless,
   isArrayNotEmpty,
   isValidRole,
   isPrincipalId,
@@ -33,7 +33,6 @@ const {
   isNonUserResourceId,
   isValidRoleChange
 } = validator;
-import pipe from 'ramda/src/pipe';
 
 import { logger } from 'oae-logger';
 
@@ -74,30 +73,21 @@ const _getDirectRole = function(principalId, resourceId, callback) {
  **/
 const getDirectRoles = function(principalIds, resourceId, callback) {
   try {
-    pipe(
-      isArrayNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'At least one principal id needs to be passed in'
-      })
-    )(principalIds);
+    unless(isArrayNotEmpty, {
+      code: 400,
+      msg: 'At least one principal id needs to be passed in'
+    })(principalIds);
 
-    pipe(
-      isNonUserResourceId,
-      otherwise({
-        code: 400,
-        msg: 'Invalid non-user resource id provided'
-      })
-    )(resourceId);
+    unless(isNonUserResourceId, {
+      code: 400,
+      msg: 'Invalid non-user resource id provided'
+    })(resourceId);
 
     principalIds.forEach(principalId => {
-      pipe(
-        isPrincipalId,
-        otherwise({
-          code: 400,
-          msg: 'Invalid principal id provided'
-        })
-      )(principalId);
+      unless(isPrincipalId, {
+        code: 400,
+        msg: 'Invalid principal id provided'
+      })(principalId);
     });
   } catch (error) {
     return callback(error);
@@ -134,21 +124,15 @@ const getDirectRoles = function(principalIds, resourceId, callback) {
  */
 const getAllRoles = function(principalId, resourceId, callback) {
   try {
-    pipe(
-      isPrincipalId,
-      otherwise({
-        code: 400,
-        msg: 'Invalid principal id provided.'
-      })
-    )(principalId);
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'Invalid principal id provided.'
+    })(principalId);
 
-    pipe(
-      isNonUserResourceId,
-      otherwise({
-        code: 400,
-        msg: 'Invalid non-user resource id provided.'
-      })
-    )(resourceId);
+    unless(isNonUserResourceId, {
+      code: 400,
+      msg: 'Invalid non-user resource id provided.'
+    })(resourceId);
   } catch (error) {
     return callback(error);
   }
@@ -261,29 +245,20 @@ const _getResourceGroupMembers = function(resourceId, callback) {
  */
 const hasRole = function(principalId, resourceId, role, callback) {
   try {
-    pipe(
-      isPrincipalId,
-      otherwise({
-        code: 400,
-        msg: 'Invalid principal id provided'
-      })
-    )(principalId);
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'Invalid principal id provided'
+    })(principalId);
 
-    pipe(
-      isNonUserResourceId,
-      otherwise({
-        code: 400,
-        msg: 'Invalid non-user resource id provided'
-      })
-    )(resourceId);
+    unless(isNonUserResourceId, {
+      code: 400,
+      msg: 'Invalid non-user resource id provided'
+    })(resourceId);
 
-    pipe(
-      isValidRole,
-      otherwise({
-        code: 400,
-        msg: 'Invalid role provided'
-      })
-    )(role);
+    unless(isValidRole, {
+      code: 400,
+      msg: 'Invalid role provided'
+    })(role);
   } catch (error) {
     return callback(error);
   }
@@ -302,21 +277,15 @@ const hasRole = function(principalId, resourceId, role, callback) {
  */
 const hasAnyRole = function(principalId, resourceId, callback) {
   try {
-    pipe(
-      isPrincipalId,
-      otherwise({
-        code: 400,
-        msg: 'Invalid principal id provided'
-      })
-    )(principalId);
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'Invalid principal id provided'
+    })(principalId);
 
-    pipe(
-      isNonUserResourceId,
-      otherwise({
-        code: 400,
-        msg: 'Invalid non-user resource id provided'
-      })
-    )(resourceId);
+    unless(isNonUserResourceId, {
+      code: 400,
+      msg: 'Invalid non-user resource id provided'
+    })(resourceId);
   } catch (error) {
     return callback(error);
   }
@@ -382,38 +351,26 @@ const updateRoles = function(resourceId, changes, callback) {
   const roleChanges = _.keys(changes);
 
   try {
-    pipe(
-      isNonUserResourceId,
-      otherwise({
-        code: 400,
-        msg: 'Invalid non-user resource id provided'
-      })
-    )(resourceId);
+    unless(isNonUserResourceId, {
+      code: 400,
+      msg: 'Invalid non-user resource id provided'
+    })(resourceId);
 
-    pipe(
-      isArrayNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'At least one role change needs to be applied'
-      })
-    )(roleChanges);
+    unless(isArrayNotEmpty, {
+      code: 400,
+      msg: 'At least one role change needs to be applied'
+    })(roleChanges);
 
     roleChanges.forEach(principalId => {
-      pipe(
-        isPrincipalId,
-        otherwise({
-          code: 400,
-          msg: 'Invalid principal id specified: ' + principalId
-        })
-      )(principalId);
+      unless(isPrincipalId, {
+        code: 400,
+        msg: 'Invalid principal id specified: ' + principalId
+      })(principalId);
 
-      pipe(
-        isValidRoleChange,
-        otherwise({
-          code: 400,
-          msg: 'Invalid role provided'
-        })
-      )(changes[principalId]);
+      unless(isValidRoleChange, {
+        code: 400,
+        msg: 'Invalid role provided'
+      })(changes[principalId]);
     });
   } catch (error) {
     return callback(error);
@@ -573,13 +530,10 @@ const getAuthzMembers = function(resourceId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
-    pipe(
-      isNonUserResourceId,
-      otherwise({
-        code: 400,
-        msg: 'Invalid non-user resource id provided'
-      })
-    )(resourceId);
+    unless(isNonUserResourceId, {
+      code: 400,
+      msg: 'Invalid non-user resource id provided'
+    })(resourceId);
   } catch (error) {
     return callback(error);
   }
@@ -831,13 +785,10 @@ const getAuthzMembersGraph = function(resourceIds, callback, _graph, _resourceId
  */
 const getPrincipalMembershipsGraph = function(principalId, callback) {
   try {
-    pipe(
-      isPrincipalId,
-      otherwise({
-        code: 400,
-        msg: 'Invalid principal id provided'
-      })
-    )(principalId);
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'Invalid principal id provided'
+    })(principalId);
   } catch (error) {
     return callback(error);
   }
@@ -921,13 +872,10 @@ const getPrincipalMemberships = function(principalId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
-    pipe(
-      isPrincipalId,
-      otherwise({
-        code: 400,
-        msg: 'Invalid principal id provided'
-      })
-    )(principalId);
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'Invalid principal id provided'
+    })(principalId);
   } catch (error) {
     return callback(error);
   }
@@ -997,13 +945,10 @@ const getPrincipalMemberships = function(principalId, start, limit, callback) {
  */
 const getAllIndirectPrincipalMemberships = function(principalId, callback, _groupIds, _nextToken) {
   try {
-    pipe(
-      isPrincipalId,
-      otherwise({
-        code: 400,
-        msg: 'Invalid principal id provided'
-      })
-    )(principalId);
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'Invalid principal id provided'
+    })(principalId);
   } catch (error) {
     return callback(error);
   }
@@ -1038,13 +983,10 @@ const getIndirectPrincipalMemberships = function(principalId, start, limit, call
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
-    pipe(
-      isPrincipalId,
-      otherwise({
-        code: 400,
-        msg: 'Invalid principal id provided'
-      })
-    )(principalId);
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'Invalid principal id provided'
+    })(principalId);
   } catch (error) {
     return callback(error);
   }
@@ -1241,21 +1183,15 @@ const _getInvalidateMembershipsCacheQueries = function(userIds) {
  */
 const getAllRolesForPrincipalAndResourceType = function(principalId, resourceType, callback) {
   try {
-    pipe(
-      isPrincipalId,
-      otherwise({
-        code: 400,
-        msg: 'Invalid principal id specified: ' + principalId
-      })
-    )(principalId);
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'Invalid principal id specified: ' + principalId
+    })(principalId);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'A resourceType needs to be provided'
-      })
-    )(resourceType);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A resourceType needs to be provided'
+    })(resourceType);
   } catch (error) {
     return callback(error);
   }
@@ -1300,21 +1236,15 @@ const getRolesForPrincipalAndResourceType = function(principalId, resourceType, 
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
-    pipe(
-      isPrincipalId,
-      otherwise({
-        code: 400,
-        msg: 'Invalid principal id specified: ' + principalId
-      })
-    )(principalId);
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'Invalid principal id specified: ' + principalId
+    })(principalId);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'A resourceType needs to be provided'
-      })
-    )(resourceType);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A resourceType needs to be provided'
+    })(resourceType);
   } catch (error) {
     return callback(error);
   }
@@ -1386,30 +1316,21 @@ const getRolesForPrincipalsAndResourceType = function(principalIds, resourceType
   principalIds = principalIds || [];
 
   try {
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'A resourceType needs to be provided'
-      })
-    )(resourceType);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A resourceType needs to be provided'
+    })(resourceType);
 
-    pipe(
-      isArrayNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'At least one principal Id needs to be passed in'
-      })
-    )(principalIds);
+    unless(isArrayNotEmpty, {
+      code: 400,
+      msg: 'At least one principal Id needs to be passed in'
+    })(principalIds);
 
     principalIds.forEach(principalId => {
-      pipe(
-        isPrincipalId,
-        otherwise({
-          code: 400,
-          msg: 'Invalid principal id specified: ' + principalId
-        })
-      )(principalId);
+      unless(isPrincipalId, {
+        code: 400,
+        msg: 'Invalid principal id specified: ' + principalId
+      })(principalId);
     });
   } catch (error) {
     return callback(error);

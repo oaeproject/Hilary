@@ -27,8 +27,8 @@ import { Validator as validator } from 'oae-authz/lib/validator';
 
 const {
   getNestedObject,
-  validateInCase,
-  otherwise,
+  validateInCase: bothCheck,
+  unless,
   isLoggedInUser,
   isUserId,
   isPrincipalId,
@@ -37,7 +37,7 @@ const {
   isObject
 } = validator;
 
-import { pipe, both } from 'ramda';
+import { both } from 'ramda';
 import isIn from 'validator/lib/isIn';
 
 import { setUpConfig } from 'oae-config';
@@ -542,21 +542,15 @@ const getActivityStream = function(ctx, principalId, start, limit, transformerTy
   transformerType = transformerType || ActivityConstants.transformerTypes.ACTIVITYSTREAMS;
 
   try {
-    pipe(
-      isIn,
-      otherwise({
-        code: 400,
-        msg: 'Unknown activity transformer type'
-      })
-    )(transformerType, _.values(ActivityConstants.transformerTypes));
+    unless(isIn, {
+      code: 400,
+      msg: 'Unknown activity transformer type'
+    })(transformerType, _.values(ActivityConstants.transformerTypes));
 
-    pipe(
-      isPrincipalId,
-      otherwise({
-        code: 400,
-        msg: 'You can only view activity streams for a principal'
-      })
-    )(principalId);
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'You can only view activity streams for a principal'
+    })(principalId);
   } catch (error) {
     return callback(error);
   }
@@ -607,29 +601,20 @@ const getNotificationStream = function(ctx, userId, start, limit, transformerTyp
   transformerType = transformerType || ActivityConstants.transformerTypes.ACTIVITYSTREAMS;
 
   try {
-    pipe(
-      isIn,
-      otherwise({
-        code: 400,
-        msg: 'Unknown activity transformer type'
-      })
-    )(transformerType, _.values(ActivityConstants.transformerTypes));
+    unless(isIn, {
+      code: 400,
+      msg: 'Unknown activity transformer type'
+    })(transformerType, _.values(ActivityConstants.transformerTypes));
 
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You must be logged in to get a notification stream'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You must be logged in to get a notification stream'
+    })(ctx);
 
-    pipe(
-      isUserId,
-      otherwise({
-        code: 400,
-        msg: 'You can only view the notification streams for a user'
-      })
-    )(userId);
+    unless(isUserId, {
+      code: 400,
+      msg: 'You can only view the notification streams for a user'
+    })(userId);
   } catch (error) {
     return callback(error);
   }
@@ -655,13 +640,10 @@ const getNotificationStream = function(ctx, userId, start, limit, transformerTyp
  */
 const markNotificationsRead = function(ctx, callback) {
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You must be logged in to mark notifications read'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You must be logged in to mark notifications read'
+    })(ctx);
   } catch (error) {
     return callback(error);
   }
@@ -708,93 +690,60 @@ const postActivity = function(ctx, activitySeed, callback) {
   const ifThereIsActivityTarget = () => both(ifThereIsActivity, isThereTarget)();
 
   try {
-    pipe(
-      isObject,
-      otherwise({
-        code: 400,
-        msg: 'No activity seed provided.'
-      })
-    )(activitySeed);
+    unless(isObject, {
+      code: 400,
+      msg: 'No activity seed provided.'
+    })(activitySeed);
 
-    pipe(
-      validateInCase(ifThereIsActivity(), isNotEmpty),
-      otherwise({
-        code: 400,
-        msg: 'Activity seed did not have an activity type.'
-      })
-    )(getAttribute(['activityType']));
+    unless(bothCheck(ifThereIsActivity(), isNotEmpty), {
+      code: 400,
+      msg: 'Activity seed did not have an activity type.'
+    })(getAttribute(['activityType']));
 
-    pipe(
-      validateInCase(ifThereIsActivity(), isNotEmpty),
-      otherwise({
-        code: 400,
-        msg: 'Activity seed did not have a verb.'
-      })
-    )(getAttribute(['verb']));
+    unless(bothCheck(ifThereIsActivity(), isNotEmpty), {
+      code: 400,
+      msg: 'Activity seed did not have a verb.'
+    })(getAttribute(['verb']));
 
-    pipe(
-      validateInCase(ifThereIsActivity(), isANumber),
-      otherwise({
-        code: 400,
-        msg: 'Activity seed did not have a valid publish date.'
-      })
-    )(getAttribute(['published']));
+    unless(bothCheck(ifThereIsActivity(), isANumber), {
+      code: 400,
+      msg: 'Activity seed did not have a valid publish date.'
+    })(getAttribute(['published']));
 
-    pipe(
-      validateInCase(ifThereIsActivity(), isObject),
-      otherwise({
-        code: 400,
-        msg: 'Activity seed did not have an actor resource'
-      })
-    )(getAttribute(['actorResource']));
+    unless(bothCheck(ifThereIsActivity(), isObject), {
+      code: 400,
+      msg: 'Activity seed did not have an actor resource'
+    })(getAttribute(['actorResource']));
 
-    pipe(
-      validateInCase(ifThereIsActivityActor(), isNotEmpty),
-      otherwise({
-        code: 400,
-        msg: 'Actor of activity seed did not have a resourceId'
-      })
-    )(getAttribute(['actorResource', 'resourceId']));
+    unless(bothCheck(ifThereIsActivityActor(), isNotEmpty), {
+      code: 400,
+      msg: 'Actor of activity seed did not have a resourceId'
+    })(getAttribute(['actorResource', 'resourceId']));
 
-    pipe(
-      validateInCase(ifThereIsActivityActor(), isNotEmpty),
-      otherwise({
-        code: 400,
-        msg: 'Actor of activity seed did not have a resourceType'
-      })
-    )(getAttribute(['actorResource', 'resourceType']));
+    unless(bothCheck(ifThereIsActivityActor(), isNotEmpty), {
+      code: 400,
+      msg: 'Actor of activity seed did not have a resourceType'
+    })(getAttribute(['actorResource', 'resourceType']));
 
-    pipe(
-      validateInCase(ifThereIsActivityObject(), isNotEmpty),
-      otherwise({
-        code: 400,
-        msg: 'Object of activity seed was specified and did not have a resourceId'
-      })
-    )(getAttribute(['objectResource', 'resourceId']));
+    unless(bothCheck(ifThereIsActivityObject(), isNotEmpty), {
+      code: 400,
+      msg: 'Object of activity seed was specified and did not have a resourceId'
+    })(getAttribute(['objectResource', 'resourceId']));
 
-    pipe(
-      validateInCase(ifThereIsActivityObject(), isNotEmpty),
-      otherwise({
-        code: 400,
-        msg: 'Object of activity seed was specified and did not have a resourceType'
-      })
-    )(getAttribute(['objectResource', 'resourceType']));
+    unless(bothCheck(ifThereIsActivityObject(), isNotEmpty), {
+      code: 400,
+      msg: 'Object of activity seed was specified and did not have a resourceType'
+    })(getAttribute(['objectResource', 'resourceType']));
 
-    pipe(
-      validateInCase(ifThereIsActivityTarget(), isNotEmpty),
-      otherwise({
-        code: 400,
-        msg: 'Target of activity seed was specified and did not have a resourceId'
-      })
-    )(getAttribute(['targetResource', 'resourceId']));
+    unless(bothCheck(ifThereIsActivityTarget(), isNotEmpty), {
+      code: 400,
+      msg: 'Target of activity seed was specified and did not have a resourceId'
+    })(getAttribute(['targetResource', 'resourceId']));
 
-    pipe(
-      validateInCase(ifThereIsActivityTarget(), isNotEmpty),
-      otherwise({
-        code: 400,
-        msg: 'Target of activity seed was specified and did not have a resourceType'
-      })
-    )(getAttribute(['targetResource', 'resourceType']));
+    unless(bothCheck(ifThereIsActivityTarget(), isNotEmpty), {
+      code: 400,
+      msg: 'Target of activity seed was specified and did not have a resourceType'
+    })(getAttribute(['targetResource', 'resourceType']));
   } catch (error) {
     return callback(error);
   }

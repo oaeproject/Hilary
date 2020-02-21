@@ -34,6 +34,7 @@ const log = require('oae-logger').logger('email-mapping-migrator');
 const OAE = require('oae-util/lib/oae');
 const PrincipalsDAO = require('oae-principals/lib/internal/dao');
 const { Validator } = require('oae-util/lib/validator');
+const { unless } = Validator;
 
 const { argv } = optimist
   .usage('$0 [--config <path/to/config.js>] [--warnings <path/to/warnings.csv>]')
@@ -131,10 +132,7 @@ const _mapPrincipals = function(principals, callback) {
 
     // Check whether the persisted email address is valid
     try {
-      pipe(
-        isEmail,
-        otherwise({ code: 400, msg: 'An invalid email address has been persisted' })
-      )(email);
+      unless(isEmail, { code: 400, msg: 'An invalid email address has been persisted' })(email);
     } catch (error) {
       return csvStream.write({
         principalId,
@@ -171,9 +169,7 @@ OAE.init(config, err => {
     log().info('Migration completed, it took %d milliseconds', Date.now() - start);
     log().info('Total users: %d, mapped users: %d', totalUsers, mappedUsers);
     if (mappedUsers !== totalUsers) {
-      log().warn(
-        "Not all users could be mapped, check the warning CSV file for which ones couldn't and why"
-      );
+      log().warn("Not all users could be mapped, check the warning CSV file for which ones couldn't and why");
     }
     _exit(0);
   });

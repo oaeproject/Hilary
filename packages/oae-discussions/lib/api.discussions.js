@@ -34,7 +34,7 @@ import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
 import { Validator as validator } from 'oae-authz/lib/validator';
 const {
   isValidRoleChange,
-  otherwise,
+  unless,
   isANumber,
   isDefined,
   isLoggedInUser,
@@ -44,10 +44,9 @@ const {
   isShortString,
   isMediumString,
   isArrayNotEmpty,
-  validateInCase,
+  validateInCase: bothCheck,
   isLongString
 } = validator;
-import pipe from 'ramda/src/pipe';
 import isIn from 'validator/lib/isIn';
 import isInt from 'validator/lib/isInt';
 
@@ -87,63 +86,42 @@ const createDiscussion = function(ctx, displayName, description, visibility, rol
 
   // Verify basic properties
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'Anonymous users cannot create a discussion'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Anonymous users cannot create a discussion'
+    })(ctx);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Must provide a display name for the discussion'
-      })
-    )(displayName);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Must provide a display name for the discussion'
+    })(displayName);
 
-    pipe(
-      isShortString,
-      otherwise({
-        code: 400,
-        msg: 'A display name can be at most 1000 characters long'
-      })
-    )(displayName);
+    unless(isShortString, {
+      code: 400,
+      msg: 'A display name can be at most 1000 characters long'
+    })(displayName);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Must provide a description for the discussion'
-      })
-    )(description);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Must provide a description for the discussion'
+    })(description);
 
-    pipe(
-      isMediumString,
-      otherwise({
-        code: 400,
-        msg: 'A description can be at most 10000 characters long'
-      })
-    )(description);
+    unless(isMediumString, {
+      code: 400,
+      msg: 'A description can be at most 10000 characters long'
+    })(description);
 
-    pipe(
-      isIn,
-      otherwise({
-        code: 400,
-        msg: 'An invalid discussion visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
-      })
-    )(visibility, allVisibilities);
+    unless(isIn, {
+      code: 400,
+      msg: 'An invalid discussion visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
+    })(visibility, allVisibilities);
 
     // Verify each role is valid
     forEachObjIndexed((role /* , memberId */) => {
-      pipe(
-        isIn,
-        otherwise({
-          code: 400,
-          msg: 'The role: ' + role + ' is not a valid member role for a discussion'
-        })
-      )(role, DiscussionsConstants.role.ALL_PRIORITY);
+      unless(isIn, {
+        code: 400,
+        msg: 'The role: ' + role + ' is not a valid member role for a discussion'
+      })(role, DiscussionsConstants.role.ALL_PRIORITY);
     }, roles);
   } catch (error) {
     return callback(error);
@@ -189,77 +167,50 @@ const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
   const allVisibilities = _.values(AuthzConstants.visibility);
 
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A discussion id must be provided'
-      })
-    )(discussionId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A discussion id must be provided'
+    })(discussionId);
 
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You must be authenticated to update a discussion'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You must be authenticated to update a discussion'
+    })(ctx);
 
-    pipe(
-      isArrayNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'You should at least one profile field to update'
-      })
-    )(_.keys(profileFields));
+    unless(isArrayNotEmpty, {
+      code: 400,
+      msg: 'You should at least one profile field to update'
+    })(_.keys(profileFields));
 
     forEachObjIndexed((value, field) => {
       const fieldIsVisibility = equals(field, VISIBILITY);
       const fieldIsDisplayName = equals(field, DISPLAY_NAME);
       const fieldIsDescription = equals(field, DESCRIPTION);
 
-      pipe(
-        isIn,
-        otherwise({
-          code: 400,
-          msg: "The field '" + field + "' is not a valid field. Must be one of: " + DISCUSSION_UPDATE_FIELDS.join(', ')
-        })
-      )(field, DISCUSSION_UPDATE_FIELDS);
-      pipe(
-        validateInCase(fieldIsVisibility, isIn),
-        otherwise({
-          code: 400,
-          msg: 'An invalid visibility was specified. Must be one of: ' + allVisibilities.join(', ')
-        })
-      )(value, allVisibilities);
-      pipe(
-        validateInCase(fieldIsDisplayName, isNotEmpty),
-        otherwise({
-          code: 400,
-          msg: 'A display name cannot be empty'
-        })
-      )(value);
-      pipe(
-        validateInCase(fieldIsDisplayName, isShortString),
-        otherwise({
-          code: 400,
-          msg: 'A display name can be at most 1000 characters long'
-        })
-      )(value);
-      pipe(
-        validateInCase(fieldIsDescription, isNotEmpty),
-        otherwise({
-          code: 400,
-          msg: 'A description cannot be empty'
-        })
-      )(value);
-      pipe(
-        validateInCase(fieldIsDescription, isMediumString),
-        otherwise({
-          code: 400,
-          msg: 'A description can only be 10000 characters long'
-        })
-      )(value);
+      unless(isIn, {
+        code: 400,
+        msg: "The field '" + field + "' is not a valid field. Must be one of: " + DISCUSSION_UPDATE_FIELDS.join(', ')
+      })(field, DISCUSSION_UPDATE_FIELDS);
+      unless(bothCheck(fieldIsVisibility, isIn), {
+        code: 400,
+        msg: 'An invalid visibility was specified. Must be one of: ' + allVisibilities.join(', ')
+      })(value, allVisibilities);
+      unless(bothCheck(fieldIsDisplayName, isNotEmpty), {
+        code: 400,
+        msg: 'A display name cannot be empty'
+      })(value);
+      unless(bothCheck(fieldIsDisplayName, isShortString), {
+        code: 400,
+        msg: 'A display name can be at most 1000 characters long'
+      })(value);
+      unless(bothCheck(fieldIsDescription, isNotEmpty), {
+        code: 400,
+        msg: 'A description cannot be empty'
+      })(value);
+      unless(bothCheck(fieldIsDescription, isMediumString), {
+        code: 400,
+        msg: 'A description can only be 10000 characters long'
+      })(value);
     }, profileFields);
   } catch (error) {
     return callback(error);
@@ -313,21 +264,15 @@ const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
  */
 const deleteDiscussion = function(ctx, discussionId, callback) {
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A discussion id must be provided'
-      })
-    )(discussionId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A discussion id must be provided'
+    })(discussionId);
 
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You must be authenticated to delete a discussion'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You must be authenticated to delete a discussion'
+    })(ctx);
   } catch (error) {
     return callback(error);
   }
@@ -405,13 +350,10 @@ const getDiscussionsLibrary = function(ctx, principalId, start, limit, callback)
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
-    pipe(
-      isPrincipalId,
-      otherwise({
-        code: 400,
-        msg: 'A user or group id must be provided'
-      })
-    )(principalId);
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'A user or group id must be provided'
+    })(principalId);
   } catch (error) {
     return callback(error);
   }
@@ -480,13 +422,10 @@ const getDiscussionsLibrary = function(ctx, principalId, start, limit, callback)
  */
 const getDiscussion = function(ctx, discussionId, callback) {
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'discussionId must be a valid resource id'
-      })
-    )(discussionId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'discussionId must be a valid resource id'
+    })(discussionId);
   } catch (error) {
     return callback(error);
   }
@@ -522,13 +461,10 @@ const getDiscussion = function(ctx, discussionId, callback) {
  */
 const getFullDiscussionProfile = function(ctx, discussionId, callback) {
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'discussionId must be a valid resource id'
-      })
-    )(discussionId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'discussionId must be a valid resource id'
+    })(discussionId);
   } catch (error) {
     return callback(error);
   }
@@ -600,13 +536,10 @@ const getDiscussionMembers = function(ctx, discussionId, start, limit, callback)
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A discussion id must be provided'
-      })
-    )(discussionId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A discussion id must be provided'
+    })(discussionId);
   } catch (error) {
     return callback(error);
   }
@@ -654,13 +587,10 @@ const getDiscussionMembers = function(ctx, discussionId, start, limit, callback)
  */
 const getDiscussionInvitations = function(ctx, discussionId, callback) {
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A valid resource id must be specified'
-      })
-    )(discussionId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid resource id must be specified'
+    })(discussionId);
   } catch (error) {
     return callback(error);
   }
@@ -685,13 +615,10 @@ const getDiscussionInvitations = function(ctx, discussionId, callback) {
  */
 const resendDiscussionInvitation = function(ctx, discussionId, email, callback) {
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A valid resource id must be specified'
-      })
-    )(discussionId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid resource id must be specified'
+    })(discussionId);
   } catch (error) {
     return callback(error);
   }
@@ -718,21 +645,15 @@ const resendDiscussionInvitation = function(ctx, discussionId, email, callback) 
  */
 const shareDiscussion = function(ctx, discussionId, principalIds, callback) {
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to share a discussion'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to share a discussion'
+    })(ctx);
 
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A valid discussion id must be provided'
-      })
-    )(discussionId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid discussion id must be provided'
+    })(discussionId);
   } catch (error) {
     return callback(error);
   }
@@ -782,44 +703,32 @@ const shareDiscussion = function(ctx, discussionId, principalIds, callback) {
  */
 const setDiscussionPermissions = function(ctx, discussionId, changes, callback) {
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to change discussion permissions'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to change discussion permissions'
+    })(ctx);
 
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A valid discussion id must be provided'
-      })
-    )(discussionId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid discussion id must be provided'
+    })(discussionId);
 
     forEachObjIndexed((role /* , principalId */) => {
-      pipe(
-        isValidRoleChange,
-        otherwise({
-          code: 400,
-          msg: 'The role change: ' + role + ' is not a valid value. Must either be a string, or false'
-        })
-      )(role);
+      unless(isValidRoleChange, {
+        code: 400,
+        msg: 'The role change: ' + role + ' is not a valid value. Must either be a string, or false'
+      })(role);
 
       const thereIsARole = Boolean(role);
-      pipe(
-        validateInCase(thereIsARole, isIn),
-        otherwise({
-          code: 400,
-          msg:
-            'The role: "' +
-            role +
-            '" is not a valid value. Must be one of: ' +
-            DiscussionsConstants.role.ALL_PRIORITY.join(', ') +
-            '; or false'
-        })
-      )(role, DiscussionsConstants.role.ALL_PRIORITY);
+      unless(bothCheck(thereIsARole, isIn), {
+        code: 400,
+        msg:
+          'The role: "' +
+          role +
+          '" is not a valid value. Must be one of: ' +
+          DiscussionsConstants.role.ALL_PRIORITY.join(', ') +
+          '; or false'
+      })(role, DiscussionsConstants.role.ALL_PRIORITY);
     }, changes);
   } catch (error) {
     return callback(error);
@@ -872,29 +781,20 @@ const setDiscussionPermissions = function(ctx, discussionId, changes, callback) 
  */
 const removeDiscussionFromLibrary = function(ctx, libraryOwnerId, discussionId, callback) {
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You must be authenticated to remove a discussion from a library'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You must be authenticated to remove a discussion from a library'
+    })(ctx);
 
-    pipe(
-      isPrincipalId,
-      otherwise({
-        code: 400,
-        msg: 'A user or group id must be provided'
-      })
-    )(libraryOwnerId);
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'A user or group id must be provided'
+    })(libraryOwnerId);
 
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'An invalid discussion id "' + discussionId + '" was provided'
-      })
-    )(discussionId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'An invalid discussion id "' + discussionId + '" was provided'
+    })(discussionId);
   } catch (error) {
     return callback(error);
   }
@@ -955,43 +855,28 @@ const removeDiscussionFromLibrary = function(ctx, libraryOwnerId, discussionId, 
  */
 const createMessage = function(ctx, discussionId, body, replyToCreatedTimestamp, callback) {
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'Only authenticated users can post on discussions'
-      })
-    )(ctx);
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'Invalid discussion id provided'
-      })
-    )(discussionId);
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'A discussion body must be provided'
-      })
-    )(body);
-    pipe(
-      isLongString,
-      otherwise({
-        code: 400,
-        msg: 'A discussion body can only be 100000 characters long'
-      })
-    )(body);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Only authenticated users can post on discussions'
+    })(ctx);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Invalid discussion id provided'
+    })(discussionId);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A discussion body must be provided'
+    })(body);
+    unless(isLongString, {
+      code: 400,
+      msg: 'A discussion body can only be 100000 characters long'
+    })(body);
 
     const timestampIsDefined = isDefined(replyToCreatedTimestamp);
-    pipe(
-      validateInCase(timestampIsDefined, isInt),
-      otherwise({
-        code: 400,
-        msg: 'Invalid reply-to timestamp provided'
-      })
-    )(replyToCreatedTimestamp);
+    unless(bothCheck(timestampIsDefined, isInt), {
+      code: 400,
+      msg: 'Invalid reply-to timestamp provided'
+    })(replyToCreatedTimestamp);
   } catch (error) {
     return callback(error);
   }
@@ -1061,27 +946,18 @@ const createMessage = function(ctx, discussionId, body, replyToCreatedTimestamp,
  */
 const deleteMessage = function(ctx, discussionId, messageCreatedDate, callback) {
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'Only authenticated users can delete messages'
-      })
-    )(ctx);
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A discussion id must be provided'
-      })
-    )(discussionId);
-    pipe(
-      isInt,
-      otherwise({
-        code: 400,
-        msg: 'A valid integer message created timestamp must be specified'
-      })
-    )(messageCreatedDate);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Only authenticated users can delete messages'
+    })(ctx);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A discussion id must be provided'
+    })(discussionId);
+    unless(isInt, {
+      code: 400,
+      msg: 'A valid integer message created timestamp must be specified'
+    })(messageCreatedDate);
   } catch (error) {
     return callback(error);
   }
@@ -1157,20 +1033,14 @@ const getMessages = function(ctx, discussionId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'Must provide a valid discussion id'
-      })
-    )(discussionId);
-    pipe(
-      isANumber,
-      otherwise({
-        code: 400,
-        msg: 'Must provide a valid limit'
-      })
-    )(limit);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Must provide a valid discussion id'
+    })(discussionId);
+    unless(isANumber, {
+      code: 400,
+      msg: 'Must provide a valid limit'
+    })(limit);
   } catch (error) {
     return callback(error);
   }

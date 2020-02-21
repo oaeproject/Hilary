@@ -24,9 +24,18 @@ import * as TenantsAPI from 'oae-tenants';
 import { logger } from 'oae-logger';
 
 import { Validator as validator } from 'oae-util/lib/validator';
-const { validateInCase, isString, isUserId, otherwise, isNotNull } = validator;
-import { isPast, toDate } from 'date-fns';
-import { curry, __, not, pipe, head } from 'ramda';
+const {
+  validateInCase: bothCheck,
+  isANumber,
+  dateIsInThePast,
+  isString,
+  isUserId,
+  unless,
+  isNotNull,
+  toInt
+} = validator;
+import { isPast } from 'date-fns';
+import { compose, not, head } from 'ramda';
 import isInt from 'validator/lib/isInt';
 import isIn from 'validator/lib/isIn';
 import * as MessageBoxModel from './model';
@@ -142,62 +151,41 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
   opts = opts || {};
 
   try {
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'A messageBoxId must be specified.'
-      })
-    )(messageBoxId);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'A messageBoxId must be specified.'
+    })(messageBoxId);
 
-    pipe(
-      isUserId,
-      otherwise({
-        code: 400,
-        msg: 'The createdBy parameter must be a valid user id.'
-      })
-    )(createdBy);
+    unless(isUserId, {
+      code: 400,
+      msg: 'The createdBy parameter must be a valid user id.'
+    })(createdBy);
 
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'The body of the message must be specified.'
-      })
-    )(body);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'The body of the message must be specified.'
+    })(body);
 
     const isReplyToDefined = Boolean(opts.replyToCreated);
-    pipe(
-      validateInCase(isReplyToDefined, isNotNull),
-      otherwise({
-        code: 400,
-        msg: 'If the replyToCreated optional parameter is specified, it should not be null nor undefined.'
-      })
-    )(opts.replyToCreated);
+    unless(bothCheck(isReplyToDefined, isNotNull), {
+      code: 400,
+      msg: 'If the replyToCreated optional parameter is specified, it should not be null nor undefined.'
+    })(opts.replyToCreated);
 
-    pipe(
-      validateInCase(isReplyToDefined, isString),
-      otherwise({
-        code: 400,
-        msg: 'If the replyToCreated optional parameter is specified, it should not be a String.'
-      })
-    )(opts.replyToCreated);
+    unless(bothCheck(isReplyToDefined, isString), {
+      code: 400,
+      msg: 'If the replyToCreated optional parameter is specified, it should not be a String.'
+    })(opts.replyToCreated);
 
-    pipe(
-      validateInCase(isReplyToDefined, isInt),
-      otherwise({
-        code: 400,
-        msg: 'If the replyToCreated optional parameter is specified, it should be an integer.'
-      })
-    )(opts.replyToCreated);
+    unless(bothCheck(isReplyToDefined, isInt), {
+      code: 400,
+      msg: 'If the replyToCreated optional parameter is specified, it should be an integer.'
+    })(opts.replyToCreated);
 
-    pipe(
-      validateInCase(isReplyToDefined, isPast),
-      otherwise({
-        code: 400,
-        msg: 'If the replyToCreated optional parameter is specified, it cannot be in the future.'
-      })
-    )(new Date(parseInt(opts.replyToCreated, 10)));
+    unless(bothCheck(isReplyToDefined, isPast), {
+      code: 400,
+      msg: 'If the replyToCreated optional parameter is specified, it cannot be in the future.'
+    })(new Date(parseInt(opts.replyToCreated, 10)));
   } catch (error) {
     return callback(error);
   }
@@ -332,56 +320,35 @@ const _lockUniqueTimestamp = function(id, timestamp, callback) {
  */
 const updateMessageBody = function(messageBoxId, created, newBody, callback) {
   try {
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'A messageBoxId must be specified.'
-      })
-    )(messageBoxId);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'A messageBoxId must be specified.'
+    })(messageBoxId);
 
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'The created parameter must be specified.'
-      })
-    )(created);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'The created parameter must be specified.'
+    })(created);
 
-    pipe(
-      isString,
-      otherwise({
-        code: 400,
-        msg: 'The created parameter must be a valid timestamp (string).'
-      })
-    )(created);
+    unless(isString, {
+      code: 400,
+      msg: 'The created parameter must be a valid timestamp (string).'
+    })(created);
 
-    pipe(
-      isInt,
-      otherwise({
-        code: 400,
-        msg: 'The created parameter must be a valid timestamp (numeric string).'
-      })
-    )(created);
+    unless(isInt, {
+      code: 400,
+      msg: 'The created parameter must be a valid timestamp (numeric string).'
+    })(created);
 
-    const toInt = curry(parseInt)(__, 10);
-    pipe(
-      toInt,
-      toDate,
-      isPast,
-      otherwise({
-        code: 400,
-        msg: 'The created parameter must be a valid timestamp (integer) that is not in the future.'
-      })
-    )(created);
+    unless(dateIsInThePast, {
+      code: 400,
+      msg: 'The created parameter must be a valid timestamp (integer) that is not in the future.'
+    })(created);
 
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'The new body of the message must be specified.'
-      })
-    )(newBody);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'The new body of the message must be specified.'
+    })(newBody);
   } catch (error) {
     return callback(error);
   }
@@ -422,13 +389,10 @@ const getMessagesFromMessageBox = function(messageBoxId, start, limit, opts, cal
   opts.scrubDeleted = opts.scrubDeleted !== false;
 
   try {
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'A messageBoxId must be specified.'
-      })
-    )(messageBoxId);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'A messageBoxId must be specified.'
+    })(messageBoxId);
   } catch (error) {
     return callback(error);
   }
@@ -470,39 +434,26 @@ const getMessages = function(messageBoxId, createdTimestamps, opts, callback) {
   opts.scrubDeleted = opts.scrubDeleted !== false;
 
   try {
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'A messageBoxId must be specified.'
-      })
-    )(messageBoxId);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'A messageBoxId must be specified.'
+    })(messageBoxId);
 
     createdTimestamps.forEach(timestamp => {
-      pipe(
-        isNotNull,
-        otherwise({
-          code: 400,
-          msg: 'A timestamp cannot be null.'
-        })
-      )(timestamp);
+      unless(isNotNull, {
+        code: 400,
+        msg: 'A timestamp cannot be null.'
+      })(timestamp);
 
-      pipe(
-        String,
-        isInt,
-        otherwise({
-          code: 400,
-          msg: 'A timestamp should be an integer.'
-        })
-      )(timestamp);
+      unless(compose(isANumber, toInt, String), {
+        code: 400,
+        msg: 'A timestamp should be an integer.'
+      })(timestamp);
 
-      pipe(
-        isPast,
-        otherwise({
-          code: 400,
-          msg: 'A timestamp cannot be in the future.'
-        })
-      )(new Date(parseInt(timestamp, 10)));
+      unless(isPast, {
+        code: 400,
+        msg: 'A timestamp cannot be in the future.'
+      })(new Date(parseInt(timestamp, 10)));
     });
   } catch (error) {
     return callback(error);
@@ -595,51 +546,32 @@ const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
   opts = opts || {};
 
   try {
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'A messageBoxId must be specified.'
-      })
-    )(messageBoxId);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'A messageBoxId must be specified.'
+    })(messageBoxId);
 
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'The createdTimestamp should not be null.'
-      })
-    )(createdTimestamp);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'The createdTimestamp should not be null.'
+    })(createdTimestamp);
 
-    pipe(
-      String,
-      isInt,
-      otherwise({
-        code: 400,
-        msg: 'The createdTimestamp should be a string.'
-      })
-    )(createdTimestamp);
+    unless(compose(isANumber, toInt, String), {
+      code: 400,
+      msg: 'The createdTimestamp should be a string.'
+    })(createdTimestamp);
 
-    const toInt = curry(parseInt)(__, 10);
-    pipe(
-      toInt,
-      toDate,
-      isPast,
-      otherwise({
-        code: 400,
-        msg: 'The createdTimestamp cannot be in the future.'
-      })
-    )(createdTimestamp);
+    unless(dateIsInThePast, {
+      code: 400,
+      msg: 'The createdTimestamp cannot be in the future.'
+    })(createdTimestamp);
 
     const isDeleteTypeDefined = Boolean(opts.deleteType);
     const deleteValues = _.values(MessageBoxConstants.deleteTypes);
-    pipe(
-      validateInCase(isDeleteTypeDefined, isIn),
-      otherwise({
-        code: 400,
-        msg: 'If the deleteType is specified it should be one of: ' + deleteValues.join(', ')
-      })
-    )(opts.deleteType, deleteValues);
+    unless(bothCheck(isDeleteTypeDefined, isIn), {
+      code: 400,
+      msg: 'If the deleteType is specified it should be one of: ' + deleteValues.join(', ')
+    })(opts.deleteType, deleteValues);
   } catch (error) {
     return callback(error);
   }
@@ -711,13 +643,10 @@ const getRecentContributions = function(messageBoxId, start, limit, callback) {
   start = start ? util.format('%s:%s', start.userId, start.created) : '';
 
   try {
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'A messageBoxId must be specified.'
-      })
-    )(messageBoxId);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'A messageBoxId must be specified.'
+    })(messageBoxId);
   } catch (error) {
     return callback(error);
   }

@@ -21,8 +21,7 @@ import { getFileListForFolder } from 'oae-util/lib/io';
 import * as modules from 'oae-util/lib/modules';
 import * as OaeUtil from 'oae-util/lib/util';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { otherwise, isNotEmpty } = validator;
-import pipe from 'ramda/src/pipe';
+const { unless, isNotEmpty } = validator;
 import isIn from 'validator/lib/isIn';
 
 import { logger } from 'oae-logger';
@@ -228,29 +227,20 @@ const getModules = function(type, callback) {
  */
 const getModuleDocumentation = function(moduleId, type, callback) {
   try {
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Missing module id'
-      })
-    )(moduleId);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing module id'
+    })(moduleId);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Missing module type'
-      })
-    )(type);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing module type'
+    })(type);
 
-    pipe(
-      isIn,
-      otherwise({
-        code: 400,
-        msg: 'Invalid module type. Accepted values are "backend" and "frontend"'
-      })
-    )(type, ['backend', 'frontend']);
+    unless(isIn, {
+      code: 400,
+      msg: 'Invalid module type. Accepted values are "backend" and "frontend"'
+    })(type, ['backend', 'frontend']);
   } catch (error) {
     return callback(error);
   }

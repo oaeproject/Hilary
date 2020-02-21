@@ -20,8 +20,7 @@ import * as EmitterAPI from 'oae-emitter';
 import * as SearchUtil from 'oae-search/lib/util';
 
 import { Validator as validator } from 'oae-util/lib/validator';
-const { otherwise, isNotEmpty, isArray, isObject, isArrayNotEmpty } = validator;
-import pipe from 'ramda/src/pipe';
+const { unless, isNotEmpty, isArray, isObject, isArrayNotEmpty } = validator;
 import { SearchConstants } from 'oae-search/lib/constants';
 import { SearchResult } from 'oae-search/lib/model';
 import * as MQ from 'oae-util/lib/mq';
@@ -428,46 +427,18 @@ const postIndexTask = function(resourceType, resources, index, callback) {
     };
 
   try {
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Must specify a resource type'
-      })
-    )(resourceType);
-
-    pipe(
-      isArray,
-      otherwise({
-        code: 400,
-        msg: '"resources" parameter must be an array'
-      })
-    )(resources);
-
-    pipe(
-      isObject,
-      otherwise({
-        code: 400,
-        msg: '"index" parameter must be an object'
-      })
-    )(index);
-
-    pipe(
-      isArrayNotEmpty,
-      otherwise({
-        code: 400,
-        msg: '"resources" parameter must be an array with one or more entries'
-      })
-    )(resources);
-
+    const code = 400;
+    let msg = 'Must specify a resource type';
+    unless(isNotEmpty, { code, msg })(resourceType);
+    msg = '"resources" parameter must be an array';
+    unless(isArray, { code, msg })(resources);
+    msg = '"index" parameter must be an object';
+    unless(isObject, { code, msg })(index);
+    msg = '"resources" parameter must be an array with one or more entries';
+    unless(isArrayNotEmpty, { code, msg })(resources);
+    msg = 'Each index resource must have an id';
     resources.forEach(resource => {
-      pipe(
-        isNotEmpty,
-        otherwise({
-          code: 400,
-          msg: 'Each index resource must have an id'
-        })
-      )(resource.id);
+      unless(isNotEmpty, { code, msg })(resource.id);
     });
   } catch (error) {
     return callback(error);

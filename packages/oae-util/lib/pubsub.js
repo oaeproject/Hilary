@@ -14,7 +14,6 @@
  */
 
 import { EventEmitter } from 'oae-emitter';
-import pipe from 'ramda/src/pipe';
 import * as Redis from './redis';
 import { Validator as validator } from './validator';
 
@@ -88,23 +87,17 @@ const init = function(config, callback) {
  */
 const publish = function(channel, message, callback) {
   callback = callback || function() {};
-  const { isNotEmpty, otherwise } = validator;
+  const { isNotEmpty, unless } = validator;
   try {
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'No channel was provided.'
-      })
-    )(channel);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'No channel was provided.'
+    })(channel);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'No message was provided.'
-      })
-    )(message);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'No message was provided.'
+    })(message);
   } catch (error) {
     return callback(error);
   }

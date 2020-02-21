@@ -23,7 +23,7 @@ import * as Redis from './redis';
 import OaeEmitter from './emitter';
 import * as OAE from './oae';
 import { Validator as validator } from './validator';
-const { otherwise, isNotEmpty, isNotNull, isJSON } = validator;
+const { unless, otherwise, isNotEmpty, isNotNull, isJSON } = validator;
 
 const log = logger('mq');
 const emitter = new EventEmitter();
@@ -325,13 +325,10 @@ const subscribe = (queueName, listener, callback) => {
   callback = callback || function() {};
 
   try {
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'No channel was provided.'
-      })
-    )(queueName);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'No channel was provided.'
+    })(queueName);
   } catch (error) {
     return callback(error);
   }
@@ -363,13 +360,10 @@ const subscribe = (queueName, listener, callback) => {
 const unsubscribe = (queueName, callback) => {
   callback = callback || function() {};
   try {
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'No channel was provided.'
-      })
-    )(queueName);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'No channel was provided.'
+    })(queueName);
   } catch (error) {
     return callback(error);
   }
@@ -435,21 +429,15 @@ const submit = (queueName, message, callback) => {
   callback = callback || function() {};
 
   try {
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'No channel was provided.'
-      })
-    )(queueName);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'No channel was provided.'
+    })(queueName);
 
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'No message was provided.'
-      })
-    )(message);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'No message was provided.'
+    })(message);
 
     pipe(
       String,
@@ -499,13 +487,10 @@ const getAllActiveClients = () => {
 const purgeQueue = (queueName, callback) => {
   callback = callback || function() {};
   try {
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'No channel was provided.'
-      })
-    )(queueName);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'No channel was provided.'
+    })(queueName);
   } catch (error) {
     return callback(error);
   }

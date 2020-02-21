@@ -44,6 +44,7 @@ import { setUpConfig } from 'oae-config';
 import { Context } from 'oae-context';
 import { Validator as validator } from 'oae-util/lib/validator';
 const {
+  unless,
   otherwise,
   isShortString,
   validateInCase,
@@ -169,37 +170,25 @@ const createUser = function(ctx, tenantAlias, displayName, opts, callback) {
   opts.isUserArchive = opts.isUserArchive || null;
 
   try {
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'A display name must be provided'
-      })
-    )(displayName);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A display name must be provided'
+    })(displayName);
 
-    pipe(
-      isShortString,
-      otherwise({
-        code: 400,
-        msg: 'A display name can be at most 1000 characters long'
-      })
-    )(displayName);
+    unless(isShortString, {
+      code: 400,
+      msg: 'A display name can be at most 1000 characters long'
+    })(displayName);
 
-    pipe(
-      isIn,
-      otherwise({
-        code: 400,
-        msg: 'The specified visibility setting is unknown'
-      })
-    )(opts.visibility, _.values(AuthzConstants.visibility));
+    unless(isIn, {
+      code: 400,
+      msg: 'The specified visibility setting is unknown'
+    })(opts.visibility, _.values(AuthzConstants.visibility));
 
-    pipe(
-      isIn,
-      otherwise({
-        code: 400,
-        msg: 'The specified email preference is invalid'
-      })
-    )(opts.emailPreference, _.values(PrincipalsConstants.emailPreferences));
+    unless(isIn, {
+      code: 400,
+      msg: 'The specified email preference is invalid'
+    })(opts.emailPreference, _.values(PrincipalsConstants.emailPreferences));
 
     // If an administrator is creating an account, we consider the email address to be verified
     opts.emailVerified = opts.emailVerified || (ctx.user() && ctx.user().isAdmin(tenantAlias)) || false;
@@ -210,13 +199,10 @@ const createUser = function(ctx, tenantAlias, displayName, opts, callback) {
       // E-mail addresses are always lower-cased as it makes them easier to deal with
       opts.email = opts.email.toLowerCase();
 
-      pipe(
-        isEmail,
-        otherwise({
-          code: 400,
-          msg: 'The specified email address is invalid'
-        })
-      )(opts.email);
+      unless(isEmail, {
+        code: 400,
+        msg: 'The specified email address is invalid'
+      })(opts.email);
     } else {
       // Avoid setting a falsey email address
       delete opts.email;
@@ -326,21 +312,15 @@ const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, 
 
   try {
     // Parameter validation
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'An existing tenant alias must be provided'
-      })
-    )(tenant);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'An existing tenant alias must be provided'
+    })(tenant);
 
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'A CSV file must be provided'
-      })
-    )(userCSV);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'A CSV file must be provided'
+    })(userCSV);
 
     const isUserCSVDefined = Boolean(userCSV);
     pipe(
@@ -361,37 +341,25 @@ const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, 
       })
     )(userCSV.size);
 
-    pipe(
-      validateInCase(isUserCSVDefined, isGreaterThanZero),
-      otherwise({
-        code: 400,
-        msg: 'Invalid size on the CSV file'
-      })
-    )(userCSV.size);
+    unless(validateInCase(isUserCSVDefined, isGreaterThanZero), {
+      code: 400,
+      msg: 'Invalid size on the CSV file'
+    })(userCSV.size);
 
-    pipe(
-      validateInCase(isUserCSVDefined, isNotEmpty),
-      otherwise({
-        code: 400,
-        msg: 'Missing name on the CSV file'
-      })
-    )(userCSV.name);
+    unless(validateInCase(isUserCSVDefined, isNotEmpty), {
+      code: 400,
+      msg: 'Missing name on the CSV file'
+    })(userCSV.name);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'An authentication strategy must be provided'
-      })
-    )(authenticationStrategy);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'An authentication strategy must be provided'
+    })(authenticationStrategy);
 
-    pipe(
-      isIn,
-      otherwise({
-        code: 400,
-        msg: 'The specified authentication strategy is unknown'
-      })
-    )(authenticationStrategy, _.values(AuthenticationConstants.providers));
+    unless(isIn, {
+      code: 400,
+      msg: 'The specified authentication strategy is unknown'
+    })(authenticationStrategy, _.values(AuthenticationConstants.providers));
   } catch (error) {
     return _cleanUpCSVFile(userCSV, () => {
       callback(error);
@@ -621,94 +589,67 @@ const updateUser = function(ctx, userId, profileFields, callback) {
 
   // Parameter validation
   try {
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'A valid user id must be provided'
-      })
-    )(userId);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A valid user id must be provided'
+    })(userId);
 
-    pipe(
-      isUserId,
-      otherwise({
-        code: 400,
-        msg: 'A valid user id must be provided'
-      })
-    )(userId);
+    unless(isUserId, {
+      code: 400,
+      msg: 'A valid user id must be provided'
+    })(userId);
 
     // Check that there is at least one updated profile field
-    pipe(
-      isArrayNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'At least one basic profile field should be specified'
-      })
-    )(profileFieldKeys);
+    unless(isArrayNotEmpty, {
+      code: 400,
+      msg: 'At least one basic profile field should be specified'
+    })(profileFieldKeys);
 
     // Verify that restricted properties aren't set here
     const validKeys = ['displayName', 'visibility', 'email', 'emailPreference', 'publicAlias', 'locale'];
     const invalidKeys = _.difference(profileFieldKeys, validKeys);
-    pipe(isArrayEmpty, otherwise({ code: 400, msg: 'Restricted property was attempted to be set.' }))(invalidKeys);
+    unless(isArrayEmpty, { code: 400, msg: 'Restricted property was attempted to be set.' })(invalidKeys);
 
     // Apply special restrictions on some profile fields
     const displayNameIsDefined = not(isNil(profileFields.displayName));
-    pipe(
-      validateInCase(displayNameIsDefined, isNotEmpty),
-      otherwise({
-        code: 400,
-        msg: 'A display name cannot be empty'
-      })
-    )(profileFields.displayName);
+    unless(validateInCase(displayNameIsDefined, isNotEmpty), {
+      code: 400,
+      msg: 'A display name cannot be empty'
+    })(profileFields.displayName);
 
-    pipe(
-      validateInCase(displayNameIsDefined, isShortString),
-      otherwise({
-        code: 400,
-        msg: 'A display name can be at most 1000 characters long'
-      })
-    )(profileFields.displayName);
+    unless(validateInCase(displayNameIsDefined, isShortString), {
+      code: 400,
+      msg: 'A display name can be at most 1000 characters long'
+    })(profileFields.displayName);
 
     const visibilityIsDefined = not(isNil(profileFields.visibility));
-    pipe(
-      validateInCase(visibilityIsDefined, isIn),
-      otherwise({
-        code: 400,
-        msg: 'An invalid visibility option has been specified'
-      })
-    )(profileFields.visibility, _.values(AuthzConstants.visibility));
+    unless(validateInCase(visibilityIsDefined, isIn), {
+      code: 400,
+      msg: 'An invalid visibility option has been specified'
+    })(profileFields.visibility, _.values(AuthzConstants.visibility));
 
     const emailIsDefined = not(isNil(profileFields.emailPreference));
-    pipe(
-      validateInCase(emailIsDefined, isIn),
-      otherwise({
-        code: 400,
-        msg: 'The specified emailPreference is invalid'
-      })
-    )(profileFields.emailPreference, _.values(PrincipalsConstants.emailPreferences));
+    unless(validateInCase(emailIsDefined, isIn), {
+      code: 400,
+      msg: 'The specified emailPreference is invalid'
+    })(profileFields.emailPreference, _.values(PrincipalsConstants.emailPreferences));
 
     if (_.isString(profileFields.email)) {
       // E-mail addresses are always lower-cased as it makes them easier to deal with
       profileFields.email = profileFields.email.toLowerCase();
-      pipe(
-        isEmail,
-        otherwise({
-          code: 400,
-          msg: 'The specified email address is invalid'
-        })
-      )(profileFields.email);
+      unless(isEmail, {
+        code: 400,
+        msg: 'The specified email address is invalid'
+      })(profileFields.email);
     } else {
       // Ensure we never set a false-y email
       delete profileFields.email;
     }
 
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to update a user'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to update a user'
+    })(ctx);
   } catch (error) {
     return callback(error);
   }
@@ -814,13 +755,10 @@ const canDeleteUser = function(ctx, userId, callback) {
  */
 const deleteUser = function(ctx, userId, callback) {
   try {
-    pipe(
-      isUserId,
-      otherwise({
-        code: 400,
-        msg: 'A valid user id must be provided'
-      })
-    )(userId);
+    unless(isUserId, {
+      code: 400,
+      msg: 'A valid user id must be provided'
+    })(userId);
   } catch (error) {
     return callback(error);
   }
@@ -988,13 +926,10 @@ const _restorePrincipals = function(usersToRestore, afterRestored) {
  */
 const restoreUser = function(ctx, userId, callback) {
   try {
-    pipe(
-      isUserId,
-      otherwise({
-        code: 400,
-        msg: 'A valid user id must be provided'
-      })
-    )(userId);
+    unless(isUserId, {
+      code: 400,
+      msg: 'A valid user id must be provided'
+    })(userId);
   } catch (error) {
     return callback(error);
   }
@@ -1054,13 +989,10 @@ const canRestoreUser = function(ctx, userId, callback) {
  */
 const getUser = function(ctx, userId, callback) {
   try {
-    pipe(
-      isUserId,
-      otherwise({
-        code: 400,
-        msg: 'An invalid user id was provided'
-      })
-    )(userId);
+    unless(isUserId, {
+      code: 400,
+      msg: 'An invalid user id was provided'
+    })(userId);
   } catch (error) {
     return callback(error);
   }
@@ -1080,13 +1012,10 @@ const getUser = function(ctx, userId, callback) {
  */
 const getFullUserProfile = function(ctx, userId, callback) {
   try {
-    pipe(
-      isUserId,
-      otherwise({
-        code: 400,
-        msg: 'An invalid user id was provided'
-      })
-    )(userId);
+    unless(isUserId, {
+      code: 400,
+      msg: 'An invalid user id was provided'
+    })(userId);
   } catch (error) {
     return callback(error);
   }
@@ -1361,21 +1290,15 @@ const _sendEmailToken = function(ctx, user, email, token, callback) {
  */
 const resendEmailToken = function(ctx, userId, callback) {
   try {
-    pipe(
-      isUserId,
-      otherwise({
-        code: 400,
-        msg: 'A valid user id must be provided'
-      })
-    )(userId);
+    unless(isUserId, {
+      code: 400,
+      msg: 'A valid user id must be provided'
+    })(userId);
 
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to resend an email token'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to resend an email token'
+    })(ctx);
   } catch (error) {
     return callback(error);
   }
@@ -1412,37 +1335,25 @@ const resendEmailToken = function(ctx, userId, callback) {
  */
 const verifyEmail = function(ctx, userId, token, callback) {
   try {
-    pipe(
-      isUserId,
-      otherwise({
-        code: 400,
-        msg: 'A valid user id must be provided'
-      })
-    )(userId);
+    unless(isUserId, {
+      code: 400,
+      msg: 'A valid user id must be provided'
+    })(userId);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'A token must be provided'
-      })
-    )(token);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A token must be provided'
+    })(token);
 
-    pipe(
-      (value, regex) => value.match(regex),
-      otherwise({
-        code: 400,
-        msg: 'An invalid token was provided'
-      })
-    )(token, /^[a-zA-Z0-9-_]{7,14}$/);
+    unless((value, regex) => value.match(regex), {
+      code: 400,
+      msg: 'An invalid token was provided'
+    })(token, /^[a-zA-Z0-9-_]{7,14}$/);
 
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to verify an email address'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to verify an email address'
+    })(ctx);
   } catch (error) {
     return callback(error);
   }
@@ -1488,21 +1399,15 @@ const verifyEmail = function(ctx, userId, token, callback) {
  */
 const getEmailToken = function(ctx, userId, callback) {
   try {
-    pipe(
-      isUserId,
-      otherwise({
-        code: 400,
-        msg: 'A valid user id must be provided'
-      })
-    )(userId);
+    unless(isUserId, {
+      code: 400,
+      msg: 'A valid user id must be provided'
+    })(userId);
 
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to check for the existence of a pending email token'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to check for the existence of a pending email token'
+    })(ctx);
   } catch (error) {
     return callback(error);
   }
@@ -1535,21 +1440,15 @@ const getEmailToken = function(ctx, userId, callback) {
  */
 const deleteEmailToken = function(ctx, userId, callback) {
   try {
-    pipe(
-      isUserId,
-      otherwise({
-        code: 400,
-        msg: 'A valid user id must be provided'
-      })
-    )(userId);
+    unless(isUserId, {
+      code: 400,
+      msg: 'A valid user id must be provided'
+    })(userId);
 
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to delete a pending email token'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to delete a pending email token'
+    })(ctx);
   } catch (error) {
     return callback(error);
   }
@@ -1591,29 +1490,20 @@ const deleteEmailToken = function(ctx, userId, callback) {
  */
 const exportData = function(ctx, userId, exportType, callback) {
   try {
-    pipe(
-      isUserId,
-      otherwise({
-        code: 400,
-        msg: 'A valid user id must be provided'
-      })
-    )(userId);
+    unless(isUserId, {
+      code: 400,
+      msg: 'A valid user id must be provided'
+    })(userId);
 
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to delete a pending email token'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to delete a pending email token'
+    })(ctx);
 
-    pipe(
-      isIn,
-      otherwise({
-        code: 402,
-        msg: 'An invalid exportType has been specified'
-      })
-    )(exportType, _.values(PrincipalsConstants.exportType));
+    unless(isIn, {
+      code: 402,
+      msg: 'An invalid exportType has been specified'
+    })(exportType, _.values(PrincipalsConstants.exportType));
   } catch (error) {
     return callback(error);
   }

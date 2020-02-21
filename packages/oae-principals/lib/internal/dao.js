@@ -27,8 +27,7 @@ import * as Redis from 'oae-util/lib/redis';
 
 import { Group, User } from 'oae-principals/lib/model';
 import { Validator as validator } from 'oae-authz/lib/validator';
-const { toBoolean, isPrincipalId, isArrayEmpty, otherwise } = validator;
-import pipe from 'ramda/src/pipe';
+const { unless, toBoolean, isPrincipalId, isArrayEmpty } = validator;
 
 import { LoginId } from 'oae-authentication/lib/model';
 import { PrincipalsConstants } from '../constants';
@@ -275,13 +274,10 @@ const updatePrincipal = function(principalId, profileFields, callback) {
   const invalidKeys = _.intersection(RESTRICTED_FIELDS, _.keys(profileFields));
 
   try {
-    pipe(
-      isArrayEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Attempted to update an invalid property'
-      })
-    )(invalidKeys);
+    unless(isArrayEmpty, {
+      code: 400,
+      msg: 'Attempted to update an invalid property'
+    })(invalidKeys);
   } catch (error) {
     return callback(error);
   }
@@ -401,13 +397,10 @@ const acceptTermsAndConditions = function(userId, callback) {
 const setAdmin = function(adminType, isAdmin, userId, callback) {
   // Ensure we're using a real principal id. If we weren't, we would be dangerously upserting an invalid row
   try {
-    pipe(
-      isPrincipalId,
-      otherwise({
-        code: 400,
-        msg: 'Attempted to update a principal with a non-principal id'
-      })
-    )(userId);
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'Attempted to update a principal with a non-principal id'
+    })(userId);
   } catch (error) {
     return callback(error);
   }
@@ -629,13 +622,10 @@ const _updatePrincipal = function(principalId, profileFields, callback) {
 
   // Ensure we aren't updating a non-principal to avoid upserting invalid rows
   try {
-    pipe(
-      isPrincipalId,
-      otherwise({
-        code: 400,
-        msg: 'Attempted to update a principal with a non-principal id'
-      })
-    )(principalId);
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'Attempted to update a principal with a non-principal id'
+    })(principalId);
   } catch (error) {
     return callback(error);
   }

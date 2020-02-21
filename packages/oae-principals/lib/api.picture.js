@@ -24,7 +24,7 @@ import * as AuthzPermissions from 'oae-authz/lib/permissions';
 import * as ContentUtil from 'oae-content/lib/internal/util';
 import * as ImageUtil from 'oae-util/lib/image';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { validateInCase, otherwise, isLoggedInUser, isPrincipalId, isNotNull, isNotEmpty } = validator;
+const { validateInCase, unless, otherwise, isLoggedInUser, isPrincipalId, isNotNull, isNotEmpty } = validator;
 import pipe from 'ramda/src/pipe';
 import isInt from 'validator/lib/isInt';
 import * as GroupAPI from './api.group';
@@ -60,29 +60,20 @@ const storePicture = function(ctx, principalId, file, callback) {
     };
 
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to update a picture'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to update a picture'
+    })(ctx);
 
-    pipe(
-      isPrincipalId,
-      otherwise({
-        code: 400,
-        msg: 'A principal ID must be provided'
-      })
-    )(principalId);
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'A principal ID must be provided'
+    })(principalId);
 
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'A file must be provided'
-      })
-    )(file);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'A file must be provided'
+    })(file);
 
     const fileIsThere = Boolean(file);
     pipe(
@@ -95,23 +86,20 @@ const storePicture = function(ctx, principalId, file, callback) {
     )(file.size);
 
     const UPLOAD_LIMIT = 10485760;
-    pipe(
+    unless(
       validateInCase(fileIsThere, (size, max) => {
         return size <= max;
       }),
-      otherwise({
+      {
         code: 400,
         msg: 'The size of a picture has an upper limit of 10MB.'
-      })
+      }
     )(file.size, UPLOAD_LIMIT);
 
-    pipe(
-      validateInCase(fileIsThere, isNotEmpty),
-      otherwise({
-        code: 400,
-        msg: 'Missing name on the file object.'
-      })
-    )(file.name);
+    unless(validateInCase(fileIsThere, isNotEmpty), {
+      code: 400,
+      msg: 'Missing name on the file object.'
+    })(file.name);
   } catch (error) {
     return _cleanupOnError(error, file, callback);
   }
@@ -209,21 +197,15 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
 
   // Parameter validation
   try {
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'You have to be logged in to be able to update a picture'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to update a picture'
+    })(ctx);
 
-    pipe(
-      isPrincipalId,
-      otherwise({
-        code: 400,
-        msg: 'A principal id must be provided'
-      })
-    )(principalId);
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'A principal id must be provided'
+    })(principalId);
 
     pipe(
       String,

@@ -25,8 +25,8 @@ import readdirp from 'readdirp';
 import * as restjsdoc from 'restjsdoc';
 import * as TenantsUtil from 'oae-tenants/lib/util';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { validateInCase, isNotEmpty, notContains, otherwise } = validator;
-import { pipe, equals, forEachObjIndexed } from 'ramda';
+const { validateInCase, isNotEmpty, notContains, unless } = validator;
+import { equals, forEachObjIndexed } from 'ramda';
 import isIn from 'validator/lib/isIn';
 import * as SwaggerParamTypes from './swaggerParamTypes';
 
@@ -309,42 +309,30 @@ const _addSwaggerEndpoint = function(spec, resources) {
  */
 const _appendToApi = function(rootResource, api, spec) {
   try {
-    pipe(
-      isNotEmpty,
-      otherwise({
-        msg: 'Nickname must exist',
-        path: api.path
-      })
-    )(spec.nickname);
+    unless(isNotEmpty, {
+      msg: 'Nickname must exist',
+      path: api.path
+    })(spec.nickname);
 
-    pipe(
-      notContains,
-      otherwise({
-        path: api.path,
-        msg: 'Nicknames cannot contain spaces: ' + spec.nickname
-      })
-    )(spec.nickname, ' ');
+    unless(notContains, {
+      path: api.path,
+      msg: 'Nicknames cannot contain spaces: ' + spec.nickname
+    })(spec.nickname, ' ');
 
     // Parse and validate params
     forEachObjIndexed(param => {
-      pipe(
-        isIn,
-        otherwise({
-          path: api.path,
-          name: param.name,
-          msg: 'Invalid param type: ' + param.paramType
-        })
-      )(param.paramType, Constants.paramTypes);
+      unless(isIn, {
+        path: api.path,
+        name: param.name,
+        msg: 'Invalid param type: ' + param.paramType
+      })(param.paramType, Constants.paramTypes);
 
       const pathIsValid = equals(param.paramType, 'path');
-      pipe(
-        validateInCase(pathIsValid, isIn),
-        otherwise({
-          path: api.path,
-          name: param.name,
-          msg: 'Invalid path'
-        })
-      )(param.name, api.path);
+      unless(validateInCase(pathIsValid, isIn), {
+        path: api.path,
+        name: param.name,
+        msg: 'Invalid path'
+      })(param.name, api.path);
     }, spec.params);
   } catch (error) {
     return log().warn(

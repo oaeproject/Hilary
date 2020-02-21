@@ -20,7 +20,6 @@ import * as ContentDAO from 'oae-content/lib/internal/dao';
 import * as EmitterAPI from 'oae-emitter';
 import * as RestUtil from 'oae-rest/lib/util';
 import * as MQ from 'oae-util/lib/mq';
-import pipe from 'ramda/src/pipe';
 
 import { telemetry } from 'oae-telemetry';
 
@@ -39,7 +38,7 @@ import * as FolderProcessor from 'oae-preview-processor/lib/processors/folder';
 import { logger } from 'oae-logger';
 import { Validator as validator } from 'oae-util/lib/validator';
 const {
-  otherwise,
+  unless,
   isNotEmpty,
   isNil,
   isObject,
@@ -245,11 +244,11 @@ const getConfiguration = function() {
  * @param  {Function}   processor.generatePreviews  The method that generates previews for a piece of content.
  */
 const registerProcessor = function(processorId, processor) {
-  pipe(isNotEmpty, otherwise(new Error('Missing processor ID')))(processorId);
-  pipe(isNil, otherwise(new Error('This processor is already registerd')))(_processors[processorId]);
-  pipe(isModule, otherwise(new Error('Missing processor')))(processor);
-  pipe(isNotNull, otherwise(new Error('The processor has no test method')))(processor.test);
-  pipe(isNotNull, otherwise(new Error('The processor has no generatePreviews method')))(processor.generatePreviews);
+  unless(isNotEmpty, new Error('Missing processor ID'))(processorId);
+  unless(isNil, new Error('This processor is already registerd'))(_processors[processorId]);
+  unless(isModule, new Error('Missing processor'))(processor);
+  unless(isNotNull, new Error('The processor has no test method'))(processor.test);
+  unless(isNotNull, new Error('The processor has no generatePreviews method'))(processor.generatePreviews);
 
   _processors[processorId] = processor;
 };
@@ -371,30 +370,21 @@ const reprocessPreviews = function(ctx, filters, callback) {
     };
 
   try {
-    pipe(
-      isGlobalAdministratorUser,
-      otherwise({
-        code: 401,
-        msg: 'Must be global administrator to reprocess previews'
-      })
-    )(ctx);
+    unless(isGlobalAdministratorUser, {
+      code: 401,
+      msg: 'Must be global administrator to reprocess previews'
+    })(ctx);
 
-    pipe(
-      isObject,
-      otherwise({
-        code: 400,
-        msg: 'At least one filter must be specified'
-      })
-    )(filters);
+    unless(isObject, {
+      code: 400,
+      msg: 'At least one filter must be specified'
+    })(filters);
 
     const areThereFilters = isModule(filters);
-    pipe(
-      validateInCase(areThereFilters, isArrayNotEmpty),
-      otherwise({
-        code: 400,
-        msg: 'At least one filter must be specified'
-      })
-    )(_.keys(filters));
+    unless(validateInCase(areThereFilters, isArrayNotEmpty), {
+      code: 400,
+      msg: 'At least one filter must be specified'
+    })(_.keys(filters));
   } catch (error) {
     return callback(error);
   }
@@ -416,29 +406,20 @@ const reprocessPreviews = function(ctx, filters, callback) {
  */
 const reprocessPreview = function(ctx, contentId, revisionId, callback) {
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A content id must be provided'
-      })
-    )(contentId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A content id must be provided'
+    })(contentId);
 
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'A revision id must be provided'
-      })
-    )(revisionId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A revision id must be provided'
+    })(revisionId);
 
-    pipe(
-      isLoggedInUser,
-      otherwise({
-        code: 401,
-        msg: 'Must be logged in to reprocess previews'
-      })
-    )(ctx);
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Must be logged in to reprocess previews'
+    })(ctx);
   } catch (error) {
     return callback(error);
   }

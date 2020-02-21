@@ -25,7 +25,7 @@ import _ from 'underscore';
 import { logger } from 'oae-logger';
 
 import { Validator as validator } from 'oae-util/lib/validator';
-const { validateInCase, otherwise, isObject, isNotNull, isArrayNotEmpty } = validator;
+const { otherwise, unless, validateInCase, isObject, isNotNull, isArrayNotEmpty } = validator;
 import { curry, __, pipe, gte as greaterOrEqualThan, gt as greaterThan } from 'ramda';
 
 const log = logger('oae-util-image');
@@ -119,21 +119,15 @@ const autoOrient = function(inputPath, opts, callback) {
  */
 const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
   try {
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'A path to the image that you want to crop is missing'
-      })
-    )(imagePath);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'A path to the image that you want to crop is missing'
+    })(imagePath);
 
-    pipe(
-      isObject,
-      otherwise({
-        code: 400,
-        msg: 'The coordinates for the area you wish to crop must be specified'
-      })
-    )(selectedArea);
+    unless(isObject, {
+      code: 400,
+      msg: 'The coordinates for the area you wish to crop must be specified'
+    })(selectedArea);
 
     const selectedAreaIsDefined = Boolean(selectedArea);
     pipe(
@@ -172,22 +166,16 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
       })
     )(selectedArea.height);
 
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'The desired sizes array is missing'
-      })
-    )(sizes);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'The desired sizes array is missing'
+    })(sizes);
 
     const sizesAreDefined = Boolean(sizes);
-    pipe(
-      validateInCase(sizesAreDefined, isArrayNotEmpty),
-      otherwise({
-        code: 400,
-        msg: 'The desired sizes array is empty'
-      })
-    )(sizes);
+    unless(validateInCase(sizesAreDefined, isArrayNotEmpty), {
+      code: 400,
+      msg: 'The desired sizes array is empty'
+    })(sizes);
 
     for (const element of sizes) {
       pipe(
@@ -199,13 +187,10 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
         })
       )(element.width);
 
-      pipe(
-        validateInCase(sizesAreDefined, oneOrGreater),
-        otherwise({
-          code: 400,
-          msg: 'The height needs to be a valid integer larger than 0'
-        })
-      )(element.height);
+      unless(validateInCase(sizesAreDefined, oneOrGreater), {
+        code: 400,
+        msg: 'The height needs to be a valid integer larger than 0'
+      })(element.height);
     }
   } catch (error) {
     return callback(error);
@@ -269,54 +254,36 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
  */
 const cropImage = function(imagePath, selectedArea, callback) {
   try {
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'A path to the image that you want to crop is missing'
-      })
-    )(imagePath);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'A path to the image that you want to crop is missing'
+    })(imagePath);
 
-    pipe(
-      isObject,
-      otherwise({
-        code: 400,
-        msg: 'The coordinates for the area you wish to crop must be specified'
-      })
-    )(selectedArea);
+    unless(isObject, {
+      code: 400,
+      msg: 'The coordinates for the area you wish to crop must be specified'
+    })(selectedArea);
 
     const selectedAreaIsDefined = Boolean(selectedArea);
-    pipe(
-      validateInCase(selectedAreaIsDefined, zeroOrGreater),
-      otherwise({
-        code: 400,
-        msg: 'The x-coordinate needs to be a valid integer'
-      })
-    )(selectedArea.x);
+    unless(validateInCase(selectedAreaIsDefined, zeroOrGreater), {
+      code: 400,
+      msg: 'The x-coordinate needs to be a valid integer'
+    })(selectedArea.x);
 
-    pipe(
-      validateInCase(selectedAreaIsDefined, zeroOrGreater),
-      otherwise({
-        code: 400,
-        msg: 'The y-coordinate needs to be a valid integer'
-      })
-    )(selectedArea.y);
+    unless(validateInCase(selectedAreaIsDefined, zeroOrGreater), {
+      code: 400,
+      msg: 'The y-coordinate needs to be a valid integer'
+    })(selectedArea.y);
 
-    pipe(
-      validateInCase(selectedAreaIsDefined, zeroOrGreater),
-      otherwise({
-        code: 400,
-        msg: 'The width value must be an integer larger than 0'
-      })
-    )(selectedArea.width);
+    unless(validateInCase(selectedAreaIsDefined, zeroOrGreater), {
+      code: 400,
+      msg: 'The width value must be an integer larger than 0'
+    })(selectedArea.width);
 
-    pipe(
-      validateInCase(selectedAreaIsDefined, oneOrGreater),
-      otherwise({
-        code: 400,
-        msg: 'The height value must be an integer larger than 0'
-      })
-    )(selectedArea.height);
+    unless(validateInCase(selectedAreaIsDefined, oneOrGreater), {
+      code: 400,
+      msg: 'The height value must be an integer larger than 0'
+    })(selectedArea.height);
   } catch (error) {
     return callback(error);
   }
@@ -417,38 +384,26 @@ const _cropImage = function(imagePath, selectedArea, callback) {
  */
 const resizeImage = function(imagePath, size, callback) {
   try {
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'A path to the image that you want to resize is missing'
-      })
-    )(imagePath);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'A path to the image that you want to resize is missing'
+    })(imagePath);
 
-    pipe(
-      isObject,
-      otherwise({
-        code: 400,
-        msg: 'The size must be specified'
-      })
-    )(size);
+    unless(isObject, {
+      code: 400,
+      msg: 'The size must be specified'
+    })(size);
 
     const sizeIsDefined = Boolean(size);
-    pipe(
-      validateInCase(sizeIsDefined, oneOrGreater),
-      otherwise({
-        code: 400,
-        msg: 'The width needs to be a valid integer larger than 0'
-      })
-    )(size.width);
+    unless(validateInCase(sizeIsDefined, oneOrGreater), {
+      code: 400,
+      msg: 'The width needs to be a valid integer larger than 0'
+    })(size.width);
 
-    pipe(
-      validateInCase(sizeIsDefined, oneOrGreater),
-      otherwise({
-        code: 400,
-        msg: 'The height needs to be a valid integer larger than 0'
-      })
-    )(size.height);
+    unless(validateInCase(sizeIsDefined, oneOrGreater), {
+      code: 400,
+      msg: 'The height needs to be a valid integer larger than 0'
+    })(size.height);
   } catch (error) {
     return callback(error);
   }
@@ -547,13 +502,10 @@ const getImageExtension = function(source, fallback) {
  */
 const convertToJPG = function(inputPath, callback) {
   try {
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'A path to the image that you want to resize is missing'
-      })
-    )(inputPath);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'A path to the image that you want to resize is missing'
+    })(inputPath);
   } catch (error) {
     return callback(error);
   }

@@ -54,14 +54,6 @@ const _isFalse = value => equals(value, false);
 
 const _isItLengthy = interval => value => isLength(value, interval);
 
-// TODO JSdoc
-const unless = (validation, error) => {
-  return (...args) => {
-    const validationFails = compose(not, validation)(...args);
-    if (validationFails) throw error;
-  };
-};
-
 /**
  * @function isDifferent
  * @param  {String} input       Value being compared, **which will be converted to a String**
@@ -153,6 +145,14 @@ const otherwise = error => validationPassed => {
   when(not, () => {
     throw error;
   })(validationPassed);
+};
+
+// TODO JSdoc
+const unless = (validation, error) => {
+  return (...args) => {
+    const validationFails = compose(not, validation)(...args);
+    if (validationFails) throw error;
+  };
 };
 
 /**

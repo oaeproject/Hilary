@@ -24,8 +24,7 @@ import * as AuthzUtil from 'oae-authz/lib/util';
 import { logger } from 'oae-logger';
 import PrincipalsApi from 'oae-principals';
 import { Validator as validator } from 'oae-authz/lib/validator';
-const { otherwise, isGroupId, isNotEmpty } = validator;
-import pipe from 'ramda/src/pipe';
+const { isGroupId, unless, isNotEmpty } = validator;
 
 import * as LtiDAO from './internal/dao';
 import { LtiToolLaunchParams, LtiLaunchParams } from './model';
@@ -152,37 +151,25 @@ const addLtiTool = function(ctx, groupId, launchUrl, secret, consumerKey, opts, 
 
         // Parameter validation
         try {
-          pipe(
-            isGroupId,
-            otherwise({
-              code: 400,
-              msg: 'A valid group id must be provided'
-            })
-          )(groupId);
+          unless(isGroupId, {
+            code: 400,
+            msg: 'A valid group id must be provided'
+          })(groupId);
 
-          pipe(
-            isNotEmpty,
-            otherwise({
-              code: 400,
-              msg: 'You need to provide a launch URL for this LTI tool'
-            })
-          )(launchUrl);
+          unless(isNotEmpty, {
+            code: 400,
+            msg: 'You need to provide a launch URL for this LTI tool'
+          })(launchUrl);
 
-          pipe(
-            isNotEmpty,
-            otherwise({
-              code: 400,
-              msg: 'You need to provide an OAUTH secret for this LTI tool'
-            })
-          )(secret);
+          unless(isNotEmpty, {
+            code: 400,
+            msg: 'You need to provide an OAUTH secret for this LTI tool'
+          })(secret);
 
-          pipe(
-            isNotEmpty,
-            otherwise({
-              code: 400,
-              msg: 'You need to provide an OAUTH consumer key for this LTI tool'
-            })
-          )(consumerKey);
+          unless(isNotEmpty, {
+            code: 400,
+            msg: 'You need to provide an OAUTH consumer key for this LTI tool'
+          })(consumerKey);
         } catch (error) {
           return callback(error);
         }

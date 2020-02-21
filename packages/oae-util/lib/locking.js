@@ -17,11 +17,11 @@ import Redlock from 'redlock';
 
 import { logger } from 'oae-logger';
 
-import pipe from 'ramda/src/pipe';
 import isInt from 'validator/lib/isInt';
+import { pipe } from 'ramda';
 import * as Redis from './redis';
 import { Validator as validator } from './validator';
-const { otherwise, isDefined, isNotNull } = validator;
+const { otherwise, unless, isDefined, isNotNull } = validator;
 
 const log = logger('oae-util-locking');
 
@@ -65,21 +65,15 @@ const init = function() {
  */
 const acquire = function(lockKey, expiresIn, callback) {
   try {
-    pipe(
-      isDefined,
-      otherwise({
-        code: 400,
-        msg: 'The key of the lock to try and acquire needs to be specified'
-      })
-    )(lockKey);
+    unless(isDefined, {
+      code: 400,
+      msg: 'The key of the lock to try and acquire needs to be specified'
+    })(lockKey);
 
-    pipe(
-      isDefined,
-      otherwise({
-        code: 400,
-        msg: 'The maximum number of seconds for which to hold the lock needs to be specified'
-      })
-    )(expiresIn);
+    unless(isDefined, {
+      code: 400,
+      msg: 'The maximum number of seconds for which to hold the lock needs to be specified'
+    })(expiresIn);
 
     pipe(
       String,
@@ -116,13 +110,10 @@ const acquire = function(lockKey, expiresIn, callback) {
  */
 const release = function(lock, callback) {
   try {
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'The key of the lock to try and release needs to be specified'
-      })
-    )(lock);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'The key of the lock to try and release needs to be specified'
+    })(lock);
   } catch (error) {
     return callback(error);
   }

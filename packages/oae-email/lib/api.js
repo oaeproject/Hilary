@@ -35,7 +35,7 @@ import * as UIAPI from 'oae-ui';
 import { htmlToText } from 'nodemailer-html-to-text';
 import * as TenantsAPI from 'oae-tenants';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { validateInCase, getNestedObject, isDefined, otherwise, isNotEmpty, isObject, isEmail } = validator;
+const { validateInCase, getNestedObject, isDefined, unless, otherwise, isNotEmpty, isObject, isEmail } = validator;
 import pipe from 'ramda/src/pipe';
 
 const EmailConfig = setUpConfig('oae-email');
@@ -217,30 +217,21 @@ const _abortIfRecipientErrors = (emailData, done) => {
   const ifThereIsRecipient = () => Boolean(recipient);
 
   try {
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Must specify a template module'
-      })
-    )(templateModule);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Must specify a template module'
+    })(templateModule);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Must specify a template id'
-      })
-    )(templateId);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Must specify a template id'
+    })(templateId);
 
     const getAttribute = getNestedObject(recipient);
-    pipe(
-      isObject,
-      otherwise({
-        code: 400,
-        msg: 'Must specify a user when sending an email'
-      })
-    )(recipient);
+    unless(isObject, {
+      code: 400,
+      msg: 'Must specify a user when sending an email'
+    })(recipient);
 
     pipe(
       String,
@@ -417,26 +408,20 @@ const sendEmail = function(templateModule, templateId, recipient, data, opts, ca
     };
 
   try {
-    pipe(isNotEmpty, otherwise({ code: 400, msg: 'Must specify a template module' }))(templateModule);
-    pipe(isNotEmpty, otherwise({ code: 400, msg: 'Must specify a template id' }))(templateId);
-    pipe(isObject, otherwise({ code: 400, msg: 'Must specify a user when sending an email' }))(recipient);
+    unless(isNotEmpty, { code: 400, msg: 'Must specify a template module' })(templateModule);
+    unless(isNotEmpty, { code: 400, msg: 'Must specify a template id' })(templateId);
+    unless(isObject, { code: 400, msg: 'Must specify a user when sending an email' })(recipient);
 
     // Only validate the user email if it was a valid object
     const recipientIsDefined = Boolean(recipient);
-    pipe(
-      validateInCase(recipientIsDefined, isDefined),
-      otherwise({
-        code: 400,
-        msg: 'User must have a valid email address to receive email'
-      })
-    )(recipient.email);
-    pipe(
-      validateInCase(recipientIsDefined, isEmail),
-      otherwise({
-        code: 400,
-        msg: 'User must have a valid email address to receive email'
-      })
-    )(recipient.email);
+    unless(validateInCase(recipientIsDefined, isDefined), {
+      code: 400,
+      msg: 'User must have a valid email address to receive email'
+    })(recipient.email);
+    unless(validateInCase(recipientIsDefined, isEmail), {
+      code: 400,
+      msg: 'User must have a valid email address to receive email'
+    })(recipient.email);
   } catch (error) {
     return callback(error);
   }

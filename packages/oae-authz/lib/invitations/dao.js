@@ -20,17 +20,8 @@ import Chance from 'chance';
 import * as Cassandra from 'oae-util/lib/cassandra';
 
 import { Validator as validator } from 'oae-authz/lib/validator';
-const {
-  otherwise,
-  validateInCase,
-  isResourceId,
-  isEmail,
-  isValidRole,
-  isString,
-  isUserId,
-  isValidRoleChange
-} = validator;
-import { not, equals, pipe, forEachObjIndexed } from 'ramda';
+const { unless, validateInCase, isResourceId, isEmail, isValidRole, isString, isUserId, isValidRoleChange } = validator;
+import { not, equals, forEachObjIndexed } from 'ramda';
 
 const chance = new Chance();
 
@@ -238,41 +229,29 @@ const getInvitation = function(resourceId, email, callback) {
  */
 const createInvitations = function(resourceId, emailRoles, inviterUserId, callback) {
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'Specified resource must have a valid resource id'
-      })
-    )(resourceId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Specified resource must have a valid resource id'
+    })(resourceId);
 
     const validateEachRole = (role, email) => {
-      pipe(
-        isEmail,
-        otherwise({
-          code: 400,
-          msg: 'A valid email must be supplied to invite'
-        })
-      )(email);
+      unless(isEmail, {
+        code: 400,
+        msg: 'A valid email must be supplied to invite'
+      })(email);
 
-      pipe(
-        isValidRole,
-        otherwise({
-          code: 400,
-          msg: 'A valid role must be supplied to give the invited user'
-        })
-      )(role);
+      unless(isValidRole, {
+        code: 400,
+        msg: 'A valid role must be supplied to give the invited user'
+      })(role);
     };
 
     forEachObjIndexed(validateEachRole, emailRoles);
 
-    pipe(
-      isUserId,
-      otherwise({
-        code: 400,
-        msg: util.format('Specified inviter id "%s" must be a valid user id')
-      })
-    )(inviterUserId);
+    unless(isUserId, {
+      code: 400,
+      msg: util.format('Specified inviter id "%s" must be a valid user id')
+    })(inviterUserId);
   } catch (error) {
     return callback(error);
   }
@@ -330,39 +309,27 @@ const createInvitations = function(resourceId, emailRoles, inviterUserId, callba
  */
 const updateInvitationRoles = function(resourceId, emailRoles, callback) {
   try {
-    pipe(
-      isResourceId,
-      otherwise({
-        code: 400,
-        msg: 'Specified resource must have a valid resource id'
-      })
-    )(resourceId);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Specified resource must have a valid resource id'
+    })(resourceId);
 
     const validateEachRole = (role, email) => {
-      pipe(
-        isEmail,
-        otherwise({
-          code: 400,
-          msg: util.format('Invalid email "%s" specified', email)
-        })
-      )(email);
+      unless(isEmail, {
+        code: 400,
+        msg: util.format('Invalid email "%s" specified', email)
+      })(email);
 
-      pipe(
-        isValidRoleChange,
-        otherwise({
-          code: 400,
-          msg: util.format('Invalid role change "%s" specified', role)
-        })
-      )(role);
+      unless(isValidRoleChange, {
+        code: 400,
+        msg: util.format('Invalid role change "%s" specified', role)
+      })(role);
 
       const roleAintFalse = not(equals(role, false));
-      pipe(
-        validateInCase(roleAintFalse, isString),
-        otherwise({
-          code: 400,
-          msg: util.format('Invalid role "%s" specified', role)
-        })
-      )(role);
+      unless(validateInCase(roleAintFalse, isString), {
+        code: 400,
+        msg: util.format('Invalid role "%s" specified', role)
+      })(role);
     };
 
     forEachObjIndexed(validateEachRole, emailRoles);
@@ -427,13 +394,10 @@ const deleteInvitationsByResourceId = function(resourceId, callback) {
  */
 const deleteInvitationsByEmail = function(email, callback) {
   try {
-    pipe(
-      isEmail,
-      otherwise({
-        code: 400,
-        msg: 'Specified email is not valid'
-      })
-    )(email);
+    unless(isEmail, {
+      code: 400,
+      msg: 'Specified email is not valid'
+    })(email);
   } catch (error) {
     return callback(error);
   }

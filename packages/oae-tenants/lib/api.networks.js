@@ -17,8 +17,7 @@ import util from 'util';
 import _ from 'underscore';
 
 import { Validator as validator } from 'oae-util/lib/validator';
-const { otherwise, isNotEmpty, isGlobalAdministratorUser, isNotNull, isObject, isArrayNotEmpty } = validator;
-import pipe from 'ramda/src/pipe';
+const { unless, isNotEmpty, isGlobalAdministratorUser, isNotNull, isObject, isArrayNotEmpty } = validator;
 import * as TenantNetworksDAO from './internal/dao.networks';
 import * as TenantsAPI from './api';
 
@@ -33,21 +32,15 @@ import * as TenantsAPI from './api';
  */
 const createTenantNetwork = function(ctx, displayName, callback) {
   try {
-    pipe(
-      isGlobalAdministratorUser,
-      otherwise({
-        code: 401,
-        msg: 'Must be a global administrator user to create a tenant networt'
-      })
-    )(ctx);
+    unless(isGlobalAdministratorUser, {
+      code: 401,
+      msg: 'Must be a global administrator user to create a tenant networt'
+    })(ctx);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'A tenant network must contain a display name'
-      })
-    )(displayName);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A tenant network must contain a display name'
+    })(displayName);
   } catch (error) {
     return callback(error);
   }
@@ -65,13 +58,10 @@ const createTenantNetwork = function(ctx, displayName, callback) {
  */
 const getTenantNetworks = function(ctx, callback) {
   try {
-    pipe(
-      isGlobalAdministratorUser,
-      otherwise({
-        code: 401,
-        msg: 'Must be a global administrator user to view tenant networks'
-      })
-    )(ctx);
+    unless(isGlobalAdministratorUser, {
+      code: 401,
+      msg: 'Must be a global administrator user to view tenant networks'
+    })(ctx);
   } catch (error) {
     return callback(error);
   }
@@ -112,29 +102,20 @@ const getTenantNetworks = function(ctx, callback) {
  */
 const updateTenantNetwork = function(ctx, id, displayName, callback) {
   try {
-    pipe(
-      isGlobalAdministratorUser,
-      otherwise({
-        code: 401,
-        msg: 'Must be a global administrator user to update a tenant network'
-      })
-    )(ctx);
+    unless(isGlobalAdministratorUser, {
+      code: 401,
+      msg: 'Must be a global administrator user to update a tenant network'
+    })(ctx);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Must specify a tenant network id'
-      })
-    )(id);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Must specify a tenant network id'
+    })(id);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'A tenant network must contain a display name'
-      })
-    )(displayName);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A tenant network must contain a display name'
+    })(displayName);
   } catch (error) {
     return callback(error);
   }
@@ -152,21 +133,15 @@ const updateTenantNetwork = function(ctx, id, displayName, callback) {
  */
 const deleteTenantNetwork = function(ctx, id, callback) {
   try {
-    pipe(
-      isGlobalAdministratorUser,
-      otherwise({
-        code: 401,
-        msg: 'Must be a global administrator user to delete a tenant network'
-      })
-    )(ctx);
+    unless(isGlobalAdministratorUser, {
+      code: 401,
+      msg: 'Must be a global administrator user to delete a tenant network'
+    })(ctx);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Must specify a tenant network id'
-      })
-    )(id);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Must specify a tenant network id'
+    })(id);
   } catch (error) {
     return callback(error);
   }
@@ -185,46 +160,31 @@ const deleteTenantNetwork = function(ctx, id, callback) {
  */
 const addTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callback) {
   try {
-    pipe(
-      isGlobalAdministratorUser,
-      otherwise({
-        code: 401,
-        msg: 'Must be a global administrator user to update a tenant network'
-      })
-    )(ctx);
+    unless(isGlobalAdministratorUser, {
+      code: 401,
+      msg: 'Must be a global administrator user to update a tenant network'
+    })(ctx);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Must specify a tenant network id'
-      })
-    )(tenantNetworkId);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Must specify a tenant network id'
+    })(tenantNetworkId);
 
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'Must specify a list of tenant aliases to add'
-      })
-    )(tenantAliases);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'Must specify a list of tenant aliases to add'
+    })(tenantAliases);
 
-    pipe(
-      isArrayNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Must specify at least one tenant alias to add'
-      })
-    )(tenantAliases);
+    unless(isArrayNotEmpty, {
+      code: 400,
+      msg: 'Must specify at least one tenant alias to add'
+    })(tenantAliases);
 
     tenantAliases.forEach(tenantAlias => {
-      pipe(
-        isObject,
-        otherwise({
-          code: 400,
-          msg: util.format('Tenant with alias "%s" does not exist', tenantAlias)
-        })
-      )(TenantsAPI.getTenant(tenantAlias));
+      unless(isObject, {
+        code: 400,
+        msg: util.format('Tenant with alias "%s" does not exist', tenantAlias)
+      })(TenantsAPI.getTenant(tenantAlias));
     });
   } catch (error) {
     return callback(error);
@@ -244,37 +204,25 @@ const addTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callback)
  */
 const removeTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callback) {
   try {
-    pipe(
-      isGlobalAdministratorUser,
-      otherwise({
-        code: 401,
-        msg: 'Must be a global administrator user to update a tenant network'
-      })
-    )(ctx);
+    unless(isGlobalAdministratorUser, {
+      code: 401,
+      msg: 'Must be a global administrator user to update a tenant network'
+    })(ctx);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Must specify a tenant network id'
-      })
-    )(tenantNetworkId);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Must specify a tenant network id'
+    })(tenantNetworkId);
 
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'Must specify a list of tenant aliases to remove'
-      })
-    )(tenantAliases);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'Must specify a list of tenant aliases to remove'
+    })(tenantAliases);
 
-    pipe(
-      isNotNull,
-      otherwise({
-        code: 400,
-        msg: 'Must specify at least one tenant alias to remove'
-      })
-    )(tenantAliases.length);
+    unless(isNotNull, {
+      code: 400,
+      msg: 'Must specify at least one tenant alias to remove'
+    })(tenantAliases.length);
   } catch (error) {
     return callback(error);
   }

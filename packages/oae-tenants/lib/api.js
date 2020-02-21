@@ -34,6 +34,7 @@ import * as Pubsub from 'oae-util/lib/pubsub';
 import { Validator as validator } from 'oae-util/lib/validator';
 const {
   otherwise,
+  unless,
   isString,
   isGlobalAdministratorUser,
   isNotEmpty,
@@ -563,13 +564,10 @@ const createTenant = function(ctx, alias, displayName, host, opts, callback) {
 
   // Validate that the user in context is the global admin
   try {
-    pipe(
-      isGlobalAdministratorUser,
-      otherwise({
-        code: 401,
-        msg: 'Only global administrators can create new tenants'
-      })
-    )(ctx);
+    unless(isGlobalAdministratorUser, {
+      code: 401,
+      msg: 'Only global administrators can create new tenants'
+    })(ctx);
   } catch (error) {
     return callback(error);
   }
@@ -598,66 +596,45 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
   opts = opts || {};
 
   try {
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Missing alias'
-      })
-    )(alias);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing alias'
+    })(alias);
 
-    pipe(
-      notContains,
-      otherwise({
-        code: 400,
-        msg: 'The tenant alias should not contain a space'
-      })
-    )(alias, ' ');
+    unless(notContains, {
+      code: 400,
+      msg: 'The tenant alias should not contain a space'
+    })(alias, ' ');
 
-    pipe(
-      notContains,
-      otherwise({
-        code: 400,
-        msg: 'The tenant alias should not contain a colon'
-      })
-    )(alias, ':');
+    unless(notContains, {
+      code: 400,
+      msg: 'The tenant alias should not contain a colon'
+    })(alias, ':');
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Missing tenant displayName'
-      })
-    )(displayName);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing tenant displayName'
+    })(displayName);
 
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Missing tenant host'
-      })
-    )(host);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing tenant host'
+    })(host);
 
-    pipe(
-      isHost,
-      otherwise({
-        code: 400,
-        msg: 'Invalid hostname'
-      })
-    )(host);
+    unless(isHost, {
+      code: 400,
+      msg: 'Invalid hostname'
+    })(host);
 
     // Make sure alias and host are the proper case
     alias = alias.toLowerCase();
     host = host.toLowerCase();
 
     // Ensure there are no conflicts
-    pipe(
-      isDifferent,
-      otherwise({
-        code: 400,
-        msg: 'This hostname is reserved'
-      })
-    )(host, serverConfig.shibbolethSPHost);
+    unless(isDifferent, {
+      code: 400,
+      msg: 'This hostname is reserved'
+    })(host, serverConfig.shibbolethSPHost);
 
     pipe(
       getTenant,
@@ -679,25 +656,19 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
 
     // Ensure only valid optional fields are set
     forEachObjIndexed((val, key) => {
-      pipe(
-        isIn,
-        otherwise({
-          code: 400,
-          msg: `Invalid field: ${key}`
-        })
-      )(key, [EMAIL_DOMAINS, COUNTRY_CODE]);
+      unless(isIn, {
+        code: 400,
+        msg: `Invalid field: ${key}`
+      })(key, [EMAIL_DOMAINS, COUNTRY_CODE]);
 
       const eachFieldValue = opts[key];
       const isKey = value => equals(key, value);
 
       if (isKey(EMAIL_DOMAINS)) {
-        pipe(
-          validateInCase(isKey(EMAIL_DOMAINS), Array.isArray),
-          otherwise({
-            code: 400,
-            msg: 'One or more email domains were passed in, but not as an array'
-          })
-        )(val);
+        unless(validateInCase(isKey(EMAIL_DOMAINS), Array.isArray), {
+          code: 400,
+          msg: 'One or more email domains were passed in, but not as an array'
+        })(val);
 
         // Ensure the tenant email domains are all lower case
         opts[key] = _.map(opts[key], emailDomain => pipe(trim, toLower)(emailDomain));
@@ -706,13 +677,10 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
         // Ensure the country code is upper case
         opts[key] = toUpper(opts[key]);
 
-        pipe(
-          isISO31661Alpha2,
-          otherwise({
-            code: 400,
-            msg: 'The country code must be a valid ISO-3166 country code'
-          })
-        )(opts[key]);
+        unless(isISO31661Alpha2, {
+          code: 400,
+          msg: 'The country code must be a valid ISO-3166 country code'
+        })(opts[key]);
       }
     }, opts);
   } catch (error) {
@@ -776,13 +744,10 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
 
   // Short-circuit validation if the tenant did not exist
   try {
-    pipe(
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Missing alias'
-      })
-    )(alias);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing alias'
+    })(alias);
 
     pipe(
       getTenant,
@@ -796,32 +761,23 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
     // Check that at least either a new display name or hostname have been provided
     const updateFields = tenantUpdates ? keys(tenantUpdates) : [];
 
-    pipe(
-      isArrayNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'You should at least specify a new displayName or hostname'
-      })
-    )(updateFields);
+    unless(isArrayNotEmpty, {
+      code: 400,
+      msg: 'You should at least specify a new displayName or hostname'
+    })(updateFields);
 
     forEachObjIndexed((updateValue, updateField) => {
-      pipe(
-        isIn,
-        otherwise({
-          code: 400,
-          msg: util.format('"%s" is not a recognized tenant update field', updateField)
-        })
-      )(updateField, ALL_UPDATE_FIELDS);
+      unless(isIn, {
+        code: 400,
+        msg: util.format('"%s" is not a recognized tenant update field', updateField)
+      })(updateField, ALL_UPDATE_FIELDS);
 
       const isField = value => equals(updateField, value);
 
-      pipe(
-        validateInCase(isField(DISPLAY_NAME), isNotEmpty),
-        otherwise({
-          code: 400,
-          msg: 'A displayName cannot be empty'
-        })
-      )(updateValue);
+      unless(validateInCase(isField(DISPLAY_NAME), isNotEmpty), {
+        code: 400,
+        msg: 'A displayName cannot be empty'
+      })(updateValue);
 
       if (equals(updateField, HOST)) {
         // Ensure the tenant host name is all lower case
@@ -829,8 +785,8 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
         tenantUpdates[updateField] = updateValue;
 
         // Validate the lower-cased version
-        pipe(isHost, otherwise({ code: 400, msg: 'Invalid host' }))(updateValue);
-        pipe(isNotEmpty, otherwise({ code: 400, msg: 'A hostname cannot be empty' }))(updateValue);
+        unless(isHost, { code: 400, msg: 'Invalid host' })(updateValue);
+        unless(isNotEmpty, { code: 400, msg: 'A hostname cannot be empty' })(updateValue);
         pipe(
           getTenantByHost,
           isNil,
@@ -839,7 +795,7 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
             msg: 'The hostname has already been taken'
           })
         )(updateValue);
-        pipe(isDifferent, otherwise({ code: 400, msg: 'This hostname is reserved' }))(
+        unless(isDifferent, { code: 400, msg: 'This hostname is reserved' })(
           updateValue,
           toLower(serverConfig.shibbolethSPHost)
         );
@@ -849,10 +805,10 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
         tenantUpdates[updateField] = updateValue.join(',');
 
         // Only a global admin can update the email domain
-        pipe(
-          isGlobalAdministratorUser,
-          otherwise({ code: 401, msg: 'Only a global administrator can update the email domain' })
-        )(ctx);
+        unless(isGlobalAdministratorUser, {
+          code: 401,
+          msg: 'Only a global administrator can update the email domain'
+        })(ctx);
 
         // Validate the lower-cased version
         _validateEmailDomains(validator, updateValue, alias);
@@ -903,21 +859,15 @@ const disableTenants = function(ctx, aliases, disabled, callback) {
   aliases = _.compact(aliases);
 
   try {
-    pipe(
-      isGlobalAdministratorUser,
-      otherwise({
-        code: 401,
-        msg: 'You must be a global admin user to enable or disable a tenant'
-      })
-    )(ctx);
+    unless(isGlobalAdministratorUser, {
+      code: 401,
+      msg: 'You must be a global admin user to enable or disable a tenant'
+    })(ctx);
 
-    pipe(
-      isArrayNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'You must provide at least one alias to enable or disable'
-      })
-    )(aliases);
+    unless(isArrayNotEmpty, {
+      code: 400,
+      msg: 'You must provide at least one alias to enable or disable'
+    })(aliases);
 
     aliases.forEach(alias => {
       pipe(
@@ -1084,29 +1034,23 @@ const _setLandingPageBlockAttribute = function(ctx, block, blockName, attributeN
 const _validateEmailDomains = function(validator, emailDomains, updateTenantAlias) {
   emailDomains.forEach(emailDomain => {
     // Check whether it's a valid domain
-    pipe(
-      isHost,
-      otherwise({
-        code: 400,
-        msg: 'Invalid email domain'
-      })
-    )(emailDomain);
+    unless(isHost, {
+      code: 400,
+      msg: 'Invalid email domain'
+    })(emailDomain);
 
     const matchingTenantAlias = tenantEmailDomainIndex.conflict(updateTenantAlias, emailDomain);
     const matchingTenant = tenants[matchingTenantAlias];
     const matchingEmailDomains = compose(Boolean, getNestedObject(matchingTenant))(['emailDomains']);
 
-    pipe(
-      isNil,
-      otherwise({
-        code: 400,
-        msg: util.format(
-          'The email domain "%s" conflicts with existing email domains: %s',
-          emailDomain,
-          matchingEmailDomains
-        )
-      })
-    )(matchingTenant);
+    unless(isNil, {
+      code: 400,
+      msg: util.format(
+        'The email domain "%s" conflicts with existing email domains: %s',
+        emailDomain,
+        matchingEmailDomains
+      )
+    })(matchingTenant);
   });
 };
 

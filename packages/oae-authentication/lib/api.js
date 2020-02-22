@@ -34,7 +34,7 @@ import * as TenantsUtil from 'oae-tenants/lib/util';
 import { logger } from 'oae-logger';
 import { Validator as validator } from 'oae-authz/lib/validator';
 const {
-  validateInCase,
+  validateInCase: bothCheck,
   getNestedObject,
   isLoggedInUser,
   isGlobalAdministratorUser,
@@ -375,7 +375,7 @@ const _getOrCreateUser = function(ctx, loginId, displayName, opts, callback) {
       // when a Shib or Cas IdP has been misconfigured
       try {
         const isValidEmail = and(opts.authoritative, opts.email);
-        unless(validateInCase(isValidEmail, isEmail), {
+        unless(bothCheck(isValidEmail, isEmail), {
           code: 400,
           msg: 'Invalid email'
         })(opts.email);
@@ -1325,19 +1325,19 @@ const _validateLoginIdForLookup = function(validator, loginId) {
     msg: 'Must specify a login id'
   })(loginId);
 
-  unless(validateInCase(ifLoginIsValid, isNotEmpty), {
+  unless(bothCheck(ifLoginIsValid, isNotEmpty), {
     code: 400,
     msg: 'Must specify a tenant id on the login id'
   })(getAttribute(['tenantAlias']));
 
-  unless(validateInCase(ifLoginIsValid, isNotEmpty), {
+  unless(bothCheck(ifLoginIsValid, isNotEmpty), {
     code: 400,
     msg: 'Must specify an authentication provider on the login id'
   })(getAttribute(['provider']));
 
   pipe(
     String,
-    validateInCase(ifLoginIsValid, isNotEmpty),
+    bothCheck(ifLoginIsValid, isNotEmpty),
     otherwise({
       code: 400,
       msg: 'Must specify an external id on the login id'
@@ -1363,7 +1363,7 @@ const _validateLoginIdForPersistence = function(validator, loginId, callback) {
 
   // Custom handling for local authentication (i.e., username and password)
   const isItLocalAuthentication = loginId.provider === AuthenticationConstants.providers.LOCAL;
-  unless(validateInCase(isItLocalAuthentication, isLength), {
+  unless(bothCheck(isItLocalAuthentication, isLength), {
     code: 400,
     msg: 'Must specify a password at least 6 characters long'
   })(password || '', { min: 6 });

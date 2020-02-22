@@ -24,7 +24,7 @@ import * as TenantsAPI from 'oae-tenants';
 import { logger } from 'oae-logger';
 
 import { Validator as validator } from 'oae-util/lib/validator';
-const { validateInCase, isString, isUserId, unless, otherwise, isNotNull } = validator;
+const { validateInCase: bothCheck, isString, isUserId, unless, otherwise, isNotNull } = validator;
 import { isPast, toDate } from 'date-fns';
 import { curry, __, not, pipe, head } from 'ramda';
 import isInt from 'validator/lib/isInt';
@@ -158,22 +158,22 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
     })(body);
 
     const isReplyToDefined = Boolean(opts.replyToCreated);
-    unless(validateInCase(isReplyToDefined, isNotNull), {
+    unless(bothCheck(isReplyToDefined, isNotNull), {
       code: 400,
       msg: 'If the replyToCreated optional parameter is specified, it should not be null nor undefined.'
     })(opts.replyToCreated);
 
-    unless(validateInCase(isReplyToDefined, isString), {
+    unless(bothCheck(isReplyToDefined, isString), {
       code: 400,
       msg: 'If the replyToCreated optional parameter is specified, it should not be a String.'
     })(opts.replyToCreated);
 
-    unless(validateInCase(isReplyToDefined, isInt), {
+    unless(bothCheck(isReplyToDefined, isInt), {
       code: 400,
       msg: 'If the replyToCreated optional parameter is specified, it should be an integer.'
     })(opts.replyToCreated);
 
-    unless(validateInCase(isReplyToDefined, isPast), {
+    unless(bothCheck(isReplyToDefined, isPast), {
       code: 400,
       msg: 'If the replyToCreated optional parameter is specified, it cannot be in the future.'
     })(new Date(parseInt(opts.replyToCreated, 10)));
@@ -582,7 +582,7 @@ const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
 
     const isDeleteTypeDefined = Boolean(opts.deleteType);
     const deleteValues = _.values(MessageBoxConstants.deleteTypes);
-    unless(validateInCase(isDeleteTypeDefined, isIn), {
+    unless(bothCheck(isDeleteTypeDefined, isIn), {
       code: 400,
       msg: 'If the deleteType is specified it should be one of: ' + deleteValues.join(', ')
     })(opts.deleteType, deleteValues);

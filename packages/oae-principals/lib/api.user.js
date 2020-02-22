@@ -47,7 +47,7 @@ const {
   unless,
   otherwise,
   isShortString,
-  validateInCase,
+  validateInCase: bothCheck,
   isUserId,
   isNotNull,
   isArrayEmpty,
@@ -325,7 +325,7 @@ const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, 
     const isUserCSVDefined = Boolean(userCSV);
     pipe(
       String,
-      validateInCase(isUserCSVDefined, isNotEmpty),
+      bothCheck(isUserCSVDefined, isNotEmpty),
       otherwise({
         code: 400,
         msg: 'Missing size on the CSV file'
@@ -334,19 +334,19 @@ const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, 
 
     pipe(
       String,
-      validateInCase(isUserCSVDefined, isInt),
+      bothCheck(isUserCSVDefined, isInt),
       otherwise({
         code: 400,
         msg: 'Invalid size on the CSV file'
       })
     )(userCSV.size);
 
-    unless(validateInCase(isUserCSVDefined, isGreaterThanZero), {
+    unless(bothCheck(isUserCSVDefined, isGreaterThanZero), {
       code: 400,
       msg: 'Invalid size on the CSV file'
     })(userCSV.size);
 
-    unless(validateInCase(isUserCSVDefined, isNotEmpty), {
+    unless(bothCheck(isUserCSVDefined, isNotEmpty), {
       code: 400,
       msg: 'Missing name on the CSV file'
     })(userCSV.name);
@@ -612,24 +612,24 @@ const updateUser = function(ctx, userId, profileFields, callback) {
 
     // Apply special restrictions on some profile fields
     const displayNameIsDefined = not(isNil(profileFields.displayName));
-    unless(validateInCase(displayNameIsDefined, isNotEmpty), {
+    unless(bothCheck(displayNameIsDefined, isNotEmpty), {
       code: 400,
       msg: 'A display name cannot be empty'
     })(profileFields.displayName);
 
-    unless(validateInCase(displayNameIsDefined, isShortString), {
+    unless(bothCheck(displayNameIsDefined, isShortString), {
       code: 400,
       msg: 'A display name can be at most 1000 characters long'
     })(profileFields.displayName);
 
     const visibilityIsDefined = not(isNil(profileFields.visibility));
-    unless(validateInCase(visibilityIsDefined, isIn), {
+    unless(bothCheck(visibilityIsDefined, isIn), {
       code: 400,
       msg: 'An invalid visibility option has been specified'
     })(profileFields.visibility, _.values(AuthzConstants.visibility));
 
     const emailIsDefined = not(isNil(profileFields.emailPreference));
-    unless(validateInCase(emailIsDefined, isIn), {
+    unless(bothCheck(emailIsDefined, isIn), {
       code: 400,
       msg: 'The specified emailPreference is invalid'
     })(profileFields.emailPreference, _.values(PrincipalsConstants.emailPreferences));

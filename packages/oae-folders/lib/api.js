@@ -42,7 +42,7 @@ const {
   isArray,
   isValidRoleChange,
   unless,
-  validateInCase,
+  validateInCase: bothCheck,
   isANumber,
   isLoggedInUser,
   isPrincipalId,
@@ -122,7 +122,7 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
     })(displayName);
 
     const descriptionIsThere = Boolean(description);
-    unless(validateInCase(descriptionIsThere, isMediumString), {
+    unless(bothCheck(descriptionIsThere, isMediumString), {
       code: 400,
       msg: 'A description can be at most 10000 characters long'
     })(description);
@@ -231,19 +231,19 @@ const updateFolder = function(ctx, folderId, updates, callback) {
     }, updates);
 
     const isThereDisplayName = Boolean(updates.displayName);
-    unless(validateInCase(isThereDisplayName, isShortString), {
+    unless(bothCheck(isThereDisplayName, isShortString), {
       code: 400,
       msg: 'A display name can be at most 1000 characters long'
     })(updates.displayName);
 
     const isThereDescription = Boolean(updates.description);
-    unless(validateInCase(isThereDescription, isMediumString), {
+    unless(bothCheck(isThereDescription, isMediumString), {
       code: 400,
       msg: 'A description can be at most 10000 characters long'
     })(updates.description);
 
     const isThereVisibility = Boolean(updates.visibility);
-    unless(validateInCase(isThereVisibility, isIn), {
+    unless(bothCheck(isThereVisibility, isIn), {
       code: 400,
       msg: 'An invalid folder visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
     })(updates.visibility, allVisibilities);
@@ -1021,7 +1021,7 @@ const setFolderPermissions = function(ctx, folderId, changes, callback) {
       })(role);
 
       const thereIsRole = Boolean(role);
-      unless(validateInCase(thereIsRole, isIn), {
+      unless(bothCheck(thereIsRole, isIn), {
         code: 400,
         msg:
           'The role: "' +
@@ -1587,7 +1587,7 @@ const createMessage = function(ctx, folderId, body, replyToCreatedTimestamp, cal
     })(body);
 
     const timestampIsDefined = Boolean(replyToCreatedTimestamp);
-    unless(validateInCase(timestampIsDefined, isInt), {
+    unless(bothCheck(timestampIsDefined, isInt), {
       code: 400,
       msg: 'Invalid reply-to timestamp provided'
     })(replyToCreatedTimestamp);

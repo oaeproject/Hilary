@@ -44,7 +44,7 @@ import isInt from 'validator/lib/isInt';
 import isIn from 'validator/lib/isIn';
 import { Validator as validator } from 'oae-util/lib/validator';
 const {
-  validateInCase,
+  validateInCase: bothCheck,
   otherwise,
   unless,
   isDefined,
@@ -461,28 +461,28 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
       msg: 'A display name can be at most 1000 characters long'
     })(displayName);
 
-    unless(validateInCase(Boolean(description), isMediumString), {
+    unless(bothCheck(Boolean(description), isMediumString), {
       code: 400,
       msg: 'A content description can be at most 10000 characters long'
     })(description);
 
     const fileIsDefined = Boolean(file);
-    unless(validateInCase(fileIsDefined, isNotNull), {
+    unless(bothCheck(fileIsDefined, isNotNull), {
       code: 400,
       msg: 'Missing size on the file object'
     })(file.size);
 
-    unless(validateInCase(fileIsDefined, isANumber), {
+    unless(bothCheck(fileIsDefined, isANumber), {
       code: 400,
       msg: 'Invalid size on the file object'
     })(file.size);
 
-    unless(validateInCase(fileIsDefined, greaterThan), {
+    unless(bothCheck(fileIsDefined, greaterThan), {
       code: 400,
       msg: 'Invalid size on the file object'
     })(file.size, 0);
 
-    unless(validateInCase(fileIsDefined, isNotEmpty), {
+    unless(bothCheck(fileIsDefined, isNotEmpty), {
       code: 400,
       msg: 'Missing name on the file object'
     })(file.name);
@@ -739,7 +739,7 @@ const _createContent = function(
       msg: 'A display name can be at most 1000 characters long'
     })(displayName);
 
-    unless(validateInCase(Boolean(description), isMediumString), {
+    unless(bothCheck(Boolean(description), isMediumString), {
       code: 400,
       msg: 'A description can only be 10000 characters long'
     })(description);
@@ -1481,7 +1481,7 @@ const setContentPermissions = function(ctx, contentId, changes, callback) {
         const roleAintFalse = not(equals(role, false));
         pipe(
           String,
-          validateInCase(roleAintFalse, isOneOfValidRoles),
+          bothCheck(roleAintFalse, isOneOfValidRoles),
           otherwise({
             code: 400,
             msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
@@ -1789,22 +1789,22 @@ const _updateFileBody = function(ctx, contentId, file, callback) {
     })(file);
 
     const fileIsDefined = Boolean(file);
-    unless(validateInCase(fileIsDefined, isNotNull), {
+    unless(bothCheck(fileIsDefined, isNotNull), {
       code: 400,
       msg: 'Missing size on the file object.'
     })(file.size);
 
-    unless(validateInCase(fileIsDefined, isANumber), {
+    unless(bothCheck(fileIsDefined, isANumber), {
       code: 400,
       msg: 'Invalid size on the file object.'
     })(file.size);
 
-    unless(validateInCase(fileIsDefined, greaterThan), {
+    unless(bothCheck(fileIsDefined, greaterThan), {
       code: 400,
       msg: 'Invalid size on the file object.'
     })(file.size, 0);
 
-    unless(validateInCase(fileIsDefined, isNotEmpty), {
+    unless(bothCheck(fileIsDefined, isNotEmpty), {
       code: 400,
       msg: 'Missing name on the file object.'
     })(file.name);
@@ -2193,29 +2193,29 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
       const fieldIsDescription = and(equals(fieldName, DESCRIPTION), profileFields.description);
       const fieldIsLink = equals(fieldName, LINK);
 
-      unless(validateInCase(fieldIsDisplayName, isNotEmpty), {
+      unless(bothCheck(fieldIsDisplayName, isNotEmpty), {
         code: 400,
         msg: 'A display name cannot be empty'
       })(profileFields.displayName);
 
-      unless(validateInCase(fieldIsDisplayName, isShortString), {
+      unless(bothCheck(fieldIsDisplayName, isShortString), {
         code: 400,
         msg: 'A display name can be at most 1000 characters long'
       })(profileFields.displayName);
 
-      unless(validateInCase(fieldIsDescription, isMediumString), {
+      unless(bothCheck(fieldIsDescription, isMediumString), {
         code: 400,
         msg: 'A description can only be 10000 characters long'
       })(profileFields.description);
 
-      unless(validateInCase(fieldIsLink, isUrl), {
+      unless(bothCheck(fieldIsLink, isUrl), {
         code: 400,
         msg: 'A valid link should be provided'
       })(profileFields.link);
     });
 
     const fieldIsVisibility = Boolean(profileFields.visibility);
-    unless(validateInCase(fieldIsVisibility, isIn), {
+    unless(bothCheck(fieldIsVisibility, isIn), {
       code: 400,
       msg: 'An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"'
     })(profileFields.visibility, _.values(AuthzConstants.visibility));
@@ -2300,7 +2300,7 @@ const createComment = function(ctx, contentId, body, replyToCreatedTimestamp, ca
       msg: 'A comment can only be 100000 characters long'
     })(body);
 
-    unless(validateInCase(isDefined(replyToCreatedTimestamp), isInt), {
+    unless(bothCheck(isDefined(replyToCreatedTimestamp), isInt), {
       code: 400,
       msg: 'Invalid reply-to timestamp provided'
     })(replyToCreatedTimestamp);
@@ -2712,7 +2712,7 @@ const getRevision = function(ctx, contentId, revisionId, callback) {
     })(contentId);
 
     const revisionIdIsDefined = Boolean(revisionId);
-    unless(validateInCase(revisionIdIsDefined, isResourceId), {
+    unless(bothCheck(revisionIdIsDefined, isResourceId), {
       code: 400,
       msg: 'A valid revisionId must be provided'
     })(revisionId);
@@ -2751,7 +2751,7 @@ const getRevisionDownloadInfo = function(ctx, contentId, revisionId, callback) {
       msg: 'A valid contentId must be provided'
     })(contentId);
 
-    unless(validateInCase(Boolean(revisionId), isResourceId), {
+    unless(bothCheck(Boolean(revisionId), isResourceId), {
       code: 400,
       msg: 'A valid revisionId must be provided'
     })(revisionId);

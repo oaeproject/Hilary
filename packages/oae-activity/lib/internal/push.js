@@ -27,7 +27,16 @@ import * as Signature from 'oae-util/lib/signature';
 import { telemetry } from 'oae-telemetry';
 import * as TenantsAPI from 'oae-tenants';
 import { Validator as validator } from 'oae-authz/lib/validator';
-const { validateInCase, getNestedObject, unless, isNotEmpty, isUserId, isObject, isNotNull, isANumber } = validator;
+const {
+  validateInCase: bothCheck,
+  getNestedObject,
+  unless,
+  isNotEmpty,
+  isUserId,
+  isObject,
+  isNotNull,
+  isANumber
+} = validator;
 
 import { ActivityConstants } from 'oae-activity/lib/constants';
 import * as ActivityRegistry from 'oae-activity/lib/internal/registry';
@@ -376,12 +385,12 @@ const _authenticate = function(connectionInfo, message) {
       msg: 'A signature object needs to be provided'
     })(data.signature);
 
-    unless(validateInCase(ifThereIsExpiryDate, isANumber), {
+    unless(bothCheck(ifThereIsExpiryDate, isANumber), {
       code: 400,
       msg: 'Signature must contain an integer expires value'
     })(expiryDate);
 
-    unless(validateInCase(ifThereIsSignature, isNotNull), {
+    unless(bothCheck(ifThereIsSignature, isNotNull), {
       code: 400,
       msg: 'Signature must contain a string signature value'
     })(signature);

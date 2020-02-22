@@ -46,7 +46,7 @@ const {
   isModule,
   isResourceId,
   isGlobalAdministratorUser,
-  validateInCase,
+  validateInCase: bothCheck,
   isNotNull,
   isLoggedInUser
 } = validator;
@@ -381,7 +381,7 @@ const reprocessPreviews = function(ctx, filters, callback) {
     })(filters);
 
     const areThereFilters = isModule(filters);
-    unless(validateInCase(areThereFilters, isArrayNotEmpty), {
+    unless(bothCheck(areThereFilters, isArrayNotEmpty), {
       code: 400,
       msg: 'At least one filter must be specified'
     })(_.keys(filters));

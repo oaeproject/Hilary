@@ -25,7 +25,7 @@ import readdirp from 'readdirp';
 import * as restjsdoc from 'restjsdoc';
 import * as TenantsUtil from 'oae-tenants/lib/util';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { validateInCase, isNotEmpty, notContains, unless } = validator;
+const { validateInCase: bothCheck, isNotEmpty, notContains, unless } = validator;
 import { equals, forEachObjIndexed } from 'ramda';
 import isIn from 'validator/lib/isIn';
 import * as SwaggerParamTypes from './swaggerParamTypes';
@@ -328,7 +328,7 @@ const _appendToApi = function(rootResource, api, spec) {
       })(param.paramType, Constants.paramTypes);
 
       const pathIsValid = equals(param.paramType, 'path');
-      unless(validateInCase(pathIsValid, isIn), {
+      unless(bothCheck(pathIsValid, isIn), {
         path: api.path,
         name: param.name,
         msg: 'Invalid path'

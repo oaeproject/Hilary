@@ -33,7 +33,7 @@ import { Validator as validator } from 'oae-authz/lib/validator';
 const {
   isShortString,
   isMediumString,
-  validateInCase,
+  validateInCase: bothCheck,
   unless,
   isLoggedInUser,
   isNotEmpty,
@@ -581,7 +581,7 @@ const setGroupMembers = function(ctx, groupId, changes, callback) {
     const validRoles = PrincipalsConstants.role.ALL_PRIORITY;
     forEachObjIndexed((role /* , memberId */) => {
       const roleIsDefined = compose(not, equals)(role, false);
-      unless(validateInCase(roleIsDefined, isIn), {
+      unless(bothCheck(roleIsDefined, isIn), {
         code: 400,
         msg: util.format('Role must be one of %s', validRoles.join(', '))
       })(role, validRoles);
@@ -813,7 +813,7 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
     })(joinable, _.values(AuthzConstants.joinable));
 
     const descriptionIsDefined = Boolean(description);
-    unless(validateInCase(descriptionIsDefined, isMediumString), {
+    unless(bothCheck(descriptionIsDefined, isMediumString), {
       code: 400,
       msg: 'A description can only be 10000 characters long'
     })(description);
@@ -823,7 +823,7 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
     const validRoles = PrincipalsConstants.role.ALL_PRIORITY;
     forEachObjIndexed((role /* , principalId */) => {
       const roleIsValid = compose(not, equals)(role, false);
-      unless(validateInCase(roleIsValid, isIn), {
+      unless(bothCheck(roleIsValid, isIn), {
         code: 400,
         msg: util.format('Role must be one of %s', validRoles.join(', '))
       })(role, validRoles);
@@ -897,24 +897,24 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
         msg: fieldName + ' is not a recognized group profile field'
       })(fieldName, [DISPLAY_NAME, DESCRIPTION, VISIBILITY, JOINABLE]);
 
-      unless(validateInCase(isField(VISIBILITY), isIn), {
+      unless(bothCheck(isField(VISIBILITY), isIn), {
         code: 400,
         msg: 'The visibility setting must be one of: ' + _.values(AuthzConstants.visibility)
       })(profileFields.visibility, _.values(AuthzConstants.visibility));
-      unless(validateInCase(isField(JOINABLE), isIn), {
+      unless(bothCheck(isField(JOINABLE), isIn), {
         code: 400,
         msg: 'The joinable setting must be one of: ' + _.values(AuthzConstants.joinable)
       })(profileFields.joinable, _.values(AuthzConstants.joinable));
-      unless(validateInCase(isField(DISPLAY_NAME), isNotEmpty), {
+      unless(bothCheck(isField(DISPLAY_NAME), isNotEmpty), {
         code: 400,
         msg: 'A display name cannot be empty'
       })(profileFields.displayName);
 
-      unless(validateInCase(isField(DISPLAY_NAME), isShortString), {
+      unless(bothCheck(isField(DISPLAY_NAME), isShortString), {
         code: 400,
         msg: 'A display name can be at most 1000 characters long'
       })(profileFields.displayName);
-      unless(validateInCase(both(isField, x => Boolean(profileFields[x]))(DESCRIPTION), isMediumString), {
+      unless(bothCheck(both(isField, x => Boolean(profileFields[x]))(DESCRIPTION), isMediumString), {
         code: 400,
         msg: 'A description can only be 10000 characters long'
       })(profileFields.description);
@@ -1311,7 +1311,7 @@ const _validateUpdateJoinGroupByRequest = function(ctx, joinRequest, callback) {
   const { groupId, principalId, role, status } = joinRequest;
   const roleIsValid = Boolean(role);
   try {
-    unless(validateInCase(roleIsValid, isIn), {
+    unless(bothCheck(roleIsValid, isIn), {
       code: 400,
       msg: role + ' is not a recognized role group'
     })(role, PrincipalsConstants.role.ALL_PRIORITY);

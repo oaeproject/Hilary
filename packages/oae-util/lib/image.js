@@ -25,7 +25,7 @@ import _ from 'underscore';
 import { logger } from 'oae-logger';
 
 import { Validator as validator } from 'oae-util/lib/validator';
-const { otherwise, unless, validateInCase, isObject, isNotNull, isArrayNotEmpty } = validator;
+const { otherwise, unless, validateInCase: bothCheck, isObject, isNotNull, isArrayNotEmpty } = validator;
 import { curry, __, pipe, gte as greaterOrEqualThan, gt as greaterThan } from 'ramda';
 
 const log = logger('oae-util-image');
@@ -132,7 +132,7 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
     const selectedAreaIsDefined = Boolean(selectedArea);
     pipe(
       toInt,
-      validateInCase(selectedAreaIsDefined, zeroOrGreater),
+      bothCheck(selectedAreaIsDefined, zeroOrGreater),
       otherwise({
         code: 400,
         msg: 'The x-coordinate needs to be an integer larger than 0'
@@ -141,7 +141,7 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
 
     pipe(
       toInt,
-      validateInCase(selectedAreaIsDefined, zeroOrGreater),
+      bothCheck(selectedAreaIsDefined, zeroOrGreater),
       otherwise({
         code: 400,
         msg: 'The y-coordinate needs to be an integer larger than 0'
@@ -150,7 +150,7 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
 
     pipe(
       toInt,
-      validateInCase(selectedAreaIsDefined, oneOrGreater),
+      bothCheck(selectedAreaIsDefined, oneOrGreater),
       otherwise({
         code: 400,
         msg: 'The width value must be an integer larger than 0'
@@ -159,7 +159,7 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
 
     pipe(
       toInt,
-      validateInCase(selectedAreaIsDefined, oneOrGreater),
+      bothCheck(selectedAreaIsDefined, oneOrGreater),
       otherwise({
         code: 400,
         msg: 'The height value must be an integer larger than 1'
@@ -172,7 +172,7 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
     })(sizes);
 
     const sizesAreDefined = Boolean(sizes);
-    unless(validateInCase(sizesAreDefined, isArrayNotEmpty), {
+    unless(bothCheck(sizesAreDefined, isArrayNotEmpty), {
       code: 400,
       msg: 'The desired sizes array is empty'
     })(sizes);
@@ -180,14 +180,14 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
     for (const element of sizes) {
       pipe(
         toInt,
-        validateInCase(sizesAreDefined, zeroOrGreater),
+        bothCheck(sizesAreDefined, zeroOrGreater),
         otherwise({
           code: 400,
           msg: 'The width needs to be a valid integer larger than 0'
         })
       )(element.width);
 
-      unless(validateInCase(sizesAreDefined, oneOrGreater), {
+      unless(bothCheck(sizesAreDefined, oneOrGreater), {
         code: 400,
         msg: 'The height needs to be a valid integer larger than 0'
       })(element.height);
@@ -265,22 +265,22 @@ const cropImage = function(imagePath, selectedArea, callback) {
     })(selectedArea);
 
     const selectedAreaIsDefined = Boolean(selectedArea);
-    unless(validateInCase(selectedAreaIsDefined, zeroOrGreater), {
+    unless(bothCheck(selectedAreaIsDefined, zeroOrGreater), {
       code: 400,
       msg: 'The x-coordinate needs to be a valid integer'
     })(selectedArea.x);
 
-    unless(validateInCase(selectedAreaIsDefined, zeroOrGreater), {
+    unless(bothCheck(selectedAreaIsDefined, zeroOrGreater), {
       code: 400,
       msg: 'The y-coordinate needs to be a valid integer'
     })(selectedArea.y);
 
-    unless(validateInCase(selectedAreaIsDefined, zeroOrGreater), {
+    unless(bothCheck(selectedAreaIsDefined, zeroOrGreater), {
       code: 400,
       msg: 'The width value must be an integer larger than 0'
     })(selectedArea.width);
 
-    unless(validateInCase(selectedAreaIsDefined, oneOrGreater), {
+    unless(bothCheck(selectedAreaIsDefined, oneOrGreater), {
       code: 400,
       msg: 'The height value must be an integer larger than 0'
     })(selectedArea.height);
@@ -395,12 +395,12 @@ const resizeImage = function(imagePath, size, callback) {
     })(size);
 
     const sizeIsDefined = Boolean(size);
-    unless(validateInCase(sizeIsDefined, oneOrGreater), {
+    unless(bothCheck(sizeIsDefined, oneOrGreater), {
       code: 400,
       msg: 'The width needs to be a valid integer larger than 0'
     })(size.width);
 
-    unless(validateInCase(sizeIsDefined, oneOrGreater), {
+    unless(bothCheck(sizeIsDefined, oneOrGreater), {
       code: 400,
       msg: 'The height needs to be a valid integer larger than 0'
     })(size.height);

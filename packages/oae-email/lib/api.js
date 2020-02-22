@@ -35,7 +35,16 @@ import * as UIAPI from 'oae-ui';
 import { htmlToText } from 'nodemailer-html-to-text';
 import * as TenantsAPI from 'oae-tenants';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { validateInCase, getNestedObject, isDefined, unless, otherwise, isNotEmpty, isObject, isEmail } = validator;
+const {
+  validateInCase: bothCheck,
+  getNestedObject,
+  isDefined,
+  unless,
+  otherwise,
+  isNotEmpty,
+  isObject,
+  isEmail
+} = validator;
 import pipe from 'ramda/src/pipe';
 
 const EmailConfig = setUpConfig('oae-email');
@@ -235,7 +244,7 @@ const _abortIfRecipientErrors = (emailData, done) => {
 
     pipe(
       String,
-      validateInCase(ifThereIsRecipient, isEmail),
+      bothCheck(ifThereIsRecipient, isEmail),
       otherwise({
         code: 400,
         msg: 'User must have a valid email address to receive email'
@@ -414,11 +423,11 @@ const sendEmail = function(templateModule, templateId, recipient, data, opts, ca
 
     // Only validate the user email if it was a valid object
     const recipientIsDefined = Boolean(recipient);
-    unless(validateInCase(recipientIsDefined, isDefined), {
+    unless(bothCheck(recipientIsDefined, isDefined), {
       code: 400,
       msg: 'User must have a valid email address to receive email'
     })(recipient.email);
-    unless(validateInCase(recipientIsDefined, isEmail), {
+    unless(bothCheck(recipientIsDefined, isEmail), {
       code: 400,
       msg: 'User must have a valid email address to receive email'
     })(recipient.email);

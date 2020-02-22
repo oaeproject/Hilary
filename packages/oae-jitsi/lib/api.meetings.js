@@ -17,7 +17,7 @@ import { logger } from 'oae-logger';
 import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
 import { Validator as validator } from 'oae-authz/lib/validator';
 const {
-  validateInCase,
+  validateInCase: bothCheck,
   isDefined,
   unless,
   isANumber,
@@ -109,7 +109,7 @@ const createMeeting = function(
     })(visibility, allVisibilities);
 
     const descriptionIsValid = and(isDefined(description), greaterThan(length(description), 0));
-    unless(validateInCase(descriptionIsValid, isMediumString), {
+    unless(bothCheck(descriptionIsValid, isMediumString), {
       code: 400,
       msg: 'A description can be at most 10000 characters long'
     })(description);
@@ -381,32 +381,32 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
       const CONTACT_LIST = 'contactList';
       const ifFieldIs = attr => equals(field, attr);
 
-      unless(validateInCase(ifFieldIs(VISIBILITY), isIn), {
+      unless(bothCheck(ifFieldIs(VISIBILITY), isIn), {
         code: 400,
         msg: 'An invalid visibility was specified. Must be one of: ' + allVisibilities.join(', ')
       })(value, allVisibilities);
 
-      unless(validateInCase(ifFieldIs(DISPLAY_NAME), isNotEmpty), {
+      unless(bothCheck(ifFieldIs(DISPLAY_NAME), isNotEmpty), {
         code: 400,
         msg: 'A display name cannot be empty'
       })(value);
 
-      unless(validateInCase(ifFieldIs(DISPLAY_NAME), isShortString), {
+      unless(bothCheck(ifFieldIs(DISPLAY_NAME), isShortString), {
         code: 400,
         msg: 'A display name can be at most 1000 characters long'
       })(value);
 
-      unless(validateInCase(and(ifFieldIs(DESCRIPTION), greaterThan(length(value), 0)), isMediumString), {
+      unless(bothCheck(and(ifFieldIs(DESCRIPTION), greaterThan(length(value), 0)), isMediumString), {
         code: 400,
         msg: 'A description can be at most 10000 characters long'
       })(value);
 
-      unless(validateInCase(ifFieldIs(CHAT), isBoolean), {
+      unless(bothCheck(ifFieldIs(CHAT), isBoolean), {
         code: 400,
         msg: 'An invalid chat value was specified, must be boolean'
       })(value);
 
-      unless(validateInCase(ifFieldIs(CONTACT_LIST), isBoolean), {
+      unless(bothCheck(ifFieldIs(CONTACT_LIST), isBoolean), {
         code: 400,
         msg: 'An invalid contactList value was specified, must be boolean'
       })(value);
@@ -545,7 +545,7 @@ const setMeetingMembers = function(ctx, meetingId, changes, callback) {
       })(role);
 
       const thereIsRole = Boolean(role);
-      unless(validateInCase(thereIsRole, isIn), {
+      unless(bothCheck(thereIsRole, isIn), {
         code: 400,
         msg:
           'The role "' +
@@ -689,7 +689,7 @@ const createMessage = function(ctx, meetingId, body, replyToCreatedTimestamp, ca
     })(body);
 
     const timestampIsDefined = Boolean(replyToCreatedTimestamp);
-    unless(validateInCase(timestampIsDefined, isInt), {
+    unless(bothCheck(timestampIsDefined, isInt), {
       code: 400,
       msg: 'Invalid reply-to timestamp provided'
     })(replyToCreatedTimestamp);

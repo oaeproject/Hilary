@@ -27,7 +27,7 @@ import { Validator as validator } from 'oae-authz/lib/validator';
 
 const {
   getNestedObject,
-  validateInCase,
+  validateInCase: bothCheck,
   unless,
   isLoggedInUser,
   isUserId,
@@ -695,52 +695,52 @@ const postActivity = function(ctx, activitySeed, callback) {
       msg: 'No activity seed provided.'
     })(activitySeed);
 
-    unless(validateInCase(ifThereIsActivity(), isNotEmpty), {
+    unless(bothCheck(ifThereIsActivity(), isNotEmpty), {
       code: 400,
       msg: 'Activity seed did not have an activity type.'
     })(getAttribute(['activityType']));
 
-    unless(validateInCase(ifThereIsActivity(), isNotEmpty), {
+    unless(bothCheck(ifThereIsActivity(), isNotEmpty), {
       code: 400,
       msg: 'Activity seed did not have a verb.'
     })(getAttribute(['verb']));
 
-    unless(validateInCase(ifThereIsActivity(), isANumber), {
+    unless(bothCheck(ifThereIsActivity(), isANumber), {
       code: 400,
       msg: 'Activity seed did not have a valid publish date.'
     })(getAttribute(['published']));
 
-    unless(validateInCase(ifThereIsActivity(), isObject), {
+    unless(bothCheck(ifThereIsActivity(), isObject), {
       code: 400,
       msg: 'Activity seed did not have an actor resource'
     })(getAttribute(['actorResource']));
 
-    unless(validateInCase(ifThereIsActivityActor(), isNotEmpty), {
+    unless(bothCheck(ifThereIsActivityActor(), isNotEmpty), {
       code: 400,
       msg: 'Actor of activity seed did not have a resourceId'
     })(getAttribute(['actorResource', 'resourceId']));
 
-    unless(validateInCase(ifThereIsActivityActor(), isNotEmpty), {
+    unless(bothCheck(ifThereIsActivityActor(), isNotEmpty), {
       code: 400,
       msg: 'Actor of activity seed did not have a resourceType'
     })(getAttribute(['actorResource', 'resourceType']));
 
-    unless(validateInCase(ifThereIsActivityObject(), isNotEmpty), {
+    unless(bothCheck(ifThereIsActivityObject(), isNotEmpty), {
       code: 400,
       msg: 'Object of activity seed was specified and did not have a resourceId'
     })(getAttribute(['objectResource', 'resourceId']));
 
-    unless(validateInCase(ifThereIsActivityObject(), isNotEmpty), {
+    unless(bothCheck(ifThereIsActivityObject(), isNotEmpty), {
       code: 400,
       msg: 'Object of activity seed was specified and did not have a resourceType'
     })(getAttribute(['objectResource', 'resourceType']));
 
-    unless(validateInCase(ifThereIsActivityTarget(), isNotEmpty), {
+    unless(bothCheck(ifThereIsActivityTarget(), isNotEmpty), {
       code: 400,
       msg: 'Target of activity seed was specified and did not have a resourceId'
     })(getAttribute(['targetResource', 'resourceId']));
 
-    unless(validateInCase(ifThereIsActivityTarget(), isNotEmpty), {
+    unless(bothCheck(ifThereIsActivityTarget(), isNotEmpty), {
       code: 400,
       msg: 'Target of activity seed was specified and did not have a resourceType'
     })(getAttribute(['targetResource', 'resourceType']));

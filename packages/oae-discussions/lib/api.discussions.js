@@ -44,7 +44,7 @@ const {
   isShortString,
   isMediumString,
   isArrayNotEmpty,
-  validateInCase,
+  validateInCase: bothCheck,
   isLongString
 } = validator;
 import isIn from 'validator/lib/isIn';
@@ -191,23 +191,23 @@ const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
         code: 400,
         msg: "The field '" + field + "' is not a valid field. Must be one of: " + DISCUSSION_UPDATE_FIELDS.join(', ')
       })(field, DISCUSSION_UPDATE_FIELDS);
-      unless(validateInCase(fieldIsVisibility, isIn), {
+      unless(bothCheck(fieldIsVisibility, isIn), {
         code: 400,
         msg: 'An invalid visibility was specified. Must be one of: ' + allVisibilities.join(', ')
       })(value, allVisibilities);
-      unless(validateInCase(fieldIsDisplayName, isNotEmpty), {
+      unless(bothCheck(fieldIsDisplayName, isNotEmpty), {
         code: 400,
         msg: 'A display name cannot be empty'
       })(value);
-      unless(validateInCase(fieldIsDisplayName, isShortString), {
+      unless(bothCheck(fieldIsDisplayName, isShortString), {
         code: 400,
         msg: 'A display name can be at most 1000 characters long'
       })(value);
-      unless(validateInCase(fieldIsDescription, isNotEmpty), {
+      unless(bothCheck(fieldIsDescription, isNotEmpty), {
         code: 400,
         msg: 'A description cannot be empty'
       })(value);
-      unless(validateInCase(fieldIsDescription, isMediumString), {
+      unless(bothCheck(fieldIsDescription, isMediumString), {
         code: 400,
         msg: 'A description can only be 10000 characters long'
       })(value);
@@ -720,7 +720,7 @@ const setDiscussionPermissions = function(ctx, discussionId, changes, callback) 
       })(role);
 
       const thereIsARole = Boolean(role);
-      unless(validateInCase(thereIsARole, isIn), {
+      unless(bothCheck(thereIsARole, isIn), {
         code: 400,
         msg:
           'The role: "' +
@@ -873,7 +873,7 @@ const createMessage = function(ctx, discussionId, body, replyToCreatedTimestamp,
     })(body);
 
     const timestampIsDefined = isDefined(replyToCreatedTimestamp);
-    unless(validateInCase(timestampIsDefined, isInt), {
+    unless(bothCheck(timestampIsDefined, isInt), {
       code: 400,
       msg: 'Invalid reply-to timestamp provided'
     })(replyToCreatedTimestamp);

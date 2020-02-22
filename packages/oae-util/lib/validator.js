@@ -472,14 +472,13 @@ const isIso3166Country = value => both(_isString, isISO31661Alpha2)(value);
 /**
  * Composed functions
  */
-// TODO JsDoc
 const toInt = curry(parseInt)(__, 10);
-const stringIsANumber = compose(isANumber, toInt, String);
 const dateIsIntoTheFuture = pipe(toInt, toDate, isFuture);
 const dateIsInThePast = pipe(toInt, toDate, isPast);
-// TODO JsDoc
 const stringIsNotEmpty = compose(isNotEmpty, String);
 const stringIsEmail = compose(isEmail, String);
+const stringIsANumber = compose(isANumber, toInt, String);
+const stringIsNumeric = compose(Validator.isInt, String);
 
 const completeValidations = {
   ...Validator,
@@ -491,6 +490,7 @@ const completeValidations = {
   stringIsNotEmpty,
   stringIsEmail,
   stringIsANumber,
+  stringIsNumeric,
   notContains,
   dateIsIntoTheFuture,
   dateIsInThePast,

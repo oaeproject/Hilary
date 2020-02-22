@@ -27,9 +27,11 @@ import { Validator as validator } from 'oae-util/lib/validator';
 const {
   validateInCase: bothCheck,
   unless,
+  stringIsNumeric,
   otherwise,
   isLoggedInUser,
   isPrincipalId,
+  stringIsNotEmpty,
   isNotNull,
   isNotEmpty
 } = validator;
@@ -82,14 +84,10 @@ const storePicture = function(ctx, principalId, file, callback) {
     })(file);
 
     const fileIsThere = Boolean(file);
-    pipe(
-      String,
-      bothCheck(fileIsThere, isNotEmpty),
-      otherwise({
-        code: 400,
-        msg: 'Missing size on the file object.'
-      })
-    )(file.size);
+    unless(bothCheck(fileIsThere, stringIsNotEmpty), {
+      code: 400,
+      msg: 'Missing size on the file object.'
+    })(file.size);
 
     const UPLOAD_LIMIT = 10485760;
     unless(
@@ -213,14 +211,10 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
       msg: 'A principal id must be provided'
     })(principalId);
 
-    pipe(
-      String,
-      isInt,
-      otherwise({
-        code: 400,
-        msg: 'The x value must be a positive integer'
-      })
-    )(x);
+    unless(stringIsNumeric, {
+      code: 400,
+      msg: 'The x value must be a positive integer'
+    })(x);
 
     pipe(
       String,
@@ -231,14 +225,10 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
       })
     )(x, { min: 0 });
 
-    pipe(
-      String,
-      isInt,
-      otherwise({
-        code: 400,
-        msg: 'The y value must be a positive integer'
-      })
-    )(y);
+    unless(stringIsNumeric, {
+      code: 400,
+      msg: 'The y value must be a positive integer'
+    })(y);
 
     pipe(
       String,

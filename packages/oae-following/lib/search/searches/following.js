@@ -19,8 +19,7 @@ import * as SearchUtil from 'oae-search/lib/util';
 import * as FollowingAuthz from 'oae-following/lib/authz';
 
 import { Validator as validator } from 'oae-authz/lib/validator';
-const { isUserId, otherwise } = validator;
-import pipe from 'ramda/src/pipe';
+const { isUserId, unless } = validator;
 import { FollowingConstants } from 'oae-following/lib/constants';
 
 /**
@@ -45,13 +44,10 @@ export default function(ctx, opts, callback) {
   opts.limit = OaeUtil.getNumberParam(opts.limit, 12, 1, 25);
 
   try {
-    pipe(
-      isUserId,
-      otherwise({
-        code: 400,
-        msg: 'Must specificy an id of a user to search their following list'
-      })
-    )(opts.userId);
+    unless(isUserId, {
+      code: 400,
+      msg: 'Must specificy an id of a user to search their following list'
+    })(opts.userId);
   } catch (error) {
     return callback(error);
   }

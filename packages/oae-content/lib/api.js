@@ -45,7 +45,6 @@ import isIn from 'validator/lib/isIn';
 import { Validator as validator } from 'oae-util/lib/validator';
 const {
   validateInCase: bothCheck,
-  otherwise,
   unless,
   isDefined,
   isANumber,
@@ -59,7 +58,7 @@ const {
   isPrincipalId,
   isLongString
 } = validator;
-import { curry, __, equals, not, and, gt as greaterThan, pipe, forEach, forEachObjIndexed } from 'ramda';
+import { curry, __, equals, not, and, gt as greaterThan, compose, forEach, forEachObjIndexed } from 'ramda';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { ContentConstants } from './constants';
 import * as ContentDAO from './internal/dao';
@@ -1476,17 +1475,13 @@ const setContentPermissions = function(ctx, contentId, changes, callback) {
     }
 
     try {
-      const isOneOfValidRoles = curry(isIn)(__, validRoles);
+      const isOneOfValidRoles = compose(curry(isIn)(__, validRoles), String);
       forEachObjIndexed((role /* , principalId */) => {
         const roleAintFalse = not(equals(role, false));
-        pipe(
-          String,
-          bothCheck(roleAintFalse, isOneOfValidRoles),
-          otherwise({
-            code: 400,
-            msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
-          })
-        )(role);
+        unless(bothCheck(roleAintFalse, isOneOfValidRoles), {
+          code: 400,
+          msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
+        })(role);
       }, changes);
     } catch (error) {
       return callback(error);

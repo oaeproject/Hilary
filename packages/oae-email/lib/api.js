@@ -40,12 +40,11 @@ const {
   getNestedObject,
   isDefined,
   unless,
-  otherwise,
+  stringIsEmail,
   isNotEmpty,
   isObject,
   isEmail
 } = validator;
-import pipe from 'ramda/src/pipe';
 
 const EmailConfig = setUpConfig('oae-email');
 const log = logger('oae-email');
@@ -242,14 +241,10 @@ const _abortIfRecipientErrors = (emailData, done) => {
       msg: 'Must specify a user when sending an email'
     })(recipient);
 
-    pipe(
-      String,
-      bothCheck(ifThereIsRecipient, isEmail),
-      otherwise({
-        code: 400,
-        msg: 'User must have a valid email address to receive email'
-      })
-    )(getAttribute(['email']));
+    unless(bothCheck(ifThereIsRecipient, stringIsEmail), {
+      code: 400,
+      msg: 'User must have a valid email address to receive email'
+    })(getAttribute(['email']));
   } catch (error) {
     return done(error);
   }

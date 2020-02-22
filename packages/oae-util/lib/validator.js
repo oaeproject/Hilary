@@ -18,6 +18,9 @@ import {
   defaultTo,
   trim,
   when,
+  pipe,
+  curry,
+  __,
   length,
   reduceWhile,
   compose,
@@ -31,8 +34,10 @@ import {
   isNil,
   isEmpty
 } from 'ramda';
+import { isPast, isFuture, toDate } from 'date-fns';
 
 import Validator from 'validator';
+import { isEmail } from 'oae-authz/lib/util';
 
 const { isURL, isISO31661Alpha2, contains, isLength } = Validator;
 
@@ -464,6 +469,18 @@ const isHost = hostString => {
  */
 const isIso3166Country = value => both(_isString, isISO31661Alpha2)(value);
 
+/**
+ * Composed functions
+ */
+// TODO JsDoc
+const toInt = curry(parseInt)(__, 10);
+const stringIsANumber = compose(isANumber, toInt, String);
+const dateIsIntoTheFuture = pipe(toInt, toDate, isFuture);
+const dateIsInThePast = pipe(toInt, toDate, isPast);
+// TODO JsDoc
+const stringIsNotEmpty = compose(isNotEmpty, String);
+const stringIsEmail = compose(isEmail, String);
+
 const completeValidations = {
   ...Validator,
   isEmpty, // override the isEmpty method from Validator and use R instead
@@ -471,7 +488,12 @@ const completeValidations = {
   isDifferent,
   isDefined,
   isNotEmpty,
+  stringIsNotEmpty,
+  stringIsEmail,
+  stringIsANumber,
   notContains,
+  dateIsIntoTheFuture,
+  dateIsInThePast,
   isNotNull,
   unless,
   otherwise,

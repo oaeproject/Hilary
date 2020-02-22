@@ -42,11 +42,11 @@ const {
   isEmail,
   isObject,
   isUserId,
-  otherwise,
   unless,
-  isNotEmpty
+  isNotEmpty,
+  stringIsNotEmpty
 } = validator;
-import { pipe, and } from 'ramda';
+import { and } from 'ramda';
 import isLength from 'validator/lib/isLength';
 import { getTenantSkinVariables } from 'oae-ui';
 import { AuthenticationConstants } from 'oae-authentication/lib/constants';
@@ -1335,14 +1335,10 @@ const _validateLoginIdForLookup = function(validator, loginId) {
     msg: 'Must specify an authentication provider on the login id'
   })(getAttribute(['provider']));
 
-  pipe(
-    String,
-    bothCheck(ifLoginIsValid, isNotEmpty),
-    otherwise({
-      code: 400,
-      msg: 'Must specify an external id on the login id'
-    })
-  )(getAttribute(['externalId']));
+  unless(bothCheck(ifLoginIsValid, stringIsNotEmpty), {
+    code: 400,
+    msg: 'Must specify an external id on the login id'
+  })(getAttribute(['externalId']));
 };
 
 /**

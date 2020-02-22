@@ -19,9 +19,7 @@ import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as Signature from 'oae-util/lib/signature';
 import * as TenantsAPI from 'oae-tenants/lib/api';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { isDefined, unless, otherwise, isNotEmpty, isInt } = validator;
-import { pipe, curry, __ } from 'ramda';
-import { isFuture, toDate } from 'date-fns';
+const { isDefined, unless, dateIsIntoTheFuture, isNotEmpty, stringIsNotEmpty, isInt } = validator;
 
 import { AuthenticationConstants } from 'oae-authentication/lib/constants';
 import { setUpConfig } from 'oae-config';
@@ -106,14 +104,10 @@ const validateInitiateParameters = function(tenantAlias, signature, expires, cal
       msg: 'Missing signature parameter'
     })(signature);
 
-    pipe(
-      String,
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Missing expires parameter'
-      })
-    )(expires);
+    unless(stringIsNotEmpty, {
+      code: 400,
+      msg: 'Missing expires parameter'
+    })(expires);
 
     unless(isDefined, {
       code: 400,
@@ -125,16 +119,10 @@ const validateInitiateParameters = function(tenantAlias, signature, expires, cal
       msg: 'Invalid expires parameter'
     })(expires);
 
-    const toInt = curry(parseInt)(__, 10);
-    pipe(
-      toInt,
-      toDate,
-      isFuture,
-      otherwise({
-        code: 400,
-        msg: 'Invalid expires parameter'
-      })
-    )(expires);
+    unless(dateIsIntoTheFuture, {
+      code: 400,
+      msg: 'Invalid expires parameter'
+    })(expires);
   } catch (error) {
     return callback(error);
   }
@@ -216,14 +204,10 @@ const getUser = function(tenant, userId, signature, expires, callback) {
       msg: 'Missing signature parameter'
     })(signature);
 
-    pipe(
-      String,
-      isNotEmpty,
-      otherwise({
-        code: 400,
-        msg: 'Missing expires parameter'
-      })
-    )(expires);
+    unless(stringIsNotEmpty, {
+      code: 400,
+      msg: 'Missing expires parameter'
+    })(expires);
 
     unless(isDefined, {
       code: 400,
@@ -235,16 +219,10 @@ const getUser = function(tenant, userId, signature, expires, callback) {
       msg: 'Invalid expires parameter'
     })(expires);
 
-    const toInt = curry(parseInt)(__, 10);
-    pipe(
-      toInt,
-      toDate,
-      isFuture,
-      otherwise({
-        code: 400,
-        msg: 'Invalid expires parameter'
-      })
-    )(expires);
+    unless(dateIsIntoTheFuture, {
+      code: 400,
+      msg: 'Invalid expires parameter'
+    })(expires);
   } catch (error) {
     return callback(error);
   }

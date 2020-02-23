@@ -46,6 +46,7 @@ import { Validator as validator } from 'oae-util/lib/validator';
 const {
   validateInCase: bothCheck,
   unless,
+  isGreaterThanZero,
   isDefined,
   isANumber,
   isResourceId,
@@ -58,7 +59,7 @@ const {
   isPrincipalId,
   isLongString
 } = validator;
-import { curry, __, equals, not, and, gt as greaterThan, compose, forEach, forEachObjIndexed } from 'ramda';
+import { curry, __, equals, not, and, compose, forEach, forEachObjIndexed } from 'ramda';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { ContentConstants } from './constants';
 import * as ContentDAO from './internal/dao';
@@ -476,10 +477,10 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
       msg: 'Invalid size on the file object'
     })(file.size);
 
-    unless(bothCheck(fileIsDefined, greaterThan), {
+    unless(bothCheck(fileIsDefined, isGreaterThanZero), {
       code: 400,
       msg: 'Invalid size on the file object'
-    })(file.size, 0);
+    })(file.size);
 
     unless(bothCheck(fileIsDefined, isNotEmpty), {
       code: 400,
@@ -1794,10 +1795,10 @@ const _updateFileBody = function(ctx, contentId, file, callback) {
       msg: 'Invalid size on the file object.'
     })(file.size);
 
-    unless(bothCheck(fileIsDefined, greaterThan), {
+    unless(bothCheck(fileIsDefined, isGreaterThanZero), {
       code: 400,
       msg: 'Invalid size on the file object.'
-    })(file.size, 0);
+    })(file.size);
 
     unless(bothCheck(fileIsDefined, isNotEmpty), {
       code: 400,

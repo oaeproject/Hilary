@@ -25,17 +25,23 @@ import _ from 'underscore';
 import { logger } from 'oae-logger';
 
 import { Validator as validator } from 'oae-util/lib/validator';
-const { unless, validateInCase: bothCheck, isObject, isNotNull, isArrayNotEmpty } = validator;
-import { curry, __, pipe, gte as greaterOrEqualThan, gt as greaterThan } from 'ramda';
+const {
+  unless,
+  validateInCase: bothCheck,
+  isObject,
+  isZeroOrGreater: zeroOrGreater,
+  isGreaterThanZero: oneOrGreater,
+  isNotNull,
+  toInt,
+  isArrayNotEmpty
+} = validator;
+import { pipe } from 'ramda';
 
 const log = logger('oae-util-image');
 const VALID_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif'];
 
-const toInt = curry(parseInt)(__, 10);
-const zeroOrGreater = greaterOrEqualThan(__, 0);
-const oneOrGreater = greaterThan(__, 0);
-const integerIsZeroOrGreater = pipe(toInt, zeroOrGreater);
-const integerIsOneOrGreater = pipe(toInt, oneOrGreater);
+// const integerIsZeroOrGreater = pipe(toInt, zeroOrGreater);
+// const integerIsOneOrGreater = pipe(toInt, oneOrGreater);
 
 /**
  * Auto orients an image (based on the EXIF Orientation data) and stores it in a temporary file
@@ -132,22 +138,22 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
     })(selectedArea);
 
     const selectedAreaIsDefined = Boolean(selectedArea);
-    unless(bothCheck(selectedAreaIsDefined, integerIsZeroOrGreater), {
+    unless(bothCheck(selectedAreaIsDefined, pipe(toInt, zeroOrGreater)), {
       code: 400,
       msg: 'The x-coordinate needs to be an integer larger than 0'
     })(selectedArea.x);
 
-    unless(bothCheck(selectedAreaIsDefined, integerIsZeroOrGreater), {
+    unless(bothCheck(selectedAreaIsDefined, pipe(toInt, zeroOrGreater)), {
       code: 400,
       msg: 'The y-coordinate needs to be an integer larger than 0'
     })(selectedArea.y);
 
-    unless(bothCheck(selectedAreaIsDefined, integerIsOneOrGreater), {
+    unless(bothCheck(selectedAreaIsDefined, pipe(toInt, oneOrGreater)), {
       code: 400,
       msg: 'The width value must be an integer larger than 0'
     })(selectedArea.width);
 
-    unless(bothCheck(selectedAreaIsDefined, integerIsOneOrGreater), {
+    unless(bothCheck(selectedAreaIsDefined, pipe(toInt, oneOrGreater)), {
       code: 400,
       msg: 'The height value must be an integer larger than 1'
     })(selectedArea.height);
@@ -164,7 +170,7 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
     })(sizes);
 
     for (const element of sizes) {
-      unless(bothCheck(sizesAreDefined, integerIsZeroOrGreater), {
+      unless(bothCheck(sizesAreDefined, pipe(toInt, zeroOrGreater)), {
         code: 400,
         msg: 'The width needs to be a valid integer larger than 0'
       })(element.width);

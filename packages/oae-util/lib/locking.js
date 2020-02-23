@@ -17,10 +17,12 @@ import Redlock from 'redlock';
 
 import { logger } from 'oae-logger';
 
+import { compose } from 'ramda';
+import isInt from 'validator/lib/isInt';
 import * as Redis from './redis';
 import { Validator as validator } from './validator';
-const { stringIsNumeric, unless, isDefined, isNotNull } = validator;
 
+const { unless, isDefined, isNotNull } = validator;
 const log = logger('oae-util-locking');
 
 let locker = null;
@@ -73,7 +75,7 @@ const acquire = function(lockKey, expiresIn, callback) {
       msg: 'The maximum number of seconds for which to hold the lock needs to be specified'
     })(expiresIn);
 
-    unless(stringIsNumeric, {
+    unless(compose(isInt, String), {
       code: 400,
       msg: 'The maximum number of seconds for which to hold the lock needs to be an integer'
     })(expiresIn);

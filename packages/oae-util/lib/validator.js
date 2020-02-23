@@ -32,12 +32,13 @@ import {
   is,
   equals,
   isNil,
-  isEmpty
+  isEmpty,
+  gte as greaterOrEqualThan,
+  gt as greaterThan
 } from 'ramda';
 import { isPast, isFuture, toDate } from 'date-fns';
 
 import Validator from 'validator';
-import { isEmail } from 'oae-authz/lib/util';
 
 const { isURL, isISO31661Alpha2, contains, isLength } = Validator;
 
@@ -473,10 +474,14 @@ const isIso3166Country = value => both(_isString, isISO31661Alpha2)(value);
  * Composed functions
  */
 const toInt = curry(parseInt)(__, 10);
+const isGreaterThanZero = greaterThan(__, 0);
+const isZeroOrGreater = greaterOrEqualThan(__, 0);
+const isOneOrGreater = greaterThan(__, 0);
 const dateIsIntoTheFuture = pipe(toInt, toDate, isFuture);
 const dateIsInThePast = pipe(toInt, toDate, isPast);
-const stringIsNotEmpty = compose(isNotEmpty, String);
-const stringIsEmail = compose(isEmail, String);
+
+// const stringIsNotEmpty = compose(isNotEmpty, String);
+// const stringIsEmail = compose(isEmail, String);
 const stringIsANumber = compose(isANumber, toInt, String);
 const stringIsNumeric = compose(Validator.isInt, String);
 
@@ -487,10 +492,12 @@ const completeValidations = {
   isDifferent,
   isDefined,
   isNotEmpty,
-  stringIsNotEmpty,
-  stringIsEmail,
   stringIsANumber,
   stringIsNumeric,
+  isGreaterThanZero,
+  isZeroOrGreater,
+  isOneOrGreater,
+  toInt,
   notContains,
   dateIsIntoTheFuture,
   dateIsInThePast,

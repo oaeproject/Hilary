@@ -19,7 +19,8 @@ import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as Signature from 'oae-util/lib/signature';
 import * as TenantsAPI from 'oae-tenants/lib/api';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { isDefined, unless, dateIsIntoTheFuture, isNotEmpty, stringIsNotEmpty, isInt } = validator;
+const { isDefined, unless, dateIsIntoTheFuture, isNotEmpty, isInt } = validator;
+import { compose } from 'ramda';
 
 import { AuthenticationConstants } from 'oae-authentication/lib/constants';
 import { setUpConfig } from 'oae-config';
@@ -104,7 +105,7 @@ const validateInitiateParameters = function(tenantAlias, signature, expires, cal
       msg: 'Missing signature parameter'
     })(signature);
 
-    unless(stringIsNotEmpty, {
+    unless(compose(isNotEmpty, String), {
       code: 400,
       msg: 'Missing expires parameter'
     })(expires);
@@ -204,7 +205,7 @@ const getUser = function(tenant, userId, signature, expires, callback) {
       msg: 'Missing signature parameter'
     })(signature);
 
-    unless(stringIsNotEmpty, {
+    unless(compose(isNotEmpty, String), {
       code: 400,
       msg: 'Missing expires parameter'
     })(expires);

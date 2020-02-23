@@ -25,16 +25,17 @@ import { logger } from 'oae-logger';
 
 import { Validator as validator } from 'oae-util/lib/validator';
 const {
-  stringIsANumber,
   validateInCase: bothCheck,
+  isANumber,
   dateIsInThePast,
   isString,
   isUserId,
   unless,
-  isNotNull
+  isNotNull,
+  toInt
 } = validator;
 import { isPast } from 'date-fns';
-import { not, head } from 'ramda';
+import { compose, not, head } from 'ramda';
 import isInt from 'validator/lib/isInt';
 import isIn from 'validator/lib/isIn';
 import * as MessageBoxModel from './model';
@@ -444,7 +445,7 @@ const getMessages = function(messageBoxId, createdTimestamps, opts, callback) {
         msg: 'A timestamp cannot be null.'
       })(timestamp);
 
-      unless(stringIsANumber, {
+      unless(compose(isANumber, toInt, String), {
         code: 400,
         msg: 'A timestamp should be an integer.'
       })(timestamp);
@@ -555,7 +556,7 @@ const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
       msg: 'The createdTimestamp should not be null.'
     })(createdTimestamp);
 
-    unless(stringIsANumber, {
+    unless(compose(isANumber, toInt, String), {
       code: 400,
       msg: 'The createdTimestamp should be a string.'
     })(createdTimestamp);

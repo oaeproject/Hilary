@@ -35,16 +35,9 @@ import * as UIAPI from 'oae-ui';
 import { htmlToText } from 'nodemailer-html-to-text';
 import * as TenantsAPI from 'oae-tenants';
 import { Validator as validator } from 'oae-util/lib/validator';
-const {
-  validateInCase: bothCheck,
-  getNestedObject,
-  isDefined,
-  unless,
-  stringIsEmail,
-  isNotEmpty,
-  isObject,
-  isEmail
-} = validator;
+const { validateInCase: bothCheck, getNestedObject, isDefined, unless, isNotEmpty, isObject } = validator;
+import { compose } from 'ramda';
+import { isEmail } from 'oae-authz/lib/util';
 
 const EmailConfig = setUpConfig('oae-email');
 const log = logger('oae-email');
@@ -241,7 +234,7 @@ const _abortIfRecipientErrors = (emailData, done) => {
       msg: 'Must specify a user when sending an email'
     })(recipient);
 
-    unless(bothCheck(ifThereIsRecipient, stringIsEmail), {
+    unless(bothCheck(ifThereIsRecipient, compose(isEmail, String)), {
       code: 400,
       msg: 'User must have a valid email address to receive email'
     })(getAttribute(['email']));

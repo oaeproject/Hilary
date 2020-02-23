@@ -48,16 +48,16 @@ const {
   isShortString,
   validateInCase: bothCheck,
   stringIsNumeric,
-  stringIsNotEmpty,
   isUserId,
   isNotNull,
   isArrayEmpty,
   isNotEmpty,
   isLoggedInUser,
   isEmail,
-  isArrayNotEmpty
+  isArrayNotEmpty,
+  isGreaterThanZero
 } = validator;
-import { gt as greaterThan, __, not, isNil } from 'ramda';
+import { compose, not, isNil } from 'ramda';
 import isIn from 'validator/lib/isIn';
 import { AuthenticationConstants } from 'oae-authentication/lib/constants';
 import { AuthzConstants } from 'oae-authz/lib/constants';
@@ -75,8 +75,6 @@ const PrincipalsConfig = setUpConfig('oae-principals');
 const fullUserProfileDecorators = {};
 const HTTP_PROTOCOL = 'http';
 const HTTPS_PROTOCOL = 'https';
-
-const isGreaterThanZero = greaterThan(__, 0);
 
 /**
  * Register a decorator for the full user profile. A decorator will, at read time, provide additional data about the user
@@ -323,7 +321,7 @@ const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, 
     })(userCSV);
 
     const isUserCSVDefined = Boolean(userCSV);
-    unless(bothCheck(isUserCSVDefined, stringIsNotEmpty), {
+    unless(bothCheck(isUserCSVDefined, compose(isNotEmpty, String)), {
       code: 400,
       msg: 'Missing size on the CSV file'
     })(userCSV.size);

@@ -30,11 +30,11 @@ const {
   stringIsNumeric,
   isLoggedInUser,
   isPrincipalId,
-  stringIsNotEmpty,
   isNotNull,
-  isNotEmpty
+  isNotEmpty,
+  isZeroOrGreater
 } = validator;
-import { gte as greaterOrEqualThan, curry, __, pipe } from 'ramda';
+import { compose, curry, __, pipe } from 'ramda';
 import * as GroupAPI from './api.group';
 import * as PrincipalsDAO from './internal/dao';
 import PrincipalsEmitter from './internal/emitter';
@@ -45,7 +45,7 @@ import { PrincipalsConstants } from './constants';
 const log = logger('oae-principals-shared');
 
 const toInt = curry(parseInt)(__, 10);
-const zeroOrGreater = pipe(String, toInt, greaterOrEqualThan(__, 0));
+const zeroOrGreater = pipe(String, toInt, isZeroOrGreater);
 
 /**
  * Store the large picture for a principal that can be re-used later on
@@ -85,7 +85,7 @@ const storePicture = function(ctx, principalId, file, callback) {
     })(file);
 
     const fileIsThere = Boolean(file);
-    unless(bothCheck(fileIsThere, stringIsNotEmpty), {
+    unless(bothCheck(fileIsThere, compose(isNotEmpty, String)), {
       code: 400,
       msg: 'Missing size on the file object.'
     })(file.size);

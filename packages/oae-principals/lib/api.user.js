@@ -45,9 +45,10 @@ import { Context } from 'oae-context';
 import { Validator as validator } from 'oae-util/lib/validator';
 const {
   unless,
-  otherwise,
   isShortString,
   validateInCase: bothCheck,
+  stringIsNumeric,
+  stringIsNotEmpty,
   isUserId,
   isNotNull,
   isArrayEmpty,
@@ -56,9 +57,8 @@ const {
   isEmail,
   isArrayNotEmpty
 } = validator;
-import { gt as greaterThan, __, pipe, not, isNil } from 'ramda';
+import { gt as greaterThan, __, not, isNil } from 'ramda';
 import isIn from 'validator/lib/isIn';
-import isInt from 'validator/lib/isInt';
 import { AuthenticationConstants } from 'oae-authentication/lib/constants';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import * as UserDeletionUtil from 'oae-principals/lib/definitive-deletion';
@@ -323,23 +323,15 @@ const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, 
     })(userCSV);
 
     const isUserCSVDefined = Boolean(userCSV);
-    pipe(
-      String,
-      bothCheck(isUserCSVDefined, isNotEmpty),
-      otherwise({
-        code: 400,
-        msg: 'Missing size on the CSV file'
-      })
-    )(userCSV.size);
+    unless(bothCheck(isUserCSVDefined, stringIsNotEmpty), {
+      code: 400,
+      msg: 'Missing size on the CSV file'
+    })(userCSV.size);
 
-    pipe(
-      String,
-      bothCheck(isUserCSVDefined, isInt),
-      otherwise({
-        code: 400,
-        msg: 'Invalid size on the CSV file'
-      })
-    )(userCSV.size);
+    unless(bothCheck(isUserCSVDefined, stringIsNumeric), {
+      code: 400,
+      msg: 'Invalid size on the CSV file'
+    })(userCSV.size);
 
     unless(bothCheck(isUserCSVDefined, isGreaterThanZero), {
       code: 400,

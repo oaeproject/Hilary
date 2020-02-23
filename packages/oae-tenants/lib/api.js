@@ -33,7 +33,6 @@ import * as OaeUtil from 'oae-util/lib/util';
 import * as Pubsub from 'oae-util/lib/pubsub';
 import { Validator as validator } from 'oae-util/lib/validator';
 const {
-  otherwise,
   unless,
   isString,
   isGlobalAdministratorUser,
@@ -636,23 +635,15 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
       msg: 'This hostname is reserved'
     })(host, serverConfig.shibbolethSPHost);
 
-    pipe(
-      getTenant,
-      isNil,
-      otherwise({
-        code: 400,
-        msg: `A tenant with the alias ${alias} already exists`
-      })
-    )(alias);
+    unless(compose(isNil, getTenant), {
+      code: 400,
+      msg: `A tenant with the alias ${alias} already exists`
+    })(alias);
 
-    pipe(
-      getTenantByHost,
-      isNil,
-      otherwise({
-        code: 400,
-        msg: `A tenant with the host ${host} already exists`
-      })
-    )(host);
+    unless(compose(isNil, getTenantByHost), {
+      code: 400,
+      msg: `A tenant with the host ${host} already exists`
+    })(host);
 
     // Ensure only valid optional fields are set
     forEachObjIndexed((val, key) => {
@@ -749,14 +740,10 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
       msg: 'Missing alias'
     })(alias);
 
-    pipe(
-      getTenant,
-      isNotNull,
-      otherwise({
-        code: 404,
-        msg: util.format('Tenant with alias "%s" does not exist and cannot be updated', alias)
-      })
-    )(alias);
+    unless(compose(isNotNull, getTenant), {
+      code: 404,
+      msg: util.format('Tenant with alias "%s" does not exist and cannot be updated', alias)
+    })(alias);
 
     // Check that at least either a new display name or hostname have been provided
     const updateFields = tenantUpdates ? keys(tenantUpdates) : [];
@@ -787,14 +774,10 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
         // Validate the lower-cased version
         unless(isHost, { code: 400, msg: 'Invalid host' })(updateValue);
         unless(isNotEmpty, { code: 400, msg: 'A hostname cannot be empty' })(updateValue);
-        pipe(
-          getTenantByHost,
-          isNil,
-          otherwise({
-            code: 400,
-            msg: 'The hostname has already been taken'
-          })
-        )(updateValue);
+        unless(compose(isNil, getTenantByHost), {
+          code: 400,
+          msg: 'The hostname has already been taken'
+        })(updateValue);
         unless(isDifferent, { code: 400, msg: 'This hostname is reserved' })(
           updateValue,
           toLower(serverConfig.shibbolethSPHost)
@@ -816,14 +799,11 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
         // Ensure the country code is upper case
         tenantUpdates[updateField] = toUpper(tenantUpdates[updateField]);
 
-        pipe(
-          key => tenantUpdates[key],
-          isIso3166Country,
-          otherwise({
-            code: 400,
-            msg: 'The country code must be a valid ISO-3166 country code'
-          })
-        )(updateField);
+        const tenantUpdateIsCountry = compose(isIso3166Country, key => tenantUpdates[key]);
+        unless(tenantUpdateIsCountry, {
+          code: 400,
+          msg: 'The country code must be a valid ISO-3166 country code'
+        })(updateField);
       }
     }, tenantUpdates);
   } catch (error) {
@@ -870,14 +850,10 @@ const disableTenants = function(ctx, aliases, disabled, callback) {
     })(aliases);
 
     aliases.forEach(alias => {
-      pipe(
-        getTenant,
-        isObject,
-        otherwise({
-          code: 404,
-          msg: util.format('Tenant with alias "%s" does not exist and cannot be enabled or disabled', alias)
-        })
-      )(alias);
+      unless(compose(isObject, getTenant), {
+        code: 404,
+        msg: util.format('Tenant with alias "%s" does not exist and cannot be enabled or disabled', alias)
+      })(alias);
     });
   } catch (error) {
     return callback(error);

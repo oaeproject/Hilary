@@ -28,15 +28,13 @@ const {
   validateInCase: bothCheck,
   unless,
   stringIsNumeric,
-  otherwise,
   isLoggedInUser,
   isPrincipalId,
   stringIsNotEmpty,
   isNotNull,
   isNotEmpty
 } = validator;
-import pipe from 'ramda/src/pipe';
-import isInt from 'validator/lib/isInt';
+import { gte as greaterOrEqualThan, curry, __, pipe } from 'ramda';
 import * as GroupAPI from './api.group';
 import * as PrincipalsDAO from './internal/dao';
 import PrincipalsEmitter from './internal/emitter';
@@ -45,6 +43,9 @@ import * as PrincipalsUtil from './util';
 import { PrincipalsConstants } from './constants';
 
 const log = logger('oae-principals-shared');
+
+const toInt = curry(parseInt)(__, 10);
+const zeroOrGreater = pipe(String, toInt, greaterOrEqualThan(__, 0));
 
 /**
  * Store the large picture for a principal that can be re-used later on
@@ -216,46 +217,30 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
       msg: 'The x value must be a positive integer'
     })(x);
 
-    pipe(
-      String,
-      isInt,
-      otherwise({
-        code: 400,
-        msg: 'The x value must be a positive integer'
-      })
-    )(x, { min: 0 });
+    unless(zeroOrGreater, {
+      code: 400,
+      msg: 'The x value must be a positive integer'
+    })(x);
 
     unless(stringIsNumeric, {
       code: 400,
       msg: 'The y value must be a positive integer'
     })(y);
 
-    pipe(
-      String,
-      isInt,
-      otherwise({
-        code: 400,
-        msg: 'The y value must be a positive integer'
-      })
-    )(y, { min: 0 });
+    unless(zeroOrGreater, {
+      code: 400,
+      msg: 'The y value must be a positive integer'
+    })(y);
 
-    pipe(
-      String,
-      isInt,
-      otherwise({
-        code: 400,
-        msg: 'The width value must be a positive integer'
-      })
-    )(width);
+    unless(stringIsNumeric, {
+      code: 400,
+      msg: 'The width value must be a positive integer'
+    })(width);
 
-    pipe(
-      String,
-      isInt,
-      otherwise({
-        code: 400,
-        msg: 'The width value must be a positive integer greater than or equal to 10'
-      })
-    )(width, { gt: 9 });
+    unless(stringIsNumeric, {
+      code: 400,
+      msg: 'The width value must be a positive integer greater than or equal to 10'
+    })(width, { gt: 9 });
   } catch (error) {
     return callback(error);
   }

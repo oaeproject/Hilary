@@ -29,8 +29,8 @@ const {
   unless,
   validateInCase: bothCheck,
   isObject,
-  isZeroOrGreater: zeroOrGreater,
-  isGreaterThanZero: oneOrGreater,
+  isZeroOrGreater,
+  isOneOrGreater,
   isNotNull,
   toInt,
   isArrayNotEmpty
@@ -39,9 +39,6 @@ import { pipe } from 'ramda';
 
 const log = logger('oae-util-image');
 const VALID_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif'];
-
-// const integerIsZeroOrGreater = pipe(toInt, zeroOrGreater);
-// const integerIsOneOrGreater = pipe(toInt, oneOrGreater);
 
 /**
  * Auto orients an image (based on the EXIF Orientation data) and stores it in a temporary file
@@ -138,22 +135,22 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
     })(selectedArea);
 
     const selectedAreaIsDefined = Boolean(selectedArea);
-    unless(bothCheck(selectedAreaIsDefined, pipe(toInt, zeroOrGreater)), {
+    unless(bothCheck(selectedAreaIsDefined, pipe(toInt, isZeroOrGreater)), {
       code: 400,
       msg: 'The x-coordinate needs to be an integer larger than 0'
     })(selectedArea.x);
 
-    unless(bothCheck(selectedAreaIsDefined, pipe(toInt, zeroOrGreater)), {
+    unless(bothCheck(selectedAreaIsDefined, pipe(toInt, isZeroOrGreater)), {
       code: 400,
       msg: 'The y-coordinate needs to be an integer larger than 0'
     })(selectedArea.y);
 
-    unless(bothCheck(selectedAreaIsDefined, pipe(toInt, oneOrGreater)), {
+    unless(bothCheck(selectedAreaIsDefined, pipe(toInt, isOneOrGreater)), {
       code: 400,
       msg: 'The width value must be an integer larger than 0'
     })(selectedArea.width);
 
-    unless(bothCheck(selectedAreaIsDefined, pipe(toInt, oneOrGreater)), {
+    unless(bothCheck(selectedAreaIsDefined, pipe(toInt, isOneOrGreater)), {
       code: 400,
       msg: 'The height value must be an integer larger than 1'
     })(selectedArea.height);
@@ -170,12 +167,12 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
     })(sizes);
 
     for (const element of sizes) {
-      unless(bothCheck(sizesAreDefined, pipe(toInt, zeroOrGreater)), {
+      unless(bothCheck(sizesAreDefined, pipe(toInt, isZeroOrGreater)), {
         code: 400,
         msg: 'The width needs to be a valid integer larger than 0'
       })(element.width);
 
-      unless(bothCheck(sizesAreDefined, oneOrGreater), {
+      unless(bothCheck(sizesAreDefined, isOneOrGreater), {
         code: 400,
         msg: 'The height needs to be a valid integer larger than 0'
       })(element.height);
@@ -253,22 +250,22 @@ const cropImage = function(imagePath, selectedArea, callback) {
     })(selectedArea);
 
     const selectedAreaIsDefined = Boolean(selectedArea);
-    unless(bothCheck(selectedAreaIsDefined, zeroOrGreater), {
+    unless(bothCheck(selectedAreaIsDefined, isZeroOrGreater), {
       code: 400,
       msg: 'The x-coordinate needs to be a valid integer'
     })(selectedArea.x);
 
-    unless(bothCheck(selectedAreaIsDefined, zeroOrGreater), {
+    unless(bothCheck(selectedAreaIsDefined, isZeroOrGreater), {
       code: 400,
       msg: 'The y-coordinate needs to be a valid integer'
     })(selectedArea.y);
 
-    unless(bothCheck(selectedAreaIsDefined, zeroOrGreater), {
+    unless(bothCheck(selectedAreaIsDefined, isZeroOrGreater), {
       code: 400,
       msg: 'The width value must be an integer larger than 0'
     })(selectedArea.width);
 
-    unless(bothCheck(selectedAreaIsDefined, oneOrGreater), {
+    unless(bothCheck(selectedAreaIsDefined, isOneOrGreater), {
       code: 400,
       msg: 'The height value must be an integer larger than 0'
     })(selectedArea.height);
@@ -383,12 +380,12 @@ const resizeImage = function(imagePath, size, callback) {
     })(size);
 
     const sizeIsDefined = Boolean(size);
-    unless(bothCheck(sizeIsDefined, oneOrGreater), {
+    unless(bothCheck(sizeIsDefined, isOneOrGreater), {
       code: 400,
       msg: 'The width needs to be a valid integer larger than 0'
     })(size.width);
 
-    unless(bothCheck(sizeIsDefined, oneOrGreater), {
+    unless(bothCheck(sizeIsDefined, isOneOrGreater), {
       code: 400,
       msg: 'The height needs to be a valid integer larger than 0'
     })(size.height);

@@ -13,14 +13,14 @@
  * permissions and limitations under the License.
  */
 
-import * as OaeUtil from 'oae-util/lib/util';
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as SearchUtil from 'oae-search/lib/util';
 import * as FollowingAuthz from 'oae-following/lib/authz';
 
 import { Validator as validator } from 'oae-authz/lib/validator';
-const { isUserId, unless } = validator;
 import { FollowingConstants } from 'oae-following/lib/constants';
+
+const { isUserId, unless } = validator;
 
 /**
  * Search that searches a user's followers list.
@@ -38,10 +38,7 @@ import { FollowingConstants } from 'oae-following/lib/constants';
  */
 export default function(ctx, opts, callback) {
   // Sanitize the search options
-  opts = opts || {};
-  opts.pathParams = opts.pathParams || [];
-  opts.userId = opts.pathParams[0];
-  opts.limit = OaeUtil.getNumberParam(opts.limit, 12, 1, 25);
+  opts = SearchUtil.sanitizeSearchParams(opts);
 
   try {
     unless(isUserId, {

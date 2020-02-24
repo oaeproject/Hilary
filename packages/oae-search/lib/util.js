@@ -28,8 +28,10 @@ import * as SearchModel from 'oae-search/lib/model';
 import { SearchConstants } from 'oae-search/lib/constants';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { Validator as validator } from 'oae-util/lib/validator';
-const { isObject, unless } = validator;
+import { head } from 'ramda';
 
+const { isObject, unless } = validator;
+const { defaultToEmptyArray, defaultToEmptyObject } = validator;
 const log = logger('oae-search-util');
 
 /**
@@ -899,7 +901,17 @@ const getChildSearchDocumentId = function(type, resourceId, childId) {
   return util.format('%s#%s#%s', resourceId, type, childId || '');
 };
 
+const sanitizeSearchParams = opts => {
+  opts = defaultToEmptyObject(opts);
+  opts.pathParams = defaultToEmptyArray(opts.pathParams);
+  opts.userId = head(opts.pathParams);
+  opts.limit = OaeUtil.getNumberParam(opts.limit, 12, 1, 25);
+
+  return opts;
+};
+
 export {
+  sanitizeSearchParams,
   getSearchParams,
   getQueryParam,
   getScopeParam,

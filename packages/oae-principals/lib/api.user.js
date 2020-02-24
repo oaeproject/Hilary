@@ -55,7 +55,7 @@ const {
   isLoggedInUser,
   isEmail,
   isArrayNotEmpty,
-  isGreaterThanZero
+  isOneOrGreater
 } = validator;
 import { compose, not, isNil } from 'ramda';
 import isIn from 'validator/lib/isIn';
@@ -331,7 +331,7 @@ const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, 
       msg: 'Invalid size on the CSV file'
     })(userCSV.size);
 
-    unless(bothCheck(isUserCSVDefined, isGreaterThanZero), {
+    unless(bothCheck(isUserCSVDefined, isOneOrGreater), {
       code: 400,
       msg: 'Invalid size on the CSV file'
     })(userCSV.size);

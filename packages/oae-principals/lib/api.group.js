@@ -34,6 +34,7 @@ const {
   isShortString,
   isMediumString,
   validateInCase: bothCheck,
+  isRoleValid,
   unless,
   isLoggedInUser,
   isNotEmpty,
@@ -43,7 +44,7 @@ const {
 } = validator;
 import isIn from 'validator/lib/isIn';
 import { AuthzConstants } from 'oae-authz/lib/constants';
-import { both, not, compose, forEachObjIndexed, equals } from 'ramda';
+import { both, forEachObjIndexed, equals } from 'ramda';
 import * as PrincipalsDAO from './internal/dao';
 import * as PrincipalsMembersLibrary from './libraries/members';
 import PrincipalsEmitter from './internal/emitter';
@@ -554,6 +555,16 @@ const _getRecentGroupsForUserId = function(ctx, principalId, limit, callback) {
   });
 };
 
+const _validateEveryRoleChange = changes => {
+  const validRoles = PrincipalsConstants.role.ALL_PRIORITY;
+  forEachObjIndexed((role /* , memberId */) => {
+    unless(bothCheck(isRoleValid(role), isIn), {
+      code: 400,
+      msg: util.format('Role must be one of %s', validRoles.join(', '))
+    })(role, validRoles);
+  }, changes);
+};
+
 /**
  * Update the members of a group
  *
@@ -578,14 +589,7 @@ const setGroupMembers = function(ctx, groupId, changes, callback) {
 
     // Ensure each role is restricted to those supported by groups (member and manager). Resource
     // Actions will take care of the other standard checks
-    const validRoles = PrincipalsConstants.role.ALL_PRIORITY;
-    forEachObjIndexed((role /* , memberId */) => {
-      const roleIsDefined = compose(not, equals)(role, false);
-      unless(bothCheck(roleIsDefined, isIn), {
-        code: 400,
-        msg: util.format('Role must be one of %s', validRoles.join(', '))
-      })(role, validRoles);
-    }, changes);
+    _validateEveryRoleChange(changes);
   } catch (error) {
     return callback(error);
   }
@@ -820,14 +824,7 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
 
     // Ensure all roles are in the set of valid roles. ResourceActions will take care of other
     // standard validations
-    const validRoles = PrincipalsConstants.role.ALL_PRIORITY;
-    forEachObjIndexed((role /* , principalId */) => {
-      const roleIsValid = compose(not, equals)(role, false);
-      unless(bothCheck(roleIsValid, isIn), {
-        code: 400,
-        msg: util.format('Role must be one of %s', validRoles.join(', '))
-      })(role, validRoles);
-    }, roles);
+    _validateEveryRoleChange(roles);
   } catch (error) {
     return callback(error);
   }

@@ -27,12 +27,12 @@ import { Validator as validator } from 'oae-util/lib/validator';
 const {
   validateInCase: bothCheck,
   unless,
-  stringIsNumeric,
   isLoggedInUser,
   isPrincipalId,
   isNotNull,
   isNotEmpty,
-  isZeroOrGreater
+  isZeroOrGreater,
+  isInt
 } = validator;
 import { compose, curry, __, pipe } from 'ramda';
 import * as GroupAPI from './api.group';
@@ -212,7 +212,7 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
       msg: 'A principal id must be provided'
     })(principalId);
 
-    unless(stringIsNumeric, {
+    unless(compose(isInt, String), {
       code: 400,
       msg: 'The x value must be a positive integer'
     })(x);
@@ -222,7 +222,7 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
       msg: 'The x value must be a positive integer'
     })(x);
 
-    unless(stringIsNumeric, {
+    unless(compose(isInt, String), {
       code: 400,
       msg: 'The y value must be a positive integer'
     })(y);
@@ -232,12 +232,12 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
       msg: 'The y value must be a positive integer'
     })(y);
 
-    unless(stringIsNumeric, {
+    unless(compose(isInt, String), {
       code: 400,
       msg: 'The width value must be a positive integer'
     })(width);
 
-    unless(stringIsNumeric, {
+    unless(compose(isInt, String), {
       code: 400,
       msg: 'The width value must be a positive integer greater than or equal to 10'
     })(width, { gt: 9 });

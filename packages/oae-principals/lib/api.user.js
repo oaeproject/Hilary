@@ -47,7 +47,7 @@ const {
   unless,
   isShortString,
   validateInCase: bothCheck,
-  stringIsNumeric,
+  isInt,
   isUserId,
   isNotNull,
   isArrayEmpty,
@@ -326,7 +326,7 @@ const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, 
       msg: 'Missing size on the CSV file'
     })(userCSV.size);
 
-    unless(bothCheck(isUserCSVDefined, stringIsNumeric), {
+    unless(bothCheck(isUserCSVDefined, compose(isInt, String)), {
       code: 400,
       msg: 'Invalid size on the CSV file'
     })(userCSV.size);

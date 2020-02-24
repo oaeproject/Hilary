@@ -42,6 +42,9 @@ import Validator from 'validator';
 
 const { isURL, isISO31661Alpha2, contains, isLength } = Validator;
 
+/**
+ * Private utility functions
+ */
 const _isString = value => is(String, value);
 
 const _isBoolean = value => is(Boolean, value);
@@ -59,6 +62,16 @@ const _isObject = value => is(Object, value);
 const _isFalse = value => equals(value, false);
 
 const _isItLengthy = interval => value => isLength(value, interval);
+
+/**
+ * Composed functions
+ */
+const toInt = curry(parseInt)(__, 10);
+const isGreaterThanZero = greaterThan(__, 0);
+const isZeroOrGreater = greaterOrEqualThan(__, 0);
+const isOneOrGreater = greaterThan(__, 0);
+const dateIsIntoTheFuture = pipe(toInt, toDate, isFuture);
+const dateIsInThePast = pipe(toInt, toDate, isPast);
 
 /**
  * @function isDifferent
@@ -153,7 +166,6 @@ const otherwise = error => validationPassed => {
   })(validationPassed);
 };
 
-// TODO JSdoc
 const unless = (validation, error) => {
   return (...args) => {
     const validationFails = compose(not, validation)(...args);
@@ -470,21 +482,6 @@ const isHost = hostString => {
  */
 const isIso3166Country = value => both(_isString, isISO31661Alpha2)(value);
 
-/**
- * Composed functions
- */
-const toInt = curry(parseInt)(__, 10);
-const isGreaterThanZero = greaterThan(__, 0);
-const isZeroOrGreater = greaterOrEqualThan(__, 0);
-const isOneOrGreater = greaterThan(__, 0);
-const dateIsIntoTheFuture = pipe(toInt, toDate, isFuture);
-const dateIsInThePast = pipe(toInt, toDate, isPast);
-
-// const stringIsNotEmpty = compose(isNotEmpty, String);
-// const stringIsEmail = compose(isEmail, String);
-const stringIsANumber = compose(isANumber, toInt, String);
-const stringIsNumeric = compose(Validator.isInt, String);
-
 const completeValidations = {
   ...Validator,
   isEmpty, // override the isEmpty method from Validator and use R instead
@@ -492,8 +489,6 @@ const completeValidations = {
   isDifferent,
   isDefined,
   isNotEmpty,
-  stringIsANumber,
-  stringIsNumeric,
   isGreaterThanZero,
   isZeroOrGreater,
   isOneOrGreater,

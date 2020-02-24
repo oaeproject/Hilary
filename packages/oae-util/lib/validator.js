@@ -72,6 +72,8 @@ const isZeroOrGreater = greaterOrEqualThan(__, 0);
 const isOneOrGreater = greaterThan(__, 0);
 const dateIsIntoTheFuture = pipe(toInt, toDate, isFuture);
 const dateIsInThePast = pipe(toInt, toDate, isPast);
+const defaultToEmptyArray = defaultTo([]);
+const defaultToEmptyObject = defaultTo({});
 
 /**
  * @function isDifferent
@@ -516,7 +518,9 @@ const completeValidations = {
   isGlobalAdministratorUser,
   isObject,
   isModule,
-  isANumber
+  isANumber,
+  defaultToEmptyArray,
+  defaultToEmptyObject
 };
 
 export { completeValidations as Validator };

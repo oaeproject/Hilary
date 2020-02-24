@@ -20,14 +20,36 @@ import { Tenant } from 'oae-tenants/lib/model';
 import { User } from 'oae-principals/lib/model.user';
 import { Validator as validator } from 'oae-util/lib/validator';
 
-const { isDefined, isShortString, isMediumString, isLongString, isBoolean, isArray, isGlobalAdministratorUser, isHost, isLoggedInUser, isValidTimeZone, isURL, isEmail, isInt, isNotEmpty, isEmpty }= validator;
+const {
+  isDefined,
+  isShortString,
+  isMediumString,
+  isLongString,
+  isBoolean,
+  isArray,
+  isGlobalAdministratorUser,
+  isHost,
+  isLoggedInUser,
+  isValidTimeZone,
+  isURL,
+  isEmail,
+  isInt,
+  isNotEmpty,
+  isEmpty,
+  isDifferent,
+  isOneOrGreater,
+  isZeroOrGreater
+} = validator;
 import * as TestsUtil from 'oae-tests/lib/util';
 
 describe('Utilities', () => {
   describe('Validator', () => {
     it('verify undefined gets checked as empty', callback => {
-      assert.strictEqual(isNotEmpty(undefined), false);
       assert.strictEqual(isEmpty(undefined), false);
+      assert.strictEqual(isEmpty(null), false);
+      assert.strictEqual(isEmpty(''), true);
+      assert.strictEqual(isEmpty([]), true);
+      assert.strictEqual(isEmpty({}), true);
       return callback();
     });
 
@@ -42,7 +64,7 @@ describe('Utilities', () => {
 
       assert.strictEqual(isNotEmpty(''), false);
       assert.strictEqual(isNotEmpty(' '), false);
-      assert.strictEqual(isNotEmpty('    '), false)
+      assert.strictEqual(isNotEmpty('    '), false);
 
       return callback();
     });
@@ -63,11 +85,13 @@ describe('Utilities', () => {
       } catch (error) {
         assert.ok(error);
       }
+
       try {
         assert.strictEqual(isInt(10), false);
       } catch (error) {
         assert.ok(error);
       }
+
       try {
         assert.strictEqual(isInt(-10), false);
       } catch (error) {
@@ -75,7 +99,7 @@ describe('Utilities', () => {
       }
 
       // Non numeric strings will fail
-      assert.strictEqual(isInt('String'), false)
+      assert.strictEqual(isInt('String'), false);
       assert.strictEqual(isInt(''), false);
 
       // Somewhat numeric strings will fail
@@ -91,7 +115,7 @@ describe('Utilities', () => {
      * is working as intended
      */
     it('verify email validator', callback => {
-      assert.strictEqual(isEmail('miguel.laginha@oae.project.org'), true)
+      assert.strictEqual(isEmail('miguel.laginha@oae.project.org'), true);
       assert.strictEqual(isEmail('miguel_laginha@oae.project.org'), true);
       assert.strictEqual(isEmail('miguel@oae.project'), true);
 
@@ -113,14 +137,16 @@ describe('Utilities', () => {
      * @param  {Object} test     Standard nodeunit test object
      */
     it('verify URL validator', callback => {
-
       assert.strictEqual(isURL('http://www.oaeproject.org'), true);
       assert.strictEqual(isURL('http://example.com/assert.html'), true);
       assert.strictEqual(isURL('https://oae-widgets.oaeproject.org/sdk'), true);
       assert.strictEqual(isURL('http://support.google.com/docs/bin/answer.py?hl=en&answer=66343'), true);
       assert.strictEqual(isURL('http://www.w3.org/2004/02/skos/core#broader'), true);
       assert.strictEqual(isURL('https://wordpress.org/support/topic/plugin-addthis-odd-url-string?replies=5'), true);
-      assert.strictEqual(isURL('https://twimg0-a.akamaihd.net/profile_images/300425859/ls_1278_Nicolaas-website.jpg'), true);
+      assert.strictEqual(
+        isURL('https://twimg0-a.akamaihd.net/profile_images/300425859/ls_1278_Nicolaas-website.jpg'),
+        true
+      );
 
       assert.strictEqual(isURL('String'), false);
       assert.strictEqual(isURL('://www.google.pt'), false);
@@ -141,12 +167,12 @@ describe('Utilities', () => {
       const user2 = new User(tenant1.alias, 'u:camtest:nm417', 'nm417', 'nm417@example.com');
       const user3 = new User(tenant1.alias, 'u:camtest:nm417', 'nm417', 'nm417@example.com');
 
-      assert.strictEqual(isLoggedInUser(new Context(tenant1, user1)), true)
-      assert.strictEqual(isLoggedInUser(new Context(tenant1, user2)), true)
-      assert.strictEqual(isLoggedInUser(new Context(tenant1, user3)), true)
+      assert.strictEqual(isLoggedInUser(new Context(tenant1, user1)), true);
+      assert.strictEqual(isLoggedInUser(new Context(tenant1, user2)), true);
+      assert.strictEqual(isLoggedInUser(new Context(tenant1, user3)), true);
 
       // Empty context
-      assert.strictEqual(isLoggedInUser(null), false)
+      assert.strictEqual(isLoggedInUser(null), false);
 
       // Tenant, no user
       assert.strictEqual(isLoggedInUser(new Context(tenant1, null)), false);
@@ -156,8 +182,8 @@ describe('Utilities', () => {
 
       // Invalid tenant, user
       assert.strictEqual(isLoggedInUser(new Context(tenant2, user1)), false);
-      assert.strictEqual(isLoggedInUser(new Context(tenant2, user2)), false)
-      assert.strictEqual(isLoggedInUser(new Context(tenant2, user3)), false)
+      assert.strictEqual(isLoggedInUser(new Context(tenant2, user2)), false);
+      assert.strictEqual(isLoggedInUser(new Context(tenant2, user3)), false);
 
       return callback();
     });
@@ -219,6 +245,12 @@ describe('Utilities', () => {
       validateTimeZone('SfajslhfafhjlksahjklafT', false);
       validateTimeZone('Sfajslhfafhj/lksahjklafT', false);
 
+      // None of invalid timezones either
+      validateTimeZone('', false);
+      validateTimeZone(undefined, false);
+      validateTimeZone(null, false);
+      validateTimeZone(NaN, false);
+
       return callback();
     });
 
@@ -236,39 +268,39 @@ describe('Utilities', () => {
       try {
         assert.strictEqual(isGlobalAdministratorUser(undefined), false);
       } catch (error) {
-      assert.strictEqual(error.msg, 'An empty context has been passed in');
+        assert.strictEqual(error.msg, 'An empty context has been passed in');
       }
-      
+
       try {
         assert.strictEqual(isGlobalAdministratorUser(null), false);
       } catch (error) {
         assert.strictEqual(error.msg, 'An empty context has been passed in');
       }
-      
+
       try {
-      assert.strictEqual(error.msg, 'The context is not associated to a tenant');
-      } catch (error) {
         assert.strictEqual(isGlobalAdministratorUser({}), false);
+      } catch (error) {
+        assert.strictEqual(error.msg, 'The context is not associated to a tenant');
       }
-      
+
       try {
         assert.strictEqual(isGlobalAdministratorUser(anonymousCtx), false);
       } catch (error) {
-        assert.strictEqual(errors[3], 'The user is not logged in');
+        assert.strictEqual(error.msg, 'The user is not logged in');
       }
-      
+
       try {
         assert.strictEqual(isGlobalAdministratorUser(invalidUserCtx), false);
       } catch (error) {
         assert.strictEqual(error.msg, 'The user object is invalid');
       }
-      
+
       try {
         assert.strictEqual(isGlobalAdministratorUser(tenantAdminCtx), false);
       } catch (error) {
         assert.strictEqual(error.msg, 'The user is not a global administrator');
       }
-      
+
       assert.strictEqual(isGlobalAdministratorUser(globalAdminCtx), true);
 
       return callback();
@@ -279,6 +311,9 @@ describe('Utilities', () => {
      */
     it('verify isArray validation', callback => {
       assert.strictEqual(isArray([1, 2, 3]), true);
+      assert.strictEqual(isArray(), false);
+      assert.strictEqual(isArray(undefined), false);
+      assert.strictEqual(isArray(NaN), false);
       assert.strictEqual(isArray(null), false);
       assert.strictEqual(isArray(undefined), false);
       assert.strictEqual(isArray('a string'), false);
@@ -294,6 +329,9 @@ describe('Utilities', () => {
       assert.strictEqual(isBoolean(false), true);
       assert.strictEqual(isBoolean('true'), false);
       assert.strictEqual(isBoolean('false'), false);
+      assert.strictEqual(isBoolean(), false);
+      assert.strictEqual(isBoolean(undefined), false);
+      assert.strictEqual(isBoolean(NaN), false);
       assert.strictEqual(isBoolean(0), false);
       assert.strictEqual(isBoolean(1), false);
       assert.strictEqual(isBoolean({}), false);
@@ -312,6 +350,7 @@ describe('Utilities', () => {
       } catch (error) {
         assert.ok(error);
       }
+
       assert.strictEqual(isShortString(''), false);
       assert.strictEqual(isShortString('valid'), true);
       assert.strictEqual(isShortString(bigString), false);
@@ -329,6 +368,7 @@ describe('Utilities', () => {
       } catch (error) {
         assert.ok(error);
       }
+
       assert.strictEqual(isMediumString(''), false);
       assert.strictEqual(isMediumString('valid'), true);
       assert.strictEqual(isMediumString(bigString), false);
@@ -346,6 +386,7 @@ describe('Utilities', () => {
       } catch (error) {
         assert.ok(error);
       }
+
       assert.strictEqual(isLongString(''), false);
       assert.strictEqual(isLongString('valid'), true);
       assert.strictEqual(isLongString(bigString), false);
@@ -366,6 +407,7 @@ describe('Utilities', () => {
         assert.strictEqual(error.msg, err.msg);
         assert.strictEqual(error.code, err.code);
       }
+
       try {
         isDefined(undefined);
       } catch (error) {
@@ -373,6 +415,15 @@ describe('Utilities', () => {
         assert.strictEqual(error.msg, err.msg);
         assert.strictEqual(error.code, err.code);
       }
+
+      try {
+        isDefined(NaN);
+      } catch (error) {
+        assert.ok(error);
+        assert.strictEqual(error.msg, err.msg);
+        assert.strictEqual(error.code, err.code);
+      }
+
       try {
         isDefined();
       } catch (error) {
@@ -406,13 +457,13 @@ describe('Utilities', () => {
         assert.strictEqual(error.msg, err.msg);
         assert.strictEqual(error.code, err.code);
       }
-      
+
       try {
         isHost('invalid,character.com');
       } catch (error) {
-          assert.ok(error);
+        assert.ok(error);
         assert.strictEqual(error.msg, err.msg);
-        assert.strictEqual(error.code, err.code); 
+        assert.strictEqual(error.code, err.code);
       }
 
       try {
@@ -420,7 +471,7 @@ describe('Utilities', () => {
       } catch (error) {
         assert.ok(error);
         assert.strictEqual(error.msg, err.msg);
-        assert.strictEqual(error.code, err.code); 
+        assert.strictEqual(error.code, err.code);
       }
 
       try {
@@ -428,7 +479,7 @@ describe('Utilities', () => {
       } catch (error) {
         assert.ok(error);
         assert.strictEqual(error.msg, err.msg);
-        assert.strictEqual(error.code, err.code); 
+        assert.strictEqual(error.code, err.code);
       }
 
       try {
@@ -436,7 +487,7 @@ describe('Utilities', () => {
       } catch (error) {
         assert.ok(error);
         assert.strictEqual(error.msg, err.msg);
-        assert.strictEqual(error.code, err.code); 
+        assert.strictEqual(error.code, err.code);
       }
 
       // A set of valid hosts
@@ -446,5 +497,57 @@ describe('Utilities', () => {
       isHost('trailing.dots.are.valid.too.');
       return callback();
     });
+
+    /**
+     *
+     */
+    it.skip('verify isDifferent validation', () => {
+      assert.strictEqual(isDifferent('', ' '), true);
+      assert.strictEqual(isDifferent(true, false), true);
+      assert.strictEqual(isDifferent(false, 'false'), true);
+      assert.strictEqual(isDifferent(true, 'true'), true);
+      assert.strictEqual(isDifferent('a', ' '), true);
+      assert.strictEqual(isDifferent(null, undefined), true);
+      assert.strictEqual(isDifferent(undefined, 'undefined'), true);
+      assert.strictEqual(isDifferent(null, 'null'), true);
+      assert.strictEqual(isDifferent([], {}), true);
+    });
+
+    /**
+     *
+     */
+    it('verify isOneOrGreater validation', () => {
+      assert.strictEqual(isOneOrGreater(0), false);
+      assert.strictEqual(isOneOrGreater(1), true);
+      assert.strictEqual(isOneOrGreater(10), true);
+      assert.strictEqual(isOneOrGreater(-1), false);
+    });
+
+    it('verify isZeroOrGreater validation', () => {
+      assert.strictEqual(isZeroOrGreater(0), true);
+      assert.strictEqual(isZeroOrGreater(1), true);
+      assert.strictEqual(isZeroOrGreater(10), true);
+      assert.strictEqual(isZeroOrGreater(-1), false);
+    });
+
+    it('verify toInt validation', () => {});
+    it('verify notContains validation', () => {});
+    it('verify dateIsIntoTheFuture validation', () => {});
+    it('verify dateIsInThePast validation', () => {});
+    it('verify isRoleValid validation', () => {});
+    it('verify isNotNull validation', () => {});
+    it('verify isNotEmpty validation', () => {});
+    it('verify unless validation', () => {});
+    it('verify validateInCase validation', () => {});
+    it('verify getNestedObject validation', () => {});
+    it('verify isIso3166Country validation', () => {});
+    it('verify isObject validation', () => {});
+    it('verify isModule validation', () => {});
+    it('verify isANumber validation', () => {});
+    it('verify isString validation', () => {});
+    it('verify isArrayEmpty validation', () => {});
+    it('verify isArrayNotEmpty validation', () => {});
+    it('verify defaultToEmptyArray validation', () => {});
+    it('verify defaultToEmptyObject validation', () => {});
   });
 });

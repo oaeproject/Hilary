@@ -46,7 +46,7 @@ import { Validator as validator } from 'oae-util/lib/validator';
 const {
   validateInCase: bothCheck,
   unless,
-  isGreaterThanZero,
+  isOneOrGreater,
   isDefined,
   isANumber,
   isResourceId,
@@ -477,7 +477,7 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
       msg: 'Invalid size on the file object'
     })(file.size);
 
-    unless(bothCheck(fileIsDefined, isGreaterThanZero), {
+    unless(bothCheck(fileIsDefined, isOneOrGreater), {
       code: 400,
       msg: 'Invalid size on the file object'
     })(file.size);
@@ -1795,7 +1795,7 @@ const _updateFileBody = function(ctx, contentId, file, callback) {
       msg: 'Invalid size on the file object.'
     })(file.size);
 
-    unless(bothCheck(fileIsDefined, isGreaterThanZero), {
+    unless(bothCheck(fileIsDefined, isOneOrGreater), {
       code: 400,
       msg: 'Invalid size on the file object.'
     })(file.size);

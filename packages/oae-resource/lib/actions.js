@@ -44,7 +44,7 @@ const {
   isValidRoleChange
 } = validator;
 import { ResourceConstants } from 'oae-resource/lib/constants';
-import { forEachObjIndexed } from 'ramda';
+import { __, curry, forEachObjIndexed } from 'ramda';
 
 const log = logger('oae-resource-actions');
 
@@ -195,17 +195,20 @@ const share = function(ctx, resource, targetIds, role, callback) {
           'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
       })(targetId);
 
-      unless(isDifferent, {
+      const isNotTheSameAsTargetId = curry(isDifferent)(String(targetId), __);
+      unless(isNotTheSameAsTargetId, {
         code: 400,
         msg: 'You cannot share a resource with itself'
-      })(targetId, resourceAuthzId);
+      })(resourceAuthzId);
 
-      unless(isDifferent, {
+      unless(isNotTheSameAsTargetId, {
         code: 400,
         msg: 'You cannot share a resource with itself'
-      })(targetId, resourceId);
+      })(resourceId);
     });
   } catch (error) {
+    // debug
+    console.dir(error);
     return callback(error);
   }
 
@@ -287,12 +290,12 @@ const setRoles = function(ctx, resource, roles, callback) {
       unless(isDifferent, {
         code: 400,
         msg: 'You cannot share a resource with itself'
-      })(memberId, resourceAuthzId);
+      })(String(memberId), resourceAuthzId);
 
       unless(isDifferent, {
         code: 400,
         msg: 'You cannot share a resource with itself'
-      })(memberId, resourceId);
+      })(String(memberId), resourceId);
 
       unless(isValidRoleChange, {
         code: 400,

@@ -34,6 +34,7 @@ const {
   isShortString,
   isMediumString,
   validateInCase: bothCheck,
+  isRoleValid,
   unless,
   isLoggedInUser,
   isNotEmpty,
@@ -43,7 +44,7 @@ const {
 } = validator;
 import isIn from 'validator/lib/isIn';
 import { AuthzConstants } from 'oae-authz/lib/constants';
-import { both, not, compose, forEachObjIndexed, equals } from 'ramda';
+import { both, forEachObjIndexed, equals } from 'ramda';
 import * as PrincipalsDAO from './internal/dao';
 import * as PrincipalsMembersLibrary from './libraries/members';
 import PrincipalsEmitter from './internal/emitter';
@@ -580,8 +581,7 @@ const setGroupMembers = function(ctx, groupId, changes, callback) {
     // Actions will take care of the other standard checks
     const validRoles = PrincipalsConstants.role.ALL_PRIORITY;
     forEachObjIndexed((role /* , memberId */) => {
-      const roleIsDefined = compose(not, equals)(role, false);
-      unless(bothCheck(roleIsDefined, isIn), {
+      unless(bothCheck(isRoleValid(role), isIn), {
         code: 400,
         msg: util.format('Role must be one of %s', validRoles.join(', '))
       })(role, validRoles);
@@ -822,8 +822,7 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
     // standard validations
     const validRoles = PrincipalsConstants.role.ALL_PRIORITY;
     forEachObjIndexed((role /* , principalId */) => {
-      const roleIsValid = compose(not, equals)(role, false);
-      unless(bothCheck(roleIsValid, isIn), {
+      unless(bothCheck(isRoleValid(role), isIn), {
         code: 400,
         msg: util.format('Role must be one of %s', validRoles.join(', '))
       })(role, validRoles);

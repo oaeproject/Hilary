@@ -32,7 +32,7 @@ const {
   isArrayNotEmpty,
   getNestedObject,
   isLongString,
-  isGreaterThanZero
+  isOneOrGreater
 } = validator;
 import { compose, equals, length, and, forEachObjIndexed } from 'ramda';
 import isIn from 'validator/lib/isIn';
@@ -109,7 +109,7 @@ const createMeeting = function(
       msg: 'An invalid meeting visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
     })(visibility, allVisibilities);
 
-    const descriptionIsValid = and(isDefined(description), isGreaterThanZero(length(description)));
+    const descriptionIsValid = and(isDefined(description), isOneOrGreater(length(description)));
     unless(bothCheck(descriptionIsValid, isMediumString), {
       code: 400,
       msg: 'A description can be at most 10000 characters long'
@@ -397,7 +397,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
         msg: 'A display name can be at most 1000 characters long'
       })(value);
 
-      unless(bothCheck(and(ifFieldIs(DESCRIPTION), isGreaterThanZero(length(value))), isMediumString), {
+      unless(bothCheck(and(ifFieldIs(DESCRIPTION), isOneOrGreater(length(value))), isMediumString), {
         code: 400,
         msg: 'A description can be at most 10000 characters long'
       })(value);

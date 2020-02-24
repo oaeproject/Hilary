@@ -17,7 +17,6 @@ import * as tz from 'oae-util/lib/tz';
 import {
   defaultTo,
   trim,
-  when,
   pipe,
   curry,
   __,
@@ -67,13 +66,13 @@ const _isItLengthy = interval => value => isLength(value, interval);
  * Composed functions
  */
 const toInt = curry(parseInt)(__, 10);
-const isGreaterThanZero = greaterThan(__, 0);
 const isZeroOrGreater = greaterOrEqualThan(__, 0);
 const isOneOrGreater = greaterThan(__, 0);
 const dateIsIntoTheFuture = pipe(toInt, toDate, isFuture);
 const dateIsInThePast = pipe(toInt, toDate, isPast);
 const defaultToEmptyArray = defaultTo([]);
 const defaultToEmptyObject = defaultTo({});
+const isRoleValid = curry(compose(not, equals))(__, false);
 
 /**
  * @function isDifferent
@@ -152,22 +151,17 @@ const isDefined = value => compose(not, isNil)(value);
 const isNotNull = value => both(isDefined, compose(not, isEmpty))(value);
 
 /**
- * @function otherwise
- * @param  {Error} error  Error to be thrown in case the validation does not pass
- * @return {Function}     A function to be chained in validation steps
+ * @function unless
+ * @param  {Function} validation  Validator function to be applied
+ * @param  {Error}    error       Error to be thrown in case the validation does not pass
+ * @return {Function}             A function to be chained in validation steps
  *
  * Usage:
  * ```
- * let func = otherwise(new Error());
- * func(false); // throws an error
+ * let func = unless(isNotNull, new Error());
+ * func(null, Error); // throws an error
  * ```
  */
-const otherwise = error => validationPassed => {
-  when(not, () => {
-    throw error;
-  })(validationPassed);
-};
-
 const unless = (validation, error) => {
   return (...args) => {
     const validationFails = compose(not, validation)(...args);
@@ -491,16 +485,15 @@ const completeValidations = {
   isDifferent,
   isDefined,
   isNotEmpty,
-  isGreaterThanZero,
-  isZeroOrGreater,
   isOneOrGreater,
+  isZeroOrGreater,
   toInt,
   notContains,
   dateIsIntoTheFuture,
   dateIsInThePast,
+  isRoleValid,
   isNotNull,
   unless,
-  otherwise,
   validateInCase,
   getNestedObject,
   isIso3166Country,

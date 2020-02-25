@@ -54,8 +54,6 @@ const _isArray = value => is(Array, value);
 
 const _isNumber = value => is(Number, value);
 
-const _isDifferent = (a, b) => compose(not, equals)(a, b);
-
 const _isObject = value => is(Object, value);
 
 const _isFalse = value => equals(value, false);
@@ -85,7 +83,7 @@ const isRoleValid = curry(compose(not, equals))(__, false);
  * isDifferent('abcd', 'abcde'); // true
  * ```
  */
-const isDifferent = (a, b) => _isDifferent(String(a), b);
+const isDifferent = (a, b) => compose(not, equals)(a, b);
 
 /**
  * @function isNotEmpty
@@ -212,7 +210,7 @@ const isLoggedInUser = function(ctx, tenantAlias) {
   const isTenantAliasValid = () => compose(not, isNil)(tenantAlias);
   const isAliasNotValid = () => not(ctx.tenant().alias);
   const isUserIdNotValid = () => not(ctx.user().id);
-  const aliasesAreDifferent = () => _isDifferent(ctx.tenant().alias, tenantAlias);
+  const aliasesAreDifferent = () => isDifferent(ctx.tenant().alias, tenantAlias);
 
   const checkCondition1 = () => compose(not, _isObject)(ctx);
   const checkCondition2 = () => either(isTenantNotValid, isAliasNotValid)();
@@ -251,7 +249,7 @@ const isGlobalAdministratorUser = ctx => {
   const checkCondition4 = () => compose(not, _isFunction)(ctx.user().isGlobalAdmin);
   const checkCondition2 = () => either(isTenantNotValid, isAliasNotValid)();
   const checkCondition3 = () => either(isUserNotValid, doesUserNotExist)();
-  const checkCondition5 = () => _isDifferent(ctx.user().isGlobalAdmin(), true);
+  const checkCondition5 = () => isDifferent(ctx.user().isGlobalAdmin(), true);
 
   const allConditions = [checkCondition1, checkCondition2, checkCondition3, checkCondition4, checkCondition5];
   const _mustBeFalse = (acc, currentFn) => _isFalse(currentFn());

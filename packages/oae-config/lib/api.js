@@ -710,10 +710,11 @@ const clearConfig = function(ctx, tenantAlias, configFields, callback) {
     for (let i = 0; i < configFields.length; i++) {
       // Check that we're not clearing both the entire element and one if its optional keys
       if (i > 0) {
+        const eachConfigField = configFields[i].indexOf(configFields[i - 1] + '/');
         unless(isDifferent, {
           code: 400,
           msg: 'You cannot mix clearing an entire element and an optionalKey'
-        })(configFields[i].indexOf(configFields[i - 1] + '/'), '0');
+        })(eachConfigField, 0);
       }
 
       const configField = configFields[i].split('/');

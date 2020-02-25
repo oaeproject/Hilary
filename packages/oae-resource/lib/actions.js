@@ -195,20 +195,18 @@ const share = function(ctx, resource, targetIds, role, callback) {
           'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
       })(targetId);
 
-      const isNotTheSameAsTargetId = curry(isDifferent)(String(targetId), __);
-      unless(isNotTheSameAsTargetId, {
+      const targetIsNotItself = curry(isDifferent)(String(targetId), __);
+      unless(targetIsNotItself, {
         code: 400,
         msg: 'You cannot share a resource with itself'
       })(resourceAuthzId);
 
-      unless(isNotTheSameAsTargetId, {
+      unless(targetIsNotItself, {
         code: 400,
         msg: 'You cannot share a resource with itself'
       })(resourceId);
     });
   } catch (error) {
-    // debug
-    console.dir(error);
     return callback(error);
   }
 
@@ -287,15 +285,16 @@ const setRoles = function(ctx, resource, roles, callback) {
           'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
       })(memberId);
 
-      unless(isDifferent, {
+      const memberIsNotItself = curry(isDifferent)(String(memberId), __);
+      unless(memberIsNotItself, {
         code: 400,
         msg: 'You cannot share a resource with itself'
-      })(String(memberId), resourceAuthzId);
+      })(resourceAuthzId);
 
-      unless(isDifferent, {
+      unless(memberIsNotItself, {
         code: 400,
         msg: 'You cannot share a resource with itself'
-      })(String(memberId), resourceId);
+      })(resourceId);
 
       unless(isValidRoleChange, {
         code: 400,

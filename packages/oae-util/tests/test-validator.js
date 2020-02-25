@@ -34,11 +34,29 @@ const {
   isURL,
   isEmail,
   isInt,
-  isNotEmpty,
   isEmpty,
   isDifferent,
   isOneOrGreater,
-  isZeroOrGreater
+  isZeroOrGreater,
+  toInt,
+  notContains,
+  dateIsIntoTheFuture,
+  dateIsInThePast,
+  isRoleValid,
+  unless,
+  isNotNull,
+  validateInCase,
+  getNestedObject,
+  isIso3166Country,
+  isObject,
+  isModule,
+  isANumber,
+  isString,
+  isArrayEmpty,
+  isArrayNotEmpty,
+  defaultToEmptyArray,
+  defaultToEmptyObject,
+  isNotEmpty
 } = validator;
 import * as TestsUtil from 'oae-tests/lib/util';
 
@@ -501,7 +519,7 @@ describe('Utilities', () => {
     /**
      *
      */
-    it.skip('verify isDifferent validation', () => {
+    it('verify isDifferent validation', () => {
       assert.strictEqual(isDifferent('', ' '), true);
       assert.strictEqual(isDifferent(true, false), true);
       assert.strictEqual(isDifferent(false, 'false'), true);
@@ -530,24 +548,315 @@ describe('Utilities', () => {
       assert.strictEqual(isZeroOrGreater(-1), false);
     });
 
-    it('verify toInt validation', () => {});
-    it('verify notContains validation', () => {});
-    it('verify dateIsIntoTheFuture validation', () => {});
-    it('verify dateIsInThePast validation', () => {});
-    it('verify isRoleValid validation', () => {});
-    it('verify isNotNull validation', () => {});
-    it('verify isNotEmpty validation', () => {});
-    it('verify unless validation', () => {});
-    it('verify validateInCase validation', () => {});
-    it('verify getNestedObject validation', () => {});
-    it('verify isIso3166Country validation', () => {});
-    it('verify isObject validation', () => {});
-    it('verify isModule validation', () => {});
-    it('verify isANumber validation', () => {});
-    it('verify isString validation', () => {});
-    it('verify isArrayEmpty validation', () => {});
-    it('verify isArrayNotEmpty validation', () => {});
-    it('verify defaultToEmptyArray validation', () => {});
-    it('verify defaultToEmptyObject validation', () => {});
+    it('verify toInt validation', () => {
+      assert.strictEqual(toInt('1'), 1);
+      assert.strictEqual(toInt('-1'), -1);
+      assert.strictEqual(toInt('0'), 0);
+      assert.strictEqual(toInt('10'), 10);
+      assert.strictEqual(toInt(NaN), NaN);
+    });
+
+    it('verify notContains validation', () => {
+      assert.strictEqual(notContains('abcde', ' '), true);
+      assert.strictEqual(notContains('abcde', 'cc'), true);
+      assert.strictEqual(notContains('abcde', 'f'), true);
+      assert.strictEqual(notContains('abcdef', 'a'), false);
+      assert.strictEqual(notContains('abcdef', 'c'), false);
+      assert.strictEqual(notContains('abcdef', 'f'), false);
+
+      assert.strictEqual(notContains(' abcde ', ' a'), false);
+      assert.strictEqual(notContains(' abcde ', 'e '), false);
+    });
+
+    it('verify dateIsIntoTheFuture validation', () => {
+      const now = Date.now();
+      const futureNow = now + 10;
+      const pastNow = now - 10;
+
+      assert.strictEqual(dateIsIntoTheFuture(futureNow), true);
+      assert.strictEqual(dateIsIntoTheFuture(pastNow), false);
+      assert.strictEqual(dateIsIntoTheFuture(String(futureNow)), true);
+      assert.strictEqual(dateIsIntoTheFuture(String(pastNow)), false);
+    });
+
+    it('verify dateIsInThePast validation', () => {
+      const now = Date.now();
+      const futureNow = now + 10;
+      const pastNow = now - 10;
+
+      assert.strictEqual(dateIsInThePast(futureNow), false);
+      assert.strictEqual(dateIsInThePast(pastNow), true);
+      assert.strictEqual(dateIsInThePast(String(futureNow)), false);
+      assert.strictEqual(dateIsInThePast(String(pastNow)), true);
+    });
+
+    it('verify isRoleValid validation', () => {
+      assert.strictEqual(isRoleValid('false'), true);
+      assert.strictEqual(isRoleValid('true'), true);
+      assert.strictEqual(isRoleValid(false), false);
+      assert.strictEqual(isRoleValid(true), true);
+      assert.strictEqual(isRoleValid(null), true);
+      assert.strictEqual(isRoleValid(NaN), true);
+      assert.strictEqual(isRoleValid(undefined), true);
+    });
+
+    it('verify isNotNull validation', () => {
+      // notNull means that it must be defined but also not empty (strings, arrays, etc)
+
+      assert.strictEqual(isNotNull(null), false);
+      assert.strictEqual(isNotNull(undefined), false);
+      assert.strictEqual(isNotNull(''), false);
+      assert.strictEqual(isNotNull([]), false);
+      assert.strictEqual(isNotNull({}), false);
+
+      assert.strictEqual(isNotNull('null'), true);
+      assert.strictEqual(isNotNull(NaN), true);
+      assert.strictEqual(isNotNull(true), true);
+      assert.strictEqual(isNotNull(false), true);
+    });
+
+    it('verify isNotEmpty validation', () => {
+      assert.strictEqual(isNotEmpty(''), false);
+      assert.strictEqual(isNotEmpty(' '), false);
+      assert.strictEqual(isNotEmpty(null), false);
+      assert.strictEqual(isNotEmpty(undefined), false);
+      assert.strictEqual(isNotEmpty(NaN), false);
+
+      assert.strictEqual(isNotEmpty('something'), true);
+    });
+
+    it('verify unless validation', () => {
+      const e = new Error('surprise!');
+      unless(isANumber, e)(1);
+      unless(isANumber, e)(10);
+      unless(isANumber, e)(0);
+      unless(isANumber, e)(-1);
+
+      try {
+        unless(isANumber, e)('1');
+      } catch (error) {
+        assert.strictEqual(error, e);
+      }
+      try {
+        unless(isANumber, e)('0');
+      } catch (error) {
+        assert.strictEqual(error, e);
+      }
+      try {
+        unless(isANumber, e)(null);
+      } catch (error) {
+        assert.strictEqual(error, e);
+      }
+      try {
+        unless(isANumber, e)([]);
+      } catch (error) {
+        assert.strictEqual(error, e);
+      }
+      try {
+        unless(isANumber, e)({});
+      } catch (error) {
+        assert.strictEqual(error, e);
+      }
+      try {
+        unless(isANumber, e)(false);
+      } catch (error) {
+        assert.strictEqual(error, e);
+      }
+      try {
+        unless(isANumber, e)(undefined);
+      } catch (error) {
+        assert.strictEqual(error, e);
+      }
+      try {
+        unless(isANumber, e)(NaN);
+      } catch (error) {
+        assert.strictEqual(error, e);
+      }
+    });
+
+    it('verify validateInCase validation', () => {
+      const e = new Error('surprise!');
+      assert.strictEqual(validateInCase(true, isANumber)(1), true);
+      assert.strictEqual(validateInCase(true, isANumber)(10), true);
+      assert.strictEqual(validateInCase(true, isANumber)(0), true);
+      assert.strictEqual(validateInCase(true, isANumber)(-1), true);
+      assert.strictEqual(validateInCase(true, isANumber)(-10), true);
+
+      assert.strictEqual(validateInCase(false, isANumber)(1), true);
+      assert.strictEqual(validateInCase(false, isANumber)(10), true);
+      assert.strictEqual(validateInCase(false, isANumber)(0), true);
+      assert.strictEqual(validateInCase(false, isANumber)(-1), true);
+      assert.strictEqual(validateInCase(false, isANumber)(-10), true);
+
+      assert.strictEqual(validateInCase(true, isANumber)('1'), false);
+      assert.strictEqual(validateInCase(true, isANumber)('10'), false);
+      assert.strictEqual(validateInCase(true, isANumber)('0'), false);
+      assert.strictEqual(validateInCase(true, isANumber)('-1'), false);
+      assert.strictEqual(validateInCase(true, isANumber)('-10'), false);
+
+      assert.strictEqual(validateInCase(false, isANumber)('1'), true);
+      assert.strictEqual(validateInCase(false, isANumber)('10'), true);
+      assert.strictEqual(validateInCase(false, isANumber)('0'), true);
+      assert.strictEqual(validateInCase(false, isANumber)('-1'), true);
+      assert.strictEqual(validateInCase(false, isANumber)('-10'), true);
+    });
+
+    it('verify getNestedObject validation', () => {
+      const complexObject = {
+        name: 'grandma',
+        age: 86,
+        descendents: { name: 'mama', age: 56, descendents: { name: 'me', age: 26 } }
+      };
+      const getAttribute = getNestedObject(complexObject);
+      assert.strictEqual(getAttribute(['name']), 'grandma');
+      assert.strictEqual(getAttribute(['age']), 86);
+      assert.strictEqual(getAttribute(['bloodType']), undefined);
+      assert.strictEqual(isObject(getAttribute(['descendents'])), true);
+
+      assert.strictEqual(getAttribute(['descendents', 'name']), 'mama');
+      assert.strictEqual(getAttribute(['descendents', 'age']), 56);
+      assert.strictEqual(getAttribute(['descendents', 'bloodType']), undefined);
+      assert.strictEqual(isObject(getAttribute(['descendents', 'descendents'])), true);
+
+      assert.strictEqual(getAttribute(['descendents', 'descendents', 'name']), 'me');
+      assert.strictEqual(getAttribute(['descendents', 'descendents', 'age']), 26);
+      assert.strictEqual(getAttribute(['descendents', 'descendents', 'bloodType']), undefined);
+      assert.strictEqual(getAttribute(['descendents', 'descendents', 'descendents']), undefined);
+    });
+
+    it('verify isIso3166Country validation', () => {
+      assert.strictEqual(isIso3166Country('Portugal'), false);
+      assert.strictEqual(isIso3166Country('PT_pt'), false);
+      assert.strictEqual(isIso3166Country('PT'), true);
+      assert.strictEqual(isIso3166Country('EU'), false);
+      assert.strictEqual(isIso3166Country('UK'), false);
+      assert.strictEqual(isIso3166Country('PT/Lisbon'), false);
+      assert.strictEqual(isIso3166Country('PT/pt'), false);
+      assert.strictEqual(isIso3166Country(''), false);
+      assert.strictEqual(isIso3166Country(null), false);
+      assert.strictEqual(isIso3166Country(undefined), false);
+      assert.strictEqual(isIso3166Country(false), false);
+      assert.strictEqual(isIso3166Country([]), false);
+      assert.strictEqual(isIso3166Country({}), false);
+      assert.strictEqual(isIso3166Country(NaN), false);
+    });
+
+    it('verify isObject validation', () => {
+      assert.strictEqual(isObject({}), true);
+      assert.strictEqual(isObject({ a: 1, b: 2, c: 3 }), true);
+      assert.strictEqual(isObject([]), true);
+      assert.strictEqual(isObject([1, 2, 3]), true);
+      assert.strictEqual(isObject(new Array()), true);
+      assert.strictEqual(isObject(new Object()), true);
+
+      assert.strictEqual(isObject(''), false);
+      assert.strictEqual(isObject(null), false);
+      assert.strictEqual(isObject(NaN), false);
+      assert.strictEqual(isObject(undefined), false);
+      assert.strictEqual(isObject(false), false);
+    });
+
+    it('verify isModule validation', () => {
+      assert.strictEqual(isModule(TestsUtil), true);
+      assert.strictEqual(isModule({}), true);
+      assert.strictEqual(isModule({ a: 1, b: 2, c: 3 }), true);
+      assert.strictEqual(isModule([]), true);
+      assert.strictEqual(isModule([1, 2, 3]), true);
+      assert.strictEqual(isModule(new Array()), true);
+      assert.strictEqual(isModule(new Object()), true);
+
+      assert.strictEqual(isModule(''), false);
+      assert.strictEqual(isModule(null), false);
+      assert.strictEqual(isModule(NaN), false);
+      assert.strictEqual(isModule(undefined), false);
+      assert.strictEqual(isModule(false), false);
+    });
+
+    it('verify isANumber validation', () => {
+      assert.strictEqual(isANumber(1), true);
+      assert.strictEqual(isANumber(-1), true);
+      assert.strictEqual(isANumber(10), true);
+      assert.strictEqual(isANumber(-10), true);
+      assert.strictEqual(isANumber(0), true);
+      assert.strictEqual(isANumber(NaN), true);
+
+      assert.strictEqual(isANumber(''), false);
+      assert.strictEqual(isANumber(' '), false);
+      assert.strictEqual(isANumber('1'), false);
+      assert.strictEqual(isANumber('-1'), false);
+      assert.strictEqual(isANumber(null), false);
+      assert.strictEqual(isANumber(undefined), false);
+      assert.strictEqual(isANumber(true), false);
+      assert.strictEqual(isANumber({}), false);
+      assert.strictEqual(isANumber([]), false);
+    });
+
+    it('verify isString validation', () => {
+      assert.strictEqual(isString(1), false);
+      assert.strictEqual(isString(-1), false);
+      assert.strictEqual(isString(10), false);
+      assert.strictEqual(isString(-10), false);
+      assert.strictEqual(isString(0), false);
+      assert.strictEqual(isString(NaN), false);
+
+      assert.strictEqual(isString(''), true);
+      assert.strictEqual(isString(' '), true);
+      assert.strictEqual(isString('1'), true);
+      assert.strictEqual(isString('-1'), true);
+
+      assert.strictEqual(isString(null), false);
+      assert.strictEqual(isString(undefined), false);
+      assert.strictEqual(isString(true), false);
+      assert.strictEqual(isString({}), false);
+      assert.strictEqual(isString([]), false);
+    });
+
+    it('verify isArrayEmpty validation', () => {
+      assert.strictEqual(isArrayEmpty([]), true);
+
+      assert.strictEqual(isArrayEmpty([1, 2, 3, 4, 5]), false);
+      assert.strictEqual(isArrayEmpty({}), false);
+      assert.strictEqual(isArrayEmpty(''), false);
+      assert.strictEqual(isArrayEmpty(null), false);
+      assert.strictEqual(isArrayEmpty(undefined), false);
+      assert.strictEqual(isArrayEmpty(false), false);
+      assert.strictEqual(isArrayEmpty(NaN), false);
+    });
+
+    it('verify isArrayNotEmpty validation', () => {
+      assert.strictEqual(isArrayNotEmpty([1, 2, 3, 4, 5]), true);
+
+      assert.strictEqual(isArrayNotEmpty([]), false);
+      assert.strictEqual(isArrayNotEmpty({}), false);
+      assert.strictEqual(isArrayNotEmpty(''), false);
+      assert.strictEqual(isArrayNotEmpty(null), false);
+      assert.strictEqual(isArrayNotEmpty(undefined), false);
+      assert.strictEqual(isArrayNotEmpty(false), false);
+      assert.strictEqual(isArrayNotEmpty(NaN), false);
+    });
+
+    it('verify defaultToEmptyArray validation', () => {
+      assert.notStrictEqual(defaultToEmptyArray([1, 2, 3, 4, 5]), [1, 2, 3, 4, 5]);
+      assert.strictEqual(defaultToEmptyArray(true), true);
+      assert.strictEqual(defaultToEmptyArray('abc'), 'abc');
+      assert.notStrictEqual(defaultToEmptyArray({ a: 1, b: 2, c: 3 }), { a: 1, b: 2, c: 3 });
+
+      assert.notStrictEqual(defaultToEmptyArray(null), []);
+      assert.notStrictEqual(defaultToEmptyArray(undefined), []);
+      assert.notStrictEqual(defaultToEmptyArray(NaN), []);
+      assert.notStrictEqual(defaultToEmptyArray(''), []);
+    });
+
+    it('verify defaultToEmptyObject validation', () => {
+      assert.notStrictEqual(defaultToEmptyObject([1, 2, 3, 4, 5]), [1, 2, 3, 4, 5]);
+      assert.strictEqual(defaultToEmptyObject(true), true);
+      assert.strictEqual(defaultToEmptyObject('abc'), 'abc');
+      assert.notStrictEqual(defaultToEmptyObject({ a: 1, b: 2, c: 3 }), { a: 1, b: 2, c: 3 });
+
+      assert.notStrictEqual(defaultToEmptyObject(null), {});
+      assert.notStrictEqual(defaultToEmptyObject(undefined), {});
+      assert.notStrictEqual(defaultToEmptyObject(NaN), {});
+      assert.notStrictEqual(defaultToEmptyObject(''), {});
+    });
   });
 });

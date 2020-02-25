@@ -18,10 +18,12 @@ import _ from 'underscore';
 
 import { EventEmitter } from 'oae-emitter';
 import { logger } from 'oae-logger';
+import { compose } from 'ramda';
 import * as Redis from './redis';
 import OaeEmitter from './emitter';
 import * as OAE from './oae';
-import { Validator } from './validator';
+import { Validator as validator } from './validator';
+const { unless, isNotEmpty, isNotNull, isJSON } = validator;
 
 const log = logger('mq');
 const emitter = new EventEmitter();
@@ -321,9 +323,15 @@ const sendToRedeliveryQueue = (redeliveryQueue, message, callback) => {
  */
 const subscribe = (queueName, listener, callback) => {
   callback = callback || function() {};
-  const validator = new Validator();
-  validator.check(queueName, { code: 400, msg: 'No channel was provided.' }).notEmpty();
-  if (validator.hasErrors()) return callback(validator.getFirstError());
+
+  try {
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'No channel was provided.'
+    })(queueName);
+  } catch (error) {
+    return callback(error);
+  }
 
   const queueIsAlreadyBound = queueBindings[queueName];
   if (queueIsAlreadyBound) return callback();
@@ -349,21 +357,26 @@ const subscribe = (queueName, listener, callback) => {
  * @param  {Object}    callback.err    An error that occurred, if any
  * @returns {Function}                 Returns callback
  */
-const unsubscribe = (queueName, done) => {
-  done = done || function() {};
-  const validator = new Validator();
-  validator.check(queueName, { code: 400, msg: 'No channel was provided.' }).notEmpty();
-  if (validator.hasErrors()) return done(validator.getFirstError());
+const unsubscribe = (queueName, callback) => {
+  callback = callback || function() {};
+  try {
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'No channel was provided.'
+    })(queueName);
+  } catch (error) {
+    return callback(error);
+  }
 
   // Either case, let's update the queue bindings
   delete queueBindings[queueName];
 
   // Now let's disconnect the subscriber
   if (isConnectionActive(queueName)) {
-    return disconnectConnectionAndWait(queueName, done);
+    return disconnectConnectionAndWait(queueName, callback);
   }
 
-  return done();
+  return callback();
 };
 
 /**
@@ -414,14 +427,35 @@ const getBoundQueues = function() {
  */
 const submit = (queueName, message, callback) => {
   callback = callback || function() {};
-  const validator = new Validator();
-  validator.check(queueName, { code: 400, msg: 'No channel was provided.' }).notEmpty();
-  validator.check(message, { code: 400, msg: 'No message was provided.' }).notEmpty();
-  if (validator.hasErrors()) return callback(validator.getFirstError());
+
+  try {
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'No channel was provided.'
+    })(queueName);
+
+    unless(isNotNull, {
+      code: 400,
+      msg: 'No message was provided.'
+    })(message);
+
+    const stringIsJSON = compose(isJSON, String);
+    unless(stringIsJSON, {
+      code: 400,
+      msg: 'No JSON message was provided.'
+    })(message);
+  } catch (error) {
+    return callback(error);
+  }
 
   const queueIsBound = queueBindings[queueName];
-  if (queueIsBound) return staticConnections.THE_PUBLISHER.lpush(queueName, message, callback);
-  return callback();
+  if (queueIsBound) {
+    staticConnections.THE_PUBLISHER.lpush(queueName, message, err => {
+      return callback(err);
+    });
+  } else {
+    return callback();
+  }
 };
 
 /**
@@ -449,9 +483,14 @@ const getAllActiveClients = () => {
  */
 const purgeQueue = (queueName, callback) => {
   callback = callback || function() {};
-  const validator = new Validator();
-  validator.check(queueName, { code: 400, msg: 'No channel was provided.' }).notEmpty();
-  if (validator.hasErrors()) return callback(validator.getFirstError());
+  try {
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'No channel was provided.'
+    })(queueName);
+  } catch (error) {
+    return callback(error);
+  }
 
   const theRedisPurger = staticConnections.THE_PURGER;
   theRedisPurger.del(queueName, err => {

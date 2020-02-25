@@ -31,7 +31,42 @@ import * as EmitterAPI from 'oae-emitter';
 import * as OAE from 'oae-util/lib/oae';
 import * as OaeUtil from 'oae-util/lib/util';
 import * as Pubsub from 'oae-util/lib/pubsub';
-import { Validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator';
+const {
+  unless,
+  isString,
+  isGlobalAdministratorUser,
+  isNotEmpty,
+  notContains,
+  isDifferent,
+  isHost,
+  isNil,
+  isIso3166Country,
+  isObject,
+  isBoolean,
+  isNotNull,
+  getNestedObject,
+  isISO31661Alpha2,
+  validateInCase: bothCheck,
+  isArrayNotEmpty
+} = validator;
+import {
+  or,
+  mapObjIndexed,
+  pick,
+  compose,
+  either,
+  keys,
+  not,
+  trim,
+  toUpper,
+  toLower,
+  pipe,
+  and,
+  equals,
+  forEachObjIndexed
+} from 'ramda';
+import isIn from 'validator/lib/isIn';
 import TenantEmailDomainIndex from './internal/emailDomainIndex';
 import TenantIndex from './internal/tenantIndex';
 import * as TenantNetworksDAO from './internal/dao.networks';
@@ -42,6 +77,13 @@ import { Tenant } from './model';
 const TenantsConfig = setUpConfig('oae-tenants');
 
 const log = logger('oae-tenants');
+
+const DISPLAY_NAME = 'displayName';
+const HOST = 'host';
+const EMAIL_DOMAINS = 'emailDomains';
+const COUNTRY_CODE = 'countryCode';
+const ACTIVE = 'active';
+const ALL_UPDATE_FIELDS = [DISPLAY_NAME, HOST, EMAIL_DOMAINS, COUNTRY_CODE];
 
 // Caches the server configuration as specified in the config.js file
 let serverConfig = null;
@@ -189,12 +231,16 @@ const getTenants = function(excludeDisabled) {
   excludeDisabled = OaeUtil.castToBoolean(excludeDisabled);
 
   const filteredTenants = {};
-  _.each(tenants, (tenant, tenantAlias) => {
+  forEachObjIndexed((tenant, tenantAlias) => {
     // Exclude all disabled tenants when `exludeDisabled` has been provided
-    if (!tenant.isGlobalAdminServer && (!excludeDisabled || tenant.active)) {
+    const notAnAdmin = compose(not, Boolean)(tenant.isGlobalAdminServer);
+    const notExcluded = not(excludeDisabled);
+    const tenantIsActive = Boolean(tenant.active);
+    const activeOrNotExcluded = or(notExcluded, tenantIsActive);
+    if (and(notAnAdmin, activeOrNotExcluded)) {
       filteredTenants[tenantAlias] = _copyTenant(tenant);
     }
-  });
+  }, tenants);
 
   return filteredTenants;
 };
@@ -205,9 +251,7 @@ const getTenants = function(excludeDisabled) {
  *
  * @return {Tenant[]}   The list of tenants that cannot be interacted with
  */
-const getNonInteractingTenants = function() {
-  return _.map(tenantsNotInteractable, _copyTenant);
-};
+const getNonInteractingTenants = () => mapObjIndexed(_copyTenant, tenantsNotInteractable);
 
 /**
  * Search for tenants based on a full-text search query
@@ -220,12 +264,12 @@ const getNonInteractingTenants = function() {
  * @return {SearchResult}                       The search result object containing the tenants
  */
 const searchTenants = function(q, opts) {
-  q = _.isString(q) ? q.trim() : null;
+  q = isString(q) ? q.trim() : null;
   opts = opts || {};
   opts.start = OaeUtil.getNumberParam(opts.start, 0);
 
   // Determine if we should included disabled/deleted tenants
-  const includeDisabled = _.isBoolean(opts.disabled) ? opts.disabled : false;
+  const includeDisabled = isBoolean(opts.disabled) ? opts.disabled : false;
 
   // Create a sorted result of tenants based on the user's query. If there was no query, we will
   // pull the pre-sorted list of tenants from the global cache
@@ -242,15 +286,14 @@ const searchTenants = function(q, opts) {
   }
 
   results = _.filter(results, result => {
+    let newResult = true;
     if (result.isGlobalAdminServer) {
-      return false;
+      newResult = false;
+    } else if (not(includeDisabled)) {
+      newResult = and(result.active, not(result.deleted));
     }
 
-    if (!includeDisabled) {
-      return result.active && !result.deleted;
-    }
-
-    return true;
+    return newResult;
   });
 
   // Keep track of how many results we had in total
@@ -263,7 +306,7 @@ const searchTenants = function(q, opts) {
   // Cut down to just the requested page, and clone the tenants to avoid tenants being updated
   // in the cache
   results = results.slice(opts.start, end);
-  results = _.map(results, _copyTenant);
+  results = results.map(_copyTenant);
 
   return {
     total,
@@ -519,12 +562,13 @@ const createTenant = function(ctx, alias, displayName, host, opts, callback) {
   opts = opts || {};
 
   // Validate that the user in context is the global admin
-  const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'Only global administrators can create new tenants' })
-    .isGlobalAdministratorUser(ctx);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isGlobalAdministratorUser, {
+      code: 401,
+      msg: 'Only global administrators can create new tenants'
+    })(ctx);
+  } catch (error) {
+    return callback(error);
   }
 
   // Defer the rest of the validation to the internal version of this method that does not take
@@ -550,68 +594,88 @@ const createTenant = function(ctx, alias, displayName, host, opts, callback) {
 const _createTenant = function(alias, displayName, host, opts, callback) {
   opts = opts || {};
 
-  const validator = new Validator();
-  validator.check(alias, { code: 400, msg: 'Missing alias' }).notEmpty();
-  validator.check(alias, { code: 400, msg: 'The tenant alias should not contain a space' }).notContains(' ');
-  validator.check(alias, { code: 400, msg: 'The tenant alias should not contain a colon' }).notContains(':');
-  validator.check(displayName, { code: 400, msg: 'Missing tenant displayName' }).notEmpty();
-  validator.check(host, { code: 400, msg: 'Missing tenant host' }).notEmpty();
-  validator.check(host, { code: 400, msg: 'Invalid hostname' }).isHost();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
-
-  // Make sure alias and host are the proper case
-  alias = alias.toLowerCase();
-  host = host.toLowerCase();
-
-  // Ensure there are no conflicts
-  validator.check(host, { code: 400, msg: 'This hostname is reserved' }).not(serverConfig.shibbolethSPHost);
-  validator
-    .check(getTenant(alias), {
+  try {
+    unless(isNotEmpty, {
       code: 400,
-      msg: util.format('A tenant with the alias "%s" already exists', alias)
-    })
-    .isNull();
-  validator
-    .check(getTenantByHost(host), {
-      code: 400,
-      msg: util.format('A tenant with the host "%s" already exists', host)
-    })
-    .isNull();
+      msg: 'Missing alias'
+    })(alias);
 
-  // Ensure only valid optional fields are set
-  _.each(opts, (val, key) => {
-    validator
-      .check(key, { code: 400, msg: util.format('Invalid field: %s', key) })
-      .isIn(['emailDomains', 'countryCode']);
-    if (key === 'emailDomains') {
-      validator
-        .check(null, {
+    unless(notContains, {
+      code: 400,
+      msg: 'The tenant alias should not contain a space'
+    })(alias, ' ');
+
+    unless(notContains, {
+      code: 400,
+      msg: 'The tenant alias should not contain a colon'
+    })(alias, ':');
+
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing tenant displayName'
+    })(displayName);
+
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing tenant host'
+    })(host);
+
+    unless(isHost, {
+      code: 400,
+      msg: 'Invalid hostname'
+    })(host);
+
+    // Make sure alias and host are the proper case
+    alias = alias.toLowerCase();
+    host = host.toLowerCase();
+
+    // Ensure there are no conflicts
+    unless(isDifferent, {
+      code: 400,
+      msg: 'This hostname is reserved'
+    })(host, serverConfig.shibbolethSPHost);
+
+    unless(compose(isNil, getTenant), {
+      code: 400,
+      msg: `A tenant with the alias ${alias} already exists`
+    })(alias);
+
+    unless(compose(isNil, getTenantByHost), {
+      code: 400,
+      msg: `A tenant with the host ${host} already exists`
+    })(host);
+
+    // Ensure only valid optional fields are set
+    forEachObjIndexed((val, key) => {
+      unless(isIn, {
+        code: 400,
+        msg: `Invalid field: ${key}`
+      })(key, [EMAIL_DOMAINS, COUNTRY_CODE]);
+
+      const eachFieldValue = opts[key];
+      const isKey = value => equals(key, value);
+
+      if (isKey(EMAIL_DOMAINS)) {
+        unless(bothCheck(isKey(EMAIL_DOMAINS), Array.isArray), {
           code: 400,
           msg: 'One or more email domains were passed in, but not as an array'
-        })
-        .isArray(val);
-      if (!validator.hasErrors()) {
+        })(val);
+
         // Ensure the tenant email domains are all lower case
-        opts[key] = _.map(opts[key], emailDomain => {
-          return emailDomain.trim().toLowerCase();
-        });
-        _validateEmailDomains(validator, opts[key]);
-      }
-    } else if (key === 'countryCode' && opts[key]) {
-      // Ensure the country code is upper case
-      opts[key] = opts[key].toUpperCase();
-      validator
-        .check(opts[key], {
+        opts[key] = _.map(opts[key], emailDomain => pipe(trim, toLower)(emailDomain));
+        _validateEmailDomains(validator, eachFieldValue);
+      } else if (and(isKey(COUNTRY_CODE), Boolean(eachFieldValue))) {
+        // Ensure the country code is upper case
+        opts[key] = toUpper(opts[key]);
+
+        unless(isISO31661Alpha2, {
           code: 400,
           msg: 'The country code must be a valid ISO-3166 country code'
-        })
-        .isIso3166Country();
-    }
-  });
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+        })(opts[key]);
+      }
+    }, opts);
+  } catch (error) {
+    return callback(error);
   }
 
   // Create the tenant
@@ -661,86 +725,89 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
  * @param  {Object}     callback.err                    An error that occurred, if any
  */
 const updateTenant = function(ctx, alias, tenantUpdates, callback) {
-  if (!ctx.user() || !ctx.user().isAdmin(ctx.user().tenant.alias)) {
+  const notAValidUser = ctx => not(ctx.user());
+  const notAValidAdmin = ctx => not(ctx.user().isAdmin(ctx.user().tenant.alias));
+  const notAuthorized = either(notAValidUser, notAValidAdmin)(ctx);
+
+  if (notAuthorized) {
     return callback({ code: 401, msg: 'Unauthorized users cannot update tenants' });
   }
 
-  const validator = new Validator();
-  validator.check(alias, { code: 400, msg: 'Missing alias' }).notEmpty();
-  validator
-    .check(getTenant(alias), {
+  // Short-circuit validation if the tenant did not exist
+  try {
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing alias'
+    })(alias);
+
+    unless(compose(isNotNull, getTenant), {
       code: 404,
       msg: util.format('Tenant with alias "%s" does not exist and cannot be updated', alias)
-    })
-    .notNull();
+    })(alias);
 
-  // Short-circuit validation if the tenant did not exist
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
+    // Check that at least either a new display name or hostname have been provided
+    const updateFields = tenantUpdates ? keys(tenantUpdates) : [];
 
-  // Check that at least either a new display name or hostname have been provided
-  const updateFields = tenantUpdates ? _.keys(tenantUpdates) : [];
-  validator
-    .check(updateFields.length, {
+    unless(isArrayNotEmpty, {
       code: 400,
       msg: 'You should at least specify a new displayName or hostname'
-    })
-    .min(1);
-  _.each(tenantUpdates, (updateValue, updateField) => {
-    validator
-      .check(updateField, {
+    })(updateFields);
+
+    forEachObjIndexed((updateValue, updateField) => {
+      unless(isIn, {
         code: 400,
         msg: util.format('"%s" is not a recognized tenant update field', updateField)
-      })
-      .isIn(['displayName', 'host', 'emailDomains', 'countryCode']);
-    if (updateField === 'displayName') {
-      validator.check(updateValue, { code: 400, msg: 'A displayName cannot be empty' }).notEmpty();
-    } else if (updateField === 'host') {
-      // Ensure the tenant host name is all lower case
-      updateValue = updateValue.toLowerCase();
-      tenantUpdates[updateField] = updateValue;
+      })(updateField, ALL_UPDATE_FIELDS);
 
-      // Validate the lower-cased version
-      validator.check(updateValue, { code: 400, msg: 'Invalid host' }).isHost();
-      validator.check(updateValue, { code: 400, msg: 'A hostname cannot be empty' }).notEmpty();
-      validator
-        .check(getTenantByHost(updateValue), {
+      const isField = value => equals(updateField, value);
+
+      unless(bothCheck(isField(DISPLAY_NAME), isNotEmpty), {
+        code: 400,
+        msg: 'A displayName cannot be empty'
+      })(updateValue);
+
+      if (equals(updateField, HOST)) {
+        // Ensure the tenant host name is all lower case
+        updateValue = toLower(updateValue);
+        tenantUpdates[updateField] = updateValue;
+
+        // Validate the lower-cased version
+        unless(isHost, { code: 400, msg: 'Invalid host' })(updateValue);
+        unless(isNotEmpty, { code: 400, msg: 'A hostname cannot be empty' })(updateValue);
+        unless(compose(isNil, getTenantByHost), {
           code: 400,
           msg: 'The hostname has already been taken'
-        })
-        .isNull();
-      validator
-        .check(updateValue, { code: 400, msg: 'This hostname is reserved' })
-        .not(serverConfig.shibbolethSPHost.toLowerCase());
-    } else if (updateField === 'emailDomains') {
-      // Ensure the tenant email domains are all lower case
-      updateValue = _.map(updateValue, emailDomain => {
-        return emailDomain.trim().toLowerCase();
-      });
+        })(updateValue);
+        unless(isDifferent, { code: 400, msg: 'This hostname is reserved' })(
+          updateValue,
+          toLower(serverConfig.shibbolethSPHost)
+        );
+      } else if (equals(updateField, EMAIL_DOMAINS)) {
+        // Ensure the tenant email domains are all lower case
+        updateValue = updateValue.map(emailDomain => pipe(trim, toLower)(emailDomain));
+        tenantUpdates[updateField] = updateValue.join(',');
 
-      tenantUpdates[updateField] = updateValue.join(',');
+        // Only a global admin can update the email domain
+        unless(isGlobalAdministratorUser, {
+          code: 401,
+          msg: 'Only a global administrator can update the email domain'
+        })(ctx);
 
-      // Only a global admin can update the email domain
-      validator
-        .check(null, { code: 401, msg: 'Only a global administrator can update the email domain' })
-        .isGlobalAdministratorUser(ctx);
+        // Validate the lower-cased version
+        _validateEmailDomains(validator, updateValue, alias);
+      } else if (and(equals(updateField, COUNTRY_CODE), Boolean(tenantUpdates[updateField]))) {
+        // Ensure the country code is upper case
+        tenantUpdates[updateField] = toUpper(tenantUpdates[updateField]);
 
-      // Validate the lower-cased version
-      _validateEmailDomains(validator, updateValue, alias);
-    } else if (updateField === 'countryCode' && tenantUpdates[updateField]) {
-      // Ensure the country code is upper case
-      tenantUpdates[updateField] = tenantUpdates[updateField].toUpperCase();
-      validator
-        .check(tenantUpdates[updateField], {
+        const tenantUpdateIsCountry = compose(isIso3166Country, key => tenantUpdates[key]);
+        unless(tenantUpdateIsCountry, {
           code: 400,
           msg: 'The country code must be a valid ISO-3166 country code'
-        })
-        .isIso3166Country();
-    }
-  });
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+        })(updateField);
+      }
+    }, tenantUpdates);
+  } catch (error) {
+    return callback(error);
   }
 
   const q = Cassandra.constructUpsertCQL('Tenant', 'alias', alias, tenantUpdates);
@@ -771,29 +838,25 @@ const disableTenants = function(ctx, aliases, disabled, callback) {
   aliases = _.isArray(aliases) ? aliases : [aliases];
   aliases = _.compact(aliases);
 
-  const validator = new Validator();
-  validator
-    .check(null, {
+  try {
+    unless(isGlobalAdministratorUser, {
       code: 401,
       msg: 'You must be a global admin user to enable or disable a tenant'
-    })
-    .isGlobalAdministratorUser(ctx);
-  validator
-    .check(aliases.length, {
+    })(ctx);
+
+    unless(isArrayNotEmpty, {
       code: 400,
       msg: 'You must provide at least one alias to enable or disable'
-    })
-    .min(1);
-  _.each(aliases, alias => {
-    validator
-      .check(getTenant(alias), {
+    })(aliases);
+
+    aliases.forEach(alias => {
+      unless(compose(isObject, getTenant), {
         code: 404,
         msg: util.format('Tenant with alias "%s" does not exist and cannot be enabled or disabled', alias)
-      })
-      .notNull();
-  });
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+      })(alias);
+    });
+  } catch (error) {
+    return callback(error);
   }
 
   // Store the "active" flag in cassandra
@@ -945,23 +1008,25 @@ const _setLandingPageBlockAttribute = function(ctx, block, blockName, attributeN
  * @api private
  */
 const _validateEmailDomains = function(validator, emailDomains, updateTenantAlias) {
-  _.each(emailDomains, emailDomain => {
+  emailDomains.forEach(emailDomain => {
     // Check whether it's a valid domain
-    validator.check(emailDomain, { code: 400, msg: 'Invalid email domain' }).isHost();
+    unless(isHost, {
+      code: 400,
+      msg: 'Invalid email domain'
+    })(emailDomain);
 
     const matchingTenantAlias = tenantEmailDomainIndex.conflict(updateTenantAlias, emailDomain);
     const matchingTenant = tenants[matchingTenantAlias];
-    const matchingEmailDomains = matchingTenant && matchingTenant.emailDomains;
+    const matchingEmailDomains = compose(Boolean, getNestedObject(matchingTenant))(['emailDomains']);
 
-    const err = {
+    unless(isNil, {
       code: 400,
       msg: util.format(
         'The email domain "%s" conflicts with existing email domains: %s',
         emailDomain,
         matchingEmailDomains
       )
-    };
-    validator.check(matchingTenant, err).isNull();
+    })(matchingTenant);
   });
 };
 
@@ -973,9 +1038,7 @@ const _validateEmailDomains = function(validator, emailDomains, updateTenantAlia
  * @api private
  */
 const _copyTenant = function(tenant) {
-  if (!tenant) {
-    return null;
-  }
+  if (isNil(tenant)) return null;
 
   // Copy the tenant by converting it to a storage hash and then back
   const tenantCopy = _storageHashToTenant(tenant.alias, _tenantToStorageHash(tenant));
@@ -993,18 +1056,15 @@ const _copyTenant = function(tenant) {
  * @api private
  */
 const _storageHashToTenant = function(alias, hash) {
-  let emailDomains = [];
-  if (hash.emailDomains) {
-    emailDomains = _.map(hash.emailDomains.split(','), emailDomain => {
-      return emailDomain.trim().toLowerCase();
-    });
-  }
+  const emailDomains = hash.emailDomains
+    ? hash.emailDomains.split(',').map(emailDomain => pipe(trim, toLower)(emailDomain))
+    : [];
 
   return new Tenant(alias, hash.displayName, hash.host.toLowerCase(), {
     emailDomains,
     countryCode: hash.countryCode,
     active: hash.active,
-    isGuestTenant: alias === serverConfig.guestTenantAlias
+    isGuestTenant: equals(alias, serverConfig.guestTenantAlias)
   });
 };
 
@@ -1018,10 +1078,9 @@ const _storageHashToTenant = function(alias, hash) {
  * @api private
  */
 const _tenantToStorageHash = function(tenant) {
-  const hash = _.pick(tenant, 'displayName', 'host', 'emailDomains', 'countryCode', 'active');
-  if (hash.emailDomains) {
-    hash.emailDomains = hash.emailDomains.join(',');
-  }
+  const attributes = [DISPLAY_NAME, HOST, EMAIL_DOMAINS, COUNTRY_CODE, ACTIVE];
+  const hash = pick(attributes, tenant);
+  if (hash.emailDomains) hash.emailDomains = hash.emailDomains.join(',');
 
   return hash;
 };

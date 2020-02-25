@@ -22,7 +22,8 @@ import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as PrincipalsUtil from 'oae-principals/lib/util';
 import * as FollowingAuthz from 'oae-following/lib/authz';
 
-import { Validator } from 'oae-authz/lib/validator';
+import { Validator as validator } from 'oae-authz/lib/validator';
+const { unless, isUserId, isLoggedInUser } = validator;
 import { FollowingConstants } from 'oae-following/lib/constants';
 import * as FollowingDAO from './internal/dao';
 
@@ -51,10 +52,13 @@ const FollowingAPI = new EmitterAPI.EventEmitter();
 const getFollowers = function(ctx, userId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  const validator = new Validator();
-  validator.check(userId, { code: 400, msg: 'You must specify a valid user id' }).isUserId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isUserId, {
+      code: 400,
+      msg: 'You must specify a valid user id'
+    })(userId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the user so we can determine their visibility and permissions
@@ -116,10 +120,13 @@ const getFollowers = function(ctx, userId, start, limit, callback) {
 const getFollowing = function(ctx, userId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  const validator = new Validator();
-  validator.check(userId, { code: 400, msg: 'You must specify a valid user id' }).isUserId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isUserId, {
+      code: 400,
+      msg: 'You must specify a valid user id'
+    })(userId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the user so we can determine their visibility and permissions
@@ -176,16 +183,18 @@ const getFollowing = function(ctx, userId, start, limit, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const follow = function(ctx, followedUserId, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'You must be authenticated to follow a user' }).isLoggedInUser(ctx);
-  validator
-    .check(followedUserId, {
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You must be authenticated to follow a user'
+    })(ctx);
+
+    unless(isUserId, {
       code: 400,
       msg: 'You must specify a valid user id of a user to follow'
-    })
-    .isUserId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    })(followedUserId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the user to follow to perform permission checks
@@ -233,16 +242,18 @@ const follow = function(ctx, followedUserId, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  */
 const unfollow = function(ctx, unfollowedUserId, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'You must be authenticated to unfollow a user' }).isLoggedInUser(ctx);
-  validator
-    .check(unfollowedUserId, {
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You must be authenticated to unfollow a user'
+    })(ctx);
+
+    unless(isUserId, {
       code: 400,
       msg: 'You must specify a valid user id of a user to unfollow'
-    })
-    .isUserId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    })(unfollowedUserId);
+  } catch (error) {
+    return callback(error);
   }
 
   // A user can always try and delete followers from their list of followers

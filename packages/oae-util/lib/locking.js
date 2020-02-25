@@ -17,9 +17,12 @@ import Redlock from 'redlock';
 
 import { logger } from 'oae-logger';
 
+import { compose } from 'ramda';
+import isInt from 'validator/lib/isInt';
 import * as Redis from './redis';
-import { Validator } from './validator';
+import { Validator as validator } from './validator';
 
+const { unless, isDefined, isNotNull } = validator;
 const log = logger('oae-util-locking');
 
 let locker = null;
@@ -61,27 +64,23 @@ const init = function() {
  * @returns {Function}                 Returns a callback
  */
 const acquire = function(lockKey, expiresIn, callback) {
-  const validator = new Validator();
-  validator
-    .check(lockKey, {
+  try {
+    unless(isDefined, {
       code: 400,
       msg: 'The key of the lock to try and acquire needs to be specified'
-    })
-    .notNull();
-  validator
-    .check(expiresIn, {
+    })(lockKey);
+
+    unless(isDefined, {
       code: 400,
       msg: 'The maximum number of seconds for which to hold the lock needs to be specified'
-    })
-    .notNull();
-  validator
-    .check(expiresIn, {
+    })(expiresIn);
+
+    unless(compose(isInt, String), {
       code: 400,
       msg: 'The maximum number of seconds for which to hold the lock needs to be an integer'
-    })
-    .isInt();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    })(expiresIn);
+  } catch (error) {
+    return callback(error);
   }
 
   log().trace({ lockKey }, 'Trying to acquire lock.');
@@ -106,15 +105,13 @@ const acquire = function(lockKey, expiresIn, callback) {
  * @returns {Function}                      Returns a callback
  */
 const release = function(lock, callback) {
-  const validator = new Validator();
-  validator
-    .check(lock, {
+  try {
+    unless(isNotNull, {
       code: 400,
       msg: 'The key of the lock to try and release needs to be specified'
-    })
-    .notNull();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    })(lock);
+  } catch (error) {
+    return callback(error);
   }
 
   // the first parameter is not necessary after the

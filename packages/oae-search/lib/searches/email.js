@@ -19,7 +19,8 @@ import * as OaeUtil from 'oae-util/lib/util';
 import * as SearchUtil from 'oae-search/lib/util';
 import * as TenantsAPI from 'oae-tenants/lib/api';
 
-import { Validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator';
+const { isEmail, isLoggedInUser, unless } = validator;
 
 /**
  * A search that searches on an exact "email" match, scoping its results by the specified scope and
@@ -41,11 +42,19 @@ const queryBuilder = function(ctx, opts, callback) {
   opts = opts || {};
   opts.limit = OaeUtil.getNumberParam(opts.limit, 10, 1, 25);
 
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Only authenticated users can use email search' }).isLoggedInUser(ctx);
-  validator.check(opts.q, { code: 400, msg: 'An invalid email address has been specified' }).isEmail();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Only authenticated users can use email search'
+    })(ctx);
+
+    const query = opts.q || '';
+    unless(isEmail, {
+      code: 400,
+      msg: 'An invalid email address has been specified'
+    })(query);
+  } catch (error) {
+    return callback(error);
   }
 
   // Ensure the email address being searched is lower case so it is case insensitive

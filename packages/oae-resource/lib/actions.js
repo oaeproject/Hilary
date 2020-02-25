@@ -30,8 +30,21 @@ import * as ResourceActivity from 'oae-resource/lib/activity';
 
 import { Invitation } from 'oae-authz/lib/invitations/model';
 import { AuthzConstants } from 'oae-authz/lib/constants';
-import { Validator } from 'oae-authz/lib/validator';
+import { Validator as validator } from 'oae-authz/lib/validator';
+const {
+  unless,
+  isLoggedInUser,
+  isArrayNotEmpty,
+  isResource,
+  isValidRole,
+  isValidShareTarget,
+  isDifferent,
+  isEmail,
+  isNotEmpty,
+  isValidRoleChange
+} = validator;
 import { ResourceConstants } from 'oae-resource/lib/constants';
+import { __, curry, forEachObjIndexed } from 'ramda';
 
 const log = logger('oae-resource-actions');
 
@@ -57,33 +70,33 @@ const ResourceActions = new EmitterAPI.EventEmitter();
  * @param  {EmailChangeInfo}    callback.emailChangeInfo    The email change info object that describes the resource invitations
  */
 const create = function(ctx, roles, createFn, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 400, msg: 'Only authenticated users can create a new resource' }).isLoggedInUser(ctx);
+  try {
+    unless(isLoggedInUser, {
+      code: 400,
+      msg: 'Only authenticated users can create a new resource'
+    })(ctx);
 
-  // Ensure all member ids are valid members
-  const memberIds = _.keys(roles);
-  _.each(memberIds, memberId => {
-    validator
-      .check(memberId, {
+    // Ensure all member ids are valid members
+    const memberIds = _.keys(roles);
+    memberIds.forEach(memberId => {
+      unless(isValidShareTarget, {
         code: 400,
         msg:
           'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
-      })
-      .isValidShareTarget();
-  });
+      })(memberId);
+    });
 
-  // Ensure there is at least one manager member in the list of roles
-  const firstManagerRole = _.find(roles, (role, memberId) => {
-    return AuthzUtil.isPrincipalId(memberId) && role === AuthzConstants.role.MANAGER;
-  });
-  validator
-    .check(firstManagerRole, {
+    // Ensure there is at least one manager member in the list of roles
+    const firstManagerRole = _.find(roles, (role, memberId) => {
+      return AuthzUtil.isPrincipalId(memberId) && role === AuthzConstants.role.MANAGER;
+    });
+
+    unless(isValidRole, {
       code: 400,
       msg: 'There must be at least one manager specified when creating a resource'
-    })
-    .isValidRole();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    })(firstManagerRole);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the target resources being added as members and invitations to the new resource
@@ -147,38 +160,54 @@ const create = function(ctx, roles, createFn, callback) {
  * @param  {EmailChangeInfo}    callback.emailChangeInfo    Describes the resource invitation updates
  */
 const share = function(ctx, resource, targetIds, role, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 400, msg: 'Only authenticated users can share a resource' }).isLoggedInUser(ctx);
-  validator.check(role, { code: 400, msg: 'Must specify a valid role' }).isValidRole();
-  validator.check(null, { code: 400, msg: 'An invalid resource was provided' }).isResource(resource);
-  validator
-    .check(targetIds.length, {
+  try {
+    unless(isLoggedInUser, {
+      code: 400,
+      msg: 'Only authenticated users can share a resource'
+    })(ctx);
+
+    unless(isValidRole, {
+      code: 400,
+      msg: 'Must specify a valid role'
+    })(role);
+
+    unless(isResource, {
+      code: 400,
+      msg: 'An invalid resource was provided'
+    })(resource);
+
+    unless(isArrayNotEmpty, {
       code: 400,
       msg: 'At least one user to share with should be specified'
-    })
-    .min(1);
+    })(targetIds);
 
-  let resourceAuthzId = null;
-  let resourceId = null;
-  if (resource) {
-    resourceAuthzId = AuthzUtil.getAuthzId(resource);
-    resourceId = resource.id;
-  }
+    let resourceAuthzId = null;
+    let resourceId = null;
+    if (resource) {
+      resourceAuthzId = AuthzUtil.getAuthzId(resource);
+      resourceId = resource.id;
+    }
 
-  _.each(targetIds, targetId => {
-    validator
-      .check(targetId, {
+    targetIds.forEach(targetId => {
+      unless(isValidShareTarget, {
         code: 400,
         msg:
           'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
-      })
-      .isValidShareTarget();
-    validator.check(targetId, { code: 400, msg: 'You cannot share a resource with itself' }).not(resourceAuthzId);
-    validator.check(targetId, { code: 400, msg: 'You cannot share a resource with itself' }).not(resourceId);
-  });
+      })(targetId);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+      const targetIsNotItself = curry(isDifferent)(String(targetId), __);
+      unless(targetIsNotItself, {
+        code: 400,
+        msg: 'You cannot share a resource with itself'
+      })(resourceAuthzId);
+
+      unless(targetIsNotItself, {
+        code: 400,
+        msg: 'You cannot share a resource with itself'
+      })(resourceId);
+    });
+  } catch (error) {
+    return callback(error);
   }
 
   // Split the targets into principal profiles and emails
@@ -226,33 +255,54 @@ const share = function(ctx, resource, targetIds, role, callback) {
  * @param  {EmailChangeInfo}    callback.emailChangeInfo    Describes the resource invitation updates
  */
 const setRoles = function(ctx, resource, roles, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 400, msg: 'Only authenticated users can share a resource' }).isLoggedInUser(ctx);
-  validator.check(null, { code: 400, msg: 'An invalid resource was provided' }).isResource(resource);
-  validator.check(_.keys(roles).length, { code: 400, msg: 'At least one role update should be specified' }).min(1);
+  try {
+    unless(isLoggedInUser, {
+      code: 400,
+      msg: 'Only authenticated users can share a resource'
+    })(ctx);
 
-  let resourceAuthzId = null;
-  let resourceId = null;
-  if (resource) {
-    resourceAuthzId = AuthzUtil.getAuthzId(resource);
-    resourceId = resource.id;
-  }
+    unless(isResource, {
+      code: 400,
+      msg: 'An invalid resource was provided'
+    })(resource);
 
-  _.each(roles, (role, memberId) => {
-    validator
-      .check(memberId, {
+    unless(isArrayNotEmpty, {
+      code: 400,
+      msg: 'At least one role update should be specified'
+    })(_.keys(roles));
+
+    let resourceAuthzId = null;
+    let resourceId = null;
+    if (resource) {
+      resourceAuthzId = AuthzUtil.getAuthzId(resource);
+      resourceId = resource.id;
+    }
+
+    forEachObjIndexed((role, memberId) => {
+      unless(isValidShareTarget, {
         code: 400,
         msg:
           'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
-      })
-      .isValidShareTarget();
-    validator.check(memberId, { code: 400, msg: 'You cannot share a resource with itself' }).not(resourceAuthzId);
-    validator.check(memberId, { code: 400, msg: 'You cannot share a resource with itself' }).not(resourceId);
-    validator.check(role, { code: 400, msg: 'An invalid role was provided' }).isValidRoleChange();
-  });
+      })(memberId);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+      const memberIsNotItself = curry(isDifferent)(String(memberId), __);
+      unless(memberIsNotItself, {
+        code: 400,
+        msg: 'You cannot share a resource with itself'
+      })(resourceAuthzId);
+
+      unless(memberIsNotItself, {
+        code: 400,
+        msg: 'You cannot share a resource with itself'
+      })(resourceId);
+
+      unless(isValidRoleChange, {
+        code: 400,
+        msg: 'An invalid role was provided'
+      })(role);
+    }, roles);
+  } catch (error) {
+    return callback(error);
   }
 
   // Split the targets into principal profiles and emails
@@ -298,12 +348,23 @@ const setRoles = function(ctx, resource, roles, callback) {
  * @param  {Object}             callback.err    An error that occurred, if any
  */
 const resendInvitation = function(ctx, resource, email, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Only authenticated users can resend an invitation' }).isLoggedInUser(ctx);
-  validator.check(null, { code: 400, msg: 'A valid resource must be provided' }).isResource(resource);
-  validator.check(email, { code: 400, msg: 'A valid email must be provided' }).isEmail();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Only authenticated users can resend an invitation'
+    })(ctx);
+
+    unless(isResource, {
+      code: 400,
+      msg: 'A valid resource must be provided'
+    })(resource);
+
+    unless(isEmail, {
+      code: 400,
+      msg: 'A valid email must be provided'
+    })(email);
+  } catch (error) {
+    return callback(error);
   }
 
   email = email.toLowerCase();
@@ -347,11 +408,18 @@ const resendInvitation = function(ctx, resource, email, callback) {
  * @param  {Resource[]}     callback.resources  The resources to which the user's access changed (user could have been added or promoted) while accepting this invitation
  */
 const acceptInvitation = function(ctx, token, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Only authenticated users can accept an invitation' }).isLoggedInUser(ctx);
-  validator.check(token, { code: 400, msg: 'An invitation token must be specified' }).notEmpty();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Only authenticated users can accept an invitation'
+    })(ctx);
+
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'An invitation token must be specified'
+    })(token);
+  } catch (error) {
+    return callback(error);
   }
 
   // Perform the accept action

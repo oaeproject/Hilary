@@ -19,7 +19,18 @@ import Chance from 'chance';
 
 import * as Cassandra from 'oae-util/lib/cassandra';
 
-import { Validator } from 'oae-authz/lib/validator';
+import { Validator as validator } from 'oae-authz/lib/validator';
+const {
+  unless,
+  validateInCase: bothCheck,
+  isResourceId,
+  isEmail,
+  isValidRole,
+  isString,
+  isUserId,
+  isValidRoleChange
+} = validator;
+import { not, equals, forEachObjIndexed } from 'ramda';
 
 const chance = new Chance();
 
@@ -226,20 +237,32 @@ const getInvitation = function(resourceId, email, callback) {
  * @param  {Object[]}   callback.invitationHashes   All invitations that were created for the email+roles
  */
 const createInvitations = function(resourceId, emailRoles, inviterUserId, callback) {
-  const validator = new Validator();
-  validator.check(resourceId, { code: 400, msg: 'Specified resource must have a valid resource id' }).isResourceId();
-  _.each(emailRoles, (role, email) => {
-    validator.check(email, { code: 400, msg: 'A valid email must be supplied to invite' }).isEmail();
-    validator.check(role, { code: 400, msg: 'A valid role must be supplied to give the invited user' }).isValidRole();
-  });
-  validator
-    .check(inviterUserId, {
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Specified resource must have a valid resource id'
+    })(resourceId);
+
+    const validateEachRole = (role, email) => {
+      unless(isEmail, {
+        code: 400,
+        msg: 'A valid email must be supplied to invite'
+      })(email);
+
+      unless(isValidRole, {
+        code: 400,
+        msg: 'A valid role must be supplied to give the invited user'
+      })(role);
+    };
+
+    forEachObjIndexed(validateEachRole, emailRoles);
+
+    unless(isUserId, {
       code: 400,
       msg: util.format('Specified inviter id "%s" must be a valid user id')
-    })
-    .isUserId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    })(inviterUserId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Ensure all emails have invitation tokens that can be used to accept invitations
@@ -294,19 +317,33 @@ const createInvitations = function(resourceId, emailRoles, inviterUserId, callba
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const updateInvitationRoles = function(resourceId, emailRoles, callback) {
-  const validator = new Validator();
-  validator.check(resourceId, { code: 400, msg: 'Specified resource must have a valid resource id' }).isResourceId();
-  _.each(emailRoles, (role, email) => {
-    validator.check(email, { code: 400, msg: util.format('Invalid email "%s" specified', email) }).isEmail();
-    validator
-      .check(role, { code: 400, msg: util.format('Invalid role change "%s" specified', role) })
-      .isValidRoleChange();
-    if (role !== false) {
-      validator.check(null, { code: 400, msg: util.format('Invalid role "%s" specified', role) }).isString(role);
-    }
-  });
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Specified resource must have a valid resource id'
+    })(resourceId);
+
+    const validateEachRole = (role, email) => {
+      unless(isEmail, {
+        code: 400,
+        msg: util.format('Invalid email "%s" specified', email)
+      })(email);
+
+      unless(isValidRoleChange, {
+        code: 400,
+        msg: util.format('Invalid role change "%s" specified', role)
+      })(role);
+
+      const roleAintFalse = not(equals(role, false));
+      unless(bothCheck(roleAintFalse, isString), {
+        code: 400,
+        msg: util.format('Invalid role "%s" specified', role)
+      })(role);
+    };
+
+    forEachObjIndexed(validateEachRole, emailRoles);
+  } catch (error) {
+    return callback(error);
   }
 
   const queries = [];
@@ -365,10 +402,13 @@ const deleteInvitationsByResourceId = function(resourceId, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const deleteInvitationsByEmail = function(email, callback) {
-  const validator = new Validator();
-  validator.check(email, { code: 400, msg: 'Specified email is not valid' }).isEmail();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isEmail, {
+      code: 400,
+      msg: 'Specified email is not valid'
+    })(email);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the active token for the given email

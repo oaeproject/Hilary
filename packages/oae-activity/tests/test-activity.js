@@ -658,8 +658,8 @@ describe('Activity', () => {
         });
 
         // Simply trigger the activity
-        ActivityAPI.postActivity(anonymousCamApiContext, seed);
-      });
+      ActivityAPI.postActivity(anonymousCamApiContext, seed);
+    });
 
       /**
        * Test that verifies that the default activity transformer will return just the oae:id, oae:tenant and objectType of an entity
@@ -949,7 +949,7 @@ describe('Activity', () => {
               };
 
               // Verify no seed
-              ActivityAPI.postActivity(anonymousCamApiContext, _createActivitySeed(), err => {
+             ActivityAPI.postActivity(anonymousCamApiContext, _createActivitySeed(), err => {
                 assert.ok(err);
                 assert.strictEqual(err.code, 400);
 
@@ -1027,7 +1027,7 @@ describe('Activity', () => {
                                                   _createActivitySeed({}, {}, {}, {}),
                                                   err => {
                                                     assert.ok(!err);
-                                                    callback();
+                                                    return callback();
                                                   }
                                                 );
                                               }

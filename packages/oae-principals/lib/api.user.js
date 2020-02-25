@@ -42,7 +42,23 @@ import * as TenantsUtil from 'oae-tenants/lib/util';
 import * as Signature from 'oae-util/lib/signature';
 import { setUpConfig } from 'oae-config';
 import { Context } from 'oae-context';
-import { Validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator';
+const {
+  unless,
+  isShortString,
+  validateInCase: bothCheck,
+  isInt,
+  isUserId,
+  isNotNull,
+  isArrayEmpty,
+  isNotEmpty,
+  isLoggedInUser,
+  isEmail,
+  isArrayNotEmpty,
+  isOneOrGreater
+} = validator;
+import { compose, not, isNil } from 'ramda';
+import isIn from 'validator/lib/isIn';
 import { AuthenticationConstants } from 'oae-authentication/lib/constants';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import * as UserDeletionUtil from 'oae-principals/lib/definitive-deletion';
@@ -57,7 +73,6 @@ const log = logger('oae-principals');
 const PrincipalsConfig = setUpConfig('oae-principals');
 
 const fullUserProfileDecorators = {};
-
 const HTTP_PROTOCOL = 'http';
 const HTTPS_PROTOCOL = 'https';
 
@@ -152,34 +167,46 @@ const createUser = function(ctx, tenantAlias, displayName, opts, callback) {
   opts.emailPreference = opts.emailPreference || PrincipalsConfig.getValue(tenantAlias, 'user', 'emailPreference');
   opts.isUserArchive = opts.isUserArchive || null;
 
-  const validator = new Validator();
-  validator.check(displayName, { code: 400, msg: 'A display name must be provided' }).notEmpty();
-  validator
-    .check(displayName, { code: 400, msg: 'A display name can be at most 1000 characters long' })
-    .isShortString();
-  validator
-    .check(opts.visibility, { code: 400, msg: 'The specified visibility setting is unknown' })
-    .isIn(_.values(AuthzConstants.visibility));
-  validator
-    .check(opts.emailPreference, { code: 400, msg: 'The specified email preference is invalid' })
-    .isIn(_.values(PrincipalsConstants.emailPreferences));
+  try {
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A display name must be provided'
+    })(displayName);
 
-  // If an administrator is creating an account, we consider the email address to be verified
-  opts.emailVerified = opts.emailVerified || (ctx.user() && ctx.user().isAdmin(tenantAlias)) || false;
+    unless(isShortString, {
+      code: 400,
+      msg: 'A display name can be at most 1000 characters long'
+    })(displayName);
 
-  // Because some SSO strategies do not release an email address, we allow user accounts to be
-  // created without providing the email
-  if (_.isString(opts.email)) {
-    // E-mail addresses are always lower-cased as it makes them easier to deal with
-    opts.email = opts.email.toLowerCase();
-    validator.check(opts.email, { code: 400, msg: 'The specified email address is invalid' }).isEmail();
-  } else {
-    // Avoid setting a falsey email address
-    delete opts.email;
-  }
+    unless(isIn, {
+      code: 400,
+      msg: 'The specified visibility setting is unknown'
+    })(opts.visibility, _.values(AuthzConstants.visibility));
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    unless(isIn, {
+      code: 400,
+      msg: 'The specified email preference is invalid'
+    })(opts.emailPreference, _.values(PrincipalsConstants.emailPreferences));
+
+    // If an administrator is creating an account, we consider the email address to be verified
+    opts.emailVerified = opts.emailVerified || (ctx.user() && ctx.user().isAdmin(tenantAlias)) || false;
+
+    // Because some SSO strategies do not release an email address, we allow user accounts to be
+    // created without providing the email
+    if (_.isString(opts.email)) {
+      // E-mail addresses are always lower-cased as it makes them easier to deal with
+      opts.email = opts.email.toLowerCase();
+
+      unless(isEmail, {
+        code: 400,
+        msg: 'The specified email address is invalid'
+      })(opts.email);
+    } else {
+      // Avoid setting a falsey email address
+      delete opts.email;
+    }
+  } catch (error) {
+    return callback(error);
   }
 
   const id = AuthzUtil.toId('u', tenantAlias, ShortId.generate());
@@ -281,32 +308,51 @@ const importUsers = function(ctx, tenantAlias, userCSV, authenticationStrategy, 
     });
   }
 
-  // Parameter validation
-  const validator = new Validator();
-  validator.check(tenant, { code: 400, msg: 'An existing tenant alias must be provided' }).notNull();
-  validator.check(userCSV, { code: 400, msg: 'A CSV file must be provided' }).notNull();
-  if (userCSV) {
-    validator.check(userCSV.size, { code: 400, msg: 'Missing size on the CSV file' }).notEmpty();
-    validator.check(userCSV.size, { code: 400, msg: 'Invalid size on the CSV file' }).isInt();
-    validator.check(userCSV.size, { code: 400, msg: 'Invalid size on the CSV file' }).min(0);
-    validator.check(userCSV.name, { code: 400, msg: 'Missing name on the CSV file' }).notEmpty();
-  }
+  try {
+    // Parameter validation
+    unless(isNotNull, {
+      code: 400,
+      msg: 'An existing tenant alias must be provided'
+    })(tenant);
 
-  validator
-    .check(authenticationStrategy, {
+    unless(isNotNull, {
+      code: 400,
+      msg: 'A CSV file must be provided'
+    })(userCSV);
+
+    const isUserCSVDefined = Boolean(userCSV);
+    unless(bothCheck(isUserCSVDefined, compose(isNotEmpty, String)), {
+      code: 400,
+      msg: 'Missing size on the CSV file'
+    })(userCSV.size);
+
+    unless(bothCheck(isUserCSVDefined, compose(isInt, String)), {
+      code: 400,
+      msg: 'Invalid size on the CSV file'
+    })(userCSV.size);
+
+    unless(bothCheck(isUserCSVDefined, isOneOrGreater), {
+      code: 400,
+      msg: 'Invalid size on the CSV file'
+    })(userCSV.size);
+
+    unless(bothCheck(isUserCSVDefined, isNotEmpty), {
+      code: 400,
+      msg: 'Missing name on the CSV file'
+    })(userCSV.name);
+
+    unless(isNotEmpty, {
       code: 400,
       msg: 'An authentication strategy must be provided'
-    })
-    .notEmpty();
-  validator
-    .check(authenticationStrategy, {
+    })(authenticationStrategy);
+
+    unless(isIn, {
       code: 400,
       msg: 'The specified authentication strategy is unknown'
-    })
-    .isIn(_.values(AuthenticationConstants.providers));
-  if (validator.hasErrors()) {
+    })(authenticationStrategy, _.values(AuthenticationConstants.providers));
+  } catch (error) {
     return _cleanUpCSVFile(userCSV, () => {
-      callback(validator.getFirstError());
+      callback(error);
     });
   }
 
@@ -532,64 +578,70 @@ const updateUser = function(ctx, userId, profileFields, callback) {
   const profileFieldKeys = _.keys(profileFields);
 
   // Parameter validation
-  const validator = new Validator();
-  validator.check(userId, { code: 400, msg: 'A valid user id must be provided' }).notEmpty();
-  validator.check(userId, { code: 400, msg: 'A valid user id must be provided' }).isUserId();
+  try {
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A valid user id must be provided'
+    })(userId);
 
-  // Check that there is at least one updated profile field
-  validator
-    .check(profileFieldKeys.length, {
+    unless(isUserId, {
+      code: 400,
+      msg: 'A valid user id must be provided'
+    })(userId);
+
+    // Check that there is at least one updated profile field
+    unless(isArrayNotEmpty, {
       code: 400,
       msg: 'At least one basic profile field should be specified'
-    })
-    .min(1);
+    })(profileFieldKeys);
 
-  // Verify that restricted properties aren't set here
-  const validKeys = ['displayName', 'visibility', 'email', 'emailPreference', 'publicAlias', 'locale'];
-  const invalidKeys = _.difference(profileFieldKeys, validKeys);
-  validator.check(invalidKeys.length, { code: 400, msg: 'Restricted property was attempted to be set.' }).max(0);
+    // Verify that restricted properties aren't set here
+    const validKeys = ['displayName', 'visibility', 'email', 'emailPreference', 'publicAlias', 'locale'];
+    const invalidKeys = _.difference(profileFieldKeys, validKeys);
+    unless(isArrayEmpty, { code: 400, msg: 'Restricted property was attempted to be set.' })(invalidKeys);
 
-  // Apply special restrictions on some profile fields
-  if (!_.isUndefined(profileFields.displayName)) {
-    validator.check(profileFields.displayName, { code: 400, msg: 'A display name cannot be empty' }).notEmpty();
-    validator
-      .check(profileFields.displayName, {
+    // Apply special restrictions on some profile fields
+    const displayNameIsDefined = not(isNil(profileFields.displayName));
+    unless(bothCheck(displayNameIsDefined, isNotEmpty), {
+      code: 400,
+      msg: 'A display name cannot be empty'
+    })(profileFields.displayName);
+
+    unless(bothCheck(displayNameIsDefined, isShortString), {
+      code: 400,
+      msg: 'A display name can be at most 1000 characters long'
+    })(profileFields.displayName);
+
+    const visibilityIsDefined = not(isNil(profileFields.visibility));
+    unless(bothCheck(visibilityIsDefined, isIn), {
+      code: 400,
+      msg: 'An invalid visibility option has been specified'
+    })(profileFields.visibility, _.values(AuthzConstants.visibility));
+
+    const emailIsDefined = not(isNil(profileFields.emailPreference));
+    unless(bothCheck(emailIsDefined, isIn), {
+      code: 400,
+      msg: 'The specified emailPreference is invalid'
+    })(profileFields.emailPreference, _.values(PrincipalsConstants.emailPreferences));
+
+    if (_.isString(profileFields.email)) {
+      // E-mail addresses are always lower-cased as it makes them easier to deal with
+      profileFields.email = profileFields.email.toLowerCase();
+      unless(isEmail, {
         code: 400,
-        msg: 'A display name can be at most 1000 characters long'
-      })
-      .isShortString();
-  }
+        msg: 'The specified email address is invalid'
+      })(profileFields.email);
+    } else {
+      // Ensure we never set a false-y email
+      delete profileFields.email;
+    }
 
-  if (!_.isUndefined(profileFields.visibility)) {
-    validator
-      .check(profileFields.visibility, {
-        code: 400,
-        msg: 'An invalid visibility option has been specified'
-      })
-      .isIn(_.values(AuthzConstants.visibility));
-  }
-
-  if (!_.isUndefined(profileFields.emailPreference)) {
-    validator
-      .check(profileFields.emailPreference, {
-        code: 400,
-        msg: 'The specified emailPreference is invalid'
-      })
-      .isIn(_.values(PrincipalsConstants.emailPreferences));
-  }
-
-  if (_.isString(profileFields.email)) {
-    // E-mail addresses are always lower-cased as it makes them easier to deal with
-    profileFields.email = profileFields.email.toLowerCase();
-    validator.check(profileFields.email, { code: 400, msg: 'The specified email address is invalid' }).isEmail();
-  } else {
-    // Ensure we never set a false-y email
-    delete profileFields.email;
-  }
-
-  validator.check(null, { code: 401, msg: 'You have to be logged in to be able to update a user' }).isLoggedInUser(ctx);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to update a user'
+    })(ctx);
+  } catch (error) {
+    return callback(error);
   }
 
   // Regular users cannot update other users
@@ -692,10 +744,13 @@ const canDeleteUser = function(ctx, userId, callback) {
  * @param  {Object}     callback.err    An error that occured, if any
  */
 const deleteUser = function(ctx, userId, callback) {
-  const validator = new Validator();
-  validator.check(userId, { code: 400, msg: 'A valid user id must be provided' }).isUserId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isUserId, {
+      code: 400,
+      msg: 'A valid user id must be provided'
+    })(userId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Check if the user has permission to delete the user
@@ -860,10 +915,13 @@ const _restorePrincipals = function(usersToRestore, afterRestored) {
  * @param  {Object}     callback.err    An error that occured, if any
  */
 const restoreUser = function(ctx, userId, callback) {
-  const validator = new Validator();
-  validator.check(userId, { code: 400, msg: 'A valid user id must be provided' }).isUserId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isUserId, {
+      code: 400,
+      msg: 'A valid user id must be provided'
+    })(userId);
+  } catch (error) {
+    return callback(error);
   }
 
   canRestoreUser(ctx, userId, (err, canRestore, user) => {
@@ -920,10 +978,13 @@ const canRestoreUser = function(ctx, userId, callback) {
  * @param  {User}      callback.user   The user object
  */
 const getUser = function(ctx, userId, callback) {
-  const validator = new Validator();
-  validator.check(userId, { code: 400, msg: 'An invalid user id was provided' }).isUserId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isUserId, {
+      code: 400,
+      msg: 'An invalid user id was provided'
+    })(userId);
+  } catch (error) {
+    return callback(error);
   }
 
   PrincipalsUtil.getPrincipal(ctx, userId, callback);
@@ -940,10 +1001,13 @@ const getUser = function(ctx, userId, callback) {
  * @param  {Object}     callback.user   The decorated user object
  */
 const getFullUserProfile = function(ctx, userId, callback) {
-  const validator = new Validator();
-  validator.check(userId, { code: 400, msg: 'An invalid user id was provided' }).isUserId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isUserId, {
+      code: 400,
+      msg: 'An invalid user id was provided'
+    })(userId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get and validate the basic user profile to decorate
@@ -1215,13 +1279,18 @@ const _sendEmailToken = function(ctx, user, email, token, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const resendEmailToken = function(ctx, userId, callback) {
-  const validator = new Validator();
-  validator.check(userId, { code: 400, msg: 'A valid user id must be provided' }).isUserId();
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to resend an email token' })
-    .isLoggedInUser(ctx);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isUserId, {
+      code: 400,
+      msg: 'A valid user id must be provided'
+    })(userId);
+
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to resend an email token'
+    })(ctx);
+  } catch (error) {
+    return callback(error);
   }
 
   // Ensure that you need to either be the user for which a token is being sent or a tenant admin
@@ -1255,18 +1324,28 @@ const resendEmailToken = function(ctx, userId, callback) {
  * @param  {User}       callback.user   The updated user
  */
 const verifyEmail = function(ctx, userId, token, callback) {
-  const validator = new Validator();
-  validator.check(userId, { code: 400, msg: 'A valid user id must be provided' }).isUserId();
-  validator.check(token, { code: 400, msg: 'A token must be provided' }).notEmpty();
-  validator.check(token, { code: 400, msg: 'An invalid token was provided' }).regex(/^[a-zA-Z0-9-_]{7,14}$/);
-  validator
-    .check(null, {
+  try {
+    unless(isUserId, {
+      code: 400,
+      msg: 'A valid user id must be provided'
+    })(userId);
+
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A token must be provided'
+    })(token);
+
+    unless((value, regex) => value.match(regex), {
+      code: 400,
+      msg: 'An invalid token was provided'
+    })(token, /^[a-zA-Z0-9-_]{7,14}$/);
+
+    unless(isLoggedInUser, {
       code: 401,
       msg: 'You have to be logged in to be able to verify an email address'
-    })
-    .isLoggedInUser(ctx);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    })(ctx);
+  } catch (error) {
+    return callback(error);
   }
 
   const principalResource = AuthzUtil.getResourceFromId(userId);
@@ -1309,16 +1388,18 @@ const verifyEmail = function(ctx, userId, token, callback) {
  * @param  {String}     callback.email      The email address for which there is a token
  */
 const getEmailToken = function(ctx, userId, callback) {
-  const validator = new Validator();
-  validator.check(userId, { code: 400, msg: 'A valid user id must be provided' }).isUserId();
-  validator
-    .check(null, {
+  try {
+    unless(isUserId, {
+      code: 400,
+      msg: 'A valid user id must be provided'
+    })(userId);
+
+    unless(isLoggedInUser, {
       code: 401,
       msg: 'You have to be logged in to be able to check for the existence of a pending email token'
-    })
-    .isLoggedInUser(ctx);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    })(ctx);
+  } catch (error) {
+    return callback(error);
   }
 
   const principalResource = AuthzUtil.getResourceFromId(userId);
@@ -1348,16 +1429,18 @@ const getEmailToken = function(ctx, userId, callback) {
  * @param  {String}     callback.email      The email address for which there is a token
  */
 const deleteEmailToken = function(ctx, userId, callback) {
-  const validator = new Validator();
-  validator.check(userId, { code: 400, msg: 'A valid user id must be provided' }).isUserId();
-  validator
-    .check(null, {
+  try {
+    unless(isUserId, {
+      code: 400,
+      msg: 'A valid user id must be provided'
+    })(userId);
+
+    unless(isLoggedInUser, {
       code: 401,
       msg: 'You have to be logged in to be able to delete a pending email token'
-    })
-    .isLoggedInUser(ctx);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    })(ctx);
+  } catch (error) {
+    return callback(error);
   }
 
   const principalResource = AuthzUtil.getResourceFromId(userId);
@@ -1396,21 +1479,23 @@ const deleteEmailToken = function(ctx, userId, callback) {
  * @param  {Objetc}     callback.zipFile        Zip file containing all the data
  */
 const exportData = function(ctx, userId, exportType, callback) {
-  const validator = new Validator();
+  try {
+    unless(isUserId, {
+      code: 400,
+      msg: 'A valid user id must be provided'
+    })(userId);
 
-  validator.check(userId, { code: 400, msg: 'A valid user id must be provided' }).isUserId();
-  validator
-    .check(null, {
+    unless(isLoggedInUser, {
       code: 401,
       msg: 'You have to be logged in to be able to delete a pending email token'
-    })
-    .isLoggedInUser(ctx);
-  validator
-    .check(exportType, { code: 402, msg: 'An invalid exportType has been specified' })
-    .isIn(_.values(PrincipalsConstants.exportType));
+    })(ctx);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    unless(isIn, {
+      code: 402,
+      msg: 'An invalid exportType has been specified'
+    })(exportType, _.values(PrincipalsConstants.exportType));
+  } catch (error) {
+    return callback(error);
   }
 
   PrincipalsDAO.getPrincipal(userId, (err, principal) => {

@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable no-unused-vars */
 import _ from 'underscore';
 import DiscussionsAPI from 'oae-discussions';
 
@@ -32,7 +31,26 @@ import { setUpConfig } from 'oae-config';
 
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
-import { Validator } from 'oae-authz/lib/validator';
+import { Validator as validator } from 'oae-authz/lib/validator';
+const {
+  isValidRoleChange,
+  unless,
+  isANumber,
+  isDefined,
+  isLoggedInUser,
+  isPrincipalId,
+  isNotEmpty,
+  isResourceId,
+  isShortString,
+  isMediumString,
+  isArrayNotEmpty,
+  validateInCase: bothCheck,
+  isLongString
+} = validator;
+import isIn from 'validator/lib/isIn';
+import isInt from 'validator/lib/isInt';
+
+import { equals, forEachObjIndexed } from 'ramda';
 import * as DiscussionsDAO from './internal/dao';
 import { DiscussionsConstants } from './constants';
 
@@ -41,7 +59,10 @@ const log = logger('discussions-api');
 const DiscussionsConfig = setUpConfig('oae-discussions');
 
 // Discussion fields that are allowed to be updated
-const DISCUSSION_UPDATE_FIELDS = ['displayName', 'description', 'visibility'];
+const VISIBILITY = 'visibility';
+const DISPLAY_NAME = 'displayName';
+const DESCRIPTION = 'description';
+const DISCUSSION_UPDATE_FIELDS = [DISPLAY_NAME, DESCRIPTION, VISIBILITY];
 
 /**
  * Create a new discussion
@@ -64,35 +85,46 @@ const createDiscussion = function(ctx, displayName, description, visibility, rol
   const allVisibilities = _.values(AuthzConstants.visibility);
 
   // Verify basic properties
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Anonymous users cannot create a discussion' }).isLoggedInUser(ctx);
-  validator.check(displayName, { code: 400, msg: 'Must provide a display name for the discussion' }).notEmpty();
-  validator
-    .check(displayName, { code: 400, msg: 'A display name can be at most 1000 characters long' })
-    .isShortString();
-  validator.check(description, { code: 400, msg: 'Must provide a description for the discussion' }).notEmpty();
-  validator
-    .check(description, { code: 400, msg: 'A description can be at most 10000 characters long' })
-    .isMediumString();
-  validator
-    .check(visibility, {
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Anonymous users cannot create a discussion'
+    })(ctx);
+
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Must provide a display name for the discussion'
+    })(displayName);
+
+    unless(isShortString, {
+      code: 400,
+      msg: 'A display name can be at most 1000 characters long'
+    })(displayName);
+
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Must provide a description for the discussion'
+    })(description);
+
+    unless(isMediumString, {
+      code: 400,
+      msg: 'A description can be at most 10000 characters long'
+    })(description);
+
+    unless(isIn, {
       code: 400,
       msg: 'An invalid discussion visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
-    })
-    .isIn(allVisibilities);
+    })(visibility, allVisibilities);
 
-  // Verify each role is valid
-  _.each(roles, (role, memberId) => {
-    validator
-      .check(role, {
+    // Verify each role is valid
+    forEachObjIndexed((role /* , memberId */) => {
+      unless(isIn, {
         code: 400,
         msg: 'The role: ' + role + ' is not a valid member role for a discussion'
-      })
-      .isIn(DiscussionsConstants.role.ALL_PRIORITY);
-  });
-
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+      })(role, DiscussionsConstants.role.ALL_PRIORITY);
+    }, roles);
+  } catch (error) {
+    return callback(error);
   }
 
   // The current user is always a manager
@@ -134,40 +166,54 @@ const createDiscussion = function(ctx, displayName, description, visibility, rol
 const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
   const allVisibilities = _.values(AuthzConstants.visibility);
 
-  const validator = new Validator();
-  validator.check(discussionId, { code: 400, msg: 'A discussion id must be provided' }).isResourceId();
-  validator.check(null, { code: 401, msg: 'You must be authenticated to update a discussion' }).isLoggedInUser(ctx);
-  validator
-    .check(_.keys(profileFields).length, {
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A discussion id must be provided'
+    })(discussionId);
+
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You must be authenticated to update a discussion'
+    })(ctx);
+
+    unless(isArrayNotEmpty, {
       code: 400,
       msg: 'You should at least one profile field to update'
-    })
-    .min(1);
-  _.each(profileFields, (value, field) => {
-    validator
-      .check(field, {
+    })(_.keys(profileFields));
+
+    forEachObjIndexed((value, field) => {
+      const fieldIsVisibility = equals(field, VISIBILITY);
+      const fieldIsDisplayName = equals(field, DISPLAY_NAME);
+      const fieldIsDescription = equals(field, DESCRIPTION);
+
+      unless(isIn, {
         code: 400,
         msg: "The field '" + field + "' is not a valid field. Must be one of: " + DISCUSSION_UPDATE_FIELDS.join(', ')
-      })
-      .isIn(DISCUSSION_UPDATE_FIELDS);
-    if (field === 'visibility') {
-      validator
-        .check(value, {
-          code: 400,
-          msg: 'An invalid visibility was specified. Must be one of: ' + allVisibilities.join(', ')
-        })
-        .isIn(allVisibilities);
-    } else if (field === 'displayName') {
-      validator.check(value, { code: 400, msg: 'A display name cannot be empty' }).notEmpty();
-      validator.check(value, { code: 400, msg: 'A display name can be at most 1000 characters long' }).isShortString();
-    } else if (field === 'description') {
-      validator.check(value, { code: 400, msg: 'A description cannot be empty' }).notEmpty();
-      validator.check(value, { code: 400, msg: 'A description can only be 10000 characters long' }).isMediumString();
-    }
-  });
-
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+      })(field, DISCUSSION_UPDATE_FIELDS);
+      unless(bothCheck(fieldIsVisibility, isIn), {
+        code: 400,
+        msg: 'An invalid visibility was specified. Must be one of: ' + allVisibilities.join(', ')
+      })(value, allVisibilities);
+      unless(bothCheck(fieldIsDisplayName, isNotEmpty), {
+        code: 400,
+        msg: 'A display name cannot be empty'
+      })(value);
+      unless(bothCheck(fieldIsDisplayName, isShortString), {
+        code: 400,
+        msg: 'A display name can be at most 1000 characters long'
+      })(value);
+      unless(bothCheck(fieldIsDescription, isNotEmpty), {
+        code: 400,
+        msg: 'A description cannot be empty'
+      })(value);
+      unless(bothCheck(fieldIsDescription, isMediumString), {
+        code: 400,
+        msg: 'A description can only be 10000 characters long'
+      })(value);
+    }, profileFields);
+  } catch (error) {
+    return callback(error);
   }
 
   _getDiscussion(discussionId, (err, discussion) => {
@@ -217,11 +263,18 @@ const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  */
 const deleteDiscussion = function(ctx, discussionId, callback) {
-  const validator = new Validator();
-  validator.check(discussionId, { code: 400, msg: 'A discussion id must be provided' }).isResourceId();
-  validator.check(null, { code: 401, msg: 'You must be authenticated to delete a discussion' }).isLoggedInUser(ctx);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A discussion id must be provided'
+    })(discussionId);
+
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You must be authenticated to delete a discussion'
+    })(ctx);
+  } catch (error) {
+    return callback(error);
   }
 
   _getDiscussion(discussionId, (err, discussion) => {
@@ -296,10 +349,13 @@ const deleteDiscussion = function(ctx, discussionId, callback) {
 const getDiscussionsLibrary = function(ctx, principalId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  const validator = new Validator();
-  validator.check(principalId, { code: 400, msg: 'A user or group id must be provided' }).isPrincipalId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'A user or group id must be provided'
+    })(principalId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the principal
@@ -365,10 +421,13 @@ const getDiscussionsLibrary = function(ctx, principalId, start, limit, callback)
  * @param  {Discussion} callback.discussion The discussion object requested
  */
 const getDiscussion = function(ctx, discussionId, callback) {
-  const validator = new Validator();
-  validator.check(discussionId, { code: 400, msg: 'discussionId must be a valid resource id' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'discussionId must be a valid resource id'
+    })(discussionId);
+  } catch (error) {
+    return callback(error);
   }
 
   _getDiscussion(discussionId, (err, discussion) => {
@@ -401,10 +460,13 @@ const getDiscussion = function(ctx, discussionId, callback) {
  * @param  {Boolean}    callback.discussion.canPost     Specifies if the current user in context is allowed to post messages to the discussion
  */
 const getFullDiscussionProfile = function(ctx, discussionId, callback) {
-  const validator = new Validator();
-  validator.check(discussionId, { code: 400, msg: 'discussionId must be a valid resource id' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'discussionId must be a valid resource id'
+    })(discussionId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the discussion object, throwing an error if it does not exist but does not do permission checks
@@ -473,13 +535,16 @@ const getFullDiscussionProfile = function(ctx, discussionId, callback) {
 const getDiscussionMembers = function(ctx, discussionId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  const validator = new Validator();
-  validator.check(discussionId, { code: 400, msg: 'A discussion id must be provided' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A discussion id must be provided'
+    })(discussionId);
+  } catch (error) {
+    return callback(error);
   }
 
-  getDiscussion(ctx, discussionId, (err, discussion) => {
+  getDiscussion(ctx, discussionId, (err /* , discussion */) => {
     if (err) {
       return callback(err);
     }
@@ -521,10 +586,13 @@ const getDiscussionMembers = function(ctx, discussionId, start, limit, callback)
  * @param  {Invitation[]}   callback.invitations    The invitations
  */
 const getDiscussionInvitations = function(ctx, discussionId, callback) {
-  const validator = new Validator();
-  validator.check(discussionId, { code: 400, msg: 'A valid resource id must be specified' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid resource id must be specified'
+    })(discussionId);
+  } catch (error) {
+    return callback(error);
   }
 
   _getDiscussion(discussionId, (err, discussion) => {
@@ -546,10 +614,13 @@ const getDiscussionInvitations = function(ctx, discussionId, callback) {
  * @param  {Object}         callback.err    An error that occurred, if any
  */
 const resendDiscussionInvitation = function(ctx, discussionId, email, callback) {
-  const validator = new Validator();
-  validator.check(discussionId, { code: 400, msg: 'A valid resource id must be specified' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid resource id must be specified'
+    })(discussionId);
+  } catch (error) {
+    return callback(error);
   }
 
   _getDiscussion(discussionId, (err, discussion) => {
@@ -573,13 +644,18 @@ const resendDiscussionInvitation = function(ctx, discussionId, email, callback) 
  * @param  {Object}     callback.err        An error that occurred, if any
  */
 const shareDiscussion = function(ctx, discussionId, principalIds, callback) {
-  const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to share a discussion' })
-    .isLoggedInUser(ctx);
-  validator.check(discussionId, { code: 400, msg: 'A valid discussion id must be provided' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to share a discussion'
+    })(ctx);
+
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid discussion id must be provided'
+    })(discussionId);
+  } catch (error) {
+    return callback(error);
   }
 
   _getDiscussion(discussionId, (err, discussion) => {
@@ -626,38 +702,36 @@ const shareDiscussion = function(ctx, discussionId, principalIds, callback) {
  * @param  {Object}     callback.permissions    An object describing the permissions of the discussion after the change is applied. The key is the principal id and the value is the role that the principal has on the discussion
  */
 const setDiscussionPermissions = function(ctx, discussionId, changes, callback) {
-  const validator = new Validator();
-  validator
-    .check(null, {
+  try {
+    unless(isLoggedInUser, {
       code: 401,
       msg: 'You have to be logged in to be able to change discussion permissions'
-    })
-    .isLoggedInUser(ctx);
-  validator.check(discussionId, { code: 400, msg: 'A valid discussion id must be provided' }).isResourceId();
-  _.each(changes, (role, principalId) => {
-    validator
-      .check(role, {
+    })(ctx);
+
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid discussion id must be provided'
+    })(discussionId);
+
+    forEachObjIndexed((role /* , principalId */) => {
+      unless(isValidRoleChange, {
         code: 400,
         msg: 'The role change: ' + role + ' is not a valid value. Must either be a string, or false'
-      })
-      .isValidRoleChange();
-    if (role) {
-      validator
-        .check(role, {
-          code: 400,
-          msg:
-            'The role: "' +
-            role +
-            '" is not a valid value. Must be one of: ' +
-            DiscussionsConstants.role.ALL_PRIORITY.join(', ') +
-            '; or false'
-        })
-        .isIn(DiscussionsConstants.role.ALL_PRIORITY);
-    }
-  });
+      })(role);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+      const thereIsARole = Boolean(role);
+      unless(bothCheck(thereIsARole, isIn), {
+        code: 400,
+        msg:
+          'The role: "' +
+          role +
+          '" is not a valid value. Must be one of: ' +
+          DiscussionsConstants.role.ALL_PRIORITY.join(', ') +
+          '; or false'
+      })(role, DiscussionsConstants.role.ALL_PRIORITY);
+    }, changes);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the discussion object, throwing an error if it doesn't exist, but not applying permissions checks
@@ -706,22 +780,23 @@ const setDiscussionPermissions = function(ctx, discussionId, changes, callback) 
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const removeDiscussionFromLibrary = function(ctx, libraryOwnerId, discussionId, callback) {
-  const validator = new Validator();
-  validator
-    .check(null, {
+  try {
+    unless(isLoggedInUser, {
       code: 401,
       msg: 'You must be authenticated to remove a discussion from a library'
-    })
-    .isLoggedInUser(ctx);
-  validator.check(libraryOwnerId, { code: 400, msg: 'A user or group id must be provided' }).isPrincipalId();
-  validator
-    .check(discussionId, {
+    })(ctx);
+
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'A user or group id must be provided'
+    })(libraryOwnerId);
+
+    unless(isResourceId, {
       code: 400,
       msg: 'An invalid discussion id "' + discussionId + '" was provided'
-    })
-    .isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    })(discussionId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Make sure the discussion exists
@@ -779,17 +854,31 @@ const removeDiscussionFromLibrary = function(ctx, libraryOwnerId, discussionId, 
  * @param  {Message}        callback.message            The created message
  */
 const createMessage = function(ctx, discussionId, body, replyToCreatedTimestamp, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Only authenticated users can post on discussions' }).isLoggedInUser(ctx);
-  validator.check(discussionId, { code: 400, msg: 'Invalid discussion id provided' }).isResourceId();
-  validator.check(body, { code: 400, msg: 'A discussion body must be provided' }).notEmpty();
-  validator.check(body, { code: 400, msg: 'A discussion body can only be 100000 characters long' }).isLongString();
-  if (replyToCreatedTimestamp) {
-    validator.check(replyToCreatedTimestamp, { code: 400, msg: 'Invalid reply-to timestamp provided' }).isInt();
-  }
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Only authenticated users can post on discussions'
+    })(ctx);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Invalid discussion id provided'
+    })(discussionId);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A discussion body must be provided'
+    })(body);
+    unless(isLongString, {
+      code: 400,
+      msg: 'A discussion body can only be 100000 characters long'
+    })(body);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    const timestampIsDefined = isDefined(replyToCreatedTimestamp);
+    unless(bothCheck(timestampIsDefined, isInt), {
+      code: 400,
+      msg: 'Invalid reply-to timestamp provided'
+    })(replyToCreatedTimestamp);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the discussion, throwing an error if it doesn't exist, avoiding permission checks for now
@@ -856,17 +945,21 @@ const createMessage = function(ctx, discussionId, body, replyToCreatedTimestamp,
  * @param  {Comment}    [callback.softDeleted]  When the message has been soft deleted (because it has replies), a stripped down message object representing the deleted message will be returned, with the `deleted` parameter set to `false`. If the message has been deleted from the index, no message object will be returned
  */
 const deleteMessage = function(ctx, discussionId, messageCreatedDate, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Only authenticated users can delete messages' }).isLoggedInUser(ctx);
-  validator.check(discussionId, { code: 400, msg: 'A discussion id must be provided' }).isResourceId();
-  validator
-    .check(messageCreatedDate, {
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Only authenticated users can delete messages'
+    })(ctx);
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A discussion id must be provided'
+    })(discussionId);
+    unless(isInt, {
       code: 400,
       msg: 'A valid integer message created timestamp must be specified'
-    })
-    .isInt();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    })(messageCreatedDate);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the discussion without permissions check
@@ -939,15 +1032,21 @@ const deleteMessage = function(ctx, discussionId, messageCreatedDate, callback) 
 const getMessages = function(ctx, discussionId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  const validator = new Validator();
-  validator.check(discussionId, { code: 400, msg: 'Must provide a valid discussion id' }).isResourceId();
-  validator.check(limit, { code: 400, msg: 'Must provide a valid limit' }).isInt();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Must provide a valid discussion id'
+    })(discussionId);
+    unless(isANumber, {
+      code: 400,
+      msg: 'Must provide a valid limit'
+    })(limit);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the discussion, throwing an error if the user in context doesn't have view access or if it doesn't exist
-  getDiscussion(ctx, discussionId, (err, discussion) => {
+  getDiscussion(ctx, discussionId, (err /* , discussion */) => {
     if (err) {
       return callback(err);
     }

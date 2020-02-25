@@ -16,7 +16,8 @@
 import _ from 'underscore';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
-import { Validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator';
+const { unless, isLoggedInUser, isUserId, isNotEmpty } = validator;
 
 import * as OAuthDAO from './internal/dao';
 
@@ -34,11 +35,18 @@ import * as OAuthDAO from './internal/dao';
  * @param  {Client}     callback.clients    The registerd OAuth clients for the user
  */
 const getClients = function(ctx, userId, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Anonymous users do not have clients' }).isLoggedInUser(ctx);
-  validator.check(userId, { code: 400, msg: 'An invalid userId was passed in' }).isUserId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Anonymous users do not have clients'
+    })(ctx);
+
+    unless(isUserId, {
+      code: 400,
+      msg: 'An invalid userId was passed in'
+    })(userId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Tenant admins are the only ones who can request another user their clients, provided that they're on the same tenant
@@ -68,12 +76,23 @@ const getClients = function(ctx, userId, callback) {
  * @param  {Client}     callback.client     The created client
  */
 const createClient = function(ctx, userId, displayName, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Anonymous users cannot create a client' }).isLoggedInUser(ctx);
-  validator.check(userId, { code: 400, msg: 'A client must be bound to a user' }).isUserId();
-  validator.check(displayName, { code: 400, msg: 'Missing client displayName' }).notEmpty();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Anonymous users cannot create a client'
+    })(ctx);
+
+    unless(isUserId, {
+      code: 400,
+      msg: 'A client must be bound to a user'
+    })(userId);
+
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing client displayName'
+    })(displayName);
+  } catch (error) {
+    return callback(error);
   }
 
   // Tenant admins are the only ones who can create a client for a user, provided that they're on the same tenant
@@ -100,11 +119,18 @@ const createClient = function(ctx, userId, displayName, callback) {
  * @param  {Client}     callback.client     The updated OAuth client
  */
 const updateClient = function(ctx, clientId, displayName, secret, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Anonymous users cannot create a client' }).isLoggedInUser(ctx);
-  validator.check(clientId, { code: 400, msg: 'Missing client id' }).notEmpty();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Anonymous users cannot create a client'
+    })(ctx);
+
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing client id'
+    })(clientId);
+  } catch (error) {
+    return callback(error);
   }
 
   if (!displayName && !secret) {
@@ -149,11 +175,18 @@ const updateClient = function(ctx, clientId, displayName, secret, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const deleteClient = function(ctx, clientId, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Anonymous users cannot delete a client' }).isLoggedInUser(ctx);
-  validator.check(clientId, { code: 400, msg: 'Missing client id' }).notEmpty();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Anonymous users cannot delete a client'
+    })(ctx);
+
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing client id'
+    })(clientId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Sanity check that the client is owned by the current user, or that he is a tenant administrator

@@ -26,10 +26,19 @@ import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as Signature from 'oae-util/lib/signature';
 import { telemetry } from 'oae-telemetry';
 import * as TenantsAPI from 'oae-tenants';
-import { Validator } from 'oae-authz/lib/validator';
+import { Validator as validator } from 'oae-authz/lib/validator';
+const {
+  validateInCase: bothCheck,
+  getNestedObject,
+  unless,
+  isNotEmpty,
+  isUserId,
+  isObject,
+  isNotNull,
+  isANumber
+} = validator;
 
 import { ActivityConstants } from 'oae-activity/lib/constants';
-
 import * as ActivityRegistry from 'oae-activity/lib/internal/registry';
 import * as ActivityTransformer from 'oae-activity/lib/internal/transformer';
 import * as ActivityUtil from 'oae-activity/lib/util';
@@ -345,34 +354,48 @@ const _authenticate = function(connectionInfo, message) {
     return socket.close();
   }
 
-  // Parameter validation
-  const validator = new Validator();
-  validator.check(data.tenantAlias, { code: 400, msg: 'A tenant needs to be provided' }).notEmpty();
-  validator.check(data.userId, { code: 400, msg: 'A userId needs to be provided' }).isUserId();
-  validator.check(null, { code: 400, msg: 'A signature object needs to be provided' }).isObject(data.signature);
-  if (validator.hasErrors()) {
-    _writeResponse(connectionInfo, message.id, validator.getFirstError());
-    log().error({ err: validator.getFirstError() }, 'Invalid auth frame');
+  const handleError = error => {
+    _writeResponse(connectionInfo, message.id, error);
+    log().error({ err: error }, 'Invalid auth frame');
     return socket.close();
-  }
+  };
 
-  // Do some preliminary signature validation before we access the user from the database
-  validator
-    .check(data.signature.expires, {
+  // Parameter validation
+  try {
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A tenant needs to be provided'
+    })(data.tenantAlias);
+
+    unless(isUserId, {
+      code: 400,
+      msg: 'A userId needs to be provided'
+    })(data.userId);
+
+    // Do some preliminary signature validation before we access the user from the database
+    const getAttribute = getNestedObject(data.signature);
+    const expiryDate = getAttribute(['expires']);
+    const signature = getAttribute(['signature']);
+
+    const ifThereIsExpiryDate = () => Boolean(expiryDate);
+    const ifThereIsSignature = () => Boolean(signature);
+
+    unless(isObject, {
+      code: 400,
+      msg: 'A signature object needs to be provided'
+    })(data.signature);
+
+    unless(bothCheck(ifThereIsExpiryDate, isANumber), {
       code: 400,
       msg: 'Signature must contain an integer expires value'
-    })
-    .isInt();
-  validator
-    .check(data.signature.signature, {
+    })(expiryDate);
+
+    unless(bothCheck(ifThereIsSignature, isNotNull), {
       code: 400,
       msg: 'Signature must contain a string signature value'
-    })
-    .notNull();
-  if (validator.hasErrors()) {
-    _writeResponse(connectionInfo, message.id, validator.getFirstError());
-    log().error({ err: validator.getFirstError() }, 'Invalid auth frame');
-    return socket.close();
+    })(signature);
+  } catch (error) {
+    if (error) return handleError(error);
   }
 
   // Get the full user object so we can build a context with which to authenticate to the signing utility

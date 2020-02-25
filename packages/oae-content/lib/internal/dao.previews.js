@@ -16,7 +16,8 @@
 import _ from 'underscore';
 
 import * as Cassandra from 'oae-util/lib/cassandra';
-import { Validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator';
+const { unless, isResourceId } = validator;
 
 /// ////////////
 // Retrieval //
@@ -236,18 +237,18 @@ const storeMetadata = function(
  * @api private
  */
 const copyPreviewItems = function(fromRevisionId, toRevisionId, callback) {
-  const validator = new Validator();
-  validator
-    .check(fromRevisionId, {
+  try {
+    unless(isResourceId, {
       code: 400,
       msg: 'Must specify a valid resource id for "fromRevisionId"'
-    })
-    .isResourceId();
-  validator
-    .check(toRevisionId, { code: 400, msg: 'Must specify a valid resource id for "toRevisionId"' })
-    .isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    })(fromRevisionId);
+
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Must specify a valid resource id for "toRevisionId"'
+    })(toRevisionId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Select all the rows from the source revision preview items, then insert them into the destination revision preview items

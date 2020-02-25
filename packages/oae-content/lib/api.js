@@ -39,7 +39,27 @@ import * as ResourceActions from 'oae-resource/lib/actions';
 import * as Signature from 'oae-util/lib/signature';
 import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
 import { Context } from 'oae-context';
-import { Validator } from 'oae-util/lib/validator';
+import isUrl from 'validator/lib/isURL';
+import isInt from 'validator/lib/isInt';
+import isIn from 'validator/lib/isIn';
+import { Validator as validator } from 'oae-util/lib/validator';
+const {
+  validateInCase: bothCheck,
+  unless,
+  isOneOrGreater,
+  isDefined,
+  isANumber,
+  isResourceId,
+  isLoggedInUser,
+  isNotNull,
+  isShortString,
+  isNotEmpty,
+  isMediumString,
+  isArrayNotEmpty,
+  isPrincipalId,
+  isLongString
+} = validator;
+import { curry, __, equals, not, and, compose, forEach, forEachObjIndexed } from 'ramda';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { ContentConstants } from './constants';
 import * as ContentDAO from './internal/dao';
@@ -53,6 +73,11 @@ const log = logger('oae-content');
 
 const COLLABDOC = 'collabdoc';
 const COLLABSHEET = 'collabsheet';
+
+const DISPLAY_NAME = 'displayName';
+const DESCRIPTION = 'description';
+const VISIBILITY = 'visibility';
+const LINK = 'link';
 
 /**
  * ### Events
@@ -92,10 +117,13 @@ const emitter = new EmitterAPI.EventEmitter();
  */
 const getContent = function(ctx, contentId, callback) {
   // Parameter validation
-  const validator = new Validator();
-  validator.check(contentId, { code: 400, msg: 'A content id must be provided' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A content id must be provided'
+    })(contentId);
+  } catch (error) {
+    return callback(error);
   }
 
   ContentDAO.Content.getContent(contentId, (err, contentObj) => {
@@ -127,10 +155,13 @@ const getContent = function(ctx, contentId, callback) {
  */
 const getFullContentProfile = function(ctx, contentId, callback) {
   // Parameter validation
-  const validator = new Validator();
-  validator.check(contentId, { code: 400, msg: 'A content id must be provided' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A content id must be provided'
+    })(contentId);
+  } catch (error) {
+    return callback(error);
   }
 
   getContent(ctx, contentId, (err, contentObj) => {
@@ -250,13 +281,18 @@ const createLink = function(ctx, displayName, description, visibility, link, add
   visibility = visibility || Config.getValue(ctx.tenant().alias, 'visibility', 'links');
 
   // Check if the link property is present. All other validation will be done in the _createContent function
-  const validator = new Validator();
-  validator.check(link, { code: 400, msg: 'A valid link must be provided' }).isUrl();
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to create a content item' })
-    .isLoggedInUser(ctx);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isUrl, {
+      code: 400,
+      msg: 'A valid link must be provided'
+    })(link, { require_tld: false }); // eslint-disable-line camelcase
+
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to create a content item'
+    })(ctx);
+  } catch (error) {
+    return callback(error);
   }
 
   // Make sure the URL starts with a protocol
@@ -404,31 +440,54 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
   // Setting content to default if no visibility setting is provided
   visibility = visibility || Config.getValue(ctx.tenant().alias, 'visibility', 'files');
 
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Anonymous users are not allowed to upload files' }).isLoggedInUser(ctx);
-  validator.check(file, { code: 400, msg: 'Missing file parameter' }).notNull();
-  validator.check(displayName, { code: 400, msg: 'A display name must be provided' }).notEmpty();
-  validator
-    .check(displayName, { code: 400, msg: 'A display name can be at most 1000 characters long' })
-    .isShortString();
-  if (description) {
-    validator
-      .check(description, {
-        code: 400,
-        msg: 'A content description can be at most 10000 characters long'
-      })
-      .isMediumString();
-  }
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Anonymous users are not allowed to upload files'
+    })(ctx);
 
-  if (file) {
-    validator.check(file.size, { code: 400, msg: 'Missing size on the file object' }).notEmpty();
-    validator.check(file.size, { code: 400, msg: 'Invalid size on the file object' }).isInt();
-    validator.check(file.size, { code: 400, msg: 'Invalid size on the file object' }).min(0);
-    validator.check(file.name, { code: 400, msg: 'Missing name on the file object' }).notEmpty();
-  }
+    unless(isNotNull, {
+      code: 400,
+      msg: 'Missing file parameter'
+    })(file);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A display name must be provided'
+    })(displayName);
+
+    unless(isShortString, {
+      code: 400,
+      msg: 'A display name can be at most 1000 characters long'
+    })(displayName);
+
+    unless(bothCheck(Boolean(description), isMediumString), {
+      code: 400,
+      msg: 'A content description can be at most 10000 characters long'
+    })(description);
+
+    const fileIsDefined = Boolean(file);
+    unless(bothCheck(fileIsDefined, isNotNull), {
+      code: 400,
+      msg: 'Missing size on the file object'
+    })(file.size);
+
+    unless(bothCheck(fileIsDefined, isANumber), {
+      code: 400,
+      msg: 'Invalid size on the file object'
+    })(file.size);
+
+    unless(bothCheck(fileIsDefined, isOneOrGreater), {
+      code: 400,
+      msg: 'Invalid size on the file object'
+    })(file.size);
+
+    unless(bothCheck(fileIsDefined, isNotEmpty), {
+      code: 400,
+      msg: 'Missing name on the file object'
+    })(file.name);
+  } catch (error) {
+    return callback(error);
   }
 
   // Generate a content ID that can be used when storing the file.
@@ -664,51 +723,56 @@ const _createContent = function(
   otherValues = otherValues || {};
 
   // Parameter validation
-  const validator = new Validator();
-  validator.check(contentId, { code: 400, msg: 'A content ID must be provided' }).isResourceId();
-  validator.check(displayName, { code: 400, msg: 'A display name must be provided' }).notEmpty();
-  validator
-    .check(displayName, { code: 400, msg: 'A display name can be at most 1000 characters long' })
-    .isShortString();
-  if (description) {
-    validator
-      .check(description, { code: 400, msg: 'A description can only be 10000 characters long' })
-      .isMediumString();
-  }
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A content ID must be provided'
+    })(contentId);
 
-  validator
-    .check(visibility, {
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A display name must be provided'
+    })(displayName);
+
+    unless(isShortString, {
+      code: 400,
+      msg: 'A display name can be at most 1000 characters long'
+    })(displayName);
+
+    unless(bothCheck(Boolean(description), isMediumString), {
+      code: 400,
+      msg: 'A description can only be 10000 characters long'
+    })(description);
+
+    unless(isIn, {
       code: 400,
       msg: 'An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"'
-    })
-    .isIn(_.values(AuthzConstants.visibility));
-  validator
-    .check(resourceSubType, {
+    })(visibility, _.values(AuthzConstants.visibility));
+
+    unless(isIn, {
       code: 400,
       msg: 'A valid resourceSubType must be provided. This can be "file", "collabdoc" or "link"'
-    })
-    .isIn(ContentConstants.resourceSubTypes);
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to create a content item' })
-    .isLoggedInUser(ctx);
+    })(resourceSubType, ContentConstants.resourceSubTypes);
 
-  // Ensure all roles applied are valid. Editor is only valid for collabdocs
-  const validRoles = [AuthzConstants.role.VIEWER, AuthzConstants.role.MANAGER];
-  if (ContentUtils.isResourceACollabDoc(resourceSubType) || ContentUtils.isResourceACollabSheet(resourceSubType)) {
-    validRoles.push(AuthzConstants.role.EDITOR);
-  }
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to create a content item'
+    })(ctx);
 
-  _.each(roles, role => {
-    validator
-      .check(role, {
+    // Ensure all roles applied are valid. Editor is only valid for collabdocs
+    const validRoles = [AuthzConstants.role.VIEWER, AuthzConstants.role.MANAGER];
+    if (ContentUtils.isResourceACollabDoc(resourceSubType) || ContentUtils.isResourceACollabSheet(resourceSubType)) {
+      validRoles.push(AuthzConstants.role.EDITOR);
+    }
+
+    forEach(role => {
+      unless(isIn, {
         code: 400,
         msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
-      })
-      .isIn(validRoles);
-  });
-
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+      })(role, validRoles);
+    }, roles);
+  } catch (error) {
+    return callback(error);
   }
 
   // Ensure the specified folders exist and can be managed by the current user
@@ -766,14 +830,16 @@ const canManageFolders = function(ctx, folderIds, callback) {
     return callback(null, []);
   }
 
-  const validator = new Validator();
-  _.each(folderIds, folderId => {
-    // Validate the folder id
-    validator.check(folderId, { code: 400, msg: 'Invalid folder id specified' }).isResourceId();
-  });
-
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    folderIds.forEach(folderId => {
+      // Validate the folder id
+      unless(isResourceId, {
+        code: 400,
+        msg: 'Invalid folder id specified'
+      })(folderId);
+    });
+  } catch (error) {
+    return callback(error);
   }
 
   getFoldersByIds(folderIds, (err, folders) => {
@@ -1156,10 +1222,13 @@ const ethercalcPublish = function(data, callback) {
  */
 const joinCollabDoc = function(ctx, contentId, callback) {
   // Parameter validation
-  const validator = new Validator();
-  validator.check(contentId, { code: 400, msg: 'A content id must be provided' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A content id must be provided'
+    })(contentId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Check if we have access to this piece of content.
@@ -1205,13 +1274,18 @@ const deleteContent = function(ctx, contentId, callback) {
   callback = callback || function() {};
 
   // Parameter validation
-  const validator = new Validator();
-  validator.check(contentId, { code: 400, msg: 'A content id must be provided' }).isResourceId();
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to delete a content item' })
-    .isLoggedInUser(ctx);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A content id must be provided'
+    })(contentId);
+
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to delete a content item'
+    })(ctx);
+  } catch (error) {
+    return callback(error);
   }
 
   const done = (ctx, contentObj, members, callback) => {
@@ -1269,11 +1343,18 @@ const deleteContent = function(ctx, contentId, callback) {
  */
 const shareContent = function(ctx, contentId, principalIds, callback) {
   // Parameter validation
-  const validator = new Validator();
-  validator.check(contentId, { code: 400, msg: 'A content id must be provided' }).isResourceId();
-  validator.check(null, { code: 401, msg: 'You have to be logged in to be able to share content' }).isLoggedInUser(ctx);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A content id must be provided'
+    })(contentId);
+
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to share content'
+    })(ctx);
+  } catch (error) {
+    return callback(error);
   }
 
   // Check if the content item exists
@@ -1365,13 +1446,18 @@ const _canEdit = function(ctx, contentId, callback) {
  */
 const setContentPermissions = function(ctx, contentId, changes, callback) {
   // Parameter validation
-  const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to create a content item' })
-    .isLoggedInUser(ctx);
-  validator.check(contentId, { code: 400, msg: 'A content id must be provided' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to create a content item'
+    })(ctx);
+
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A content id must be provided'
+    })(contentId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Check if the content exists
@@ -1389,19 +1475,17 @@ const setContentPermissions = function(ctx, contentId, changes, callback) {
       validRoles.push(AuthzConstants.role.EDITOR);
     }
 
-    // eslint-disable-next-line no-unused-vars
-    _.each(changes, (role, principalId) => {
-      if (role !== false) {
-        validator
-          .check(role, {
-            code: 400,
-            msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
-          })
-          .isIn(validRoles);
-      }
-    });
-    if (validator.hasErrors()) {
-      return callback(validator.getFirstError());
+    try {
+      const isOneOfValidRoles = compose(curry(isIn)(__, validRoles), String);
+      forEachObjIndexed((role /* , principalId */) => {
+        const roleAintFalse = not(equals(role, false));
+        unless(bothCheck(roleAintFalse, isOneOfValidRoles), {
+          code: 400,
+          msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
+        })(role);
+      }, changes);
+    } catch (error) {
+      return callback(error);
     }
 
     ResourceActions.setRoles(ctx, content, changes, (err, memberChangeInfo) => {
@@ -1437,17 +1521,23 @@ const setContentPermissions = function(ctx, contentId, changes, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const removeContentFromLibrary = function(ctx, libraryOwnerId, contentId, callback) {
-  const validator = new Validator();
-  validator
-    .check(null, {
+  try {
+    unless(isLoggedInUser, {
       code: 401,
       msg: 'You must be authenticated to remove a piece of content from a library'
-    })
-    .isLoggedInUser(ctx);
-  validator.check(libraryOwnerId, { code: 400, msg: 'A user or group id must be provided' }).isPrincipalId();
-  validator.check(contentId, { code: 400, msg: 'A valid content id must be provided' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    })(ctx);
+
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'A user or group id must be provided'
+    })(libraryOwnerId);
+
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid content id must be provided'
+    })(contentId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Make sure the content exists
@@ -1502,11 +1592,18 @@ const removeContentFromLibrary = function(ctx, libraryOwnerId, contentId, callba
 const getContentMembersLibrary = function(ctx, contentId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  const validator = new Validator();
-  validator.check(contentId, { code: 400, msg: 'A content id must be provided' }).isResourceId();
-  validator.check(limit, { code: 400, msg: 'A valid limit should be passed in' }).isInt();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A content id must be provided'
+    })(contentId);
+
+    unless(isANumber, {
+      code: 400,
+      msg: 'A valid limit should be passed in'
+    })(limit);
+  } catch (error) {
+    return callback(error);
   }
 
   ContentDAO.Content.getContent(contentId, (err, content) => {
@@ -1583,10 +1680,13 @@ const getContentMembersLibrary = function(ctx, contentId, start, limit, callback
  * @param  {Invitation[]}   callback.invitations    The invitations
  */
 const getContentInvitations = function(ctx, contentId, callback) {
-  const validator = new Validator();
-  validator.check(contentId, { code: 400, msg: 'A valid resource id must be specified' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid resource id must be specified'
+    })(contentId);
+  } catch (error) {
+    return callback(error);
   }
 
   ContentDAO.Content.getContent(contentId, (err, content) => {
@@ -1608,10 +1708,13 @@ const getContentInvitations = function(ctx, contentId, callback) {
  * @param  {Object}         callback.err    An error that occurred, if any
  */
 const resendContentInvitation = function(ctx, contentId, email, callback) {
-  const validator = new Validator();
-  validator.check(contentId, { code: 400, msg: 'A valid resource id must be specified' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid resource id must be specified'
+    })(contentId);
+  } catch (error) {
+    return callback(error);
   }
 
   ContentDAO.Content.getContent(contentId, (err, content) => {
@@ -1665,21 +1768,44 @@ const updateFileBody = function(ctx, contentId, file, callback) {
  * @api private
  */
 const _updateFileBody = function(ctx, contentId, file, callback) {
-  const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to update a content item' })
-    .isLoggedInUser(ctx);
-  validator.check(contentId, { code: 400, msg: 'A content id must be provided' }).isResourceId();
-  validator.check(file, { code: 400, msg: 'Missing file parameter.' }).notNull();
-  if (file) {
-    validator.check(file.size, { code: 400, msg: 'Missing size on the file object.' }).notEmpty();
-    validator.check(file.size, { code: 400, msg: 'Invalid size on the file object.' }).isInt();
-    validator.check(file.size, { code: 400, msg: 'Invalid size on the file object.' }).min(0);
-    validator.check(file.name, { code: 400, msg: 'Missing name on the file object.' }).notEmpty();
-  }
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to update a content item'
+    })(ctx);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A content id must be provided'
+    })(contentId);
+
+    unless(isNotNull, {
+      code: 400,
+      msg: 'Missing file parameter.'
+    })(file);
+
+    const fileIsDefined = Boolean(file);
+    unless(bothCheck(fileIsDefined, isNotNull), {
+      code: 400,
+      msg: 'Missing size on the file object.'
+    })(file.size);
+
+    unless(bothCheck(fileIsDefined, isANumber), {
+      code: 400,
+      msg: 'Invalid size on the file object.'
+    })(file.size);
+
+    unless(bothCheck(fileIsDefined, isOneOrGreater), {
+      code: 400,
+      msg: 'Invalid size on the file object.'
+    })(file.size);
+
+    unless(bothCheck(fileIsDefined, isNotEmpty), {
+      code: 400,
+      msg: 'Missing name on the file object.'
+    })(file.name);
+  } catch (error) {
+    return callback(error);
   }
 
   _canManage(ctx, contentId, (err, contentObj) => {
@@ -1776,17 +1902,23 @@ const setPreviewItems = function(
   const cleanUpCallback = _getCleanUpCallback(files, callback);
 
   const validStatuses = _.values(ContentConstants.previews);
-  const validator = new Validator();
-  validator.check(contentId, { code: 400, msg: 'Missing or invalid contentId' }).isResourceId();
-  validator.check(revisionId, { code: 400, msg: 'Missing or invalid revisionId' }).isResourceId();
-  validator
-    .check(status, {
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Missing or invalid contentId'
+    })(contentId);
+
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Missing or invalid revisionId'
+    })(revisionId);
+
+    unless(isIn, {
       code: 400,
       msg: 'The status parameter must be one of: ' + validStatuses.join(', ')
-    })
-    .isIn(validStatuses);
-  if (validator.hasErrors()) {
-    return cleanUpCallback(validator.getFirstError());
+    })(status, validStatuses);
+  } catch (error) {
+    return callback(error);
   }
 
   ContentDAO.Content.getContent(contentId, (err, contentObj) => {
@@ -1808,14 +1940,13 @@ const setPreviewItems = function(
       }
 
       // Ensure that the revision supplied is a revision of the specified content item
-      validator
-        .check(revision.contentId, {
+      try {
+        unless(equals, {
           code: 400,
           msg: 'Specified revisionId does not belong to the specifed content item'
-        })
-        .equals(contentId);
-      if (validator.hasErrors()) {
-        return cleanUpCallback(validator.getFirstError());
+        })(revision.contentId, contentId);
+      } catch (error) {
+        return cleanUpCallback(error);
       }
 
       const fileData = {};
@@ -1952,13 +2083,23 @@ const setPreviewItems = function(
  * @param  {DownloadStrategy}   callback.downloadInfo.strategy  The DownloadStrategy that details how to download the preview
  */
 const getSignedPreviewDownloadInfo = function(ctx, contentId, revisionId, previewItem, signatureData, callback) {
-  const validator = new Validator();
-  validator.check(contentId, { code: 400, msg: 'Missing content ID' }).isResourceId();
-  validator.check(revisionId, { code: 400, msg: 'Missing revision ID' }).isResourceId();
-  validator.check(previewItem, { code: 400, msg: 'Missing preview item' }).notEmpty();
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Missing content ID'
+    })(contentId);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Missing revision ID'
+    })(revisionId);
+
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing preview item'
+    })(previewItem);
+  } catch (error) {
+    return callback(error);
   }
 
   if (!Signature.verifyExpiringResourceSignature(ctx, contentId, signatureData.expires, signatureData.signature)) {
@@ -2024,58 +2165,63 @@ const getPreviewItems = function(ctx, contentId, revisionId, callback) {
 const updateContentMetadata = function(ctx, contentId, profileFields, callback) {
   callback = callback || function() {};
 
-  // Parameter validation
-  const validator = new Validator();
-  validator.check(contentId, { code: 400, msg: 'A content id must be provided' }).isResourceId();
-  // Check that at a minimum name or description have been provided
   const fieldNames = profileFields ? _.keys(profileFields) : [];
-  validator
-    .check(fieldNames.length, {
+  // Parameter validation
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A content id must be provided'
+    })(contentId);
+
+    // Check that at a minimum name or description have been provided
+    unless(isArrayNotEmpty, {
       code: 400,
       msg: 'You should at least specify a new displayName, description, visibility or link'
-    })
-    .min(1);
-  for (const fieldName of fieldNames) {
-    validator
-      .check(fieldName, {
+    })(fieldNames);
+
+    fieldNames.forEach(fieldName => {
+      unless(isIn, {
         code: 400,
         msg: fieldName + ' is not a recognized content profile field'
-      })
-      .isIn(['displayName', 'description', 'visibility', 'link']);
-    if (fieldName === 'displayName') {
-      validator.check(profileFields.displayName, { code: 400, msg: 'A display name cannot be empty' }).notEmpty();
-      validator
-        .check(profileFields.displayName, {
-          code: 400,
-          msg: 'A display name can be at most 1000 characters long'
-        })
-        .isShortString();
-    } else if (fieldName === 'description' && profileFields.description) {
-      validator
-        .check(profileFields.description, {
-          code: 400,
-          msg: 'A description can only be 10000 characters long'
-        })
-        .isMediumString();
-    } else if (fieldName === 'link') {
-      validator.check(profileFields.link, { code: 400, msg: 'A valid link should be provided' }).isUrl();
-    }
-  }
+      })(fieldName, [DISPLAY_NAME, DESCRIPTION, VISIBILITY, LINK]);
 
-  if (profileFields.visibility) {
-    validator
-      .check(profileFields.visibility, {
+      const fieldIsDisplayName = equals(fieldName, DISPLAY_NAME);
+      const fieldIsDescription = and(equals(fieldName, DESCRIPTION), profileFields.description);
+      const fieldIsLink = equals(fieldName, LINK);
+
+      unless(bothCheck(fieldIsDisplayName, isNotEmpty), {
         code: 400,
-        msg: 'An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"'
-      })
-      .isIn(_.values(AuthzConstants.visibility));
-  }
+        msg: 'A display name cannot be empty'
+      })(profileFields.displayName);
 
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to update a content item' })
-    .isLoggedInUser(ctx);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+      unless(bothCheck(fieldIsDisplayName, isShortString), {
+        code: 400,
+        msg: 'A display name can be at most 1000 characters long'
+      })(profileFields.displayName);
+
+      unless(bothCheck(fieldIsDescription, isMediumString), {
+        code: 400,
+        msg: 'A description can only be 10000 characters long'
+      })(profileFields.description);
+
+      unless(bothCheck(fieldIsLink, isUrl), {
+        code: 400,
+        msg: 'A valid link should be provided'
+      })(profileFields.link);
+    });
+
+    const fieldIsVisibility = Boolean(profileFields.visibility);
+    unless(bothCheck(fieldIsVisibility, isIn), {
+      code: 400,
+      msg: 'An invalid content visibility option has been provided. This can be "private", "loggedin" or "public"'
+    })(profileFields.visibility, _.values(AuthzConstants.visibility));
+
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to update a content item'
+    })(ctx);
+  } catch (error) {
+    return callback(error);
   }
 
   // First check whether or not the current user is a manager of the piece of content
@@ -2129,17 +2275,33 @@ const createComment = function(ctx, contentId, body, replyToCreatedTimestamp, ca
   callback = callback || function() {};
 
   // Parameter validation
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Only authorized users can post comments' }).isLoggedInUser(ctx);
-  validator.check(contentId, { code: 400, msg: 'Invalid content resource id provided' }).isResourceId();
-  validator.check(body, { code: 400, msg: 'A comment must be provided' }).notEmpty();
-  validator.check(body, { code: 400, msg: 'A comment can only be 100000 characters long' }).isLongString();
-  if (replyToCreatedTimestamp) {
-    validator.check(replyToCreatedTimestamp, { code: 400, msg: 'Invalid reply-to timestamp provided' }).isInt();
-  }
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Only authorized users can post comments'
+    })(ctx);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Invalid content resource id provided'
+    })(contentId);
+
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A comment must be provided'
+    })(body);
+
+    unless(isLongString, {
+      code: 400,
+      msg: 'A comment can only be 100000 characters long'
+    })(body);
+
+    unless(bothCheck(isDefined(replyToCreatedTimestamp), isInt), {
+      code: 400,
+      msg: 'Invalid reply-to timestamp provided'
+    })(replyToCreatedTimestamp);
+  } catch (error) {
+    return callback(error);
   }
 
   // Verify the user has access to the content object
@@ -2189,11 +2351,18 @@ const getComments = function(ctx, contentId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   // Parameter validation
-  const validator = new Validator();
-  validator.check(contentId, { code: 400, msg: 'Invalid content resource id provided' }).isResourceId();
-  validator.check(limit, { code: 400, msg: 'A valid limit should be passed in' }).isInt();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Invalid content resource id provided'
+    })(contentId);
+
+    unless(isANumber, {
+      code: 400,
+      msg: 'A valid limit should be passed in'
+    })(limit);
+  } catch (error) {
+    return callback(error);
   }
 
   // eslint-disable-next-line no-unused-vars
@@ -2245,17 +2414,23 @@ const getComments = function(ctx, contentId, start, limit, callback) {
  * @param  {Comment}    [callback.softDeleted]  When the comment has been soft deleted (because it has replies), a stripped down comment object representing the deleted comment will be returned, with the `deleted` parameter set to `false`. If the comment has been deleted from Cassandra, no comment object will be returned.
  */
 const deleteComment = function(ctx, contentId, commentCreatedDate, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Only authorized users can delete comments' }).isLoggedInUser(ctx);
-  validator.check(contentId, { code: 400, msg: 'A content id must be provided' }).isResourceId();
-  validator
-    .check(commentCreatedDate, {
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Only authorized users can delete comments'
+    })(ctx);
+
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A content id must be provided'
+    })(contentId);
+
+    unless(isInt, {
       code: 400,
       msg: 'A valid integer comment created timestamp must be specified'
-    })
-    .isInt();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    })(commentCreatedDate);
+  } catch (error) {
+    return callback(error);
   }
 
   getContent(ctx, contentId, (err, content) => {
@@ -2347,11 +2522,18 @@ const _deleteComment = function(ctx, content, commentToDelete, callback) {
 const getContentLibraryItems = function(ctx, principalId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  const validator = new Validator();
-  validator.check(principalId, { code: 400, msg: 'A user or group id must be provided' }).isPrincipalId();
-  validator.check(limit, { code: 400, msg: 'A valid limit should be passed in' }).isInt();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'A user or group id must be provided'
+    })(principalId);
+
+    unless(isANumber, {
+      code: 400,
+      msg: 'A valid limit should be passed in'
+    })(limit);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the principal
@@ -2421,11 +2603,18 @@ const getContentLibraryItems = function(ctx, principalId, start, limit, callback
 const getRevisions = function(ctx, contentId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  const validator = new Validator();
-  validator.check(contentId, { code: 400, msg: 'A contentId must be provided' }).isResourceId();
-  validator.check(limit, { code: 400, msg: 'A valid limit should be passed in' }).isInt();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A contentId must be provided'
+    })(contentId);
+
+    unless(isANumber, {
+      code: 400,
+      msg: 'A valid limit should be passed in'
+    })(limit);
+  } catch (error) {
+    return callback(error);
   }
 
   // Check if the user has access on this contentId
@@ -2512,14 +2701,19 @@ const _getRevisions = function(ctx, contentObj, start, limit, opts, callback) {
  * @param  {Revision}       callback.revision   The revision
  */
 const getRevision = function(ctx, contentId, revisionId, callback) {
-  const validator = new Validator();
-  validator.check(contentId, { code: 400, msg: 'A valid contentId must be provided' }).isResourceId();
-  if (revisionId) {
-    validator.check(revisionId, { code: 400, msg: 'A valid revisionId must be provided' }).isResourceId();
-  }
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid contentId must be provided'
+    })(contentId);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    const revisionIdIsDefined = Boolean(revisionId);
+    unless(bothCheck(revisionIdIsDefined, isResourceId), {
+      code: 400,
+      msg: 'A valid revisionId must be provided'
+    })(revisionId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Check if the user has access to this content item
@@ -2547,14 +2741,18 @@ const getRevision = function(ctx, contentId, revisionId, callback) {
  * @param  {DownloadStrategy}   callback.downloadInfo.strategy  The DownloadStrategy that details how to download the revision
  */
 const getRevisionDownloadInfo = function(ctx, contentId, revisionId, callback) {
-  const validator = new Validator();
-  validator.check(contentId, { code: 400, msg: 'A valid contentId must be provided' }).isResourceId();
-  if (revisionId) {
-    validator.check(revisionId, { code: 400, msg: 'A valid revisionId must be provided' }).isResourceId();
-  }
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid contentId must be provided'
+    })(contentId);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    unless(bothCheck(Boolean(revisionId), isResourceId), {
+      code: 400,
+      msg: 'A valid revisionId must be provided'
+    })(revisionId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Check if the user has access to this content item
@@ -2686,11 +2884,18 @@ const _augmentRevision = function(ctx, revision, contentObj) {
  * @param  {Revision}       callback.revision   The restored revision
  */
 const restoreRevision = function(ctx, contentId, revisionId, callback) {
-  const validator = new Validator();
-  validator.check(contentId, { code: 400, msg: 'A valid contentId must be provided' }).isResourceId();
-  validator.check(revisionId, { code: 400, msg: 'A valid revisionId must be provided' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid contentId must be provided'
+    })(contentId);
+
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid revisionId must be provided'
+    })(revisionId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Make sure the user is a manager of this piece of content and the revision exists.

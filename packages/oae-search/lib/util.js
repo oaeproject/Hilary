@@ -26,9 +26,12 @@ import * as TenantsUtil from 'oae-tenants/lib/util';
 import * as SearchModel from 'oae-search/lib/model';
 
 import { SearchConstants } from 'oae-search/lib/constants';
-import { Validator } from 'oae-util/lib/validator';
 import { AuthzConstants } from 'oae-authz/lib/constants';
+import { Validator as validator } from 'oae-util/lib/validator';
+import { head } from 'ramda';
 
+const { isObject, unless } = validator;
+const { defaultToEmptyArray, defaultToEmptyObject } = validator;
 const log = logger('oae-search-util');
 
 /**
@@ -250,11 +253,14 @@ const createQuery = function(query, filter, opts) {
     [opts.sortBy]: getSortDirParam(opts.sort, SearchConstants.sort.direction.ASC, opts.sortBy)
   };
 
-  const validator = new Validator();
-  validator.check(null, new Error('createQuery expects a query object.')).isObject(query);
-  if (validator.hasErrors()) {
-    log().error({ err: validator.getFirstError() }, 'Invalid input provided to SearchUtil.createQuery');
-    throw validator.getFirstError();
+  try {
+    unless(isObject, {
+      code: 400,
+      msg: 'createQuery expects a query object.'
+    })(query);
+  } catch (error) {
+    log().error({ err: error }, 'Invalid input provided to SearchUtil.createQuery');
+    throw error;
   }
 
   let data = null;
@@ -895,7 +901,17 @@ const getChildSearchDocumentId = function(type, resourceId, childId) {
   return util.format('%s#%s#%s', resourceId, type, childId || '');
 };
 
+const sanitizeSearchParams = opts => {
+  opts = defaultToEmptyObject(opts);
+  opts.pathParams = defaultToEmptyArray(opts.pathParams);
+  opts.userId = head(opts.pathParams);
+  opts.limit = OaeUtil.getNumberParam(opts.limit, 12, 1, 25);
+
+  return opts;
+};
+
 export {
+  sanitizeSearchParams,
   getSearchParams,
   getQueryParam,
   getScopeParam,

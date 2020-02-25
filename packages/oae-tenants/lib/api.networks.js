@@ -16,7 +16,8 @@
 import util from 'util';
 import _ from 'underscore';
 
-import { Validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator';
+const { unless, isNotEmpty, isGlobalAdministratorUser, isNotNull, isObject, isArrayNotEmpty } = validator;
 import * as TenantNetworksDAO from './internal/dao.networks';
 import * as TenantsAPI from './api';
 
@@ -30,16 +31,18 @@ import * as TenantsAPI from './api';
  * @param  {TenantNetwork}  callback.tenantNetwork  The tenant network that was created
  */
 const createTenantNetwork = function(ctx, displayName, callback) {
-  const validator = new Validator();
-  validator
-    .check(null, {
+  try {
+    unless(isGlobalAdministratorUser, {
       code: 401,
-      msg: 'Must be a global administrator user to create a tenant network'
-    })
-    .isGlobalAdministratorUser(ctx);
-  validator.check(displayName, { code: 400, msg: 'A tenant network must contain a display name' }).notEmpty();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+      msg: 'Must be a global administrator user to create a tenant networt'
+    })(ctx);
+
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A tenant network must contain a display name'
+    })(displayName);
+  } catch (error) {
+    return callback(error);
   }
 
   return TenantNetworksDAO.createTenantNetwork(displayName, callback);
@@ -54,12 +57,13 @@ const createTenantNetwork = function(ctx, displayName, callback) {
  * @param  {Object}     callback.tenantNetworks     All tenant networks in the system, keyed by their tenant network id
  */
 const getTenantNetworks = function(ctx, callback) {
-  const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'Must be a global administrator user to view tenant networks' })
-    .isGlobalAdministratorUser(ctx);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isGlobalAdministratorUser, {
+      code: 401,
+      msg: 'Must be a global administrator user to view tenant networks'
+    })(ctx);
+  } catch (error) {
+    return callback(error);
   }
 
   TenantNetworksDAO.getAllTenantNetworks((err, tenantNetworks) => {
@@ -97,17 +101,23 @@ const getTenantNetworks = function(ctx, callback) {
  * @param  {TenantNetwork}  callback.tenantNetwork  The updated tenant network
  */
 const updateTenantNetwork = function(ctx, id, displayName, callback) {
-  const validator = new Validator();
-  validator
-    .check(null, {
+  try {
+    unless(isGlobalAdministratorUser, {
       code: 401,
       msg: 'Must be a global administrator user to update a tenant network'
-    })
-    .isGlobalAdministratorUser(ctx);
-  validator.check(id, { code: 400, msg: 'Must specify a tenant network id' }).notEmpty();
-  validator.check(displayName, { code: 400, msg: 'A tenant network must contain a display name' }).notEmpty();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    })(ctx);
+
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Must specify a tenant network id'
+    })(id);
+
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A tenant network must contain a display name'
+    })(displayName);
+  } catch (error) {
+    return callback(error);
   }
 
   return TenantNetworksDAO.updateTenantNetwork(id, displayName, callback);
@@ -122,16 +132,18 @@ const updateTenantNetwork = function(ctx, id, displayName, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const deleteTenantNetwork = function(ctx, id, callback) {
-  const validator = new Validator();
-  validator
-    .check(null, {
+  try {
+    unless(isGlobalAdministratorUser, {
       code: 401,
       msg: 'Must be a global administrator user to delete a tenant network'
-    })
-    .isGlobalAdministratorUser(ctx);
-  validator.check(id, { code: 400, msg: 'Must specify a tenant network id' }).notEmpty();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    })(ctx);
+
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Must specify a tenant network id'
+    })(id);
+  } catch (error) {
+    return callback(error);
   }
 
   return TenantNetworksDAO.deleteTenantNetwork(id, callback);
@@ -147,31 +159,35 @@ const deleteTenantNetwork = function(ctx, id, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  */
 const addTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callback) {
-  const validator = new Validator();
-  validator
-    .check(null, {
+  try {
+    unless(isGlobalAdministratorUser, {
       code: 401,
       msg: 'Must be a global administrator user to update a tenant network'
-    })
-    .isGlobalAdministratorUser(ctx);
-  validator.check(tenantNetworkId, { code: 400, msg: 'Must specify a tenant network id' }).notEmpty();
-  validator.check(tenantAliases, { code: 400, msg: 'Must specify a list of tenant aliases to add' }).notNull();
-  validator
-    .check(tenantAliases.length, {
+    })(ctx);
+
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Must specify a tenant network id'
+    })(tenantNetworkId);
+
+    unless(isNotNull, {
+      code: 400,
+      msg: 'Must specify a list of tenant aliases to add'
+    })(tenantAliases);
+
+    unless(isArrayNotEmpty, {
       code: 400,
       msg: 'Must specify at least one tenant alias to add'
-    })
-    .notNull();
-  _.each(tenantAliases, tenantAlias => {
-    validator
-      .check(TenantsAPI.getTenant(tenantAlias), {
+    })(tenantAliases);
+
+    tenantAliases.forEach(tenantAlias => {
+      unless(isObject, {
         code: 400,
         msg: util.format('Tenant with alias "%s" does not exist', tenantAlias)
-      })
-      .notEmpty();
-  });
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+      })(TenantsAPI.getTenant(tenantAlias));
+    });
+  } catch (error) {
+    return callback(error);
   }
 
   return TenantNetworksDAO.addTenantAliases(tenantNetworkId, tenantAliases, callback);
@@ -187,23 +203,28 @@ const addTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callback)
  * @param  {Object}     callback.err        An error that occurred, if any
  */
 const removeTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callback) {
-  const validator = new Validator();
-  validator
-    .check(null, {
+  try {
+    unless(isGlobalAdministratorUser, {
       code: 401,
       msg: 'Must be a global administrator user to update a tenant network'
-    })
-    .isGlobalAdministratorUser(ctx);
-  validator.check(tenantNetworkId, { code: 400, msg: 'Must specify a tenant network id' }).notEmpty();
-  validator.check(tenantAliases, { code: 400, msg: 'Must specify a list of tenant aliases to remove' }).notNull();
-  validator
-    .check(tenantAliases.length, {
+    })(ctx);
+
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Must specify a tenant network id'
+    })(tenantNetworkId);
+
+    unless(isNotNull, {
+      code: 400,
+      msg: 'Must specify a list of tenant aliases to remove'
+    })(tenantAliases);
+
+    unless(isNotNull, {
       code: 400,
       msg: 'Must specify at least one tenant alias to remove'
-    })
-    .notNull();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    })(tenantAliases.length);
+  } catch (error) {
+    return callback(error);
   }
 
   return TenantNetworksDAO.removeTenantAliases(tenantNetworkId, tenantAliases, callback);

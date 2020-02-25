@@ -18,7 +18,9 @@ import util from 'util';
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as Signature from 'oae-util/lib/signature';
 import * as TenantsAPI from 'oae-tenants/lib/api';
-import { Validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator';
+const { isDefined, unless, dateIsIntoTheFuture, isNotEmpty, isInt } = validator;
+import { compose } from 'ramda';
 
 import { AuthenticationConstants } from 'oae-authentication/lib/constants';
 import { setUpConfig } from 'oae-config';
@@ -92,14 +94,38 @@ const getServiceProviderUrl = function(ctx) {
  * @param  {Tenant}     callback.tenant     The full tenant object for the given tenant alias
  */
 const validateInitiateParameters = function(tenantAlias, signature, expires, callback) {
-  const validator = new Validator();
-  validator.check(tenantAlias, { code: 400, msg: 'Missing tenant alias parameter' }).notEmpty(tenantAlias);
-  validator.check(signature, { code: 400, msg: 'Missing signature parameter' }).notEmpty(signature);
-  validator.check(expires, { code: 400, msg: 'Missing expires parameter' }).notEmpty(expires);
-  validator.check(expires, { code: 400, msg: 'Invalid expires parameter' }).isNumeric();
-  validator.check(expires, { code: 400, msg: 'Invalid expires parameter' }).min(Date.now());
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing tenant alias parameter'
+    })(tenantAlias);
+
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing signature parameter'
+    })(signature);
+
+    unless(compose(isNotEmpty, String), {
+      code: 400,
+      msg: 'Missing expires parameter'
+    })(expires);
+
+    unless(isDefined, {
+      code: 400,
+      msg: 'Invalid expires parameter'
+    })(expires);
+
+    unless(isInt, {
+      code: 400,
+      msg: 'Invalid expires parameter'
+    })(expires);
+
+    unless(dateIsIntoTheFuture, {
+      code: 400,
+      msg: 'Invalid expires parameter'
+    })(expires);
+  } catch (error) {
+    return callback(error);
   }
 
   const data = { tenantAlias };
@@ -168,14 +194,38 @@ const getAuthenticatedUserRedirectUrl = function(tenant, user) {
  * @param  {User}       callback.user       The retrieved user
  */
 const getUser = function(tenant, userId, signature, expires, callback) {
-  const validator = new Validator();
-  validator.check(userId, { code: 400, msg: 'Missing user id parameter' }).notEmpty(userId);
-  validator.check(signature, { code: 400, msg: 'Missing signature parameter' }).notEmpty(signature);
-  validator.check(expires, { code: 400, msg: 'Missing expires parameter' }).notEmpty(expires);
-  validator.check(expires, { code: 400, msg: 'Invalid expires parameter' }).isNumeric();
-  validator.check(expires, { code: 400, msg: 'Invalid expires parameter' }).min(Date.now());
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing user id parameter'
+    })(userId);
+
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing signature parameter'
+    })(signature);
+
+    unless(compose(isNotEmpty, String), {
+      code: 400,
+      msg: 'Missing expires parameter'
+    })(expires);
+
+    unless(isDefined, {
+      code: 400,
+      msg: 'Invalid expires parameter'
+    })(expires);
+
+    unless(isInt, {
+      code: 400,
+      msg: 'Invalid expires parameter'
+    })(expires);
+
+    unless(dateIsIntoTheFuture, {
+      code: 400,
+      msg: 'Invalid expires parameter'
+    })(expires);
+  } catch (error) {
+    return callback(error);
   }
 
   const data = { userId };

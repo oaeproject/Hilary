@@ -23,7 +23,8 @@ import * as AuthzPermissions from 'oae-authz/lib/permissions';
 import * as AuthzUtil from 'oae-authz/lib/util';
 import { logger } from 'oae-logger';
 import PrincipalsApi from 'oae-principals';
-import { Validator } from 'oae-authz/lib/validator';
+import { Validator as validator } from 'oae-authz/lib/validator';
+const { isGroupId, unless, isNotEmpty } = validator;
 
 import * as LtiDAO from './internal/dao';
 import { LtiToolLaunchParams, LtiLaunchParams } from './model';
@@ -149,35 +150,28 @@ const addLtiTool = function(ctx, groupId, launchUrl, secret, consumerKey, opts, 
         }
 
         // Parameter validation
-        const validator = new Validator();
-        validator.check(groupId, { code: 400, msg: 'A valid group id must be provided' }).isGroupId();
-        validator
-          .check(launchUrl, {
+        try {
+          unless(isGroupId, {
+            code: 400,
+            msg: 'A valid group id must be provided'
+          })(groupId);
+
+          unless(isNotEmpty, {
             code: 400,
             msg: 'You need to provide a launch URL for this LTI tool'
-          })
-          .notEmpty();
-        validator
-          .check(secret, {
+          })(launchUrl);
+
+          unless(isNotEmpty, {
             code: 400,
             msg: 'You need to provide an OAUTH secret for this LTI tool'
-          })
-          .notEmpty();
-        validator
-          .check(consumerKey, {
+          })(secret);
+
+          unless(isNotEmpty, {
             code: 400,
             msg: 'You need to provide an OAUTH consumer key for this LTI tool'
-          })
-          .notEmpty();
-
-        if (validator.hasErrors()) {
-          log().error(
-            {
-              err: validator.getFirstError()
-            },
-            'New LTI tool could not be validated'
-          );
-          return callback(validator.getFirstError());
+          })(consumerKey);
+        } catch (error) {
+          return callback(error);
         }
 
         const id = AuthzUtil.toId('lti', group.tenant.alias, ShortId.generate());

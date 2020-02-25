@@ -23,7 +23,18 @@ import { logger } from 'oae-logger';
 import * as AuthzPermissions from 'oae-authz/lib/permissions';
 import * as ContentUtil from 'oae-content/lib/internal/util';
 import * as ImageUtil from 'oae-util/lib/image';
-import { Validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator';
+const {
+  validateInCase: bothCheck,
+  unless,
+  isLoggedInUser,
+  isPrincipalId,
+  isNotNull,
+  isNotEmpty,
+  isZeroOrGreater,
+  isInt
+} = validator;
+import { compose, curry, __, pipe } from 'ramda';
 import * as GroupAPI from './api.group';
 import * as PrincipalsDAO from './internal/dao';
 import PrincipalsEmitter from './internal/emitter';
@@ -32,6 +43,9 @@ import * as PrincipalsUtil from './util';
 import { PrincipalsConstants } from './constants';
 
 const log = logger('oae-principals-shared');
+
+const toInt = curry(parseInt)(__, 10);
+const zeroOrGreater = pipe(String, toInt, isZeroOrGreater);
 
 /**
  * Store the large picture for a principal that can be re-used later on
@@ -56,20 +70,43 @@ const storePicture = function(ctx, principalId, file, callback) {
       }
     };
 
-  const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to update a picture' })
-    .isLoggedInUser(ctx);
-  validator.check(principalId, { code: 400, msg: 'A principal ID must be provided' }).isPrincipalId();
-  validator.check(file, { code: 400, msg: 'A file must be provided' }).notNull();
-  if (file) {
-    validator.check(file.size, { code: 400, msg: 'Missing size on the file object.' }).notEmpty();
-    validator.check(file.size, { code: 400, msg: 'The size of a picture has an upper limit of 10MB.' }).max(10485760);
-    validator.check(file.name, { code: 400, msg: 'Missing name on the file object.' }).notEmpty();
-  }
+  try {
+    const msg = 'You have to be logged in to be able to update a picture';
+    unless(isLoggedInUser, { code: 401, msg })(ctx);
 
-  if (validator.hasErrors()) {
-    return _cleanupOnError(validator.getFirstError(), file, callback);
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'A principal ID must be provided'
+    })(principalId);
+
+    unless(isNotNull, {
+      code: 400,
+      msg: 'A file must be provided'
+    })(file);
+
+    const fileIsThere = Boolean(file);
+    unless(bothCheck(fileIsThere, compose(isNotEmpty, String)), {
+      code: 400,
+      msg: 'Missing size on the file object.'
+    })(file.size);
+
+    const UPLOAD_LIMIT = 10485760;
+    unless(
+      bothCheck(fileIsThere, (size, max) => {
+        return size <= max;
+      }),
+      {
+        code: 400,
+        msg: 'The size of a picture has an upper limit of 10MB.'
+      }
+    )(file.size, UPLOAD_LIMIT);
+
+    unless(bothCheck(fileIsThere, isNotEmpty), {
+      code: 400,
+      msg: 'Missing name on the file object.'
+    })(file.name);
+  } catch (error) {
+    return _cleanupOnError(error, file, callback);
   }
 
   // Check if we can edit this principal
@@ -164,24 +201,48 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
     };
 
   // Parameter validation
-  const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to update a picture' })
-    .isLoggedInUser(ctx);
-  validator.check(principalId, { code: 400, msg: 'A principal id must be provided' }).isPrincipalId();
-  validator.check(x, { code: 400, msg: 'The x value must be a positive integer' }).isInt();
-  validator.check(x, { code: 400, msg: 'The x value must be a positive integer' }).min(0);
-  validator.check(y, { code: 400, msg: 'The y value must be a positive integer' }).isInt();
-  validator.check(y, { code: 400, msg: 'The y value must be a positive integer' }).min(0);
-  validator.check(width, { code: 400, msg: 'The width value must be a positive integer' }).isInt();
-  validator
-    .check(width, {
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to update a picture'
+    })(ctx);
+
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'A principal id must be provided'
+    })(principalId);
+
+    unless(compose(isInt, String), {
+      code: 400,
+      msg: 'The x value must be a positive integer'
+    })(x);
+
+    unless(zeroOrGreater, {
+      code: 400,
+      msg: 'The x value must be a positive integer'
+    })(x);
+
+    unless(compose(isInt, String), {
+      code: 400,
+      msg: 'The y value must be a positive integer'
+    })(y);
+
+    unless(zeroOrGreater, {
+      code: 400,
+      msg: 'The y value must be a positive integer'
+    })(y);
+
+    unless(compose(isInt, String), {
+      code: 400,
+      msg: 'The width value must be a positive integer'
+    })(width);
+
+    unless(compose(isInt, String), {
       code: 400,
       msg: 'The width value must be a positive integer greater than or equal to 10'
-    })
-    .min(10);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    })(width, { gt: 9 });
+  } catch (error) {
+    return callback(error);
   }
 
   // Make sure we can edit this principal

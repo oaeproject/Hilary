@@ -19,7 +19,8 @@ import { logger } from 'oae-logger';
 import * as EmitterAPI from 'oae-emitter';
 import * as SearchUtil from 'oae-search/lib/util';
 
-import { Validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator';
+const { unless, isNotEmpty, isArray, isObject, isArrayNotEmpty } = validator;
 import { SearchConstants } from 'oae-search/lib/constants';
 import { SearchResult } from 'oae-search/lib/model';
 import * as MQ from 'oae-util/lib/mq';
@@ -393,7 +394,7 @@ const postReindexAllTask = function(ctx, callback) {
     return callback({ code: 401, msg: 'Only global administrator can trigger a full reindex.' });
   }
 
-  MQ.submit(SearchConstants.mq.TASK_REINDEX_ALL, JSON.stringify(null), callback);
+  MQ.submit(SearchConstants.mq.TASK_REINDEX_ALL, JSON.stringify({}), callback);
 };
 
 /**
@@ -425,22 +426,22 @@ const postIndexTask = function(resourceType, resources, index, callback) {
       }
     };
 
-  const validator = new Validator();
-  validator.check(resourceType, { code: 400, msg: 'Must specify a resource type' }).notEmpty();
-  validator.check(null, { code: 400, msg: '"resources" parameter must be an array' }).isArray(resources);
-  validator.check(null, { code: 400, msg: '"index" parameter must be an object' }).isObject(index);
-  validator
-    .check(resources.length, {
-      code: 400,
-      msg: '"resources" parameter must be an array with one or more entries'
-    })
-    .min(1);
-  _.each(resources, resource => {
-    validator.check(resource.id, { code: 400, msg: 'Each index resource must have an id' }).notEmpty();
-  });
-
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    const code = 400;
+    let msg = 'Must specify a resource type';
+    unless(isNotEmpty, { code, msg })(resourceType);
+    msg = '"resources" parameter must be an array';
+    unless(isArray, { code, msg })(resources);
+    msg = '"index" parameter must be an object';
+    unless(isObject, { code, msg })(index);
+    msg = '"resources" parameter must be an array with one or more entries';
+    unless(isArrayNotEmpty, { code, msg })(resources);
+    msg = 'Each index resource must have an id';
+    resources.forEach(resource => {
+      unless(isNotEmpty, { code, msg })(resource.id);
+    });
+  } catch (error) {
+    return callback(error);
   }
 
   return MQ.submit(

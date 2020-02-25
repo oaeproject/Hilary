@@ -13,14 +13,14 @@
  * permissions and limitations under the License.
  */
 
-import * as OaeUtil from 'oae-util/lib/util';
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as SearchUtil from 'oae-search/lib/util';
 import * as FollowingAuthz from 'oae-following/lib/authz';
 
-import { Validator } from 'oae-authz/lib/validator';
+import { Validator as validator } from 'oae-authz/lib/validator';
 import { FollowingConstants } from 'oae-following/lib/constants';
 
+const { isUserId, unless } = validator;
 /**
  * Search that searches through the list of user's that a user follows
  *
@@ -37,20 +37,15 @@ import { FollowingConstants } from 'oae-following/lib/constants';
  */
 export default function(ctx, opts, callback) {
   // Sanitize the search options
-  opts = opts || {};
-  opts.pathParams = opts.pathParams || [];
-  opts.userId = opts.pathParams[0];
-  opts.limit = OaeUtil.getNumberParam(opts.limit, 12, 1, 25);
+  opts = SearchUtil.sanitizeSearchParams(opts);
 
-  const validator = new Validator();
-  validator
-    .check(opts.userId, {
+  try {
+    unless(isUserId, {
       code: 400,
       msg: 'Must specificy an id of a user to search their following list'
-    })
-    .isUserId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    })(opts.userId);
+  } catch (error) {
+    return callback(error);
   }
 
   PrincipalsDAO.getPrincipal(opts.userId, (err, user) => {

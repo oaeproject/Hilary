@@ -15,14 +15,39 @@ import * as MeetingsAPI from 'oae-jitsi';
 import { logger } from 'oae-logger';
 
 import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
-import { Validator } from 'oae-authz/lib/validator';
+import { Validator as validator } from 'oae-authz/lib/validator';
+const {
+  validateInCase: bothCheck,
+  isDefined,
+  unless,
+  isANumber,
+  isValidRoleChange,
+  isLoggedInUser,
+  isPrincipalId,
+  isNotEmpty,
+  isBoolean,
+  isResourceId,
+  isShortString,
+  isMediumString,
+  isArrayNotEmpty,
+  getNestedObject,
+  isLongString,
+  isOneOrGreater
+} = validator;
+import { compose, equals, length, and, forEachObjIndexed } from 'ramda';
+import isIn from 'validator/lib/isIn';
+import isInt from 'validator/lib/isInt';
 import { AuthzConstants } from 'oae-authz/lib/constants';
+
 import { MeetingsConstants } from './constants';
 import * as MeetingsDAO from './internal/dao';
 
 const Config = setUpConfig('oae-jitsi');
 
 const log = logger('meetings-jitsi-api');
+
+const TRUE = 'true';
+const FALSE = 'false';
 /**
  * PUBLIC FUNCTIONS
  */
@@ -59,46 +84,46 @@ const createMeeting = function(
   const allVisibilities = _.values(AuthzConstants.visibility);
 
   // Convert chat and contactList value to boolean for validation (if there are present)
-  if (chat) {
-    chat = String(chat) === 'true';
-  }
-
-  if (contactList) {
-    contactList = String(contactList) === 'true';
-  }
+  if (chat) chat = _convertToBoolean(String(chat));
+  if (contactList) contactList = _convertToBoolean(String(contactList));
 
   // Verify basic properties
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Anonymous users cannot create a meeting' }).isLoggedInUser(ctx);
-  validator.check(displayName, { code: 400, msg: 'Must provide a display name for the meeting' }).notEmpty();
-  validator
-    .check(displayName, { code: 400, msg: 'A display name can be at most 1000 characters long' })
-    .isShortString();
-  validator
-    .check(visibility, {
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Anonymous users cannot create a meeting'
+    })(ctx);
+
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Must provide a display name for the meeting'
+    })(displayName);
+
+    unless(isShortString, {
+      code: 400,
+      msg: 'A display name can be at most 1000 characters long'
+    })(displayName);
+
+    unless(isIn, {
       code: 400,
       msg: 'An invalid meeting visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
-    })
-    .isIn(allVisibilities);
-  if (description && description.length > 0) {
-    validator
-      .check(description, { code: 400, msg: 'A description can be at most 10000 characters long' })
-      .isMediumString();
-  }
+    })(visibility, allVisibilities);
 
-  // Verify each role is valid
-  // eslint-disable-next-line no-unused-vars
-  _.each(additionalMembers, (role, memberId) => {
-    validator
-      .check(role, {
+    const descriptionIsValid = and(isDefined(description), isOneOrGreater(length(description)));
+    unless(bothCheck(descriptionIsValid, isMediumString), {
+      code: 400,
+      msg: 'A description can be at most 10000 characters long'
+    })(description);
+
+    // Verify each role is valid
+    forEachObjIndexed((role /* , memberId */) => {
+      unless(isIn, {
         code: 400,
         msg: 'The role: ' + role + ' is not a valid member role for a meeting'
-      })
-      .isIn(MeetingsConstants.roles.ALL_PRIORITY);
-  });
-
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+      })(role, MeetingsConstants.roles.ALL_PRIORITY);
+    }, additionalMembers);
+  } catch (error) {
+    return callback(error);
   }
 
   // The current user is always a manager
@@ -138,10 +163,13 @@ const createMeeting = function(
  * @param  {Meeting}   callback.meeting        The meeting profile
  */
 const getFullMeetingProfile = function(ctx, meetingId, callback) {
-  const validator = new Validator();
-  validator.check(meetingId, { code: 400, msg: 'meetingId must be a valid resource id' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'meetingId must be a valid resource id'
+    })(meetingId);
+  } catch (error) {
+    return callback(error);
   }
 
   _getMeeting(meetingId, (err, meeting) => {
@@ -202,10 +230,13 @@ const getFullMeetingProfile = function(ctx, meetingId, callback) {
  * @param  {BasicMeeting}   callback.meeting        The meeting profile
  */
 const getMeeting = function(ctx, meetingId, callback) {
-  const validator = new Validator();
-  validator.check(meetingId, { code: 400, msg: 'A valid resource id must be specified' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid resource id must be specified'
+    })(meetingId);
+  } catch (error) {
+    return callback(error);
   }
 
   _getMeeting(meetingId, (err, meeting) => {
@@ -231,10 +262,13 @@ const getMeeting = function(ctx, meetingId, callback) {
  * @param  {Function}  callback                Standard callback function
  */
 const getMeetingInvitations = function(ctx, meetingId, callback) {
-  const validator = new Validator();
-  validator.check(meetingId, { code: 400, msg: 'A valid resource id must be specified' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid resource id must be specified'
+    })(meetingId);
+  } catch (error) {
+    return callback(error);
   }
 
   _getMeeting(meetingId, (err, meeting) => {
@@ -256,10 +290,13 @@ const getMeetingInvitations = function(ctx, meetingId, callback) {
 const getMeetingMembers = function(ctx, meetingId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  const validator = new Validator();
-  validator.check(meetingId, { code: 400, msg: 'A valid resource id must be specified' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid resource id must be specified'
+    })(meetingId);
+  } catch (error) {
+    return callback(error);
   }
 
   // eslint-disable-next-line no-unused-vars
@@ -307,67 +344,76 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
   const allVisibilities = _.values(AuthzConstants.visibility);
 
   // Convert chat and contactList value to boolean for validation (if there are present)
-  if (profileFields.chat) {
-    if (profileFields.chat === 'true') {
-      profileFields.chat = true;
-    } else if (profileFields.chat === 'false') {
-      profileFields.chat = false;
-    }
-  }
+  const getAttribute = getNestedObject(profileFields);
+  const isDefined = attr => compose(Boolean, getAttribute, x => [x])(attr);
 
-  if (profileFields.contactList) {
-    if (profileFields.contactList === 'true') {
-      profileFields.contactList = true;
-    } else if (profileFields.contactList === 'false') {
-      profileFields.contactList = false;
-    }
-  }
+  const CHAT = 'chat';
+  const CONTACT_LIST = 'contactList';
+  if (isDefined(CHAT)) profileFields.chat = _convertToBoolean(getAttribute([CHAT]));
+  if (isDefined(CONTACT_LIST)) profileFields.contactList = _convertToBoolean(getAttribute([CONTACT_LIST]));
 
-  const validator = new Validator();
-  validator.check(meetingId, { code: 400, msg: 'A valid resource id must be specified' }).isResourceId();
-  validator.check(null, { code: 401, msg: 'You must be authenticated to update a meeting' }).isLoggedInUser(ctx);
-  validator
-    .check(_.keys(profileFields).length, {
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid resource id must be specified'
+    })(meetingId);
+
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You must be authenticated to update a meeting'
+    })(ctx);
+
+    unless(isArrayNotEmpty, {
       code: 400,
       msg: 'You should at least provide one profile field to update'
-    })
-    .min(1);
-  _.each(profileFields, (value, field) => {
-    validator
-      .check(field, {
+    })(_.keys(profileFields));
+
+    forEachObjIndexed((value, field) => {
+      unless(isIn, {
         code: 400,
         msg:
           "The field '" + field + "' is not a valid field. Must be one of: " + MeetingsConstants.updateFields.join(', ')
-      })
-      .isIn(MeetingsConstants.updateFields);
-    if (field === 'visibility') {
-      validator
-        .check(value, {
-          code: 400,
-          msg: 'An invalid visibility was specified. Must be one of: ' + allVisibilities.join(', ')
-        })
-        .isIn(allVisibilities);
-    } else if (field === 'displayName') {
-      validator.check(value, { code: 400, msg: 'A display name cannot be empty' }).notEmpty();
-      validator.check(value, { code: 400, msg: 'A display name can be at most 1000 characters long' }).isShortString();
-    } else if (field === 'description' && value.length > 0) {
-      validator.check(value, { code: 400, msg: 'A description can be at most 10000 characters long' }).isMediumString();
-    } else if (field === 'chat') {
-      validator
-        .check(null, { code: 400, msg: 'An invalid chat value was specified, must be boolean' })
-        .isBoolean(value);
-    } else if (field === 'contactList') {
-      validator
-        .check(null, {
-          code: 400,
-          msg: 'An invalid contactList value was specified, must be boolean'
-        })
-        .isBoolean(value);
-    }
-  });
+      })(field, MeetingsConstants.updateFields);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+      const VISIBILITY = 'visibility';
+      const DISPLAY_NAME = 'displayName';
+      const DESCRIPTION = 'description';
+      const CHAT = 'chat';
+      const CONTACT_LIST = 'contactList';
+      const ifFieldIs = attr => equals(field, attr);
+
+      unless(bothCheck(ifFieldIs(VISIBILITY), isIn), {
+        code: 400,
+        msg: 'An invalid visibility was specified. Must be one of: ' + allVisibilities.join(', ')
+      })(value, allVisibilities);
+
+      unless(bothCheck(ifFieldIs(DISPLAY_NAME), isNotEmpty), {
+        code: 400,
+        msg: 'A display name cannot be empty'
+      })(value);
+
+      unless(bothCheck(ifFieldIs(DISPLAY_NAME), isShortString), {
+        code: 400,
+        msg: 'A display name can be at most 1000 characters long'
+      })(value);
+
+      unless(bothCheck(and(ifFieldIs(DESCRIPTION), isOneOrGreater(length(value))), isMediumString), {
+        code: 400,
+        msg: 'A description can be at most 10000 characters long'
+      })(value);
+
+      unless(bothCheck(ifFieldIs(CHAT), isBoolean), {
+        code: 400,
+        msg: 'An invalid chat value was specified, must be boolean'
+      })(value);
+
+      unless(bothCheck(ifFieldIs(CONTACT_LIST), isBoolean), {
+        code: 400,
+        msg: 'An invalid contactList value was specified, must be boolean'
+      })(value);
+    }, profileFields);
+  } catch (error) {
+    return callback(error);
   }
 
   _getMeeting(meetingId, (err, meeting) => {
@@ -411,12 +457,18 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
  * @param {Object}      callback.err        An error that occured, if any
  */
 const deleteMeeting = function(ctx, meetingId, callback) {
-  const validator = new Validator();
-  validator.check(meetingId, { code: 400, msg: 'A valid resource id must be specified' }).isResourceId();
-  validator.check(null, { code: 401, msg: 'You must be authenticated to delete a meeting' }).isLoggedInUser(ctx);
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid resource id must be specified'
+    })(meetingId);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You must be authenticated to delete a meeting'
+    })(ctx);
+  } catch (error) {
+    return callback(error);
   }
 
   _getMeeting(meetingId, (err, meeting) => {
@@ -476,34 +528,36 @@ const deleteMeeting = function(ctx, meetingId, callback) {
  * @param  {Object}     callback.err            An error that occurred, if any
  */
 const setMeetingMembers = function(ctx, meetingId, changes, callback) {
-  const validator = new Validator();
-  validator.check(meetingId, { code: 400, msg: 'A valid resource id must be specified' }).isResourceId();
-  validator.check(null, { code: 401, msg: 'You must be authenticated to update meeting members' }).isLoggedInUser(ctx);
-  // eslint-disable-next-line no-unused-vars
-  _.each(changes, (role, principalId) => {
-    validator
-      .check(role, {
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid resource id must be specified'
+    })(meetingId);
+
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You must be authenticated to update meeting members'
+    })(ctx);
+
+    forEachObjIndexed((role /* , principalId */) => {
+      unless(isValidRoleChange, {
         code: 400,
         msg: 'The role change : ' + role + ' is not a valid value. Must either be a string, or false'
-      })
-      .isValidRoleChange();
-    if (role) {
-      validator
-        .check(role, {
-          code: 400,
-          msg:
-            'The role "' +
-            role +
-            '" is not a valid value. Must be one of : ' +
-            MeetingsConstants.roles.ALL_PRIORITY.join(', ') +
-            ', or false'
-        })
-        .isIn(MeetingsConstants.roles.ALL_PRIORITY);
-    }
-  });
+      })(role);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+      const thereIsRole = Boolean(role);
+      unless(bothCheck(thereIsRole, isIn), {
+        code: 400,
+        msg:
+          'The role "' +
+          role +
+          '" is not a valid value. Must be one of : ' +
+          MeetingsConstants.roles.ALL_PRIORITY.join(', ') +
+          ', or false'
+      })(role, MeetingsConstants.roles.ALL_PRIORITY);
+    }, changes);
+  } catch (error) {
+    return callback(error);
   }
 
   _getMeeting(meetingId, (err, meeting) => {
@@ -549,12 +603,18 @@ const setMeetingMembers = function(ctx, meetingId, changes, callback) {
 const getMessages = function(ctx, meetingId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  const validator = new Validator();
-  validator.check(meetingId, { code: 400, msg: 'Must provide a valid meeting id' }).isResourceId();
-  validator.check(limit, { code: 400, msg: 'Must provide a valid limit' }).isInt();
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Must provide a valid meeting id'
+    })(meetingId);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    unless(isANumber, {
+      code: 400,
+      msg: 'Must provide a valid limit'
+    })(limit);
+  } catch (error) {
+    return callback(error);
   }
 
   // eslint-disable-next-line no-unused-vars
@@ -608,17 +668,34 @@ const getMessages = function(ctx, meetingId, start, limit, callback) {
  * @param  {Message}        callback.message            The created message
  */
 const createMessage = function(ctx, meetingId, body, replyToCreatedTimestamp, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Only authenticated users can post on meetings' }).isLoggedInUser(ctx);
-  validator.check(meetingId, { code: 400, msg: 'Invalid meeting id provided' }).isResourceId();
-  validator.check(body, { code: 400, msg: 'A message body must be provided' }).notEmpty();
-  validator.check(body, { code: 400, msg: 'A message body can only be 100000 characters long' }).isLongString();
-  if (replyToCreatedTimestamp) {
-    validator.check(replyToCreatedTimestamp, { code: 400, msg: 'Invalid reply-to timestamp provided' }).isInt();
-  }
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Only authenticated users can post on meetings'
+    })(ctx);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Invalid meeting id provided'
+    })(meetingId);
+
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A message body must be provided'
+    })(body);
+
+    unless(isLongString, {
+      code: 400,
+      msg: 'A message body can only be 100000 characters long'
+    })(body);
+
+    const timestampIsDefined = Boolean(replyToCreatedTimestamp);
+    unless(bothCheck(timestampIsDefined, isInt), {
+      code: 400,
+      msg: 'Invalid reply-to timestamp provided'
+    })(replyToCreatedTimestamp);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the meeting, throwing an error if it doesn't exist, avoiding permission checks for now
@@ -679,17 +756,23 @@ const createMessage = function(ctx, meetingId, body, replyToCreatedTimestamp, ca
  * @param  {Comment}    [callback.softDeleted]  When the message has been soft deleted (because it has replies), a stripped down message object representing the deleted message will be returned, with the `deleted` parameter set to `false`. If the message has been deleted from the index, no message object will be returned
  */
 const deleteMessage = function(ctx, meetingId, messageCreatedDate, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Only authenticated users can delete messages' }).isLoggedInUser(ctx);
-  validator.check(meetingId, { code: 400, msg: 'A meeting id must be provided' }).isResourceId();
-  validator
-    .check(messageCreatedDate, {
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Only authenticated users can delete messages'
+    })(ctx);
+
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A meeting id must be provided'
+    })(meetingId);
+
+    unless(isInt, {
       code: 400,
       msg: 'A valid integer message created timestamp must be specified'
-    })
-    .isInt();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    })(messageCreatedDate);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the meeting without permissions check
@@ -763,10 +846,13 @@ const deleteMessage = function(ctx, meetingId, messageCreatedDate, callback) {
 const getMeetingsLibrary = function(ctx, principalId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  const validator = new Validator();
-  validator.check(principalId, { code: 400, msg: 'A user or group id must be provided' }).isPrincipalId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'A user or group id must be provided'
+    })(principalId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the principal
@@ -835,17 +921,23 @@ const getMeetingsLibrary = function(ctx, principalId, start, limit, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const removeMeetingFromLibrary = function(ctx, libraryOwnerId, meetingId, callback) {
-  const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'You must be authenticated to remove a meeting from a library' })
-    .isLoggedInUser(ctx);
-  validator.check(libraryOwnerId, { code: 400, msg: 'An user or group id must be provided' }).isPrincipalId();
-  validator
-    .check(meetingId, { code: 400, msg: 'An invalid meeting id "' + meetingId + '" was provided' })
-    .isResourceId();
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You must be authenticated to remove a meeting from a library'
+    })(ctx);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'An user or group id must be provided'
+    })(libraryOwnerId);
+
+    unless(isResourceId, {
+      code: 400,
+      msg: 'An invalid meeting id "' + meetingId + '" was provided'
+    })(meetingId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Make sure the meeting exists
@@ -914,6 +1006,11 @@ const _getMeeting = function(meetingId, callback) {
 
     return callback(null, meeting);
   });
+};
+
+const _convertToBoolean = attr => {
+  if (equals(attr, TRUE)) return true;
+  if (equals(attr, FALSE)) return false;
 };
 
 export {

@@ -36,8 +36,27 @@ import * as ResourceActions from 'oae-resource/lib/actions';
 import * as SearchAPI from 'oae-search';
 import * as Signature from 'oae-util/lib/signature';
 import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
-import { Validator } from 'oae-util/lib/validator';
 import { AuthzConstants } from 'oae-authz/lib/constants';
+import { Validator as validator } from 'oae-util/lib/validator';
+const {
+  isArray,
+  isValidRoleChange,
+  unless,
+  validateInCase: bothCheck,
+  isANumber,
+  isLoggedInUser,
+  isPrincipalId,
+  isNotEmpty,
+  isObject,
+  isResourceId,
+  isShortString,
+  isMediumString,
+  isArrayNotEmpty,
+  isLongString
+} = validator;
+import isIn from 'validator/lib/isIn';
+import isInt from 'validator/lib/isInt';
+import { forEachObjIndexed } from 'ramda';
 import * as FoldersFoldersLibrary from './internal/foldersLibrary';
 import * as FoldersAuthz from './authz';
 import * as FoldersContentLibrary from './internal/contentLibrary';
@@ -49,6 +68,9 @@ const log = logger('oae-folders-api');
 
 const FoldersConfig = setUpConfig('oae-folders');
 
+const DISPLAY_NAME = 'displayName';
+const DESCRIPTION = 'description';
+const VISIBILITY = 'visibility';
 /*!
  * ### Events
  *
@@ -83,37 +105,42 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
   const allVisibilities = _.values(AuthzConstants.visibility);
 
   // Verify basic properties
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Anonymous users cannot create a folder' }).isLoggedInUser(ctx);
-  validator.check(displayName, { code: 400, msg: 'Must provide a display name for the folder' }).notEmpty();
-  validator
-    .check(displayName, { code: 400, msg: 'A display name can be at most 1000 characters long' })
-    .isShortString();
-  if (description) {
-    validator
-      .check(description, { code: 400, msg: 'A description can be at most 10000 characters long' })
-      .isMediumString();
-  }
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Anonymous users cannot create a folder'
+    })(ctx);
 
-  validator
-    .check(visibility, {
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Must provide a display name for the folder'
+    })(displayName);
+
+    unless(isShortString, {
+      code: 400,
+      msg: 'A display name can be at most 1000 characters long'
+    })(displayName);
+
+    const descriptionIsThere = Boolean(description);
+    unless(bothCheck(descriptionIsThere, isMediumString), {
+      code: 400,
+      msg: 'A description can be at most 10000 characters long'
+    })(description);
+
+    unless(isIn, {
       code: 400,
       msg: 'An invalid folder visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
-    })
-    .isIn(allVisibilities);
+    })(visibility, allVisibilities);
 
-  // Verify each role is valid
-  _.each(roles, role => {
-    validator
-      .check(role, {
+    // Verify each role is valid
+    forEachObjIndexed(role => {
+      unless(isIn, {
         code: 400,
         msg: util.format('The role "%s" is not a valid member role for a folder', role)
-      })
-      .isIn(FoldersConstants.role.ALL_PRIORITY);
-  });
-
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+      })(role, FoldersConstants.role.ALL_PRIORITY);
+    }, roles);
+  } catch (error) {
+    return callback(error);
   }
 
   // Check if the current user can manage any of the specified managers
@@ -171,59 +198,57 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
 const updateFolder = function(ctx, folderId, updates, callback) {
   const allVisibilities = _.values(AuthzConstants.visibility);
 
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Anonymous users cannot create a folder' }).isLoggedInUser(ctx);
-  validator
-    .check(folderId, {
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Anonymous users cannot create a folder'
+    })(ctx);
+
+    unless(isResourceId, {
       code: 400,
       msg: util.format('The folder id "%s" is not a valid resource id', folderId)
-    })
-    .isResourceId();
-  validator.check(updates, { code: 400, msg: 'Missing update information' }).isObject(updates);
+    })(folderId);
 
-  // Ensure that at least one valid update field was provided
-  const updateFields = _.keys(updates);
-  const legalUpdateFields = ['displayName', 'description', 'visibility'];
-  validator
-    .check(_.intersection(updateFields, legalUpdateFields).length, {
+    unless(isObject, {
+      code: 400,
+      msg: 'Missing update information'
+    })(updates, updates);
+
+    // Ensure that at least one valid update field was provided
+    const updateFields = _.keys(updates);
+    const legalUpdateFields = [DISPLAY_NAME, DESCRIPTION, VISIBILITY];
+
+    unless(isArrayNotEmpty, {
       code: 400,
       msg: 'One of ' + legalUpdateFields.join(', ') + ' must be provided'
-    })
-    .min(1);
+    })(_.intersection(updateFields, legalUpdateFields));
 
-  _.each(updates, (val, key) => {
-    validator.check(key, { code: 400, msg: 'Unknown update field provided' }).isIn(legalUpdateFields);
-  });
-
-  if (updates.displayName) {
-    validator
-      .check(updates.displayName, {
+    forEachObjIndexed((val, key) => {
+      unless(isIn, {
         code: 400,
-        msg: 'A display name can be at most 1000 characters long'
-      })
-      .isShortString();
-  }
+        msg: 'Unknown update field provided'
+      })(key, legalUpdateFields);
+    }, updates);
 
-  if (updates.description) {
-    validator
-      .check(updates.description, {
-        code: 400,
-        msg: 'A description can be at most 10000 characters long'
-      })
-      .isMediumString();
-  }
+    const isThereDisplayName = Boolean(updates.displayName);
+    unless(bothCheck(isThereDisplayName, isShortString), {
+      code: 400,
+      msg: 'A display name can be at most 1000 characters long'
+    })(updates.displayName);
 
-  if (updates.visibility) {
-    validator
-      .check(updates.visibility, {
-        code: 400,
-        msg: 'An invalid folder visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
-      })
-      .isIn(allVisibilities);
-  }
+    const isThereDescription = Boolean(updates.description);
+    unless(bothCheck(isThereDescription, isMediumString), {
+      code: 400,
+      msg: 'A description can be at most 10000 characters long'
+    })(updates.description);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    const isThereVisibility = Boolean(updates.visibility);
+    unless(bothCheck(isThereVisibility, isIn), {
+      code: 400,
+      msg: 'An invalid folder visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
+    })(updates.visibility, allVisibilities);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the folder from storage to use for permission checks
@@ -266,28 +291,28 @@ const updateFolder = function(ctx, folderId, updates, callback) {
 const updateFolderContentVisibility = function(ctx, folderId, visibility, callback) {
   const allVisibilities = _.values(AuthzConstants.visibility);
 
-  const validator = new Validator();
-  validator
-    .check(null, {
+  try {
+    unless(isLoggedInUser, {
       code: 401,
       msg: 'Anonymous users cannot update the visibility of items in a folder'
-    })
-    .isLoggedInUser(ctx);
-  validator
-    .check(folderId, {
+    })(ctx);
+
+    unless(isResourceId, {
       code: 400,
       msg: util.format('The folder id "%s" is not a valid resource id', folderId)
-    })
-    .isResourceId();
-  validator.check(visibility, { code: 400, msg: 'Missing visibility value' }).notEmpty();
-  validator
-    .check(visibility, {
+    })(folderId);
+
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Missing visibility value'
+    })(visibility);
+
+    unless(isIn, {
       code: 400,
       msg: 'An invalid folder visibility option has been provided. Must be one of: ' + allVisibilities.join(', ')
-    })
-    .isIn(allVisibilities);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    })(visibility, allVisibilities);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the folder from storage to use for permission checks
@@ -463,15 +488,13 @@ const _updateContentVisibility = function(ctx, content, visibility, callback) {
  * @param  {Folder}         callback.folder     The folder identified by the given id
  */
 const getFolder = function(ctx, folderId, callback) {
-  const validator = new Validator();
-  validator
-    .check(folderId, {
+  try {
+    unless(isResourceId, {
       code: 400,
       msg: util.format('The folder id "%s" is not a valid resource id', folderId)
-    })
-    .isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    })(folderId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the folder from storage to use for permission checks
@@ -510,15 +533,13 @@ const getFolder = function(ctx, folderId, callback) {
  * @param  {User}           callback.folder.createdBy       The basic profile of the user who created the folder
  */
 const getFullFolderProfile = function(ctx, folderId, callback) {
-  const validator = new Validator();
-  validator
-    .check(folderId, {
+  try {
+    unless(isResourceId, {
       code: 400,
       msg: util.format('The folder id "%s" is not a valid resource id', folderId)
-    })
-    .isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    })(folderId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the folder from storage to use for permissions checks
@@ -604,11 +625,15 @@ const _getFullFolderProfile = function(ctx, folder, callback) {
  * @param  {Content[]}      callback.failedContent      The content items that could not be deleted
  */
 const deleteFolder = function(ctx, folderId, deleteContent, callback) {
-  const validator = new Validator();
-  validator.check(folderId, { code: 400, msg: 'A folder id must be provided' }).isResourceId();
-  validator.check(null, { code: 401, msg: 'You must be authenticated to delete a folder' }).isLoggedInUser(ctx);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, { code: 400, msg: 'a folder id must be provided' })(folderId);
+
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You must be authenticated to delete a folder'
+    })(ctx);
+  } catch (error) {
+    return callback(error);
   }
 
   FoldersDAO.getFolder(folderId, (err, folder) => {
@@ -816,10 +841,13 @@ const _removeAuthzFolderFromContentItems = function(folder, contentIds, callback
 const getFolderMembers = function(ctx, folderId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  const validator = new Validator();
-  validator.check(folderId, { code: 400, msg: 'A folder id must be provided' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A folder id must be provided'
+    })(folderId);
+  } catch (error) {
+    return callback(error);
   }
 
   getFolder(ctx, folderId, (err, folder) => {
@@ -863,10 +891,13 @@ const getFolderMembers = function(ctx, folderId, start, limit, callback) {
  * @param  {Invitation[]}   callback.invitations    The invitations
  */
 const getFolderInvitations = function(ctx, folderId, callback) {
-  const validator = new Validator();
-  validator.check(folderId, { code: 400, msg: 'A valid resource id must be specified' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid resource id must be specified'
+    })(folderId);
+  } catch (error) {
+    return callback(error);
   }
 
   FoldersDAO.getFolder(folderId, (err, folder) => {
@@ -888,10 +919,13 @@ const getFolderInvitations = function(ctx, folderId, callback) {
  * @param  {Object}         callback.err    An error that occurred, if any
  */
 const resendFolderInvitation = function(ctx, folderId, email, callback) {
-  const validator = new Validator();
-  validator.check(folderId, { code: 400, msg: 'A valid resource id must be specified' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid resource id must be specified'
+    })(folderId);
+  } catch (error) {
+    return callback(error);
   }
 
   FoldersDAO.getFolder(folderId, (err, folder) => {
@@ -915,13 +949,18 @@ const resendFolderInvitation = function(ctx, folderId, email, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const shareFolder = function(ctx, folderId, principalIds, callback) {
-  const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to share a folder' })
-    .isLoggedInUser(ctx);
-  validator.check(folderId, { code: 400, msg: 'A valid folder id must be provided' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to share a folder'
+    })(ctx);
+
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid folder id must be provided'
+    })(folderId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Ensure the folder exists
@@ -964,39 +1003,36 @@ const shareFolder = function(ctx, folderId, principalIds, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const setFolderPermissions = function(ctx, folderId, changes, callback) {
-  const validator = new Validator();
-  validator
-    .check(null, {
+  try {
+    unless(isLoggedInUser, {
       code: 401,
       msg: 'You have to be logged in to be able to change folder permissions'
-    })
-    .isLoggedInUser(ctx);
-  validator.check(folderId, { code: 400, msg: 'A valid folder id must be provided' }).isResourceId();
-  // eslint-disable-next-line no-unused-vars
-  _.each(changes, (role, principalId) => {
-    validator
-      .check(role, {
+    })(ctx);
+
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid folder id must be provided'
+    })(folderId);
+
+    forEachObjIndexed((role /* , principalId */) => {
+      unless(isValidRoleChange, {
         code: 400,
         msg: 'The role change: ' + role + ' is not a valid value. Must either be a string, or false'
-      })
-      .isValidRoleChange();
-    if (role) {
-      validator
-        .check(role, {
-          code: 400,
-          msg:
-            'The role: "' +
-            role +
-            '" is not a valid value. Must be one of: ' +
-            FoldersConstants.role.ALL_PRIORITY.join(', ') +
-            '; or false'
-        })
-        .isIn(FoldersConstants.role.ALL_PRIORITY);
-    }
-  });
+      })(role);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+      const thereIsRole = Boolean(role);
+      unless(bothCheck(thereIsRole, isIn), {
+        code: 400,
+        msg:
+          'The role: "' +
+          role +
+          '" is not a valid value. Must be one of: ' +
+          FoldersConstants.role.ALL_PRIORITY.join(', ') +
+          '; or false'
+      })(role, FoldersConstants.role.ALL_PRIORITY);
+    }, changes);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the folder object, throwing an error if it doesn't exist, but not applying permissions checks
@@ -1036,34 +1072,36 @@ const setFolderPermissions = function(ctx, folderId, changes, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const addContentItemsToFolder = function(ctx, folderId, contentIds, callback) {
-  const validator = new Validator();
-  validator
-    .check(null, {
+  try {
+    unless(isLoggedInUser, {
       code: 401,
       msg: 'You have to be authenticated to be able to add an item to a folder'
-    })
-    .isLoggedInUser(ctx);
-  validator.check(folderId, { code: 400, msg: 'A valid folder id must be provided' }).isResourceId();
-  validator.check(null, { code: 400, msg: 'Must specify at least one content item to add' }).isArray(contentIds);
-  validator
-    .check(_.values(contentIds).length, {
+    })(ctx);
+
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid folder id must be provided'
+    })(folderId);
+
+    unless(isArray, {
+      code: 400,
+      msg: 'Must specify at least one content item to add'
+    })(contentIds);
+
+    unless(isArrayNotEmpty, {
       code: 400,
       msg: 'You must specify at least one content item to add'
-    })
-    .min(1);
+    })(_.values(contentIds));
 
-  // Ensure each content id is valid
-  _.each(contentIds, contentId => {
-    validator
-      .check(contentId, {
+    // Ensure each content id is valid
+    forEachObjIndexed(contentId => {
+      unless(isResourceId, {
         code: 400,
         msg: util.format('The id "%s" is not a valid content id', contentId)
-      })
-      .isResourceId();
-  });
-
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+      })(contentId);
+    }, contentIds);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the folder to which we're trying to add the content items
@@ -1162,34 +1200,36 @@ const _addContentItemsToFolderLibrary = function(ctx, actionContext, folder, con
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const removeContentItemsFromFolder = function(ctx, folderId, contentIds, callback) {
-  const validator = new Validator();
-  validator
-    .check(null, {
+  try {
+    unless(isLoggedInUser, {
       code: 401,
       msg: 'You have to be authenticated to be able to remove an item from a folder'
-    })
-    .isLoggedInUser(ctx);
-  validator.check(folderId, { code: 400, msg: 'A valid folder id must be provided' }).isResourceId();
-  validator.check(null, { code: 400, msg: 'You must specify at least one content item to remove' }).isArray(contentIds);
-  validator
-    .check(_.values(contentIds).length, {
+    })(ctx);
+
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid folder id must be provided'
+    })(folderId);
+
+    unless(isArray, {
       code: 400,
       msg: 'You must specify at least one content item to remove'
-    })
-    .min(1);
+    })(contentIds);
 
-  // Ensure each content id is valid
-  _.each(contentIds, contentId => {
-    validator
-      .check(contentId, {
+    unless(isArrayNotEmpty, {
+      code: 400,
+      msg: 'You must specify at least one content item to remove'
+    })(_.values(contentIds));
+
+    // Ensure each content id is valid
+    forEachObjIndexed(contentId => {
+      unless(isResourceId, {
         code: 400,
         msg: util.format('The id "%s" is not a valid content id', contentId)
-      })
-      .isResourceId();
-  });
-
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+      })(contentId);
+    }, contentIds);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the folder from which we're trying to remove the content items
@@ -1261,10 +1301,13 @@ const removeContentItemsFromFolder = function(ctx, folderId, contentIds, callbac
 const getFoldersLibrary = function(ctx, principalId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  const validator = new Validator();
-  validator.check(principalId, { code: 400, msg: 'A user or group id must be provided' }).isPrincipalId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'A user or group id must be provided'
+    })(principalId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the principal
@@ -1380,14 +1423,23 @@ const getManagedFolders = function(ctx, callback) {
  * @param  {Object}         callback.err        An error that occurred, if any
  */
 const removeFolderFromLibrary = function(ctx, principalId, folderId, callback) {
-  const validator = new Validator();
-  validator
-    .check(null, { code: 401, msg: 'You must be authenticated to remove a folder from a library' })
-    .isLoggedInUser(ctx);
-  validator.check(principalId, { code: 400, msg: 'A user or group id must be provided' }).isPrincipalId();
-  validator.check(folderId, { code: 400, msg: 'A valid folder id must be provided' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You must be authenticated to remove a folder from a library'
+    })(ctx);
+
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'A user or group id must be provided'
+    })(principalId);
+
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A valid folder id must be provided'
+    })(folderId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Make sure the folder exists
@@ -1442,10 +1494,13 @@ const removeFolderFromLibrary = function(ctx, principalId, folderId, callback) {
 const getFolderContentLibrary = function(ctx, folderId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  const validator = new Validator();
-  validator.check(folderId, { code: 400, msg: 'A folder id must be provided' }).isResourceId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A folder id must be provided'
+    })(folderId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the folder
@@ -1510,17 +1565,34 @@ const getFolderContentLibrary = function(ctx, folderId, start, limit, callback) 
  * @param  {Message}            callback.message                The created message
  */
 const createMessage = function(ctx, folderId, body, replyToCreatedTimestamp, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Only authenticated users can post to folders' }).isLoggedInUser(ctx);
-  validator.check(folderId, { code: 400, msg: 'Invalid folder id provided' }).isResourceId();
-  validator.check(body, { code: 400, msg: 'A message body must be provided' }).notEmpty();
-  validator.check(body, { code: 400, msg: 'A message body can only be 100000 characters long' }).isLongString();
-  if (replyToCreatedTimestamp) {
-    validator.check(replyToCreatedTimestamp, { code: 400, msg: 'Invalid reply-to timestamp provided' }).isInt();
-  }
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Only authenticated users can post to folders'
+    })(ctx);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Invalid folder id provided'
+    })(folderId);
+
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'A message body must be provided'
+    })(body);
+
+    unless(isLongString, {
+      code: 400,
+      msg: 'A message body can only be 100000 characters long'
+    })(body);
+
+    const timestampIsDefined = Boolean(replyToCreatedTimestamp);
+    unless(bothCheck(timestampIsDefined, isInt), {
+      code: 400,
+      msg: 'Invalid reply-to timestamp provided'
+    })(replyToCreatedTimestamp);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the folder from storage to use for permission checks
@@ -1581,17 +1653,23 @@ const createMessage = function(ctx, folderId, body, replyToCreatedTimestamp, cal
  * @param  {Comment}        [callback.softDeleted]      When the message has been soft deleted (because it has replies), a stripped down message object representing the deleted message will be returned, with the `deleted` parameter set to `false`. If the message has been deleted from the index, no message object will be returned
  */
 const deleteMessage = function(ctx, folderId, messageCreatedDate, callback) {
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Only authenticated users can delete messages' }).isLoggedInUser(ctx);
-  validator.check(folderId, { code: 400, msg: 'A folder id must be provided' }).isResourceId();
-  validator
-    .check(messageCreatedDate, {
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Only authenticated users can delete messages'
+    })(ctx);
+
+    unless(isResourceId, {
+      code: 400,
+      msg: 'A folder id must be provided'
+    })(folderId);
+
+    unless(isInt, {
       code: 400,
       msg: 'A valid integer message created timestamp must be specified'
-    })
-    .isInt();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    })(messageCreatedDate);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the folder from storage to use for permission checks
@@ -1658,11 +1736,18 @@ const deleteMessage = function(ctx, folderId, messageCreatedDate, callback) {
 const getMessages = function(ctx, folderId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  const validator = new Validator();
-  validator.check(folderId, { code: 400, msg: 'Must provide a valid folder id' }).isResourceId();
-  validator.check(limit, { code: 400, msg: 'Must provide a valid limit' }).isInt();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isResourceId, {
+      code: 400,
+      msg: 'Must provide a valid folder id'
+    })(folderId);
+
+    unless(isANumber, {
+      code: 400,
+      msg: 'Must provide a valid limit'
+    })(limit);
+  } catch (error) {
+    return callback(error);
   }
 
   // Get the folder from storage to use for permission checks

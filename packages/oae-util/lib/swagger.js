@@ -24,7 +24,10 @@ import clone from 'clone';
 import readdirp from 'readdirp';
 import * as restjsdoc from 'restjsdoc';
 import * as TenantsUtil from 'oae-tenants/lib/util';
-import { Validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator';
+const { validateInCase: bothCheck, isNotEmpty, notContains, unless } = validator;
+import { equals, forEachObjIndexed } from 'ramda';
+import isIn from 'validator/lib/isIn';
 import * as SwaggerParamTypes from './swaggerParamTypes';
 
 const log = logger('oae-swagger');
@@ -305,34 +308,35 @@ const _addSwaggerEndpoint = function(spec, resources) {
  * @param  {Object}     spec            The swagger spec to append
  */
 const _appendToApi = function(rootResource, api, spec) {
-  const validator = new Validator();
+  try {
+    unless(isNotEmpty, {
+      msg: 'Nickname must exist',
+      path: api.path
+    })(spec.nickname);
 
-  validator.check(spec.nickname, { path: api.path, msg: 'Nickname must exist' }).notEmpty();
-  validator
-    .check(spec.nickname, {
+    unless(notContains, {
       path: api.path,
       msg: 'Nicknames cannot contain spaces: ' + spec.nickname
-    })
-    .notContains(' ');
+    })(spec.nickname, ' ');
 
-  // Parse and validate params
-  _.each(spec.params, param => {
-    validator
-      .check(param.paramType, {
+    // Parse and validate params
+    forEachObjIndexed(param => {
+      unless(isIn, {
         path: api.path,
         name: param.name,
         msg: 'Invalid param type: ' + param.paramType
-      })
-      // eslint-disable-next-line no-undef
-      .isIn(Swagger.Constants.paramTypes);
-    if (param.paramType === 'path') {
-      validator.check(param.name, { path: api.path, name: param.name, msg: 'Invalid path' }).isIn(api.path);
-    }
-  });
+      })(param.paramType, Constants.paramTypes);
 
-  if (validator.hasErrors()) {
+      const pathIsValid = equals(param.paramType, 'path');
+      unless(bothCheck(pathIsValid, isIn), {
+        path: api.path,
+        name: param.name,
+        msg: 'Invalid path'
+      })(param.name, api.path);
+    }, spec.params);
+  } catch (error) {
     return log().warn(
-      { swaggerValidationErrors: validator.getErrors() },
+      { swaggerValidationErrors: error },
       'Some swagger documentation could not be parsed, the server will start but those routes may be undocumented'
     );
   }

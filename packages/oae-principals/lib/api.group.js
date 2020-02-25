@@ -29,8 +29,22 @@ import * as MessageBoxAPI from 'oae-messagebox';
 import * as OaeUtil from 'oae-util/lib/util';
 import * as ResourceActions from 'oae-resource/lib/actions';
 import * as Signature from 'oae-util/lib/signature';
-import { Validator } from 'oae-authz/lib/validator';
+import { Validator as validator } from 'oae-authz/lib/validator';
+const {
+  isShortString,
+  isMediumString,
+  validateInCase: bothCheck,
+  isRoleValid,
+  unless,
+  isLoggedInUser,
+  isNotEmpty,
+  isGroupId,
+  isPrincipalId,
+  isArrayNotEmpty
+} = validator;
+import isIn from 'validator/lib/isIn';
 import { AuthzConstants } from 'oae-authz/lib/constants';
+import { both, forEachObjIndexed, equals } from 'ramda';
 import * as PrincipalsDAO from './internal/dao';
 import * as PrincipalsMembersLibrary from './libraries/members';
 import PrincipalsEmitter from './internal/emitter';
@@ -40,6 +54,11 @@ import { PrincipalsConstants } from './constants';
 
 const log = logger('oae-principals');
 const Config = setUpConfig('oae-principals');
+
+const DISPLAY_NAME = 'displayName';
+const DESCRIPTION = 'description';
+const VISIBILITY = 'visibility';
+const JOINABLE = 'joinable';
 
 /**
  * Get the basic profile for a group.
@@ -51,10 +70,13 @@ const Config = setUpConfig('oae-principals');
  * @param  {Group}    callback.group  The group object
  */
 const getGroup = function(ctx, groupId, callback) {
-  const validator = new Validator();
-  validator.check(groupId, { code: 400, msg: 'An invalid group id was specified' }).isGroupId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isGroupId, {
+      code: 400,
+      msg: 'An invalid group id was specified'
+    })(groupId);
+  } catch (error) {
+    return callback(error);
   }
 
   return PrincipalsUtil.getPrincipal(ctx, groupId, callback);
@@ -175,10 +197,13 @@ const getFullGroupProfile = function(ctx, groupId, callback) {
 const getMembersLibrary = function(ctx, groupId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  const validator = new Validator();
-  validator.check(groupId, { code: 400, msg: 'An invalid group id was specified' }).isGroupId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isGroupId, {
+      code: 400,
+      msg: 'An invalid group id was specified'
+    })(groupId);
+  } catch (error) {
+    return callback(error);
   }
 
   // Ensure that this group exists
@@ -206,10 +231,13 @@ const getMembersLibrary = function(ctx, groupId, start, limit, callback) {
  * @param  {Invitation[]}   callback.invitations    The invitations
  */
 const getGroupInvitations = function(ctx, groupId, callback) {
-  const validator = new Validator();
-  validator.check(groupId, { code: 400, msg: 'A valid group id must be specified' }).isGroupId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isGroupId, {
+      code: 400,
+      msg: 'A valid group id must be specified'
+    })(groupId);
+  } catch (error) {
+    return callback(error);
   }
 
   PrincipalsDAO.getPrincipal(groupId, (err, group) => {
@@ -231,10 +259,13 @@ const getGroupInvitations = function(ctx, groupId, callback) {
  * @param  {Object}         callback.err    An error that occurred, if any
  */
 const resendGroupInvitation = function(ctx, groupId, email, callback) {
-  const validator = new Validator();
-  validator.check(groupId, { code: 400, msg: 'A valid group id must be specified' }).isGroupId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isGroupId, {
+      code: 400,
+      msg: 'A valid group id must be specified'
+    })(groupId);
+  } catch (error) {
+    return callback(error);
   }
 
   PrincipalsDAO.getPrincipal(groupId, (err, group) => {
@@ -335,10 +366,13 @@ const _getMembersLibrary = function(ctx, group, hasRole, start, limit, callback)
 const getMembershipsLibrary = function(ctx, principalId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
-  const validator = new Validator();
-  validator.check(principalId, { code: 400, msg: 'Must specify a valid principalId' }).isPrincipalId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'Must specify a valid principalId'
+    })(principalId);
+  } catch (error) {
+    return callback(error);
   }
 
   PrincipalsDAO.getPrincipal(principalId, (err, principal) => {
@@ -456,10 +490,13 @@ const _getMembershipsLibrary = function(ctx, principalId, visibility, start, lim
 const getRecentGroupsForUserId = function(ctx, principalId, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 5, 1);
 
-  const validator = new Validator();
-  validator.check(principalId, { code: 400, msg: 'Must specify a valid principalId' }).isPrincipalId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'Must specify a valid principalId'
+    })(principalId);
+  } catch (error) {
+    return callback(error);
   }
 
   if (!PrincipalsDAO.isUser(principalId)) {
@@ -518,6 +555,16 @@ const _getRecentGroupsForUserId = function(ctx, principalId, limit, callback) {
   });
 };
 
+const _validateEveryRoleChange = changes => {
+  const validRoles = PrincipalsConstants.role.ALL_PRIORITY;
+  forEachObjIndexed((role /* , memberId */) => {
+    unless(bothCheck(isRoleValid(role), isIn), {
+      code: 400,
+      msg: util.format('Role must be one of %s', validRoles.join(', '))
+    })(role, validRoles);
+  }, changes);
+};
+
 /**
  * Update the members of a group
  *
@@ -529,31 +576,22 @@ const _getRecentGroupsForUserId = function(ctx, principalId, limit, callback) {
  */
 const setGroupMembers = function(ctx, groupId, changes, callback) {
   // Validation
-  const validator = new Validator();
-  validator.check(groupId, { code: 400, msg: 'Invalid groupId specified' }).isGroupId();
-  validator
-    .check(null, {
+  try {
+    unless(isGroupId, {
+      code: 400,
+      msg: 'Invalid groupId specified'
+    })(groupId);
+
+    unless(isLoggedInUser, {
       code: 401,
       msg: 'You have to be logged in to be able to update group membership'
-    })
-    .isLoggedInUser(ctx);
+    })(ctx);
 
-  // Ensure each role is restricted to those supported by groups (member and manager). Resource
-  // Actions will take care of the other standard checks
-  const validRoles = PrincipalsConstants.role.ALL_PRIORITY;
-  // eslint-disable-next-line no-unused-vars
-  _.each(changes, (role, memberId) => {
-    if (role !== false) {
-      validator
-        .check(role, {
-          code: 400,
-          msg: util.format('Role must be one of %s', validRoles.join(', '))
-        })
-        .isIn(validRoles);
-    }
-  });
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    // Ensure each role is restricted to those supported by groups (member and manager). Resource
+    // Actions will take care of the other standard checks
+    _validateEveryRoleChange(changes);
+  } catch (error) {
+    return callback(error);
   }
 
   // Check if the group exists
@@ -609,11 +647,18 @@ const setGroupMembers = function(ctx, groupId, changes, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const leaveGroup = function(ctx, groupId, callback) {
-  const validator = new Validator();
-  validator.check(groupId, { code: 400, msg: 'Invalid groupId specified' }).isGroupId();
-  validator.check(null, { code: 401, msg: 'You have to be logged in to be able to join a group' }).isLoggedInUser(ctx);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isGroupId, {
+      code: 400,
+      msg: 'Invalid groupId specified'
+    })(groupId);
+
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to join a group'
+    })(ctx);
+  } catch (error) {
+    return callback(error);
   }
 
   // Verify the group exists
@@ -658,11 +703,18 @@ const leaveGroup = function(ctx, groupId, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const joinGroup = function(ctx, groupId, callback) {
-  const validator = new Validator();
-  validator.check(groupId, { code: 400, msg: 'Invalid groupId specified' }).isGroupId();
-  validator.check(null, { code: 401, msg: 'You have to be logged in to be able to join a group' }).isLoggedInUser(ctx);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isGroupId, {
+      code: 400,
+      msg: 'Invalid groupId specified'
+    })(groupId);
+
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to join a group'
+    })(ctx);
+  } catch (error) {
+    return callback(error);
   }
 
   // Verify the group exists
@@ -742,47 +794,39 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
     };
 
   // Parameter validation
-  const validator = new Validator();
-  validator.check(null, { code: 401, msg: 'Cannot create a group anonymously' }).isLoggedInUser(ctx);
-  validator.check(displayName, { code: 400, msg: 'You need to provide a display name for this group' }).notEmpty();
-  validator
-    .check(displayName, { code: 400, msg: 'A display name can be at most 1000 characters long' })
-    .isShortString();
-  validator
-    .check(visibility, {
+  try {
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Cannot create a group anonymously'
+    })(ctx);
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'You need to provide a display name for this group'
+    })(displayName);
+    unless(isShortString, {
+      code: 400,
+      msg: 'A display name can be at most 1000 characters long'
+    })(displayName);
+    unless(isIn, {
       code: 400,
       msg: 'The visibility setting must be one of: ' + _.values(AuthzConstants.visibility)
-    })
-    .isIn(_.values(AuthzConstants.visibility));
-  validator
-    .check(joinable, {
+    })(visibility, _.values(AuthzConstants.visibility));
+    unless(isIn, {
       code: 400,
       msg: 'The joinable setting must be one of: ' + _.values(AuthzConstants.joinable)
-    })
-    .isIn(_.values(AuthzConstants.joinable));
-  if (description) {
-    validator
-      .check(description, { code: 400, msg: 'A description can only be 10000 characters long' })
-      .isMediumString();
-  }
+    })(joinable, _.values(AuthzConstants.joinable));
 
-  // Ensure all roles are in the set of valid roles. ResourceActions will take care of other
-  // standard validations
-  const validRoles = PrincipalsConstants.role.ALL_PRIORITY;
-  // eslint-disable-next-line no-unused-vars
-  _.each(roles, (role, principalId) => {
-    if (role !== false) {
-      validator
-        .check(role, {
-          code: 400,
-          msg: util.format('Role must be one of %s', validRoles.join(', '))
-        })
-        .isIn(validRoles);
-    }
-  });
+    const descriptionIsDefined = Boolean(description);
+    unless(bothCheck(descriptionIsDefined, isMediumString), {
+      code: 400,
+      msg: 'A description can only be 10000 characters long'
+    })(description);
 
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    // Ensure all roles are in the set of valid roles. ResourceActions will take care of other
+    // standard validations
+    _validateEveryRoleChange(roles);
+  } catch (error) {
+    return callback(error);
   }
 
   // Generate the group id
@@ -832,49 +876,53 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
 const updateGroup = function(ctx, groupId, profileFields, callback) {
   // Parameter validation
   const fieldNames = profileFields ? _.keys(profileFields) : [];
-  const validator = new Validator();
-  validator.check(groupId, { code: 400, msg: 'A valid group id must be provided' }).isGroupId();
-  validator.check(fieldNames.length, { code: 400, msg: 'You should specify at least one field' }).min(1);
-  fieldNames.forEach(fieldName => {
-    validator
-      .check(fieldName, { code: 400, msg: fieldName + ' is not a recognized group profile field' })
-      .isIn(['displayName', 'description', 'visibility', 'joinable']);
-    if (fieldName === 'visibility') {
-      validator
-        .check(profileFields.visibility, {
-          code: 400,
-          msg: 'The visibility setting must be one of: ' + _.values(AuthzConstants.visibility)
-        })
-        .isIn(_.values(AuthzConstants.visibility));
-    } else if (fieldName === 'joinable') {
-      validator
-        .check(profileFields.joinable, {
-          code: 400,
-          msg: 'The joinable setting must be one of: ' + _.values(AuthzConstants.joinable)
-        })
-        .isIn(_.values(AuthzConstants.joinable));
-    } else if (fieldName === 'displayName') {
-      validator.check(profileFields.displayName, { code: 400, msg: 'A display name cannot be empty' }).notEmpty();
-      validator
-        .check(profileFields.displayName, {
-          code: 400,
-          msg: 'A display name can be at most 1000 characters long'
-        })
-        .isShortString();
-    } else if (fieldName === 'description' && profileFields.description) {
-      validator
-        .check(profileFields.description, {
-          code: 400,
-          msg: 'A description can only be 10000 characters long'
-        })
-        .isMediumString();
-    }
-  });
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to update a group' })
-    .isLoggedInUser(ctx);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isGroupId, {
+      code: 400,
+      msg: 'A valid group id must be provided'
+    })(groupId);
+
+    unless(isArrayNotEmpty, {
+      code: 400,
+      msg: 'You should specify at least one field'
+    })(fieldNames);
+
+    fieldNames.forEach(fieldName => {
+      const isField = field => equals(fieldName, field);
+      unless(isIn, {
+        code: 400,
+        msg: fieldName + ' is not a recognized group profile field'
+      })(fieldName, [DISPLAY_NAME, DESCRIPTION, VISIBILITY, JOINABLE]);
+
+      unless(bothCheck(isField(VISIBILITY), isIn), {
+        code: 400,
+        msg: 'The visibility setting must be one of: ' + _.values(AuthzConstants.visibility)
+      })(profileFields.visibility, _.values(AuthzConstants.visibility));
+      unless(bothCheck(isField(JOINABLE), isIn), {
+        code: 400,
+        msg: 'The joinable setting must be one of: ' + _.values(AuthzConstants.joinable)
+      })(profileFields.joinable, _.values(AuthzConstants.joinable));
+      unless(bothCheck(isField(DISPLAY_NAME), isNotEmpty), {
+        code: 400,
+        msg: 'A display name cannot be empty'
+      })(profileFields.displayName);
+
+      unless(bothCheck(isField(DISPLAY_NAME), isShortString), {
+        code: 400,
+        msg: 'A display name can be at most 1000 characters long'
+      })(profileFields.displayName);
+      unless(bothCheck(both(isField, x => Boolean(profileFields[x]))(DESCRIPTION), isMediumString), {
+        code: 400,
+        msg: 'A description can only be 10000 characters long'
+      })(profileFields.description);
+    });
+
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to update a group'
+    })(ctx);
+  } catch (error) {
+    return callback(error);
   }
 
   // Ensure the target group exists
@@ -941,10 +989,13 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
  * @param  {Object}     callback.err    An error that occured, if any
  */
 const deleteGroup = function(ctx, groupId, callback) {
-  const validator = new Validator();
-  validator.check(groupId, { code: 400, msg: 'A valid group id must be provided' }).isGroupId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isGroupId, {
+      code: 400,
+      msg: 'A valid group id must be provided'
+    })(groupId);
+  } catch (error) {
+    return callback(error);
   }
 
   PrincipalsDAO.getPrincipal(groupId, (err, group) => {
@@ -980,10 +1031,13 @@ const deleteGroup = function(ctx, groupId, callback) {
  * @param  {Object}     callback.err    An error that occured, if any
  */
 const restoreGroup = function(ctx, groupId, callback) {
-  const validator = new Validator();
-  validator.check(groupId, { code: 400, msg: 'A valid group id must be provided' }).isGroupId();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isGroupId, {
+      code: 400,
+      msg: 'A valid group id must be provided'
+    })(groupId);
+  } catch (error) {
+    return callback(error);
   }
 
   canRestoreGroup(ctx, groupId, (err, canRestore, group) => {
@@ -1114,13 +1168,18 @@ const _canManageAnyGroups = function(ctx, groupIds, callback) {
 };
 
 const _validateJoinGroupRequest = function(ctx, groupId, callback) {
-  const validator = new Validator();
-  validator.check(groupId, { code: 400, msg: 'A valid group id must be provided' }).isGroupId();
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to ask to join a group' })
-    .isLoggedInUser(ctx);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isGroupId, {
+      code: 400,
+      msg: 'A valid group id must be provided'
+    })(groupId);
+
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to ask to join a group'
+    })(ctx);
+  } catch (error) {
+    return callback(error);
   }
 
   return callback();
@@ -1212,13 +1271,18 @@ const getJoinGroupRequests = function(ctx, filter, callback) {
  * @param  {Object}     callback.err                An error that occured, if any
  */
 const getJoinGroupRequest = function(ctx, groupId, callback) {
-  const validator = new Validator();
-  validator.check(groupId, { code: 400, msg: 'A valid group id must be provided' }).isGroupId();
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to ask to join a group' })
-    .isLoggedInUser(ctx);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isGroupId, {
+      code: 400,
+      msg: 'A valid group id must be provided'
+    })(groupId);
+
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to ask to join a group'
+    })(ctx);
+  } catch (error) {
+    return callback(error);
   }
 
   PrincipalsDAO.getJoinGroupRequest(groupId, ctx.user().id, (err, request) => {
@@ -1242,23 +1306,31 @@ const getJoinGroupRequest = function(ctx, groupId, callback) {
 
 const _validateUpdateJoinGroupByRequest = function(ctx, joinRequest, callback) {
   const { groupId, principalId, role, status } = joinRequest;
-  const validator = new Validator();
-  if (role) {
-    validator
-      .check(role, { code: 400, msg: role + ' is not a recognized role group' })
-      .isIn(PrincipalsConstants.role.ALL_PRIORITY);
-  }
+  const roleIsValid = Boolean(role);
+  try {
+    unless(bothCheck(roleIsValid, isIn), {
+      code: 400,
+      msg: role + ' is not a recognized role group'
+    })(role, PrincipalsConstants.role.ALL_PRIORITY);
 
-  validator.check(principalId, { code: 400, msg: 'Must specify a valid principalId' }).isPrincipalId();
-  validator
-    .check(status, { code: 400, msg: status + ' is not a recognized request status' })
-    .isIn(_.values(PrincipalsConstants.requestStatus));
-  validator.check(groupId, { code: 400, msg: 'A valid group id must be provided' }).isGroupId();
-  validator
-    .check(null, { code: 401, msg: 'You have to be logged in to be able to ask to join a group' })
-    .isLoggedInUser(ctx);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+    unless(isPrincipalId, {
+      code: 400,
+      msg: 'Must specify a valid principalId'
+    })(principalId);
+
+    unless(isGroupId, { code: 400, msg: 'A valid group id must be provided' })(groupId);
+
+    unless(isIn, {
+      code: 400,
+      msg: status + ' is not a recognized request status'
+    })(status, _.values(PrincipalsConstants.requestStatus));
+
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'You have to be logged in to be able to ask to join a group'
+    })(ctx);
+  } catch (error) {
+    return callback(error);
   }
 
   return callback();

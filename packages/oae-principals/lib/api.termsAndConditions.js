@@ -14,8 +14,10 @@
  */
 
 /* eslint-disable unicorn/filename-case */
-import { Validator } from 'oae-util/lib/validator';
 import { setUpConfig } from 'oae-config';
+import { Validator as validator } from 'oae-util/lib/validator';
+const { isUserId, unless, isLoggedInUser } = validator;
+import { not } from 'ramda';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
 import * as PrincipalsDAO from './internal/dao';
@@ -60,8 +62,8 @@ const getTermsAndConditions = function(ctx, locale) {
  */
 const acceptTermsAndConditions = function(ctx, userId, callback) {
   // One cannot accept the Terms and Conditions if it has not been enabled
-  const isEnabled = PrincipalsConfig.getValue(ctx.tenant().alias, 'termsAndConditions', 'enabled');
-  if (!isEnabled) {
+  const isDisabled = not(PrincipalsConfig.getValue(ctx.tenant().alias, 'termsAndConditions', 'enabled'));
+  if (isDisabled) {
     return callback({
       code: 400,
       msg: 'The Terms and Conditions are not enabled, there is no need to accept them'
@@ -69,13 +71,18 @@ const acceptTermsAndConditions = function(ctx, userId, callback) {
   }
 
   // Perform some basic validation
-  const validator = new Validator();
-  validator.check(userId, { code: 400, msg: 'Invalid userId passed in' }).isUserId();
-  validator
-    .check(null, { code: 401, msg: 'Only logged in users can accept the Terms and Conditions' })
-    .isLoggedInUser(ctx);
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  try {
+    unless(isUserId, {
+      code: 400,
+      msg: 'Invalid userId passed in'
+    })(userId);
+
+    unless(isLoggedInUser, {
+      code: 401,
+      msg: 'Only logged in users can accept the Terms and Conditions'
+    })(ctx);
+  } catch (error) {
+    return callback(error);
   }
 
   // Only a tenant/global admin or the user themself can accept the Terms and Conditions

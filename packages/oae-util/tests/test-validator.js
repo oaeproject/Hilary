@@ -18,17 +18,56 @@ import assert from 'assert';
 import { Context } from 'oae-context';
 import { Tenant } from 'oae-tenants/lib/model';
 import { User } from 'oae-principals/lib/model.user';
-import { Validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator';
 
+const {
+  isDefined,
+  isShortString,
+  isMediumString,
+  isLongString,
+  isBoolean,
+  isArray,
+  isGlobalAdministratorUser,
+  isHost,
+  isLoggedInUser,
+  isValidTimeZone,
+  isURL,
+  isEmail,
+  isInt,
+  isEmpty,
+  isDifferent,
+  isOneOrGreater,
+  isZeroOrGreater,
+  toInt,
+  notContains,
+  dateIsIntoTheFuture,
+  dateIsInThePast,
+  isRoleValid,
+  unless,
+  isNotNull,
+  validateInCase,
+  getNestedObject,
+  isIso3166Country,
+  isObject,
+  isModule,
+  isANumber,
+  isString,
+  isArrayEmpty,
+  isArrayNotEmpty,
+  defaultToEmptyArray,
+  defaultToEmptyObject,
+  isNotEmpty
+} = validator;
 import * as TestsUtil from 'oae-tests/lib/util';
 
 describe('Utilities', () => {
   describe('Validator', () => {
     it('verify undefined gets checked as empty', callback => {
-      const validator = new Validator();
-      validator.check(undefined, 'foo').notEmpty();
-      assert.ok(validator.hasErrors());
-
+      assert.strictEqual(isEmpty(undefined), false);
+      assert.strictEqual(isEmpty(null), false);
+      assert.strictEqual(isEmpty(''), true);
+      assert.strictEqual(isEmpty([]), true);
+      assert.strictEqual(isEmpty({}), true);
       return callback();
     });
 
@@ -37,44 +76,13 @@ describe('Utilities', () => {
      * is working as intended
      */
     it('verify empty validator', callback => {
-      // Single test successful
-      let validator = new Validator();
-      validator.check('Non-empty string').notEmpty();
-      assert.ok(!validator.hasErrors());
-      assert.ok(!validator.getErrors());
-      assert.strictEqual(validator.getErrorCount(), 0);
+      assert.strictEqual(isNotEmpty('Non'), true);
+      assert.strictEqual(isNotEmpty('Empty'), true);
+      assert.strictEqual(isNotEmpty('String'), true);
 
-      // Single test failed
-      validator = new Validator();
-      validator.check('').notEmpty();
-      assert.ok(validator.hasErrors());
-      assert.ok(validator.getErrors());
-      assert.strictEqual(validator.getErrorCount(), 1);
-
-      validator = new Validator();
-      validator.check(' ').notEmpty();
-      assert.ok(validator.hasErrors());
-      assert.ok(validator.getErrors());
-      assert.strictEqual(validator.getErrorCount(), 1);
-
-      // Multiple success
-      validator = new Validator();
-      validator.check('Non').notEmpty();
-      validator.check('Empty').notEmpty();
-      validator.check('String').notEmpty();
-      assert.ok(!validator.hasErrors());
-      assert.ok(!validator.getErrors());
-      assert.strictEqual(validator.getErrorCount(), 0);
-
-      // Multiple fail
-      validator = new Validator();
-      validator.check('').notEmpty();
-      validator.check(' ').notEmpty();
-      validator.check('   ').notEmpty();
-      validator.check('String').notEmpty();
-      assert.ok(validator.hasErrors());
-      assert.strictEqual(validator.getErrors().length, 3);
-      assert.strictEqual(validator.getErrorCount(), 3);
+      assert.strictEqual(isNotEmpty(''), false);
+      assert.strictEqual(isNotEmpty(' '), false);
+      assert.strictEqual(isNotEmpty('    '), false);
 
       return callback();
     });
@@ -84,45 +92,38 @@ describe('Utilities', () => {
      * is working as intended
      */
     it('verify integer validator', callback => {
-      // Single test successful
-      let validator = new Validator();
-      validator.check(10).isInt();
-      assert.ok(!validator.hasErrors());
-      assert.ok(!validator.getErrors());
-      assert.strictEqual(validator.getErrorCount(), 0);
+      // string numbers succeed
+      assert.strictEqual(isInt('0'), true);
+      assert.strictEqual(isInt('10'), true);
+      assert.strictEqual(isInt('-10'), true);
 
-      validator = new Validator();
-      validator.check('20').isInt();
-      assert.ok(!validator.hasErrors());
-      assert.ok(!validator.getErrors());
-      assert.strictEqual(validator.getErrorCount(), 0);
+      // int numbers will throw error (only strings are validated)
+      try {
+        assert.strictEqual(isInt(0), false);
+      } catch (error) {
+        assert.ok(error);
+      }
 
-      // Single test failed
-      validator = new Validator();
-      validator.check('String').isInt();
-      assert.ok(validator.hasErrors());
-      assert.ok(validator.getErrors());
-      assert.strictEqual(validator.getErrorCount(), 1);
+      try {
+        assert.strictEqual(isInt(10), false);
+      } catch (error) {
+        assert.ok(error);
+      }
 
-      // Multiple success
-      validator = new Validator();
-      validator.check(0).isInt();
-      validator.check(1).isInt();
-      validator.check(100).isInt();
-      validator.check(-100).isInt();
-      assert.ok(!validator.hasErrors());
-      assert.ok(!validator.getErrors());
-      assert.strictEqual(validator.getErrorCount(), 0);
+      try {
+        assert.strictEqual(isInt(-10), false);
+      } catch (error) {
+        assert.ok(error);
+      }
 
-      // Multiple fail
-      validator = new Validator();
-      validator.check('').isInt();
-      validator.check('10').isInt();
-      validator.check('String').isInt();
-      validator.check(100).isInt();
-      assert.ok(validator.hasErrors());
-      assert.strictEqual(validator.getErrors().length, 2);
-      assert.strictEqual(validator.getErrorCount(), 2);
+      // Non numeric strings will fail
+      assert.strictEqual(isInt('String'), false);
+      assert.strictEqual(isInt(''), false);
+
+      // Somewhat numeric strings will fail
+      assert.strictEqual(isInt('100%'), false);
+      assert.strictEqual(isInt(' 10'), false);
+      assert.strictEqual(isInt('-10 '), false);
 
       return callback();
     });
@@ -132,45 +133,18 @@ describe('Utilities', () => {
      * is working as intended
      */
     it('verify email validator', callback => {
-      // Single test successful
-      let validator = new Validator();
-      validator.check('nicolaas.matthijs@caret.cam.ac.uk').isEmail();
-      assert.ok(!validator.hasErrors());
-      assert.ok(!validator.getErrors());
-      assert.strictEqual(validator.getErrorCount(), 0);
+      assert.strictEqual(isEmail('miguel.laginha@oae.project.org'), true);
+      assert.strictEqual(isEmail('miguel_laginha@oae.project.org'), true);
+      assert.strictEqual(isEmail('miguel@oae.project'), true);
 
-      // Single test failed
-      validator = new Validator();
-      validator.check('nicolaas matthijs@caret.cam.ac.uk').isEmail();
-      assert.ok(validator.hasErrors());
-      assert.ok(validator.getErrors());
-      assert.strictEqual(validator.getErrorCount(), 1);
-
-      validator = new Validator();
-      validator.check('http://www.google.co.uk').isEmail();
-      assert.ok(validator.hasErrors());
-      assert.ok(validator.getErrors());
-      assert.strictEqual(validator.getErrorCount(), 1);
-
-      // Multiple success
-      validator = new Validator();
-      validator.check('nicolaas.matthijs@caret.cam.ac.uk').isEmail();
-      validator.check('bertpareyn@gmail.com').isEmail();
-      validator.check('sfmorgan@btinternet.com').isEmail();
-      validator.check('sally.phillips+unique_reference@gmail.com').isEmail();
-      assert.ok(!validator.hasErrors());
-      assert.ok(!validator.getErrors());
-      assert.strictEqual(validator.getErrorCount(), 0);
-
-      // Multiple fail
-      validator = new Validator();
-      validator.check('').isEmail();
-      validator.check('String').isEmail();
-      validator.check('nicolaas matthijs@caret.cam.ac.uk').isEmail();
-      validator.check('nicolaas.matthijs@caret.cam.ac.uk').isEmail();
-      assert.ok(validator.hasErrors());
-      assert.strictEqual(validator.getErrors().length, 3);
-      assert.strictEqual(validator.getErrorCount(), 3);
+      assert.strictEqual(isEmail('miguel.laginha@oae.project.'), false);
+      assert.strictEqual(isEmail('miguel laginha@oae.project.org'), false);
+      assert.strictEqual(isEmail('miguel"laginha@oae.project.org'), false);
+      assert.strictEqual(isEmail(' '), false);
+      assert.strictEqual(isEmail('String'), false);
+      assert.strictEqual(isEmail('miguel laginha@'), false);
+      assert.strictEqual(isEmail('@.'), false);
+      assert.strictEqual(isEmail('http://www.google.pt'), false);
 
       return callback();
     });
@@ -181,51 +155,19 @@ describe('Utilities', () => {
      * @param  {Object} test     Standard nodeunit test object
      */
     it('verify URL validator', callback => {
-      // Single test successful
-      let validator = new Validator();
-      validator.check('http://www.oaeproject.org').isUrl();
-      assert.ok(!validator.hasErrors());
-      assert.ok(!validator.getErrors());
-      assert.strictEqual(validator.getErrorCount(), 0);
+      assert.strictEqual(isURL('http://www.oaeproject.org'), true);
+      assert.strictEqual(isURL('http://example.com/assert.html'), true);
+      assert.strictEqual(isURL('https://oae-widgets.oaeproject.org/sdk'), true);
+      assert.strictEqual(isURL('http://support.google.com/docs/bin/answer.py?hl=en&answer=66343'), true);
+      assert.strictEqual(isURL('http://www.w3.org/2004/02/skos/core#broader'), true);
+      assert.strictEqual(isURL('https://wordpress.org/support/topic/plugin-addthis-odd-url-string?replies=5'), true);
+      assert.strictEqual(
+        isURL('https://twimg0-a.akamaihd.net/profile_images/300425859/ls_1278_Nicolaas-website.jpg'),
+        true
+      );
 
-      validator = new Validator();
-      validator.check('http://example.com/assert.html').isUrl();
-      assert.ok(!validator.hasErrors());
-      assert.ok(!validator.getErrors());
-      assert.strictEqual(validator.getErrorCount(), 0);
-
-      // Single test failed
-      validator = new Validator();
-      validator.check('String').isUrl();
-      assert.ok(validator.hasErrors());
-      assert.ok(validator.getErrors());
-      assert.strictEqual(validator.getErrorCount(), 1);
-
-      validator = new Validator();
-      validator.check('://www.google.co.uk').isUrl();
-      assert.ok(validator.hasErrors());
-      assert.ok(validator.getErrors());
-      assert.strictEqual(validator.getErrorCount(), 1);
-
-      // Multiple success
-      validator = new Validator();
-      validator.check('https://oae-widgets.oaeproject.org/sdk').isUrl();
-      validator.check('http://support.google.com/docs/bin/answer.py?hl=en&answer=66343').isUrl();
-      validator.check('http://www.w3.org/2004/02/skos/core#broader').isUrl();
-      validator.check('https://wordpress.org/support/topic/plugin-addthis-odd-url-string?replies=5').isUrl();
-      assert.ok(!validator.hasErrors());
-      assert.ok(!validator.getErrors());
-      assert.strictEqual(validator.getErrorCount(), 0);
-
-      // Multiple fail
-      validator = new Validator();
-      validator.check('').isUrl();
-      validator.check('String').isUrl();
-      validator.check('www.example.com').isUrl();
-      validator.check('https://twimg0-a.akamaihd.net/profile_images/300425859/ls_1278_Nicolaas-website.jpg').isUrl();
-      assert.ok(validator.hasErrors());
-      assert.strictEqual(validator.getErrors().length, 2);
-      assert.strictEqual(validator.getErrorCount(), 2);
+      assert.strictEqual(isURL('String'), false);
+      assert.strictEqual(isURL('://www.google.pt'), false);
 
       return callback();
     });
@@ -243,71 +185,23 @@ describe('Utilities', () => {
       const user2 = new User(tenant1.alias, 'u:camtest:nm417', 'nm417', 'nm417@example.com');
       const user3 = new User(tenant1.alias, 'u:camtest:nm417', 'nm417', 'nm417@example.com');
 
-      /// /////////////////////////
-      // Single test successful //
-      /// /////////////////////////
-
-      let validator = new Validator();
-      validator.check().isLoggedInUser(new Context(tenant1, user1));
-      assert.ok(!validator.hasErrors());
-      assert.ok(!validator.getErrors());
-      assert.strictEqual(validator.getErrorCount(), 0);
-
-      /// /////////////////////
-      // Single test failed //
-      /// /////////////////////
+      assert.strictEqual(isLoggedInUser(new Context(tenant1, user1)), true);
+      assert.strictEqual(isLoggedInUser(new Context(tenant1, user2)), true);
+      assert.strictEqual(isLoggedInUser(new Context(tenant1, user3)), true);
 
       // Empty context
-      validator = new Validator();
-      validator.check().isLoggedInUser(null);
-      assert.ok(validator.hasErrors());
-      assert.ok(validator.getErrors());
-      assert.strictEqual(validator.getErrorCount(), 1);
+      assert.strictEqual(isLoggedInUser(null), false);
 
       // Tenant, no user
-      validator = new Validator();
-      validator.check().isLoggedInUser(new Context(tenant1, null));
-      assert.ok(validator.hasErrors());
-      assert.ok(validator.getErrors());
-      assert.strictEqual(validator.getErrorCount(), 1);
+      assert.strictEqual(isLoggedInUser(new Context(tenant1, null)), false);
 
       // No tenant, user
-      validator = new Validator();
-      validator.check().isLoggedInUser(new Context(null, user1));
-      assert.ok(validator.hasErrors());
-      assert.ok(validator.getErrors());
-      assert.strictEqual(validator.getErrorCount(), 1);
+      assert.strictEqual(isLoggedInUser(new Context(null, user1)), false);
 
       // Invalid tenant, user
-      validator = new Validator();
-      validator.check().isLoggedInUser(new Context(tenant2, user1));
-      assert.ok(validator.hasErrors());
-      assert.ok(validator.getErrors());
-      assert.strictEqual(validator.getErrorCount(), 1);
-
-      /// ///////////////////
-      // Multiple success //
-      /// ///////////////////
-
-      validator = new Validator();
-      validator.check().isLoggedInUser(new Context(tenant1, user1));
-      validator.check().isLoggedInUser(new Context(tenant1, user2));
-      validator.check().isLoggedInUser(new Context(tenant1, user3));
-      assert.ok(!validator.hasErrors());
-      assert.ok(!validator.getErrors());
-      assert.strictEqual(validator.getErrorCount(), 0);
-
-      // Multiple fail
-      validator = new Validator();
-      validator.check().isLoggedInUser(new Context(tenant1, null));
-      validator.check().isLoggedInUser(new Context(tenant2, user1));
-      validator.check().isLoggedInUser(new Context(tenant2, user2));
-      validator.check().isLoggedInUser(new Context(tenant1, user1));
-      validator.check().isLoggedInUser(new Context(tenant1, user2));
-      validator.check().isLoggedInUser(new Context(tenant1, user3));
-      assert.ok(validator.hasErrors());
-      assert.strictEqual(validator.getErrors().length, 3);
-      assert.strictEqual(validator.getErrorCount(), 3);
+      assert.strictEqual(isLoggedInUser(new Context(tenant2, user1)), false);
+      assert.strictEqual(isLoggedInUser(new Context(tenant2, user2)), false);
+      assert.strictEqual(isLoggedInUser(new Context(tenant2, user3)), false);
 
       return callback();
     });
@@ -325,28 +219,21 @@ describe('Utilities', () => {
       const user1 = new User(camTenant.alias, 'u:camtest:nm417', 'nm417', 'nm417@example.com');
 
       // Ensure it gives a validation error when not authenticated
-      const validator = new Validator();
-      validator.check().isLoggedInUser(new Context(camTenant), camTenant.alias);
-      assert.strictEqual(validator.getErrors().length, 1);
+      assert.strictEqual(isLoggedInUser(new Context(camTenant), camTenant.alias), false);
 
       // Ensure it gives a validation error when authenticated to a different tenant
-      validator.check().isLoggedInUser(new Context(gtTenant, user1), camTenant.alias);
-      assert.strictEqual(validator.getErrors().length, 2);
+      assert.strictEqual(isLoggedInUser(new Context(gtTenant, user1), camTenant.alias), false);
 
       // Ensure it succeeds when validator the proper tenant
-      validator.check().isLoggedInUser(new Context(camTenant, user1), camTenant.alias);
-      validator.check().isLoggedInUser(new Context(gtTenant, user1), gtTenant.alias);
-      assert.strictEqual(validator.getErrors().length, 2);
+      assert.strictEqual(isLoggedInUser(new Context(camTenant, user1), camTenant.alias), true);
+      assert.strictEqual(isLoggedInUser(new Context(gtTenant, user1), gtTenant.alias), true);
 
       return callback();
     });
 
     it('verify timezone validation', callback => {
-      const validateTimeZone = function(timeZone, isValid) {
-        const validator = new Validator();
-        validator.check(timeZone).isValidTimeZone();
-        assert.strictEqual(validator.hasErrors(), !isValid);
-        assert.strictEqual(validator.getErrorCount(), isValid ? 0 : 1);
+      const validateTimeZone = (timezone, isValid) => {
+        assert.strictEqual(isValidTimeZone(timezone), isValid);
       };
 
       // We only support timezones of the format
@@ -356,18 +243,14 @@ describe('Utilities', () => {
       validateTimeZone('Asia/Pyongyang', true);
       validateTimeZone('Asia/Seoul', true);
       validateTimeZone('Asia/Shanghai', true);
-
       validateTimeZone('Australia/Canberra', true);
       validateTimeZone('Australia/Melbourne', true);
       validateTimeZone('Australia/Sydney', true);
-
       validateTimeZone('Canada/Central', true);
-
       validateTimeZone('Europe/Amsterdam', true);
       validateTimeZone('Europe/Brussels', true);
       validateTimeZone('Europe/London', true);
       validateTimeZone('Europe/Brussels', true);
-
       validateTimeZone('US/Pacific', true);
       validateTimeZone('US/Mountain', true);
 
@@ -379,6 +262,12 @@ describe('Utilities', () => {
       // None of those ogre timezones either
       validateTimeZone('SfajslhfafhjlksahjklafT', false);
       validateTimeZone('Sfajslhfafhj/lksahjklafT', false);
+
+      // None of invalid timezones either
+      validateTimeZone('', false);
+      validateTimeZone(undefined, false);
+      validateTimeZone(null, false);
+      validateTimeZone(NaN, false);
 
       return callback();
     });
@@ -394,24 +283,43 @@ describe('Utilities', () => {
       const invalidUserCtx = TestsUtil.createTenantAdminContext(global.oaeTests.tenants.cam);
       delete invalidUserCtx.user().isGlobalAdmin;
 
-      const validator = new Validator();
-      validator.check().isGlobalAdministratorUser(undefined);
-      validator.check().isGlobalAdministratorUser(null);
-      validator.check().isGlobalAdministratorUser({});
-      validator.check().isGlobalAdministratorUser(anonymousCtx);
-      validator.check().isGlobalAdministratorUser(invalidUserCtx);
-      validator.check().isGlobalAdministratorUser(tenantAdminCtx);
-      validator.check().isGlobalAdministratorUser(globalAdminCtx);
+      try {
+        assert.strictEqual(isGlobalAdministratorUser(undefined), false);
+      } catch (error) {
+        assert.strictEqual(error.msg, 'An empty context has been passed in');
+      }
 
-      // 7 checks, only 1 was valid
-      const errors = validator.getErrors();
-      assert.strictEqual(errors.length, 6);
-      assert.strictEqual(errors[0], 'An empty context has been passed in');
-      assert.strictEqual(errors[1], 'An empty context has been passed in');
-      assert.strictEqual(errors[2], 'The context is not associated to a tenant');
-      assert.strictEqual(errors[3], 'The user is not logged in');
-      assert.strictEqual(errors[4], 'The user object is invalid');
-      assert.strictEqual(errors[5], 'The user is not a global administrator');
+      try {
+        assert.strictEqual(isGlobalAdministratorUser(null), false);
+      } catch (error) {
+        assert.strictEqual(error.msg, 'An empty context has been passed in');
+      }
+
+      try {
+        assert.strictEqual(isGlobalAdministratorUser({}), false);
+      } catch (error) {
+        assert.strictEqual(error.msg, 'The context is not associated to a tenant');
+      }
+
+      try {
+        assert.strictEqual(isGlobalAdministratorUser(anonymousCtx), false);
+      } catch (error) {
+        assert.strictEqual(error.msg, 'The user is not logged in');
+      }
+
+      try {
+        assert.strictEqual(isGlobalAdministratorUser(invalidUserCtx), false);
+      } catch (error) {
+        assert.strictEqual(error.msg, 'The user object is invalid');
+      }
+
+      try {
+        assert.strictEqual(isGlobalAdministratorUser(tenantAdminCtx), false);
+      } catch (error) {
+        assert.strictEqual(error.msg, 'The user is not a global administrator');
+      }
+
+      assert.strictEqual(isGlobalAdministratorUser(globalAdminCtx), true);
 
       return callback();
     });
@@ -420,12 +328,13 @@ describe('Utilities', () => {
      * Test that verifies validation results for a variety of inputs to validator.isArray
      */
     it('verify isArray validation', callback => {
-      const validator = new Validator();
-      validator.check().isArray([1, 2, 3]);
-      validator.check().isArray(null);
-      validator.check().isArray(undefined);
-      validator.check().isArray('a string');
-      assert.strictEqual(validator.getErrors().length, 3);
+      assert.strictEqual(isArray([1, 2, 3]), true);
+      assert.strictEqual(isArray(), false);
+      assert.strictEqual(isArray(undefined), false);
+      assert.strictEqual(isArray(NaN), false);
+      assert.strictEqual(isArray(null), false);
+      assert.strictEqual(isArray(undefined), false);
+      assert.strictEqual(isArray('a string'), false);
 
       return callback();
     });
@@ -434,16 +343,17 @@ describe('Utilities', () => {
      * Test that verifies validation results for a variety of inputs to validator.isBoolean
      */
     it('verify isBoolean validation', callback => {
-      const validator = new Validator();
-      validator.check().isBoolean(true);
-      validator.check().isBoolean(false);
-      validator.check().isBoolean('true');
-      validator.check().isBoolean('false');
-      validator.check().isBoolean(0);
-      validator.check().isBoolean(1);
-      validator.check().isBoolean({});
-      validator.check().isBoolean([]);
-      assert.strictEqual(validator.getErrors().length, 6);
+      assert.strictEqual(isBoolean(true), true);
+      assert.strictEqual(isBoolean(false), true);
+      assert.strictEqual(isBoolean('true'), false);
+      assert.strictEqual(isBoolean('false'), false);
+      assert.strictEqual(isBoolean(), false);
+      assert.strictEqual(isBoolean(undefined), false);
+      assert.strictEqual(isBoolean(NaN), false);
+      assert.strictEqual(isBoolean(0), false);
+      assert.strictEqual(isBoolean(1), false);
+      assert.strictEqual(isBoolean({}), false);
+      assert.strictEqual(isBoolean([]), false);
 
       return callback();
     });
@@ -452,13 +362,16 @@ describe('Utilities', () => {
      * Test that verifies validation results for a variety of inputs to validator.isShortString
      */
     it('verify isShortString validation', callback => {
-      const bigString = TestsUtil.generateRandomText(100);
-      const validator = new Validator();
-      validator.check(null).isShortString();
-      validator.check('').isShortString();
-      validator.check('valid').isShortString();
-      validator.check(bigString).isShortString();
-      assert.strictEqual(validator.getErrorCount(), 3);
+      const bigString = TestsUtil.generateRandomText(1001);
+      try {
+        assert.strictEqual(isShortString(null), false);
+      } catch (error) {
+        assert.ok(error);
+      }
+
+      assert.strictEqual(isShortString(''), false);
+      assert.strictEqual(isShortString('valid'), true);
+      assert.strictEqual(isShortString(bigString), false);
 
       return callback();
     });
@@ -467,13 +380,16 @@ describe('Utilities', () => {
      * Test that verifies validation results for a variety of inputs to validator.isMediumString
      */
     it('verify isMediumString validation', callback => {
-      const bigString = TestsUtil.generateRandomText(1000);
-      const validator = new Validator();
-      validator.check(null).isMediumString();
-      validator.check('').isMediumString();
-      validator.check('valid').isMediumString();
-      validator.check(bigString).isMediumString();
-      assert.strictEqual(validator.getErrorCount(), 3);
+      const bigString = TestsUtil.generateRandomText(10001);
+      try {
+        isMediumString(null);
+      } catch (error) {
+        assert.ok(error);
+      }
+
+      assert.strictEqual(isMediumString(''), false);
+      assert.strictEqual(isMediumString('valid'), true);
+      assert.strictEqual(isMediumString(bigString), false);
 
       return callback();
     });
@@ -482,13 +398,16 @@ describe('Utilities', () => {
      * Test that verifies validation results for a variety of inputs to validator.isLongString
      */
     it('verify isLongString validation', callback => {
-      const bigString = TestsUtil.generateRandomText(10000);
-      const validator = new Validator();
-      validator.check(null).isLongString();
-      validator.check('').isLongString();
-      validator.check('valid').isLongString();
-      validator.check(bigString).isLongString();
-      assert.strictEqual(validator.getErrorCount(), 3);
+      const bigString = TestsUtil.generateRandomText(100001);
+      try {
+        isLongString(null);
+      } catch (error) {
+        assert.ok(error);
+      }
+
+      assert.strictEqual(isLongString(''), false);
+      assert.strictEqual(isLongString('valid'), true);
+      assert.strictEqual(isLongString(bigString), false);
 
       return callback();
     });
@@ -499,20 +418,45 @@ describe('Utilities', () => {
     it('verify isDefined validation', callback => {
       const err = { code: 400, msg: 'Funny error object, LOL' };
 
-      const validator = new Validator();
-      validator.check(null, err).isDefined(null);
-      validator.check(null, err).isDefined(undefined);
-      validator.check(null, err).isDefined();
-      assert.strictEqual(validator.getErrorCount(), 3);
+      try {
+        isDefined(null);
+      } catch (error) {
+        assert.ok(error);
+        assert.strictEqual(error.msg, err.msg);
+        assert.strictEqual(error.code, err.code);
+      }
 
-      validator.check(null, err).isDefined('');
-      validator.check(null, err).isDefined('proper string');
-      validator.check(null, err).isDefined(0);
-      validator.check(null, err).isDefined({});
-      validator.check(null, err).isDefined([]);
-      validator.check(null, err).isDefined(false);
-      validator.check(null, err).isDefined(true);
-      assert.strictEqual(validator.getErrorCount(), 3);
+      try {
+        isDefined(undefined);
+      } catch (error) {
+        assert.ok(error);
+        assert.strictEqual(error.msg, err.msg);
+        assert.strictEqual(error.code, err.code);
+      }
+
+      try {
+        isDefined(NaN);
+      } catch (error) {
+        assert.ok(error);
+        assert.strictEqual(error.msg, err.msg);
+        assert.strictEqual(error.code, err.code);
+      }
+
+      try {
+        isDefined();
+      } catch (error) {
+        assert.ok(error);
+        assert.strictEqual(error.msg, err.msg);
+        assert.strictEqual(error.code, err.code);
+      }
+
+      assert.strictEqual(isDefined(''), true);
+      assert.strictEqual(isDefined('proper string'), true);
+      assert.strictEqual(isDefined(0), true);
+      assert.strictEqual(isDefined({}), true);
+      assert.strictEqual(isDefined([]), true);
+      assert.strictEqual(isDefined(false), true);
+      assert.strictEqual(isDefined(true), true);
 
       return callback();
     });
@@ -523,22 +467,396 @@ describe('Utilities', () => {
     it('verify isHost validation', callback => {
       const err = { code: 400, msg: 'Funny error object, LOL' };
 
-      const validator = new Validator();
       // A set of invalid hosts
-      validator.check('not a valid host', err).isHost();
-      validator.check('invalid,character.com', err).isHost();
-      validator.check('almost.but.not.quite com', err).isHost();
-      validator.check('localhost:', err).isHost();
-      validator.check('localhost:2000:', err).isHost();
-      assert.strictEqual(validator.getErrorCount(), 5);
+      try {
+        isHost('not a valid host');
+      } catch (error) {
+        assert.ok(error);
+        assert.strictEqual(error.msg, err.msg);
+        assert.strictEqual(error.code, err.code);
+      }
+
+      try {
+        isHost('invalid,character.com');
+      } catch (error) {
+        assert.ok(error);
+        assert.strictEqual(error.msg, err.msg);
+        assert.strictEqual(error.code, err.code);
+      }
+
+      try {
+        isHost('almost.but.not.quite com');
+      } catch (error) {
+        assert.ok(error);
+        assert.strictEqual(error.msg, err.msg);
+        assert.strictEqual(error.code, err.code);
+      }
+
+      try {
+        isHost('localhost:');
+      } catch (error) {
+        assert.ok(error);
+        assert.strictEqual(error.msg, err.msg);
+        assert.strictEqual(error.code, err.code);
+      }
+
+      try {
+        isHost('localhost:2000:');
+      } catch (error) {
+        assert.ok(error);
+        assert.strictEqual(error.msg, err.msg);
+        assert.strictEqual(error.code, err.code);
+      }
 
       // A set of valid hosts
-      validator.check('www.google.com', err).isHost();
-      validator.check('unity.ac', err).isHost();
-      validator.check('localhost:2000', err).isHost();
-      validator.check('trailing.dots.are.valid.too.', err).isHost();
-      assert.strictEqual(validator.getErrorCount(), 5);
+      isHost('www.google.com');
+      isHost('unity.ac');
+      isHost('localhost:2000');
+      isHost('trailing.dots.are.valid.too.');
       return callback();
+    });
+
+    /**
+     *
+     */
+    it('verify isDifferent validation', () => {
+      assert.strictEqual(isDifferent('', ' '), true);
+      assert.strictEqual(isDifferent(true, false), true);
+      assert.strictEqual(isDifferent(false, 'false'), true);
+      assert.strictEqual(isDifferent(true, 'true'), true);
+      assert.strictEqual(isDifferent('a', ' '), true);
+      assert.strictEqual(isDifferent(null, undefined), true);
+      assert.strictEqual(isDifferent(undefined, 'undefined'), true);
+      assert.strictEqual(isDifferent(null, 'null'), true);
+      assert.strictEqual(isDifferent([], {}), true);
+    });
+
+    /**
+     *
+     */
+    it('verify isOneOrGreater validation', () => {
+      assert.strictEqual(isOneOrGreater(0), false);
+      assert.strictEqual(isOneOrGreater(1), true);
+      assert.strictEqual(isOneOrGreater(10), true);
+      assert.strictEqual(isOneOrGreater(-1), false);
+    });
+
+    it('verify isZeroOrGreater validation', () => {
+      assert.strictEqual(isZeroOrGreater(0), true);
+      assert.strictEqual(isZeroOrGreater(1), true);
+      assert.strictEqual(isZeroOrGreater(10), true);
+      assert.strictEqual(isZeroOrGreater(-1), false);
+    });
+
+    it('verify toInt validation', () => {
+      assert.strictEqual(toInt('1'), 1);
+      assert.strictEqual(toInt('-1'), -1);
+      assert.strictEqual(toInt('0'), 0);
+      assert.strictEqual(toInt('10'), 10);
+      assert.strictEqual(toInt(NaN), NaN);
+    });
+
+    it('verify notContains validation', () => {
+      assert.strictEqual(notContains('abcde', ' '), true);
+      assert.strictEqual(notContains('abcde', 'cc'), true);
+      assert.strictEqual(notContains('abcde', 'f'), true);
+      assert.strictEqual(notContains('abcdef', 'a'), false);
+      assert.strictEqual(notContains('abcdef', 'c'), false);
+      assert.strictEqual(notContains('abcdef', 'f'), false);
+
+      assert.strictEqual(notContains(' abcde ', ' a'), false);
+      assert.strictEqual(notContains(' abcde ', 'e '), false);
+    });
+
+    it('verify dateIsIntoTheFuture validation', () => {
+      const now = Date.now();
+      const futureNow = now + 10;
+      const pastNow = now - 10;
+
+      assert.strictEqual(dateIsIntoTheFuture(futureNow), true);
+      assert.strictEqual(dateIsIntoTheFuture(pastNow), false);
+      assert.strictEqual(dateIsIntoTheFuture(String(futureNow)), true);
+      assert.strictEqual(dateIsIntoTheFuture(String(pastNow)), false);
+    });
+
+    it('verify dateIsInThePast validation', () => {
+      const now = Date.now();
+      const futureNow = now + 10;
+      const pastNow = now - 10;
+
+      assert.strictEqual(dateIsInThePast(futureNow), false);
+      assert.strictEqual(dateIsInThePast(pastNow), true);
+      assert.strictEqual(dateIsInThePast(String(futureNow)), false);
+      assert.strictEqual(dateIsInThePast(String(pastNow)), true);
+    });
+
+    it('verify isRoleValid validation', () => {
+      assert.strictEqual(isRoleValid('false'), true);
+      assert.strictEqual(isRoleValid('true'), true);
+      assert.strictEqual(isRoleValid(false), false);
+      assert.strictEqual(isRoleValid(true), true);
+      assert.strictEqual(isRoleValid(null), true);
+      assert.strictEqual(isRoleValid(NaN), true);
+      assert.strictEqual(isRoleValid(undefined), true);
+    });
+
+    it('verify isNotNull validation', () => {
+      // notNull means that it must be defined but also not empty (strings, arrays, etc)
+
+      assert.strictEqual(isNotNull(null), false);
+      assert.strictEqual(isNotNull(undefined), false);
+      assert.strictEqual(isNotNull(''), false);
+      assert.strictEqual(isNotNull([]), false);
+      assert.strictEqual(isNotNull({}), false);
+
+      assert.strictEqual(isNotNull('null'), true);
+      assert.strictEqual(isNotNull(NaN), true);
+      assert.strictEqual(isNotNull(true), true);
+      assert.strictEqual(isNotNull(false), true);
+    });
+
+    it('verify isNotEmpty validation', () => {
+      assert.strictEqual(isNotEmpty(''), false);
+      assert.strictEqual(isNotEmpty(' '), false);
+      assert.strictEqual(isNotEmpty(null), false);
+      assert.strictEqual(isNotEmpty(undefined), false);
+      assert.strictEqual(isNotEmpty(NaN), false);
+
+      assert.strictEqual(isNotEmpty('something'), true);
+    });
+
+    it('verify unless validation', () => {
+      const e = new Error('surprise!');
+      unless(isANumber, e)(1);
+      unless(isANumber, e)(10);
+      unless(isANumber, e)(0);
+      unless(isANumber, e)(-1);
+
+      try {
+        unless(isANumber, e)('1');
+      } catch (error) {
+        assert.strictEqual(error, e);
+      }
+      try {
+        unless(isANumber, e)('0');
+      } catch (error) {
+        assert.strictEqual(error, e);
+      }
+      try {
+        unless(isANumber, e)(null);
+      } catch (error) {
+        assert.strictEqual(error, e);
+      }
+      try {
+        unless(isANumber, e)([]);
+      } catch (error) {
+        assert.strictEqual(error, e);
+      }
+      try {
+        unless(isANumber, e)({});
+      } catch (error) {
+        assert.strictEqual(error, e);
+      }
+      try {
+        unless(isANumber, e)(false);
+      } catch (error) {
+        assert.strictEqual(error, e);
+      }
+      try {
+        unless(isANumber, e)(undefined);
+      } catch (error) {
+        assert.strictEqual(error, e);
+      }
+      try {
+        unless(isANumber, e)(NaN);
+      } catch (error) {
+        assert.strictEqual(error, e);
+      }
+    });
+
+    it('verify validateInCase validation', () => {
+      const e = new Error('surprise!');
+      assert.strictEqual(validateInCase(true, isANumber)(1), true);
+      assert.strictEqual(validateInCase(true, isANumber)(10), true);
+      assert.strictEqual(validateInCase(true, isANumber)(0), true);
+      assert.strictEqual(validateInCase(true, isANumber)(-1), true);
+      assert.strictEqual(validateInCase(true, isANumber)(-10), true);
+
+      assert.strictEqual(validateInCase(false, isANumber)(1), true);
+      assert.strictEqual(validateInCase(false, isANumber)(10), true);
+      assert.strictEqual(validateInCase(false, isANumber)(0), true);
+      assert.strictEqual(validateInCase(false, isANumber)(-1), true);
+      assert.strictEqual(validateInCase(false, isANumber)(-10), true);
+
+      assert.strictEqual(validateInCase(true, isANumber)('1'), false);
+      assert.strictEqual(validateInCase(true, isANumber)('10'), false);
+      assert.strictEqual(validateInCase(true, isANumber)('0'), false);
+      assert.strictEqual(validateInCase(true, isANumber)('-1'), false);
+      assert.strictEqual(validateInCase(true, isANumber)('-10'), false);
+
+      assert.strictEqual(validateInCase(false, isANumber)('1'), true);
+      assert.strictEqual(validateInCase(false, isANumber)('10'), true);
+      assert.strictEqual(validateInCase(false, isANumber)('0'), true);
+      assert.strictEqual(validateInCase(false, isANumber)('-1'), true);
+      assert.strictEqual(validateInCase(false, isANumber)('-10'), true);
+    });
+
+    it('verify getNestedObject validation', () => {
+      const complexObject = {
+        name: 'grandma',
+        age: 86,
+        descendents: { name: 'mama', age: 56, descendents: { name: 'me', age: 26 } }
+      };
+      const getAttribute = getNestedObject(complexObject);
+      assert.strictEqual(getAttribute(['name']), 'grandma');
+      assert.strictEqual(getAttribute(['age']), 86);
+      assert.strictEqual(getAttribute(['bloodType']), undefined);
+      assert.strictEqual(isObject(getAttribute(['descendents'])), true);
+
+      assert.strictEqual(getAttribute(['descendents', 'name']), 'mama');
+      assert.strictEqual(getAttribute(['descendents', 'age']), 56);
+      assert.strictEqual(getAttribute(['descendents', 'bloodType']), undefined);
+      assert.strictEqual(isObject(getAttribute(['descendents', 'descendents'])), true);
+
+      assert.strictEqual(getAttribute(['descendents', 'descendents', 'name']), 'me');
+      assert.strictEqual(getAttribute(['descendents', 'descendents', 'age']), 26);
+      assert.strictEqual(getAttribute(['descendents', 'descendents', 'bloodType']), undefined);
+      assert.strictEqual(getAttribute(['descendents', 'descendents', 'descendents']), undefined);
+    });
+
+    it('verify isIso3166Country validation', () => {
+      assert.strictEqual(isIso3166Country('Portugal'), false);
+      assert.strictEqual(isIso3166Country('PT_pt'), false);
+      assert.strictEqual(isIso3166Country('PT'), true);
+      assert.strictEqual(isIso3166Country('EU'), false);
+      assert.strictEqual(isIso3166Country('UK'), false);
+      assert.strictEqual(isIso3166Country('PT/Lisbon'), false);
+      assert.strictEqual(isIso3166Country('PT/pt'), false);
+      assert.strictEqual(isIso3166Country(''), false);
+      assert.strictEqual(isIso3166Country(null), false);
+      assert.strictEqual(isIso3166Country(undefined), false);
+      assert.strictEqual(isIso3166Country(false), false);
+      assert.strictEqual(isIso3166Country([]), false);
+      assert.strictEqual(isIso3166Country({}), false);
+      assert.strictEqual(isIso3166Country(NaN), false);
+    });
+
+    it('verify isObject validation', () => {
+      assert.strictEqual(isObject({}), true);
+      assert.strictEqual(isObject({ a: 1, b: 2, c: 3 }), true);
+      assert.strictEqual(isObject([]), true);
+      assert.strictEqual(isObject([1, 2, 3]), true);
+      assert.strictEqual(isObject(new Array()), true);
+      assert.strictEqual(isObject(new Object()), true);
+
+      assert.strictEqual(isObject(''), false);
+      assert.strictEqual(isObject(null), false);
+      assert.strictEqual(isObject(NaN), false);
+      assert.strictEqual(isObject(undefined), false);
+      assert.strictEqual(isObject(false), false);
+    });
+
+    it('verify isModule validation', () => {
+      assert.strictEqual(isModule(TestsUtil), true);
+      assert.strictEqual(isModule({}), true);
+      assert.strictEqual(isModule({ a: 1, b: 2, c: 3 }), true);
+      assert.strictEqual(isModule([]), true);
+      assert.strictEqual(isModule([1, 2, 3]), true);
+      assert.strictEqual(isModule(new Array()), true);
+      assert.strictEqual(isModule(new Object()), true);
+
+      assert.strictEqual(isModule(''), false);
+      assert.strictEqual(isModule(null), false);
+      assert.strictEqual(isModule(NaN), false);
+      assert.strictEqual(isModule(undefined), false);
+      assert.strictEqual(isModule(false), false);
+    });
+
+    it('verify isANumber validation', () => {
+      assert.strictEqual(isANumber(1), true);
+      assert.strictEqual(isANumber(-1), true);
+      assert.strictEqual(isANumber(10), true);
+      assert.strictEqual(isANumber(-10), true);
+      assert.strictEqual(isANumber(0), true);
+      assert.strictEqual(isANumber(NaN), true);
+
+      assert.strictEqual(isANumber(''), false);
+      assert.strictEqual(isANumber(' '), false);
+      assert.strictEqual(isANumber('1'), false);
+      assert.strictEqual(isANumber('-1'), false);
+      assert.strictEqual(isANumber(null), false);
+      assert.strictEqual(isANumber(undefined), false);
+      assert.strictEqual(isANumber(true), false);
+      assert.strictEqual(isANumber({}), false);
+      assert.strictEqual(isANumber([]), false);
+    });
+
+    it('verify isString validation', () => {
+      assert.strictEqual(isString(1), false);
+      assert.strictEqual(isString(-1), false);
+      assert.strictEqual(isString(10), false);
+      assert.strictEqual(isString(-10), false);
+      assert.strictEqual(isString(0), false);
+      assert.strictEqual(isString(NaN), false);
+
+      assert.strictEqual(isString(''), true);
+      assert.strictEqual(isString(' '), true);
+      assert.strictEqual(isString('1'), true);
+      assert.strictEqual(isString('-1'), true);
+
+      assert.strictEqual(isString(null), false);
+      assert.strictEqual(isString(undefined), false);
+      assert.strictEqual(isString(true), false);
+      assert.strictEqual(isString({}), false);
+      assert.strictEqual(isString([]), false);
+    });
+
+    it('verify isArrayEmpty validation', () => {
+      assert.strictEqual(isArrayEmpty([]), true);
+
+      assert.strictEqual(isArrayEmpty([1, 2, 3, 4, 5]), false);
+      assert.strictEqual(isArrayEmpty({}), false);
+      assert.strictEqual(isArrayEmpty(''), false);
+      assert.strictEqual(isArrayEmpty(null), false);
+      assert.strictEqual(isArrayEmpty(undefined), false);
+      assert.strictEqual(isArrayEmpty(false), false);
+      assert.strictEqual(isArrayEmpty(NaN), false);
+    });
+
+    it('verify isArrayNotEmpty validation', () => {
+      assert.strictEqual(isArrayNotEmpty([1, 2, 3, 4, 5]), true);
+
+      assert.strictEqual(isArrayNotEmpty([]), false);
+      assert.strictEqual(isArrayNotEmpty({}), false);
+      assert.strictEqual(isArrayNotEmpty(''), false);
+      assert.strictEqual(isArrayNotEmpty(null), false);
+      assert.strictEqual(isArrayNotEmpty(undefined), false);
+      assert.strictEqual(isArrayNotEmpty(false), false);
+      assert.strictEqual(isArrayNotEmpty(NaN), false);
+    });
+
+    it('verify defaultToEmptyArray validation', () => {
+      assert.notStrictEqual(defaultToEmptyArray([1, 2, 3, 4, 5]), [1, 2, 3, 4, 5]);
+      assert.strictEqual(defaultToEmptyArray(true), true);
+      assert.strictEqual(defaultToEmptyArray('abc'), 'abc');
+      assert.notStrictEqual(defaultToEmptyArray({ a: 1, b: 2, c: 3 }), { a: 1, b: 2, c: 3 });
+
+      assert.notStrictEqual(defaultToEmptyArray(null), []);
+      assert.notStrictEqual(defaultToEmptyArray(undefined), []);
+      assert.notStrictEqual(defaultToEmptyArray(NaN), []);
+      assert.notStrictEqual(defaultToEmptyArray(''), []);
+    });
+
+    it('verify defaultToEmptyObject validation', () => {
+      assert.notStrictEqual(defaultToEmptyObject([1, 2, 3, 4, 5]), [1, 2, 3, 4, 5]);
+      assert.strictEqual(defaultToEmptyObject(true), true);
+      assert.strictEqual(defaultToEmptyObject('abc'), 'abc');
+      assert.notStrictEqual(defaultToEmptyObject({ a: 1, b: 2, c: 3 }), { a: 1, b: 2, c: 3 });
+
+      assert.notStrictEqual(defaultToEmptyObject(null), {});
+      assert.notStrictEqual(defaultToEmptyObject(undefined), {});
+      assert.notStrictEqual(defaultToEmptyObject(NaN), {});
+      assert.notStrictEqual(defaultToEmptyObject(''), {});
     });
   });
 });

@@ -15,7 +15,7 @@
 
 import { EventEmitter } from 'oae-emitter';
 import * as Redis from './redis';
-import { Validator } from './validator';
+import { Validator as validator } from './validator';
 
 /*!
  * This module abstracts most of the redis publish/subscribe functions away.
@@ -87,11 +87,19 @@ const init = function(config, callback) {
  */
 const publish = function(channel, message, callback) {
   callback = callback || function() {};
-  const validator = new Validator();
-  validator.check(channel, { code: 400, msg: 'No channel was provided.' }).notEmpty();
-  validator.check(message, { code: 400, msg: 'No message was provided.' }).notEmpty();
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
+  const { isNotEmpty, unless } = validator;
+  try {
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'No channel was provided.'
+    })(channel);
+
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'No message was provided.'
+    })(message);
+  } catch (error) {
+    return callback(error);
   }
 
   redisPublisher.publish(channel, message, callback);

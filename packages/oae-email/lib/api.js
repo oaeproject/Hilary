@@ -33,8 +33,11 @@ import * as Redis from 'oae-util/lib/redis';
 
 import * as UIAPI from 'oae-ui';
 import { htmlToText } from 'nodemailer-html-to-text';
-import { Validator } from 'oae-util/lib/validator';
 import * as TenantsAPI from 'oae-tenants';
+import { Validator as validator } from 'oae-util/lib/validator';
+const { validateInCase: bothCheck, getNestedObject, isDefined, unless, isNotEmpty, isObject } = validator;
+import { compose } from 'ramda';
+import { isEmail } from 'oae-authz/lib/util';
 
 const EmailConfig = setUpConfig('oae-email');
 const log = logger('oae-email');
@@ -212,24 +215,31 @@ const refreshTemplates = function(callback) {
 
 const _abortIfRecipientErrors = (emailData, done) => {
   const { templateModule, templateId, recipient } = emailData;
+  const ifThereIsRecipient = () => Boolean(recipient);
 
-  const validator = new Validator();
-  validator.check(templateModule, { code: 400, msg: 'Must specify a template module' }).notEmpty();
-  validator.check(templateId, { code: 400, msg: 'Must specify a template id' }).notEmpty();
-  validator.check(null, { code: 400, msg: 'Must specify a user when sending an email' }).isObject(recipient);
+  try {
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Must specify a template module'
+    })(templateModule);
 
-  // Only validate the user email if it was a valid object
-  if (recipient) {
-    validator
-      .check(recipient.email, {
-        code: 400,
-        msg: 'User must have a valid email address to receive email'
-      })
-      .isEmail();
-  }
+    unless(isNotEmpty, {
+      code: 400,
+      msg: 'Must specify a template id'
+    })(templateId);
 
-  if (validator.hasErrors()) {
-    return done(validator.getFirstError());
+    const getAttribute = getNestedObject(recipient);
+    unless(isObject, {
+      code: 400,
+      msg: 'Must specify a user when sending an email'
+    })(recipient);
+
+    unless(bothCheck(ifThereIsRecipient, compose(isEmail, String)), {
+      code: 400,
+      msg: 'User must have a valid email address to receive email'
+    })(getAttribute(['email']));
+  } catch (error) {
+    return done(error);
   }
 
   done();
@@ -394,26 +404,24 @@ const sendEmail = function(templateModule, templateId, recipient, data, opts, ca
       }
     };
 
-  /*
-  Const validator = new Validator();
-  validator.check(templateModule, { code: 400, msg: 'Must specify a template module' }).notEmpty();
-  validator.check(templateId, { code: 400, msg: 'Must specify a template id' }).notEmpty();
-  validator.check(null, { code: 400, msg: 'Must specify a user when sending an email' }).isObject(recipient);
+  try {
+    unless(isNotEmpty, { code: 400, msg: 'Must specify a template module' })(templateModule);
+    unless(isNotEmpty, { code: 400, msg: 'Must specify a template id' })(templateId);
+    unless(isObject, { code: 400, msg: 'Must specify a user when sending an email' })(recipient);
 
-  // Only validate the user email if it was a valid object
-  if (recipient) {
-    validator
-      .check(recipient.email, {
-        code: 400,
-        msg: 'User must have a valid email address to receive email'
-      })
-      .isEmail();
+    // Only validate the user email if it was a valid object
+    const recipientIsDefined = Boolean(recipient);
+    unless(bothCheck(recipientIsDefined, isDefined), {
+      code: 400,
+      msg: 'User must have a valid email address to receive email'
+    })(recipient.email);
+    unless(bothCheck(recipientIsDefined, isEmail), {
+      code: 400,
+      msg: 'User must have a valid email address to receive email'
+    })(recipient.email);
+  } catch (error) {
+    return callback(error);
   }
-
-  if (validator.hasErrors()) {
-    return callback(validator.getFirstError());
-  }
-  */
 
   _abortIfRecipientErrors({ templateModule, templateId, recipient }, err => {
     if (err) return callback(err);

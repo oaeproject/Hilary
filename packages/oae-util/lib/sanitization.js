@@ -13,9 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import esapi from 'node-esapi';
-
-const encoder = esapi.encoder();
+import { encode } from 'he';
+import { not } from 'ramda';
 
 /**
  * Encode the `value` parameter such that it is safe to be embedded into an HTML page.
@@ -24,11 +23,9 @@ const encoder = esapi.encoder();
  * @return {String}             The input string after the HTML characters have been escaped
  */
 const encodeForHTML = function(value) {
-  if (!value) {
-    return '';
-  }
+  if (not(value)) return '';
 
-  return encoder.encodeForHTML(value);
+  return encode(value);
 };
 
 /**
@@ -38,11 +35,9 @@ const encodeForHTML = function(value) {
  * @return {String}             The input string after the HTML attribute characters have been escaped
  */
 const encodeForHTMLAttribute = function(value) {
-  if (!value) {
-    return '';
-  }
+  if (not(value)) return '';
 
-  return encoder.encodeForHTMLAttribute(value);
+  return encode(value);
 };
 
 /**
@@ -52,11 +47,9 @@ const encodeForHTMLAttribute = function(value) {
  * @return {String}                     The sanitized user input, ready to be used as a URL fragment
  */
 const encodeForURL = function(value) {
-  if (!value) {
-    return '';
-  }
+  if (not(value)) return '';
 
-  return encoder.encodeForURL(value);
+  return encodeURIComponent(value);
 };
 
 export { encodeForHTML, encodeForHTMLAttribute, encodeForURL };

@@ -15,7 +15,6 @@
 
 import fs from 'fs';
 import Path from 'path';
-import mkdirp from 'mkdirp';
 import PreviewConstants from 'oae-preview-processor/lib/constants';
 import _ from 'underscore';
 import cheerio from 'cheerio';
@@ -177,7 +176,7 @@ const _writeCollabHtml = function(ctx, collabHtml, type, callback) {
     if (err) return callback(err);
 
     // make sure the dir exists
-    mkdirp(ctx.baseDir, err => {
+    fs.mkdir(ctx.baseDir, { recursive: true }, err => {
       if (err) return callback(err);
 
       // Write the resulting HTML to a temporary file on disk

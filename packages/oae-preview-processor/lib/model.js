@@ -16,7 +16,6 @@
 import fs from 'fs';
 import path from 'path';
 import util from 'util';
-import mkdirp from 'mkdirp';
 import rimraf from 'rimraf';
 
 import { logger } from 'oae-logger';
@@ -81,7 +80,7 @@ const PreviewContext = function(config, contentId, revisionId) {
   that.baseDir = path.resolve(config.previews.tmpDir + '/' + safeContentId);
 
   // Create the actual directory
-  mkdirp.sync(that.baseDir);
+  fs.mkdirSync(that.baseDir, { recursive: true });
 
   /**
    * Removes the directory where all images should be stored in.

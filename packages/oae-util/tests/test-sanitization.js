@@ -26,7 +26,7 @@ describe('Sanitization', () => {
     const stringToEscape =
       '\n\n\n<script>window.alert("hello world!");</script><p class="test"><span>Nice</span> link, would <a href="http://www.google.be" target="_blank"><a>click</a></b> again</p>';
     const stringEscaped =
-      '&#xa;&#xa;&#xa;&lt;script&gt;window.alert&#x28;&quot;hello world&#x21;&quot;&#x29;&#x3b;&lt;&#x2f;script&gt;&lt;p class&#x3d;&quot;test&quot;&gt;&lt;span&gt;Nice&lt;&#x2f;span&gt; link, would &lt;a href&#x3d;&quot;http&#x3a;&#x2f;&#x2f;www.google.be&quot; target&#x3d;&quot;_blank&quot;&gt;&lt;a&gt;click&lt;&#x2f;a&gt;&lt;&#x2f;b&gt; again&lt;&#x2f;p&gt;';
+      '\n\n\n&#x3C;script&#x3E;window.alert(&#x22;hello world!&#x22;);&#x3C;/script&#x3E;&#x3C;p class=&#x22;test&#x22;&#x3E;&#x3C;span&#x3E;Nice&#x3C;/span&#x3E; link, would &#x3C;a href=&#x22;http://www.google.be&#x22; target=&#x22;_blank&#x22;&#x3E;&#x3C;a&#x3E;click&#x3C;/a&#x3E;&#x3C;/b&#x3E; again&#x3C;/p&#x3E;'
 
     // Check if the returned value contains HTML entities instead of HTML tags
     assert.strictEqual(Sanitization.encodeForHTML(stringToEscape), stringEscaped);
@@ -42,7 +42,7 @@ describe('Sanitization', () => {
     const stringToEscape =
       '\n\n\n<script>window.alert("hello world!");</script><p class="test"><span>Nice</span> link, would <a href="http://www.google.be" target="_blank"><a>click</a></b> again</p>';
     const stringEscaped =
-      '&#xa;&#xa;&#xa;&lt;script&gt;window.alert&#x28;&quot;hello world&#x21;&quot;&#x29;&#x3b;&lt;&#x2f;script&gt;&lt;p class&#x3d;&quot;test&quot;&gt;&lt;span&gt;Nice&lt;&#x2f;span&gt; link, would &lt;a href&#x3d;&quot;http&#x3a;&#x2f;&#x2f;www.google.be&quot; target&#x3d;&quot;_blank&quot;&gt;&lt;a&gt;click&lt;&#x2f;a&gt;&lt;&#x2f;b&gt; again&lt;&#x2f;p&gt;';
+      '\n\n\n&#x3C;script&#x3E;window.alert(&#x22;hello world!&#x22;);&#x3C;/script&#x3E;&#x3C;p class=&#x22;test&#x22;&#x3E;&#x3C;span&#x3E;Nice&#x3C;/span&#x3E; link, would &#x3C;a href=&#x22;http://www.google.be&#x22; target=&#x22;_blank&#x22;&#x3E;&#x3C;a&#x3E;click&#x3C;/a&#x3E;&#x3C;/b&#x3E; again&#x3C;/p&#x3E;'
 
     // Check if the returned value contains HTML entities instead of HTML tags
     assert.strictEqual(Sanitization.encodeForHTMLAttribute(stringToEscape), stringEscaped);

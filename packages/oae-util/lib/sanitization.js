@@ -13,9 +13,13 @@
  * permissions and limitations under the License.
  */
 
-import esapi from 'node-esapi';
+import { encode } from 'he';
+import { curry, __, isNil, ifElse } from 'ramda';
 
-const encoder = esapi.encoder();
+const ENCODE_OPTIONS = {};
+const EMPTY_STRING = '';
+const returnEmpty = () => EMPTY_STRING;
+const defaultEncode = curry(encode)(__, ENCODE_OPTIONS);
 
 /**
  * Encode the `value` parameter such that it is safe to be embedded into an HTML page.
@@ -23,13 +27,7 @@ const encoder = esapi.encoder();
  * @param  {String}     value   The input string for which the HTML characters need to be escaped. If unspecified, the empty string will be returned
  * @return {String}             The input string after the HTML characters have been escaped
  */
-const encodeForHTML = function(value) {
-  if (!value) {
-    return '';
-  }
-
-  return encoder.encodeForHTML(value);
-};
+const encodeForHTML = value => ifElse(isNil, returnEmpty, defaultEncode)(value);
 
 /**
  * Encode the given string such that it is safe to be used as an attribute to an HTML tag.
@@ -37,13 +35,7 @@ const encodeForHTML = function(value) {
  * @param  {String}     value   The input string for which the non-attribute-safe characters need to be escaped. If unspecified, the empty string will be returned
  * @return {String}             The input string after the HTML attribute characters have been escaped
  */
-const encodeForHTMLAttribute = function(value) {
-  if (!value) {
-    return '';
-  }
-
-  return encoder.encodeForHTMLAttribute(value);
-};
+const encodeForHTMLAttribute = encodeForHTML;
 
 /**
  * Encode the given string such that it is safe to be used as a URL fragment
@@ -51,12 +43,6 @@ const encodeForHTMLAttribute = function(value) {
  * @param  {String}     [value]         The user input string that should be sanitized. If this is not provided, an empty string will be returned
  * @return {String}                     The sanitized user input, ready to be used as a URL fragment
  */
-const encodeForURL = function(value) {
-  if (!value) {
-    return '';
-  }
-
-  return encoder.encodeForURL(value);
-};
+const encodeForURL = value => ifElse(isNil, returnEmpty, encodeURIComponent)(value);
 
 export { encodeForHTML, encodeForHTMLAttribute, encodeForURL };

@@ -615,7 +615,6 @@ const _sendEmail = function(emailInfo, opts, callback) {
     }
 
     // Ensure we're not sending out too many emails to a single user within the last timespan
-    // debug
     return rateLimit(emailInfo.to)
       .then(() => {
         // We will proceed to send an email, so add it to the rate-limit counts

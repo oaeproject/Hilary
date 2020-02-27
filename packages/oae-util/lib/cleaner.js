@@ -19,6 +19,7 @@ import _ from 'underscore';
 
 import * as EmitterAPI from 'oae-emitter';
 import { logger } from 'oae-logger';
+import { compose, not, isNil, ifElse } from 'ramda';
 
 const log = logger('oae-cleaner');
 
@@ -38,7 +39,7 @@ export { Cleaner as emitter };
  * @param  {String}     directory   The path to the directory that should be cleaned.
  * @param  {Number}     interval    The interval (in seconds) at which the directory should be cleaned out.
  */
-const start = function(directory, interval) {
+const start = (directory, interval) => {
   // Take care of double slashes
   directory = path.normalize(directory);
   log().info({ interval, directory }, 'Starting clean job.');
@@ -53,13 +54,18 @@ const start = function(directory, interval) {
  *
  * @param  {String}     directory   The path to the directory for which the cleaning job should be stopped.
  */
-const stop = function(directory) {
-  if (cleaners[directory]) {
-    log().info({ directory }, 'Stopping clean job.');
-    clearInterval(cleaners[directory]);
-  } else {
-    log().warn({ directory }, 'A request to stop an unknown cleaning job was made.');
-  }
+const stop = directory => {
+  const isValid = compose(not, isNil);
+  ifElse(
+    isValid,
+    () => {
+      log().info({ directory }, 'Stopping clean job.');
+      clearInterval(cleaners[directory]);
+    },
+    () => {
+      log().warn({ directory }, 'A request to stop an unknown cleaning job was made.');
+    }
+  )(cleaners[directory]);
 };
 
 /**

@@ -16,9 +16,9 @@
 import assert from 'assert';
 import fs from 'fs';
 import path from 'path';
-import mkdirp from 'mkdirp';
 import _ from 'underscore';
 import shell from 'shelljs';
+import { equals } from 'ramda';
 
 import * as Cleaner from 'oae-util/lib/cleaner';
 
@@ -34,7 +34,7 @@ describe('Content', () => {
      * Sets up a directory with some dummy files.
      */
     beforeEach(callback => {
-      mkdirp(dir, err => {
+      fs.mkdir(dir, { recursive: true }, err => {
         assert.ok(!err);
 
         // Dump some files in there.
@@ -64,10 +64,10 @@ describe('Content', () => {
      */
     it('verify files get removed', callback => {
       Cleaner.start(dir, 1);
-      const onCleaned = function(cleanedDir) {
-        if (cleanedDir === dir) {
+      const onCleaned = cleanedDir => {
+        if (equals(cleanedDir, dir)) {
           Cleaner.emitter.removeListener('cleaned', onCleaned);
-          setTimeout(fs.readdir, 200, dir, (err, files) => {
+          fs.readdir(dir, (err, files) => {
             assert.ok(!err);
             assert.strictEqual(files.length, 0);
             callback();
@@ -91,10 +91,10 @@ describe('Content', () => {
       // Stop removing immediately (ie: run only once)
       Cleaner.stop(dir);
 
-      const onCleaned = function(cleanedDir) {
-        if (cleanedDir === dir) {
+      const onCleaned = cleanedDir => {
+        if (equals(cleanedDir, dir)) {
           Cleaner.emitter.removeListener('cleaned', onCleaned);
-          setTimeout(fs.readdir, 2500, dir, (err, files) => {
+          fs.readdir(dir, (err, files) => {
             assert.ok(!err);
             assert.strictEqual(files.length, 1);
             assert.strictEqual(files[0], 'd');

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import mkdirp from 'mkdirp';
+import fs from 'fs';
 
 import * as Cleaner from 'oae-util/lib/cleaner';
 import { logger } from 'oae-logger';
@@ -57,7 +57,7 @@ export function init(config, callback) {
     }
 
     // Create the directory where files will be stored.
-    mkdirp(config.files.uploadDir, err => {
+    fs.mkdir(config.files.uploadDir, { recursive: true }, err => {
       if (err && err.code !== 'EEXIST') {
         log().error({ err }, 'Could not create the directory where uploaded files can be stored.');
         return callback(err);

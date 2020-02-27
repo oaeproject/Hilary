@@ -16,7 +16,6 @@
 import fs from 'fs';
 import Path from 'path';
 import util from 'util';
-import makeDir from 'make-dir';
 
 import * as IO from 'oae-util/lib/io';
 import { logger } from 'oae-logger';
@@ -173,12 +172,15 @@ const getDownloadStrategy = function(tenantAlias, uri) {
  * @param  {Object}   callback.path  The path of the folder just created
  * @api private
  */
-const _ensureDirectoryExists = async function(dir, callback) {
+const _ensureDirectoryExists = function(dir, callback) {
   try {
-    const path = await makeDir(dir);
-    return callback(null, path);
-  } catch (error) {
-    return callback({ code: 500, msg: error });
+    fs.mkdir(dir, { recursive: true }, err => {
+      if (err) return callback({ code: 500, msg: 'Unable to create directory recursively' });
+      // if (err) throw { code: 500, error: 'Unable to create directory recursively' };
+      return callback(null, dir);
+    });
+  } catch {
+    return callback({ code: 500, msg: 'Unable to create directory recursively' });
   }
 };
 

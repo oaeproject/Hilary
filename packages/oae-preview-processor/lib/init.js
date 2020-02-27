@@ -13,8 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import mkdirp from 'mkdirp';
-
+import fs from 'fs';
 import { logger } from 'oae-logger';
 
 import * as Cleaner from 'oae-util/lib/cleaner';
@@ -29,9 +28,7 @@ const log = logger('oae-preview-processor');
  */
 export function init(config, callback) {
   // Create the previews directory and periodically clean it.
-  // mkdirp does not throw an error if the directory already exist
-  // so there is no need to check that first.
-  mkdirp(config.previews.tmpDir, err => {
+  fs.mkdir(config.previews.tmpDir, { recursive: true }, err => {
     if (err) {
       log().error({ err }, 'Could not create the previews directory');
       return callback({ code: 500, msg: 'Could not create the previews directory' });

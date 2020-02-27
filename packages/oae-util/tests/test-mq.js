@@ -73,6 +73,7 @@ describe('MQ', () => {
      */
     it('verify a queue can be purged', callback => {
       const testQueue = 'testQueue-' + new Date().getTime();
+      const redeliveryQueue = `${testQueue}-redelivery`;
 
       let counter = 0;
       const increment = (message, done) => {
@@ -88,18 +89,21 @@ describe('MQ', () => {
         submitTasksToQueue(testQueue, allTasks, err => {
           assert(!err);
 
-          getQueueLength(`${testQueue}-redelivery`, (err, count) => {
+          // Lets give redis a bit to process
+          setTimeout(getQueueLength, 1000, redeliveryQueue, (err, count) => {
             assert.ok(!err);
             // the redelivery mechanism is asynchronous, so counters must be close to 10
             assert(counter >= 1, 'The number of tasks handled should be at least 1');
             assert(counter <= 10, 'The number of tasks handled should be close to 10');
+
+            // the redelivery queue must have those 10 tasks by now
             assert(count >= 1, 'The number of tasks on redelivery should be at least 1');
             assert(count <= 10, 'The number of tasks on redelivery should be close to 10');
 
-            MQ.purgeQueue(testQueue, err => {
+            MQ.purgeQueue(redeliveryQueue, err => {
               assert(!err);
 
-              getQueueLength(testQueue, (err, count) => {
+              getQueueLength(redeliveryQueue, (err, count) => {
                 assert.ok(!err);
                 assert(count === 0, 'Purged queue should have zero length');
                 callback();

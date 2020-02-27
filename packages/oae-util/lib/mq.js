@@ -306,7 +306,7 @@ const handleMessage = (queuedMessage, queueName, taskHandler, callback) => {
 const sendToRedeliveryQueue = (redeliveryQueue, message, callback) => {
   staticConnections.THE_PUBLISHER.lpush(redeliveryQueue, message, err => {
     if (err) return callback(err);
-    return callback;
+    return callback();
   });
 };
 

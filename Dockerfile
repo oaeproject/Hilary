@@ -26,7 +26,7 @@
 # $ docker run -it --name=hilary --net=host oae-hilary:latest
 #
 
-FROM node:10-alpine3.9
+FROM node:12-alpine3.9
 
 LABEL Name=OAE-Hilary
 LABEL Author=ApereoFoundation

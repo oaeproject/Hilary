@@ -121,7 +121,7 @@
     "mocha": "^6.1.4",
     "mocha-lcov-reporter": "^1.3.0",
     "nock": "^11.7.0",
-    "nodemon": "^1.18.7",
+    "nodemon": "^2.0.2",
     "nyc": "^14.1.1",
     "prettier": "^1.18.2",
     "repl-promised": "^0.1.0",

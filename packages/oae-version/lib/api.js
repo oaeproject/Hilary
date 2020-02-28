@@ -18,7 +18,7 @@ import path from 'path';
 import fs from 'fs';
 import { Map } from 'immutable';
 import * as git from 'isomorphic-git';
-import _ from 'underscore';
+import { nth, gt as greaterThan, head, last } from 'ramda';
 
 // A variable that will hold the path to the UI directory
 const hilaryDirectory = path.resolve(__dirname, '..', '..', '..');
@@ -33,41 +33,64 @@ const hilaryDirectory = path.resolve(__dirname, '..', '..', '..');
  * @param  {String}     callback.version.3akai-ux   The version information for the UI
  */
 const getVersionCB = function(callback) {
-  getVersion().then(version => {
-    return callback(null, version);
-  });
+  getVersion().then(version => callback(null, version));
 };
 
 const getVersion = async function(repoPath = hilaryDirectory, repoInformation = new Map()) {
   const commitLog = await git.log({ fs, dir: repoPath, depth: 1 });
-  const headCommit = _.first(commitLog);
-  const lastCommitId = headCommit.oid; // id().toString();
-  const lastCommitDate = new Date(headCommit.author.timestamp); // .date();
+  const headCommit = head(commitLog);
+  const lastCommitId = headCommit.oid;
+  const lastCommitDate = new Date(headCommit.commit.author.timestamp);
   const tags = await git.listTags({ fs, dir: repoPath });
-
-  const findLatestTag = (accumulator, currentValue) => {
-    return parseFloat(accumulator) > parseFloat(currentValue) ? accumulator : currentValue;
-  };
-
-  const latestTag = tags.reduce(findLatestTag);
+  const latestTag = tags.reduce((highestTag, eachTag) =>
+    greaterThan(parseFloat(highestTag), parseFloat(eachTag)) ? highestTag : eachTag
+  );
 
   /**
    * Isomorphic-git does not yet support submodules
    * so we have to list them by hand for now
    */
+  const submodulePath = {
+    fs,
+    dir: repoPath
+  };
+  const submoduleFilters = [
+    {
+      filepaths: ['packages/oae-rest'],
+      filter: f => f.match(/^packages\/oae-rest\/package.json$/)
+    },
+    {
+      filepaths: ['3akai-ux/package.json'],
+      filter: f => f.match(/^3akai-ux\/package\.json$/)
+    },
+
+    {
+      filepaths: ['packages/restjsdoc'],
+      filter: f => f.match(/^packages\/restjsdoc\/package.json$/)
+    }
+  ];
   const submodules = {
     'oae-rest': {
-      path: await git.statusMatrix({ fs, dir: repoPath, pattern: '**/oae-rest/package.json' })
+      path: await git.statusMatrix({
+        ...submodulePath,
+        ...nth(0, submoduleFilters)
+      })
     },
     '3akai-ux': {
-      path: await git.statusMatrix({ fs, dir: repoPath, pattern: '3akai-ux/package.json' })
+      path: await git.statusMatrix({
+        ...submodulePath,
+        ...nth(1, submoduleFilters)
+      })
     },
     restjsdoc: {
-      path: await git.statusMatrix({ fs, dir: repoPath, pattern: '**/restjsdoc/package.json' })
+      path: await git.statusMatrix({
+        ...submodulePath,
+        ...nth(-1, submoduleFilters)
+      })
     }
   };
 
-  const repoName = _.last(repoPath.split('/'));
+  const repoName = last(repoPath.split('/'));
   repoInformation = repoInformation.set(repoName, {
     lastCommitId,
     lastCommitDate,

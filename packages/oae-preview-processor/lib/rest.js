@@ -14,7 +14,7 @@
  */
 
 import _ from 'underscore';
-import { tall } from 'tall';
+import request from 'request';
 
 import * as OAE from 'oae-util/lib/oae';
 
@@ -121,13 +121,13 @@ OAE.tenantRouter.on('post', '/api/content/:contentId/revision/:revisionId/reproc
 OAE.tenantRouter.on('get', '/api/longurl/expand', async (req, res) => {
   const url = decodeURIComponent(req.query.url);
 
-  try {
-    const unshortenedUrl = await tall(url);
+  request({ url, followRedirect: false }, (err, httpResponse) => {
+    if (err) return console.error(err);
+
+    const unshortenedUrl = httpResponse.headers.location;
     const data = {
       'long-url': unshortenedUrl
     };
     return res.status(200).send(data);
-  } catch (error) {
-    return res.status(500).send(error.message);
-  }
+  });
 });

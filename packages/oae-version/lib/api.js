@@ -18,7 +18,7 @@ import path from 'path';
 import fs from 'fs';
 import { Map } from 'immutable';
 import * as git from 'isomorphic-git';
-import { gt as greaterThan, head, last } from 'ramda';
+import { nth, gt as greaterThan, head, last } from 'ramda';
 
 // A variable that will hold the path to the UI directory
 const hilaryDirectory = path.resolve(__dirname, '..', '..', '..');
@@ -50,29 +50,42 @@ const getVersion = async function(repoPath = hilaryDirectory, repoInformation = 
    * Isomorphic-git does not yet support submodules
    * so we have to list them by hand for now
    */
+  const submodulePath = {
+    fs,
+    dir: repoPath
+  };
+  const submoduleFilters = [
+    {
+      filepaths: ['packages/oae-rest'],
+      filter: f => f.match(/^packages\/oae-rest\/package.json$/)
+    },
+    {
+      filepaths: ['3akai-ux/package.json'],
+      filter: f => f.match(/^3akai-ux\/package\.json$/)
+    },
+
+    {
+      filepaths: ['packages/restjsdoc'],
+      filter: f => f.match(/^packages\/restjsdoc\/package.json$/)
+    }
+  ];
   const submodules = {
     'oae-rest': {
       path: await git.statusMatrix({
-        fs,
-        dir: repoPath,
-        filepaths: ['packages/oae-rest'],
-        filter: f => f.match(/^packages\/oae-rest\/package.json$/)
+        ...submodulePath,
+        ...nth(0, submoduleFilters)
       })
     },
     '3akai-ux': {
       path: await git.statusMatrix({
-        fs,
-        dir: repoPath,
-        filepaths: ['3akai-ux/package.json'],
-        filter: f => f.match(/^3akai-ux\/package\.json$/)
+        ...submodulePath,
+        ...nth(1, submoduleFilters)
       })
     },
     restjsdoc: {
       path: await git.statusMatrix({
-        fs,
-        dir: repoPath,
-        filepaths: ['packages/restjsdoc'],
-        filter: f => f.match(/^packages\/restjsdoc\/package.json$/)
+        ...submodulePath,
+        ...nth(-1, submoduleFilters)
       })
     }
   };

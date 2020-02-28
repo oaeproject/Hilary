@@ -14,8 +14,11 @@
  */
 
 /* eslint-disable unicorn/filename-case */
-import _ from 'underscore';
+import { compose, pick, mapObjIndexed } from 'ramda';
 import lunr from 'lunr';
+import { Validator as validator } from 'oae-util/lib/validator';
+
+const { isArray } = validator;
 
 /**
  * Represents an index where tenants can be indexed and then later full-text searched
@@ -39,15 +42,13 @@ const TenantIndex = function(tenants) {
 
     /**
      * Add / update the given tenants in the search index
+     * Since lunr v2.0 indexes are immutable so updating just means creating it again
      *
      * @param  {Tenant|Tenant[]}    tenants     The tenants to add or update in the index
      */
     update(tenants) {
-      tenants = _.isArray(tenants) ? tenants : [tenants];
-      _.chain(tenants)
-        .map(_tenantToDocument)
-        .each(lunrIndex.update.bind(lunrIndex))
-        .value();
+      tenants = isArray(tenants) ? tenants : [tenants];
+      _createIndex(tenants);
     }
   };
 };
@@ -67,15 +68,13 @@ const _createIndex = function(tenants) {
     this.field('alias');
     this.field('host');
     this.field('displayName');
+
+    const that = this;
+    mapObjIndexed(
+      compose(eachDoc => that.add(eachDoc), _tenantToDocument),
+      tenants
+    );
   });
-
-  _.chain(tenants)
-    .map(_tenantToDocument)
-    .each(doc => {
-      lunrIndex.add(doc);
-    })
-    .value();
-
   return lunrIndex;
 };
 
@@ -86,8 +85,6 @@ const _createIndex = function(tenants) {
  * @return {Object}             The lunr document that represents the tenant
  * @api private
  */
-const _tenantToDocument = function(tenant) {
-  return _.pick(tenant, 'alias', 'host', 'displayName');
-};
+const _tenantToDocument = tenant => pick(['alias', 'host', 'displayName'], tenant);
 
 export default TenantIndex;

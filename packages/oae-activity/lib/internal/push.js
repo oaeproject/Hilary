@@ -17,7 +17,6 @@ import ActivityEmitter from 'oae-activity/lib/internal/emitter';
 
 import _ from 'underscore';
 import clone from 'clone';
-import selectn from 'selectn';
 
 import { Context } from 'oae-context';
 import { logger } from 'oae-logger';
@@ -37,6 +36,7 @@ const {
   isNotNull,
   isANumber
 } = validator;
+import { compose, equals, not, path } from 'ramda';
 
 import { ActivityConstants } from 'oae-activity/lib/constants';
 import * as ActivityRegistry from 'oae-activity/lib/internal/registry';
@@ -659,7 +659,9 @@ ActivityEmitter.on(ActivityConstants.events.ROUTED_ACTIVITIES, routedActivities 
       // Get the activity stream configuration for this stream type and determine if we should send a push notification
       // in the routing phase
       const streamOptions = ActivityRegistry.getRegisteredActivityStreamType(streamType);
-      if (selectn('push.delivery.phase', streamOptions) !== 'aggregation') {
+      const notAggregation = compose(not, equals)(path(['push', 'delivery', 'phase'], streamOptions), 'aggregation');
+
+      if (notAggregation) {
         // We are configured to emit in the routing phase, so we push the activity back to the client
         const data = {
           activities: [activity],
@@ -683,7 +685,8 @@ ActivityEmitter.on(ActivityConstants.events.DELIVERED_ACTIVITIES, deliveredActiv
       // Get the activity stream configuration for this stream type and determine if we should send a push notification
       // in the aggregation phase
       const streamOptions = ActivityRegistry.getRegisteredActivityStreamType(streamType);
-      if (selectn('push.delivery.phase', streamOptions) === 'aggregation') {
+      const itIsAggregation = equals(path(['push', 'delivery', 'phase'], streamOptions), 'aggregation');
+      if (itIsAggregation) {
         // We are configured to emit in the aggregation phase, so we push the activity back to the client
         const data = {
           activities: activityInfo.activities,

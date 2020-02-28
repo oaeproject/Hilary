@@ -92,7 +92,6 @@
     "ramda": "^0.27.0",
     "request": "2.88.0",
     "rimraf": "^3.0.0",
-    "selectn": "^1.1.2",
     "shortid": "^2.2.8",
     "slideshare": "git://github.com/oaeproject/node-slideshare",
     "snyk": "^1.246.0",

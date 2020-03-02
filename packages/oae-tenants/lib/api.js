@@ -534,8 +534,8 @@ const _updateCachedTenant = function(tenantAlias, callback) {
       tenantsSorted[index] = tenant;
     }
 
-    // Update the tenant in the search index
-    tenantSearchIndex.update(tenant);
+    // Build the search index for all tenants since you cannot update the index anymore
+    tenantSearchIndex = new TenantIndex(tenants);
 
     // Indicate that all tenants have been cached
     TenantsAPI.emit('cached');

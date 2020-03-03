@@ -29,7 +29,7 @@ import * as UserAPI from 'oae-principals/lib/api.user';
 import * as Cassandra from 'oae-util/lib/cassandra';
 import * as EmitterAPI from 'oae-emitter';
 import * as OAE from 'oae-util/lib/oae';
-import * as OaeUtil from 'oae-util/lib/util';
+import { getNumberParam, castToBoolean } from 'oae-util/lib/util';
 import * as Pubsub from 'oae-util/lib/pubsub';
 import { Validator as validator } from 'oae-util/lib/validator';
 const {
@@ -52,6 +52,7 @@ const {
 } = validator;
 import {
   or,
+  path,
   mapObjIndexed,
   pick,
   compose,
@@ -64,6 +65,7 @@ import {
   pipe,
   and,
   equals,
+  split,
   forEachObjIndexed
 } from 'ramda';
 import isIn from 'validator/lib/isIn';
@@ -130,9 +132,7 @@ const TenantsAPI = new EmitterAPI.EventEmitter();
  * @param  {String}  message    A brief command in the form of `start cam`, `stop cam` or `refresh cam`
  */
 Pubsub.emitter.on('oae-tenants', message => {
-  const args = message.split(' ');
-  const cmd = args.shift();
-  const alias = args.shift();
+  const [cmd, alias] = split(' ', message);
 
   _updateCachedTenant(alias, err => {
     if (err) {
@@ -171,8 +171,10 @@ const init = function(_serverConfig, callback) {
 
   // This middleware adds the tenant to each request on the user tenant server
   OAE.tenantServer.use((req, res, next) => {
-    if (serverConfig.shibbolethSPHost && req.headers.host === serverConfig.shibbolethSPHost) {
-      req.tenant = new Tenant('shib-sp', 'Shibboleth SP hardcoded host', serverConfig.shibbolethSPHost, {
+    const shibbolethSPHost = path(['shibbolethSPHost'], serverConfig);
+    const hostIsValid = equals(req.headers.host, shibbolethSPHost);
+    if (hostIsValid) {
+      req.tenant = new Tenant('shib-sp', 'Shibboleth SP hardcoded host', shibbolethSPHost, {
         active: true
       });
     } else {
@@ -180,13 +182,15 @@ const init = function(_serverConfig, callback) {
     }
 
     // We stop the request if we can't find a tenant associated to the current hostname
-    if (!req.tenant) {
+    const noAssociatedTenant = not(req.tenant);
+    if (noAssociatedTenant) {
       res.setHeader('Connection', 'Close');
       return res.status(418).send('This hostname is not associated to any tenant');
     }
 
     // Check whether or not the tenant has been disabled
-    if (!req.tenant.active) {
+    const tenantIsDisabled = not(req.tenant.active);
+    if (tenantIsDisabled) {
       // If the tenant has been stopped, there is no point in keeping connections open
       res.setHeader('Connection', 'Close');
       return res.status(503).send('This server is currently disabled. Please check back later.');
@@ -197,27 +201,18 @@ const init = function(_serverConfig, callback) {
 
   // Cache the available tenants
   _cacheTenants(err => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     TenantNetworksDAO.init();
 
     // Check if a guest tenant is created
     const { guestTenantHost, guestTenantAlias } = serverConfig;
     const guestTenant = getTenant(guestTenantAlias);
-    if (guestTenant) {
-      return callback();
-    }
+    if (guestTenant) return callback();
 
     // If the guest tenant doesn't exist yet, create it
-    _createTenant(guestTenantAlias, 'Guest tenant', guestTenantHost, null, err => {
-      if (err) {
-        return callback(err);
-      }
-
-      return callback();
-    });
+    const GUEST_TENANT = 'Guest tenant';
+    _createTenant(guestTenantAlias, GUEST_TENANT, guestTenantHost, null, callback);
   });
 };
 
@@ -228,7 +223,7 @@ const init = function(_serverConfig, callback) {
  * @return {Object}                         An object keyed by tenant alias holding all the tenants
  */
 const getTenants = function(excludeDisabled) {
-  excludeDisabled = OaeUtil.castToBoolean(excludeDisabled);
+  excludeDisabled = castToBoolean(excludeDisabled);
 
   const filteredTenants = {};
   forEachObjIndexed((tenant, tenantAlias) => {
@@ -266,7 +261,7 @@ const getNonInteractingTenants = () => mapObjIndexed(_copyTenant, tenantsNotInte
 const searchTenants = function(q, opts) {
   q = isString(q) ? q.trim() : null;
   opts = opts || {};
-  opts.start = OaeUtil.getNumberParam(opts.start, 0);
+  opts.start = getNumberParam(opts.start, 0);
 
   // Determine if we should included disabled/deleted tenants
   const includeDisabled = isBoolean(opts.disabled) ? opts.disabled : false;
@@ -300,7 +295,7 @@ const searchTenants = function(q, opts) {
   const total = _.size(results);
 
   // Determine the end of our page slice
-  opts.limit = OaeUtil.getNumberParam(opts.limit, total);
+  opts.limit = getNumberParam(opts.limit, total);
   const end = opts.start + opts.limit;
 
   // Cut down to just the requested page, and clone the tenants to avoid tenants being updated

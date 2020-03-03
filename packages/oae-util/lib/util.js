@@ -144,11 +144,11 @@ const isUnspecified = value => isNil(value);
  */
 const invokeIfNecessary = function(isNecessary, whenTrueFn, ...args) {
   const callback = last(args);
-  const shallInvoke = () => isNecessary;
-  const runWhenTrue = () => whenTrueFn(...args);
-  const runWhenFalse = () => callback();
+  const isItNecessary = () => isNecessary;
+  const thenInvokeFn = () => whenTrueFn(...args);
+  const otherwiseJustExit = () => callback();
 
-  ifElse(shallInvoke, runWhenTrue, runWhenFalse)();
+  ifElse(isItNecessary, thenInvokeFn, otherwiseJustExit)();
 };
 
 /**

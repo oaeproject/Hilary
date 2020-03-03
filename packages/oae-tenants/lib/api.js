@@ -19,14 +19,13 @@ import { logger } from 'oae-logger';
 import _ from 'underscore';
 import async from 'async';
 
-// We have to require the config api inline, as this would
-// otherwise lead to circular require calls
+// We have to require the config api inline, as this would otherwise lead to circular require calls
 import { setUpConfig, eventEmitter } from 'oae-config';
-// We have to require the UI api inline, as this would
-// otherwise lead to circular require calls
+// We have to require the UI api inline, as this would otherwise lead to circular require calls
 import * as UIAPI from 'oae-ui';
 import * as UserAPI from 'oae-principals/lib/api.user';
 import * as Cassandra from 'oae-util/lib/cassandra';
+const { runBatchQuery, rowToHash, runQuery } = Cassandra;
 import * as EmitterAPI from 'oae-emitter';
 import * as OAE from 'oae-util/lib/oae';
 import { getNumberParam, castToBoolean } from 'oae-util/lib/util';
@@ -48,13 +47,28 @@ const {
   getNestedObject,
   isISO31661Alpha2,
   validateInCase: bothCheck,
-  isArrayNotEmpty
+  isArrayNotEmpty,
+  isArray
 } = validator;
 import {
+  join,
+  forEach,
+  __,
+  last,
+  head,
+  map,
+  slice,
+  length,
+  findIndex,
+  filter,
+  isEmpty,
+  ifElse,
   or,
+  defaultTo,
   path,
   mapObjIndexed,
   pick,
+  add,
   compose,
   either,
   keys,
@@ -64,21 +78,25 @@ import {
   toLower,
   pipe,
   and,
+  match,
   equals,
   split,
-  forEachObjIndexed
+  forEachObjIndexed,
+  reject,
+  when
 } from 'ramda';
 import isIn from 'validator/lib/isIn';
 import TenantEmailDomainIndex from './internal/emailDomainIndex';
 import TenantIndex from './internal/tenantIndex';
 import * as TenantNetworksDAO from './internal/dao.networks';
 import * as TenantsUtil from './util';
-
+const { isPrivate } = TenantsUtil;
 import { Tenant } from './model';
 
 const TenantsConfig = setUpConfig('oae-tenants');
-
 const log = logger('oae-tenants');
+
+const GLOBAL_ADMIN_SERVER = 'Global admin server';
 
 const DISPLAY_NAME = 'displayName';
 const HOST = 'host';
@@ -111,6 +129,16 @@ let tenantSearchIndex = null;
 
 // Caches an email domain index for all tenants in the system
 let tenantEmailDomainIndex = null;
+
+// Auxiliary functions
+const toArray = x => [x];
+const returnNull = () => null;
+const returnFalse = () => false;
+const returnItself = x => x;
+const emptyFunction = () => {};
+const isDefined = Boolean;
+const returnKeys = x => keys(x);
+const returnEmptyArray = () => [];
 
 /**
  * ### Events
@@ -224,11 +252,12 @@ const init = function(_serverConfig, callback) {
  */
 const getTenants = function(excludeDisabled) {
   excludeDisabled = castToBoolean(excludeDisabled);
+  const isItNotAnAdmin = compose(not, Boolean);
 
   const filteredTenants = {};
   forEachObjIndexed((tenant, tenantAlias) => {
     // Exclude all disabled tenants when `exludeDisabled` has been provided
-    const notAnAdmin = compose(not, Boolean)(tenant.isGlobalAdminServer);
+    const notAnAdmin = isItNotAnAdmin(tenant.isGlobalAdminServer);
     const notExcluded = not(excludeDisabled);
     const tenantIsActive = Boolean(tenant.active);
     const activeOrNotExcluded = or(notExcluded, tenantIsActive);
@@ -251,26 +280,27 @@ const getNonInteractingTenants = () => mapObjIndexed(_copyTenant, tenantsNotInte
 /**
  * Search for tenants based on a full-text search query
  *
- * @param  {String}         [q]                 The full-text query to perform. If unspecified, all tenants will be returned
+ * @param  {String}         [query]             The full-text query to perform. If unspecified, all tenants will be returned
  * @param  {Object}         [opts]              Optional arguments
  * @param  {Number}         [opts.start]        The index at which to begin returning results
  * @param  {Number}         [opts.limit]        The maximum number of results to return. If unspecified, returns all results
  * @param  {Boolean}        [opts.disabled]     If `true`, will include tenants that are disabled or deleted. Otherwise, they are ommitted from results
  * @return {SearchResult}                       The search result object containing the tenants
  */
-const searchTenants = function(q, opts) {
-  q = isString(q) ? q.trim() : null;
-  opts = opts || {};
+const searchTenants = function(query, opts) {
+  query = ifElse(isString, trim, returnNull)(query);
+  opts = defaultTo({}, opts);
   opts.start = getNumberParam(opts.start, 0);
 
   // Determine if we should included disabled/deleted tenants
-  const includeDisabled = isBoolean(opts.disabled) ? opts.disabled : false;
+  const includeDisabled = ifElse(isBoolean, returnItself, returnFalse)(opts.disabled);
+  const queryIsDefined = Boolean(query);
 
   // Create a sorted result of tenants based on the user's query. If there was no query, we will
   // pull the pre-sorted list of tenants from the global cache
   let results = null;
-  if (q) {
-    results = _.chain(tenantSearchIndex.search(q))
+  if (queryIsDefined) {
+    results = _.chain(tenantSearchIndex.search(query))
       .sortBy('ref')
       .sortBy('score')
       .pluck('ref')
@@ -280,7 +310,7 @@ const searchTenants = function(q, opts) {
     results = tenantsSorted;
   }
 
-  results = _.filter(results, result => {
+  results = filter(result => {
     let newResult = true;
     if (result.isGlobalAdminServer) {
       newResult = false;
@@ -289,24 +319,20 @@ const searchTenants = function(q, opts) {
     }
 
     return newResult;
-  });
+  }, results);
 
-  // Keep track of how many results we had in total
-  const total = _.size(results);
+  const total = length(results);
 
   // Determine the end of our page slice
   opts.limit = getNumberParam(opts.limit, total);
-  const end = opts.start + opts.limit;
+  const end = add(opts.start, opts.limit);
 
-  // Cut down to just the requested page, and clone the tenants to avoid tenants being updated
-  // in the cache
-  results = results.slice(opts.start, end);
-  results = results.map(_copyTenant);
+  // Cut down to just the requested page, and clone the tenants to avoid tenants being updated in the cache
+  const sliceStartToEnd = slice(opts.start, end);
+  const applyCopyTenant = map(_copyTenant);
+  results = compose(applyCopyTenant, sliceStartToEnd)(results);
 
-  return {
-    total,
-    results
-  };
+  return { total, results };
 };
 
 /**
@@ -315,9 +341,7 @@ const searchTenants = function(q, opts) {
  * @param  {String}         tenantAlias         Alias for the tenant that should be retrieved
  * @return {Tenant}                             Tenant object associated to the provided tenant alias
  */
-const getTenant = function(tenantAlias) {
-  return _copyTenant(tenants[tenantAlias]);
-};
+const getTenant = tenantAlias => compose(_copyTenant, compose(path, toArray)(tenantAlias))(tenants);
 
 /**
  * Get a tenant by host name from cache
@@ -325,9 +349,7 @@ const getTenant = function(tenantAlias) {
  * @param  {String}         tenantHost          Host name for the tenant that should be retrieved
  * @return {Tenant}                             Tenant object associated to the provided tenant host
  */
-const getTenantByHost = function(tenantHost) {
-  return _copyTenant(tenantsByHost[tenantHost.toLowerCase()]);
-};
+const getTenantByHost = tenantHost => compose(_copyTenant, compose(path, toArray, toLower)(tenantHost))(tenantsByHost);
 
 /**
  * Get a tenant whose configured email domain matches the specified email domain. If a host is
@@ -340,18 +362,22 @@ const getTenantByHost = function(tenantHost) {
  * @param  {String}     emailOrDomain   The email address or domain with which to lookup the tenant
  * @return {Tenant}                     The tenant that matches the domain, if any
  */
-const getTenantByEmail = function(emailOrDomain) {
-  const domain = _.last(emailOrDomain.split('@'));
-  const tenantAlias = tenantEmailDomainIndex.match(domain);
+const getTenantByEmail = emailOrDomain => {
+  const matchesDomain = compose(match, last, split('@'))(emailOrDomain);
+  const tenantAlias = matchesDomain(tenantEmailDomainIndex);
 
   // Default to the guest tenant
-  const guestTenant = tenants[serverConfig.guestTenantAlias];
-  const tenant = tenants[tenantAlias] || guestTenant;
+  const guestTenant = path([serverConfig.guestTenantAlias], tenants);
+
+  const returnItself = x => x;
+  const returnDefault = () => guestTenant;
+  const defaultToGuestTenant = (defaultTenant, tenant) => ifElse(isDefined, returnItself, returnDefault)(tenant);
+
+  const tenant = defaultToGuestTenant(guestTenant, path([tenantAlias], tenants));
 
   // If the tenant is disabled, return guest tenant
-  if (!tenant.active) {
-    return guestTenant;
-  }
+  const tenantIsDisabled = not(tenant.active);
+  if (tenantIsDisabled) return guestTenant;
 
   return _copyTenant(tenant);
 };
@@ -364,9 +390,10 @@ const getTenantByEmail = function(emailOrDomain) {
  */
 const getTenantsForEmailDomains = function(emailsOrDomains) {
   const mappedTenants = {};
-  _.each(emailsOrDomains, emailOrDomain => {
+
+  forEach(emailOrDomain => {
     mappedTenants[emailOrDomain] = getTenantByEmail(emailOrDomain);
-  });
+  }, emailsOrDomains);
 
   return mappedTenants;
 };
@@ -379,20 +406,14 @@ const getTenantsForEmailDomains = function(emailsOrDomains) {
  * @api private
  */
 const _cacheTenants = function(callback) {
-  callback =
-    callback ||
-    function(err) {
-      if (err) {
-        log().error({ err }, 'Failed to re-cache the tenants');
-      }
-    };
+  callback = defaultTo(err => {
+    if (err) log().error({ err }, 'Failed to re-cache the tenants');
+  }, callback);
 
   // Get the available tenants
   const queryAllTenants = 'SELECT * FROM "Tenant"';
   Cassandra.runAutoPagedQuery(queryAllTenants, false, (err, rows) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     // Reset the previously cached tenants
     tenants = {};
@@ -403,7 +424,7 @@ const _cacheTenants = function(callback) {
     tenantEmailDomainIndex = new TenantEmailDomainIndex();
 
     // Create a dummy tenant object that can serve as the global admin tenant object
-    globalTenant = new Tenant(serverConfig.globalAdminAlias, 'Global admin server', serverConfig.globalAdminHost, {
+    globalTenant = new Tenant(serverConfig.globalAdminAlias, GLOBAL_ADMIN_SERVER, serverConfig.globalAdminHost, {
       isGlobalAdminServer: true
     });
 
@@ -413,25 +434,22 @@ const _cacheTenants = function(callback) {
     tenantsNotInteractable[globalTenant.alias] = globalTenant;
 
     _.chain(rows)
-      .map(Cassandra.rowToHash)
-      .map(hash => {
-        return _storageHashToTenant(hash.alias, hash);
-      })
+      .map(rowToHash)
+      .map(hash => _storageHashToTenant(hash.alias, hash))
       .each(tenant => {
         // Cache all tenants
         tenants[tenant.alias] = tenant;
         tenantsByHost[tenant.host] = tenant;
 
         // Insert the tenant into the email domain index
-        _.each(tenant.emailDomains, emailDomain => {
+        forEach(emailDomain => {
           tenantEmailDomainIndex.update(tenant.alias, emailDomain);
-        });
+        }, tenant.emailDomains);
 
-        // Keep a cache of all tenants that are private and disabled so we know which ones
-        // cannot be interacted with
-        if (!tenant.active || tenant.deleted || TenantsUtil.isPrivate(tenant.alias)) {
-          tenantsNotInteractable[tenant.alias] = tenant;
-        }
+        // Keep a cache of all tenants that are private and disabled so we know which ones cannot be interacted with
+        const inactiveOrDeleted = tenant => or(not(tenant.active), tenant.deleted);
+        const notInteractable = either(inactiveOrDeleted, compose(isPrivate, path(['alias'])));
+        if (notInteractable(tenant)) tenantsNotInteractable[tenant.alias] = tenant;
       })
       .value();
 
@@ -457,38 +475,32 @@ const _cacheTenants = function(callback) {
  * @api private
  */
 const _updateCachedTenant = function(tenantAlias, callback) {
-  callback =
-    callback ||
-    function(err) {
-      if (err) {
-        log().error({ err, tenantAlias }, 'Failed to re-cache the specified tenant');
-      }
-    };
+  callback = defaultTo(err => {
+    if (err) log().error({ err, tenantAlias }, 'Failed to re-cache the specified tenant');
+  }, callback);
 
   // Get the available tenants
   Cassandra.runQuery('SELECT * FROM "Tenant" WHERE "alias" = ?', [tenantAlias], (err, rows) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
-    if (_.isEmpty(rows)) {
+    const emitAndExit = () => {
       TenantsAPI.emit('cached');
       return callback();
-    }
+    };
 
-    const hash = Cassandra.rowToHash(rows[0]);
-    const tenant = _storageHashToTenant(tenantAlias, hash);
+    if (isEmpty(rows)) return emitAndExit();
 
-    // Remove the old tenant from the tenantsByHost cache if it previously existed. If the host
-    // was updated, we want to make sure it gets removed here
+    const tenant = _storageHashToTenant(tenantAlias, compose(rowToHash, head)(rows));
+
+    // Remove the old tenant from the tenantsByHost cache if it previously existed. If the host was updated, we want to make sure it gets removed here
     const oldTenant = tenants[tenantAlias];
     if (oldTenant) {
       delete tenantsByHost[oldTenant.host];
 
       // Remove the old email domains
-      _.each(oldTenant.emailDomains, emailDomain => {
+      forEach(emailDomain => {
         tenantEmailDomainIndex.delete(emailDomain);
-      });
+      }, oldTenant.emailDomains);
     }
 
     // Re-cache the tenant we pulled from storage
@@ -496,7 +508,7 @@ const _updateCachedTenant = function(tenantAlias, callback) {
     tenantsByHost[tenant.host] = tenant;
 
     // Update the tenant in the email domain index
-    _.each(tenant.emailDomains, emailDomain => {
+    forEach(emailDomain => {
       const conflictingTenantAlias = tenantEmailDomainIndex.update(tenantAlias, emailDomain);
       if (conflictingTenantAlias) {
         log().warn(
@@ -508,26 +520,39 @@ const _updateCachedTenant = function(tenantAlias, callback) {
           'Failed to update tenant in the email domain index due to a conflicting domain'
         );
       }
-    });
+    }, tenant.emailDomains);
 
-    // Synchronize the cache of all tenants that are private and disabled so we know which ones
-    // cannot be interacted with
-    if (tenant.isGlobalAdminServer || !tenant.active || tenant.deleted || TenantsUtil.isPrivate(tenant.alias)) {
-      tenantsNotInteractable[tenant.alias] = tenant;
-    } else {
-      delete tenantsNotInteractable[tenant.alias];
-    }
+    // Synchronize the cache of all tenants that are private and disabled so we know which ones cannot be interacted with
+    const inactiveOrDeleted = tenant => or(not(tenant.active), tenant.deleted);
+    const isNotInteractable = either(inactiveOrDeleted, compose(isPrivate, path(['alias'])));
+    const cannotInteractWith = either(path(['isGlobalAdminServer']), isNotInteractable);
+
+    ifElse(
+      cannotInteractWith,
+      tenant => {
+        tenantsNotInteractable[tenant.alias] = tenant;
+      },
+      tenant => {
+        delete tenantsNotInteractable[tenant.alias];
+      }
+    )(tenant);
 
     // Insert at the correct location in the sorted list
-    let index = _.findIndex(tenantsSorted, tenant => {
+    let index = findIndex(tenant => {
       return tenant.alias === tenantAlias;
-    });
-    if (index === -1) {
-      index = _.sortedIndex(tenantsSorted, tenant, 'alias');
-      tenantsSorted.splice(index, 0, tenant);
-    } else {
-      tenantsSorted[index] = tenant;
-    }
+    }, tenantsSorted);
+
+    const notFound = equals(-1);
+    ifElse(
+      notFound,
+      () => {
+        index = _.sortedIndex(tenantsSorted, tenant, 'alias');
+        tenantsSorted.splice(index, 0, tenant);
+      },
+      () => {
+        tenantsSorted[index] = tenant;
+      }
+    )(index);
 
     // Build the search index for all tenants since you cannot update the index anymore
     tenantSearchIndex = new TenantIndex(tenants);
@@ -554,7 +579,7 @@ const _updateCachedTenant = function(tenantAlias, callback) {
  * @param  {Tenant}     callback.tenant         The created tenant
  */
 const createTenant = function(ctx, alias, displayName, host, opts, callback) {
-  opts = opts || {};
+  opts = defaultTo({}, opts);
 
   // Validate that the user in context is the global admin
   try {
@@ -587,7 +612,7 @@ const createTenant = function(ctx, alias, displayName, host, opts, callback) {
  * @api private
  */
 const _createTenant = function(alias, displayName, host, opts, callback) {
-  opts = opts || {};
+  opts = defaultTo({}, opts);
 
   try {
     unless(isNotEmpty, {
@@ -675,11 +700,9 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
 
   // Create the tenant
   const tenant = new Tenant(alias, displayName, host, opts);
-  const q = Cassandra.constructUpsertCQL('Tenant', 'alias', alias, _tenantToStorageHash(tenant));
-  Cassandra.runQuery(q.query, q.parameters, err => {
-    if (err) {
-      return callback(err);
-    }
+  const query = Cassandra.constructUpsertCQL('Tenant', 'alias', alias, _tenantToStorageHash(tenant));
+  runQuery(query.query, query.parameters, err => {
+    if (err) return callback(err);
 
     // This event is not strictly necessary as it will be emitted by our PubSub publisher
     // as well. We emit it before we return to the caller so our unit tests can keep track
@@ -697,9 +720,7 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
 
     // Send a message to all the app servers in the cluster notifying them that the tenant should be started
     Pubsub.publish('oae-tenants', 'created ' + tenant.alias, err => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       return callback(null, tenant);
     });
@@ -724,9 +745,7 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
   const notAValidAdmin = ctx => not(ctx.user().isAdmin(ctx.user().tenant.alias));
   const notAuthorized = either(notAValidUser, notAValidAdmin)(ctx);
 
-  if (notAuthorized) {
-    return callback({ code: 401, msg: 'Unauthorized users cannot update tenants' });
-  }
+  if (notAuthorized) return callback({ code: 401, msg: 'Unauthorized users cannot update tenants' });
 
   // Short-circuit validation if the tenant did not exist
   try {
@@ -741,7 +760,7 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
     })(alias);
 
     // Check that at least either a new display name or hostname have been provided
-    const updateFields = tenantUpdates ? keys(tenantUpdates) : [];
+    const updateFields = ifElse(isDefined, returnKeys, returnEmptyArray)(tenantUpdates);
 
     unless(isArrayNotEmpty, {
       code: 400,
@@ -805,11 +824,9 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
     return callback(error);
   }
 
-  const q = Cassandra.constructUpsertCQL('Tenant', 'alias', alias, tenantUpdates);
-  Cassandra.runQuery(q.query, q.parameters, err => {
-    if (err) {
-      return callback(err);
-    }
+  const query = Cassandra.constructUpsertCQL('Tenant', 'alias', alias, tenantUpdates);
+  runQuery(query.query, query.parameters, err => {
+    if (err) return callback(err);
 
     // Indicate that a caching operation is pending
     TenantsAPI.emit('preCache');
@@ -829,9 +846,8 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
  * @param  {Object}       callback.err    An error that occurred, if any
  */
 const disableTenants = function(ctx, aliases, disabled, callback) {
-  callback = callback || function() {};
-  aliases = _.isArray(aliases) ? aliases : [aliases];
-  aliases = _.compact(aliases);
+  callback = defaultTo(emptyFunction, callback);
+  aliases = compose(reject(isNil), ifElse(isArray, returnItself, toArray))(aliases);
 
   try {
     unless(isGlobalAdministratorUser, {
@@ -855,20 +871,23 @@ const disableTenants = function(ctx, aliases, disabled, callback) {
   }
 
   // Store the "active" flag in cassandra
-  const queries = _.map(aliases, alias => {
+  const queries = map(alias => {
     return {
       query: 'UPDATE "Tenant" SET "active" = ? WHERE "alias" = ?',
-      parameters: [!disabled, alias]
+      parameters: [not(disabled), alias]
     };
-  });
+  }, aliases);
 
-  Cassandra.runBatchQuery(queries, err => {
-    if (err) {
-      return callback(err);
-    }
+  runBatchQuery(queries, err => {
+    if (err) return callback(err);
 
     // Broadcast the message accross the cluster so we can start/stop the tenants
-    const cmd = disabled ? 'stop' : 'start';
+    let cmd = '';
+    if (disabled) {
+      cmd = 'stop';
+    } else {
+      cmd = 'start';
+    }
 
     async.mapSeries(
       aliases,
@@ -886,14 +905,7 @@ const disableTenants = function(ctx, aliases, disabled, callback) {
           }
         });
       },
-      // eslint-disable-next-line no-unused-vars
-      (err, results) => {
-        if (err) {
-          callback(err);
-        }
-
-        return callback();
-      }
+      (err /* , results */) => callback(err)
     );
   });
 };
@@ -917,9 +929,8 @@ const getLandingPage = function(ctx) {
     const block = _getLandingPageBlock(ctx, blockName);
 
     // If the type is not configured, there's no value in returning this block
-    if (block.type && block.type !== 'empty') {
-      landingPage.push(block);
-    }
+    const typeIsNotSet = compose(not, equals)(path(['type'], block), 'empty');
+    if (typeIsNotSet) landingPage.push(block);
   }
 
   return landingPage;
@@ -935,6 +946,8 @@ const getLandingPage = function(ctx) {
  */
 const _getLandingPageBlock = function(ctx, blockName) {
   const block = {};
+  const isAttributeSet = attr => path([attr], block);
+  const getAttribute = path(__, block);
 
   // Get the block's information from the tenant config
   _setLandingPageBlockAttribute(ctx, block, blockName, 'type');
@@ -955,19 +968,12 @@ const _getLandingPageBlock = function(ctx, blockName) {
   _setLandingPageBlockAttribute(ctx, block, blockName, 'videoPlaceholder');
 
   // Use the correct `text` value, if any
-  if (block.text) {
-    const locale = ctx.resolvedLocale();
-    block.text = block.text[locale] || block.text.default;
-  }
+  if (isAttributeSet('text'))
+    block.text = defaultTo(getAttribute(['text', 'default']), getAttribute(['text', ctx.resolvedLocale()]));
 
   // If any URLs are configured, we try to resolve them in the hashed UI files
-  if (block.imgUrl) {
-    block.imgUrl = UIAPI.getHashedPath(block.imgUrl);
-  }
-
-  if (block.videoPlaceholder) {
-    block.videoPlaceholder = UIAPI.getHashedPath(block.videoPlaceholder);
-  }
+  if (isAttributeSet('imgUrl')) block.imgUrl = UIAPI.getHashedPath(block.imgUrl);
+  if (isAttributeSet('videoPlaceholder')) block.videoPlaceholder = UIAPI.getHashedPath(block.videoPlaceholder);
 
   return block;
 };
@@ -981,8 +987,7 @@ const _getLandingPageBlock = function(ctx, blockName) {
  * @param  {String}         attributeName       The name of the attribute to set on the block
  * @api private
  */
-const _setLandingPageBlockAttribute = function(ctx, block, blockName, attributeName) {
-  // Set the attribute value
+const _setLandingPageBlockAttribute = (ctx, block, blockName, attributeName) => {
   block[attributeName] = TenantsConfig.getValue(ctx.tenant().alias, blockName, attributeName);
 };
 
@@ -1003,7 +1008,7 @@ const _setLandingPageBlockAttribute = function(ctx, block, blockName, attributeN
  * @api private
  */
 const _validateEmailDomains = function(validator, emailDomains, updateTenantAlias) {
-  emailDomains.forEach(emailDomain => {
+  forEach(emailDomain => {
     // Check whether it's a valid domain
     unless(isHost, {
       code: 400,
@@ -1022,7 +1027,7 @@ const _validateEmailDomains = function(validator, emailDomains, updateTenantAlia
         matchingEmailDomains
       )
     })(matchingTenant);
-  });
+  }, emailDomains);
 };
 
 /**
@@ -1032,7 +1037,7 @@ const _validateEmailDomains = function(validator, emailDomains, updateTenantAlia
  * @return {Tenant}                 A copy of the tenant object that was provided, such that modifying its properties is safe
  * @api private
  */
-const _copyTenant = function(tenant) {
+const _copyTenant = tenant => {
   if (isNil(tenant)) return null;
 
   // Copy the tenant by converting it to a storage hash and then back
@@ -1051,9 +1056,12 @@ const _copyTenant = function(tenant) {
  * @api private
  */
 const _storageHashToTenant = function(alias, hash) {
-  const emailDomains = hash.emailDomains
-    ? hash.emailDomains.split(',').map(emailDomain => pipe(trim, toLower)(emailDomain))
-    : [];
+  const splitInCommas = split(',');
+  const emailDomains = ifElse(
+    isDefined,
+    compose(map(pipe(trim, toLower)), splitInCommas),
+    returnEmptyArray
+  )(hash.emailDomains);
 
   return new Tenant(alias, hash.displayName, hash.host.toLowerCase(), {
     emailDomains,
@@ -1075,7 +1083,7 @@ const _storageHashToTenant = function(alias, hash) {
 const _tenantToStorageHash = function(tenant) {
   const attributes = [DISPLAY_NAME, HOST, EMAIL_DOMAINS, COUNTRY_CODE, ACTIVE];
   const hash = pick(attributes, tenant);
-  if (hash.emailDomains) hash.emailDomains = hash.emailDomains.join(',');
+  hash.emailDomains = when(isDefined, domains => join(',', domains))(hash.emailDomains);
 
   return hash;
 };

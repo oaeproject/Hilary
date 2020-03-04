@@ -24,8 +24,7 @@ import { setUpConfig, eventEmitter } from 'oae-config';
 // We have to require the UI api inline, as this would otherwise lead to circular require calls
 import * as UIAPI from 'oae-ui';
 import * as UserAPI from 'oae-principals/lib/api.user';
-import * as Cassandra from 'oae-util/lib/cassandra';
-const { runBatchQuery, rowToHash, runQuery } = Cassandra;
+import { constructUpsertCQL, runAutoPagedQuery, runBatchQuery, rowToHash, runQuery } from 'oae-util/lib/cassandra';
 import * as EmitterAPI from 'oae-emitter';
 import * as OAE from 'oae-util/lib/oae';
 import { getNumberParam, castToBoolean } from 'oae-util/lib/util';
@@ -412,7 +411,7 @@ const _cacheTenants = function(callback) {
 
   // Get the available tenants
   const queryAllTenants = 'SELECT * FROM "Tenant"';
-  Cassandra.runAutoPagedQuery(queryAllTenants, false, (err, rows) => {
+  runAutoPagedQuery(queryAllTenants, false, (err, rows) => {
     if (err) return callback(err);
 
     // Reset the previously cached tenants
@@ -480,7 +479,7 @@ const _updateCachedTenant = function(tenantAlias, callback) {
   }, callback);
 
   // Get the available tenants
-  Cassandra.runQuery('SELECT * FROM "Tenant" WHERE "alias" = ?', [tenantAlias], (err, rows) => {
+  runQuery('SELECT * FROM "Tenant" WHERE "alias" = ?', [tenantAlias], (err, rows) => {
     if (err) return callback(err);
 
     const emitAndExit = () => {
@@ -700,7 +699,7 @@ const _createTenant = function(alias, displayName, host, opts, callback) {
 
   // Create the tenant
   const tenant = new Tenant(alias, displayName, host, opts);
-  const query = Cassandra.constructUpsertCQL('Tenant', 'alias', alias, _tenantToStorageHash(tenant));
+  const query = constructUpsertCQL('Tenant', 'alias', alias, _tenantToStorageHash(tenant));
   runQuery(query.query, query.parameters, err => {
     if (err) return callback(err);
 
@@ -824,7 +823,7 @@ const updateTenant = function(ctx, alias, tenantUpdates, callback) {
     return callback(error);
   }
 
-  const query = Cassandra.constructUpsertCQL('Tenant', 'alias', alias, tenantUpdates);
+  const query = constructUpsertCQL('Tenant', 'alias', alias, tenantUpdates);
   runQuery(query.query, query.parameters, err => {
     if (err) return callback(err);
 

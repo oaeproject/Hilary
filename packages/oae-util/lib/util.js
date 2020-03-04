@@ -14,7 +14,30 @@
  */
 
 import util from 'util';
-import _ from 'underscore';
+import {
+  values,
+  isEmpty,
+  flatten,
+  is,
+  ifElse,
+  last,
+  and,
+  lt,
+  gt,
+  pipe,
+  __,
+  curry,
+  either,
+  equals,
+  defaultTo,
+  isNil
+} from 'ramda';
+
+// Auxiliary functions
+const isObject = is(Object);
+const toInt = curry(parseInt)(__, 10);
+const equalsZero = equals(0);
+const isDefined = Boolean;
 
 /// ///////////////
 // GLOBAL UTILS //
@@ -36,52 +59,52 @@ import * as globals from './internal/globals';
  * @param  {String}           value   String that will be converted to Boolean if it matches: 'true', 'false', '1' or '0' or returned if there's no match.
  * @return {Boolean|String}           Returns true, false or the original value
  */
-const castToBoolean = function(value) {
-  if (value === 'true' || value === '1') {
-    return true;
-  }
+const castToBoolean = value => {
+  const isFalsy = either(equals('false'), equals('0'))(value);
+  const isTruthy = either(equals('true'), equals('1'))(value);
 
-  if (value === 'false' || value === '0') {
-    return false;
-  }
+  let result = value;
+  if (isFalsy) result = false;
+  if (isTruthy) result = true;
+
+  return result;
+};
+
+/**
+ * Get a numeric parameter as specified by `value`. If `value` is not a valid number (i.e., it cannot be converted to one),
+ * then `defaultValue` will be return instead. If a minimum is specified and `value` is smaller than the minimum, the minimum
+ * will be returned. If a maximum is specified and `value` is larger than the maximum, the maximum will be returned
+ *
+ * @param  {String|Number}      value             The value to try and convert to an integer
+ * @param  {String|Number}      defaultValue      The value to return if `val` is not a valid integer
+ * @param  {Number}             [args.minimum]    A lower bound for `val`. If this is not provided, no bounding will be applied.
+ * @param  {Number}             [args.maximum]    An upper bound for `val`. If this is not provided, no bounding will be applied.
+ * @return {String|Number}                        `value` converted to an integer, if possible. If not possible `defaultVal` is returned
+ */
+const getNumberParam = (value, defaultValue, ...args) => {
+  const [minimum, maximum] = args;
+
+  const setToDefaultIfUndefined = pipe(toInt, defaultTo(defaultValue));
+  value = setToDefaultIfUndefined(value);
+
+  const minLimitIsSet = either(isDefined, equalsZero)(minimum);
+  const belowTheLimit = lt(value, minimum);
+  if (and(minLimitIsSet, belowTheLimit)) value = minimum;
+
+  const topLimitIsSet = either(isDefined, equalsZero)(maximum);
+  const beyondTheLimit = gt(value, maximum);
+  if (and(topLimitIsSet, beyondTheLimit)) value = maximum;
 
   return value;
 };
 
 /**
- * Get a numeric parameter as specified by `val`. If `val` is not a valid number (i.e., it cannot be converted to one),
- * then `defaultVal` will be return instead. If a minimum is specified and `val` is smaller than the minimum, the minimum
- * will be returned. If a maximum is specified and `val` is larger than the maximum, the maximum will be returned
- *
- * @param  {String|Number}      val         The value to try and convert to an integer
- * @param  {String|Number}      defaultVal  The value to return if `val` is not a valid integer
- * @param  {Number}             [minimum]   A lower bound for `val`. If this is not provided, no bounding will be applied.
- * @param  {Number}             [maximum]   An upper bound for `val`. If this is not provided, no bounding will be applied.
- * @return {String|Number}                  `val` converted to an integer, if possible. If not possible `defaultVal` is returned
- */
-const getNumberParam = function(val, defaultVal, minimum, maximum) {
-  val = parseInt(val, 10);
-  val = isNaN(val) ? defaultVal : val;
-  if ((minimum || minimum === 0) && val < minimum) {
-    val = minimum;
-  }
-
-  if ((maximum || maximum === 0) && val > maximum) {
-    val = maximum;
-  }
-
-  return val;
-};
-
-/**
  * Determine if the given parameter is unspecified. This essentially means it is `null` or `undefined`
  *
- * @param  {Anything}   val     The value to check
+ * @param  {Anything}   value    The value to check
  * @return {Boolean}            `true` if the value was unspecified, `false` otherwise
  */
-const isUnspecified = function(val) {
-  return _.isNull(val) || _.isUndefined(val);
-};
+const isUnspecified = value => isNil(value);
 
 /**
  * Invoke the given method with the args, only if the first parameter `isNecessary` is a true value. If falsey, the
@@ -109,7 +132,7 @@ const isUnspecified = function(val) {
  *
  *  ```javascript
  *  fs.exists(path, function(err, exists) {
- *      OaeUtil.invokeIfNecessary(exists, fs.rm, path, function(err) {
+ *      invokeIfNecessary(exists, fs.rm, path, function(err) {
  *          fs.write(path, 'mydata', callback);
  *      });
  *  });
@@ -119,14 +142,13 @@ const isUnspecified = function(val) {
  * @param  {Function}   method          The method to invoke if `isNecessary` is true
  * @param  {...Object}  args            The arguments for the provided method. The final argument should always be the `callback` method that needs to be invoked if `isNecessary` is false. It can be the same callback method invoked if the method is executed.
  */
-const invokeIfNecessary = function(...args) {
-  const isNecessary = args[0];
-  const method = args[1];
-  if (!isNecessary) {
-    return _.last(args)();
-  }
+const invokeIfNecessary = function(isNecessary, whenTrueFn, ...args) {
+  const callback = last(args);
+  const isItNecessary = () => isNecessary;
+  const thenInvokeFn = () => whenTrueFn(...args);
+  const otherwiseJustExit = () => callback();
 
-  method.apply(method, args.slice(2));
+  ifElse(isItNecessary, thenInvokeFn, otherwiseJustExit)();
 };
 
 /**
@@ -134,29 +156,22 @@ const invokeIfNecessary = function(...args) {
  *
  * @return {String}    The path to the node_modules directory
  */
-const getNodeModulesDir = function() {
-  return util.format('%s/../../../node_modules/', __dirname);
-};
+const getNodeModulesDir = () => util.format('%s/../../../node_modules/', __dirname);
 
 /**
  * Wrap a value in an array. If the value is already an array, no wrapping
  * will take place. If the value is an object, the object's values will be returned
  *
- * @param  {Object}     val     The value to wrap
- * @return {Object[]}           The wrapped value
+ * @param  {Object}     input     The value to wrap
+ * @return {Object[]}             The wrapped value
  * @see http://underscorejs.org/#toArray
  */
-const toArray = function(val) {
-  if (!val) {
-    return [];
-  }
+const toArray = input => {
+  const eitherNilOrEmpty = either(isNil, isEmpty);
+  if (eitherNilOrEmpty(input)) input = [];
+  if (isObject(input)) input = values(input);
 
-  // Underscore doesn't wrap primitive values
-  if (typeof val === 'number' || typeof val === 'string' || val instanceof Date) {
-    return [val];
-  }
-
-  return _.toArray(val);
+  return flatten([input]);
 };
 
 export { castToBoolean, getNumberParam, isUnspecified, invokeIfNecessary, getNodeModulesDir, toArray };

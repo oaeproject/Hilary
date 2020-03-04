@@ -14,8 +14,11 @@
  */
 
 /* eslint-disable unicorn/filename-case */
-import _ from 'underscore';
+import { gt, length, ifElse, __, compose, pick, forEachObjIndexed } from 'ramda';
 import lunr from 'lunr';
+
+const greaterThanOne = gt(__, 1);
+const isJustOneWord = words => compose(greaterThanOne, length)(words);
 
 /**
  * Represents an index where tenants can be indexed and then later full-text searched
@@ -23,31 +26,30 @@ import lunr from 'lunr';
  * @param  {Tenant[]}   tenants     The tenants that should be indexed
  */
 const TenantIndex = function(tenants) {
+  // need to keep track of all indexed tenants to regenerate index whenever we want
   const lunrIndex = _createIndex(tenants);
+
   return {
     /**
      * Search for a tenant based on a user-input query
      *
-     * @param  {String}     q               The query to use to search
+     * @param  {String}     query               The query to use to search
      * @return {Object[]}   docs            The search documents
      * @return {String}     docs[i].ref     The "id" of the document (i.e., the tenant alias)
      * @return {Number}     docs[i].score   The search match score, on which the results will be sorted from highest to lowest
      */
-    search(q) {
-      return lunrIndex.search(q);
-    },
+    search(query) {
+      /**
+       * TODO describe why we're doing what we're doing
+       */
+      const useAndWithBoth = ifElse(
+        isJustOneWord,
+        x => x.join(' +'),
+        x => `${x}*`
+      );
 
-    /**
-     * Add / update the given tenants in the search index
-     *
-     * @param  {Tenant|Tenant[]}    tenants     The tenants to add or update in the index
-     */
-    update(tenants) {
-      tenants = _.isArray(tenants) ? tenants : [tenants];
-      _.chain(tenants)
-        .map(_tenantToDocument)
-        .each(lunrIndex.update.bind(lunrIndex))
-        .value();
+      const enhancedQuery = useAndWithBoth(query.split('-'));
+      return lunrIndex.search(enhancedQuery);
     }
   };
 };
@@ -67,15 +69,29 @@ const _createIndex = function(tenants) {
     this.field('alias');
     this.field('host');
     this.field('displayName');
-  });
 
-  _.chain(tenants)
+    const that = this;
+
+    /**
+     * We need to make sure we replace the '-' before we index
+     * as the minus symbol means exclude when searching
+     * See https://lunrjs.com/guides/searching.html#term-presence for details
+     */
+
+    forEachObjIndexed(eachDoc => {
+      eachDoc = _tenantToDocument(eachDoc);
+      that.add(eachDoc);
+    }, tenants);
+
+    /*
+    _.chain(tenants)
     .map(_tenantToDocument)
     .each(doc => {
-      lunrIndex.add(doc);
+      that.add(doc);
     })
     .value();
-
+   */
+  });
   return lunrIndex;
 };
 
@@ -86,8 +102,7 @@ const _createIndex = function(tenants) {
  * @return {Object}             The lunr document that represents the tenant
  * @api private
  */
-const _tenantToDocument = function(tenant) {
-  return _.pick(tenant, 'alias', 'host', 'displayName');
-};
+const _tenantToDocument = tenant => pick(['alias', 'host', 'displayName'], tenant);
+// _.pick(tenant, 'alias', 'host', 'displayName');
 
 export default TenantIndex;

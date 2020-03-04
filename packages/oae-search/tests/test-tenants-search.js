@@ -66,6 +66,7 @@ describe('Tenants Search', () => {
         { q: displayName.toLowerCase() },
         result => {
           _assertEmptyTenantsSearchResult(result);
+
           SearchTestsUtil.assertSearchSucceeds(
             anonymousRestContext,
             'tenants',
@@ -80,18 +81,18 @@ describe('Tenants Search', () => {
 
                 setTimeout(
                   SearchTestsUtil.assertSearchSucceeds,
-                  5000,
+                  2000,
                   anonymousRestContext,
                   'tenants',
                   null,
                   { q: alias.toLowerCase() },
                   result => {
                     // Ensure we get the tenant in all searches now
-                    // SearchTestsUtil.assertSearchSucceeds(anonymousRestContext, 'tenants', null, {'q': alias.toLowerCase()}, function(result) {
                     assert.strictEqual(result.total, 1);
                     assert.strictEqual(result.results[0].alias, alias);
                     assert.strictEqual(result.results[0].displayName, displayName);
                     assert.strictEqual(result.results[0].host, host.toLowerCase());
+
                     SearchTestsUtil.assertSearchSucceeds(
                       anonymousRestContext,
                       'tenants',
@@ -102,6 +103,7 @@ describe('Tenants Search', () => {
                         assert.strictEqual(result.results[0].alias, alias);
                         assert.strictEqual(result.results[0].displayName, displayName);
                         assert.strictEqual(result.results[0].host, host.toLowerCase());
+
                         SearchTestsUtil.assertSearchSucceeds(
                           anonymousRestContext,
                           'tenants',
@@ -137,24 +139,18 @@ describe('Tenants Search', () => {
       const host = tenant.host.toLowerCase().slice(0, 3);
 
       // Take just the first 3 characters of each field and ensure we get the tenant
-      setTimeout(
-        SearchTestsUtil.assertSearchSucceeds,
-        500,
-        anonymousRestContext,
-        'tenants',
-        null,
-        { q: alias },
-        result => {
+      SearchTestsUtil.assertSearchSucceeds(anonymousRestContext, 'tenants', null, { q: alias }, result => {
+        assert.ok(_.findWhere(result.results, { alias: tenant.alias }));
+
+        SearchTestsUtil.assertSearchSucceeds(anonymousRestContext, 'tenants', null, { q: displayName }, result => {
           assert.ok(_.findWhere(result.results, { alias: tenant.alias }));
-          SearchTestsUtil.assertSearchSucceeds(anonymousRestContext, 'tenants', null, { q: displayName }, result => {
+
+          SearchTestsUtil.assertSearchSucceeds(anonymousRestContext, 'tenants', null, { q: host }, result => {
             assert.ok(_.findWhere(result.results, { alias: tenant.alias }));
-            SearchTestsUtil.assertSearchSucceeds(anonymousRestContext, 'tenants', null, { q: host }, result => {
-              assert.ok(_.findWhere(result.results, { alias: tenant.alias }));
-              return callback();
-            });
+            return callback();
           });
-        }
-      );
+        });
+      });
     });
   });
 

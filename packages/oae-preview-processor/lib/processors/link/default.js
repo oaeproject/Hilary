@@ -19,7 +19,7 @@ import url from 'url';
 import PreviewConstants from 'oae-preview-processor/lib/constants';
 import _ from 'underscore';
 import gm from 'gm';
-import rangeCheck from 'range_check';
+import { add, compose, slice, lastIndexOf, not, find, __ } from 'ramda';
 import request from 'request';
 
 import { logger } from 'oae-logger';
@@ -33,6 +33,10 @@ const log = logger('oae-preview-processor');
 const PrincipalsConfig = setUpConfig('oae-principals');
 
 const screenShottingOptions = {};
+
+// Auxiliary functions
+const increment = add(1);
+const isOneOfForbidden = find(__, PreviewConstants.FORBIDDEN.INTERNAL_IPS);
 
 /**
  * Initializes the Default Link Preview Processor
@@ -66,10 +70,12 @@ const test = function(ctx, contentObj, callback) {
     // Only allow HTTP(S) URLs
     if (/^http(s)?:\/\//.test(link)) {
       // Don't generate previews for internal IPs
-      if (!rangeCheck.inRange(link.slice(link.lastIndexOf('://') + 1), PreviewConstants.FORBIDDEN.INTERNAL_IPS)) {
-        // Default to the lowest possible score
-        return callback(null, 1);
-      }
+      const extractFromLink = slice(__, link);
+      const ipAddress = compose(extractFromLink, increment, lastIndexOf('://'))(link);
+      const isNotForbidden = compose(not, isOneOfForbidden)(ipAddress);
+
+      // Default to the lowest possible score
+      if (isNotForbidden) return callback(null, 1);
     }
   }
 

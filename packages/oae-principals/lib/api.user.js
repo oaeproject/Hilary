@@ -57,7 +57,7 @@ const {
   isArrayNotEmpty,
   isOneOrGreater
 } = validator;
-import { compose, not, isNil } from 'ramda';
+import { forEach, ifElse, compose, not, isNil } from 'ramda';
 import isIn from 'validator/lib/isIn';
 import { AuthenticationConstants } from 'oae-authentication/lib/constants';
 import { AuthzConstants } from 'oae-authz/lib/constants';
@@ -75,6 +75,9 @@ const PrincipalsConfig = setUpConfig('oae-principals');
 const fullUserProfileDecorators = {};
 const HTTP_PROTOCOL = 'http';
 const HTTPS_PROTOCOL = 'https';
+
+// Auxiliary functions
+const isDefined = Boolean;
 
 /**
  * Register a decorator for the full user profile. A decorator will, at read time, provide additional data about the user
@@ -2072,33 +2075,32 @@ const _escapeFilename = function(nameResource, callback) {
 const _zipData = function(personalData, callback) {
   const zipFile = new jszip(); // eslint-disable-line new-cap
 
-  const compressPersonalData = callback => {
-    if (personalData.personalDetails) {
-      zipFile.file('personal_data.txt', personalData.personalDetails);
-    }
+  const compressPersonalData = done => {
+    const zipIt = personalDetails => {
+      zipFile.file('personal_data.txt', personalDetails);
+      return done();
+    };
 
-    return callback();
+    ifElse(isDefined, zipIt, done)(personalData.personalDetails);
   };
 
-  const compressProfilePicture = callback => {
-    if (personalData.profilePicture) {
-      fs.readFile(personalData.profilePicture.path, (err, data) => {
-        if (err) return callback(err);
-
-        zipFile.file(personalData.profilePicture.imageName, data, { base64: false, binary: true });
-        return callback();
+  const compressProfilePicture = done => {
+    const zipIt = profilePicture => {
+      fs.readFile(profilePicture.path, (err, data) => {
+        if (err) return done(err);
+        zipFile.file(profilePicture.imageName, data, { base64: false, binary: true });
+        return done();
       });
-    } else {
-      return callback();
-    }
+    };
+
+    ifElse(isDefined, zipIt, done)(personalData.profilePicture);
   };
 
-  const compressUploadedData = callback => {
-    if (personalData.uploads) {
+  const compressUploadedData = done => {
+    const zipIt = uploads => {
       const uploadFolder = zipFile.folder('upload_data');
-
       async.eachSeries(
-        personalData.uploads,
+        uploads,
         (uploadedFile, callback) => {
           fs.readFile(uploadedFile.path, (err, data) => {
             if (err) return callback(err);
@@ -2112,99 +2114,101 @@ const _zipData = function(personalData, callback) {
             callback();
           });
         },
-        err => {
-          if (err) return callback(err);
-          return callback();
-        }
+        err => done(err)
       );
-    }
+    };
 
-    return callback();
+    ifElse(isDefined, zipIt, done)(personalData.uploads);
   };
 
-  const compressCollabDocs = callback => {
-    if (personalData.collabdocs) {
+  const compressCollabDocs = done => {
+    const zipIt = collabdocs => {
       const collabdocFolder = zipFile.folder('collabdoc_data');
 
-      _.each(personalData.collabdocs, collabdoc => {
+      forEach(collabdoc => {
         const fileExt = collabdoc.title.split('.').pop();
         const text = collabdoc.title.split('.');
         const fileName = text.slice(0, -1).join('.');
         const newName = _getNewFileName(fileExt, fileName, collabdocFolder);
 
         collabdocFolder.file(newName, collabdoc.text);
-      });
-    }
+      }, collabdocs);
+      return done();
+    };
 
-    return callback();
+    ifElse(isDefined, zipIt, done)(personalData.collabdocs);
   };
 
-  const compressCollabSheets = callback => {
-    if (personalData.collabsheets) {
+  const compressCollabSheets = done => {
+    const zipIt = collabsheets => {
       const collabsheetFolder = zipFile.folder('collabsheet_data');
 
-      _.each(personalData.collabsheets, collabsheet => {
+      forEach(collabsheet => {
         const fileExt = collabsheet.title.split('.').pop();
         const text = collabsheet.title.split('.');
         const fileName = text.slice(0, -1).join('.');
         const newName = _getNewFileName(fileExt, fileName, collabsheetFolder);
 
         collabsheetFolder.file(newName, collabsheet.text);
-      });
-    }
+      }, collabsheets);
+      return done();
+    };
 
-    return callback();
+    ifElse(isDefined, zipIt, done)(personalData.collabsheets);
   };
 
-  const compressLinks = callback => {
-    if (personalData.links) {
+  const compressLinks = done => {
+    const zipIt = links => {
       const linkFolder = zipFile.folder('link_data');
 
-      _.each(personalData.links, link => {
+      forEach(link => {
         const fileExt = link.title.split('.').pop();
         const text = link.title.split('.');
         const fileName = text.slice(0, -1).join('.');
         const newName = _getNewFileName(fileExt, fileName, linkFolder);
 
         linkFolder.file(newName, link.text);
-      });
-    }
+      }, links);
+      return done();
+    };
 
-    return callback();
+    ifElse(isDefined, zipIt, done)(personalData.links);
   };
 
-  const compressMeetings = callback => {
-    if (personalData.meetings) {
+  const compressMeetings = done => {
+    const zipIt = meetings => {
       const meetingFolder = zipFile.folder('meeting_data');
 
-      _.each(personalData.meetings, meeting => {
+      forEach(meeting => {
         const fileExt = meeting.title.split('.').pop();
         const text = meeting.title.split('.');
         const fileName = text.slice(0, -1).join('.');
         const newName = _getNewFileName(fileExt, fileName, meetingFolder);
 
         meetingFolder.file(newName, meeting.text);
-      });
-    }
+      }, meetings);
+      return done();
+    };
 
-    return callback();
+    ifElse(isDefined, zipIt, done)(personalData.meetings);
   };
 
-  const compressDiscussions = callback => {
-    if (personalData.discussions) {
+  const compressDiscussions = done => {
+    const zipIt = discussions => {
       const discussionFolder = zipFile.folder('discussion_data');
 
-      _.each(personalData.discussions, discussion => {
+      forEach(discussion => {
         const fileExt = discussion.title.split('.').pop();
         const text = discussion.title.split('.');
         const fileName = text.slice(0, -1).join('.');
         const newName = _getNewFileName(fileExt, fileName, discussionFolder);
 
         discussionFolder.file(newName, discussion.text);
-      });
-    }
+      }, discussions);
+      return done();
+    };
 
-    return callback();
+    ifElse(isDefined, zipIt, done)(personalData.discussions);
   };
 
   async.series(

@@ -52,7 +52,7 @@
     "globalize": "0.1.1",
     "gm": "^1.23.0",
     "immutable": "^4.0.0-rc.12",
-    "isomorphic-git": "^1.0.0",
+    "isomorphic-git": "^1.1.4",
     "jsdom": "^16.2.0",
     "jszip": "^3.2.1",
     "juice": "^6.0.0",

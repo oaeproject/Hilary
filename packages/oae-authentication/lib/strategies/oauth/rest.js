@@ -59,36 +59,43 @@ const server = oauth2orize.createServer();
  * @param  {AccessToken}    callback.token      An access token that can be used to interact with the OAE apis as a user
  */
 server.exchange(
-  oauth2orize.exchange.clientCredentials({ userProperty: 'oaeAuthInfo' }, (client, scope, callback) => {
-    // In theory, each client should cache their access token, but that's probably a pipedream
-    // We should check if this client has a token already so we don't generate a new one each time
-    OAuthDAO.AccessTokens.getAccessTokenForUserAndClient(client.userId, client.id, (err, accessToken) => {
-      if (err) {
-        return callback(err);
+  oauth2orize.exchange.clientCredentials(
+    { userProperty: 'oaeAuthInfo' },
+    (client, scope, callback) => {
+      // In theory, each client should cache their access token, but that's probably a pipedream
+      // We should check if this client has a token already so we don't generate a new one each time
+      OAuthDAO.AccessTokens.getAccessTokenForUserAndClient(
+        client.userId,
+        client.id,
+        (err, accessToken) => {
+          if (err) {
+            return callback(err);
 
-        // This client has a token, return it
-      }
+            // This client has a token, return it
+          }
 
-      if (accessToken) {
-        return callback(null, accessToken.token);
-      }
+          if (accessToken) {
+            return callback(null, accessToken.token);
+          }
 
-      // This is the first time this client is requesting a token, we'll need to generate one
-      const token = OAuthAPI.generateToken(256);
-      OAuthDAO.AccessTokens.createAccessToken(token, client.userId, client.id, err => {
-        if (err) {
-          return callback(err);
+          // This is the first time this client is requesting a token, we'll need to generate one
+          const token = OAuthAPI.generateToken(256);
+          OAuthDAO.AccessTokens.createAccessToken(token, client.userId, client.id, err => {
+            if (err) {
+              return callback(err);
+            }
+
+            // Return an access token to the client
+            log().info(
+              { client: client.id, user: client.userId },
+              'An access token has been handed out via Client Credentials'
+            );
+            return callback(null, token);
+          });
         }
-
-        // Return an access token to the client
-        log().info(
-          { client: client.id, user: client.userId },
-          'An access token has been handed out via Client Credentials'
-        );
-        return callback(null, token);
-      });
-    });
-  })
+      );
+    }
+  )
 );
 
 /// ///////////////
@@ -241,13 +248,19 @@ OAE.tenantRouter.on('get', '/api/auth/oauth/clients/:userId', (req, res) => {
  * @HttpResponse                    401             Unauthorized
  */
 OAE.tenantRouter.on('post', '/api/auth/oauth/clients/:userId/:clientId', (req, res) => {
-  OAuthAPI.Clients.updateClient(req.ctx, req.params.clientId, req.body.displayName, req.body.secret, (err, client) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+  OAuthAPI.Clients.updateClient(
+    req.ctx,
+    req.params.clientId,
+    req.body.displayName,
+    req.body.secret,
+    (err, client) => {
+      if (err) {
+        return res.status(err.code).send(err.msg);
+      }
 
-    res.status(200).send(client);
-  });
+      res.status(200).send(client);
+    }
+  );
 });
 
 /**

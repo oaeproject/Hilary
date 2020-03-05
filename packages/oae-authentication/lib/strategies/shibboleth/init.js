@@ -75,9 +75,17 @@ export default function(config) {
         // any of the configurable attributes. Rather than relying on `mod_shib`'s `remote_user`
         // attribute, we rely on the configured list as it allows administrators to specify
         // attributes on a per-tenant basis. We use `remote_user` as the fall back value
-        const externalId = _getBestAttributeValue(tenant.alias, 'externalIdAttributes', headers, headers.remote_user);
+        const externalId = _getBestAttributeValue(
+          tenant.alias,
+          'externalIdAttributes',
+          headers,
+          headers.remote_user
+        );
         if (!externalId) {
-          log().error({ headers, tenant }, 'No suitable attribute was found for the `externalId` attribute');
+          log().error(
+            { headers, tenant },
+            'No suitable attribute was found for the `externalId` attribute'
+          );
           return callback({
             code: 500,
             msg: 'No suitable attribute was found for the `externalId` attribute'
@@ -87,7 +95,12 @@ export default function(config) {
         // There are a lot of SAML attributes that may indicate a user's display name. The administrator
         // should provide a suitable priority list to construct the display name. If no suitable value was
         // returned from the mapping, we fall back to the `remote_user` attribute, as this is always provided
-        const displayName = _getBestAttributeValue(tenant.alias, 'mapDisplayName', headers, headers.remote_user);
+        const displayName = _getBestAttributeValue(
+          tenant.alias,
+          'mapDisplayName',
+          headers,
+          headers.remote_user
+        );
 
         // Set the optional profile parameters
         const opts = {
@@ -169,7 +182,12 @@ export default function(config) {
               affiliation: headers.affiliation,
               unscopedAffiliation: headers['unscoped-affiliation']
             };
-            const q = Cassandra.constructUpsertCQL('ShibbolethMetadata', 'loginId', loginId, metadata);
+            const q = Cassandra.constructUpsertCQL(
+              'ShibbolethMetadata',
+              'loginId',
+              loginId,
+              metadata
+            );
             if (!q) {
               log().error(
                 {

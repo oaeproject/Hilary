@@ -36,7 +36,11 @@ export default function() {
    * @see oae-authentication/lib/strategy#shouldBeEnabled
    */
   strategy.shouldBeEnabled = function(tenantAlias) {
-    return AuthenticationConfig.getValue(tenantAlias, AuthenticationConstants.providers.CAS, 'enabled');
+    return AuthenticationConfig.getValue(
+      tenantAlias,
+      AuthenticationConstants.providers.CAS,
+      'enabled'
+    );
   };
 
   /**
@@ -44,8 +48,16 @@ export default function() {
    */
   strategy.getPassportStrategy = function(tenant) {
     // We fetch the config values *in* the getPassportStrategy so it can be re-configured at run-time.
-    const casHost = AuthenticationConfig.getValue(tenant.alias, AuthenticationConstants.providers.CAS, 'url');
-    const loginPath = AuthenticationConfig.getValue(tenant.alias, AuthenticationConstants.providers.CAS, 'loginPath');
+    const casHost = AuthenticationConfig.getValue(
+      tenant.alias,
+      AuthenticationConstants.providers.CAS,
+      'url'
+    );
+    const loginPath = AuthenticationConfig.getValue(
+      tenant.alias,
+      AuthenticationConstants.providers.CAS,
+      'loginPath'
+    );
     const validatePath = AuthenticationConfig.getValue(
       tenant.alias,
       AuthenticationConstants.providers.CAS,
@@ -66,7 +78,11 @@ export default function() {
       AuthenticationConstants.providers.CAS,
       'mapLocale'
     ).toLowerCase();
-    const useSaml = AuthenticationConfig.getValue(tenant.alias, AuthenticationConstants.providers.CAS, 'useSaml');
+    const useSaml = AuthenticationConfig.getValue(
+      tenant.alias,
+      AuthenticationConstants.providers.CAS,
+      'useSaml'
+    );
 
     const serverBase = TenantsUtil.getBaseUrl(tenant);
 
@@ -101,7 +117,10 @@ export default function() {
         // If the CAS server returned attributes we try to map them to OAE profile parameters
         if (casResponse.attributes) {
           // Try to use a mapped displayname rather than the default CAS id
-          const mappedDisplayName = AuthenticationUtil.renderTemplate(mapDisplayName, casResponse.attributes);
+          const mappedDisplayName = AuthenticationUtil.renderTemplate(
+            mapDisplayName,
+            casResponse.attributes
+          );
           if (mappedDisplayName) {
             displayName = mappedDisplayName;
           }
@@ -133,7 +152,11 @@ export default function() {
    */
   strategy.logout = function(req, res) {
     const tenant = req.ctx.tenant();
-    const logoutUrl = AuthenticationConfig.getValue(tenant.alias, AuthenticationConstants.providers.CAS, 'logoutUrl');
+    const logoutUrl = AuthenticationConfig.getValue(
+      tenant.alias,
+      AuthenticationConstants.providers.CAS,
+      'logoutUrl'
+    );
 
     // If no logout URL is specified, we simply redirect to the index page
     if (!logoutUrl) {

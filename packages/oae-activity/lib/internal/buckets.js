@@ -36,7 +36,9 @@ let shuttingDown = false;
  * we can ensure that is to force it to stop after the current batch.
  */
 OAE.registerPreShutdownHandler('oae-activity-buckets', null, callback => {
-  log().info('Enabling shutdown status to abort any current bucket collections as soon as possible');
+  log().info(
+    'Enabling shutdown status to abort any current bucket collections as soon as possible'
+  );
   shuttingDown = true;
   return callback();
 });
@@ -105,7 +107,9 @@ const collectAllBuckets = function(
   };
 
   // Ensure we don't surpass the maximum number of concurrent collections
-  if (bucketsInfo[type].currentConcurrentCollectionCount >= bucketsInfo[type].maxConcurrentCollections) {
+  if (
+    bucketsInfo[type].currentConcurrentCollectionCount >= bucketsInfo[type].maxConcurrentCollections
+  ) {
     log().trace({ type }, 'Aborting collection due to max concurrent collections count reached');
     return callback();
   }
@@ -172,7 +176,11 @@ const _collectBuckets = function(type, bucketNumbers, callback, _errs) {
  */
 const _collectBucket = function(type, bucketNumber, callback) {
   if (shuttingDown) {
-    log().info({ type }, 'Aborting bucket collection of bucket %s as shutdown is in progress', bucketNumber);
+    log().info(
+      { type },
+      'Aborting bucket collection of bucket %s as shutdown is in progress',
+      bucketNumber
+    );
     return callback();
   }
 
@@ -216,7 +224,11 @@ const _collectBucket = function(type, bucketNumber, callback) {
           return callback(releaseErr);
         }
 
-        log().trace({ lockId: lock, type }, 'Successfully released lock for bucket number %s', bucketNumber);
+        log().trace(
+          { lockId: lock, type },
+          'Successfully released lock for bucket number %s',
+          bucketNumber
+        );
 
         if (!hadLock) {
           // This means that the lock expired before we finished collecting, which likely means the lock expiry

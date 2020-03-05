@@ -54,7 +54,11 @@ const getSPHost = function() {
  * @return {Boolean}                    `true` if the strategy is enabled, `false` otherwise
  */
 const isEnabled = function(tenantAlias) {
-  return AuthenticationConfig.getValue(tenantAlias, AuthenticationConstants.providers.SHIBBOLETH, 'enabled');
+  return AuthenticationConfig.getValue(
+    tenantAlias,
+    AuthenticationConstants.providers.SHIBBOLETH,
+    'enabled'
+  );
 };
 
 /**

@@ -32,7 +32,10 @@ const setDeleted = function(resourceId, callback) {
     callback ||
     function(err) {
       if (err) {
-        return log().error({ err, resourceId }, 'An error occurred while trying to set a resource as deleted');
+        return log().error(
+          { err, resourceId },
+          'An error occurred while trying to set a resource as deleted'
+        );
       }
     };
 
@@ -55,11 +58,18 @@ const unsetDeleted = function(resourceId, callback) {
     callback ||
     function(err) {
       if (err) {
-        return log().error({ err, resourceId }, 'An error occurred while trying to unset a resource as deleted');
+        return log().error(
+          { err, resourceId },
+          'An error occurred while trying to unset a resource as deleted'
+        );
       }
     };
 
-  return Cassandra.runQuery('DELETE FROM "AuthzDeleted" WHERE "resourceId" = ?', [resourceId], callback);
+  return Cassandra.runQuery(
+    'DELETE FROM "AuthzDeleted" WHERE "resourceId" = ?',
+    [resourceId],
+    callback
+  );
 };
 
 /**

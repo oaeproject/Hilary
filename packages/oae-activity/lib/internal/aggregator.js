@@ -291,12 +291,13 @@ const _collectBucket = function(bucketNumber, callback) {
 
                 // Mark this to be delivered and assign it an activity id
                 aggregatesToDeliver[aggregateKey] = true;
-                aggregate[ActivityConstants.properties.OAE_ACTIVITY_ID] = ActivityDAO.createActivityId(
-                  aggregate.published
-                );
+                aggregate[
+                  ActivityConstants.properties.OAE_ACTIVITY_ID
+                ] = ActivityDAO.createActivityId(aggregate.published);
 
                 // Mark these activities for this route as being claimed by an active aggregate
-                claimedRouteActivities[aggregate.route] = claimedRouteActivities[aggregate.route] || {};
+                claimedRouteActivities[aggregate.route] =
+                  claimedRouteActivities[aggregate.route] || {};
                 _.each(aggregate.activityIds, activityId => {
                   claimedRouteActivities[aggregate.route][activityId] = true;
                 });
@@ -310,7 +311,8 @@ const _collectBucket = function(bucketNumber, callback) {
                   // but NOT with activities already delivered to the feed, it means multiple activities
                   // were launched in quick successesion (content-create for example) that could be aggregated
                   // into one single activity. This increments the number of new activities for this route by 1
-                  numNewActivitiesByRoute[aggregate.route] = numNewActivitiesByRoute[aggregate.route] || 0;
+                  numNewActivitiesByRoute[aggregate.route] =
+                    numNewActivitiesByRoute[aggregate.route] || 0;
                   numNewActivitiesByRoute[aggregate.route]++;
                 }
               }
@@ -326,18 +328,20 @@ const _collectBucket = function(bucketNumber, callback) {
               // have already been claimed as multi-aggregates
               const activityId = aggregate.activityIds[0];
               const isClaimed =
-                claimedRouteActivities[aggregate.route] && claimedRouteActivities[aggregate.route][activityId];
+                claimedRouteActivities[aggregate.route] &&
+                claimedRouteActivities[aggregate.route][activityId];
               if (!isClaimed && activeAggregates[aggregateKey]) {
                 const status = statusByAggregateKey[aggregateKey];
 
                 // Mark this to be delivered and assign it an activity id
                 aggregatesToDeliver[aggregateKey] = true;
-                aggregate[ActivityConstants.properties.OAE_ACTIVITY_ID] = ActivityDAO.createActivityId(
-                  aggregate.published
-                );
+                aggregate[
+                  ActivityConstants.properties.OAE_ACTIVITY_ID
+                ] = ActivityDAO.createActivityId(aggregate.published);
 
                 // Mark these activities for this route as being claimed by an active aggregate
-                claimedRouteActivities[aggregate.route] = claimedRouteActivities[aggregate.route] || {};
+                claimedRouteActivities[aggregate.route] =
+                  claimedRouteActivities[aggregate.route] || {};
                 _.each(aggregate.activityIds, activityId => {
                   claimedRouteActivities[aggregate.route][activityId] = true;
                 });
@@ -361,7 +365,8 @@ const _collectBucket = function(bucketNumber, callback) {
               const activityId = aggregate.activityIds[0];
 
               const isClaimed =
-                claimedRouteActivities[aggregate.route] && claimedRouteActivities[aggregate.route][activityId];
+                claimedRouteActivities[aggregate.route] &&
+                claimedRouteActivities[aggregate.route][activityId];
               if (!isClaimed) {
                 // If this route has not received an aggregate, then we deliver the non-active one(s). In the event that
                 // there are multiple non-active aggregates, a duplicate activity will not be fired because we flatten and
@@ -375,7 +380,8 @@ const _collectBucket = function(bucketNumber, callback) {
                 // track of whether an activity already incremented the notification count
                 const flattenedActivity = _flattenActivity(aggregate);
                 if (!incrementedForActivities[flattenedActivity]) {
-                  numNewActivitiesByRoute[aggregate.route] = numNewActivitiesByRoute[aggregate.route] || 0;
+                  numNewActivitiesByRoute[aggregate.route] =
+                    numNewActivitiesByRoute[aggregate.route] || 0;
                   numNewActivitiesByRoute[aggregate.route]++;
                   incrementedForActivities[flattenedActivity] = true;
                 }
@@ -415,7 +421,8 @@ const _collectBucket = function(bucketNumber, callback) {
                 if (visitedActivities[flattenedActivity]) {
                   // We assign the previous activity id to the aggregate so that we can update the aggregate status to know that
                   // any new activities for this aggregate should replace its existing activity
-                  aggregate[ActivityConstants.properties.OAE_ACTIVITY_ID] = visitedActivities[flattenedActivity];
+                  aggregate[ActivityConstants.properties.OAE_ACTIVITY_ID] =
+                    visitedActivities[flattenedActivity];
                   return;
                 }
 
@@ -429,7 +436,8 @@ const _collectBucket = function(bucketNumber, callback) {
                 const object = createActivityEntity(_.values(aggregate.objects));
                 const target = createActivityEntity(_.values(aggregate.targets));
 
-                activityStreamUpdates[aggregate.route] = activityStreamUpdates[aggregate.route] || {};
+                activityStreamUpdates[aggregate.route] =
+                  activityStreamUpdates[aggregate.route] || {};
                 activityStreamUpdates[aggregate.route][activityId] = new Activity(
                   activityType,
                   activityId,
@@ -482,7 +490,8 @@ const _collectBucket = function(bucketNumber, callback) {
 
                     if (!activeAggregates[aggregateKey]) {
                       // This aggregate was not previously active, so mark its creation date at the beginning of the first activity
-                      statusUpdatesByActivityStreamId[aggregate.route][aggregateKey].created = aggregate.published;
+                      statusUpdatesByActivityStreamId[aggregate.route][aggregateKey].created =
+                        aggregate.published;
                     }
 
                     // Mark the last activity for each aggregate. This ensures that when a new activity gets added to the aggregate, we can
@@ -502,21 +511,28 @@ const _collectBucket = function(bucketNumber, callback) {
                     // Fire an event that we have successfully delivered these individual activities
                     const deliveredActivityInfos = {};
                     _.each(routedActivities, routedActivity => {
-                      const activityStream = ActivityUtil.parseActivityStreamId(routedActivity.route);
+                      const activityStream = ActivityUtil.parseActivityStreamId(
+                        routedActivity.route
+                      );
                       const { streamType, resourceId } = activityStream;
                       deliveredActivityInfos[resourceId] = deliveredActivityInfos[resourceId] || {};
-                      deliveredActivityInfos[resourceId][streamType] = deliveredActivityInfos[resourceId][
-                        streamType
-                      ] || {
+                      deliveredActivityInfos[resourceId][streamType] = deliveredActivityInfos[
+                        resourceId
+                      ][streamType] || {
                         numNewActivities: numNewActivitiesByRoute[routedActivity.route] || 0,
                         activities: []
                       };
 
-                      deliveredActivityInfos[resourceId][streamType].activities.push(routedActivity.activity);
+                      deliveredActivityInfos[resourceId][streamType].activities.push(
+                        routedActivity.activity
+                      );
                     });
 
                     if (!_.isEmpty(deliveredActivityInfos)) {
-                      ActivityEmitter.emit(ActivityConstants.events.DELIVERED_ACTIVITIES, deliveredActivityInfos);
+                      ActivityEmitter.emit(
+                        ActivityConstants.events.DELIVERED_ACTIVITIES,
+                        deliveredActivityInfos
+                      );
                     }
 
                     Telemetry.appendDuration('collection.time', collectionStart);
@@ -633,7 +649,12 @@ const createAggregates = function(routedActivities) {
       // that already match. It helps us deliver an aggregate right away to the route, rather than accidentally delivering
       // individual activities from within a batch
       if (!aggregates[aggregateKey]) {
-        aggregates[aggregateKey] = new ActivityAggregate(activityType, route, activity.verb, activity.published);
+        aggregates[aggregateKey] = new ActivityAggregate(
+          activityType,
+          route,
+          activity.verb,
+          activity.published
+        );
       }
 
       const aggregate = aggregates[aggregateKey];
@@ -725,7 +746,9 @@ const _createPivotKey = function(entity, pivotSpec) {
  * @api private
  */
 const _contributesNewEntity = function(aggregate, actorKey, objectKey, targetKey) {
-  return !aggregate.actors[actorKey] || !aggregate.objects[objectKey] || !aggregate.targets[targetKey];
+  return (
+    !aggregate.actors[actorKey] || !aggregate.objects[objectKey] || !aggregate.targets[targetKey]
+  );
 };
 
 /**
@@ -947,4 +970,9 @@ const ActivityAggregate = function(activityType, route, verb, published) {
   return that;
 };
 
-export { resetAggregationForActivityStreams, collectAllBuckets, createAggregates, createActivityEntity };
+export {
+  resetAggregationForActivityStreams,
+  collectAllBuckets,
+  createAggregates,
+  createActivityEntity
+};

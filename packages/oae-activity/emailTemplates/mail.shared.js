@@ -53,7 +53,10 @@ const getEmailSubject = (util, recipient, activities) => {
     // a little bit differently because we have to legitimize our email quicker (i.e., in the
     // subject)
     if (_.size(activities) === 1) {
-      return util.i18n.translate(activities[0].summary.i18nKey, activities[0].summary.i18nArguments);
+      return util.i18n.translate(
+        activities[0].summary.i18nKey,
+        activities[0].summary.i18nArguments
+      );
     }
 
     const actors = _getAllEntities(activities, 'actor');
@@ -82,7 +85,10 @@ const getEmailSubject = (util, recipient, activities) => {
   let message = util.i18n.translate('__MSG__RECENT_ACTIVITY__');
   if (emailPreference === 'immediate') {
     if (activities.length === 1) {
-      message = util.i18n.translate(activities[0].summary.i18nKey, activities[0].summary.i18nArguments);
+      message = util.i18n.translate(
+        activities[0].summary.i18nKey,
+        activities[0].summary.i18nArguments
+      );
     } else {
       message = util.i18n.translate('__MSG__ACTIVITY_EMAIL_SUBJECT_MULTIPLE__');
     }

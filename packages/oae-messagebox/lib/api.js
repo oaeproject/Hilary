@@ -100,7 +100,7 @@ const replaceLinks = function(body) {
         const lastParaLine = body.slice(0, lastParaIndex + 1).split('\n').length;
         // Get just the lines between the last double linebreak and our match
         let lines = preMatchBody.split('\n');
-        lines = lines.slice(lastParaLine, lines.length - 1);
+        lines = lines.slice(lastParaLine, -1);
         // Check that all lines in this block start with 4 spaces
         const allLinesStartWith4Spaces = _.every(lines, line => {
           return line.slice(0, 4) === '    ';

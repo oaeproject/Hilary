@@ -57,7 +57,7 @@ const {
   isArrayNotEmpty,
   isOneOrGreater
 } = validator;
-import { compose, not, isNil } from 'ramda';
+import { add, equals, path, __, slice, join, last, split, curry, forEach, ifElse, compose, not, isNil } from 'ramda';
 import isIn from 'validator/lib/isIn';
 import { AuthenticationConstants } from 'oae-authentication/lib/constants';
 import { AuthzConstants } from 'oae-authz/lib/constants';
@@ -75,6 +75,31 @@ const PrincipalsConfig = setUpConfig('oae-principals');
 const fullUserProfileDecorators = {};
 const HTTP_PROTOCOL = 'http';
 const HTTPS_PROTOCOL = 'https';
+
+// Auxiliary functions
+const isDefined = Boolean;
+const toArray = x => [x];
+const extractTitle = compose(path, toArray)('title');
+const extractText = compose(path, toArray)('text');
+
+/**
+ * @function storeTextFile
+ * @param  {type} file   {description}
+ * @param  {type} folder {description}
+ * @return {type} {description}
+ */
+const storeTextFile = (file, folder) =>
+  folder.file(curry(_getNewName)(__, folder)(extractTitle(file)), extractText(file));
+
+/**
+ * @function storeBinaryFile
+ * @param  {type} file   {description}
+ * @param  {type} data   {description}
+ * @param  {type} folder {description}
+ * @return {type} {description}
+ */
+const storeBinaryFile = (file, data, folder) =>
+  folder.file(curry(_getNewName)(__, folder)(extractTitle(file)), data, { base64: false, binary: true });
 
 /**
  * Register a decorator for the full user profile. A decorator will, at read time, provide additional data about the user
@@ -2062,6 +2087,171 @@ const _escapeFilename = function(nameResource, callback) {
 };
 
 /**
+ * @function _compressPersonalData
+ * @param  {type} zipFile      {description}
+ * @param  {type} personalData {description}
+ * @param  {type} done         {description}
+ * @return {type} {description}
+ */
+const _compressPersonalData = (zipFile, personalData, done) => {
+  ifElse(
+    isDefined,
+    personalDetails => {
+      zipFile.file('personal_data.txt', personalDetails);
+      done();
+    },
+    done
+  )(personalData.personalDetails);
+};
+
+/**
+ * @function _compressProfilePicture
+ * @param  {type} zipFile      {description}
+ * @param  {type} personalData {description}
+ * @param  {type} done         {description}
+ * @return {type} {description}
+ */
+const _compressProfilePicture = (zipFile, personalData, done) => {
+  ifElse(
+    isDefined,
+    profilePicture => {
+      fs.readFile(profilePicture.path, (err, data) => {
+        if (err) return done(err);
+        zipFile.file(profilePicture.imageName, data, { base64: false, binary: true });
+        done();
+      });
+    },
+    done
+  )(personalData.profilePicture);
+};
+
+/**
+ * @function _compressUploadedData
+ * @param  {type} zipFile      {description}
+ * @param  {type} personalData {description}
+ * @param  {type} done         {description}
+ * @return {type} {description}
+ */
+const _compressUploadedData = (zipFile, personalData, done) => {
+  ifElse(
+    isDefined,
+    uploads => {
+      const uploadFolder = zipFile.folder('upload_data');
+      const storeToUploadsFolder = (uploadedFile, callback) => {
+        fs.readFile(uploadedFile.path, (err, data) => {
+          if (err) return callback(err);
+          storeBinaryFile(uploadedFile, data, uploadFolder);
+          callback();
+        });
+      };
+
+      async.eachSeries(uploads, storeToUploadsFolder, err => done(err));
+    },
+    done
+  )(personalData.uploads);
+};
+
+/**
+ * @function _compressCollabDocs
+ * @param  {type} zipFile      {description}
+ * @param  {type} personalData {description}
+ * @param  {type} done         {description}
+ * @return {type} {description}
+ */
+const _compressCollabDocs = (zipFile, personalData, done) => {
+  ifElse(
+    isDefined,
+    collabdocs => {
+      const collabdocFolder = zipFile.folder('collabdoc_data');
+      const storeToDocsFolder = curry(storeTextFile)(__, collabdocFolder);
+      forEach(storeToDocsFolder, collabdocs);
+      done();
+    },
+    done
+  )(personalData.collabdocs);
+};
+
+/**
+ * @function _compressCollabSheets
+ * @param  {type} zipFile      {description}
+ * @param  {type} personalData {description}
+ * @param  {type} done         {description}
+ * @return {type} {description}
+ */
+const _compressCollabSheets = (zipFile, personalData, done) => {
+  ifElse(
+    isDefined,
+    collabsheets => {
+      const collabsheetFolder = zipFile.folder('collabsheet_data');
+      const storeToSheetsFolder = curry(storeTextFile)(__, collabsheetFolder);
+      forEach(storeToSheetsFolder, collabsheets);
+      done();
+    },
+    done
+  )(personalData.collabsheets);
+};
+
+/**
+ * @function _compressLinks
+ * @param  {type} zipFile      {description}
+ * @param  {type} personalData {description}
+ * @param  {type} done         {description}
+ * @return {type} {description}
+ */
+const _compressLinks = (zipFile, personalData, done) => {
+  ifElse(
+    isDefined,
+    links => {
+      const linkFolder = zipFile.folder('link_data');
+      const storeToLinksFolder = curry(storeTextFile)(__, linkFolder);
+      forEach(storeToLinksFolder, links);
+      done();
+    },
+    done
+  )(personalData.links);
+};
+
+/**
+ * @function _compressMeetings
+ * @param  {type} zipFile      {description}
+ * @param  {type} personalData {description}
+ * @param  {type} done         {description}
+ * @return {type} {description}
+ */
+const _compressMeetings = (zipFile, personalData, done) => {
+  ifElse(
+    isDefined,
+    meetings => {
+      const meetingFolder = zipFile.folder('meeting_data');
+      const storeToMeetingFolder = curry(storeTextFile)(__, meetingFolder);
+      forEach(storeToMeetingFolder, meetings);
+      done();
+    },
+    done
+  )(personalData.meetings);
+};
+
+/**
+ * @function _compressDiscussions
+ * @param  {type} zipFile      {description}
+ * @param  {type} personalData {description}
+ * @param  {type} done         {description}
+ * @return {type} {description}
+ */
+const _compressDiscussions = (zipFile, personalData, done) => {
+  ifElse(
+    isDefined,
+    discussions => {
+      const discussionFolder = zipFile.folder('discussion_data');
+      const storeToDiscussionFolder = curry(storeTextFile)(__, discussionFolder);
+      forEach(storeToDiscussionFolder, discussions);
+      done();
+    },
+    done
+  )(personalData.discussions);
+};
+
+/**
  * Build a jszip object
  *
  * @param  {object}     personalData        An object containing all the data
@@ -2072,151 +2262,17 @@ const _escapeFilename = function(nameResource, callback) {
 const _zipData = function(personalData, callback) {
   const zipFile = new jszip(); // eslint-disable-line new-cap
 
-  const compressPersonalData = callback => {
-    if (personalData.personalDetails) {
-      zipFile.file('personal_data.txt', personalData.personalDetails);
-    }
-
-    return callback();
-  };
-
-  const compressProfilePicture = callback => {
-    if (personalData.profilePicture) {
-      fs.readFile(personalData.profilePicture.path, (err, data) => {
-        if (err) return callback(err);
-
-        zipFile.file(personalData.profilePicture.imageName, data, { base64: false, binary: true });
-        return callback();
-      });
-    } else {
-      return callback();
-    }
-  };
-
-  const compressUploadedData = callback => {
-    if (personalData.uploads) {
-      const uploadFolder = zipFile.folder('upload_data');
-
-      async.eachSeries(
-        personalData.uploads,
-        (uploadedFile, callback) => {
-          fs.readFile(uploadedFile.path, (err, data) => {
-            if (err) return callback(err);
-
-            const fileExt = uploadedFile.title.split('.').pop();
-            const text = uploadedFile.title.split('.');
-            const fileName = text.slice(0, text.length - 1).join('.');
-            const newName = _getNewFileName(fileExt, fileName, uploadFolder);
-
-            uploadFolder.file(newName, data, { base64: false, binary: true });
-            callback();
-          });
-        },
-        err => {
-          if (err) return callback(err);
-          return callback();
-        }
-      );
-    }
-
-    return callback();
-  };
-
-  const compressCollabDocs = callback => {
-    if (personalData.collabdocs) {
-      const collabdocFolder = zipFile.folder('collabdoc_data');
-
-      _.each(personalData.collabdocs, collabdoc => {
-        const fileExt = collabdoc.title.split('.').pop();
-        const text = collabdoc.title.split('.');
-        const fileName = text.slice(0, text.length - 1).join('.');
-        const newName = _getNewFileName(fileExt, fileName, collabdocFolder);
-
-        collabdocFolder.file(newName, collabdoc.text);
-      });
-    }
-
-    return callback();
-  };
-
-  const compressCollabSheets = callback => {
-    if (personalData.collabsheets) {
-      const collabsheetFolder = zipFile.folder('collabsheet_data');
-
-      _.each(personalData.collabsheets, collabsheet => {
-        const fileExt = collabsheet.title.split('.').pop();
-        const text = collabsheet.title.split('.');
-        const fileName = text.slice(0, text.length - 1).join('.');
-        const newName = _getNewFileName(fileExt, fileName, collabsheetFolder);
-
-        collabsheetFolder.file(newName, collabsheet.text);
-      });
-    }
-
-    return callback();
-  };
-
-  const compressLinks = callback => {
-    if (personalData.links) {
-      const linkFolder = zipFile.folder('link_data');
-
-      _.each(personalData.links, link => {
-        const fileExt = link.title.split('.').pop();
-        const text = link.title.split('.');
-        const fileName = text.slice(0, text.length - 1).join('.');
-        const newName = _getNewFileName(fileExt, fileName, linkFolder);
-
-        linkFolder.file(newName, link.text);
-      });
-    }
-
-    return callback();
-  };
-
-  const compressMeetings = callback => {
-    if (personalData.meetings) {
-      const meetingFolder = zipFile.folder('meeting_data');
-
-      _.each(personalData.meetings, meeting => {
-        const fileExt = meeting.title.split('.').pop();
-        const text = meeting.title.split('.');
-        const fileName = text.slice(0, text.length - 1).join('.');
-        const newName = _getNewFileName(fileExt, fileName, meetingFolder);
-
-        meetingFolder.file(newName, meeting.text);
-      });
-    }
-
-    return callback();
-  };
-
-  const compressDiscussions = callback => {
-    if (personalData.discussions) {
-      const discussionFolder = zipFile.folder('discussion_data');
-
-      _.each(personalData.discussions, discussion => {
-        const fileExt = discussion.title.split('.').pop();
-        const text = discussion.title.split('.');
-        const fileName = text.slice(0, text.length - 1).join('.');
-        const newName = _getNewFileName(fileExt, fileName, discussionFolder);
-
-        discussionFolder.file(newName, discussion.text);
-      });
-    }
-
-    return callback();
-  };
-
+  const curryForZip = fn => curry(fn)(zipFile, personalData);
   async.series(
     [
-      compressPersonalData,
-      compressProfilePicture,
-      compressUploadedData,
-      compressCollabDocs,
-      compressCollabSheets,
-      compressLinks,
-      compressMeetings,
-      compressDiscussions
+      curryForZip(_compressPersonalData),
+      curryForZip(_compressProfilePicture),
+      curryForZip(_compressUploadedData),
+      curryForZip(_compressCollabDocs),
+      curryForZip(_compressCollabSheets),
+      curryForZip(_compressLinks),
+      curryForZip(_compressMeetings),
+      curryForZip(_compressDiscussions)
     ],
     err => {
       if (err) return callback(err);
@@ -2237,26 +2293,41 @@ const _zipData = function(personalData, callback) {
 const _getNewFileName = function(fileExt, fileName, folder) {
   let index = 0;
   let file = '';
-  let searchAName = true;
+  let searchingForAName = true;
 
-  while (searchAName) {
-    if (index === 0) {
-      file = fileName + '.' + fileExt;
+  const increment = add(1);
+  const isZero = equals(0);
+  const isNotZero = compose(not, isZero);
+
+  while (searchingForAName) {
+    if (isZero(index)) {
+      file = `${fileName}.${fileExt}`;
     } else {
-      file = fileName + '(' + index + ').' + fileExt;
+      file = `${fileName}(${index}).${fileExt}`;
     }
 
-    if (folder.files[folder.root + file]) {
-      index += 1;
+    if (path(['files', folder.root + file], folder)) {
+      index = increment(index);
     } else {
-      searchAName = false;
-      if (index !== 0) {
-        return fileName + '(' + index + ').' + fileExt;
-      }
+      searchingForAName = false;
 
-      return fileName + '.' + fileExt;
+      if (isNotZero(index)) return `${fileName}(${index}).${fileExt}`;
+
+      return `${fileName}.${fileExt}`;
     }
   }
+};
+
+/**
+ * @function _getNewName
+ * @param  {String} title  Title for the file to be created
+ * @param  {String} folder Folder where the file will be created
+ * @return {String} Unique ttle for the file that will be zipped
+ */
+const _getNewName = (title, folder) => {
+  const fileExt = compose(last, split('.'))(title);
+  const fileName = compose(join('.'), slice(0, -1), split('.'))(title);
+  return _getNewFileName(fileExt, fileName, folder);
 };
 
 export {

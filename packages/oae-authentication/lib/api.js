@@ -98,7 +98,10 @@ const _configUpdate = function(tenantAlias) {
   } else {
     const tenant = TenantsAPI.getTenant(tenantAlias);
     if (!tenant) {
-      return log().error({ tenantAlias }, 'Error fetching tenant to update authentication configuration');
+      return log().error(
+        { tenantAlias },
+        'Error fetching tenant to update authentication configuration'
+      );
     }
 
     refreshStrategies(tenant);
@@ -201,7 +204,8 @@ const getOrCreateGlobalAdminUser = function(ctx, username, password, displayName
   try {
     unless(isLoggedInUser, {
       code: 401,
-      msg: 'You must be authenticated to the global admin tenant to create a global administrator user'
+      msg:
+        'You must be authenticated to the global admin tenant to create a global administrator user'
     })(ctx, globalTenantAlias);
 
     unless(isGlobalAdministratorUser, {
@@ -300,7 +304,15 @@ const getOrCreateGlobalAdminUser = function(ctx, username, password, displayName
  * @param  {String}     callback.loginId        The *flattened* loginId for this user
  * @param  {Boolean}    callback.created        `true` if the user was created, `false` otherwise
  */
-const getOrCreateUser = function(ctx, authProvider, externalId, providerProperties, displayName, opts, callback) {
+const getOrCreateUser = function(
+  ctx,
+  authProvider,
+  externalId,
+  providerProperties,
+  displayName,
+  opts,
+  callback
+) {
   // Create the expected login id and ensure it is valid for potentially persisting into storage
   const loginId = new LoginId(ctx.tenant().alias, authProvider, externalId, providerProperties);
   try {
@@ -408,7 +420,8 @@ const _getOrCreateUser = function(ctx, loginId, displayName, opts, callback) {
           // If an email address was provided by a non authoritative source (Facebook, Twitter,
           // Google, Local authentication) by a user that is not an administrator we should
           // check whether the email address matches the tenant's configured email domain
-          let shouldCheckEmail = !_.isEmpty(ctx.tenant().emailDomains) && !isAdmin && !opts.authoritative;
+          let shouldCheckEmail =
+            !_.isEmpty(ctx.tenant().emailDomains) && !isAdmin && !opts.authoritative;
 
           // However, if a user followed a link from an invitation email we do not check whether
           // the email belongs to the configured tenant's email domain. This is to allow for the
@@ -418,19 +431,25 @@ const _getOrCreateUser = function(ctx, loginId, displayName, opts, callback) {
             shouldCheckEmail = false;
           }
 
-          OaeUtil.invokeIfNecessary(shouldCheckEmail, _validateEmailBelongsToTenant, ctx, opts.email, err => {
-            if (err) {
-              return callback(err);
-            }
-
-            createUser(ctx, loginId, displayName, opts, (err, user) => {
+          OaeUtil.invokeIfNecessary(
+            shouldCheckEmail,
+            _validateEmailBelongsToTenant,
+            ctx,
+            opts.email,
+            err => {
               if (err) {
                 return callback(err);
               }
 
-              return callback(null, user, _flattenLoginId(loginId), true);
-            });
-          });
+              createUser(ctx, loginId, displayName, opts, (err, user) => {
+                if (err) {
+                  return callback(err);
+                }
+
+                return callback(null, user, _flattenLoginId(loginId), true);
+              });
+            }
+          );
         }
       );
     }
@@ -637,7 +656,8 @@ const _createUser = function(ctx, loginId, displayName, opts, callback) {
     if (err) {
       return callback({
         code: 400,
-        msg: 'Failed to acquire lock probably because this login id already exists and is already associated to a user'
+        msg:
+          'Failed to acquire lock probably because this login id already exists and is already associated to a user'
       });
     }
 
@@ -844,7 +864,11 @@ const changePassword = function(ctx, userId, oldPassword, newPassword, callback)
       const isAdmin = ctx.user().isAdmin(localLoginId.tenantAlias);
       const isTargetUser = ctx.user().id === userId;
       if (!isAdmin && !isTargetUser) {
-        log().info('Failed attempt to change password for user %s by user %s', userId, ctx.user().id);
+        log().info(
+          'Failed attempt to change password for user %s by user %s',
+          userId,
+          ctx.user().id
+        );
         return callback({ code: 401, msg: "You're not authorized to change this user's password" });
       }
 
@@ -920,7 +944,9 @@ const checkPassword = function(tenantAlias, username, password, callback) {
       // Check if the user provided password matches the stored password
       const result = Cassandra.rowToHash(rows[0]);
       const passwordMatches =
-        result.userId && result.password && AuthenticationUtil.hashAndComparePassword(password, result.password);
+        result.userId &&
+        result.password &&
+        AuthenticationUtil.hashAndComparePassword(password, result.password);
       if (passwordMatches) {
         callback(null, result.userId);
       } else {
@@ -1135,12 +1161,18 @@ const _associateLoginId = function(loginId, userId, callback) {
   delete loginId.properties.loginId;
   loginId.properties.userId = userId;
 
-  const query = Cassandra.constructUpsertCQL('AuthenticationLoginId', 'loginId', flattenedLoginId, loginId.properties);
+  const query = Cassandra.constructUpsertCQL(
+    'AuthenticationLoginId',
+    'loginId',
+    flattenedLoginId,
+    loginId.properties
+  );
   if (query) {
     const queries = [];
     queries.push(query);
     queries.push({
-      query: 'INSERT INTO "AuthenticationUserLoginId" ("userId", "loginId", "value") VALUES (?, ?, ?)',
+      query:
+        'INSERT INTO "AuthenticationUserLoginId" ("userId", "loginId", "value") VALUES (?, ?, ?)',
       parameters: [userId, flattenedLoginId, '1']
     });
     return Cassandra.runBatchQuery(queries, callback);
@@ -1224,22 +1256,26 @@ const _getUserLoginIds = function(userId, callback) {
     return callback(null, {});
   }
 
-  Cassandra.runQuery('SELECT "loginId" FROM "AuthenticationUserLoginId" WHERE "userId" = ?', [userId], (err, rows) => {
-    if (err) {
-      return callback(err);
-    }
-
-    const loginIds = {};
-    _.each(rows, row => {
-      row = Cassandra.rowToHash(row);
-      if (row.loginId) {
-        const loginId = _expandLoginId(row.loginId);
-        loginIds[loginId.provider] = loginId;
+  Cassandra.runQuery(
+    'SELECT "loginId" FROM "AuthenticationUserLoginId" WHERE "userId" = ?',
+    [userId],
+    (err, rows) => {
+      if (err) {
+        return callback(err);
       }
-    });
 
-    return callback(null, loginIds);
-  });
+      const loginIds = {};
+      _.each(rows, row => {
+        row = Cassandra.rowToHash(row);
+        if (row.loginId) {
+          const loginId = _expandLoginId(row.loginId);
+          loginIds[loginId.provider] = loginId;
+        }
+      });
+
+      return callback(null, loginIds);
+    }
+  );
 };
 
 /**

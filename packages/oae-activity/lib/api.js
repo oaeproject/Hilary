@@ -111,7 +111,10 @@ const refreshConfiguration = function(config, callback) {
   if (config.processActivityJobs && config.collectionPollingFrequency > 0) {
     const collectionPollingFrequencyInMs = config.collectionPollingFrequency * 1000;
     // Delegate to the aggregator to collect/aggregate all buckets
-    collectionPollingTimer = setInterval(ActivityAggregator.collectAllBuckets, collectionPollingFrequencyInMs);
+    collectionPollingTimer = setInterval(
+      ActivityAggregator.collectAllBuckets,
+      collectionPollingFrequencyInMs
+    );
   }
 
   // Reset the mail polling interval
@@ -522,8 +525,16 @@ const registerActivityEntityType = function(activityEntityType, options) {
  * @param  {Object}                 associationFunction.callback.err            An error that occurred, if any
  * @param  {Array|Object}           associationFunction.callback.association    The result of the association. To be useful as a route, this should be an array of strings, however other data structures can be provided as well for ad-hoc operations using the associations context directly
  */
-const registerActivityEntityAssociation = function(activityEntityType, associationName, associationFunction) {
-  ActivityRegistry.registerActivityEntityAssociation(activityEntityType, associationName, associationFunction);
+const registerActivityEntityAssociation = function(
+  activityEntityType,
+  associationName,
+  associationFunction
+) {
+  ActivityRegistry.registerActivityEntityAssociation(
+    activityEntityType,
+    associationName,
+    associationFunction
+  );
 };
 
 /**
@@ -565,23 +576,35 @@ const getActivityStream = function(ctx, principalId, start, limit, transformerTy
     // Determining which activity stream should be returned is exactly the same
     // as resolving which library should be returned to a user. We can simply
     // re-use the library-authz logic
-    LibraryAuthz.resolveTargetLibraryAccess(ctx, principalId, principal, (err, hasAccess, visibility) => {
-      if (err) {
-        return callback(err);
-      }
+    LibraryAuthz.resolveTargetLibraryAccess(
+      ctx,
+      principalId,
+      principal,
+      (err, hasAccess, visibility) => {
+        if (err) {
+          return callback(err);
+        }
 
-      if (!hasAccess) {
-        return callback({ code: 401, msg: 'You cannot access this activity stream' });
-      }
+        if (!hasAccess) {
+          return callback({ code: 401, msg: 'You cannot access this activity stream' });
+        }
 
-      let activityStreamType = 'activity';
-      if (visibility === 'public' || visibility === 'loggedin') {
-        activityStreamType += '#' + visibility;
-      }
+        let activityStreamType = 'activity';
+        if (visibility === 'public' || visibility === 'loggedin') {
+          activityStreamType += '#' + visibility;
+        }
 
-      // Return the activities
-      return _getActivityStream(ctx, principalId + '#' + activityStreamType, start, limit, transformerType, callback);
-    });
+        // Return the activities
+        return _getActivityStream(
+          ctx,
+          principalId + '#' + activityStreamType,
+          start,
+          limit,
+          transformerType,
+          callback
+        );
+      }
+    );
   });
 };
 
@@ -764,7 +787,14 @@ const postActivity = function(ctx, activitySeed, callback) {
  * @param j {ActivityStream}    callback.activityStream  The activity stream
  * @api private
  */
-const _getActivityStream = function(ctx, activityStreamId, start, limit, transformerType, callback) {
+const _getActivityStream = function(
+  ctx,
+  activityStreamId,
+  start,
+  limit,
+  transformerType,
+  callback
+) {
   ActivityDAO.getActivities(activityStreamId, start, limit, (err, activities, nextToken) => {
     if (err) return callback(err);
 
@@ -812,7 +842,10 @@ const removeActivityStream = function(ctx, principalId, callback) {
       activityTypes,
       function(activityType, done) {
         // Get all the activity streams corresponding to the deleted principal
-        ActivityDAO.getActivities(principalId + activityType, null, null, function(err, activities) {
+        ActivityDAO.getActivities(principalId + activityType, null, null, function(
+          err,
+          activities
+        ) {
           if (err) return callback(err);
 
           // Delete all data in the ActivityStreams table corresponding to the deleted principal

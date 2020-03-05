@@ -81,7 +81,10 @@ OAE.tenantRouter.on('get', '/api/auth/shibboleth/sp', (req, res, next) => {
     res.cookie('shibboleth', tenantAlias, { signed: true });
 
     // Get the ID under which this strategy was registered for this tenant
-    const strategyId = AuthenticationUtil.getStrategyId(tenant, AuthenticationConstants.providers.SHIBBOLETH);
+    const strategyId = AuthenticationUtil.getStrategyId(
+      tenant,
+      AuthenticationConstants.providers.SHIBBOLETH
+    );
 
     // Perform the initial authentication step
     AuthenticationUtil.handleExternalSetup(strategyId, null, req, res, next);
@@ -126,7 +129,10 @@ OAE.tenantRouter.on('get', '/api/auth/shibboleth/sp/callback', (req, res) => {
     const tenantUrl = util.format('https://%s', tenant.host);
 
     // Get the Shibboleth strategy
-    const strategyId = AuthenticationUtil.getStrategyId(tenant, AuthenticationConstants.providers.SHIBBOLETH);
+    const strategyId = AuthenticationUtil.getStrategyId(
+      tenant,
+      AuthenticationConstants.providers.SHIBBOLETH
+    );
 
     // Validate and authenticate the request
     passport.authenticate(strategyId, {}, (err, user, challenges, status) => {
@@ -140,7 +146,10 @@ OAE.tenantRouter.on('get', '/api/auth/shibboleth/sp/callback', (req, res) => {
         // normal situation as external auth providers don't usually redirect with
         // bad parameters in the request, so somebody is probably tampering with it.
         // We bail out immediately
-        log().warn({ challenges, status }, 'Possible tampering of external callback request detected');
+        log().warn(
+          { challenges, status },
+          'Possible tampering of external callback request detected'
+        );
         return res.redirect(tenantUrl + '/?authentication=failed&reason=tampering');
       }
 
@@ -180,7 +189,10 @@ OAE.tenantRouter.on('get', '/api/auth/shibboleth/callback', (req, res, next) => 
     }
 
     // Log the user in
-    const strategyId = AuthenticationUtil.getStrategyId(req.tenant, AuthenticationConstants.providers.SHIBBOLETH);
+    const strategyId = AuthenticationUtil.getStrategyId(
+      req.tenant,
+      AuthenticationConstants.providers.SHIBBOLETH
+    );
     return AuthenticationUtil.handleLogin(strategyId, user, req, res, next);
   });
 });

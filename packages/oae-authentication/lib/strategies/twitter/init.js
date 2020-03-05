@@ -35,7 +35,11 @@ export default function() {
    * @see oae-authentication/lib/strategy#shouldBeEnabled
    */
   strategy.shouldBeEnabled = function(tenantAlias) {
-    return AuthenticationConfig.getValue(tenantAlias, AuthenticationConstants.providers.TWITTER, 'enabled');
+    return AuthenticationConfig.getValue(
+      tenantAlias,
+      AuthenticationConstants.providers.TWITTER,
+      'enabled'
+    );
   };
 
   /**
@@ -43,7 +47,11 @@ export default function() {
    */
   strategy.getPassportStrategy = function(tenant) {
     // We fetch the config values *in* the getPassportStrategy so it can be re-configured at run-time.
-    const consumerKey = AuthenticationConfig.getValue(tenant.alias, AuthenticationConstants.providers.TWITTER, 'key');
+    const consumerKey = AuthenticationConfig.getValue(
+      tenant.alias,
+      AuthenticationConstants.providers.TWITTER,
+      'key'
+    );
     const consumerSecret = AuthenticationConfig.getValue(
       tenant.alias,
       AuthenticationConstants.providers.TWITTER,
@@ -54,7 +62,10 @@ export default function() {
       {
         consumerKey,
         consumerSecret,
-        callbackURL: AuthenticationUtil.constructCallbackUrl(tenant, AuthenticationConstants.providers.TWITTER),
+        callbackURL: AuthenticationUtil.constructCallbackUrl(
+          tenant,
+          AuthenticationConstants.providers.TWITTER
+        ),
         passReqToCallback: true
       },
       (req, token, tokenSecret, profile, done) => {

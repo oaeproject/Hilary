@@ -36,7 +36,12 @@ const createAccessToken = function(token, userId, clientId, callback) {
       userId,
       clientId
     }),
-    Cassandra.constructUpsertCQL('OAuthAccessTokenByUser', ['userId', 'clientId'], [userId, clientId], { token })
+    Cassandra.constructUpsertCQL(
+      'OAuthAccessTokenByUser',
+      ['userId', 'clientId'],
+      [userId, clientId],
+      { token }
+    )
   ];
 
   Cassandra.runBatchQuery(queries, err => {

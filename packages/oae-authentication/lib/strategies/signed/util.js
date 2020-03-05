@@ -54,7 +54,8 @@ const getSignedTenantAuthenticationRequest = function(ctx, tenantAlias, callback
   if (ctx.imposter()) {
     return callback({
       code: 401,
-      msg: 'You cannot create a signed authentication token to a tenant while impostering another user'
+      msg:
+        'You cannot create a signed authentication token to a tenant while impostering another user'
     });
   }
 
@@ -67,7 +68,11 @@ const getSignedTenantAuthenticationRequest = function(ctx, tenantAlias, callback
   }
 
   const data = { tenantAlias, userId: ctx.user().id };
-  const signedData = Signature.createExpiringSignature(data, TIME_1_MINUTE_IN_SECONDS, TIME_1_MINUTE_IN_SECONDS);
+  const signedData = Signature.createExpiringSignature(
+    data,
+    TIME_1_MINUTE_IN_SECONDS,
+    TIME_1_MINUTE_IN_SECONDS
+  );
 
   // Include the authenticating `userId` in the signed data. It isn't necessary to include the tenant alias in
   // the body, as we can assume that from the target context during the verification phase, so we omit it from
@@ -147,7 +152,11 @@ const getSignedBecomeUserAuthenticationRequest = function(ctx, becomeUserId, cal
       userId: ctx.user().id,
       becomeUserId
     };
-    const signedData = Signature.createExpiringSignature(data, TIME_1_MINUTE_IN_SECONDS, TIME_1_MINUTE_IN_SECONDS);
+    const signedData = Signature.createExpiringSignature(
+      data,
+      TIME_1_MINUTE_IN_SECONDS,
+      TIME_1_MINUTE_IN_SECONDS
+    );
 
     // Include the authenticating `userId` and target `becomeUserId` in the signed data. It isn't necessary to
     // include the tenant alias in the body, as we can assume that from the target context during the verification

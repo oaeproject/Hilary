@@ -123,17 +123,21 @@ const getClientById = function(id, callback) {
  * @param  {Client[]}   callback.clients    The set of clients that are registered for this user
  */
 const getClientsByUser = function(userId, callback) {
-  Cassandra.runQuery('SELECT "clientId" FROM "OAuthClientsByUser" WHERE "userId" = ?', [userId], (err, rows) => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery(
+    'SELECT "clientId" FROM "OAuthClientsByUser" WHERE "userId" = ?',
+    [userId],
+    (err, rows) => {
+      if (err) {
+        return callback(err);
+      }
+
+      const clientIds = _.map(rows, row => {
+        return row.get('clientId');
+      });
+
+      _getClientsByIds(clientIds, callback);
     }
-
-    const clientIds = _.map(rows, row => {
-      return row.get('clientId');
-    });
-
-    _getClientsByIds(clientIds, callback);
-  });
+  );
 };
 
 /**

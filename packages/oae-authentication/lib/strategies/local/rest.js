@@ -36,7 +36,10 @@ import * as AuthenticationUtil from 'oae-authentication/lib/util';
  * @HttpResponse                401                         Unauthorized
  */
 const _handleLocalAuthentication = function(req, res, next) {
-  const strategyId = AuthenticationUtil.getStrategyId(req.tenant, AuthenticationConstants.providers.LOCAL);
+  const strategyId = AuthenticationUtil.getStrategyId(
+    req.tenant,
+    AuthenticationConstants.providers.LOCAL
+  );
   const errorHandler = AuthenticationUtil.handlePassportError(req, res, next);
   passport.authenticate(strategyId)(req, res, errorHandler);
 };
@@ -54,8 +57,14 @@ const _handleLocalAuthenticationSuccess = function(req, res) {
   res.status(200).send(req.oaeAuthInfo.user);
 };
 
-OAE.globalAdminRouter.on('post', '/api/auth/login', [_handleLocalAuthentication, _handleLocalAuthenticationSuccess]);
-OAE.tenantRouter.on('post', '/api/auth/login', [_handleLocalAuthentication, _handleLocalAuthenticationSuccess]);
+OAE.globalAdminRouter.on('post', '/api/auth/login', [
+  _handleLocalAuthentication,
+  _handleLocalAuthenticationSuccess
+]);
+OAE.tenantRouter.on('post', '/api/auth/login', [
+  _handleLocalAuthentication,
+  _handleLocalAuthenticationSuccess
+]);
 
 /**
  * @REST postUserIdPassword
@@ -79,13 +88,19 @@ OAE.tenantRouter.on('post', '/api/auth/login', [_handleLocalAuthentication, _han
  * @HttpResponse                401                         You're not authorized to change this user's password
  */
 const _handleChangePassword = function(req, res) {
-  AuthenticationAPI.changePassword(req.ctx, req.params.userId, req.body.oldPassword, req.body.newPassword, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+  AuthenticationAPI.changePassword(
+    req.ctx,
+    req.params.userId,
+    req.body.oldPassword,
+    req.body.newPassword,
+    err => {
+      if (err) {
+        return res.status(err.code).send(err.msg);
+      }
 
-    return res.sendStatus(200);
-  });
+      return res.sendStatus(200);
+    }
+  );
 };
 
 OAE.globalAdminRouter.on('post', '/api/user/:userId/password', _handleChangePassword);
@@ -102,18 +117,23 @@ OAE.tenantRouter.on('post', '/api/user/:userId/password', _handleChangePassword)
  * @api private
  */
 const _handleLocalUsernameExists = function(req, res) {
-  AuthenticationAPI.localUsernameExists(req.ctx, req.params.tenantAlias, req.params.username, (err, exists) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+  AuthenticationAPI.localUsernameExists(
+    req.ctx,
+    req.params.tenantAlias,
+    req.params.username,
+    (err, exists) => {
+      if (err) {
+        return res.status(err.code).send(err.msg);
+      }
 
-    // If the login id doesn't exist, we send back a 404
-    if (exists) {
-      return res.sendStatus(200);
-    }
+      // If the login id doesn't exist, we send back a 404
+      if (exists) {
+        return res.sendStatus(200);
+      }
 
-    return res.sendStatus(404);
-  });
+      return res.sendStatus(404);
+    }
+  );
 };
 
 /**
@@ -131,7 +151,11 @@ const _handleLocalUsernameExists = function(req, res) {
  * @HttpResponse                400                         Please specify a username
  * @HttpResponse                404                         Username does not exist
  */
-OAE.globalAdminRouter.on('get', '/api/auth/:tenantAlias/exists/:username', _handleLocalUsernameExists);
+OAE.globalAdminRouter.on(
+  'get',
+  '/api/auth/:tenantAlias/exists/:username',
+  _handleLocalUsernameExists
+);
 
 /**
  * @REST getAuthExistsUsername

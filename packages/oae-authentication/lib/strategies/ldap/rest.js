@@ -28,7 +28,10 @@ import * as AuthenticationUtil from 'oae-authentication/lib/util';
  * @api private
  */
 const _handleLDAPAuthentication = function(req, res, next) {
-  const strategyId = AuthenticationUtil.getStrategyId(req.tenant, AuthenticationConstants.providers.LDAP);
+  const strategyId = AuthenticationUtil.getStrategyId(
+    req.tenant,
+    AuthenticationConstants.providers.LDAP
+  );
   const errorHandler = AuthenticationUtil.handlePassportError(req, res, next);
   passport.authenticate(strategyId)(req, res, errorHandler);
 };

@@ -82,7 +82,8 @@ const contextMiddleware = function(req, res, next) {
     // we don't get an error for cookies that did not previously contain the `strategyId`. This can be
     // removed on or after the minor or major release after this fix has been released
     if (req.oaeAuthInfo.strategyId) {
-      authenticationStrategy = AuthenticationUtil.parseStrategyId(req.oaeAuthInfo.strategyId).strategyName;
+      authenticationStrategy = AuthenticationUtil.parseStrategyId(req.oaeAuthInfo.strategyId)
+        .strategyName;
     }
   }
 
@@ -120,7 +121,11 @@ const setupPassportSerializers = function(cookieSecret) {
         );
       } else {
         const { strategyName } = AuthenticationUtil.parseStrategyId(oaeAuthInfo.strategyId);
-        AuthenticationAPI.emitter.emit(AuthenticationConstants.events.USER_LOGGED_IN, oaeAuthInfo.user, strategyName);
+        AuthenticationAPI.emitter.emit(
+          AuthenticationConstants.events.USER_LOGGED_IN,
+          oaeAuthInfo.user,
+          strategyName
+        );
       }
     }
 

@@ -109,7 +109,10 @@ const getActivitiesFromStreams = function(activityStreamIds, start, callback) {
         activitiesPerStream[activityStreamId].push(activity);
       } catch (error) {
         activityStr = activityStr.slice(0, 300);
-        log().warn({ err: error, activityId, value: activityStr }, 'Error parsing activity from Cassandra');
+        log().warn(
+          { err: error, activityId, value: activityStr },
+          'Error parsing activity from Cassandra'
+        );
       }
     });
 
@@ -200,7 +203,11 @@ const deleteActivities = function(routeActivityIds, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  */
 const clearActivityStream = function(activityStreamId, callback) {
-  Cassandra.runQuery('DELETE FROM "ActivityStreams" WHERE "activityStreamId" = ?', [activityStreamId], callback);
+  Cassandra.runQuery(
+    'DELETE FROM "ActivityStreams" WHERE "activityStreamId" = ?',
+    [activityStreamId],
+    callback
+  );
 };
 
 /**
@@ -409,12 +416,17 @@ const indexAggregateData = function(statusUpdatesByActivityStreamId, callback) {
       keysToExpire.push(statusKey);
 
       // Keep track of which aggregates are active for an activity stream, so we can reset aggregation per stream
-      const activeAggregatesForActivityStreamKey = _createActiveAggregatesForActivityStreamKey(activityStreamId);
+      const activeAggregatesForActivityStreamKey = _createActiveAggregatesForActivityStreamKey(
+        activityStreamId
+      );
       multi.zadd(activeAggregatesForActivityStreamKey, Date.now(), aggregateKey);
 
       // An aggregate will expire after `aggregateMaxExpiry` seconds
       // There is no point in keeping this set around for any longer than that
-      multi.expire(activeAggregatesForActivityStreamKey, ActivitySystemConfig.getConfig().aggregateMaxExpiry);
+      multi.expire(
+        activeAggregatesForActivityStreamKey,
+        ActivitySystemConfig.getConfig().aggregateMaxExpiry
+      );
 
       // Although we expire the set, it might contain expired items
       // Every time we add something in the set, we remove anything that has expired
@@ -465,47 +477,60 @@ const deleteAggregateData = function(aggregateKeys, callback) {
  */
 const resetAggregationForActivityStreams = function(activityStreamIds, callback) {
   // 1. Get all the active aggregates for these activity streams
-  getActiveAggregateKeysForActivityStreams(activityStreamIds, (err, activeAggregateKeysForActivityStreams) => {
-    if (err) {
-      log().error({ err, activityStreamIds }, 'Failed to get the active aggregate keys for a set of activity streams');
-      return callback(err);
-    }
-
-    // 2. Remove the active aggregates
-    const multi = redisClient.multi();
-    let allActiveAggregateKeys = [];
-    _.each(activeAggregateKeysForActivityStreams, (activeAggregateKeys, index) => {
-      const activityStream = activityStreamIds[index];
-      if (!_.isEmpty(activeAggregateKeys[1])) {
-        // As we will be removing these aggregate keys, they will no longer be active for this stream so we can remove them from the "current active aggregate keys" set
-        const activeAggregatesForActivityStreamKey = _createActiveAggregatesForActivityStreamKey(activityStream);
-        multi.zrem(activeAggregatesForActivityStreamKey, activeAggregateKeys[1]);
-
-        // Keep track of all the active aggregate keys across activitystreams so we can generate the status and entity cache keys
-        // This allows us to delete them in one big `del` command
-        allActiveAggregateKeys = allActiveAggregateKeys.concat(activeAggregateKeys[1]);
-      }
-    });
-
-    // Delete all the active aggregate keys if there are any
-    const activeAggregateCacheKeysToDelete = _getAggregateCacheKeysForAggregateKeys(allActiveAggregateKeys);
-    if (_.isEmpty(activeAggregateCacheKeysToDelete)) {
-      return callback();
-    }
-
-    multi.del(activeAggregateCacheKeysToDelete);
-    multi.exec(err => {
+  getActiveAggregateKeysForActivityStreams(
+    activityStreamIds,
+    (err, activeAggregateKeysForActivityStreams) => {
       if (err) {
-        log().error({ err, activityStreamIds }, 'Failed to reset aggregation for a set of activity streams');
-        return callback({
-          code: 500,
-          msg: 'Failed to reset aggregation for a set of activity streams'
-        });
+        log().error(
+          { err, activityStreamIds },
+          'Failed to get the active aggregate keys for a set of activity streams'
+        );
+        return callback(err);
       }
 
-      return callback();
-    });
-  });
+      // 2. Remove the active aggregates
+      const multi = redisClient.multi();
+      let allActiveAggregateKeys = [];
+      _.each(activeAggregateKeysForActivityStreams, (activeAggregateKeys, index) => {
+        const activityStream = activityStreamIds[index];
+        if (!_.isEmpty(activeAggregateKeys[1])) {
+          // As we will be removing these aggregate keys, they will no longer be active for this stream so we can remove them from the "current active aggregate keys" set
+          const activeAggregatesForActivityStreamKey = _createActiveAggregatesForActivityStreamKey(
+            activityStream
+          );
+          multi.zrem(activeAggregatesForActivityStreamKey, activeAggregateKeys[1]);
+
+          // Keep track of all the active aggregate keys across activitystreams so we can generate the status and entity cache keys
+          // This allows us to delete them in one big `del` command
+          allActiveAggregateKeys = allActiveAggregateKeys.concat(activeAggregateKeys[1]);
+        }
+      });
+
+      // Delete all the active aggregate keys if there are any
+      const activeAggregateCacheKeysToDelete = _getAggregateCacheKeysForAggregateKeys(
+        allActiveAggregateKeys
+      );
+      if (_.isEmpty(activeAggregateCacheKeysToDelete)) {
+        return callback();
+      }
+
+      multi.del(activeAggregateCacheKeysToDelete);
+      multi.exec(err => {
+        if (err) {
+          log().error(
+            { err, activityStreamIds },
+            'Failed to reset aggregation for a set of activity streams'
+          );
+          return callback({
+            code: 500,
+            msg: 'Failed to reset aggregation for a set of activity streams'
+          });
+        }
+
+        return callback();
+      });
+    }
+  );
 };
 
 /**
@@ -525,7 +550,10 @@ const getActiveAggregateKeysForActivityStreams = function(activityStreams, callb
   });
   multi.exec((err, activeAggregateKeysForActivityStreams) => {
     if (err) {
-      log().error({ err, activityStreams }, 'Failed to get the active aggregate keys for a set of activity streams');
+      log().error(
+        { err, activityStreams },
+        'Failed to get the active aggregate keys for a set of activity streams'
+      );
       return callback({
         code: 500,
         msg: 'Failed to get the active aggregate keys for a set of activity streams'
@@ -689,7 +717,10 @@ const getAggregatedEntities = function(aggregateKeys, callback) {
             targets: {}
           };
 
-          log().trace({ aggregate: result[1] }, 'Iterating aggregated entity identities to map to full entities');
+          log().trace(
+            { aggregate: result[1] },
+            'Iterating aggregated entity identities to map to full entities'
+          );
 
           _.each(result[1], (identity, entityKey) => {
             // Grab the entity from the identity map that was fetched
@@ -736,7 +767,10 @@ const _fetchEntitiesByIdentities = function(entityIdentities, callback) {
         try {
           entitiesByIdentity[entityIdentities[i]] = JSON.parse(entityStr);
         } catch {
-          log().warn({ entityStr }, 'Failed to parse aggregated activity entity from redis. Skipping.');
+          log().warn(
+            { entityStr },
+            'Failed to parse aggregated activity entity from redis. Skipping.'
+          );
         }
       }
     });
@@ -1036,7 +1070,10 @@ const _rowsToActivities = function(rows) {
       activities.push(JSON.parse(activityStr));
     } catch (error) {
       activityStr = activityStr.slice(0, 300);
-      log().warn({ err: error, activityId, value: activityStr }, 'Error parsing activity from Cassandra');
+      log().warn(
+        { err: error, activityId, value: activityStr },
+        'Error parsing activity from Cassandra'
+      );
     }
   });
   return activities;

@@ -43,13 +43,17 @@ OaeServer.addSafePathPrefix('/api/auth/signed');
  * @HttpResponse                    404             There is no tenant with alias ...
  */
 OAE.globalAdminRouter.on('get', '/api/auth/signed/tenant', (req, res) => {
-  AuthenticationSignedUtil.getSignedTenantAuthenticationRequest(req.ctx, req.query.tenant, (err, requestInfo) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+  AuthenticationSignedUtil.getSignedTenantAuthenticationRequest(
+    req.ctx,
+    req.query.tenant,
+    (err, requestInfo) => {
+      if (err) {
+        return res.status(err.code).send(err.msg);
+      }
 
-    return res.status(200).send(requestInfo);
-  });
+      return res.status(200).send(requestInfo);
+    }
+  );
 });
 
 /*!
@@ -109,7 +113,10 @@ OAE.tenantRouter.on('get', '/api/auth/signed/become', _getBecomeUserAuthenticati
  */
 OAE.tenantRouter.on('post', '/api/auth/signed', (req, res, next) => {
   // Get the ID under which we registered this strategy for this tenant
-  const strategyId = AuthenticationUtil.getStrategyId(req.tenant, AuthenticationConstants.providers.SIGNED);
+  const strategyId = AuthenticationUtil.getStrategyId(
+    req.tenant,
+    AuthenticationConstants.providers.SIGNED
+  );
 
   // Authenticate this request using the information
   passport.authenticate(strategyId, { successRedirect: '/', failureRedirect: '/' })(req, res, next);

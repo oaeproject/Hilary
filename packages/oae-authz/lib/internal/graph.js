@@ -151,7 +151,13 @@ AuthzGraph.prototype.traverseOut = function(nodeId) {
  * @return {Node[]}                         The array of nodes that are visited while traversing the graph
  * @api private
  */
-AuthzGraph.prototype._traverse = function(nodeId, getEdgeFn, nextNodeProperty, _nodes, _visitedIds) {
+AuthzGraph.prototype._traverse = function(
+  nodeId,
+  getEdgeFn,
+  nextNodeProperty,
+  _nodes,
+  _visitedIds
+) {
   const self = this;
 
   _nodes = _nodes || [];

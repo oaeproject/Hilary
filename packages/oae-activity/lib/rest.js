@@ -37,13 +37,20 @@ import * as ActivityPush from './internal/push';
 const _handleGetActivities = function(resourceId, req, res) {
   const limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
   const { start } = req.query;
-  ActivityAPI.getActivityStream(req.ctx, resourceId, start, limit, req.query.format, (err, activityStream) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+  ActivityAPI.getActivityStream(
+    req.ctx,
+    resourceId,
+    start,
+    limit,
+    req.query.format,
+    (err, activityStream) => {
+      if (err) {
+        return res.status(err.code).send(err.msg);
+      }
 
-    res.status(200).send(activityStream);
-  });
+      res.status(200).send(activityStream);
+    }
+  );
 };
 
 /**

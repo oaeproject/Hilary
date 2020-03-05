@@ -2105,7 +2105,7 @@ const _zipData = function(personalData, callback) {
 
             const fileExt = uploadedFile.title.split('.').pop();
             const text = uploadedFile.title.split('.');
-            const fileName = text.slice(0, text.length - 1).join('.');
+            const fileName = text.slice(0, -1).join('.');
             const newName = _getNewFileName(fileExt, fileName, uploadFolder);
 
             uploadFolder.file(newName, data, { base64: false, binary: true });
@@ -2129,7 +2129,7 @@ const _zipData = function(personalData, callback) {
       _.each(personalData.collabdocs, collabdoc => {
         const fileExt = collabdoc.title.split('.').pop();
         const text = collabdoc.title.split('.');
-        const fileName = text.slice(0, text.length - 1).join('.');
+        const fileName = text.slice(0, -1).join('.');
         const newName = _getNewFileName(fileExt, fileName, collabdocFolder);
 
         collabdocFolder.file(newName, collabdoc.text);
@@ -2146,7 +2146,7 @@ const _zipData = function(personalData, callback) {
       _.each(personalData.collabsheets, collabsheet => {
         const fileExt = collabsheet.title.split('.').pop();
         const text = collabsheet.title.split('.');
-        const fileName = text.slice(0, text.length - 1).join('.');
+        const fileName = text.slice(0, -1).join('.');
         const newName = _getNewFileName(fileExt, fileName, collabsheetFolder);
 
         collabsheetFolder.file(newName, collabsheet.text);
@@ -2163,7 +2163,7 @@ const _zipData = function(personalData, callback) {
       _.each(personalData.links, link => {
         const fileExt = link.title.split('.').pop();
         const text = link.title.split('.');
-        const fileName = text.slice(0, text.length - 1).join('.');
+        const fileName = text.slice(0, -1).join('.');
         const newName = _getNewFileName(fileExt, fileName, linkFolder);
 
         linkFolder.file(newName, link.text);
@@ -2180,7 +2180,7 @@ const _zipData = function(personalData, callback) {
       _.each(personalData.meetings, meeting => {
         const fileExt = meeting.title.split('.').pop();
         const text = meeting.title.split('.');
-        const fileName = text.slice(0, text.length - 1).join('.');
+        const fileName = text.slice(0, -1).join('.');
         const newName = _getNewFileName(fileExt, fileName, meetingFolder);
 
         meetingFolder.file(newName, meeting.text);
@@ -2197,7 +2197,7 @@ const _zipData = function(personalData, callback) {
       _.each(personalData.discussions, discussion => {
         const fileExt = discussion.title.split('.').pop();
         const text = discussion.title.split('.');
-        const fileName = text.slice(0, text.length - 1).join('.');
+        const fileName = text.slice(0, -1).join('.');
         const newName = _getNewFileName(fileExt, fileName, discussionFolder);
 
         discussionFolder.file(newName, discussion.text);

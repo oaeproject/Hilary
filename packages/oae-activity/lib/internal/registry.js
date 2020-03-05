@@ -28,7 +28,9 @@ const activityEntityAssociations = {};
  */
 const registerActivityStreamType = function(activityStreamType, options) {
   if (activityStreams[activityStreamType]) {
-    throw new Error(util.format('Attempted to register duplicate activity stream type "%s"', activityStreamType));
+    throw new Error(
+      util.format('Attempted to register duplicate activity stream type "%s"', activityStreamType)
+    );
   }
 
   activityStreams[activityStreamType] = options;
@@ -50,7 +52,9 @@ const getRegisteredActivityStreamType = function(activityStreamType) {
  */
 const registerActivityType = function(activityType, options) {
   if (activityTypes[activityType]) {
-    throw new Error(util.format('Attempted to register duplicate activity type of type "%s"', activityType));
+    throw new Error(
+      util.format('Attempted to register duplicate activity type of type "%s"', activityType)
+    );
   }
 
   if (_.isEmpty(options.streams)) {
@@ -68,7 +72,11 @@ const registerActivityType = function(activityType, options) {
     _.each(options.streams[streamName].router, function(assocations, entityName) {
       if (_.isEmpty(assocations)) {
         throw new Error(
-          util.format('Missing or empty associations for stream "%s" and entity "%s"', streamName, entityName)
+          util.format(
+            'Missing or empty associations for stream "%s" and entity "%s"',
+            streamName,
+            entityName
+          )
         );
       }
     });
@@ -95,7 +103,10 @@ const getRegisteredActivityTypes = function() {
 const registerActivityEntityType = function(activityEntityType, options) {
   if (activityEntityTypes[activityEntityType]) {
     throw new Error(
-      util.format('Attempted to register duplicate activity entity type of type "%s"', activityEntityType)
+      util.format(
+        'Attempted to register duplicate activity entity type of type "%s"',
+        activityEntityType
+      )
     );
   }
 
@@ -116,7 +127,11 @@ const getRegisteredActivityEntityTypes = function() {
  *
  * @see ActivityAPI#registerActivityEntityAssociation
  */
-const registerActivityEntityAssociation = function(activityEntityType, associationName, associationFunction) {
+const registerActivityEntityAssociation = function(
+  activityEntityType,
+  associationName,
+  associationFunction
+) {
   if (
     activityEntityAssociations[activityEntityType] &&
     activityEntityAssociations[activityEntityType][associationName]
@@ -130,7 +145,8 @@ const registerActivityEntityAssociation = function(activityEntityType, associati
     );
   }
 
-  activityEntityAssociations[activityEntityType] = activityEntityAssociations[activityEntityType] || {};
+  activityEntityAssociations[activityEntityType] =
+    activityEntityAssociations[activityEntityType] || {};
   activityEntityAssociations[activityEntityType][associationName] = associationFunction;
 };
 

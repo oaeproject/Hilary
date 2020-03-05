@@ -55,7 +55,10 @@ ActivityEmitter.on(ActivityConstants.events.DELIVERED_ACTIVITIES, deliveredActiv
   // All users receiving notifications will have their "notifications unread" counter incremented
   incrementNotificationsUnread(userIdsIncrBy, err => {
     if (err) {
-      log().error({ err: new Error(err.msg), userIdsIncrBy }, 'Could not mark notifications as unread');
+      log().error(
+        { err: new Error(err.msg), userIdsIncrBy },
+        'Could not mark notifications as unread'
+      );
     }
 
     // Our async operation is over, decrement the counter
@@ -98,7 +101,10 @@ const markNotificationsRead = function(user, callback) {
 
       // Reset the aggregator for this user his notification stream. New notifications will not aggregate
       // with older notifications which will make it clearer to the user which activity is the new one
-      const notificationActivityStreamId = ActivityUtil.createActivityStreamId(user.id, 'notification');
+      const notificationActivityStreamId = ActivityUtil.createActivityStreamId(
+        user.id,
+        'notification'
+      );
       ActivityAggregator.resetAggregationForActivityStreams([notificationActivityStreamId]);
 
       // By clearing a user's email activity stream when he marks his notifications as read,
@@ -167,7 +173,11 @@ const incrementNotificationsUnread = function(userIdIncrs, callback) {
 
     // Update all principal profiles with the new count
     _.each(newValues, (newValue, userId) => {
-      PrincipalsDAO.updatePrincipal(userId, { notificationsUnread: newValue.toString() }, _monitorUpdatePrincipal);
+      PrincipalsDAO.updatePrincipal(
+        userId,
+        { notificationsUnread: newValue.toString() },
+        _monitorUpdatePrincipal
+      );
     });
   });
 };

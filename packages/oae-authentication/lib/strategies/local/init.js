@@ -48,46 +48,60 @@ export default function(config) {
       // Otherwise we need to check the configuration.
     }
 
-    return AuthenticationConfig.getValue(tenantAlias, AuthenticationConstants.providers.LOCAL, 'enabled');
+    return AuthenticationConfig.getValue(
+      tenantAlias,
+      AuthenticationConstants.providers.LOCAL,
+      'enabled'
+    );
   };
 
   /**
    * @see oae-authentication/lib/strategy#getPassportStrategy
    */
   strategy.getPassportStrategy = function() {
-    const passportStrategy = new LocalStrategy({ passReqToCallback: true }, (req, username, password, done) => {
-      const { tenant } = req;
+    const passportStrategy = new LocalStrategy(
+      { passReqToCallback: true },
+      (req, username, password, done) => {
+        const { tenant } = req;
 
-      AuthenticationAPI.checkPassword(tenant.alias, username, password, (err, userId) => {
-        if (err && err.code === 401) {
-          // The provided password was incorrect
-          return done(null, false);
-        }
-
-        if (err) {
-          // Some internal error occurred
-          return done(err);
-        }
-
-        // By this point we know that we were succesfully logged in. Retrieve
-        // the user account and stick it in the context.
-        const ctx = new Context(tenant, new User(tenant.alias, userId));
-        PrincipalsAPI.getUser(ctx, userId, (err, user) => {
-          if (err) {
-            return done(err);
-          }
-
-          if (user.deleted) {
+        AuthenticationAPI.checkPassword(tenant.alias, username, password, (err, userId) => {
+          if (err && err.code === 401) {
+            // The provided password was incorrect
             return done(null, false);
           }
 
-          const strategyId = AuthenticationUtil.getStrategyId(tenant, AuthenticationConstants.providers.LOCAL);
-          const authObj = { user, strategyId };
-          AuthenticationUtil.logAuthenticationSuccess(req, authObj, AuthenticationConstants.providers.LOCAL);
-          return done(null, authObj);
+          if (err) {
+            // Some internal error occurred
+            return done(err);
+          }
+
+          // By this point we know that we were succesfully logged in. Retrieve
+          // the user account and stick it in the context.
+          const ctx = new Context(tenant, new User(tenant.alias, userId));
+          PrincipalsAPI.getUser(ctx, userId, (err, user) => {
+            if (err) {
+              return done(err);
+            }
+
+            if (user.deleted) {
+              return done(null, false);
+            }
+
+            const strategyId = AuthenticationUtil.getStrategyId(
+              tenant,
+              AuthenticationConstants.providers.LOCAL
+            );
+            const authObj = { user, strategyId };
+            AuthenticationUtil.logAuthenticationSuccess(
+              req,
+              authObj,
+              AuthenticationConstants.providers.LOCAL
+            );
+            return done(null, authObj);
+          });
         });
-      });
-    });
+      }
+    );
 
     return passportStrategy;
   };

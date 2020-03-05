@@ -48,7 +48,11 @@ const ActivitySeedResource = function(resourceType, resourceId, resourceData) {
  * @return {ActivitySeedResource}               The activity seed resource, as described in the summary
  */
 ActivitySeedResource.fromResource = function(resource) {
-  return new ActivitySeedResource(resource.resourceType, resource.id, _.object([[resource.resourceType, resource]]));
+  return new ActivitySeedResource(
+    resource.resourceType,
+    resource.id,
+    _.object([[resource.resourceType, resource]])
+  );
 };
 
 /**
@@ -62,7 +66,14 @@ ActivitySeedResource.fromResource = function(resource) {
  * @param  {ActivitySeedResource}  [objectResource]    The Object on which the activity was performed
  * @param  {ActivitySeedResource}  [targetResource]    The Target resource of the activity, as recommended in the ActivityStrea.ms specification
  */
-const ActivitySeed = function(activityType, published, verb, actorResource, objectResource, targetResource) {
+const ActivitySeed = function(
+  activityType,
+  published,
+  verb,
+  actorResource,
+  objectResource,
+  targetResource
+) {
   const that = {};
   that.activityType = activityType;
   that.published = published;
@@ -306,7 +317,9 @@ const AssociationsSession = function(registeredAssociations, actor, object, targ
      * @param  {Object}     callback.association    The association. Usually a list of strings indicating ids, however can really be any value. Note that it cannot be used for routing purposes if it does not return an array of strings
      */
     associationsContext.get = function(associationName, callback) {
-      return associationsContext.getSession().getByEntityId(entityType, entityId, associationName, callback);
+      return associationsContext
+        .getSession()
+        .getByEntityId(entityType, entityId, associationName, callback);
     };
 
     return associationsContext;

@@ -57,7 +57,8 @@ const resolveEffectivePermissions = function(ctx, resource, callback) {
       const canEdit = canManage || effectiveRole === AuthzConstants.role.EDITOR;
       const canJoin =
         canInteract &&
-        (resource.joinable === AuthzConstants.joinable.YES || resource.joinable === AuthzConstants.joinable.REQUEST);
+        (resource.joinable === AuthzConstants.joinable.YES ||
+          resource.joinable === AuthzConstants.joinable.REQUEST);
 
       const canRequest = resource.joinable === AuthzConstants.joinable.REQUEST;
 
@@ -123,17 +124,22 @@ const canManage = function(ctx, resource, callback) {
       }
 
       // By this point, we can only manage if we have explicit manager role
-      AuthzAPI.hasRole(user.id, AuthzUtil.getAuthzId(resource), AuthzConstants.role.MANAGER, (err, hasRole) => {
-        if (err) {
-          return callback(err);
-        }
+      AuthzAPI.hasRole(
+        user.id,
+        AuthzUtil.getAuthzId(resource),
+        AuthzConstants.role.MANAGER,
+        (err, hasRole) => {
+          if (err) {
+            return callback(err);
+          }
 
-        if (!hasRole) {
-          return callback(permissionErr);
-        }
+          if (!hasRole) {
+            return callback(permissionErr);
+          }
 
-        return callback();
-      });
+          return callback();
+        }
+      );
     }
   );
 };
@@ -301,67 +307,75 @@ const canShare = function(ctx, resource, targets, role, callback) {
     });
 
     // Ensure that no privacy is being violated by sharing with these targets
-    _validateRoleChanges(ctx, resource, targets, { promoteOnly: true }, (err, memberChangeInfo, emailChangeInfo) => {
-      if (err) {
-        return callback(err);
-      }
-
-      if (permissions.canManage) {
-        // If we can manage the resource we don't need to check that the user in context can
-        // extend the explicit access of the resource outside the set visibility
-        return callback(null, memberChangeInfo, emailChangeInfo);
-      }
-
-      // The user is not a manager, so we should ensure that whomever they are adding as a
-      // share target already has implicit access
-      const addedPrincipals = _.chain(emailChangeInfo.emails.added)
-        .map(_emailToResource)
-        .union(memberChangeInfo.members.added)
-        .value();
-      if (_.isEmpty(addedPrincipals)) {
-        // If there are no actual changes to make, then this is basically an empty share
-        // which should be fine
-        return callback(null, memberChangeInfo, emailChangeInfo);
-      }
-
-      // Since we are not a manager, for each principal we are sharing with, we need to make
-      // sure all users already had implicit access to the resource (e.g., a non-manager can't
-      // share a loggedin resource with a public user from another tenant because that would
-      // violate the visibility that managers applied to the resource)
-      const invalidPrincipals = {};
-      const _done = _.after(addedPrincipals.length, () => {
-        if (!_.isEmpty(invalidPrincipals)) {
-          return callback({
-            code: 401,
-            msg: 'The current user does not have access to share this resource with the specified principals',
-            invalidPrincipals
-          });
+    _validateRoleChanges(
+      ctx,
+      resource,
+      targets,
+      { promoteOnly: true },
+      (err, memberChangeInfo, emailChangeInfo) => {
+        if (err) {
+          return callback(err);
         }
 
-        return callback(null, memberChangeInfo, emailChangeInfo);
-      });
+        if (permissions.canManage) {
+          // If we can manage the resource we don't need to check that the user in context can
+          // extend the explicit access of the resource outside the set visibility
+          return callback(null, memberChangeInfo, emailChangeInfo);
+        }
 
-      // Ensure each principal being added has implicit access to the resource already
-      _.each(addedPrincipals, addedPrincipal => {
-        AuthzAPI.resolveImplicitRole(
-          addedPrincipal,
-          resource,
-          [AuthzConstants.role.VIEWER],
-          (err, implicitRole, canInteract) => {
-            if (err) {
-              invalidPrincipals[addedPrincipal.id || addedPrincipal.email] = err;
-            } else if (!canInteract) {
-              invalidPrincipals[addedPrincipal.id || addedPrincipal.email] = {
-                code: 401,
-                msg: 'The current user does not have access to share this resource with the specified principals'
-              };
-            }
+        // The user is not a manager, so we should ensure that whomever they are adding as a
+        // share target already has implicit access
+        const addedPrincipals = _.chain(emailChangeInfo.emails.added)
+          .map(_emailToResource)
+          .union(memberChangeInfo.members.added)
+          .value();
+        if (_.isEmpty(addedPrincipals)) {
+          // If there are no actual changes to make, then this is basically an empty share
+          // which should be fine
+          return callback(null, memberChangeInfo, emailChangeInfo);
+        }
 
-            return _done();
+        // Since we are not a manager, for each principal we are sharing with, we need to make
+        // sure all users already had implicit access to the resource (e.g., a non-manager can't
+        // share a loggedin resource with a public user from another tenant because that would
+        // violate the visibility that managers applied to the resource)
+        const invalidPrincipals = {};
+        const _done = _.after(addedPrincipals.length, () => {
+          if (!_.isEmpty(invalidPrincipals)) {
+            return callback({
+              code: 401,
+              msg:
+                'The current user does not have access to share this resource with the specified principals',
+              invalidPrincipals
+            });
           }
-        );
-      });
-    });
+
+          return callback(null, memberChangeInfo, emailChangeInfo);
+        });
+
+        // Ensure each principal being added has implicit access to the resource already
+        _.each(addedPrincipals, addedPrincipal => {
+          AuthzAPI.resolveImplicitRole(
+            addedPrincipal,
+            resource,
+            [AuthzConstants.role.VIEWER],
+            (err, implicitRole, canInteract) => {
+              if (err) {
+                invalidPrincipals[addedPrincipal.id || addedPrincipal.email] = err;
+              } else if (!canInteract) {
+                invalidPrincipals[addedPrincipal.id || addedPrincipal.email] = {
+                  code: 401,
+                  msg:
+                    'The current user does not have access to share this resource with the specified principals'
+                };
+              }
+
+              return _done();
+            }
+          );
+        });
+      }
+    );
   });
 };
 
@@ -407,20 +421,26 @@ const canJoin = function(ctx, resource, callback) {
     // Validate the role changes. This is always going to succeed because the only role being
     // changed is the user in context. However, it needs to be done to check if the current user
     // is actually being added or not
-    _validateRoleChanges(ctx, resource, targetRoles, { promoteOnly: false }, (err, memberChangeInfo) => {
-      if (err) {
-        return callback(err);
-      }
+    _validateRoleChanges(
+      ctx,
+      resource,
+      targetRoles,
+      { promoteOnly: false },
+      (err, memberChangeInfo) => {
+        if (err) {
+          return callback(err);
+        }
 
-      if (_.isEmpty(memberChangeInfo.members.added)) {
-        return callback({
-          code: 400,
-          msg: 'The current user is already a member of the resource'
-        });
-      }
+        if (_.isEmpty(memberChangeInfo.members.added)) {
+          return callback({
+            code: 400,
+            msg: 'The current user is already a member of the resource'
+          });
+        }
 
-      return callback(null, memberChangeInfo);
-    });
+        return callback(null, memberChangeInfo);
+      }
+    );
   });
 };
 
@@ -463,32 +483,38 @@ const canRemoveRole = function(ctx, principal, resource, callback) {
       }
     ];
 
-    _validateRoleChanges(ctx, resource, targetRoles, { promoteOnly: false }, (err, memberChangeInfo) => {
-      if (err) {
-        return callback(err);
-      }
+    _validateRoleChanges(
+      ctx,
+      resource,
+      targetRoles,
+      { promoteOnly: false },
+      (err, memberChangeInfo) => {
+        if (err) {
+          return callback(err);
+        }
 
-      if (_.isEmpty(memberChangeInfo.members.removed)) {
-        return callback({
-          code: 400,
-          msg: 'The principal being removed is not currently a member of the resource'
-        });
-      }
+        if (_.isEmpty(memberChangeInfo.members.removed)) {
+          return callback({
+            code: 400,
+            msg: 'The principal being removed is not currently a member of the resource'
+          });
+        }
 
-      if (
-        !_.chain(memberChangeInfo.roles.after)
-          .values()
-          .contains(AuthzConstants.role.MANAGER)
-          .value()
-      ) {
-        return callback({
-          code: 400,
-          msg: 'The requested change will result in leaving the resource without a manager'
-        });
-      }
+        if (
+          !_.chain(memberChangeInfo.roles.after)
+            .values()
+            .contains(AuthzConstants.role.MANAGER)
+            .value()
+        ) {
+          return callback({
+            code: 400,
+            msg: 'The requested change will result in leaving the resource without a manager'
+          });
+        }
 
-      return callback(null, memberChangeInfo);
-    });
+        return callback(null, memberChangeInfo);
+      }
+    );
   });
 };
 
@@ -565,13 +591,19 @@ const canCreate = function(ctx, targetRoles, callback) {
     return callback({ code: 401, msg: 'Anonymous users are not authorized to create resources' });
   }
 
-  _validateRoleChanges(ctx, null, targetRoles, { promoteOnly: false }, (err, memberChangeInfo, emailChangeInfo) => {
-    if (err) {
-      return callback(err);
-    }
+  _validateRoleChanges(
+    ctx,
+    null,
+    targetRoles,
+    { promoteOnly: false },
+    (err, memberChangeInfo, emailChangeInfo) => {
+      if (err) {
+        return callback(err);
+      }
 
-    return callback(null, memberChangeInfo, emailChangeInfo);
-  });
+      return callback(null, memberChangeInfo, emailChangeInfo);
+    }
+  );
 };
 
 /**
@@ -679,61 +711,66 @@ const _validateRoleChanges = function(ctx, resource, targetRoles, opts, callback
     }
 
     // Determine how the email target role changes, if any, would impact the invitations
-    _computeInvitationRolesAfterChanges(resource, emailTargetRoles, opts, (err, emailChangeInfo) => {
-      if (err) {
-        return callback(err);
-      }
-
-      // Discern between profiles that we are sharing with that require full profile
-      // interaction checks (i.e., profile visibility and tenant interaction) v.s. those that
-      // need only tenant interaction checks. If a client correctly identified a user by their
-      // email address, then we should bypass profile interaction checks, however tenant
-      // privacy should still avoid cross-pollination of collaboration
-      const checkProfileInteraction = [];
-      const checkTenantInteraction = [];
-      _.chain(emailChangeInfo.emails.added)
-        .map(_emailToResource)
-        .union(memberChangeInfo.members.added)
-        .each(resource => {
-          if (validatedPrincipalIds[resource.id]) {
-            // The resource id was validated with a matching email, we will only do a
-            // tenant interaction check
-            checkTenantInteraction.push(resource);
-          } else {
-            // The resource was not validated with a matching email, we will do a full
-            // profile interaction check
-            checkProfileInteraction.push(resource);
-          }
-        })
-        .value();
-
-      // First check profile interaction
-      canInteract(ctx, checkProfileInteraction, err => {
-        const interactionErr = {
-          code: 401,
-          msg: 'The current user does not have access to add the specified principals'
-        };
-
-        if (err && err.code === 401) {
-          // Contextualize the error a bit better than the generic `canInteract` error
-          return callback(_.extend({ invalidPrincipals: err.invalidResources }, interactionErr));
-        }
-
+    _computeInvitationRolesAfterChanges(
+      resource,
+      emailTargetRoles,
+      opts,
+      (err, emailChangeInfo) => {
         if (err) {
           return callback(err);
         }
 
-        // Then check the resources that require only tenant interaction checks
-        const invalidPrincipals = _.filter(checkTenantInteraction, resource => {
-          return !TenantsUtil.canInteract(ctx.user().tenant.alias, resource.tenant.alias);
-        });
-        if (!_.isEmpty(invalidPrincipals)) {
-          return callback(_.extend({ invalidPrincipals }, interactionErr));
-        }
+        // Discern between profiles that we are sharing with that require full profile
+        // interaction checks (i.e., profile visibility and tenant interaction) v.s. those that
+        // need only tenant interaction checks. If a client correctly identified a user by their
+        // email address, then we should bypass profile interaction checks, however tenant
+        // privacy should still avoid cross-pollination of collaboration
+        const checkProfileInteraction = [];
+        const checkTenantInteraction = [];
+        _.chain(emailChangeInfo.emails.added)
+          .map(_emailToResource)
+          .union(memberChangeInfo.members.added)
+          .each(resource => {
+            if (validatedPrincipalIds[resource.id]) {
+              // The resource id was validated with a matching email, we will only do a
+              // tenant interaction check
+              checkTenantInteraction.push(resource);
+            } else {
+              // The resource was not validated with a matching email, we will do a full
+              // profile interaction check
+              checkProfileInteraction.push(resource);
+            }
+          })
+          .value();
 
-        return callback(null, memberChangeInfo, emailChangeInfo);
-      });
-    });
+        // First check profile interaction
+        canInteract(ctx, checkProfileInteraction, err => {
+          const interactionErr = {
+            code: 401,
+            msg: 'The current user does not have access to add the specified principals'
+          };
+
+          if (err && err.code === 401) {
+            // Contextualize the error a bit better than the generic `canInteract` error
+            return callback(_.extend({ invalidPrincipals: err.invalidResources }, interactionErr));
+          }
+
+          if (err) {
+            return callback(err);
+          }
+
+          // Then check the resources that require only tenant interaction checks
+          const invalidPrincipals = _.filter(checkTenantInteraction, resource => {
+            return !TenantsUtil.canInteract(ctx.user().tenant.alias, resource.tenant.alias);
+          });
+          if (!_.isEmpty(invalidPrincipals)) {
+            return callback(_.extend({ invalidPrincipals }, interactionErr));
+          }
+
+          return callback(null, memberChangeInfo, emailChangeInfo);
+        });
+      }
+    );
   });
 };
 
@@ -754,43 +791,48 @@ const _canInteract = function(ctx, resource, callback) {
   const user = ctx.user();
 
   // First ensure the user in context can share with the resource
-  AuthzAPI.resolveImplicitRole(user, resource, [AuthzConstants.role.VIEWER], (err, implicitRole, canInteract) => {
-    if (err) {
-      return callback(err);
-    }
-
-    if (!canInteract) {
-      if (!user) {
-        // Anonymous users will not have an explicit role on anything, so we can
-        // short-circuit
-        return callback(permissionErr);
-      }
-
-      if ((!resource.id && resource.email) || AuthzUtil.isUserId(resource.id)) {
-        // If the target resource is a user (local or invited by email address) then we
-        // cannot have an explicit role. So short-circuit
-        return callback(permissionErr);
-      }
-    } else if (canInteract) {
-      // If we can implicitly interact, there is no reason to check explicit access
-      return callback();
-    }
-
-    // We are an authenticated user, checking interaction on a non-user resource, and we do not
-    // have implicit ability to interact. Check explicit access to figure out if we can interact
-    // VIA role assignment
-    AuthzAPI.hasAnyRole(user.id, AuthzUtil.getAuthzId(resource), (err, hasAnyRole) => {
+  AuthzAPI.resolveImplicitRole(
+    user,
+    resource,
+    [AuthzConstants.role.VIEWER],
+    (err, implicitRole, canInteract) => {
       if (err) {
         return callback(err);
       }
 
-      if (!hasAnyRole) {
-        return callback(permissionErr);
+      if (!canInteract) {
+        if (!user) {
+          // Anonymous users will not have an explicit role on anything, so we can
+          // short-circuit
+          return callback(permissionErr);
+        }
+
+        if ((!resource.id && resource.email) || AuthzUtil.isUserId(resource.id)) {
+          // If the target resource is a user (local or invited by email address) then we
+          // cannot have an explicit role. So short-circuit
+          return callback(permissionErr);
+        }
+      } else if (canInteract) {
+        // If we can implicitly interact, there is no reason to check explicit access
+        return callback();
       }
 
-      return callback();
-    });
-  });
+      // We are an authenticated user, checking interaction on a non-user resource, and we do not
+      // have implicit ability to interact. Check explicit access to figure out if we can interact
+      // VIA role assignment
+      AuthzAPI.hasAnyRole(user.id, AuthzUtil.getAuthzId(resource), (err, hasAnyRole) => {
+        if (err) {
+          return callback(err);
+        }
+
+        if (!hasAnyRole) {
+          return callback(permissionErr);
+        }
+
+        return callback();
+      });
+    }
+  );
 };
 
 /**
@@ -827,7 +869,10 @@ const _computeMemberRolesAfterChanges = function(resource, principalTargetRoles,
       .indexBy('id')
       .value();
 
-    return callback(null, AuthzModel.MemberChangeInfo.fromIdChangeInfo(idChangeInfo, principalsById));
+    return callback(
+      null,
+      AuthzModel.MemberChangeInfo.fromIdChangeInfo(idChangeInfo, principalsById)
+    );
   });
 };
 
@@ -855,7 +900,12 @@ const _computeInvitationRolesAfterChanges = function(resource, emailTargetRoles,
   });
 
   const authzId = resource ? AuthzUtil.getAuthzId(resource) : null;
-  return AuthzInvitationsUtil.computeInvitationRolesAfterChanges(authzId, roleChanges, opts, callback);
+  return AuthzInvitationsUtil.computeInvitationRolesAfterChanges(
+    authzId,
+    roleChanges,
+    opts,
+    callback
+  );
 };
 
 /**

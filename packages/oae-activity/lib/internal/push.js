@@ -402,7 +402,10 @@ const _authenticate = function(connectionInfo, message) {
   PrincipalsDAO.getPrincipal(data.userId, (err, user) => {
     if (err) {
       _writeResponse(connectionInfo, message.id, err);
-      log().error({ err, userId: data.userId, sid: socket.id }, 'Error trying to get the principal object');
+      log().error(
+        { err, userId: data.userId, sid: socket.id },
+        'Error trying to get the principal object'
+      );
       return socket.close();
     }
 
@@ -419,7 +422,10 @@ const _authenticate = function(connectionInfo, message) {
       )
     ) {
       _writeResponse(connectionInfo, message.id, { code: 401, msg: 'Invalid signature' });
-      log().error({ userId: data.userId, sid: socket.id }, 'Incoming authentication signature was invalid');
+      log().error(
+        { userId: data.userId, sid: socket.id },
+        'Incoming authentication signature was invalid'
+      );
       return socket.close();
     }
 
@@ -481,7 +487,10 @@ const _subscribe = function(connectionInfo, message) {
       return _writeResponse(connectionInfo, message.id, err);
     }
 
-    const activityStreamId = ActivityUtil.createActivityStreamId(data.stream.resourceId, data.stream.streamType);
+    const activityStreamId = ActivityUtil.createActivityStreamId(
+      data.stream.resourceId,
+      data.stream.streamType
+    );
     log().trace({ sid: socket.id, activityStreamId }, 'Registering socket for stream');
 
     /*!
@@ -491,11 +500,15 @@ const _subscribe = function(connectionInfo, message) {
       // Remember the desired transformer for this stream on this socket
       const transformerType = data.format || ActivityConstants.transformerTypes.INTERNAL;
       connectionInfo.transformerTypes = connectionInfo.transformerTypes || {};
-      connectionInfo.transformerTypes[activityStreamId] = connectionInfo.transformerTypes[activityStreamId] || [];
+      connectionInfo.transformerTypes[activityStreamId] =
+        connectionInfo.transformerTypes[activityStreamId] || [];
       connectionInfo.transformerTypes[activityStreamId].push(transformerType);
 
       // Acknowledge a succesful subscription
-      log().trace({ sid: socket.id, activityStreamId, format: transformerType }, 'Registered a client for a stream');
+      log().trace(
+        { sid: socket.id, activityStreamId, format: transformerType },
+        'Registered a client for a stream'
+      );
       return _writeResponse(connectionInfo, message.id);
     };
 
@@ -511,7 +524,9 @@ const _subscribe = function(connectionInfo, message) {
 
       return _handlePushActivity(message, () => {
         const activity = message.activities[0]['oae:activityType'];
-        log().info('Finished processing a ' + activity + ' push notification on channel ' + activityStreamId);
+        log().info(
+          'Finished processing a ' + activity + ' push notification on channel ' + activityStreamId
+        );
       });
     });
 
@@ -619,27 +634,32 @@ const _handlePushActivity = function(data, callback) {
       todo++;
       // Because we're sending these activities to possible multiple sockets/users we'll need to clone and transform it for each socket
       const activities = clone(data.activities);
-      ActivityTransformer.transformActivities(connectionInfo.ctx, activities, transformerType, err => {
-        if (err) {
-          return log().error({ err }, 'Could not transform event');
-        }
+      ActivityTransformer.transformActivities(
+        connectionInfo.ctx,
+        activities,
+        transformerType,
+        err => {
+          if (err) {
+            return log().error({ err }, 'Could not transform event');
+          }
 
-        const msgData = {
-          resourceId: data.resourceId,
-          streamType: data.streamType,
-          activities,
-          format: transformerType,
-          numNewActivities: data.numNewActivities
-        };
-        log().trace({ data: msgData, sid: socket.id }, 'Pushing message to socket');
-        const msg = JSON.stringify(msgData);
-        socket.write(msg);
+          const msgData = {
+            resourceId: data.resourceId,
+            streamType: data.streamType,
+            activities,
+            format: transformerType,
+            numNewActivities: data.numNewActivities
+          };
+          log().trace({ data: msgData, sid: socket.id }, 'Pushing message to socket');
+          const msg = JSON.stringify(msgData);
+          socket.write(msg);
 
-        todo--;
-        if (todo === 0) {
-          callback();
+          todo--;
+          if (todo === 0) {
+            callback();
+          }
         }
-      });
+      );
     });
   });
 };
@@ -659,7 +679,10 @@ ActivityEmitter.on(ActivityConstants.events.ROUTED_ACTIVITIES, routedActivities 
       // Get the activity stream configuration for this stream type and determine if we should send a push notification
       // in the routing phase
       const streamOptions = ActivityRegistry.getRegisteredActivityStreamType(streamType);
-      const notAggregation = compose(not, equals)(path(['push', 'delivery', 'phase'], streamOptions), 'aggregation');
+      const notAggregation = compose(not, equals)(
+        path(['push', 'delivery', 'phase'], streamOptions),
+        'aggregation'
+      );
 
       if (notAggregation) {
         // We are configured to emit in the routing phase, so we push the activity back to the client
@@ -685,7 +708,10 @@ ActivityEmitter.on(ActivityConstants.events.DELIVERED_ACTIVITIES, deliveredActiv
       // Get the activity stream configuration for this stream type and determine if we should send a push notification
       // in the aggregation phase
       const streamOptions = ActivityRegistry.getRegisteredActivityStreamType(streamType);
-      const itIsAggregation = equals(path(['push', 'delivery', 'phase'], streamOptions), 'aggregation');
+      const itIsAggregation = equals(
+        path(['push', 'delivery', 'phase'], streamOptions),
+        'aggregation'
+      );
       if (itIsAggregation) {
         // We are configured to emit in the aggregation phase, so we push the activity back to the client
         const data = {

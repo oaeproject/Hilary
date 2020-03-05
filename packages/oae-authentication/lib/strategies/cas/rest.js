@@ -32,7 +32,10 @@ import * as AuthenticationUtil from 'oae-authentication/lib/util';
  */
 OAE.tenantRouter.on('post', '/api/auth/cas', (req, res, next) => {
   // Get the ID under which we registered this strategy for this tenant
-  const strategyId = AuthenticationUtil.getStrategyId(req.tenant, AuthenticationConstants.providers.CAS);
+  const strategyId = AuthenticationUtil.getStrategyId(
+    req.tenant,
+    AuthenticationConstants.providers.CAS
+  );
 
   // Perform the initial authentication step
   AuthenticationUtil.handleExternalSetup(strategyId, null, req, res, next);
@@ -51,7 +54,10 @@ OAE.tenantRouter.on('post', '/api/auth/cas', (req, res, next) => {
  */
 OAE.tenantRouter.on('get', '/api/auth/cas/callback', (req, res, next) => {
   // Get the ID under which we registered this strategy for this tenant
-  const strategyId = AuthenticationUtil.getStrategyId(req.tenant, AuthenticationConstants.providers.CAS);
+  const strategyId = AuthenticationUtil.getStrategyId(
+    req.tenant,
+    AuthenticationConstants.providers.CAS
+  );
 
   // Log the user in
   AuthenticationUtil.handleExternalCallback(strategyId, req, res, next);

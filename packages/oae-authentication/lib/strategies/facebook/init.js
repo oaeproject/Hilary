@@ -34,7 +34,11 @@ export default function() {
    * @see oae-authentication/lib/strategy#shouldBeEnabled
    */
   strategy.shouldBeEnabled = function(tenantAlias) {
-    return AuthenticationConfig.getValue(tenantAlias, AuthenticationConstants.providers.FACEBOOK, 'enabled');
+    return AuthenticationConfig.getValue(
+      tenantAlias,
+      AuthenticationConstants.providers.FACEBOOK,
+      'enabled'
+    );
   };
 
   /**
@@ -42,7 +46,11 @@ export default function() {
    */
   strategy.getPassportStrategy = function(tenant) {
     // We fetch the config values *in* the getPassportStrategy so it can be re-configured at run-time.
-    const clientID = AuthenticationConfig.getValue(tenant.alias, AuthenticationConstants.providers.FACEBOOK, 'appid');
+    const clientID = AuthenticationConfig.getValue(
+      tenant.alias,
+      AuthenticationConstants.providers.FACEBOOK,
+      'appid'
+    );
     const clientSecret = AuthenticationConfig.getValue(
       tenant.alias,
       AuthenticationConstants.providers.FACEBOOK,
@@ -55,7 +63,10 @@ export default function() {
         clientSecret,
         passReqToCallback: true,
         profileFields: ['id', 'displayName', 'photos', 'emails'],
-        callbackURL: AuthenticationUtil.constructCallbackUrl(tenant, AuthenticationConstants.providers.FACEBOOK)
+        callbackURL: AuthenticationUtil.constructCallbackUrl(
+          tenant,
+          AuthenticationConstants.providers.FACEBOOK
+        )
       },
       (req, accessToken, refreshToken, profile, done) => {
         log().trace({ tenant, profile }, 'Received Facebook authentication callback');

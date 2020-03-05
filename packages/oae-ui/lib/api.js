@@ -429,7 +429,7 @@ const getLogo = function(ctx, callback) {
   const allVariables = getTenantSkinVariables(tenantAlias);
 
   let logo = allVariables['institutional-logo-url'];
-  logo = logo.slice(1, logo.length - 1);
+  logo = logo.slice(1, -1);
   return callback(null, logo);
 };
 

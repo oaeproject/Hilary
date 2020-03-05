@@ -217,20 +217,29 @@ const _getResourceGroupMembers = function(resourceId, callback) {
   const start = AuthzConstants.principalTypes.GROUP + ':';
   const end = start + '|';
 
-  Cassandra.runPagedQuery('AuthzMembers', 'resourceId', resourceId, 'memberId', start, 10000, { end }, (err, rows) => {
-    if (err) {
-      return callback(err);
+  Cassandra.runPagedQuery(
+    'AuthzMembers',
+    'resourceId',
+    resourceId,
+    'memberId',
+    start,
+    10000,
+    { end },
+    (err, rows) => {
+      if (err) {
+        return callback(err);
+      }
+
+      // Convert all roles to an object mapping memberId -> role
+      const associatedGroups = {};
+      _.each(rows, row => {
+        row = Cassandra.rowToHash(row);
+        associatedGroups[row.memberId] = row.role;
+      });
+
+      return callback(null, associatedGroups);
     }
-
-    // Convert all roles to an object mapping memberId -> role
-    const associatedGroups = {};
-    _.each(rows, row => {
-      row = Cassandra.rowToHash(row);
-      associatedGroups[row.memberId] = row.role;
-    });
-
-    return callback(null, associatedGroups);
-  });
+  );
 };
 
 /**
@@ -400,7 +409,8 @@ const _updateRoles = function(resourceId, changes, callback) {
         // members index
         return [
           {
-            query: 'UPDATE "AuthzRoles" SET "role" = ? WHERE "principalId" = ? AND "resourceId" = ?',
+            query:
+              'UPDATE "AuthzRoles" SET "role" = ? WHERE "principalId" = ? AND "resourceId" = ?',
             parameters: [role, principalId, resourceId]
           },
           {
@@ -499,19 +509,26 @@ const _updateRoles = function(resourceId, changes, callback) {
 
 // eslint-disable-next-line no-unused-vars
 const getAllAuthzMembers = function(resourceId, callback, _members, _nextToken) {
-  Cassandra.runAllPagesQuery('AuthzMembers', 'resourceId', resourceId, 'memberId', null, (err, rows) => {
-    if (err) {
-      return callback(err);
-    }
+  Cassandra.runAllPagesQuery(
+    'AuthzMembers',
+    'resourceId',
+    resourceId,
+    'memberId',
+    null,
+    (err, rows) => {
+      if (err) {
+        return callback(err);
+      }
 
-    const members = _.chain(rows)
-      .map(Cassandra.rowToHash)
-      .map(hash => {
-        return { id: hash.memberId, role: hash.role };
-      })
-      .value();
-    return callback(null, members);
-  });
+      const members = _.chain(rows)
+        .map(Cassandra.rowToHash)
+        .map(hash => {
+          return { id: hash.memberId, role: hash.role };
+        })
+        .value();
+      return callback(null, members);
+    }
+  );
 };
 
 /**
@@ -675,26 +692,31 @@ const _explodeGroupMemberships = function(principalId, callback) {
         .value();
 
       return {
-        query: 'INSERT INTO "AuthzMembershipsCache" ("principalId", "groupId", "value") VALUES (?, ?, ?)',
+        query:
+          'INSERT INTO "AuthzMembershipsCache" ("principalId", "groupId", "value") VALUES (?, ?, ?)',
         parameters: [principalId, groupId, JSON.stringify(memberRoles)]
       };
     });
 
     const authzMembershipsIndirectCacheQueries = _.map(indirectMemberships, groupId => {
       return {
-        query: 'INSERT INTO "AuthzMembershipsIndirectCache" ("principalId", "groupId", "value") VALUES (?, ?, ?)',
+        query:
+          'INSERT INTO "AuthzMembershipsIndirectCache" ("principalId", "groupId", "value") VALUES (?, ?, ?)',
         parameters: [principalId, groupId, '1']
       };
     });
 
     // Update both the full memberships cache and the dedicated indirect cache with the exploded memberships
-    Cassandra.runBatchQuery(_.union(authzMembershipsCacheQueries, authzMembershipsIndirectCacheQueries), err => {
-      if (err) {
-        return callback(err);
-      }
+    Cassandra.runBatchQuery(
+      _.union(authzMembershipsCacheQueries, authzMembershipsIndirectCacheQueries),
+      err => {
+        if (err) {
+          return callback(err);
+        }
 
-      return callback(null, graph);
-    });
+        return callback(null, graph);
+      }
+    );
   });
 };
 
@@ -794,65 +816,75 @@ const getPrincipalMembershipsGraph = function(principalId, callback) {
   }
 
   // First try the full memberships cache
-  Cassandra.runAllPagesQuery('AuthzMembershipsCache', 'principalId', principalId, 'groupId', null, (err, rows) => {
-    if (err) {
-      return callback(err);
-    }
-
-    if (_.isEmpty(rows)) {
-      // If we have no cached memberships, go to the memberships CFs to try and resolve it
-      // recursively
-      return _explodeGroupMemberships(principalId, callback);
-    }
-
-    // We had some group memberships, so we construct the graph based on the encoded group
-    // members stored in the cache
-    const graph = new AuthzGraph();
-
-    // Seed the graph with the principal whose memberships graph we're building
-    graph.addNode(principalId);
-
-    // Keep a list of errors encountered while parsing the encoded memberships graph from
-    // the memberships cache
-    const graphParseErrs = [];
-
-    // For every entry in the memberships cache, we need to extract its relevant members and
-    // create the membership relations
-    _.each(rows, row => {
-      // The id of a group that the `principalId` is directly or indirectly a member
-      const groupId = row.get('groupId');
-
-      // This is the stored members information for the group. It is of the form:
-      // `{'memberId': 'g:oae:another-group', 'role': 'manager'}`
-      let memberRoles = {};
-      try {
-        memberRoles = JSON.parse(row.get('value'));
-      } catch (error) {
-        // Accumulate any parse errors we come by
-        graphParseErrs.push({
-          err: error,
-          groupId,
-          value: row.get('value')
-        });
+  Cassandra.runAllPagesQuery(
+    'AuthzMembershipsCache',
+    'principalId',
+    principalId,
+    'groupId',
+    null,
+    (err, rows) => {
+      if (err) {
+        return callback(err);
       }
 
-      graph.addNode(groupId);
-      _.each(memberRoles, memberRole => {
-        graph.addNode(memberRole.memberId);
-        graph.addEdge(memberRole.memberId, groupId, { role: memberRole.role });
-      });
-    });
+      if (_.isEmpty(rows)) {
+        // If we have no cached memberships, go to the memberships CFs to try and resolve it
+        // recursively
+        return _explodeGroupMemberships(principalId, callback);
+      }
 
-    // Fail the request if we cannot parse the encoded memberships graph
-    if (!_.isEmpty(graphParseErrs)) {
-      _.each(graphParseErrs, graphParseErr => {
-        log().error(graphParseErr, 'An error occurred parsing a memberships graph from the authz memberships cache');
+      // We had some group memberships, so we construct the graph based on the encoded group
+      // members stored in the cache
+      const graph = new AuthzGraph();
+
+      // Seed the graph with the principal whose memberships graph we're building
+      graph.addNode(principalId);
+
+      // Keep a list of errors encountered while parsing the encoded memberships graph from
+      // the memberships cache
+      const graphParseErrs = [];
+
+      // For every entry in the memberships cache, we need to extract its relevant members and
+      // create the membership relations
+      _.each(rows, row => {
+        // The id of a group that the `principalId` is directly or indirectly a member
+        const groupId = row.get('groupId');
+
+        // This is the stored members information for the group. It is of the form:
+        // `{'memberId': 'g:oae:another-group', 'role': 'manager'}`
+        let memberRoles = {};
+        try {
+          memberRoles = JSON.parse(row.get('value'));
+        } catch (error) {
+          // Accumulate any parse errors we come by
+          graphParseErrs.push({
+            err: error,
+            groupId,
+            value: row.get('value')
+          });
+        }
+
+        graph.addNode(groupId);
+        _.each(memberRoles, memberRole => {
+          graph.addNode(memberRole.memberId);
+          graph.addEdge(memberRole.memberId, groupId, { role: memberRole.role });
+        });
       });
-      return callback({ code: 500, msg: 'An unexpected error occurred' });
+
+      // Fail the request if we cannot parse the encoded memberships graph
+      if (!_.isEmpty(graphParseErrs)) {
+        _.each(graphParseErrs, graphParseErr => {
+          log().error(
+            graphParseErr,
+            'An error occurred parsing a memberships graph from the authz memberships cache'
+          );
+        });
+        return callback({ code: 500, msg: 'An unexpected error occurred' });
+      }
+
+      return callback(null, graph);
     }
-
-    return callback(null, graph);
-  });
+  );
 };
 
 /**
@@ -963,7 +995,12 @@ const getAllIndirectPrincipalMemberships = function(principalId, callback, _grou
       return callback(err);
     }
 
-    return getAllIndirectPrincipalMemberships(principalId, callback, _.union(_groupIds, groupIds), nextToken);
+    return getAllIndirectPrincipalMemberships(
+      principalId,
+      callback,
+      _.union(_groupIds, groupIds),
+      nextToken
+    );
   });
 };
 
@@ -1117,35 +1154,39 @@ const _getAuthzGroupMembershipsGraph = function(principalIds, callback, _graph) 
   }
 
   // For this group of principals, get all groups to which they have direct access
-  getRolesForPrincipalsAndResourceType(principalIds, AuthzConstants.resourceTypes.GROUP, (err, principalParentRole) => {
-    if (err) {
-      return callback(err);
-    }
+  getRolesForPrincipalsAndResourceType(
+    principalIds,
+    AuthzConstants.resourceTypes.GROUP,
+    (err, principalParentRole) => {
+      if (err) {
+        return callback(err);
+      }
 
-    // For each group membership, add an entry to the graph, keeping track of the role. For all
-    // new groups found, we have to recursively fetch their memberships
-    const nextPrincipalIds = [];
-    _.each(principalParentRole, (parentRole, principalId) => {
-      _.each(parentRole, (role, parentGroupId) => {
-        // Add the group as a node in the graph
-        const node = _graph.addNode(parentGroupId);
-        if (node) {
-          // If `_graph.addNode` returned a node entry, then we have run into this group
-          // for the first time. Add it to the set of principals for which we have to
-          // recursively fetch membership
-          nextPrincipalIds.push(parentGroupId);
-        }
+      // For each group membership, add an entry to the graph, keeping track of the role. For all
+      // new groups found, we have to recursively fetch their memberships
+      const nextPrincipalIds = [];
+      _.each(principalParentRole, (parentRole, principalId) => {
+        _.each(parentRole, (role, parentGroupId) => {
+          // Add the group as a node in the graph
+          const node = _graph.addNode(parentGroupId);
+          if (node) {
+            // If `_graph.addNode` returned a node entry, then we have run into this group
+            // for the first time. Add it to the set of principals for which we have to
+            // recursively fetch membership
+            nextPrincipalIds.push(parentGroupId);
+          }
 
-        // Add the membership relationship to the graph. The "outbound" relationship
-        // indicates "member of" while the "inbound" relationship indicates "has member"
-        _graph.addEdge(principalId, parentGroupId, { role });
+          // Add the membership relationship to the graph. The "outbound" relationship
+          // indicates "member of" while the "inbound" relationship indicates "has member"
+          _graph.addEdge(principalId, parentGroupId, { role });
+        });
       });
-    });
 
-    // We've loaded the relationships into the graph, continue to the next set of unvisited
-    // principals
-    return _getAuthzGroupMembershipsGraph(nextPrincipalIds, callback, _graph);
-  });
+      // We've loaded the relationships into the graph, continue to the next set of unvisited
+      // principals
+      return _getAuthzGroupMembershipsGraph(nextPrincipalIds, callback, _graph);
+    }
+  );
 };
 
 /**
@@ -1202,20 +1243,27 @@ const getAllRolesForPrincipalAndResourceType = function(principalId, resourceTyp
   const start = util.format('%s:', resourceType);
   const end = util.format('%s:|', resourceType);
 
-  Cassandra.runAllPagesQuery('AuthzRoles', 'principalId', principalId, 'resourceId', { start, end }, (err, rows) => {
-    if (err) {
-      return callback(err);
+  Cassandra.runAllPagesQuery(
+    'AuthzRoles',
+    'principalId',
+    principalId,
+    'resourceId',
+    { start, end },
+    (err, rows) => {
+      if (err) {
+        return callback(err);
+      }
+
+      const roles = _.map(rows, row => {
+        return {
+          id: row.get('resourceId'),
+          role: row.get('role')
+        };
+      });
+
+      return callback(null, roles);
     }
-
-    const roles = _.map(rows, row => {
-      return {
-        id: row.get('resourceId'),
-        role: row.get('role')
-      };
-    });
-
-    return callback(null, roles);
-  });
+  );
 };
 
 /**
@@ -1232,7 +1280,13 @@ const getAllRolesForPrincipalAndResourceType = function(principalId, resourceTyp
  * @param  {String}     callback.roles[i].role  The role the principal has on the resource
  * @param  {String}     callback.nextToken      A value that can be used as the `start` parameter for another invokation that will fetch the next page of items
  */
-const getRolesForPrincipalAndResourceType = function(principalId, resourceType, start, limit, callback) {
+const getRolesForPrincipalAndResourceType = function(
+  principalId,
+  resourceType,
+  start,
+  limit,
+  callback
+) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
@@ -1346,32 +1400,39 @@ const getRolesForPrincipalsAndResourceType = function(principalIds, resourceType
   let numCompleted = 0;
   const entries = {};
   _.each(principalIds, principalId => {
-    Cassandra.runAllPagesQuery('AuthzRoles', 'principalId', principalId, 'resourceId', { start, end }, (err, rows) => {
-      if (err) {
-        if (!finished) {
+    Cassandra.runAllPagesQuery(
+      'AuthzRoles',
+      'principalId',
+      principalId,
+      'resourceId',
+      { start, end },
+      (err, rows) => {
+        if (err) {
+          if (!finished) {
+            finished = true;
+            return callback(err);
+          }
+        }
+
+        numCompleted++;
+
+        // Aggregate all resources from all the resource roles into the entries hash
+        _.each(rows, row => {
+          const resourceId = row.get('resourceId');
+          const role = row.get('role');
+
+          entries[principalId] = entries[principalId] || {};
+          entries[principalId][resourceId] = entries[principalId][resourceId] || {};
+          entries[principalId][resourceId] = role;
+        });
+
+        // If this was the final response we were waiting for, invoke the callback
+        if (!finished && numCompleted === principalIds.length) {
           finished = true;
-          return callback(err);
+          return callback(null, entries);
         }
       }
-
-      numCompleted++;
-
-      // Aggregate all resources from all the resource roles into the entries hash
-      _.each(rows, row => {
-        const resourceId = row.get('resourceId');
-        const role = row.get('role');
-
-        entries[principalId] = entries[principalId] || {};
-        entries[principalId][resourceId] = entries[principalId][resourceId] || {};
-        entries[principalId][resourceId] = role;
-      });
-
-      // If this was the final response we were waiting for, invoke the callback
-      if (!finished && numCompleted === principalIds.length) {
-        finished = true;
-        return callback(null, entries);
-      }
-    });
+    );
   });
 };
 
@@ -1386,20 +1447,27 @@ const getRolesForPrincipalsAndResourceType = function(principalIds, resourceType
  */
 const computeMemberRolesAfterChanges = function(resourceId, memberRoles, opts, callback) {
   // When the resource id is not specified, we perform the computation as though the members list is empty
-  OaeUtil.invokeIfNecessary(resourceId, getAuthzMembers, resourceId, null, 10000, (err, memberIdsWithRoleBefore) => {
-    if (err) {
-      return callback(err);
-    }
+  OaeUtil.invokeIfNecessary(
+    resourceId,
+    getAuthzMembers,
+    resourceId,
+    null,
+    10000,
+    (err, memberIdsWithRoleBefore) => {
+      if (err) {
+        return callback(err);
+      }
 
-    // Convert the member ids + role array into the permission change object
-    const memberRolesBefore = _.chain(memberIdsWithRoleBefore)
-      .indexBy('id')
-      .mapObject(memberIdWithRole => {
-        return memberIdWithRole.role;
-      })
-      .value();
-    return callback(null, AuthzUtil.computeRoleChanges(memberRolesBefore, memberRoles, opts));
-  });
+      // Convert the member ids + role array into the permission change object
+      const memberRolesBefore = _.chain(memberIdsWithRoleBefore)
+        .indexBy('id')
+        .mapObject(memberIdWithRole => {
+          return memberIdWithRole.role;
+        })
+        .value();
+      return callback(null, AuthzUtil.computeRoleChanges(memberRolesBefore, memberRoles, opts));
+    }
+  );
 };
 
 /**
@@ -1542,7 +1610,8 @@ const resolveImplicitRole = function(principal, resource, rolesPriority, callbac
   // The resource is not public
   if (
     AuthzUtil.isUserId(principalId) &&
-    (resource.joinable === AuthzConstants.joinable.YES || resource.joinable === AuthzConstants.joinable.REQUEST) &&
+    (resource.joinable === AuthzConstants.joinable.YES ||
+      resource.joinable === AuthzConstants.joinable.REQUEST) &&
     tenantsCanInteract
   ) {
     // An authenticated user can see and interact with a resource they have the
@@ -1551,7 +1620,10 @@ const resolveImplicitRole = function(principal, resource, rolesPriority, callbac
     return callback(null, _.first(rolesPriority), tenantsCanInteract);
   }
 
-  if (resource.visibility === AuthzConstants.visibility.LOGGEDIN && principal.tenant.alias === resource.tenant.alias) {
+  if (
+    resource.visibility === AuthzConstants.visibility.LOGGEDIN &&
+    principal.tenant.alias === resource.tenant.alias
+  ) {
     // A principal has lowest implicit role and can view a loggedin, non-joinable
     // resource only if they are logged in to its tenant
     return callback(null, _.first(rolesPriority), true);

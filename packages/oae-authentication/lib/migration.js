@@ -14,7 +14,8 @@ const ensureSchema = function(callback) {
         'CREATE TABLE "AuthenticationLoginId" ("loginId" text PRIMARY KEY, "userId" text, "password" text, "secret" text)',
       AuthenticationUserLoginId:
         'CREATE TABLE "AuthenticationUserLoginId" ("userId" text, "loginId" text, "value" text, PRIMARY KEY ("userId", "loginId")) WITH COMPACT STORAGE',
-      OAuthAccessToken: 'CREATE TABLE "OAuthAccessToken" ("token" text PRIMARY KEY, "userId" text, "clientId" text)',
+      OAuthAccessToken:
+        'CREATE TABLE "OAuthAccessToken" ("token" text PRIMARY KEY, "userId" text, "clientId" text)',
       OAuthAccessTokenByUser:
         'CREATE TABLE "OAuthAccessTokenByUser" ("userId" text, "clientId" text, "token" text, PRIMARY KEY ("userId", "clientId")) WITH COMPACT STORAGE',
       OAuthClient:

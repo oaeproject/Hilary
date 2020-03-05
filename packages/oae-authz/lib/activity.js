@@ -116,9 +116,13 @@ ActivityAPI.registerActivityEntityType('email', {
  * Register the "self" association for the email, which specifies only the email resource itself as
  * a potentital recipient
  */
-ActivityAPI.registerActivityEntityAssociation('email', 'self', (associationsCtx, entity, callback) => {
-  return callback(null, [entity[ActivityConstants.properties.OAE_ID]]);
-});
+ActivityAPI.registerActivityEntityAssociation(
+  'email',
+  'self',
+  (associationsCtx, entity, callback) => {
+    return callback(null, [entity[ActivityConstants.properties.OAE_ID]]);
+  }
+);
 
 /// //////////////////
 // INVITE ACTIVITY //

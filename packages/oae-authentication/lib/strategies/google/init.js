@@ -36,7 +36,11 @@ export default function() {
    * @see oae-authentication/lib/strategy#shouldBeEnabled
    */
   strategy.shouldBeEnabled = function(tenantAlias) {
-    return AuthenticationConfig.getValue(tenantAlias, AuthenticationConstants.providers.GOOGLE, 'enabled');
+    return AuthenticationConfig.getValue(
+      tenantAlias,
+      AuthenticationConstants.providers.GOOGLE,
+      'enabled'
+    );
   };
 
   /**
@@ -44,8 +48,16 @@ export default function() {
    */
   strategy.getPassportStrategy = function(tenant) {
     // We fetch the config values *in* the getPassportStrategy so it can be re-configured at run-time.
-    const key = AuthenticationConfig.getValue(tenant.alias, AuthenticationConstants.providers.GOOGLE, 'key');
-    const secret = AuthenticationConfig.getValue(tenant.alias, AuthenticationConstants.providers.GOOGLE, 'secret');
+    const key = AuthenticationConfig.getValue(
+      tenant.alias,
+      AuthenticationConstants.providers.GOOGLE,
+      'key'
+    );
+    const secret = AuthenticationConfig.getValue(
+      tenant.alias,
+      AuthenticationConstants.providers.GOOGLE,
+      'secret'
+    );
     let domains = AuthenticationConfig.getValue(
       tenant.alias,
       AuthenticationConstants.providers.GOOGLE,
@@ -66,59 +78,65 @@ export default function() {
       clientSecret: secret,
       passReqToCallback: true,
       scope: ['profile', 'email'],
-      callbackURL: AuthenticationUtil.constructCallbackUrl(tenant, AuthenticationConstants.providers.GOOGLE)
+      callbackURL: AuthenticationUtil.constructCallbackUrl(
+        tenant,
+        AuthenticationConstants.providers.GOOGLE
+      )
     };
 
-    const passportStrategy = new GoogleStrategy(options, (req, accessToken, refreshToken, profile, done) => {
-      log().trace(
-        {
-          tenant,
-          profile
-        },
-        'Received Google authentication callback'
-      );
+    const passportStrategy = new GoogleStrategy(
+      options,
+      (req, accessToken, refreshToken, profile, done) => {
+        log().trace(
+          {
+            tenant,
+            profile
+          },
+          'Received Google authentication callback'
+        );
 
-      const email = profile.emails[0].value;
+        const email = profile.emails[0].value;
 
-      // Ensure the email belongs to a domain we allow
-      if (!_.isEmpty(domains)) {
-        const emailDomain = email.split('@')[1];
-        if (!_.contains(domains, emailDomain)) {
-          const err = {
-            code: 400,
-            msg: util.format(
-              'You tried to sign in with an email address that belongs to a domain (%s) that is not allowed access',
-              emailDomain
-            ),
-            reason: 'domain_not_allowed'
-          };
-          return done(err);
+        // Ensure the email belongs to a domain we allow
+        if (!_.isEmpty(domains)) {
+          const emailDomain = email.split('@')[1];
+          if (!_.contains(domains, emailDomain)) {
+            const err = {
+              code: 400,
+              msg: util.format(
+                'You tried to sign in with an email address that belongs to a domain (%s) that is not allowed access',
+                emailDomain
+              ),
+              reason: 'domain_not_allowed'
+            };
+            return done(err);
+          }
         }
+
+        // Re-use the email address as the externalId
+        const externalId = email;
+        const { displayName } = profile;
+
+        // We ignore the locale returned by google because it only specifies
+        // the language, but not the region which isn't very useful
+        const opts = { email };
+        const { picture } = profile._json;
+        if (picture) {
+          opts.smallPictureUri = 'remote:' + picture;
+          opts.mediumPictureUri = 'remote:' + picture;
+        }
+
+        AuthenticationUtil.handleExternalGetOrCreateUser(
+          req,
+          AuthenticationConstants.providers.GOOGLE,
+          externalId,
+          null,
+          displayName,
+          opts,
+          done
+        );
       }
-
-      // Re-use the email address as the externalId
-      const externalId = email;
-      const { displayName } = profile;
-
-      // We ignore the locale returned by google because it only specifies
-      // the language, but not the region which isn't very useful
-      const opts = { email };
-      const { picture } = profile._json;
-      if (picture) {
-        opts.smallPictureUri = 'remote:' + picture;
-        opts.mediumPictureUri = 'remote:' + picture;
-      }
-
-      AuthenticationUtil.handleExternalGetOrCreateUser(
-        req,
-        AuthenticationConstants.providers.GOOGLE,
-        externalId,
-        null,
-        displayName,
-        opts,
-        done
-      );
-    });
+    );
     return passportStrategy;
   };
 

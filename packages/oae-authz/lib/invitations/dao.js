@@ -96,20 +96,24 @@ const getOrCreateTokensByEmails = function(emails, callback) {
  */
 const getTokensByEmails = function(emails, callback) {
   // Get all existing tokens for emails
-  Cassandra.runQuery('SELECT * FROM "AuthzInvitationsTokenByEmail" WHERE "email" IN ?', [emails], (err, rows) => {
-    if (err) {
-      return callback(err);
-    }
+  Cassandra.runQuery(
+    'SELECT * FROM "AuthzInvitationsTokenByEmail" WHERE "email" IN ?',
+    [emails],
+    (err, rows) => {
+      if (err) {
+        return callback(err);
+      }
 
-    const emailTokens = _.chain(rows)
-      .map(Cassandra.rowToHash)
-      .indexBy('email')
-      .mapObject(hash => {
-        return hash.token;
-      })
-      .value();
-    return callback(null, emailTokens);
-  });
+      const emailTokens = _.chain(rows)
+        .map(Cassandra.rowToHash)
+        .indexBy('email')
+        .mapObject(hash => {
+          return hash.token;
+        })
+        .value();
+      return callback(null, emailTokens);
+    }
+  );
 };
 
 /**
@@ -121,26 +125,30 @@ const getTokensByEmails = function(emails, callback) {
  * @param  {String}     callback.email  The email that was associated to the token
  */
 const getEmailByToken = function(token, callback) {
-  Cassandra.runQuery('SELECT * FROM "AuthzInvitationsEmailByToken" WHERE "token" = ?', [token], (err, rows) => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery(
+    'SELECT * FROM "AuthzInvitationsEmailByToken" WHERE "token" = ?',
+    [token],
+    (err, rows) => {
+      if (err) {
+        return callback(err);
+      }
+
+      if (_.isEmpty(rows)) {
+        return callback({
+          code: 404,
+          msg: util.format('There is no email associated to the email token "%s"', token)
+        });
+      }
+
+      const email = _.chain(rows)
+        .map(Cassandra.rowToHash)
+        .pluck('email')
+        .first()
+        .value();
+
+      return callback(null, email);
     }
-
-    if (_.isEmpty(rows)) {
-      return callback({
-        code: 404,
-        msg: util.format('There is no email associated to the email token "%s"', token)
-      });
-    }
-
-    const email = _.chain(rows)
-      .map(Cassandra.rowToHash)
-      .pluck('email')
-      .first()
-      .value();
-
-    return callback(null, email);
-  });
+  );
 };
 
 /**
@@ -291,7 +299,8 @@ const createInvitations = function(resourceId, emailRoles, inviterUserId, callba
             parameters: [hash.inviterUserId, hash.role, hash.resourceId, hash.email]
           },
           {
-            query: 'INSERT INTO "AuthzInvitationsResourceIdByEmail" ("resourceId", "email") VALUES (?, ?)',
+            query:
+              'INSERT INTO "AuthzInvitationsResourceIdByEmail" ("resourceId", "email") VALUES (?, ?)',
             parameters: [hash.resourceId, hash.email]
           }
         ];
@@ -360,7 +369,8 @@ const updateInvitationRoles = function(resourceId, emailRoles, callback) {
           parameters: [resourceId, email]
         },
         {
-          query: 'DELETE FROM "AuthzInvitationsResourceIdByEmail" WHERE "email" = ? AND "resourceId" = ?',
+          query:
+            'DELETE FROM "AuthzInvitationsResourceIdByEmail" WHERE "email" = ? AND "resourceId" = ?',
           parameters: [email, resourceId]
         }
       );

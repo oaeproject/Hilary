@@ -25,7 +25,8 @@ const ensureSchema = function(callback) {
   createColumnFamilies(
     {
       // Deleted schema
-      AuthzDeleted: 'CREATE TABLE "AuthzDeleted" ("resourceId" text PRIMARY KEY, "deleted" boolean)',
+      AuthzDeleted:
+        'CREATE TABLE "AuthzDeleted" ("resourceId" text PRIMARY KEY, "deleted" boolean)',
 
       // Invitations schema
       AuthzInvitations:

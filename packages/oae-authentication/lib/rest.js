@@ -85,13 +85,19 @@ const _getResetPasswordSecret = function(req, res) {
 OAE.tenantRouter.on('get', '/api/auth/local/reset/secret/:username', _getResetPasswordSecret);
 
 const _resetPassword = function(req, res) {
-  AuthenticationAPI.resetPassword(req.ctx, req.params.username, req.body.secret, req.body.newPassword, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+  AuthenticationAPI.resetPassword(
+    req.ctx,
+    req.params.username,
+    req.body.secret,
+    req.body.newPassword,
+    err => {
+      if (err) {
+        return res.status(err.code).send(err.msg);
+      }
 
-    return res.status(200).end();
-  });
+      return res.status(200).end();
+    }
+  );
 };
 
 /**

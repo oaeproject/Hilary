@@ -14,11 +14,11 @@
  */
 
 /* eslint-disable unicorn/filename-case */
-import { gt, length, ifElse, __, compose, pick, forEachObjIndexed } from 'ramda';
+import { split, gt, length, ifElse, __, compose, pick, forEachObjIndexed } from 'ramda';
 import lunr from 'lunr';
 
 const greaterThanOne = gt(__, 1);
-const isJustOneWord = words => compose(greaterThanOne, length)(words);
+const isTwoOrMoreWords = words => compose(greaterThanOne, length)(words);
 
 /**
  * Represents an index where tenants can be indexed and then later full-text searched
@@ -50,12 +50,12 @@ const TenantIndex = function(tenants) {
        * Weird, right? I know. But it seems to work fine and passes all the existing tests.
        */
       const useAndWithBoth = ifElse(
-        isJustOneWord,
-        x => x.join(' +'),
-        x => `${x}*`
+        isTwoOrMoreWords,
+        word => word.join(' +'),
+        word => `${word}*`
       );
 
-      const enhancedQuery = useAndWithBoth(query.split('-'));
+      const enhancedQuery = compose(useAndWithBoth, split('-'))(query);
       return lunrIndex.search(enhancedQuery);
     }
   };

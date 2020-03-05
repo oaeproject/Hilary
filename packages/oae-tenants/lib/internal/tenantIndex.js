@@ -40,7 +40,14 @@ const TenantIndex = function(tenants) {
      */
     search(query) {
       /**
-       * TODO describe why we're doing what we're doing
+       * Back with lunr 1.0 we could just search for an entire word like `tenant-ABC`
+       * Now with lunr 2.x the `-` (minus) symbol means exclude, and `tenant-ABC` is broken down into
+       * `tenant` and EXCLUDES the rest (`-ABC`)
+       * As a result, when a word includes a `-` (minus) symbol we need to make it two words instead, plus:
+       * make the second word mandatory (in the previous example, that would be `ABC`, thus `+ABC`)
+       * When there is just one word, we need to make it a partial match (in the previous example, that would be `tenant`, thus `tenant*`)
+       *
+       * Weird, right? I know. But it seems to work fine and passes all the existing tests.
        */
       const useAndWithBoth = ifElse(
         isJustOneWord,

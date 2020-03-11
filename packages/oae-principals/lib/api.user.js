@@ -2088,10 +2088,9 @@ const _escapeFilename = function(nameResource, callback) {
 
 /**
  * @function _compressPersonalData
- * @param  {type} zipFile      {description}
- * @param  {type} personalData {description}
- * @param  {type} done         {description}
- * @return {type} {description}
+ * @param  {Object} zipFile      Representation of the zip file we're creating
+ * @param  {Object} personalData Contains all the personal data we're zipping
+ * @param  {Function} done       Standard callback function
  */
 const _compressPersonalData = (zipFile, personalData, done) => {
   ifElse(
@@ -2106,10 +2105,9 @@ const _compressPersonalData = (zipFile, personalData, done) => {
 
 /**
  * @function _compressProfilePicture
- * @param  {type} zipFile      {description}
- * @param  {type} personalData {description}
- * @param  {type} done         {description}
- * @return {type} {description}
+ * @param  {Object} zipFile      Representation of the zip file we're creating
+ * @param  {Object} personalData Contains all the personal data we're zipping
+ * @param  {Function} done       Standard callback function
  */
 const _compressProfilePicture = (zipFile, personalData, done) => {
   ifElse(
@@ -2127,10 +2125,9 @@ const _compressProfilePicture = (zipFile, personalData, done) => {
 
 /**
  * @function _compressUploadedData
- * @param  {type} zipFile      {description}
- * @param  {type} personalData {description}
- * @param  {type} done         {description}
- * @return {type} {description}
+ * @param  {Object} zipFile      Representation of the zip file we're creating
+ * @param  {Object} personalData Contains all the personal data we're zipping
+ * @param  {Function} done       Standard callback function
  */
 const _compressUploadedData = (zipFile, personalData, done) => {
   ifElse(
@@ -2153,10 +2150,9 @@ const _compressUploadedData = (zipFile, personalData, done) => {
 
 /**
  * @function _compressCollabDocs
- * @param  {type} zipFile      {description}
- * @param  {type} personalData {description}
- * @param  {type} done         {description}
- * @return {type} {description}
+ * @param  {Object} zipFile      Representation of the zip file we're creating
+ * @param  {Object} personalData Contains all the personal data we're zipping
+ * @param  {Function} done       Standard callback function
  */
 const _compressCollabDocs = (zipFile, personalData, done) => {
   ifElse(
@@ -2173,10 +2169,9 @@ const _compressCollabDocs = (zipFile, personalData, done) => {
 
 /**
  * @function _compressCollabSheets
- * @param  {type} zipFile      {description}
- * @param  {type} personalData {description}
- * @param  {type} done         {description}
- * @return {type} {description}
+ * @param  {Object} zipFile      Representation of the zip file we're creating
+ * @param  {Object} personalData Contains all the personal data we're zipping
+ * @param  {Function} done       Standard callback function
  */
 const _compressCollabSheets = (zipFile, personalData, done) => {
   ifElse(
@@ -2193,10 +2188,9 @@ const _compressCollabSheets = (zipFile, personalData, done) => {
 
 /**
  * @function _compressLinks
- * @param  {type} zipFile      {description}
- * @param  {type} personalData {description}
- * @param  {type} done         {description}
- * @return {type} {description}
+ * @param  {Object} zipFile      Representation of the zip file we're creating
+ * @param  {Object} personalData Contains all the personal data we're zipping
+ * @param  {Function} done       Standard callback function
  */
 const _compressLinks = (zipFile, personalData, done) => {
   ifElse(
@@ -2213,10 +2207,9 @@ const _compressLinks = (zipFile, personalData, done) => {
 
 /**
  * @function _compressMeetings
- * @param  {type} zipFile      {description}
- * @param  {type} personalData {description}
- * @param  {type} done         {description}
- * @return {type} {description}
+ * @param  {Object} zipFile      Representation of the zip file we're creating
+ * @param  {Object} personalData Contains all the personal data we're zipping
+ * @param  {Function} done       Standard callback function
  */
 const _compressMeetings = (zipFile, personalData, done) => {
   ifElse(
@@ -2233,10 +2226,9 @@ const _compressMeetings = (zipFile, personalData, done) => {
 
 /**
  * @function _compressDiscussions
- * @param  {type} zipFile      {description}
- * @param  {type} personalData {description}
- * @param  {type} done         {description}
- * @return {type} {description}
+ * @param  {Object} zipFile      Representation of the zip file we're creating
+ * @param  {Object} personalData Contains all the personal data we're zipping
+ * @param  {Function} done       Standard callback function
  */
 const _compressDiscussions = (zipFile, personalData, done) => {
   ifElse(

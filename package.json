@@ -86,7 +86,7 @@
     "properties-parser": "^0.3.1",
     "puppeteer": "2.1.1",
     "rails-timezone": "^1.0.0",
-    "readdirp": "^3.1.1",
+    "readdirp": "^3.3.0",
     "recaptcha": "^1.2.1",
     "redlock": "^4.0.0",
     "ioredis-ratelimit": "^2.1.0",

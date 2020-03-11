@@ -2296,7 +2296,7 @@ const createComment = function(ctx, contentId, body, replyToCreatedTimestamp, ca
       msg: 'A comment can only be 100000 characters long'
     })(body);
 
-    unless(bothCheck(isDefined(replyToCreatedTimestamp), isInt), {
+    unless(bothCheck(both(isNotEmpty, isDefined)(replyToCreatedTimestamp), isInt), {
       code: 400,
       msg: 'Invalid reply-to timestamp provided'
     })(replyToCreatedTimestamp);

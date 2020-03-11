@@ -59,7 +59,7 @@ const {
   isPrincipalId,
   isLongString
 } = validator;
-import { curry, __, equals, not, and, compose, forEach, forEachObjIndexed } from 'ramda';
+import { both, curry, __, equals, not, and, compose, forEach, forEachObjIndexed } from 'ramda';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { ContentConstants } from './constants';
 import * as ContentDAO from './internal/dao';

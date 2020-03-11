@@ -790,20 +790,37 @@ describe('Content', () => {
                     assert.ok(comment.id);
                     assert.ok(comment.created);
 
-                    // Get the comments and verify that the item on top of the list is the correct one
-                    RestAPI.Content.getComments(contexts.bert.restContext, contentObj.id, null, 10, (err, comments) => {
-                      assert.ok(!err);
+                    // Make sure there is NOT an error if "" is sent instead of undefined
+                    RestAPI.Content.createComment(
+                      contexts.bert.restContext,
+                      contentObj.id,
+                      'This comment should be on top of the list',
+                      '',
+                      (err, comment) => {
+                        assert.ok(!err);
 
-                      assert.strictEqual(comments.results.length, 10);
-                      assert.strictEqual(comments.results[0].createdBy.publicAlias, 'Bert Pareyn');
-                      assert.strictEqual(comments.results[0].level, 0);
-                      assert.strictEqual(comments.results[0].body, 'This comment should be on top of the list');
-                      assert.strictEqual(comment.messageBoxId, contentObj.id);
-                      assert.strictEqual(comment.threadKey, comment.created + '|');
-                      assert.ok(comment.id);
-                      assert.ok(comment.created);
-                      callback();
-                    });
+                        // Get the comments and verify that the item on top of the list is the correct one
+                        RestAPI.Content.getComments(
+                          contexts.bert.restContext,
+                          contentObj.id,
+                          null,
+                          10,
+                          (err, comments) => {
+                            assert.ok(!err);
+
+                            assert.strictEqual(comments.results.length, 10);
+                            assert.strictEqual(comments.results[0].createdBy.publicAlias, 'Bert Pareyn');
+                            assert.strictEqual(comments.results[0].level, 0);
+                            assert.strictEqual(comments.results[0].body, 'This comment should be on top of the list');
+                            assert.strictEqual(comment.messageBoxId, contentObj.id);
+                            assert.strictEqual(comment.threadKey, comment.created + '|');
+                            assert.ok(comment.id);
+                            assert.ok(comment.created);
+                            callback();
+                          }
+                        );
+                      }
+                    );
                   }
                 );
               });
@@ -1867,6 +1884,7 @@ describe('Content', () => {
                 assert.ok(err);
                 assert.strictEqual(err.code, 404);
                 assert.ok(!comment);
+
                 // Verify that the comment wasn't created
                 RestAPI.Content.getComments(contexts.bert.restContext, contentObj.id, null, 10, (err, comments) => {
                   assert.ok(!err);
@@ -1882,6 +1900,7 @@ describe('Content', () => {
                       assert.ok(err);
                       assert.strictEqual(err.code, 400);
                       assert.ok(!comment);
+
                       // Verify that the comment wasn't created
                       RestAPI.Content.getComments(
                         contexts.bert.restContext,
@@ -1892,16 +1911,17 @@ describe('Content', () => {
                           assert.ok(!err);
                           assert.strictEqual(comments.results.length, 0);
 
-                          // Try to create a comment as an anonymous user
+                          // Try to create a comment without a valid replyTo
                           RestAPI.Content.createComment(
-                            anonymousRestContext,
+                            contexts.bert.restContext,
                             contentObj.id,
                             'This comment should be on top of the list',
-                            null,
+                            'NotAnInteger',
                             (err, comment) => {
-                              assert.ok(err);
-                              assert.strictEqual(err.code, 401);
+                              assert.ok(err); // Invalid reply-to timestamp provided
+                              assert.strictEqual(err.code, 400);
                               assert.ok(!comment);
+
                               // Verify that the comment wasn't created
                               RestAPI.Content.getComments(
                                 contexts.bert.restContext,
@@ -1912,18 +1932,42 @@ describe('Content', () => {
                                   assert.ok(!err);
                                   assert.strictEqual(comments.results.length, 0);
 
-                                  // Create a comment that is larger than the allowed maximum size
-                                  const commentBody = TestsUtil.generateRandomText(10000);
+                                  // Try to create a comment as an anonymous user
                                   RestAPI.Content.createComment(
-                                    contexts.bert.restContext,
+                                    anonymousRestContext,
                                     contentObj.id,
-                                    commentBody,
+                                    'This comment should be on top of the list',
                                     null,
                                     (err, comment) => {
                                       assert.ok(err);
-                                      assert.strictEqual(err.code, 400);
+                                      assert.strictEqual(err.code, 401);
                                       assert.ok(!comment);
-                                      callback();
+                                      // Verify that the comment wasn't created
+                                      RestAPI.Content.getComments(
+                                        contexts.bert.restContext,
+                                        contentObj.id,
+                                        null,
+                                        10,
+                                        (err, comments) => {
+                                          assert.ok(!err);
+                                          assert.strictEqual(comments.results.length, 0);
+
+                                          // Create a comment that is larger than the allowed maximum size
+                                          const commentBody = TestsUtil.generateRandomText(10000);
+                                          RestAPI.Content.createComment(
+                                            contexts.bert.restContext,
+                                            contentObj.id,
+                                            commentBody,
+                                            null,
+                                            (err, comment) => {
+                                              assert.ok(err);
+                                              assert.strictEqual(err.code, 400);
+                                              assert.ok(!comment);
+                                              callback();
+                                            }
+                                          );
+                                        }
+                                      );
                                     }
                                   );
                                 }

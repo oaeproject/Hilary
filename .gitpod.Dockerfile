@@ -1,4 +1,4 @@
-FROM oaeproject/oae-hilary
+FROM oaeproject/oae-hilary:latest
 
 USER node
 

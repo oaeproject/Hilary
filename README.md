@@ -2,7 +2,7 @@
 
 Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject.org/)
 
-[![Discord](https://img.shields.io/badge/chat-on_discord-green.svg)](https://discord.gg/RShTcdq)
+[![Discord](https://img.shields.io/badge/chat-on_discord-green.svg)](https://discord.gg/CcNnbGk)
 
 - [Open Academic Environment (OAE Project)](#open-academic-environment-oae-project)
   - [Project status](#project-status)
@@ -273,4 +273,4 @@ The project website can be found at http://www.oaeproject.org. The [project blog
 
 The mailing list used for Apereo OAE is oae@apereo.org. You can subscribe to the mailing list at https://groups.google.com/a/apereo.org/d/forum/oae.
 
-Bugs and other issues can be reported in our [issue tracker](https://github.com/oaeproject/Hilary/issues) and we're always available to help in our [discord channel](https://discord.gg/RShTcdq).
+Bugs and other issues can be reported in our [issue tracker](https://github.com/oaeproject/Hilary/issues) and we're always available to help in our [discord channel](https://discord.gg/CcNnbGk).

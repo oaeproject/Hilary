@@ -123,7 +123,7 @@
     "prettier": "^1.18.2",
     "repl-promised": "^0.1.0",
     "shelljs": "^0.8.3",
-    "xo": "^0.27.2"
+    "xo": "^0.28.2"
   },
   "scripts": {
     "test": "mocha -r esm 'node_modules/oae-tests/runner/before-tests.js' 'node_modules/oae-*/tests/**/*.js'",

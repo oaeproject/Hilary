@@ -33,7 +33,7 @@ import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 import PrincipalsAPI from 'oae-principals';
 
-const DEFAULT_SNAPSHOT = 'snapshot=';
+const DEFAULT_SNAPSHOT = '';
 const TO_STRING = 'string';
 const SOME_NAME = 'name';
 const SOME_DESCRIPTION = 'description';

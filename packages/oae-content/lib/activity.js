@@ -228,6 +228,11 @@ ContentAPI.emitter.on(
 /*!
  * Post a content-revision activity when a user has made an edit to a collaborative document (even though there is technically no new revision)
  */
+ContentAPI.emitter.on(ContentConstants.events.EDITED_COLLABSHEET, (ctx, contentObj) => {
+  // debug
+  console.log('This is content-revision activity');
+});
+
 ContentAPI.emitter.on(ContentConstants.events.EDITED_COLLABDOC, (ctx, contentObj) => {
   const millis = Date.now();
   const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
@@ -246,9 +251,9 @@ ContentAPI.emitter.on(ContentConstants.events.EDITED_COLLABDOC, (ctx, contentObj
   ActivityAPI.postActivity(ctx, activitySeed);
 });
 
-/// ////////////////////////////
-// CONTENT-RESTORED-REVISION //
-/// ////////////////////////////
+/**
+ * Content-restored-revision
+ */
 
 ActivityAPI.registerActivityType(ContentConstants.activity.ACTIVITY_CONTENT_RESTORED_REVISION, {
   groupBy: [{ object: true }],

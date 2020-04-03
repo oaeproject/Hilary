@@ -963,7 +963,7 @@ const handlePublish = function(data, callback) {
       if (err) return callback(err);
 
       // Get the latest html from etherpad
-      Etherpad.getHTML(contentObj.id, contentObj.etherpadPadId, (err, currentContents) => {
+      Etherpad.getHTML(contentObj.id, contentObj.etherpadPadId, (err, currentHtmlContent) => {
         if (err) return callback(err);
 
         // Get the latest OAE revision and compare the html that in Etherpad.
@@ -972,11 +972,11 @@ const handlePublish = function(data, callback) {
           if (err) return callback(err);
 
           const extractContents = path(toArray('etherpadHtml'));
-          const equalsCurrentContents = curry(Etherpad.isContentEqual)(currentContents);
-          const isItCurrentlyEmpty = () => Etherpad.isContentEmpty(currentContents);
+          const equalsCurrentContents = curry(Etherpad.isContentEqual)(currentHtmlContent);
+          const isItCurrentlyEmpty = () => Etherpad.isContentEmpty(currentHtmlContent);
 
           const hasNotChangedContent = compose(equalsCurrentContents, extractContents);
-          const itIsTheFirstRevision = both(compose(not, isDefined, extractContents), isItCurrentlyEmpty);
+          const hasNoPreviousRevisions = both(compose(not, isDefined, extractContents), isItCurrentlyEmpty);
 
           /**
            * This situation can occur if 2 users were editting a collaborative document together, one of them leaves,
@@ -984,7 +984,7 @@ const handlePublish = function(data, callback) {
            * There is no need to generate another revision as we already have one with the latest HTML.
            * We do however raise an event so we can generate an "edited document"-activity for this user as well
            */
-          if (either(hasNotChangedContent, itIsTheFirstRevision)(latestRevision)) {
+          if (either(hasNotChangedContent, hasNoPreviousRevisions)(latestRevision)) {
             emitter.emit(ContentConstants.events.EDITED_COLLABDOC, ctx, contentObj);
             return callback();
           }
@@ -995,7 +995,7 @@ const handlePublish = function(data, callback) {
             newRevisionId,
             contentObj.id,
             data.userId,
-            { etherpadHtml: currentContents },
+            { etherpadHtml: currentHtmlContent },
             (err, revision) => {
               if (err) {
                 log().error(
@@ -1100,9 +1100,6 @@ const ethercalcPublish = function(data, callback) {
 
             const hasNotChangedContent = compose(equalsCurrentContents, extractContents);
             const hasNoPreviousRevisions = both(compose(not, isDefined, extractContents), isItCurrentlyEmpty);
-
-            // debug
-            console.log(Ethercalc.isContentEmpty(currentHtmlContent));
 
             if (either(hasNotChangedContent, hasNoPreviousRevisions)(latestRevision)) {
               emitter.emit(ContentConstants.events.EDITED_COLLABSHEET, ctx, contentObj);

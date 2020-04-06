@@ -22,6 +22,7 @@ import cheerio from 'cheerio';
 import { logger } from 'oae-logger';
 
 import * as ContentDAO from './dao';
+import { test, trim, isEmpty, __, gt, equals, length, match, compose, not, ifElse } from 'ramda';
 
 const log = logger('ethercalc');
 
@@ -31,6 +32,13 @@ let ethercalcServers = null;
 const SOCIAL_CALC_FORMAT_BEGIN_LINE = 'socialcalc:version:1.0';
 const SOCIAL_CALC_FORMAT_END_LINE = '--SocialCalcSpreadsheetControlSave--';
 const TABLE_ELEMENT = 'table';
+
+// Auxiliary functions
+const isNotDefined = compose(not, Boolean);
+const greaterThanZero = gt(__, 0);
+const equalsOne = equals(1);
+const returnTrue = () => true;
+const returnFalse = () => false;
 
 /**
  * Refresh the runtime ethercalc configuration (host, port, etc...) with the one provided. More
@@ -290,24 +298,24 @@ const getRoomUrl = function(contentObj, userId, language) {
  * @param  {String}     content             The content of the ethercalc spreadsheet
  * @return {Boolean}                        Whether or not the content is considered empty
  */
-const isContentEmpty = function(content) {
-  if (!content) {
-    return true;
-  }
+const isContentEmpty = content => {
+  const FIRST_CELL = '#cell_A1';
 
-  if (_isHtmlDocument(content)) {
-    // Empty sheets only have a single cell
-    if (content.match(/cell_[\w][\d]/g).length === 1) {
-      // Make sure that cell is empty
-      const $ = cheerio.load(content);
-      return $('#cell_A1').text();
-    }
+  const findCells = match(/cell_[\w][\d]/g);
+  const lookForCellValues = test(/\bcell:\w\d/g);
 
-    return false;
-  }
+  const loadFirstCellContents = content =>
+    cheerio
+      .load(content)(FIRST_CELL)
+      .text();
 
-  // Check for existing cell values in social calc format. Cells are in format: `cell:A1:t:test`
-  return content.test(/\bcell:\w\d/g);
+  const checkIfFirstCellIsEmpty = compose(isEmpty, trim, loadFirstCellContents);
+  const hasSingleCell = content => compose(equalsOne, length, findCells)(content);
+
+  const isFirstCellEmpty = ifElse(hasSingleCell, checkIfFirstCellIsEmpty, returnFalse);
+  const checkIfContentIsEmpty = ifElse(_isHtmlDocument, isFirstCellEmpty, lookForCellValues);
+
+  return ifElse(isNotDefined, returnTrue, checkIfContentIsEmpty)(content);
 };
 
 /**
@@ -358,13 +366,11 @@ const setEditedBy = function(data, callback) {
  * @return {Boolean}                Whether or not the content is a valid HTML spreadsheet
  * @api private
  */
-const _isHtmlDocument = function(content) {
-  if (!content) {
-    return false;
-  }
+const _isHtmlDocument = content => {
+  if (isNotDefined(content)) return false;
 
   const $ = cheerio.load(content);
-  return $(TABLE_ELEMENT).length > 0;
+  return compose(greaterThanZero, length, $)(TABLE_ELEMENT);
 };
 
 /**

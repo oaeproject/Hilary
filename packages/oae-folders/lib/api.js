@@ -317,15 +317,11 @@ const updateFolderContentVisibility = function(ctx, folderId, visibility, callba
 
   // Get the folder from storage to use for permission checks
   FoldersDAO.getFolder(folderId, (err, folder) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     // Ensure the current user can manage the folder
     AuthzPermissions.canManage(ctx, folder, err => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       // Apply the visibility on all the content items in the folder
       _updateFolderContentVisibility(ctx, folder, visibility, callback);
@@ -371,15 +367,15 @@ const _updateFolderContentVisibility = function(ctx, folder, visibility, callbac
       }
 
       contentItems = _.chain(contentItems)
-        // Remove null content items. This can happen if libraries are in an inconsistent
-        // state. For example, if an item was deleted from the system but hasn't been removed
-        // from the libraries, a `null` value would be returned by `getMultipleContentItems`
+        /**
+         * Remove null content items. This can happen if libraries are in an inconsistent
+         * state. For example, if an item was deleted from the system but hasn't been removed
+         * from the libraries, a `null` value would be returned by `getMultipleContentItems`
+         */
         .compact()
 
         // Grab those content items that don't have the desired visibility
-        .filter(content => {
-          return content.visibility !== visibility;
-        })
+        .filter(content => content.visibility !== visibility)
         .value();
 
       const failedContent = [];
@@ -1798,8 +1794,8 @@ const getMessages = function(ctx, folderId, start, limit, callback) {
 };
 
 /**
- * Recursively add the given list of content items to the given folder. This method is
- * destructive to the `contentItems` parameter as it iterates
+ * Recursively add the given list of content items to the given folder.
+ * This method is destructive to the `contentItems` parameter as it iterates
  *
  * @param  {Folder}         folder          The folder to which to add the content items
  * @param  {Content[]}      contentItems    The content items to add to the folder
@@ -1808,18 +1804,14 @@ const getMessages = function(ctx, folderId, start, limit, callback) {
  * @api private
  */
 const _addContentItemsToAuthzFolder = function(folder, contentItems, callback) {
-  if (_.isEmpty(contentItems)) {
-    return callback();
-  }
+  if (_.isEmpty(contentItems)) return callback();
 
   const roleChange = {};
   roleChange[folder.groupId] = AuthzConstants.role.VIEWER;
 
   const contentItem = contentItems.pop();
   AuthzAPI.updateRoles(contentItem.id, roleChange, err => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     return _addContentItemsToAuthzFolder(folder, contentItems, callback);
   });

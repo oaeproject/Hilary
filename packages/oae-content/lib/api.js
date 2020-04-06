@@ -14,7 +14,7 @@
  */
 
 import fs from 'fs';
-import path from 'path';
+import { basename } from 'path';
 import util from 'util';
 import * as ContentUtils from 'oae-content/lib/backends/util';
 import _ from 'underscore';
@@ -59,7 +59,7 @@ const {
   isPrincipalId,
   isLongString
 } = validator;
-import { both, curry, __, equals, not, and, compose, forEach, forEachObjIndexed } from 'ramda';
+import { path, defaultTo, curry, __, equals, not, and, compose, forEach, forEachObjIndexed, both, either } from 'ramda';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { ContentConstants } from './constants';
 import * as ContentDAO from './internal/dao';
@@ -78,6 +78,9 @@ const DISPLAY_NAME = 'displayName';
 const DESCRIPTION = 'description';
 const VISIBILITY = 'visibility';
 const LINK = 'link';
+
+// Auxiliary functions
+const toArray = x => [x];
 
 /**
  * ### Events
@@ -943,49 +946,45 @@ const _addContentItemToFolders = function(ctx, content, folders, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  */
 const handlePublish = function(data, callback) {
-  callback =
-    callback ||
-    function(err) {
-      if (err) {
-        log().error({ err, data }, 'Error handling etherpad edit');
-      }
-    };
+  callback = defaultTo(function(err) {
+    if (err) {
+      log().error({ err, data }, 'Error handling etherpad edit');
+    }
+  }, callback);
 
   log().trace({ data }, 'Got an etherpad edit');
 
   PrincipalsDAO.getPrincipal(data.userId, (err, user) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     const ctx = new Context(user.tenant, user);
 
     ContentDAO.Content.getContent(data.contentId, (err, contentObj) => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       // Get the latest html from etherpad
-      Etherpad.getHTML(contentObj.id, contentObj.etherpadPadId, (err, html) => {
-        if (err) {
-          return callback(err);
-        }
+      Etherpad.getHTML(contentObj.id, contentObj.etherpadPadId, (err, currentHtmlContent) => {
+        if (err) return callback(err);
 
         // Get the latest OAE revision and compare the html that in Etherpad.
         // We only need to create a new revision if there is an actual update
-        ContentDAO.Revisions.getRevision(contentObj.latestRevisionId, (err, revision) => {
-          if (err) {
-            return callback(err);
-          }
+        ContentDAO.Revisions.getRevision(contentObj.latestRevisionId, (err, latestRevision) => {
+          if (err) return callback(err);
 
-          if (
-            Etherpad.isContentEqual(revision.etherpadHtml, html) ||
-            (!revision.etherpadHtml && Etherpad.isContentEmpty(html))
-          ) {
-            // This situation can occur if 2 users were editting a collaborative document together, one of them leaves,
-            // the other one keeps idling (but doesn't make further chances) for a while and then leaves as well. There is no
-            // need to generate another revision as we already have one with the latest HTML. We do however raise an
-            // event so we can generate an "edited document"-activity for this user as well
+          const extractContents = path(toArray('etherpadHtml'));
+          const equalsCurrentContents = curry(Etherpad.isContentEqual)(currentHtmlContent);
+          const isItCurrentlyEmpty = () => Etherpad.isContentEmpty(currentHtmlContent);
+
+          const hasNotChangedContent = compose(equalsCurrentContents, extractContents);
+          const hasNoPreviousRevisions = both(compose(not, isDefined, extractContents), isItCurrentlyEmpty);
+
+          /**
+           * This situation can occur if 2 users were editting a collaborative document together, one of them leaves,
+           * the other one keeps idling (but doesn't make further chances) for a while and then leaves as well.
+           * There is no need to generate another revision as we already have one with the latest HTML.
+           * We do however raise an event so we can generate an "edited document"-activity for this user as well
+           */
+          if (either(hasNotChangedContent, hasNoPreviousRevisions)(latestRevision)) {
             emitter.emit(ContentConstants.events.EDITED_COLLABDOC, ctx, contentObj);
             return callback();
           }
@@ -996,7 +995,7 @@ const handlePublish = function(data, callback) {
             newRevisionId,
             contentObj.id,
             data.userId,
-            { etherpadHtml: html },
+            { etherpadHtml: currentHtmlContent },
             (err, revision) => {
               if (err) {
                 log().error(
@@ -1066,73 +1065,61 @@ const handlePublish = function(data, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  */
 const ethercalcPublish = function(data, callback) {
-  callback =
-    callback ||
-    function(err) {
-      if (err) {
-        log().error({ err, data }, 'Error handling ethercalc edit');
-      }
-    };
+  callback = defaultTo(function(err) {
+    if (err) log().error({ err, data }, 'Error handling ethercalc edit');
+  }, callback);
 
   ContentDAO.Ethercalc.hasUserEditedSpreadsheet(data.contentId, data.userId, function(err, hasEdited) {
     if (err) callback(err);
 
-    if (!hasEdited) {
-      // No edits have been made
-      return callback();
-    }
+    // No edits have been made
+    if (not(hasEdited)) return callback();
 
     log().trace({ data }, 'Got an ethercalc edit');
-    ContentDAO.Content.getContent(data.contentId, function(err, contentObj) {
-      if (err) {
-        return callback(err);
-      }
+    ContentDAO.Content.getContent(data.contentId, (err, contentObj) => {
+      if (err) return callback(err);
 
       const roomId = contentObj.ethercalcRoomId;
-      PrincipalsDAO.getPrincipal(data.userId, function(err, principal) {
-        if (err) {
-          return callback(err);
-        }
+      PrincipalsDAO.getPrincipal(data.userId, (err, principal) => {
+        if (err) return callback(err);
 
         const ctx = Context.fromUser(principal);
-        Ethercalc.getHTML(roomId, function(err, html) {
-          if (err) {
-            return callback(err);
-          }
+        Ethercalc.getHTML(roomId, (err, currentHtmlContent) => {
+          if (err) return callback(err);
 
-          // Get the latest OAE revision and compare the html to what's in Ethercalc.
-          // We only need to create a new revision if there is an actual update
-          ContentDAO.Revisions.getRevision(contentObj.latestRevisionId, function(err, revision) {
-            if (err) {
-              return callback(err);
-            }
+          /**
+           * Get the latest OAE revision and compare the html to what's in Ethercalc.
+           * We only need to create a new revision if there is an actual update
+           */
+          ContentDAO.Revisions.getRevision(contentObj.latestRevisionId, (err, latestRevision) => {
+            if (err) return callback(err);
 
-            if (
-              Ethercalc.isContentEqual(revision.ethercalcHtml, html) ||
-              (!revision.ethercalcHtml && Ethercalc.isContentEmpty(html))
-            ) {
-              // Spreadsheet has had edits but content has not changed - no further action necessary
+            const extractContents = path(toArray('ethercalcHtml'));
+            const equalsCurrentContents = curry(Ethercalc.isContentEqual)(currentHtmlContent);
+            const isItCurrentlyEmpty = () => Ethercalc.isContentEmpty(currentHtmlContent);
+
+            const hasNotChangedContent = compose(equalsCurrentContents, extractContents);
+            const hasNoPreviousRevisions = both(compose(not, isDefined, extractContents), isItCurrentlyEmpty);
+
+            if (either(hasNotChangedContent, hasNoPreviousRevisions)(latestRevision)) {
               emitter.emit(ContentConstants.events.EDITED_COLLABSHEET, ctx, contentObj);
-
               return callback();
             }
 
             // Otherwise we create a new revision
             const newRevisionId = _generateRevisionId(contentObj.id);
-            Ethercalc.getRoom(roomId, function(err, snapshot) {
-              if (err) {
-                return callback(err);
-              }
+            Ethercalc.getRoom(roomId, (err, snapshot) => {
+              if (err) return callback(err);
 
               ContentDAO.Revisions.createRevision(
                 newRevisionId,
                 contentObj.id,
                 data.userId,
                 {
-                  ethercalcHtml: html,
+                  ethercalcHtml: currentHtmlContent,
                   ethercalcSnapshot: snapshot
                 },
-                function(err, revision) {
+                (err, revision) => {
                   if (err) {
                     log().error(
                       {
@@ -1148,7 +1135,7 @@ const ethercalcPublish = function(data, callback) {
                   }
 
                   // eslint-disable-next-line no-unused-vars
-                  Ethercalc.getRoom(roomId, function(err, snapshot) {
+                  Ethercalc.getRoom(roomId, (err, snapshot) => {
                     if (err) {
                       log().error(
                         {
@@ -1171,7 +1158,7 @@ const ethercalcPublish = function(data, callback) {
                         latestRevisionId: revision.revisionId
                       },
                       true,
-                      function(err, newContentObj) {
+                      (err, newContentObj) => {
                         if (err) {
                           log().error(
                             {
@@ -1188,7 +1175,12 @@ const ethercalcPublish = function(data, callback) {
 
                         // Add the revision on the content object so the UI doesn't have to do another request to get the HTML
                         newContentObj.latestRevision = revision;
+
+                        // debug
+                        console.log('Gonna emit UPDATED_CONTENT_BODY!!!');
+
                         // Emit an event for activities and preview processing
+                        /*
                         emitter.emit(
                           ContentConstants.events.UPDATED_CONTENT_BODY,
                           ctx,
@@ -1196,6 +1188,7 @@ const ethercalcPublish = function(data, callback) {
                           contentObj,
                           revision
                         );
+                        */
                         return callback();
                       }
                     );
@@ -2990,7 +2983,7 @@ const verifySignedDownloadQueryString = function(ctx, qs, callback) {
   }
 
   const downloadStrategy = ContentUtil.getStorageBackend(ctx, uri).getDownloadStrategy(ctx.tenant().alias, uri);
-  return callback(null, { strategy: downloadStrategy, filename: path.basename(uri) });
+  return callback(null, { strategy: downloadStrategy, filename: basename(uri) });
 };
 
 /// ////////////////////

@@ -15,6 +15,7 @@
 
 import util from 'util';
 import _ from 'underscore';
+import { dropRepeats, isEmpty, contains, not, equals } from 'ramda';
 
 import * as Cassandra from 'oae-util/lib/cassandra';
 import * as OaeUtil from 'oae-util/lib/util';
@@ -160,8 +161,8 @@ const getAllRoles = function(principalId, resourceId, callback) {
 };
 
 /**
- * Given a principal and a resource, determine all the roles that the principal has on the resource, by virtue of
- * indirect group inheritance.
+ * Given a principal and a resource, determine all the roles that the principal has on the resource,
+ * by virtue of indirect group inheritance.
  *
  * @param  {String}       principalId     The principal id. This can be a user or a group
  * @param  {String}       resourceId      The resource id. This can be a group as well.
@@ -171,34 +172,99 @@ const getAllRoles = function(principalId, resourceId, callback) {
  * @api private
  */
 const _getIndirectRoles = function(principalId, resourceId, callback) {
+  /**
+   * If the current membership is 'inherit' that means that the permissions
+   * the user should hold on the resource indirectly should inherit
+   * from the permissions the user has as a member of that group.
+   *
+   * Example:
+   * FolderF is created by UserA
+   * UserA adds UserB to the folder group as manager
+   * UserA creates Resource R (some content item) inside folderF
+   * The folder group will hold "inherit" as a role on ResourceR (table AuthzMembers)
+   * UserB will have indirect permissions on folderF as manager
+   *
+   *                             .─.
+   *                            (   )
+   *            creates          `─'
+   *           ┌─────────────  User A
+   *           │
+   *           │
+   *           ▼
+   *   ┌───────────────┐
+   *   │   Folder F    │
+   *   └───────────────┘
+   *           ▲
+   *           │                .─.
+   *           │               (   )
+   *           │ manager        `─'
+   *           ├────────────  User B
+   *           │
+   *           │                .─.
+   *           │               (   )
+   *           │ viewer         `─'
+   *           └────────────  User C
+   *
+   *
+   *
+   *                         .─.
+   *                        (   )
+   *                         `─'       creates
+   *                       User A   ──────────┐
+   *                                          │
+   *                                          │
+   *                                          ▼
+   *  ┌───────────────┐     inside    ┌───────────────┐
+   *  │   Folder F    │◀──────────────│ Content item  │
+   *  └───────────────┘               └───────────────┘
+   *          ▲                               ▲
+   *          │              .─.
+   *          │             (   )             │
+   *          │ manager      `─'      manager
+   *          ├──────────  User B   ─ ─ ─ ─ ─ ┤
+   *          │
+   *          │              .─.              │
+   *          │             (   )
+   *          │ viewer       `─'       viewer │
+   *          └──────────  User C    ─ ─ ─ ─ ─
+   *
+   */
   // Get the groups that are directly associated to the resource
-  _getResourceGroupMembers(resourceId, (err, groups) => {
-    if (err) {
-      return callback(err);
-    }
+  _getResourceGroupMembers(resourceId, (err, resourceGroupRoles) => {
+    if (err) return callback(err);
 
-    if (_.isEmpty(groups)) {
-      return callback(null, []);
-    }
+    if (isEmpty(resourceGroupRoles)) return callback(null, []);
 
     // Check whether any of these groups are part of the user's direct memberships
-    const groupIds = _.keys(groups);
+    const groupIds = _.keys(resourceGroupRoles);
 
     // Make sure that the user's memberships have been exploded and cached
-    _checkGroupMembershipsForUser(principalId, groupIds, (err, memberships) => {
-      if (err) {
-        return callback(err);
-      }
+    _checkGroupMembershipsForUser(principalId, groupIds, (err, groupsPrincipalBelongsTo) => {
+      if (err) return callback(err);
 
-      // Add the roles of the matching groups
-      const allRoles = [];
-      for (const element of memberships) {
-        if (!_.contains(allRoles, groups[element])) {
-          allRoles.push(groups[element]);
-        }
-      }
+      const getIndirectMembershipRole = (memberships, allRoles, callback) => {
+        const eachMembership = memberships.pop();
 
-      return callback(null, allRoles);
+        if (not(eachMembership)) return callback(null, dropRepeats(allRoles));
+
+        const roleOnResource = resourceGroupRoles[eachMembership];
+        // if (equals(roleOnGroup, 'inherit')) {
+        // check what the direct role of the principal on the group is, and use that
+        _getDirectRole(principalId, eachMembership, (err, directRoleOnGroup) => {
+          if (err) return callback(err);
+          allRoles.push(directRoleOnGroup);
+          // debug
+          console.log('The group role is: ' + roleOnResource);
+          console.log('The indirect role through the folder is ' + directRoleOnGroup);
+          return getIndirectMembershipRole(memberships, allRoles, callback);
+        });
+        // } else {
+        // allRoles.push(roleOnGroup);
+        // return getIndirectMembershipRole(memberships, allRoles, callback);
+        // }
+      };
+
+      getIndirectMembershipRole(groupsPrincipalBelongsTo, [], callback);
     });
   });
 };
@@ -347,8 +413,9 @@ const _hasRole = function(principalId, resourceId, role, callback) {
 };
 
 /**
- * Assign one or multiple principals a role on a resource instance. If the user already has a role, it will simply be updated. When
- * false is passed in as a role, the role for that principal will be removed.
+ * Assign one or multiple principals a role on a resource instance.
+ * If the user already has a role, it will simply be updated.
+ * When false is passed in as a role, the role for that principal will be removed.
  *
  * @param  {String}     resourceId                              The resource id
  * @param  {Object}     changes                                 An object keyed by principal id, whose values are the role changes to apply on the resource
@@ -389,8 +456,9 @@ const updateRoles = function(resourceId, changes, callback) {
 };
 
 /**
- * Assign multiple principals a role on a resource instance. If the user already has a role, it will simply be updated. When
- * false is passed in as a role, the role for that principal will be removed.
+ * Assign multiple principals a role on a resource instance.
+ * If the user already has a role, it will simply be updated.
+ * When false is passed in as a role, the role for that principal will be removed.
  *
  * @param  {String}     resourceId                              The resource id
  * @param  {Object}     changes                                 An object keyed by principal id, whose values are the role changes to apply on the resource
@@ -643,7 +711,8 @@ const _checkGroupMembershipsForUser = function(userId, groupIds, callback) {
 };
 
 /**
- * Get all the Authz groups of which a principal is a member. This includes all group ancestors to which the user is indirectly a member.
+ * Get all the Authz groups of which a principal is a member.
+ * This includes all group ancestors to which the user is indirectly a member.
  * Once these have been retrieved, they will be cached inside of Cassandra for fast permission checks
  *
  * @param  {String}     principalId     The principal id for whom we want to explode the group memberships
@@ -888,8 +957,8 @@ const getPrincipalMembershipsGraph = function(principalId, callback) {
 };
 
 /**
- * Gets all the Authz groups of which a principal (either user or group) is a member. This includes all group ancestors to
- * which the user is indirectly a member.
+ * Gets all the Authz groups of which a principal (either user or group) is a member.
+ * This includes all group ancestors to which the user is indirectly a member.
  *
  * @param  {String}         principalId         The principal id for which to retrieve all the group memberships
  * @param  {String}         start               Determines the point at which group memberships members are returned for paging purposes.  If not provided, the first x elements will be returned
@@ -1472,9 +1541,9 @@ const computeMemberRolesAfterChanges = function(resourceId, memberRoles, opts, c
 
 /**
  * Determine the **effective** role a user has in a resource. Though a user can have multiple roles on a resource
- * by virtue of indirect group membership, this determines the highest level of access granted. This check is not only
- * implicit, but includes explicit role membership lookup. Therefore, its output alone can be used as an authoritative
- * source of access information.
+ * by virtue of indirect group membership, this determines the highest level of access granted.
+ * This check is not only implicit, but includes explicit role membership lookup.
+ * Therefore, its output alone can be used as an authoritative source of access information.
  *
  * @param  {User}       [user]                  The user for which to check access. If unspecified, implies an anonymous user
  * @param  {Resource}   resource                The resource against which to check for access

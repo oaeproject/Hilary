@@ -82,15 +82,11 @@ export function init(config, callback) {
           }
 
           // Same for Ethercalc - no ack because ack breaks Ethercalc
-          MQ.subscribe(ContentConstants.queue.ETHERCALC_EDIT, Ethercalc.setEditedBy, function(err) {
-            if (err) {
-              return callback(err);
-            }
+          MQ.subscribe(ContentConstants.queue.ETHERCALC_EDIT, Ethercalc.setEditedBy, err => {
+            if (err) return callback(err);
 
             MQ.subscribe(ContentConstants.queue.ETHERCALC_PUBLISH, ContentAPI.ethercalcPublish, err => {
-              if (err) {
-                return callback(err);
-              }
+              if (err) return callback(err);
 
               return callback();
             });

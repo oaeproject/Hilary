@@ -32,8 +32,8 @@ import * as Etherpad from 'oae-content/lib/internal/etherpad';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 import PrincipalsAPI from 'oae-principals';
+import { getDefaultSnapshot } from 'oae-content/lib/internal/ethercalc';
 
-const DEFAULT_SNAPSHOT = 'snapshot=';
 const TO_STRING = 'string';
 const SOME_NAME = 'name';
 const SOME_DESCRIPTION = 'description';
@@ -450,7 +450,7 @@ describe('Export data', () => {
                         assert.strictEqual(collabsheet.profilePath, contentChunks[1]);
                         assert.strictEqual(collabsheet.visibility, contentChunks[2]);
                         assert.strictEqual(collabsheet.tenant.displayName, contentChunks[3]);
-                        assert.strictEqual(DEFAULT_SNAPSHOT, contentChunks[4]);
+                        assert.strictEqual(getDefaultSnapshot(), contentChunks[4]);
 
                         // Verify the personal data on the zip file
                         const zipPicture = await zip.file('large.jpg').async('uint8array');

@@ -214,7 +214,7 @@ describe('Collaborative spreadsheets', function() {
       // Ensure the content of the ethercalc starts as empty
       Ethercalc.getHTML(content.ethercalcRoomId, function(err, html) {
         assert.ok(!err);
-        assert.ok(Ethercalc.isContentEmpty(html));
+        assert.strictEqual(Ethercalc.isContentEmpty(html), true);
         return callback();
       });
     });

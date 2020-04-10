@@ -59,7 +59,23 @@ const {
   isPrincipalId,
   isLongString
 } = validator;
-import { path, defaultTo, curry, __, equals, not, and, compose, forEach, forEachObjIndexed, both, either } from 'ramda';
+import {
+  startsWith,
+  values,
+  path,
+  defaultTo,
+  curry,
+  __,
+  equals,
+  not,
+  and,
+  compose,
+  forEach,
+  forEachObjIndexed,
+  both,
+  either,
+  isEmpty
+} from 'ramda';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { ContentConstants } from './constants';
 import * as ContentDAO from './internal/dao';
@@ -73,14 +89,24 @@ const log = logger('oae-content');
 
 const COLLABDOC = 'collabdoc';
 const COLLABSHEET = 'collabsheet';
-
 const DISPLAY_NAME = 'displayName';
 const DESCRIPTION = 'description';
 const VISIBILITY = 'visibility';
 const LINK = 'link';
+const HTTP_PROTOCOL = 'http://';
+const HTTPS_PROTOCOL = 'https://';
 
 // Auxiliary functions
 const toArray = x => [x];
+const isNotDefined = compose(not, isDefined);
+const errorCodeEquals = err => equals(err.code, 401);
+const isOtherThanUnauthorized = compose(not, errorCodeEquals);
+const isNotCollabdoc = compose(not, ContentUtils.isResourceACollabDoc);
+const isNotCollabsheet = compose(not, ContentUtils.isResourceACollabSheet);
+const isHttp = startsWith(HTTP_PROTOCOL);
+const isNotHttp = compose(not, isHttp);
+const isHttps = startsWith(HTTPS_PROTOCOL);
+const isNotHttps = compose(not, isHttps);
 
 /**
  * ### Events
@@ -118,8 +144,7 @@ const emitter = new EmitterAPI.EventEmitter();
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Content}        callback.contentObj     Retrieved content object
  */
-const getContent = function(ctx, contentId, callback) {
-  // Parameter validation
+const getContent = (ctx, contentId, callback) => {
   try {
     unless(isResourceId, {
       code: 400,
@@ -130,14 +155,10 @@ const getContent = function(ctx, contentId, callback) {
   }
 
   ContentDAO.Content.getContent(contentId, (err, contentObj) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     AuthzPermissions.canView(ctx, contentObj, err => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       ContentUtil.augmentContent(ctx, contentObj);
       return callback(null, contentObj);
@@ -156,8 +177,7 @@ const getContent = function(ctx, contentId, callback) {
  * @param  {Object}         callback.err                An error that occurred, if any
  * @param  {Content}        callback.contentProfile     Full content profile
  */
-const getFullContentProfile = function(ctx, contentId, callback) {
-  // Parameter validation
+const getFullContentProfile = (ctx, contentId, callback) => {
   try {
     unless(isResourceId, {
       code: 400,
@@ -168,20 +188,13 @@ const getFullContentProfile = function(ctx, contentId, callback) {
   }
 
   getContent(ctx, contentId, (err, contentObj) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     // Check whether the user is a manager
     let isManager = true;
     AuthzPermissions.canManage(ctx, contentObj, err => {
-      if (err && err.code !== 401) {
-        return callback(err);
-      }
-
-      if (err) {
-        isManager = false;
-      }
+      if (both(isDefined, isOtherThanUnauthorized)(err)) return callback(err);
+      if (isDefined(err)) isManager = false;
 
       return _getFullContentProfile(ctx, contentObj, isManager, callback);
     });
@@ -198,52 +211,38 @@ const getFullContentProfile = function(ctx, contentId, callback) {
  * @param  {Object}     callback.err                An error that occurred, if any
  * @param  {Content}    callback.contentProfile     Full content profile
  */
-const _getFullContentProfile = function(ctx, contentObj, isManager, callback) {
+const _getFullContentProfile = (ctx, contentObj, isManager, callback) => {
   // Store the isManager property.
   contentObj.isManager = isManager;
 
   // Get the user object for the createdBy property
   PrincipalsUtil.getPrincipal(ctx, contentObj.createdBy, (err, createdBy) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     contentObj.createdBy = createdBy;
 
     // Check if the user can share this content item
     let canShare = true;
     AuthzPermissions.canShare(ctx, contentObj, null, AuthzConstants.role.VIEWER, err => {
-      if (err && err.code !== 401) {
-        return callback(err);
-      }
-
-      if (err) {
-        canShare = false;
-      }
+      if (both(isDefined, isOtherThanUnauthorized)(err)) return callback(err);
+      if (isDefined(err)) canShare = false;
 
       // Specify on the return value if the current user can share the content item
       contentObj.canShare = canShare;
 
       // For any other than collabdoc or collabsheet, we simply return with the share information
-      if (
-        !ContentUtils.isResourceACollabDoc(contentObj.resourceSubType) &&
-        !ContentUtils.isResourceACollabSheet(contentObj.resourceSubType)
-      ) {
+      if (both(isNotCollabdoc, isNotCollabsheet)(contentObj.resourceSubType)) {
         emitter.emit(ContentConstants.events.GET_CONTENT_PROFILE, ctx, contentObj);
         return callback(null, contentObj);
       }
 
       // If the content item is a collaborative document, add the latest revision data and isEditor
       _getRevision(ctx, contentObj, contentObj.latestRevisionId, (err, revision) => {
-        if (err) {
-          return callback(err);
-        }
+        if (err) return callback(err);
 
         contentObj.latestRevision = revision;
         AuthzPermissions.canEdit(ctx, contentObj, err => {
-          if (err && err.code !== 401) {
-            return callback(err);
-          }
+          if (both(isDefined, isOtherThanUnauthorized)(err)) return callback(err);
 
           if (err) {
             contentObj.isEditor = false;
@@ -259,9 +258,9 @@ const _getFullContentProfile = function(ctx, contentObj, isManager, callback) {
   });
 };
 
-/// //////////////////////////////////
-// Creating a new piece of content //
-/// //////////////////////////////////
+/**
+ * Creating a new piece of content //
+ */
 
 /**
  * Create a new link
@@ -277,11 +276,11 @@ const _getFullContentProfile = function(ctx, contentObj, isManager, callback) {
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Content}        callback.content        The created link
  */
-const createLink = function(ctx, displayName, description, visibility, link, additionalMembers, folders, callback) {
-  callback = callback || function() {};
+const createLink = (ctx, displayName, description, visibility, link, additionalMembers, folders, callback) => {
+  callback = defaultTo(function() {}, callback);
 
   // Setting content to default if no visibility setting is provided
-  visibility = visibility || Config.getValue(ctx.tenant().alias, 'visibility', 'links');
+  visibility = defaultTo(Config.getValue(ctx.tenant().alias, 'visibility', 'links'), visibility);
 
   // Check if the link property is present. All other validation will be done in the _createContent function
   try {
@@ -299,8 +298,8 @@ const createLink = function(ctx, displayName, description, visibility, link, add
   }
 
   // Make sure the URL starts with a protocol
-  if (!link.includes('://')) {
-    link = 'http://' + link;
+  if (both(isNotHttp, isNotHttps)(link)) {
+    link = HTTP_PROTOCOL.concat(link);
   }
 
   const contentId = _generateContentId(ctx.tenant().alias);
@@ -319,9 +318,7 @@ const createLink = function(ctx, displayName, description, visibility, link, add
     { link },
     {},
     (err, content, revision, memberChangeInfo) => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       emitter.emit(ContentConstants.events.CREATED_CONTENT, ctx, content, revision, memberChangeInfo, folders, errs => {
         if (errs) {
@@ -348,7 +345,7 @@ const createLink = function(ctx, displayName, description, visibility, link, add
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Content}        callback.content        The created file
  */
-const createFile = function(ctx, displayName, description, visibility, file, additionalMembers, folders, callback) {
+const createFile = (ctx, displayName, description, visibility, file, additionalMembers, folders, callback) => {
   // Wrap the callback function into a function that cleans up the file in case something went wrong
   const cleanUpCallback = _getCleanUpCallback({ file }, callback);
 
@@ -368,7 +365,7 @@ const createFile = function(ctx, displayName, description, visibility, file, add
  * @return {Function}                       A function that removes the file on disk in case something went wrong
  * @api private
  */
-const _getCleanUpCallback = function(files, callback) {
+const _getCleanUpCallback = (files, callback) => {
   return function(...args) {
     // Remember the arguments so we can pass them to the callback later.
     const callbackArguments = args;
@@ -376,13 +373,11 @@ const _getCleanUpCallback = function(files, callback) {
     // The first argument is always the error object.
     const err = callbackArguments[0];
 
-    if (err && files) {
+    if (and(isDefined(err), isDefined(files))) {
       // Something went wrong with a request that has uploaded files associated to it.
       // In that case we try to remove the files.
-      const fileObjects = _.values(files);
-      _cleanupUploadedFiles(fileObjects, function() {
-        return callback.apply(this, callbackArguments);
-      });
+      const fileObjects = values(files);
+      _cleanupUploadedFiles(fileObjects, () => callback.apply(this, callbackArguments));
     } else {
       // If we get here, the request might have failed, but it didn't contain an uploaded file.
       return callback.apply(this, callbackArguments);
@@ -397,10 +392,8 @@ const _getCleanUpCallback = function(files, callback) {
  * @param  {Function}   callback    Standard callback function
  * @api private
  */
-const _cleanupUploadedFiles = function(files, callback) {
-  if (_.isEmpty(files)) {
-    return callback();
-  }
+const _cleanupUploadedFiles = (files, callback) => {
+  if (isEmpty(files)) return callback();
 
   const file = files.pop();
   if (file && file.path) {
@@ -438,10 +431,10 @@ const _cleanupUploadedFiles = function(files, callback) {
  * @api private
  */
 const _createFile = function(ctx, displayName, description, visibility, file, additionalMembers, folders, callback) {
-  callback = callback || function() {};
+  callback = defaultTo(function() {}, callback);
 
   // Setting content to default if no visibility setting is provided
-  visibility = visibility || Config.getValue(ctx.tenant().alias, 'visibility', 'files');
+  visibility = defaultTo(Config.getValue(ctx.tenant().alias, 'visibility', 'files'), visibility);
 
   try {
     unless(isLoggedInUser, {
@@ -506,9 +499,7 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
   // We store the uploaded file in a location identified by the content id, then further identified by the revision id
   const options = { resourceId: contentId, prefix: revisionId };
   ContentUtil.getStorageBackend(ctx).store(ctx.tenant().alias, file, options, (err, uri) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     // Create the content and revision object.
     const otherValues = {
@@ -530,9 +521,7 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
       otherValues,
       revisionData,
       (err, content, revision, memberChangeInfo) => {
-        if (err) {
-          return callback(err);
-        }
+        if (err) return callback(err);
 
         content.filename = file.name;
         content.size = file.size;
@@ -571,18 +560,16 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Content}        callback.content        The created collaborative document
  */
-const createCollabDoc = function(ctx, displayName, description, visibility, additionalMembers, folders, callback) {
-  callback = callback || function() {};
+const createCollabDoc = (ctx, displayName, description, visibility, additionalMembers, folders, callback) => {
+  callback = defaultTo(() => {}, callback);
 
   // Setting content to default if no visibility setting is provided
-  visibility = visibility || Config.getValue(ctx.tenant().alias, 'visibility', 'collabdocs');
+  visibility = defaultTo(Config.getValue(ctx.tenant().alias, 'visibility', 'collabdocs'), visibility);
 
   const contentId = _generateContentId(ctx.tenant().alias);
   const revisionId = _generateRevisionId(contentId);
   Etherpad.createPad(contentId, (err, ids) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     _createContent(
       ctx,
@@ -597,9 +584,7 @@ const createCollabDoc = function(ctx, displayName, description, visibility, addi
       ids,
       {},
       (err, content, revision, memberChangeInfo) => {
-        if (err) {
-          return callback(err);
-        }
+        if (err) return callback(err);
 
         content.etherpadPadId = ids.etherpadPadId;
         content.etherpadGroupId = ids.etherpadGroupId;

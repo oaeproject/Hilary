@@ -67,8 +67,9 @@ aliases:
     run:
       name: Install Hilary dependencies
       command: |
-        docker-compose run --rm oae-hilary 'cd 3akai-ux && npx lerna bootstrap'
+        docker-compose run --rm oae-hilary 'npm run prepare-3akai'
         docker-compose run --rm oae-hilary 'npm run prepare-etherpad'
+        docker-compose run --rm oae-hilary 'npm run prepare-ethercalc'
         docker-compose run --rm oae-hilary 'npx lerna bootstrap'
   - &copy_code
     run:

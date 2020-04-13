@@ -3,7 +3,6 @@
     {
       "name": "Hilary",
       "script": "app.js",
-      "cwd": ".",
       "watch": ["packages", "config.js", "app.js"],
       "node_args": "-r esm",
       "instances": 1,
@@ -13,7 +12,7 @@
     {
       "name": "Ethercalc",
       "script": "app.js",
-      "cwd": "./ethercalc",
+      "cwd": "ethercalc",
       "watch": ["*.js"],
       "args": "--restart-delay=3000",
       "node_args": "-r esm",
@@ -24,7 +23,7 @@
     {
       "name": "Etherpad",
       "script": "node_modules/ep_etherpad-lite/node/server.js",
-      "cwd": "./etherpad",
+      "cwd": "etherpad",
       "watch": ["*.js"],
       "args": "--restart-delay=3000",
       "node_args": "-r esm",

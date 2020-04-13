@@ -50,9 +50,9 @@ aliases:
   - &launch_servers
     run:
       name: Launch etherpad and ethercalc locally
-      command: /
-        docker-compose run --rm oae-hilary "npm run etherpad"
-        docker-compose run --rm oae-hilary "npm run ethercalc"
+      command: |
+        docker-compose run --rm oae-hilary 'npm run etherpad'
+        docker-compose run --rm oae-hilary 'npm run ethercalc'
   - &run_parallel_tests
     run:
       name: Run tests in parallel

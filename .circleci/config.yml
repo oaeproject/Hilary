@@ -47,6 +47,12 @@ aliases:
       name: Run tests sequentially and upload coverage
       command: |
         docker-compose run --rm oae-hilary "yarn run test-with-coverage"
+  - &launch_servers
+    run:
+      name: Launch etherpad and ethercalc locally
+      command: /
+        docker-compose run --rm oae-hilary "npm run etherpad"
+        docker-compose run --rm oae-hilary "npm run ethercalc"
   - &run_parallel_tests
     run:
       name: Run tests in parallel
@@ -62,6 +68,7 @@ aliases:
       name: Install Hilary dependencies
       command: |
         docker-compose run --rm oae-hilary 'cd 3akai-ux && npx lerna bootstrap'
+        docker-compose run --rm oae-hilary 'npm run prepare-etherpad'
         docker-compose run --rm oae-hilary 'npx lerna bootstrap'
   - &copy_code
     run:
@@ -75,12 +82,12 @@ aliases:
   - &create_containers
     run:
       name: Create the containers
-      command: docker-compose up --no-start --build oae-cassandra oae-redis oae-elasticsearch oae-hilary oae-ethercalc
+      command: docker-compose up --no-start --build oae-cassandra oae-redis oae-elasticsearch oae-hilary
   - &launch_containers
     run:
       name: Start the containers
       command: |
-        docker-compose up -d oae-cassandra oae-redis oae-elasticsearch oae-etherpad oae-ethercalc
+        docker-compose up -d oae-cassandra oae-redis oae-elasticsearch
   - &install_docker_compose
     run:
       name: Install docker-compose
@@ -102,6 +109,7 @@ jobs:
       - *install_docker_compose
       - *create_containers
       - *launch_containers
+      - *launch_servers
       - *copy_code
       - *install_dependencies
       - *run_linting

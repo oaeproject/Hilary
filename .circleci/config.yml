@@ -110,10 +110,10 @@ jobs:
       - *install_docker_compose
       - *create_containers
       - *launch_containers
-      - *launch_servers
       - *copy_code
       - *install_dependencies
       - *run_linting
+      - *launch_servers
       - *run_parallel_tests # doesn't include coverage
       - *copy_artifacts
       - *store_results
@@ -130,10 +130,10 @@ jobs:
       - *update_config
       - *install_docker_compose
       - *create_containers
-      - *launch_containers
       - *copy_code
       - *install_dependencies
       - *run_linting
+      - *launch_containers
       - *run_sequential_tests # includes coverage
       - *copy_artifacts
       - *store_results

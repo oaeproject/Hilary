@@ -1,6 +1,6 @@
 #!/bin/sh
 
-ETHERPAD=`pwd`
+ETHERPAD="$(pwd)/etherpad"
 echo ${ETHERPAD}
 
 echo "Preparing to install dependencies..."

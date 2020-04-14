@@ -47,7 +47,6 @@ const {
   validateInCase: bothCheck,
   unless,
   isOneOrGreater,
-  isDefined,
   isANumber,
   isResourceId,
   isLoggedInUser,
@@ -98,6 +97,7 @@ const HTTPS_PROTOCOL = 'https://';
 
 // Auxiliary functions
 const toArray = x => [x];
+const isDefined = Boolean;
 const isNotDefined = compose(not, isDefined);
 const errorCodeEquals = err => equals(err.code, 401);
 const isOtherThanUnauthorized = compose(not, errorCodeEquals);
@@ -396,11 +396,10 @@ const _cleanupUploadedFiles = (files, callback) => {
   if (isEmpty(files)) return callback();
 
   const file = files.pop();
-  if (file && file.path) {
-    fs.access(file.path, fs.constants.F_OK, exists => {
-      if (!exists) {
-        return _cleanupUploadedFiles(files, callback);
-      }
+  const hasPathAttribute = file => isDefined(file.path);
+  if (both(isDefined, hasPathAttribute)(file)) {
+    fs.access(file.path, fs.constants.F_OK, err => {
+      if (isNotDefined(err)) return _cleanupUploadedFiles(files, callback);
 
       fs.unlink(file.path, unlinkErr => {
         if (unlinkErr) {

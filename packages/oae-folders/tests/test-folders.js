@@ -30,6 +30,8 @@ import * as FoldersFolderLibrary from 'oae-folders/lib/internal/foldersLibrary';
 import * as FoldersLibrary from 'oae-folders/lib/library';
 import * as FoldersTestUtil from 'oae-folders/lib/test/util';
 
+const PUBLIC = 'public';
+
 describe('Folders', () => {
   let globalAdminRestContext = null;
   let camAdminRestContext = null;
@@ -5125,13 +5127,15 @@ describe('Folders', () => {
                   assert.ok(!err);
                   RestAPI.Content.createFile(
                     simong.restContext,
-                    'test',
-                    'test',
-                    'public',
-                    _getFileStream,
-                    null,
-                    [],
-                    folderIds,
+                    {
+                      displayName: 'test',
+                      description: 'test',
+                      PUBLIC,
+                      file: _getFileStream,
+                      managers: null,
+                      viewers: [],
+                      folders: folderIds
+                    },
                     (err, file) => {
                       assert.ok(!err);
 

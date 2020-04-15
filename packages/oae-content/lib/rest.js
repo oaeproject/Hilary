@@ -264,12 +264,7 @@ const _createContent = function(
   if (isResourceAFile(resourceSubType)) {
     return ContentAPI.createFile(
       ctx,
-      displayName,
-      description,
-      visibility,
-      uploadedFile,
-      additionalMembers,
-      folderIds,
+      { displayName, description, visibility, file: uploadedFile, additionalMembers, folders: folderIds },
       callback
     );
 

@@ -2361,14 +2361,23 @@ const generateFiles = function(restCtx, privacy, numToCreate, callback, _created
     return callback(null, _created);
   }
 
-  RestAPI.Content.createFile(restCtx, 'name', 'description', privacy, _getPictureStream(), null, null, null, function(
-    err,
-    file
-  ) {
-    assert.ok(!err);
-    _created.push(file);
-    return generateFiles(restCtx, privacy, numToCreate, callback, _created);
-  });
+  RestAPI.Content.createFile(
+    restCtx,
+    {
+      displayName: 'name',
+      description: 'description',
+      visibility: privacy,
+      file: _getPictureStream(),
+      managers: null,
+      viewers: null,
+      folders: null
+    },
+    function(err, file) {
+      assert.ok(!err);
+      _created.push(file);
+      return generateFiles(restCtx, privacy, numToCreate, callback, _created);
+    }
+  );
 };
 
 /**

@@ -345,12 +345,13 @@ const createLink = (ctx, displayName, description, visibility, link, additionalM
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Content}        callback.content        The created file
  */
-const createFile = (ctx, displayName, description, visibility, file, additionalMembers, folders, callback) => {
+const createFile = (ctx, fileDetails, callback) => {
+  const { displayName, description, visibility, file, additionalMembers, folders } = fileDetails;
   // Wrap the callback function into a function that cleans up the file in case something went wrong
   const cleanUpCallback = _getCleanUpCallback({ file }, callback);
 
   // Try to create the file
-  return _createFile(ctx, displayName, description, visibility, file, additionalMembers, folders, cleanUpCallback);
+  return _createFile(ctx, { displayName, description, visibility, file, additionalMembers, folders }, cleanUpCallback);
 };
 
 /**
@@ -429,10 +430,12 @@ const _cleanupUploadedFiles = (files, callback) => {
  * @param  {Content}        callback.content        The created file
  * @api private
  */
-const _createFile = function(ctx, displayName, description, visibility, file, additionalMembers, folders, callback) {
+const _createFile = function(ctx, fileDetails, callback) {
   callback = defaultTo(function() {}, callback);
+  const { displayName, description, file, additionalMembers, folders } = fileDetails;
 
   // Setting content to default if no visibility setting is provided
+  let { visibility } = fileDetails;
   visibility = defaultTo(Config.getValue(ctx.tenant().alias, 'visibility', 'files'), visibility);
 
   try {
@@ -534,9 +537,7 @@ const _createFile = function(ctx, displayName, description, visibility, file, ad
           memberChangeInfo,
           folders,
           errs => {
-            if (errs) {
-              return callback(_.first(errs));
-            }
+            if (errs) return callback(_.first(errs));
 
             return callback(null, content);
           }
@@ -596,9 +597,7 @@ const createCollabDoc = (ctx, displayName, description, visibility, additionalMe
           memberChangeInfo,
           folders,
           errs => {
-            if (errs) {
-              return callback(_.first(errs));
-            }
+            if (errs) return callback(_.first(errs));
 
             return callback(null, content);
           }
@@ -621,10 +620,10 @@ const createCollabDoc = (ctx, displayName, description, visibility, additionalMe
  * @param  {Content} callback.content        The created collaborative spreadsheet
  */
 const createCollabSheet = function(ctx, displayName, description, visibility, additionalMembers, folders, callback) {
-  callback = callback || function() {};
+  callback = defaultTo(function() {}, callback);
 
   // Setting content to default if no visibility setting is provided
-  visibility = visibility || Config.getValue(ctx.tenant().alias, 'visibility', 'collabsheets');
+  visibility = defaultTo(Config.getValue(ctx.tenant().alias, 'visibility', 'collabsheets'), visibility);
 
   const contentId = _generateContentId(ctx.tenant().alias);
   const revisionId = _generateRevisionId(contentId);

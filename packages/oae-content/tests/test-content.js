@@ -367,13 +367,15 @@ describe('Content', () => {
         // Create a piece of content
         RestAPI.Content.createFile(
           contexts.nicolaas.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PRIVATE,
-          getFileStream,
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PRIVATE,
+            file: getFileStream,
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj);
@@ -445,13 +447,15 @@ describe('Content', () => {
         // Create a piece of content
         RestAPI.Content.createFile(
           contexts.nicolaas.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PRIVATE,
-          getFileStream,
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PRIVATE,
+            file: getFileStream,
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj);
@@ -514,13 +518,15 @@ describe('Content', () => {
         // Create a piece of content
         RestAPI.Content.createFile(
           contexts.nicolaas.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PRIVATE,
-          getFileStream,
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PRIVATE,
+            file: getFileStream,
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj);
@@ -2402,13 +2408,15 @@ describe('Content', () => {
         // Create one as anon user
         RestAPI.Content.createFile(
           anonymousRestContext,
-          'Test Content 1',
-          'Test content description 1',
-          PUBLIC,
-          getFileStream,
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PUBLIC,
+            file: getFileStream,
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.strictEqual(err.code, 401);
             assert.ok(!contentObj);
@@ -2416,13 +2424,15 @@ describe('Content', () => {
             // Create one with all required fields
             RestAPI.Content.createFile(
               contexts.nicolaas.restContext,
-              'Test Content 2',
-              'Test content description 2',
-              PUBLIC,
-              getFileStream,
-              [],
-              [],
-              [],
+              {
+                displayName: 'Test Content 2',
+                description: 'Test content description 2',
+                visibility: PUBLIC,
+                file: getFileStream,
+                managers: [],
+                viewers: [],
+                folders: []
+              },
               (err, contentObj, response) => {
                 assert.ok(!err);
                 assert.ok(contentObj.id);
@@ -2435,13 +2445,15 @@ describe('Content', () => {
                 // Create one without description
                 RestAPI.Content.createFile(
                   contexts.nicolaas.restContext,
-                  'Test Content 3',
-                  null,
-                  PUBLIC,
-                  getFileStream,
-                  [],
-                  [],
-                  [],
+                  {
+                    displayName: 'Test Content 3',
+                    description: null,
+                    visibility: PUBLIC,
+                    file: getFileStream,
+                    managers: [],
+                    viewers: [],
+                    folders: []
+                  },
                   (err, contentObj) => {
                     assert.ok(!err);
                     assert.ok(contentObj.id);
@@ -2450,13 +2462,15 @@ describe('Content', () => {
                     const longDescription = TestsUtil.generateRandomText(1000);
                     RestAPI.Content.createFile(
                       contexts.nicolaas.restContext,
-                      'Test content',
-                      longDescription,
-                      PUBLIC,
-                      getFileStream,
-                      [],
-                      [],
-                      [],
+                      {
+                        displayName: 'Test content',
+                        description: longDescription,
+                        visibility: PUBLIC,
+                        file: getFileStream,
+                        managers: [],
+                        viewers: [],
+                        folders: []
+                      },
                       (err, contentObj) => {
                         assert.ok(err);
                         assert.strictEqual(err.code, 400);
@@ -2466,13 +2480,15 @@ describe('Content', () => {
                         // Create one without title
                         RestAPI.Content.createFile(
                           contexts.nicolaas.restContext,
-                          null,
-                          'Test content description 4',
-                          PUBLIC,
-                          getFileStream,
-                          [],
-                          [],
-                          [],
+                          {
+                            displayName: null,
+                            description: 'Test content description 4',
+                            visibility: PUBLIC,
+                            file: getFileStream,
+                            managers: [],
+                            viewers: [],
+                            folders: []
+                          },
                           (err, contentObj) => {
                             assert.strictEqual(err.code, 400);
                             assert.ok(!contentObj);
@@ -2481,13 +2497,15 @@ describe('Content', () => {
                             const longDisplayName = TestsUtil.generateRandomText(100);
                             RestAPI.Content.createFile(
                               contexts.nicolaas.restContext,
-                              longDisplayName,
-                              'Test content description 4',
-                              PUBLIC,
-                              getFileStream,
-                              [],
-                              [],
-                              [],
+                              {
+                                displayName: longDisplayName,
+                                description: 'Test content description 4',
+                                visibility: PUBLIC,
+                                file: getFileStream,
+                                managers: [],
+                                viewers: [],
+                                folders: []
+                              },
                               (err, contentObj) => {
                                 assert.ok(err);
                                 assert.strictEqual(err.code, 400);
@@ -2497,13 +2515,15 @@ describe('Content', () => {
                                 // Create one without a file body.
                                 RestAPI.Content.createFile(
                                   contexts.nicolaas.restContext,
-                                  'Test Content 4',
-                                  'Test content description 4',
-                                  PUBLIC,
-                                  null,
-                                  [],
-                                  [],
-                                  [],
+                                  {
+                                    displayName: 'Test Content 4',
+                                    description: 'Test content description 4',
+                                    visibility: PUBLIC,
+                                    file: null,
+                                    managers: [],
+                                    viewers: [],
+                                    folders: []
+                                  },
                                   (err, contentObj) => {
                                     assert.strictEqual(err.code, 400);
                                     assert.ok(!contentObj);
@@ -2511,13 +2531,15 @@ describe('Content', () => {
                                     // Create one without visibility
                                     RestAPI.Content.createFile(
                                       contexts.nicolaas.restContext,
-                                      'Test Content 5',
-                                      'Test content description 6',
-                                      null,
-                                      getFileStream,
-                                      [],
-                                      [],
-                                      [],
+                                      {
+                                        displayName: 'Test Content 5',
+                                        description: 'Test content description 6',
+                                        visibility: null,
+                                        file: getFileStream,
+                                        managers: [],
+                                        viewers: [],
+                                        folders: []
+                                      },
                                       (err, contentObj) => {
                                         assert.ok(!err);
                                         assert.ok(contentObj.id);
@@ -2539,13 +2561,15 @@ describe('Content', () => {
                                             // Verify that an empty description is accepted
                                             RestAPI.Content.createFile(
                                               contexts.nicolaas.restContext,
-                                              'Test Content 5',
-                                              '',
-                                              PUBLIC,
-                                              getFileStream,
-                                              [],
-                                              [],
-                                              [],
+                                              {
+                                                displayName: 'Test Content 5',
+                                                description: '',
+                                                visibility: PUBLIC,
+                                                file: getFileStream,
+                                                managers: [],
+                                                viewers: [],
+                                                folders: []
+                                              },
                                               (err, contentObj) => {
                                                 assert.ok(!err);
                                                 assert.ok(contentObj.id);
@@ -3003,13 +3027,15 @@ describe('Content', () => {
         // Create a private content item and share with 2 people
         RestAPI.Content.createFile(
           contexts.nicolaas.restContext,
-          'Test Content 2',
-          'Test content description 2',
-          PRIVATE,
-          getFileStream,
-          [contexts.simon.user.id],
-          [contexts.stuart.user.id],
-          [],
+          {
+            displayName: 'Test Content 2',
+            description: 'Test content description 2',
+            visibility: PRIVATE,
+            file: getFileStream,
+            managers: [contexts.simon.user.id],
+            viewers: [contexts.stuart.user.id],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj.id);
@@ -3796,13 +3822,15 @@ describe('Content', () => {
       setUpUsers(contexts => {
         RestAPI.Content.createFile(
           contexts.nicolaas.restContext,
-          'Test Content 2',
-          'Test content description 2',
-          PUBLIC,
-          getFileStream,
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 2',
+            description: 'Test content description 2',
+            visibility: PUBLIC,
+            file: getFileStream,
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj.id);
@@ -3868,13 +3896,15 @@ describe('Content', () => {
 
               RestAPI.Content.createFile(
                 contexts.nicolaas.restContext,
-                'Test Content 2',
-                'Test content description 2',
-                PUBLIC,
-                getFileStream,
-                [],
-                [],
-                [],
+                {
+                  displayName: 'Test Content 2',
+                  description: 'Test content description 2',
+                  visibility: PUBLIC,
+                  file: getFileStream,
+                  managers: [],
+                  viewers: [],
+                  folders: []
+                },
                 (err, contentObj) => {
                   assert.ok(!err);
                   assert.ok(contentObj.id);
@@ -3976,13 +4006,15 @@ describe('Content', () => {
       setUpUsers(contexts => {
         RestAPI.Content.createFile(
           contexts.nicolaas.restContext,
-          'Test Content 2',
-          'Test content description 2',
-          PUBLIC,
-          getFileStream,
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 2',
+            description: 'Test content description 2',
+            visibility: PUBLIC,
+            file: getFileStream,
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj.id);
@@ -4102,13 +4134,15 @@ describe('Content', () => {
         // Create some content with a couple of revisions
         RestAPI.Content.createFile(
           contexts.simon.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PRIVATE,
-          getFileStream,
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PRIVATE,
+            file: getFileStream,
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentSimon) => {
             assert.ok(!err);
             assert.ok(contentSimon);
@@ -4195,13 +4229,15 @@ describe('Content', () => {
         // Create some content with a couple of revisions
         RestAPI.Content.createFile(
           contexts.simon.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PRIVATE,
-          getFileStream,
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PRIVATE,
+            file: getFileStream,
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj);
@@ -4250,13 +4286,15 @@ describe('Content', () => {
         // Create some content with a couple of revisions
         RestAPI.Content.createFile(
           contexts.simon.restContext,
-          'Test Content',
-          'Test content description',
-          PRIVATE,
-          getFileStream,
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content',
+            description: 'Test content description',
+            visibility: PRIVATE,
+            file: getFileStream,
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj);
@@ -4332,13 +4370,15 @@ describe('Content', () => {
         // Create some content with a couple of revisions
         RestAPI.Content.createFile(
           contexts.simon.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PRIVATE,
-          getFileStream,
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PRIVATE,
+            file: getFileStream,
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj);
@@ -4659,13 +4699,15 @@ describe('Content', () => {
       setUpUsers(contexts => {
         RestAPI.Content.createFile(
           contexts.nicolaas.restContext,
-          'Test Content 2',
-          'Test content description 2',
-          PUBLIC,
-          getFileStream,
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 2',
+            description: 'Test content description 2',
+            visibility: PUBLIC,
+            file: getFileStream,
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj.id);

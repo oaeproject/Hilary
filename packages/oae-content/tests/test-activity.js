@@ -552,7 +552,7 @@ describe('Content Activity', () => {
                       assert.strictEqual(activityStream.items[0].object['oae:id'], mrvisserComment.id);
                       assert.ok(activityStream.items[0].object.author.image);
                       assert.ok(activityStream.items[0].object.author.image.url);
-                      assert.ok(activityStream.items[0].object.author.image.url.indexOf('expired') === -1);
+                      assert.ok(!activityStream.items[0].object.author.image.url.includes('expired'));
                       callback();
                     }
                   );
@@ -845,7 +845,7 @@ describe('Content Activity', () => {
                       assert.ok(revision);
 
                       // Assert the text is in the latest revision
-                      assert.ok(revision.etherpadHtml.indexOf(args.text) > -1);
+                      assert.ok(revision.etherpadHtml.includes(args.text));
                       return callback();
                     }
                   );
@@ -873,13 +873,15 @@ describe('Content Activity', () => {
         const name = TestsUtil.generateTestUserId('file');
         RestAPI.Content.createFile(
           simonCtx,
-          name,
-          'description',
-          'public',
-          getFunctionThatReturnsFileStream('oae-video.png'),
-          [brandenId],
-          [nicoId],
-          [],
+          {
+            displayName: name,
+            description: 'description',
+            visibility: 'public',
+            file: getFunctionThatReturnsFileStream('oae-video.png'),
+            managers: [brandenId],
+            viewers: [nicoId],
+            folders: []
+          },
           (err, content) => {
             assert.ok(!err);
 
@@ -1162,7 +1164,7 @@ describe('Content Activity', () => {
         assert.strictEqual(entity.objectType, 'content');
         assert.strictEqual(entity['oae:id'], contentId);
         assert.strictEqual(entity.url, 'http://' + global.oaeTests.tenants.cam.host + '/content/camtest/' + resourceId);
-        assert.ok(entity.id.indexOf(contentId) !== -1);
+        assert.ok(entity.id.includes(contentId));
       };
 
       TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, jack) => {
@@ -1425,7 +1427,7 @@ describe('Content Activity', () => {
                   'Reply Comment A',
                   commentA.created,
                   (err, replyCommentA) => {
-                    if(err) console.log(err)
+                    if (err) console.log(err);
                     assert.ok(!err);
 
                     ActivityTestsUtil.collectAndGetActivityStream(
@@ -1460,7 +1462,7 @@ describe('Content Activity', () => {
                             entity.url,
                             '/content/camtest/' + AuthzUtil.getResourceFromId(comment.messageBoxId).resourceId
                           );
-                          assert.ok(entity.id.indexOf('content/' + link.id + '/messages/' + comment.created) !== -1);
+                          assert.ok(entity.id.includes('content/' + link.id + '/messages/' + comment.created));
                           assert.strictEqual(entity.published, comment.created);
                           assert.strictEqual(entity['oae:messageBoxId'], comment.messageBoxId);
                           assert.strictEqual(entity['oae:threadKey'], comment.threadKey);
@@ -1710,13 +1712,15 @@ describe('Content Activity', () => {
 
         RestAPI.Content.createFile(
           jack.restContext,
-          'name',
-          'description',
-          'public',
-          getFunctionThatReturnsFileStream('oae-video.png'),
-          [],
-          [],
-          [],
+          {
+            displayName: 'name',
+            description: 'description',
+            visibility: 'public',
+            file: getFunctionThatReturnsFileStream('oae-video.png'),
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, content) => {
             assert.ok(!err);
 
@@ -1854,13 +1858,15 @@ describe('Content Activity', () => {
         // Create a revisable content item
         RestAPI.Content.createFile(
           jack.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          'private',
-          getFunctionThatReturnsFileStream('oae-video.png'),
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            descritpion: 'Test content description 1',
+            visibility: 'private',
+            file: getFunctionThatReturnsFileStream('oae-video.png'),
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, content) => {
             assert.ok(!err);
             assert.ok(content);

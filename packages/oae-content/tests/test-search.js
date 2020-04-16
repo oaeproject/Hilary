@@ -162,13 +162,15 @@ describe('Search', () => {
 
         RestAPI.Content.createLink(
           doer.restContext,
-          'test-search index-without-full-content-item',
-          'Test content description 1',
-          'public',
-          'http://www.oaeproject.org/',
-          [],
-          [],
-          [],
+          {
+            displayName: 'test-search index-without-full-content-item',
+            description: 'Test content description 1',
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org/',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 
@@ -242,13 +244,15 @@ describe('Search', () => {
         let description = TestsUtil.generateTestUserId('mimetype-test');
         RestAPI.Content.createLink(
           doer.restContext,
-          'Test Content 1',
-          description,
-          'public',
-          'http://www.oaeproject.org/',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description,
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org/',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 

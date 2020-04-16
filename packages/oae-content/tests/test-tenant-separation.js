@@ -25,6 +25,9 @@ import * as ContentTestUtil from 'oae-content/lib/test/util';
 
 import { RestContext } from 'oae-rest/lib/model';
 
+const PUBLIC = 'public';
+const LOGGED_IN = 'loggedin';
+
 describe('Content', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user
   let anonymousRestContext = null;
@@ -1711,26 +1714,30 @@ describe('Content', () => {
           // Create "public" content in tenant A
           RestAPI.Content.createLink(
             userA.restContext,
-            'Yahoo',
-            'Yahoo Website',
-            'public',
-            'http://www.yahoo.ca',
-            [userA.user.id],
-            [],
-            [],
+            {
+              displayName: 'Yahoo',
+              description: 'Yahoo Website',
+              visibility: PUBLIC,
+              link: 'http://www.yahoo.ca',
+              managers: [userA.user.id],
+              viewers: [],
+              folders: []
+            },
             (err, publicContentA) => {
               assert.ok(!err);
 
               // Create "loggedin" content in tenant A
               RestAPI.Content.createLink(
                 userA.restContext,
-                'Google',
-                'Google Website',
-                'loggedin',
-                'http://google.com',
-                [userA.user.id],
-                [],
-                [],
+                {
+                  displayName: 'Google',
+                  description: 'Google Website',
+                  visibility: LOGGED_IN,
+                  link: 'http://google.com',
+                  managers: [userA.user.id],
+                  viewers: [],
+                  folders: []
+                },
                 (err, loggedInContentA) => {
                   assert.ok(!err);
 
@@ -1775,26 +1782,30 @@ describe('Content', () => {
             // Create "public" content in tenant A
             RestAPI.Content.createLink(
               userA.restContext,
-              'Yahoo',
-              'Yahoo Website',
-              'public',
-              'http://www.yahoo.ca',
-              [userA.user.id],
-              [groupA.id],
-              [],
+              {
+                displayName: 'Yahoo',
+                description: 'Yahoo Website',
+                visibility: PUBLIC,
+                link: 'http://www.yahoo.ca',
+                managers: [userA.user.id],
+                viewers: [groupA.id],
+                folders: []
+              },
               (err, publicContentA) => {
                 assert.ok(!err);
 
                 // Create "loggedin" content in tenant A
                 RestAPI.Content.createLink(
                   userA.restContext,
-                  'Google',
-                  'Google Website',
-                  'loggedin',
-                  'http://google.com',
-                  [userA.user.id],
-                  [groupA.id],
-                  [],
+                  {
+                    displayName: 'Google',
+                    description: 'Google Website',
+                    visibility: LOGGED_IN,
+                    link: 'http://google.com',
+                    managers: [userA.user.id],
+                    viewers: [groupA.id],
+                    folders: []
+                  },
                   (err, loggedInContentA) => {
                     assert.ok(!err);
 
@@ -1831,13 +1842,15 @@ describe('Content', () => {
 
         RestAPI.Content.createLink(
           actor.restContext,
-          'Yahoo',
-          'Yahoo Website',
-          'public',
-          'http://www.yahoo.ca',
-          [],
-          [sharedUser.id],
-          [],
+          {
+            displayName: 'Yahoo',
+            description: 'Yahoo Website',
+            visibility: PUBLIC,
+            link: 'http://www.yahoo.ca',
+            managers: [],
+            viewers: [sharedUser.id],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
 

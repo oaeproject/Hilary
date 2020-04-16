@@ -27,6 +27,8 @@ import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
 import * as TestsUtil from 'oae-tests';
 import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
 
+const PUBLIC = 'public';
+
 describe('User emails', () => {
   // REST contexts we can use to do REST requests
   let camAdminRestContext = null;
@@ -295,13 +297,15 @@ describe('User emails', () => {
 
           RestAPI.Content.createLink(
             simong.restContext,
-            'Google',
-            'Google',
-            'public',
-            'http://www.google.ca',
-            [],
-            [user.id, mrvisser.user.id],
-            [],
+            {
+              displayName: 'Google',
+              description: 'Google',
+              PUBLIC,
+              link: 'http://www.google.ca',
+              managers: [],
+              viewers: [user.id, mrvisser.user.id],
+              folders: []
+            },
             (err, link) => {
               assert.ok(!err);
 

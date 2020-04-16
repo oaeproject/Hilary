@@ -27,6 +27,10 @@ import * as SearchTestsUtil from 'oae-search/lib/test/util';
 
 import { RestContext } from 'oae-rest/lib/model';
 
+const PUBLIC = 'public';
+const PRIVATE = 'private';
+const LOGGED_IN = 'loggedin';
+
 describe('General Search', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user
   let anonymousRestContext = null;
@@ -272,13 +276,15 @@ describe('General Search', () => {
 
         RestAPI.Content.createLink(
           doer.restContext,
-          'Apereo Foundation',
-          'Link to Apereo Foundation Website',
-          'public',
-          'http://www.apereo.org',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Apereo Foundation',
+            description: 'Link to Apereo Foundation Website',
+            visibility: PUBLIC,
+            link: 'http://www.apereo.org',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, content) => {
             assert.ok(!err);
 
@@ -308,13 +314,15 @@ describe('General Search', () => {
 
         RestAPI.Content.createLink(
           doer.restContext,
-          'Apereo Foundation',
-          'Link to Apereo Foundation Website',
-          'public',
-          'http://www.apereo.org',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Apereo Foundation',
+            description: 'Link to Apereo Foundation Website',
+            visibility: PUBLIC,
+            link: 'http://www.apereo.org',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, content) => {
             assert.ok(!err);
 
@@ -363,13 +371,15 @@ describe('General Search', () => {
 
         RestAPI.Content.createLink(
           user.restContext,
-          'Apereo Foundation',
-          'Link to Apereo Foundation Website',
-          'public',
-          'http://www.apereo.org',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Apereo Foundation',
+            description: 'Link to Apereo Foundation Website',
+            visibility: PUBLIC,
+            link: 'http://www.apereo.org',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, content) => {
             assert.ok(!err);
 
@@ -516,13 +526,15 @@ describe('General Search', () => {
         // Create the content item and discussion we will test searching for
         RestAPI.Content.createLink(
           user.restContext,
-          'Apereo Foundation',
-          'Link to Apereo Foundation Website',
-          'public',
-          'http://www.apereo.org',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Apereo Foundation',
+            description: 'Link to Apereo Foundation Website',
+            visibility: PUBLIC,
+            link: 'http://www.apereo.org',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, content) => {
             assert.ok(!err);
             RestAPI.Discussions.createDiscussion(
@@ -627,13 +639,15 @@ describe('General Search', () => {
           // Create the content item and discussion we will test searching for
           RestAPI.Content.createLink(
             user.restContext,
-            'Apereo Foundation',
-            'Link to Apereo Foundation Website',
-            'public',
-            'http://www.apereo.org',
-            [],
-            [],
-            [],
+            {
+              displayName: 'Apereo Foundation',
+              description: 'Link to Apereo Foundation Website',
+              visibility: PUBLIC,
+              link: 'http://www.apereo.org',
+              managers: [],
+              viewers: [],
+              folders: []
+            },
             (err, content) => {
               assert.ok(!err);
               RestAPI.Discussions.createDiscussion(
@@ -722,24 +736,28 @@ describe('General Search', () => {
         // Create the content items and discussions we will test deleting and searching for
         RestAPI.Content.createLink(
           user.restContext,
-          'Apereo Foundation',
-          'Link to Apereo Foundation Website',
-          'public',
-          'http://www.apereo.org',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Apereo Foundation',
+            description: 'Link to Apereo Foundation Website',
+            visibility: PUBLIC,
+            link: 'http://www.apereo.org',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, content) => {
             assert.ok(!err);
             RestAPI.Content.createLink(
               user.restContext,
-              'Apereo Foundation',
-              'Link to Apereo Foundation Website',
-              'public',
-              'http://www.apereo.org',
-              [],
-              [],
-              [],
+              {
+                displayName: 'Apereo Foundation',
+                description: 'Link to Apereo Foundation Website',
+                visibility: PUBLIC,
+                link: 'http://www.apereo.org',
+                managers: [],
+                viewers: [],
+                folders: []
+              },
               (err, content2) => {
                 assert.ok(!err);
                 RestAPI.Discussions.createDiscussion(
@@ -914,13 +932,15 @@ describe('General Search', () => {
 
             RestAPI.Content.createLink(
               jack.restContext,
-              jack.user.displayName,
-              jack.user.displayName,
-              'public',
-              'http://www.apereo.org',
-              [],
-              [],
-              [],
+              {
+                displayName: jack.user.displayName,
+                description: jack.user.displayName,
+                visibility: PUBLIC,
+                link: 'http://www.apereo.org',
+                managers: [],
+                viewers: [],
+                folders: []
+              },
               (err, content) => {
                 assert.ok(!err);
 
@@ -1073,25 +1093,29 @@ describe('General Search', () => {
         // Make sure we have at least 2 content items to page with, their actual information is not important for this test
         RestAPI.Content.createLink(
           doer.restContext,
-          'OAE Project',
-          'Link to OAE Project Website',
-          'public',
-          'http://www.oaeproject.org',
-          [],
-          [],
-          [],
+          {
+            displayName: 'OAE Project',
+            description: 'Link to OAE Project Website',
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 
             RestAPI.Content.createLink(
               doer.restContext,
-              'Apereo Foundation',
-              'Link to Apereo Foundation Website',
-              'public',
-              'http://www.apereo.org',
-              [],
-              [],
-              [],
+              {
+                displayName: 'Apereo Foundation',
+                description: 'Link to Apereo Foundation Website',
+                visibility: PUBLIC,
+                link: 'http://www.apereo.org',
+                managers: [],
+                viewers: [],
+                folders: []
+              },
               (err, link) => {
                 assert.ok(!err);
 
@@ -1145,25 +1169,29 @@ describe('General Search', () => {
         // Make sure we have at least 2 similar content items
         RestAPI.Content.createLink(
           user.restContext,
-          'Apereo OAE',
-          'Link to OAE Project Website',
-          'public',
-          'http://www.oaeproject.org',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Apereo OAE',
+            description: 'Link to OAE Project Website',
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 
             RestAPI.Content.createLink(
               user.restContext,
-              'Apereo Foundation',
-              'Link to Apereo Foundation Website',
-              'public',
-              'http://www.apereo.org',
-              [],
-              [],
-              [],
+              {
+                displayName: 'Apereo Foundation',
+                description: 'Link to Apereo Foundation Website',
+                visibility: PUBLIC,
+                link: 'http://www.apereo.org',
+                managers: [],
+                viewers: [],
+                folders: []
+              },
               (err, link) => {
                 assert.ok(!err);
 
@@ -1992,13 +2020,15 @@ describe('General Search', () => {
         const uniqueString = TestsUtil.generateTestUserId('unsearchable-content');
         RestAPI.Content.createLink(
           doer.restContext,
-          uniqueString,
-          uniqueString,
-          'public',
-          'http://www.oaeproject.org',
-          [],
-          [],
-          [],
+          {
+            displayName: uniqueString,
+            description: uniqueString,
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, content) => {
             assert.ok(!err);
 
@@ -2060,13 +2090,15 @@ describe('General Search', () => {
                 const uniqueString = TestsUtil.generateTestUserId('public-searchable-content');
                 RestAPI.Content.createLink(
                   doer.restContext,
-                  uniqueString,
-                  'Test content description 1',
-                  'public',
-                  'http://www.oaeproject.org/',
-                  [],
-                  [groupIds[0]],
-                  [],
+                  {
+                    displayName: uniqueString,
+                    description: 'Test content description 1',
+                    visibility: PUBLIC,
+                    link: 'http://www.oaeproject.org/',
+                    managers: [],
+                    viewers: [groupIds[0]],
+                    folders: []
+                  },
                   (err, contentObj) => {
                     assert.ok(!err);
 
@@ -2267,13 +2299,15 @@ describe('General Search', () => {
                 const uniqueString = TestsUtil.generateTestUserId('loggedin-searchable-content');
                 RestAPI.Content.createLink(
                   doer.restContext,
-                  uniqueString,
-                  'Test content description 1',
-                  'loggedin',
-                  'http://www.oaeproject.org/',
-                  [],
-                  [groupIds[0]],
-                  [],
+                  {
+                    displayName: uniqueString,
+                    description: 'Test content description 1',
+                    visibility: LOGGED_IN,
+                    link: 'http://www.oaeproject.org/',
+                    managers: [],
+                    viewers: [groupIds[0]],
+                    folders: []
+                  },
                   (err, contentObj) => {
                     assert.ok(!err);
 
@@ -2450,13 +2484,15 @@ describe('General Search', () => {
                 const uniqueString = TestsUtil.generateTestUserId('private-searchable-content');
                 RestAPI.Content.createLink(
                   doer.restContext,
-                  uniqueString,
-                  'Test content description 1',
-                  'private',
-                  'http://www.oaeproject.org/',
-                  [],
-                  [groupIds[0]],
-                  [],
+                  {
+                    displayName: uniqueString,
+                    description: 'Test content description 1',
+                    visibility: PRIVATE,
+                    link: 'http://www.oaeproject.org/',
+                    managers: [],
+                    viewers: [groupIds[0]],
+                    folders: []
+                  },
                   (err, contentObj) => {
                     assert.ok(!err);
 
@@ -2610,13 +2646,15 @@ describe('General Search', () => {
 
                                                   RestAPI.Content.createLink(
                                                     doer.restContext,
-                                                    uniqueString,
-                                                    'Test content description 2',
-                                                    'private',
-                                                    'http://www.oaeproject.org/',
-                                                    [],
-                                                    [anotherGroup.group.id],
-                                                    [],
+                                                    {
+                                                      displayName: uniqueString,
+                                                      description: 'Test content description 2',
+                                                      visibility: PRIVATE,
+                                                      link: 'http://www.oaeproject.org/',
+                                                      managers: [],
+                                                      viewers: [anotherGroup.group.id],
+                                                      folders: []
+                                                    },
                                                     (err, link2) => {
                                                       assert.ok(!err);
 
@@ -2676,13 +2714,15 @@ describe('General Search', () => {
             // Create a private content item to which only the group has access
             RestAPI.Content.createLink(
               camAdminRestContext,
-              uniqueString,
-              'Test content description 1',
-              'private',
-              'http://www.oaeproject.org/',
-              [],
-              [group.group.id],
-              [],
+              {
+                displayName: uniqueString,
+                description: 'Test content description 1',
+                visibility: PRIVATE,
+                link: 'http://www.oaeproject.org/',
+                managers: [],
+                viewers: [group.group.id],
+                folders: []
+              },
               (err, content) => {
                 assert.ok(!err);
 
@@ -4089,13 +4129,15 @@ describe('General Search', () => {
 
         RestAPI.Content.createLink(
           doer.restContext,
-          'Apereo Xyzforedgengram',
-          'Link to Apereo Foundation Website',
-          'public',
-          'http://www.apereo.org',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Apereo Xyzforedgengram',
+            description: 'Link to Apereo Foundation Website',
+            visibility: PUBLIC,
+            link: 'http://www.apereo.org',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, content) => {
             assert.ok(!err);
 
@@ -4119,13 +4161,15 @@ describe('General Search', () => {
 
         RestAPI.Content.createLink(
           doer.restContext,
-          'Apereo Xyzforedgengram',
-          'Link to Apereo Foundation Website',
-          'public',
-          'http://www.apereo.org',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Apereo Xyzforedgengram',
+            description: 'Link to Apereo Foundation Website',
+            visibility: PUBLIC,
+            link: 'http://www.apereo.org',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, content) => {
             assert.ok(!err);
 
@@ -4158,24 +4202,28 @@ describe('General Search', () => {
         // Create some content
         RestAPI.Content.createLink(
           restCtx,
-          'Theological reasoning',
-          null,
-          'public',
-          'http://www.apereo.org',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Theological reasoning',
+            description: null,
+            visibility: PUBLIC,
+            link: 'http://www.apereo.org',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentA) => {
             assert.ok(!err);
             RestAPI.Content.createLink(
               restCtx,
-              'Independent workforce',
-              null,
-              'public',
-              'http://www.apereo.org',
-              [],
-              [],
-              [],
+              {
+                displayName: 'Independent workforce',
+                description: null,
+                visibility: PUBLIC,
+                link: 'http://www.apereo.org',
+                managers: [],
+                viewers: [],
+                folders: []
+              },
               (err, contentB) => {
                 assert.ok(!err);
                 const groupDisplayName = 'OAE Team ' + Math.random();
@@ -4362,13 +4410,15 @@ describe('General Search', () => {
 
             RestAPI.Content.createLink(
               camAdminRestContext,
-              'Apereo Foundation',
-              'Link to ' + jack.user.displayName,
-              'public',
-              'http://www.apereo.org',
-              [],
-              [],
-              [],
+              {
+                displayName: 'Apereo Foundation',
+                description: 'Link to ' + jack.user.displayName,
+                visibility: PUBLIC,
+                link: 'http://www.apereo.org',
+                managers: [],
+                viewers: [],
+                folders: []
+              },
               (err, content) => {
                 assert.ok(!err);
 

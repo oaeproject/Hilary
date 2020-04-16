@@ -24,6 +24,10 @@ import * as FoldersDAO from 'oae-folders/lib/internal/dao';
 import * as FoldersTestUtil from 'oae-folders/lib/test/util';
 import { FoldersConstants } from 'oae-folders/lib/constants';
 
+const PUBLIC = 'public';
+const PRIVATE = 'private';
+const LOGGED_IN = 'loggedin';
+
 describe('Folders', () => {
   let camAdminRestContext = null;
   let camAnonymousRestContext = null;
@@ -71,35 +75,41 @@ describe('Folders', () => {
           // Create 3 content items
           RestAPI.Content.createLink(
             simong.restContext,
-            'public',
-            'public',
-            'public',
-            'http://www.google.com',
-            null,
-            [],
-            [],
+            {
+              displayName: 'public',
+              description: 'public',
+              visibility: PUBLIC,
+              link: 'http://www.google.com',
+              managers: null,
+              viewers: [],
+              folders: []
+            },
             (err, publicContent) => {
               assert.ok(!err);
               RestAPI.Content.createLink(
                 simong.restContext,
-                'loggedin',
-                'loggedin',
-                'loggedin',
-                'http://www.google.com',
-                null,
-                [],
-                [],
+                {
+                  displayName: 'loggedin',
+                  description: 'loggedin',
+                  visibility: LOGGED_IN,
+                  link: 'http://www.google.com',
+                  managers: null,
+                  viewers: [],
+                  folders: []
+                },
                 (err, loggedinContent) => {
                   assert.ok(!err);
                   RestAPI.Content.createLink(
                     simong.restContext,
-                    'private',
-                    'private',
-                    'private',
-                    'http://www.google.com',
-                    null,
-                    [],
-                    [],
+                    {
+                      displayName: 'private',
+                      description: 'private',
+                      visibility: PRIVATE,
+                      link: 'http://www.google.com',
+                      managers: null,
+                      viewers: [],
+                      folders: []
+                    },
                     (err, privateContent) => {
                       assert.ok(!err);
 
@@ -149,24 +159,28 @@ describe('Folders', () => {
               // Create some content items and add them to the first folder
               RestAPI.Content.createLink(
                 camAdminRestContext,
-                'test',
-                'test',
-                'public',
-                'http://www.google.com',
-                null,
-                [],
-                [],
+                {
+                  displayName: 'test',
+                  description: 'test',
+                  visibility: PUBLIC,
+                  link: 'http://www.google.com',
+                  managers: null,
+                  viewers: [],
+                  folders: []
+                },
                 (err, google) => {
                   assert.ok(!err);
                   RestAPI.Content.createLink(
                     camAdminRestContext,
-                    'marsupilamisausage',
-                    'marsupilamisausage',
-                    'public',
-                    'http://www.marsupilamisausage.com',
-                    null,
-                    [],
-                    [],
+                    {
+                      displayName: 'marsupilamisausage',
+                      description: 'marsupilamisausage',
+                      visibility: PUBLIC,
+                      link: 'http://www.marsupilamisausage.com',
+                      managers: null,
+                      viewers: [],
+                      folders: []
+                    },
                     (err, mars) => {
                       assert.ok(!err);
                       FoldersTestUtil.assertAddContentItemsToFolderSucceeds(
@@ -788,13 +802,15 @@ describe('Folders', () => {
         FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'public', folder => {
           RestAPI.Content.createLink(
             simong.restContext,
-            'public',
-            'public',
-            'public',
-            'http://www.google.com',
-            null,
-            [],
-            [],
+            {
+              displayName: 'public',
+              description: 'public',
+              visibility: PUBLIC,
+              link: 'http://www.google.com',
+              managers: null,
+              viewers: [],
+              folders: []
+            },
             (err, link) => {
               assert.ok(!err);
 
@@ -883,13 +899,15 @@ describe('Folders', () => {
           // Add some public content
           RestAPI.Content.createLink(
             simong.restContext,
-            'displayName',
-            'description',
-            'public',
-            'http://www.google.com',
-            null,
-            [],
-            [],
+            {
+              displayName: 'displayName',
+              description: 'description',
+              visibility: PUBLIC,
+              link: 'http://www.google.com',
+              managers: null,
+              viewers: [],
+              folders: []
+            },
             (err, link) => {
               assert.ok(!err);
 
@@ -1046,13 +1064,15 @@ describe('Folders', () => {
           const uniqueString = TestsUtil.generateRandomText(5);
           RestAPI.Content.createLink(
             simong.restContext,
-            uniqueString,
-            'description',
-            'private',
-            'http://www.google.com',
-            null,
-            [],
-            [],
+            {
+              displayName: uniqueString,
+              description: 'description',
+              visibility: PRIVATE,
+              link: 'http://www.google.com',
+              managers: null,
+              viewers: [],
+              folders: []
+            },
             (err, link) => {
               assert.ok(!err);
 
@@ -1185,25 +1205,29 @@ describe('Folders', () => {
           // to ensure that both mechanismes get properly indexed
           RestAPI.Content.createLink(
             simong.restContext,
-            'private',
-            'private',
-            'private',
-            'http://www.google.com',
-            null,
-            [],
-            [folder.id],
+            {
+              displayName: 'private',
+              description: 'private',
+              visibility: PRIVATE,
+              link: 'http://www.google.com',
+              managers: null,
+              viewers: [],
+              folders: [folder.id]
+            },
             (err, link1) => {
               assert.ok(!err);
 
               RestAPI.Content.createLink(
                 simong.restContext,
-                'private',
-                'private',
-                'private',
-                'http://www.google.com',
-                null,
-                [],
-                [],
+                {
+                  displayName: 'private',
+                  description: 'private',
+                  visibility: PRIVATE,
+                  link: 'http://www.google.com',
+                  managers: null,
+                  viewers: [],
+                  folders: []
+                },
                 (err, link2) => {
                   assert.ok(!err);
                   FoldersTestUtil.assertAddContentItemsToFolderSucceeds(

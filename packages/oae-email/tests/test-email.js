@@ -23,6 +23,8 @@ import * as TestsUtil from 'oae-tests';
 import * as EmailAPI from 'oae-email';
 import * as EmailTestsUtil from 'oae-email/lib/test/util';
 
+const PRIVATE = 'private';
+
 describe('Emails', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user
   let anonymousCamRestContext = null;
@@ -363,7 +365,7 @@ describe('Emails', () => {
                 const message = JSON.parse(info.message);
                 assert.ok(!message.html);
                 assert.ok(message.text);
-                assert.ok(message.text.indexOf('OK') > -1);
+                assert.ok(message.text.includes('OK'));
 
                 // Verify if an error is thrown from HTML but we still have a valid text, a message is still sent
                 EmailTestsUtil.sendEmail(
@@ -376,11 +378,11 @@ describe('Emails', () => {
                     assert.ok(!err);
                     const message = JSON.parse(info.message);
                     assert.ok(message.html);
-                    assert.ok(message.html.indexOf('OK') > -1);
+                    assert.ok(message.html.includes('OK'));
 
                     // The HTML template gets auto-converted to text if it does not exist
                     assert.ok(message.text);
-                    assert.ok(message.text.indexOf('OK') > -1);
+                    assert.ok(message.text.includes('OK'));
 
                     // Verify we get an error when exception thrown from meta
                     EmailTestsUtil.sendEmail(
@@ -436,7 +438,7 @@ describe('Emails', () => {
           assert.ok(!err);
           const message = JSON.parse(info.message);
           assert.ok(message.html);
-          assert.ok(message.html.indexOf('<p\n style="background-color: red;">') > -1);
+          assert.ok(message.html.includes('<p\n style="background-color: red;">'));
           return callback();
         });
       });
@@ -486,13 +488,15 @@ describe('Emails', () => {
           // Create a new link with the coenego user. The simong user will receive an email
           RestAPI.Content.createLink(
             coenego.restContext,
-            'Google',
-            'Google',
-            'private',
-            'http://www.google.com',
-            [],
-            [simong.user.id],
-            [],
+            {
+              displayName: 'Google',
+              description: 'Google',
+              visibility: PRIVATE,
+              link: 'http://www.google.com',
+              managers: [],
+              viewers: [simong.user.id],
+              folders: []
+            },
             (err, link) => {
               assert.ok(!err);
               assert.ok(link);
@@ -638,13 +642,15 @@ describe('Emails', () => {
         // Create a content item which should trigger an email to the Gaeremonster
         RestAPI.Content.createLink(
           mrvisser.restContext,
-          'Google',
-          'Google',
-          'private',
-          'http://www.google.com',
-          [],
-          [simong.user.id],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PRIVATE,
+            link: 'http://www.google.com',
+            managers: [],
+            viewers: [simong.user.id],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
             assert.ok(link);
@@ -672,13 +678,15 @@ describe('Emails', () => {
         // Create a content item which should trigger an email
         RestAPI.Content.createLink(
           mrvisser.restContext,
-          'Google',
-          'Google',
-          'private',
-          'http://www.google.com',
-          [],
-          [simong.user.id],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PRIVATE,
+            link: 'http://www.google.com',
+            managers: [],
+            viewers: [simong.user.id],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
             assert.ok(link);

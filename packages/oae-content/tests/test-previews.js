@@ -27,6 +27,7 @@ import * as SearchTestsUtil from 'oae-search/lib/test/util';
 import * as TestsUtil from 'oae-tests';
 import { isPrivate } from 'oae-tenants/lib/util';
 
+const PUBLIC = 'public';
 const PRIVATE = 'private';
 
 describe('File previews', () => {
@@ -637,13 +638,15 @@ describe('File previews', () => {
 
       RestAPI.Content.createLink(
         contexts.nicolaas.restContext,
-        'Test Content 1',
-        'Test content description 1',
-        'public',
-        'http://www.oaeproject.org/',
-        [],
-        [],
-        [],
+        {
+          displayName: 'Test Content 1',
+          description: 'Test content description 1',
+          visibility: PUBLIC,
+          link: 'http://www.oaeproject.org/',
+          managers: [],
+          viewers: [],
+          folders: []
+        },
         (err, contentObj) => {
           assert.ok(!err);
 

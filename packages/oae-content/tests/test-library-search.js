@@ -20,6 +20,10 @@ import * as RestAPI from 'oae-rest';
 import * as SearchTestsUtil from 'oae-search/lib/test/util';
 import * as TestsUtil from 'oae-tests';
 
+const PUBLIC = 'public';
+const PRIVATE = 'private';
+const LOGGED_IN = 'loggedin';
+
 describe('Library Search', () => {
   // REST contexts we can use to do REST requests
   let anonymousRestContext = null;
@@ -41,13 +45,15 @@ describe('Library Search', () => {
       // Create content with a comment on it
       RestAPI.Content.createLink(
         simon.restContext,
-        'Apereo Website',
-        'The website of the Apereo Foundation',
-        'public',
-        'http://www.apereo.org',
-        [],
-        [],
-        [],
+        {
+          displayName: 'Apereo Website',
+          description: 'The website of the Apereo Foundation',
+          visibility: PUBLIC,
+          link: 'http://www.apereo.org',
+          managers: [],
+          viewers: [],
+          folders: []
+        },
         (err, content) => {
           assert.ok(!err);
           RestAPI.Content.createComment(simon.restContext, content.id, 'abcdefghi', null, (err, comment) => {
@@ -140,13 +146,15 @@ describe('Library Search', () => {
 
           RestAPI.Content.createLink(
             doer.restContext,
-            'Apereo Website',
-            'The website of the Apereo Foundation',
-            'public',
-            'http://www.apereofoundation.org',
-            [],
-            [],
-            [],
+            {
+              displayName: 'Apereo Website',
+              description: 'The website of the Apereo Foundation',
+              visibility: PUBLIC,
+              link: 'http://www.apereofoundation.org',
+              managers: [],
+              viewers: [],
+              folders: []
+            },
             (err, content) => {
               assert.ok(!err);
 
@@ -237,13 +245,15 @@ describe('Library Search', () => {
           // Create the content item as 'loggedin'
           RestAPI.Content.createLink(
             doer.restContext,
-            'Apereo Website',
-            'The website of the Apereo Foundation',
-            'loggedin',
-            'http://www.apereofoundation.org',
-            [],
-            [],
-            [],
+            {
+              displayName: 'Apereo Website',
+              description: 'The website of the Apereo Foundation',
+              visibility: LOGGED_IN,
+              link: 'http://www.apereofoundation.org',
+              managers: [],
+              viewers: [],
+              folders: []
+            },
             (err, content) => {
               assert.ok(!err);
 
@@ -334,13 +344,15 @@ describe('Library Search', () => {
           // Create the private content item
           RestAPI.Content.createLink(
             doer.restContext,
-            'Apereo Website',
-            'The website of the Apereo Foundation',
-            'private',
-            'http://www.apereofoundation.org',
-            [],
-            [],
-            [],
+            {
+              displayName: 'Apereo Website',
+              description: 'The website of the Apereo Foundation',
+              visibility: PRIVATE,
+              link: 'http://www.apereofoundation.org',
+              managers: [],
+              viewers: [],
+              folders: []
+            },
             (err, content) => {
               assert.ok(!err);
 
@@ -444,13 +456,15 @@ describe('Library Search', () => {
               // Create the public content item and share it with the group
               RestAPI.Content.createLink(
                 doer.restContext,
-                'Apereo Website',
-                'The website of the Apereo Foundation',
-                'public',
-                'http://www.apereofoundation.org',
-                [],
-                [],
-                [],
+                {
+                  displayName: 'Apereo Website',
+                  description: 'The website of the Apereo Foundation',
+                  visibility: PUBLIC,
+                  link: 'http://www.apereofoundation.org',
+                  managers: [],
+                  viewers: [],
+                  folders: []
+                },
                 (err, content) => {
                   assert.ok(!err);
 
@@ -554,13 +568,15 @@ describe('Library Search', () => {
               // Create the loggedin content item and share it with the group
               RestAPI.Content.createLink(
                 doer.restContext,
-                'Apereo Website',
-                'The website of the Apereo Foundation',
-                'loggedin',
-                'http://www.apereofoundation.org',
-                [],
-                [],
-                [],
+                {
+                  displayName: 'Apereo Website',
+                  description: 'The website of the Apereo Foundation',
+                  visibility: LOGGED_IN,
+                  link: 'http://www.apereofoundation.org',
+                  managers: [],
+                  viewers: [],
+                  folders: []
+                },
                 (err, content) => {
                   assert.ok(!err);
 
@@ -665,13 +681,15 @@ describe('Library Search', () => {
               // Create the private content item and share it with the group
               RestAPI.Content.createLink(
                 doer.restContext,
-                'Apereo Website',
-                'The website of the Apereo Foundation',
-                'private',
-                'http://www.apereofoundation.org',
-                [],
-                [],
-                [],
+                {
+                  displayName: 'Apereo Website',
+                  description: 'The website of the Apereo Foundation',
+                  visibility: PRIVATE,
+                  link: 'http://www.apereofoundation.org',
+                  managers: [],
+                  viewers: [],
+                  folders: []
+                },
                 (err, content) => {
                   assert.ok(!err);
 
@@ -776,25 +794,29 @@ describe('Library Search', () => {
 
         RestAPI.Content.createLink(
           doer.restContext,
-          'Apereo Website',
-          'The website of the Apereo Foundation',
-          'public',
-          'http://www.apereofoundation.org',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Apereo Website',
+            description: 'The website of the Apereo Foundation',
+            visibility: PUBLIC,
+            link: 'http://www.apereofoundation.org',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, content) => {
             assert.ok(!err);
 
             RestAPI.Content.createLink(
               doer.restContext,
-              'Google Website',
-              'Google',
-              'public',
-              'http://www.google.ca',
-              [],
-              [],
-              [],
+              {
+                displayName: 'Google Website',
+                description: 'Google',
+                visibility: PUBLIC,
+                link: 'http://www.google.ca',
+                managers: [],
+                viewers: [],
+                folders: []
+              },
               (err, content) => {
                 assert.ok(!err);
 

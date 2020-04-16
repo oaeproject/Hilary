@@ -81,7 +81,7 @@ describe('Tenants Search', () => {
 
                 setTimeout(
                   SearchTestsUtil.assertSearchSucceeds,
-                  2000,
+                  4000,
                   anonymousRestContext,
                   'tenants',
                   null,

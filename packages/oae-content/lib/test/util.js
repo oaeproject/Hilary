@@ -30,6 +30,8 @@ import * as TestsUtil from 'oae-tests/lib/util';
 
 import { ContentConstants } from 'oae-content/lib/constants';
 
+const PUBLIC = 'public';
+
 /**
  * Set up 2 public tenants and 2 private tenants, each with a public, loggedin, private set of users, groups and
  * content. The resulting model looks like this:
@@ -107,13 +109,7 @@ const assertCreateLinkSucceeds = function(
   PrincipalsTestUtil.assertGetMeSucceeds(restContext, me => {
     RestAPI.Content.createLink(
       restContext,
-      displayName,
-      description,
-      visibility,
-      link,
-      managerIds,
-      viewerIds,
-      folderIds,
+      { displayName, description, visibility, link, managers: managerIds, viewers: viewerIds, folders: folderIds },
       (err, content) => {
         assert.ok(!err);
         assert.strictEqual(content.displayName, displayName);
@@ -179,13 +175,7 @@ const assertCreateLinkFails = function(
 ) {
   RestAPI.Content.createLink(
     restContext,
-    displayName,
-    description,
-    visibility,
-    link,
-    managerIds,
-    viewerIds,
-    folderIds,
+    { displayName, description, visibility, link, managers: managerIds, viewers: viewerIds, folders: folderIds },
     (err, content) => {
       assert.ok(err);
       assert.strictEqual(err.code, httpCode);
@@ -693,13 +683,15 @@ const generateTestLinks = function(restContext, total, callback) {
     _.each(_.range(total), i => {
       RestAPI.Content.createLink(
         restContext,
-        'test displayname',
-        'test descr',
-        'public',
-        'google.com',
-        [],
-        [],
-        [],
+        {
+          displayName: 'test displayname',
+          description: 'test descr',
+          visibility: PUBLIC,
+          link: 'google.com',
+          managers: [],
+          viewers: [],
+          folders: []
+        },
         (err, contentItem) => {
           assert.ok(!err);
           contentItems.push(contentItem);
@@ -759,13 +751,15 @@ const _createContentWithVisibility = function(restCtx, visibility, callback) {
   const randomId = util.format('%s-%s', visibility, ShortId.generate());
   RestAPI.Content.createLink(
     restCtx,
-    'displayName-' + randomId,
-    'description-' + randomId,
-    visibility,
-    'http://www.oaeproject.org',
-    null,
-    null,
-    [],
+    {
+      displayName: 'displayName-' + randomId,
+      description: 'description-' + randomId,
+      visibility,
+      link: 'http://www.oaeproject.org',
+      managers: null,
+      viewers: null,
+      folders: []
+    },
     (err, content) => {
       assert.ok(!err);
       return callback(content);

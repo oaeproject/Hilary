@@ -338,7 +338,11 @@ describe('Preview processor', () => {
             contentCreated
           );
         } else if (resourceSubType === 'link') {
-          RestAPI.Content.createLink(restCtx, link, null, 'private', link, [], [], [], contentCreated);
+          RestAPI.Content.createLink(
+            restCtx,
+            { displayName: link, description: null, PRIVATE, link, managers: [], viewers: [], folders: [] },
+            contentCreated
+          );
         } else if (resourceSubType === 'collabdoc') {
           RestAPI.Content.createCollabDoc(
             restCtx,
@@ -2173,13 +2177,15 @@ describe('Preview processor', () => {
                           // Create a link, we'll use it as a sanity check to ensure only file types got reprocessed
                           RestAPI.Content.createLink(
                             user.restContext,
-                            'Google',
-                            'Google',
-                            'public',
-                            'http://www.google.com',
-                            [],
-                            [],
-                            [],
+                            {
+                              displayName: 'Google',
+                              description: 'Google',
+                              PUBLIC,
+                              link: 'http://www.google.com',
+                              managers: [],
+                              viewers: [],
+                              folders: []
+                            },
                             (err, link) => {
                               // Purge everything with a delay to ensure the 2 files have been
                               // submit for processing

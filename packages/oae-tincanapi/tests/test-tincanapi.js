@@ -22,6 +22,9 @@ import * as TestsUtil from 'oae-tests';
 
 import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
 
+const PUBLIC = 'public';
+const PRIVATE = 'private';
+
 describe('TinCanAPI', () => {
   // Will be set as a function that is executed when sending requests to the API
   let onRequest = null;
@@ -130,13 +133,15 @@ describe('TinCanAPI', () => {
           // Create a new link
           RestAPI.Content.createLink(
             testUser.restContext,
-            'Link1',
-            'The first link',
-            'public',
-            'http://www.google.be',
-            [],
-            [],
-            [],
+            {
+              displayName: 'Link1',
+              description: 'The first link',
+              PUBLIC,
+              link: 'http://www.google.be',
+              managers: [],
+              viewers: [],
+              folders: []
+            },
             (err, link) => {
               assert.ok(!err);
 
@@ -146,13 +151,15 @@ describe('TinCanAPI', () => {
               // Create a new link
               RestAPI.Content.createLink(
                 testUser.restContext,
-                'Link2',
-                'The second link',
-                'private',
-                'http://www.google.fr',
-                [],
-                [],
-                [],
+                {
+                  displayName: 'Link2',
+                  description: 'The second link',
+                  visibility: PRIVATE,
+                  link: 'http://www.google.fr',
+                  managers: [],
+                  viewers: [],
+                  folders: []
+                },
                 (err, link) => {
                   assert.ok(!err);
 
@@ -162,13 +169,15 @@ describe('TinCanAPI', () => {
                   // Create a new link
                   RestAPI.Content.createLink(
                     testUser.restContext,
-                    'Link3',
-                    'The third link',
-                    'public',
-                    'http://www.google.nl',
-                    [],
-                    [],
-                    [],
+                    {
+                      displayName: 'Link3',
+                      description: 'The third link',
+                      PUBLIC,
+                      link: 'http://www.google.nl',
+                      managers: [],
+                      viewers: [],
+                      folders: []
+                    },
                     (err, link) => {
                       assert.ok(!err);
 
@@ -223,13 +232,15 @@ describe('TinCanAPI', () => {
         // Create a new link
         RestAPI.Content.createLink(
           testUser.restContext,
-          'Link1',
-          'The first link',
-          'public',
-          'http://www.google.be',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Link1',
+            description: 'The first link',
+            visibility: PUBLIC,
+            link: 'http://www.google.be',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 
@@ -287,13 +298,15 @@ describe('TinCanAPI', () => {
           // Create a new link on the Cambridge tenant
           RestAPI.Content.createLink(
             camUser.restContext,
-            'Link1',
-            'The first link',
-            'public',
-            'http://www.google.be',
-            [],
-            [],
-            [],
+            {
+              displayName: 'Link1',
+              description: 'The first link',
+              PUBLIC,
+              link: 'http://www.google.be',
+              managers: [],
+              viewers: [],
+              folders: []
+            },
             (err, link) => {
               assert.ok(!err);
 
@@ -307,13 +320,15 @@ describe('TinCanAPI', () => {
                 // Create a new link on the GT tenant
                 RestAPI.Content.createLink(
                   gtUser.restContext,
-                  'Link2',
-                  'The second link',
-                  'private',
-                  'http://www.google.nl',
-                  [],
-                  [],
-                  [],
+                  {
+                    displayName: 'Link2',
+                    description: 'The second link',
+                    PRIVATE,
+                    link: 'http://www.google.nl',
+                    managers: [],
+                    viewers: [],
+                    folders: []
+                  },
                   (err, link) => {
                     assert.ok(!err);
 

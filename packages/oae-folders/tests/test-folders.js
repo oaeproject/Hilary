@@ -31,6 +31,7 @@ import * as FoldersLibrary from 'oae-folders/lib/library';
 import * as FoldersTestUtil from 'oae-folders/lib/test/util';
 
 const PUBLIC = 'public';
+const PRIVATE = 'private';
 
 describe('Folders', () => {
   let globalAdminRestContext = null;
@@ -1206,24 +1207,28 @@ describe('Folders', () => {
             // Both users create a content item
             RestAPI.Content.createLink(
               simong.restContext,
-              'test',
-              'test',
-              'public',
-              'http://www.google.ca',
-              null,
-              null,
-              [],
+              {
+                displayName: 'test',
+                description: 'test',
+                visibility: PUBLIC,
+                link: 'http://www.google.ca',
+                managers: null,
+                viewers: null,
+                folders: []
+              },
               (err, simonsLink) => {
                 assert.ok(!err);
                 RestAPI.Content.createLink(
                   nico.restContext,
-                  'test',
-                  'test',
-                  'public',
-                  'http://www.google.ca',
-                  null,
-                  null,
-                  [],
+                  {
+                    displayName: 'test',
+                    description: 'test',
+                    visibility: PUBLIC,
+                    link: 'http://www.google.ca',
+                    managers: null,
+                    viewers: null,
+                    folders: []
+                  },
                   (err, nicosLink) => {
                     assert.ok(!err);
 
@@ -3950,13 +3955,15 @@ describe('Folders', () => {
               // Nico creates a private item and sticks it in the folder
               RestAPI.Content.createLink(
                 nico.restContext,
-                'test',
-                'test',
-                'private',
-                'http://www.google.ca',
-                null,
-                null,
-                [],
+                {
+                  displayName: 'test',
+                  description: 'test',
+                  visibility: PRIVATE,
+                  link: 'http://www.google.ca',
+                  managers: null,
+                  viewers: null,
+                  folders: []
+                },
                 (err, link) => {
                   assert.ok(!err);
                   FoldersTestUtil.assertAddContentItemsToFolderSucceeds(nico.restContext, folder.id, [link.id], () => {
@@ -4022,13 +4029,15 @@ describe('Folders', () => {
           // Create a content item that mrvisser will add to his folder
           RestAPI.Content.createLink(
             camAdminRestContext,
-            'test',
-            'test',
-            'public',
-            'http://www.google.ca',
-            null,
-            null,
-            [],
+            {
+              displayName: 'test',
+              description: 'test',
+              visibility: PUBLIC,
+              link: 'http://www.google.ca',
+              managers: null,
+              viewers: null,
+              folders: []
+            },
             (err, link) => {
               assert.ok(!err);
 
@@ -4056,57 +4065,67 @@ describe('Folders', () => {
           // Create 5 content items to add to the folder
           RestAPI.Content.createLink(
             camAdminRestContext,
-            'test',
-            'test',
-            'public',
-            'http://www.google.ca',
-            null,
-            null,
-            [],
+            {
+              displayName: 'test',
+              description: 'test',
+              visibility: PUBLIC,
+              link: 'http://www.google.ca',
+              managers: null,
+              viewers: null,
+              folders: []
+            },
             (err, link1) => {
               assert.ok(!err);
               RestAPI.Content.createLink(
                 camAdminRestContext,
-                'test',
-                'test',
-                'public',
-                'http://www.google.ca',
-                null,
-                null,
-                [],
+                {
+                  displayName: 'test',
+                  description: 'test',
+                  visibility: PUBLIC,
+                  link: 'http://www.google.ca',
+                  managers: null,
+                  viewers: null,
+                  folders: []
+                },
                 (err, link2) => {
                   assert.ok(!err);
                   RestAPI.Content.createLink(
                     camAdminRestContext,
-                    'test',
-                    'test',
-                    'public',
-                    'http://www.google.ca',
-                    null,
-                    null,
-                    [],
+                    {
+                      displayName: 'test',
+                      description: 'test',
+                      visibility: PUBLIC,
+                      link: 'http://www.google.ca',
+                      managers: null,
+                      viewers: null,
+                      folders: []
+                    },
                     (err, link3) => {
                       assert.ok(!err);
                       RestAPI.Content.createLink(
                         camAdminRestContext,
-                        'test',
-                        'test',
-                        'public',
-                        'http://www.google.ca',
-                        null,
-                        null,
-                        [],
+                        {
+                          displayName: 'test',
+                          description: 'test',
+                          visibility: PUBLIC,
+                          link: 'http://www.google.ca',
+                          managers: null,
+                          viewers: null,
+                          folders: []
+                        },
                         (err, link4) => {
                           assert.ok(!err);
                           RestAPI.Content.createLink(
                             camAdminRestContext,
-                            'test',
-                            'test',
-                            'public',
-                            'http://www.google.ca',
-                            null,
-                            null,
-                            [],
+                            {
+                              displayName: 'test',
+                              description: 'test',
+                              visibility: PUBLIC,
+                              link: 'http://www.google.ca',
+                              managers: null,
+                              viewers: null,
+                              folders: []
+                            },
                             (err, link5) => {
                               assert.ok(!err);
 
@@ -4573,13 +4592,15 @@ describe('Folders', () => {
         FoldersTestUtil.generateTestFolders(mrvisser.restContext, 1, folder => {
           RestAPI.Content.createLink(
             camAdminRestContext,
-            'test',
-            'test',
-            'private',
-            'http://www.google.ca',
-            null,
-            null,
-            [],
+            {
+              displayName: 'test',
+              description: 'test',
+              visibility: PRIVATE,
+              link: 'http://www.google.ca',
+              managers: null,
+              viewers: null,
+              folders: []
+            },
             (err, link) => {
               assert.ok(!err);
 
@@ -4629,13 +4650,15 @@ describe('Folders', () => {
           // Create the private link to which will give mrvisser access VIA group and folder permissions chain
           RestAPI.Content.createLink(
             camAdminRestContext,
-            'test',
-            'test',
-            'private',
-            'http://www.google.ca',
-            null,
-            null,
-            [],
+            {
+              displayName: 'test',
+              description: 'test',
+              visibility: PRIVATE,
+              link: 'http://www.google.ca',
+              managers: null,
+              viewers: null,
+              folders: []
+            },
             (err, link) => {
               assert.ok(!err);
 
@@ -4735,13 +4758,15 @@ describe('Folders', () => {
           // Create a content item that mrvisser will add to his folder
           RestAPI.Content.createLink(
             camAdminRestContext,
-            'test',
-            'test',
-            'public',
-            'http://www.google.ca',
-            null,
-            null,
-            [],
+            {
+              displayName: 'test',
+              description: 'test',
+              visibility: PUBLIC,
+              link: 'http://www.google.ca',
+              managers: null,
+              viewers: null,
+              folders: []
+            },
             (err, link) => {
               assert.ok(!err);
 
@@ -4772,57 +4797,67 @@ describe('Folders', () => {
           // Create 5 content items to add to the folder
           RestAPI.Content.createLink(
             camAdminRestContext,
-            'test1',
-            'test',
-            'public',
-            'http://www.google.ca',
-            null,
-            null,
-            [],
+            {
+              displayName: 'test1',
+              description: 'test',
+              visibility: PUBLIC,
+              link: 'http://www.google.ca',
+              managers: null,
+              viewers: null,
+              folders: []
+            },
             (err, link1) => {
               assert.ok(!err);
               RestAPI.Content.createLink(
                 camAdminRestContext,
-                'test2',
-                'test',
-                'public',
-                'http://www.google.ca',
-                null,
-                null,
-                [],
+                {
+                  displayName: 'test2',
+                  description: 'test',
+                  visibility: PUBLIC,
+                  link: 'http://www.google.ca',
+                  managers: null,
+                  viewers: null,
+                  folders: []
+                },
                 (err, link2) => {
                   assert.ok(!err);
                   RestAPI.Content.createLink(
                     camAdminRestContext,
-                    'test3',
-                    'test',
-                    'public',
-                    'http://www.google.ca',
-                    null,
-                    null,
-                    [],
+                    {
+                      displayName: 'test3',
+                      description: 'test',
+                      visibility: PUBLIC,
+                      link: 'http://www.google.ca',
+                      managers: null,
+                      viewers: null,
+                      folders: []
+                    },
                     (err, link3) => {
                       assert.ok(!err);
                       RestAPI.Content.createLink(
                         camAdminRestContext,
-                        'test4',
-                        'test',
-                        'public',
-                        'http://www.google.ca',
-                        null,
-                        null,
-                        [],
+                        {
+                          displayName: 'test4',
+                          description: 'test',
+                          visibility: PUBLIC,
+                          link: 'http://www.google.ca',
+                          managers: null,
+                          viewers: null,
+                          folders: []
+                        },
                         (err, link4) => {
                           assert.ok(!err);
                           RestAPI.Content.createLink(
                             camAdminRestContext,
-                            'test5',
-                            'test',
-                            'public',
-                            'http://www.google.ca',
-                            null,
-                            null,
-                            [],
+                            {
+                              displayName: 'test5',
+                              description: 'test',
+                              visibility: PUBLIC,
+                              link: 'http://www.google.ca',
+                              managers: null,
+                              viewers: null,
+                              folders: []
+                            },
                             (err, link5) => {
                               assert.ok(!err);
 
@@ -4980,35 +5015,41 @@ describe('Folders', () => {
           // Create some content and add it to the folder
           RestAPI.Content.createLink(
             simong.restContext,
-            'test',
-            'test',
-            'public',
-            'http://www.google.ca',
-            null,
-            [],
-            [folder.id],
+            {
+              displayName: 'test',
+              description: 'test',
+              visibility: PUBLIC,
+              link: 'http://www.google.ca',
+              managers: null,
+              viewers: [],
+              folders: [folder.id]
+            },
             (err, link1) => {
               assert.ok(!err);
               RestAPI.Content.createLink(
                 simong.restContext,
-                'test',
-                'test',
-                'public',
-                'http://www.google.ca',
-                null,
-                [],
-                [folder.id],
+                {
+                  displayName: 'test',
+                  description: 'test',
+                  visibility: PUBLIC,
+                  link: 'http://www.google.ca',
+                  managers: null,
+                  viewers: [],
+                  folders: [folder.id]
+                },
                 (err, link2) => {
                   assert.ok(!err);
                   RestAPI.Content.createLink(
                     simong.restContext,
-                    'test',
-                    'test',
-                    'public',
-                    'http://www.google.ca',
-                    null,
-                    [],
-                    [folder.id],
+                    {
+                      displayName: 'test',
+                      description: 'test',
+                      visibility: PUBLIC,
+                      link: 'http://www.google.ca',
+                      managers: null,
+                      viewers: [],
+                      folders: [folder.id]
+                    },
                     (err, link3) => {
                       assert.ok(!err);
 
@@ -5105,20 +5146,22 @@ describe('Folders', () => {
           // Create some content and add it to the folders
           RestAPI.Content.createLink(
             simong.restContext,
-            'test',
-            'test',
-            'public',
-            'http://www.google.ca',
-            null,
-            [],
-            folderIds,
+            {
+              displayName: 'test',
+              description: 'test',
+              visibility: PUBLIC,
+              link: 'http://www.google.ca',
+              managers: null,
+              viewers: [],
+              folders: folderIds
+            },
             (err, link) => {
               assert.ok(!err);
               RestAPI.Content.createCollabDoc(
                 simong.restContext,
                 'test',
                 'test',
-                'public',
+                PUBLIC,
                 null,
                 [],
                 [],
@@ -5178,13 +5221,15 @@ describe('Folders', () => {
             // Create a content item to add to the folders
             RestAPI.Content.createLink(
               camAdminRestContext,
-              'test',
-              'test',
-              'public',
-              'http://www.google.ca',
-              null,
-              groupIds,
-              [],
+              {
+                displayName: 'test',
+                description: 'test',
+                visibility: PUBLIC,
+                link: 'http://www.google.ca',
+                managers: null,
+                viewers: groupIds,
+                folders: []
+              },
               (err, link) => {
                 assert.ok(!err);
 
@@ -5213,13 +5258,15 @@ describe('Folders', () => {
           // Create a content item to add to the folder
           RestAPI.Content.createLink(
             publicTenant.adminRestContext,
-            'test',
-            'test',
-            'public',
-            'http://www.google.ca',
-            null,
-            [],
-            [],
+            {
+              displayName: 'test',
+              description: 'test',
+              visibility: PUBLIC,
+              link: 'http://www.google.ca',
+              managers: null,
+              viewers: [],
+              folders: []
+            },
             (err, link) => {
               assert.ok(!err);
 
@@ -5369,13 +5416,15 @@ describe('Folders', () => {
           // Create a content item to add to the folder
           RestAPI.Content.createLink(
             publicTenant.adminRestContext,
-            'test',
-            'test',
-            'public',
-            'http://www.google.ca',
-            null,
-            [],
-            [],
+            {
+              displayName: 'test',
+              description: 'test',
+              visibility: PUBLIC,
+              link: 'http://www.google.ca',
+              managers: null,
+              viewers: [],
+              folders: []
+            },
             (err, link) => {
               assert.ok(!err);
 

@@ -27,6 +27,9 @@ import * as ActivityModel from 'oae-activity/lib/model';
 import * as ActivityRouter from 'oae-activity/lib/internal/router';
 import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
 
+const PUBLIC = 'public';
+const PRIVATE = 'private';
+
 describe('Notifications', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user
   let anonymousCamRestContext = null;
@@ -85,13 +88,15 @@ describe('Notifications', () => {
         // Create content with simong as a user
         RestAPI.Content.createLink(
           mrvisser.restContext,
-          'Google',
-          'Google',
-          'private',
-          'http://www.google.ca',
-          [],
-          [simong.user.id],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PRIVATE,
+            link: 'http://www.google.ca',
+            managers: [],
+            viewers: [simong.user.id],
+            folders: []
+          },
           (err, content) => {
             assert.ok(!err);
 
@@ -134,13 +139,15 @@ describe('Notifications', () => {
         // Create content with simong as a user and verify it winds up in the notification stream
         RestAPI.Content.createLink(
           mrvisser.restContext,
-          'Google',
-          'Google',
-          'private',
-          'http://www.google.ca',
-          [],
-          [simong.user.id],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PRIVATE,
+            link: 'http://www.google.ca',
+            managers: [],
+            viewers: [simong.user.id],
+            folders: []
+          },
           (err, content) => {
             assert.ok(!err);
 
@@ -175,13 +182,15 @@ describe('Notifications', () => {
           // Mrvisser shares a content item with simong, it should generate a notification
           RestAPI.Content.createLink(
             mrvisser.restContext,
-            'Google',
-            'Google',
-            'private',
-            'http://www.google.ca',
-            [],
-            [simong.user.id],
-            [],
+            {
+              displayName: 'Google',
+              description: 'Google',
+              visibility: PRIVATE,
+              link: 'http://www.google.ca',
+              managers: [],
+              viewers: [simong.user.id],
+              folders: []
+            },
             (err, link0) => {
               assert.ok(!err);
               ActivityTestsUtil.collectAndGetNotificationStream(
@@ -198,13 +207,15 @@ describe('Notifications', () => {
                     // Mrvisser shares another item with simong
                     RestAPI.Content.createLink(
                       mrvisser.restContext,
-                      'Google',
-                      'Google',
-                      'private',
-                      'http://www.google.ca',
-                      [],
-                      [simong.user.id],
-                      [],
+                      {
+                        displayName: 'Google',
+                        description: 'Google',
+                        visibility: PRIVATE,
+                        link: 'http://www.google.ca',
+                        managers: [],
+                        viewers: [simong.user.id],
+                        folders: []
+                      },
                       (err, link1) => {
                         assert.ok(!err);
                         ActivityTestsUtil.collectAndGetNotificationStream(
@@ -239,24 +250,28 @@ describe('Notifications', () => {
 
                                   RestAPI.Content.createLink(
                                     mrvisser.restContext,
-                                    'Google',
-                                    'Google',
-                                    'private',
-                                    'http://www.google.ca',
-                                    [],
-                                    [simong.user.id],
-                                    [],
+                                    {
+                                      displayName: 'Google',
+                                      description: 'Google',
+                                      visibility: PRIVATE,
+                                      link: 'http://www.google.ca',
+                                      managers: [],
+                                      viewers: [simong.user.id],
+                                      folders: []
+                                    },
                                     (err, link2) => {
                                       assert.ok(!err);
                                       RestAPI.Content.createLink(
                                         mrvisser.restContext,
-                                        'Google',
-                                        'Google',
-                                        'private',
-                                        'http://www.google.ca',
-                                        [],
-                                        [simong.user.id],
-                                        [],
+                                        {
+                                          displayName: 'Google',
+                                          description: 'Google',
+                                          visibility: PRIVATE,
+                                          link: 'http://www.google.ca',
+                                          managers: [],
+                                          viewers: [simong.user.id],
+                                          folders: []
+                                        },
                                         (err, link3) => {
                                           assert.ok(!err);
                                           ActivityTestsUtil.collectAndGetNotificationStream(
@@ -347,13 +362,15 @@ describe('Notifications', () => {
           // Create content with simong as a member
           RestAPI.Content.createLink(
             mrvisser.restContext,
-            'Google',
-            'Google',
-            'private',
-            'http://www.google.ca',
-            [],
-            [simong.user.id],
-            [],
+            {
+              displayName: 'Google',
+              description: 'Google',
+              visibility: PRIVATE,
+              link: 'http://www.google.ca',
+              managers: [],
+              viewers: [simong.user.id],
+              folders: []
+            },
             (err, firstContentObj) => {
               assert.ok(!err);
 
@@ -393,25 +410,29 @@ describe('Notifications', () => {
                         // Create 2 content items again with simong as a member so we can assert the aggregation has been reset
                         RestAPI.Content.createLink(
                           mrvisser.restContext,
-                          'Google',
-                          'Google',
-                          'private',
-                          'http://www.google.ca',
-                          [],
-                          [simong.user.id],
-                          [],
+                          {
+                            displayName: 'Google',
+                            description: 'Google',
+                            visibility: PRIVATE,
+                            link: 'http://www.google.ca',
+                            managers: [],
+                            viewers: [simong.user.id],
+                            folders: []
+                          },
                           (err, secondContentObj) => {
                             assert.ok(!err);
 
                             RestAPI.Content.createLink(
                               mrvisser.restContext,
-                              'Google',
-                              'Google',
-                              'private',
-                              'http://www.google.ca',
-                              [],
-                              [simong.user.id],
-                              [],
+                              {
+                                displayName: 'Google',
+                                description: 'Google',
+                                visibility: PRIVATE,
+                                link: 'http://www.google.ca',
+                                managers: [],
+                                viewers: [simong.user.id],
+                                folders: []
+                              },
                               (err, thirdContentObj) => {
                                 assert.ok(!err);
 
@@ -454,13 +475,15 @@ describe('Notifications', () => {
                                         result => {
                                           RestAPI.Content.createLink(
                                             mrvisser.restContext,
-                                            'Google',
-                                            'Google',
-                                            'private',
-                                            'http://www.google.ca',
-                                            [],
-                                            [simong.user.id],
-                                            [],
+                                            {
+                                              displayName: 'Google',
+                                              description: 'Google',
+                                              visibility: PRIVATE,
+                                              link: 'http://www.google.ca',
+                                              managers: [],
+                                              viewers: [simong.user.id],
+                                              folders: []
+                                            },
                                             (err, fourthContentObj) => {
                                               assert.ok(!err);
 
@@ -576,13 +599,15 @@ describe('Notifications', () => {
                   // Create a piece of content and make nico and mrvisser managers. They should each get an e-mail
                   RestAPI.Content.createLink(
                     simong.restContext,
-                    'Yahoo!',
-                    'Yahoo!',
-                    'public',
-                    'http://www.yahoo.com',
-                    [mrvisser.user.id, nico.user.id],
-                    [],
-                    [],
+                    {
+                      displayName: 'Yahoo!',
+                      description: 'Yahoo!',
+                      visibility: PUBLIC,
+                      link: 'http://www.yahoo.com',
+                      managers: [mrvisser.user.id, nico.user.id],
+                      viewers: [],
+                      folders: []
+                    },
                     (err, link) => {
                       assert.ok(!err);
 

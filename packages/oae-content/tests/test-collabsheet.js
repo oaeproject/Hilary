@@ -21,6 +21,8 @@ import * as Ethercalc from 'oae-content/lib/internal/ethercalc';
 
 import _ from 'underscore';
 
+const PUBLIC = 'public';
+
 describe('Collaborative spreadsheets', function() {
   // Rest context that can be used every time we need to make a request as an anonymous user
   let anonymousRestContext = null;
@@ -54,13 +56,15 @@ describe('Collaborative spreadsheets', function() {
       // Check that we can't join a content item that's not collaborative
       RestAPI.Content.createLink(
         ctx,
-        'Test link',
-        'Test description',
-        'public',
-        'http://www.oaeproject.org/',
-        [],
-        [],
-        [],
+        {
+          displayName: 'Test link',
+          description: 'Test description',
+          PUBLIC,
+          link: 'http://www.oaeproject.org/',
+          managers: [],
+          viewers: [],
+          folders: []
+        },
         function(err, link) {
           assert.ok(!err);
 

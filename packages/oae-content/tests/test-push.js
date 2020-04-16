@@ -63,13 +63,15 @@ describe('Content Push', () => {
             // Create a content item and get its full profile so we have a signature that we can use to register for push notifications
             RestAPI.Content.createLink(
               simong.restContext,
-              'content',
-              'A piece of content',
-              'private',
-              'http://www.google.com',
-              [branden.user.id],
-              [],
-              [],
+              {
+                displayName: 'content',
+                description: 'A piece of content',
+                visibility: PRIVATE,
+                link: 'http://www.google.com',
+                managers: [branden.user.id],
+                viewers: [],
+                folders: []
+              },
               (err, contentObj) => {
                 assert.ok(!err);
                 RestAPI.Content.getContent(simong.restContext, contentObj.id, (err, contentObj) => {

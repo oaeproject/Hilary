@@ -276,10 +276,12 @@ const _getFullContentProfile = (ctx, contentObj, isManager, callback) => {
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Content}        callback.content        The created link
  */
-const createLink = (ctx, displayName, description, visibility, link, additionalMembers, folders, callback) => {
+const createLink = (ctx, linkDetails, callback) => {
   callback = defaultTo(function() {}, callback);
+  const { displayName, description, additionalMembers, folders } = linkDetails;
 
   // Setting content to default if no visibility setting is provided
+  let { link, visibility } = linkDetails;
   visibility = defaultTo(Config.getValue(ctx.tenant().alias, 'visibility', 'links'), visibility);
 
   // Check if the link property is present. All other validation will be done in the _createContent function

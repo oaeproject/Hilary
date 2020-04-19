@@ -34,7 +34,9 @@ LABEL Email=oae@apereo.org
 
 # Install system dependencies
 RUN apk --update --no-cache add \
+      curl \
       git \
+      make \
       python \
       ghostscript \
       graphicsmagick \

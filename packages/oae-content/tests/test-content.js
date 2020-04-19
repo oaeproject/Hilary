@@ -305,13 +305,15 @@ describe('Content', () => {
         // Create a piece of content
         RestAPI.Content.createLink(
           contexts.nicolaas.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PUBLIC,
-          'http://www.oaeproject.org/',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org/',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj);
@@ -367,13 +369,15 @@ describe('Content', () => {
         // Create a piece of content
         RestAPI.Content.createFile(
           contexts.nicolaas.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PRIVATE,
-          getFileStream,
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PRIVATE,
+            file: getFileStream,
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj);
@@ -445,13 +449,15 @@ describe('Content', () => {
         // Create a piece of content
         RestAPI.Content.createFile(
           contexts.nicolaas.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PRIVATE,
-          getFileStream,
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PRIVATE,
+            file: getFileStream,
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj);
@@ -514,13 +520,15 @@ describe('Content', () => {
         // Create a piece of content
         RestAPI.Content.createFile(
           contexts.nicolaas.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PRIVATE,
-          getFileStream,
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PRIVATE,
+            file: getFileStream,
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj);
@@ -756,13 +764,15 @@ describe('Content', () => {
         // Create a piece of content
         RestAPI.Content.createLink(
           contexts.bert.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PUBLIC,
-          'http://www.oaeproject.org/',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org/',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj);
@@ -855,13 +865,15 @@ describe('Content', () => {
           // Create a piece of content that we can comment on and share it with a user that has no profile picture
           RestAPI.Content.createLink(
             bert.restContext,
-            'displayName',
-            'description',
-            PUBLIC,
-            'http://www.oaeproject.org',
-            [],
-            [nicolaas.user.id],
-            [],
+            {
+              displayName: 'displayName',
+              description: 'description',
+              visibility: PUBLIC,
+              link: 'http://www.oaeproject.org',
+              managers: [],
+              viewers: [nicolaas.user.id],
+              folders: []
+            },
             (err, contentObj) => {
               assert.ok(!err);
 
@@ -964,13 +976,15 @@ describe('Content', () => {
         // Create a piece of content
         RestAPI.Content.createLink(
           contexts.bert.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PUBLIC,
-          'http://www.oaeproject.org/',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org/',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj);
@@ -1079,13 +1093,15 @@ describe('Content', () => {
                                             // Verify that paging results the order of threaded comments
                                             RestAPI.Content.createLink(
                                               contexts.bert.restContext,
-                                              'Test Content',
-                                              'Test content description',
-                                              PUBLIC,
-                                              'http://www.oaeproject.org/',
-                                              [],
-                                              [],
-                                              [],
+                                              {
+                                                displayName: 'Test Content',
+                                                description: 'Test content description',
+                                                visibility: PUBLIC,
+                                                link: 'http://www.oaeproject.org/',
+                                                managers: [],
+                                                viewers: [],
+                                                folders: []
+                                              },
                                               (err, contentObj) => {
                                                 assert.ok(!err);
                                                 assert.ok(contentObj.id);
@@ -1197,13 +1213,15 @@ describe('Content', () => {
         // Create a piece of content
         RestAPI.Content.createLink(
           contexts.bert.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PUBLIC,
-          'http://www.oaeproject.org/',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org/',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj);
@@ -1268,13 +1286,15 @@ describe('Content', () => {
 
         RestAPI.Content.createLink(
           ctx,
-          'Test Content',
-          'Test content description',
-          PUBLIC,
-          'http://www.oaeproject.org/',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content',
+            description: 'Test content description',
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org/',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
 
@@ -1315,13 +1335,15 @@ describe('Content', () => {
         // Create a piece of content
         RestAPI.Content.createLink(
           contexts.bert.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PUBLIC,
-          'http://www.oaeproject.org/',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org/',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj);
@@ -1488,26 +1510,30 @@ describe('Content', () => {
         // Create a first piece of content where simon has full access
         RestAPI.Content.createLink(
           contexts.simon.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PUBLIC,
-          'http://www.oaeproject.org/',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org/',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, publicContentObj) => {
             assert.ok(!err);
             assert.ok(publicContentObj);
             // Create a second piece of content where simon is a member
             RestAPI.Content.createLink(
               contexts.nicolaas.restContext,
-              'Test Content 2',
-              'Test content description 2',
-              PRIVATE,
-              'http://www.oaeproject.org/',
-              [],
-              [contexts.simon.user.id],
-              [],
+              {
+                displayName: 'Test Content 2',
+                description: 'Test content description 2',
+                visibility: PRIVATE,
+                link: 'http://www.oaeproject.org/',
+                managers: [],
+                viewers: [contexts.simon.user.id],
+                folders: []
+              },
               (err, privateContentObj) => {
                 assert.ok(!err);
                 assert.ok(privateContentObj);
@@ -1673,13 +1699,15 @@ describe('Content', () => {
         // Create a public piece of content
         RestAPI.Content.createLink(
           contexts.nicolaas.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PUBLIC,
-          'http://www.oaeproject.org/',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org/',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj);
@@ -1745,13 +1773,15 @@ describe('Content', () => {
       ) {
         RestAPI.Content.createLink(
           linkContext.restContext,
-          'Test Content',
-          'Test content description',
-          visibility,
-          'http://www.oaeproject.org/',
-          [],
-          members,
-          [],
+          {
+            displayName: 'Test Content',
+            description: 'Test content description',
+            visibility,
+            link: 'http://www.oaeproject.org/',
+            managers: [],
+            viewers: members,
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj.id);
@@ -1863,13 +1893,15 @@ describe('Content', () => {
         // Create a piece of content
         RestAPI.Content.createLink(
           contexts.bert.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PUBLIC,
-          'http://www.oaeproject.org/',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org/',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj);
@@ -1998,13 +2030,15 @@ describe('Content', () => {
       // Create content with specified visibility
       RestAPI.Content.createLink(
         contexts.bert.restContext,
-        'Test Content 1',
-        'Test content description 1',
-        visibility,
-        'http://www.oaeproject.org/',
-        [],
-        [contexts.nicolaas.user.id],
-        [],
+        {
+          displayName: 'Test Content 1',
+          description: 'Test content description 1',
+          visibility,
+          link: 'http://www.oaeproject.org/',
+          managers: [],
+          viewers: [contexts.nicolaas.user.id],
+          folders: []
+        },
         (err, contentObj) => {
           assert.ok(!err);
           assert.ok(contentObj.id);
@@ -2167,13 +2201,15 @@ describe('Content', () => {
         // Create one as anon user
         RestAPI.Content.createLink(
           anonymousRestContext,
-          'Test Content 1',
-          'Test content description 1',
-          PUBLIC,
-          'http://www.oaeproject.org/',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org/',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(err);
             assert.ok(!contentObj);
@@ -2181,13 +2217,15 @@ describe('Content', () => {
             // Create one with all required fields
             RestAPI.Content.createLink(
               contexts.nicolaas.restContext,
-              'Test Content 2',
-              'Test content description 2',
-              PUBLIC,
-              'http://www.oaeproject.org/',
-              [],
-              [],
-              [],
+              {
+                displayName: 'Test Content 2',
+                description: 'Test content description 2',
+                visibility: PUBLIC,
+                link: 'http://www.oaeproject.org/',
+                managers: [],
+                viewers: [],
+                folders: []
+              },
               (err, contentObj, response) => {
                 assert.ok(!err);
                 assert.ok(contentObj.id);
@@ -2198,13 +2236,15 @@ describe('Content', () => {
                 // Create one without description
                 RestAPI.Content.createLink(
                   contexts.nicolaas.restContext,
-                  'Test Content 3',
-                  null,
-                  PUBLIC,
-                  'http://www.oaeproject.org/',
-                  [],
-                  [],
-                  [],
+                  {
+                    displayName: 'Test Content 3',
+                    description: null,
+                    visibility: PUBLIC,
+                    link: 'http://www.oaeproject.org/',
+                    managers: [],
+                    viewers: [],
+                    folders: []
+                  },
                   (err, contentObj) => {
                     assert.ok(!err);
                     assert.ok(contentObj.id);
@@ -2213,13 +2253,15 @@ describe('Content', () => {
                     const longDescription = TestsUtil.generateRandomText(1000);
                     RestAPI.Content.createLink(
                       contexts.nicolaas.restContext,
-                      'Test Content 4',
-                      longDescription,
-                      PUBLIC,
-                      null,
-                      [],
-                      [],
-                      [],
+                      {
+                        displayName: 'Test Content 4',
+                        description: longDescription,
+                        visibility: PUBLIC,
+                        link: null,
+                        managers: [],
+                        viewers: [],
+                        folders: []
+                      },
                       (err, contentObj) => {
                         assert.ok(err);
                         assert.ok(!contentObj);
@@ -2227,13 +2269,15 @@ describe('Content', () => {
                         // Create one without URL
                         RestAPI.Content.createLink(
                           contexts.nicolaas.restContext,
-                          'Test Content 4',
-                          'Test content description 4',
-                          PUBLIC,
-                          null,
-                          [],
-                          [],
-                          [],
+                          {
+                            displayName: 'Test Content 4',
+                            description: 'Test content description 4',
+                            visibility: PUBLIC,
+                            link: null,
+                            managers: [],
+                            viewers: [],
+                            folders: []
+                          },
                           (err, contentObj) => {
                             assert.ok(err);
                             assert.ok(!contentObj);
@@ -2241,13 +2285,15 @@ describe('Content', () => {
                             // Create one without a valid URL
                             RestAPI.Content.createLink(
                               contexts.nicolaas.restContext,
-                              'Test Content 5',
-                              'Test content description 5',
-                              PUBLIC,
-                              'Just a string',
-                              [],
-                              [],
-                              [],
+                              {
+                                displayName: 'Test Content 5',
+                                description: 'Test content description 5',
+                                visibility: PUBLIC,
+                                link: 'Just a string',
+                                managers: [],
+                                viewers: [],
+                                folders: []
+                              },
                               (err, contentObj) => {
                                 assert.ok(err);
                                 assert.ok(!contentObj);
@@ -2260,13 +2306,15 @@ describe('Content', () => {
 
                                 RestAPI.Content.createLink(
                                   contexts.nicolaas.restContext,
-                                  'Test Content 5',
-                                  'Test content description 5',
-                                  PUBLIC,
-                                  longUrl,
-                                  [],
-                                  [],
-                                  [],
+                                  {
+                                    displayName: 'Test Content 5',
+                                    description: 'Test content description 5',
+                                    visibility: PUBLIC,
+                                    link: longUrl,
+                                    managers: [],
+                                    viewers: [],
+                                    folders: []
+                                  },
                                   (err, contentObj) => {
                                     assert.ok(err);
                                     assert.strictEqual(err.code, 400);
@@ -2275,13 +2323,15 @@ describe('Content', () => {
                                     // Create one without displayName
                                     RestAPI.Content.createLink(
                                       contexts.nicolaas.restContext,
-                                      null,
-                                      'Test content description 6',
-                                      PUBLIC,
-                                      'http://www.oaeproject.org/',
-                                      [],
-                                      [],
-                                      [],
+                                      {
+                                        displayName: null,
+                                        description: 'Test content description 6',
+                                        visibility: PUBLIC,
+                                        link: 'http://www.oaeproject.org/',
+                                        managers: [],
+                                        viewers: [],
+                                        folders: []
+                                      },
                                       (err, contentObj) => {
                                         assert.ok(err);
                                         assert.ok(!contentObj);
@@ -2290,13 +2340,15 @@ describe('Content', () => {
                                         const longDisplayName = TestsUtil.generateRandomText(100);
                                         RestAPI.Content.createLink(
                                           contexts.nicolaas.restContext,
-                                          longDisplayName,
-                                          'Test content description 6',
-                                          PUBLIC,
-                                          'http://www.oaeproject.org/',
-                                          [],
-                                          [],
-                                          [],
+                                          {
+                                            displayName: longDisplayName,
+                                            description: 'Test content description 6',
+                                            visibility: PUBLIC,
+                                            link: 'http://www.oaeproject.org/',
+                                            managers: [],
+                                            viewers: [],
+                                            folders: []
+                                          },
                                           (err, contentObj) => {
                                             assert.ok(err);
                                             assert.strictEqual(err.code, 400);
@@ -2306,13 +2358,15 @@ describe('Content', () => {
                                             // Create one without visibility
                                             RestAPI.Content.createLink(
                                               contexts.nicolaas.restContext,
-                                              'Test Content 7',
-                                              'Test content description 7',
-                                              null,
-                                              'http://www.oaeproject.org/',
-                                              [],
-                                              [],
-                                              [],
+                                              {
+                                                displayName: 'Test Content 7',
+                                                description: 'Test content description 7',
+                                                visibility: null,
+                                                link: 'http://www.oaeproject.org/',
+                                                managers: [],
+                                                viewers: [],
+                                                folders: []
+                                              },
                                               (err, contentObj) => {
                                                 assert.ok(!err);
                                                 assert.ok(contentObj.id);
@@ -2329,13 +2383,15 @@ describe('Content', () => {
                                                     // Verify that an empty description is allowed
                                                     RestAPI.Content.createLink(
                                                       contexts.nicolaas.restContext,
-                                                      'Test Content 7',
-                                                      '',
-                                                      null,
-                                                      'http://www.oaeproject.org/',
-                                                      [],
-                                                      [],
-                                                      [],
+                                                      {
+                                                        displayName: 'Test Content 7',
+                                                        description: '',
+                                                        visibility: null,
+                                                        link: 'http://www.oaeproject.org/',
+                                                        managers: [],
+                                                        viewers: [],
+                                                        folders: []
+                                                      },
                                                       (err, contentObj) => {
                                                         assert.ok(!err);
                                                         assert.ok(contentObj.id);
@@ -2343,13 +2399,15 @@ describe('Content', () => {
                                                         // Verify that a protocol is added if missing
                                                         RestAPI.Content.createLink(
                                                           contexts.nicolaas.restContext,
-                                                          'Test Content 8',
-                                                          'Test content description 8',
-                                                          PUBLIC,
-                                                          'www.oaeproject.org',
-                                                          [],
-                                                          [],
-                                                          [],
+                                                          {
+                                                            displayName: 'Test Content 8',
+                                                            description: 'Test content description 8',
+                                                            visibility: PUBLIC,
+                                                            link: 'www.oaeproject.org',
+                                                            managers: [],
+                                                            viewers: [],
+                                                            folders: []
+                                                          },
                                                           (err, contentObj, response) => {
                                                             assert.ok(!err);
                                                             assert.ok(contentObj.id);
@@ -2402,13 +2460,15 @@ describe('Content', () => {
         // Create one as anon user
         RestAPI.Content.createFile(
           anonymousRestContext,
-          'Test Content 1',
-          'Test content description 1',
-          PUBLIC,
-          getFileStream,
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PUBLIC,
+            file: getFileStream,
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.strictEqual(err.code, 401);
             assert.ok(!contentObj);
@@ -2416,13 +2476,15 @@ describe('Content', () => {
             // Create one with all required fields
             RestAPI.Content.createFile(
               contexts.nicolaas.restContext,
-              'Test Content 2',
-              'Test content description 2',
-              PUBLIC,
-              getFileStream,
-              [],
-              [],
-              [],
+              {
+                displayName: 'Test Content 2',
+                description: 'Test content description 2',
+                visibility: PUBLIC,
+                file: getFileStream,
+                managers: [],
+                viewers: [],
+                folders: []
+              },
               (err, contentObj, response) => {
                 assert.ok(!err);
                 assert.ok(contentObj.id);
@@ -2435,13 +2497,15 @@ describe('Content', () => {
                 // Create one without description
                 RestAPI.Content.createFile(
                   contexts.nicolaas.restContext,
-                  'Test Content 3',
-                  null,
-                  PUBLIC,
-                  getFileStream,
-                  [],
-                  [],
-                  [],
+                  {
+                    displayName: 'Test Content 3',
+                    description: null,
+                    visibility: PUBLIC,
+                    file: getFileStream,
+                    managers: [],
+                    viewers: [],
+                    folders: []
+                  },
                   (err, contentObj) => {
                     assert.ok(!err);
                     assert.ok(contentObj.id);
@@ -2450,13 +2514,15 @@ describe('Content', () => {
                     const longDescription = TestsUtil.generateRandomText(1000);
                     RestAPI.Content.createFile(
                       contexts.nicolaas.restContext,
-                      'Test content',
-                      longDescription,
-                      PUBLIC,
-                      getFileStream,
-                      [],
-                      [],
-                      [],
+                      {
+                        displayName: 'Test content',
+                        description: longDescription,
+                        visibility: PUBLIC,
+                        file: getFileStream,
+                        managers: [],
+                        viewers: [],
+                        folders: []
+                      },
                       (err, contentObj) => {
                         assert.ok(err);
                         assert.strictEqual(err.code, 400);
@@ -2466,13 +2532,15 @@ describe('Content', () => {
                         // Create one without title
                         RestAPI.Content.createFile(
                           contexts.nicolaas.restContext,
-                          null,
-                          'Test content description 4',
-                          PUBLIC,
-                          getFileStream,
-                          [],
-                          [],
-                          [],
+                          {
+                            displayName: null,
+                            description: 'Test content description 4',
+                            visibility: PUBLIC,
+                            file: getFileStream,
+                            managers: [],
+                            viewers: [],
+                            folders: []
+                          },
                           (err, contentObj) => {
                             assert.strictEqual(err.code, 400);
                             assert.ok(!contentObj);
@@ -2481,13 +2549,15 @@ describe('Content', () => {
                             const longDisplayName = TestsUtil.generateRandomText(100);
                             RestAPI.Content.createFile(
                               contexts.nicolaas.restContext,
-                              longDisplayName,
-                              'Test content description 4',
-                              PUBLIC,
-                              getFileStream,
-                              [],
-                              [],
-                              [],
+                              {
+                                displayName: longDisplayName,
+                                description: 'Test content description 4',
+                                visibility: PUBLIC,
+                                file: getFileStream,
+                                managers: [],
+                                viewers: [],
+                                folders: []
+                              },
                               (err, contentObj) => {
                                 assert.ok(err);
                                 assert.strictEqual(err.code, 400);
@@ -2497,13 +2567,15 @@ describe('Content', () => {
                                 // Create one without a file body.
                                 RestAPI.Content.createFile(
                                   contexts.nicolaas.restContext,
-                                  'Test Content 4',
-                                  'Test content description 4',
-                                  PUBLIC,
-                                  null,
-                                  [],
-                                  [],
-                                  [],
+                                  {
+                                    displayName: 'Test Content 4',
+                                    description: 'Test content description 4',
+                                    visibility: PUBLIC,
+                                    file: null,
+                                    managers: [],
+                                    viewers: [],
+                                    folders: []
+                                  },
                                   (err, contentObj) => {
                                     assert.strictEqual(err.code, 400);
                                     assert.ok(!contentObj);
@@ -2511,13 +2583,15 @@ describe('Content', () => {
                                     // Create one without visibility
                                     RestAPI.Content.createFile(
                                       contexts.nicolaas.restContext,
-                                      'Test Content 5',
-                                      'Test content description 6',
-                                      null,
-                                      getFileStream,
-                                      [],
-                                      [],
-                                      [],
+                                      {
+                                        displayName: 'Test Content 5',
+                                        description: 'Test content description 6',
+                                        visibility: null,
+                                        file: getFileStream,
+                                        managers: [],
+                                        viewers: [],
+                                        folders: []
+                                      },
                                       (err, contentObj) => {
                                         assert.ok(!err);
                                         assert.ok(contentObj.id);
@@ -2539,13 +2613,15 @@ describe('Content', () => {
                                             // Verify that an empty description is accepted
                                             RestAPI.Content.createFile(
                                               contexts.nicolaas.restContext,
-                                              'Test Content 5',
-                                              '',
-                                              PUBLIC,
-                                              getFileStream,
-                                              [],
-                                              [],
-                                              [],
+                                              {
+                                                displayName: 'Test Content 5',
+                                                description: '',
+                                                visibility: PUBLIC,
+                                                file: getFileStream,
+                                                managers: [],
+                                                viewers: [],
+                                                folders: []
+                                              },
                                               (err, contentObj) => {
                                                 assert.ok(!err);
                                                 assert.ok(contentObj.id);
@@ -2737,13 +2813,15 @@ describe('Content', () => {
         // Create a public content item
         RestAPI.Content.createLink(
           contexts.nicolaas.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PUBLIC,
-          'http://www.oaeproject.org/',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org/',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj.id);
@@ -2797,13 +2875,15 @@ describe('Content', () => {
         // Create a logged in content item
         RestAPI.Content.createLink(
           contexts.nicolaas.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          LOGGEDIN,
-          'http://www.oaeproject.org/',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: LOGGEDIN,
+            link: 'http://www.oaeproject.org/',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj.id);
@@ -2857,13 +2937,15 @@ describe('Content', () => {
         // Create a private content item
         RestAPI.Content.createLink(
           contexts.nicolaas.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PRIVATE,
-          'http://www.oaeproject.org/',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PRIVATE,
+            link: 'http://www.oaeproject.org/',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj.id);
@@ -2918,13 +3000,15 @@ describe('Content', () => {
         // Create a private content item and share with 2 people
         RestAPI.Content.createLink(
           contexts.nicolaas.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PRIVATE,
-          'http://www.oaeproject.org/',
-          [contexts.simon.user.id],
-          [contexts.stuart.user.id],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PRIVATE,
+            link: 'http://www.oaeproject.org/',
+            managers: [contexts.simon.user.id],
+            viewers: [contexts.stuart.user.id],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj.id);
@@ -3003,13 +3087,15 @@ describe('Content', () => {
         // Create a private content item and share with 2 people
         RestAPI.Content.createFile(
           contexts.nicolaas.restContext,
-          'Test Content 2',
-          'Test content description 2',
-          PRIVATE,
-          getFileStream,
-          [contexts.simon.user.id],
-          [contexts.stuart.user.id],
-          [],
+          {
+            displayName: 'Test Content 2',
+            description: 'Test content description 2',
+            visibility: PRIVATE,
+            file: getFileStream,
+            managers: [contexts.simon.user.id],
+            viewers: [contexts.stuart.user.id],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj.id);
@@ -3177,13 +3263,15 @@ describe('Content', () => {
 
           RestAPI.Content.createLink(
             nico.restContext,
-            'Test Content',
-            'Test content description',
-            PUBLIC,
-            'http://www.oaeproject.org/',
-            [bert.user.id],
-            [],
-            [],
+            {
+              displayName: 'Test Content',
+              description: 'Test content description',
+              visibility: PUBLIC,
+              link: 'http://www.oaeproject.org/',
+              managers: [bert.user.id],
+              viewers: [],
+              folders: []
+            },
             (err, contentObj) => {
               assert.ok(err);
               assert.strictEqual(err.code, 401);
@@ -3216,13 +3304,15 @@ describe('Content', () => {
 
             RestAPI.Content.createLink(
               nico.restContext,
-              'Test Content',
-              'Test content description',
-              PUBLIC,
-              'http://www.oaeproject.org/',
-              [groupObj.id],
-              [],
-              [],
+              {
+                displayName: 'Test Content',
+                description: 'Test content description',
+                visibility: PUBLIC,
+                link: 'http://www.oaeproject.org/',
+                managers: [groupObj.id],
+                viewers: [],
+                folders: []
+              },
               (err, contentObj) => {
                 assert.ok(err);
                 assert.strictEqual(err.code, 401);
@@ -3286,13 +3376,15 @@ describe('Content', () => {
       setUpUsers(contexts => {
         RestAPI.Content.createLink(
           contexts.nicolaas.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PUBLIC,
-          'http://www.oaeproject.org/',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org/',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj.id);
@@ -3612,13 +3704,15 @@ describe('Content', () => {
       setUpUsers(contexts => {
         RestAPI.Content.createLink(
           contexts.nicolaas.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PUBLIC,
-          'http://www.oaeproject.org/',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org/',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj.id);
@@ -3713,13 +3807,15 @@ describe('Content', () => {
 
         RestAPI.Content.createLink(
           nicolaas.restContext,
-          'display name',
-          'description',
-          PUBLIC,
-          'http://www.oaeproject.org',
-          [],
-          [],
-          [],
+          {
+            displayName: 'display name',
+            description: 'description',
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj.id);
@@ -3796,13 +3892,15 @@ describe('Content', () => {
       setUpUsers(contexts => {
         RestAPI.Content.createFile(
           contexts.nicolaas.restContext,
-          'Test Content 2',
-          'Test content description 2',
-          PUBLIC,
-          getFileStream,
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 2',
+            description: 'Test content description 2',
+            visibility: PUBLIC,
+            file: getFileStream,
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj.id);
@@ -3852,13 +3950,15 @@ describe('Content', () => {
       setUpUsers(contexts => {
         RestAPI.Content.createLink(
           contexts.nicolaas.restContext,
-          'Test Content 2',
-          'Test content description 2',
-          PUBLIC,
-          'http://www.oaeproject.org',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 2',
+            description: 'Test content description 2',
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj.id);
@@ -3868,13 +3968,15 @@ describe('Content', () => {
 
               RestAPI.Content.createFile(
                 contexts.nicolaas.restContext,
-                'Test Content 2',
-                'Test content description 2',
-                PUBLIC,
-                getFileStream,
-                [],
-                [],
-                [],
+                {
+                  displayName: 'Test Content 2',
+                  description: 'Test content description 2',
+                  visibility: PUBLIC,
+                  file: getFileStream,
+                  managers: [],
+                  viewers: [],
+                  folders: []
+                },
                 (err, contentObj) => {
                   assert.ok(!err);
                   assert.ok(contentObj.id);
@@ -3976,13 +4078,15 @@ describe('Content', () => {
       setUpUsers(contexts => {
         RestAPI.Content.createFile(
           contexts.nicolaas.restContext,
-          'Test Content 2',
-          'Test content description 2',
-          PUBLIC,
-          getFileStream,
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 2',
+            description: 'Test content description 2',
+            visibility: PUBLIC,
+            file: getFileStream,
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj.id);
@@ -4102,13 +4206,15 @@ describe('Content', () => {
         // Create some content with a couple of revisions
         RestAPI.Content.createFile(
           contexts.simon.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PRIVATE,
-          getFileStream,
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PRIVATE,
+            file: getFileStream,
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentSimon) => {
             assert.ok(!err);
             assert.ok(contentSimon);
@@ -4149,13 +4255,15 @@ describe('Content', () => {
                           // Nico creates a piece of content
                           RestAPI.Content.createLink(
                             contexts.nicolaas.restContext,
-                            'Apereo Foundation',
-                            'The Apereo Foundation',
-                            PRIVATE,
-                            'http://www.apereo.org/',
-                            [],
-                            [],
-                            [],
+                            {
+                              displayName: 'Apereo Foundation',
+                              description: 'The Apereo Foundation',
+                              visibility: PRIVATE,
+                              link: 'http://www.apereo.org/',
+                              managers: [],
+                              viewers: [],
+                              folders: []
+                            },
                             (err, contentNico) => {
                               assert.ok(!err);
 
@@ -4195,13 +4303,15 @@ describe('Content', () => {
         // Create some content with a couple of revisions
         RestAPI.Content.createFile(
           contexts.simon.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PRIVATE,
-          getFileStream,
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PRIVATE,
+            file: getFileStream,
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj);
@@ -4250,13 +4360,15 @@ describe('Content', () => {
         // Create some content with a couple of revisions
         RestAPI.Content.createFile(
           contexts.simon.restContext,
-          'Test Content',
-          'Test content description',
-          PRIVATE,
-          getFileStream,
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content',
+            description: 'Test content description',
+            visibility: PRIVATE,
+            file: getFileStream,
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj);
@@ -4332,13 +4444,15 @@ describe('Content', () => {
         // Create some content with a couple of revisions
         RestAPI.Content.createFile(
           contexts.simon.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PRIVATE,
-          getFileStream,
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PRIVATE,
+            file: getFileStream,
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj);
@@ -4406,13 +4520,15 @@ describe('Content', () => {
       // Create a content item
       RestAPI.Content.createLink(
         contexts.nicolaas.restContext,
-        'Test Content 1',
-        'Test content description 1',
-        privacy,
-        'http://www.oaeproject.org/',
-        [],
-        [],
-        [],
+        {
+          displayName: 'Test Content 1',
+          description: 'Test content description 1',
+          visibility: privacy,
+          link: 'http://www.oaeproject.org/',
+          managers: [],
+          viewers: [],
+          folders: []
+        },
         (err, contentObj) => {
           assert.ok(!err);
           assert.ok(contentObj.id);
@@ -4659,13 +4775,15 @@ describe('Content', () => {
       setUpUsers(contexts => {
         RestAPI.Content.createFile(
           contexts.nicolaas.restContext,
-          'Test Content 2',
-          'Test content description 2',
-          PUBLIC,
-          getFileStream,
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 2',
+            description: 'Test content description 2',
+            visibility: PUBLIC,
+            file: getFileStream,
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj.id);
@@ -4760,13 +4878,15 @@ describe('Content', () => {
       // Create a public content item
       RestAPI.Content.createLink(
         contexts.nicolaas.restContext,
-        'Test Content 1',
-        'Test content description 1',
-        privacy,
-        'http://www.oaeproject.org/',
-        [],
-        [],
-        [],
+        {
+          displayName: 'Test Content 1',
+          description: 'Test content description 1',
+          visibility: privacy,
+          link: 'http://www.oaeproject.org/',
+          managers: [],
+          viewers: [],
+          folders: []
+        },
         (err, contentObj) => {
           assert.ok(!err);
           assert.ok(contentObj.id);
@@ -4907,13 +5027,15 @@ describe('Content', () => {
         // Create a content item
         RestAPI.Content.createLink(
           contexts.nicolaas.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PUBLIC,
-          'http://www.oaeproject.org/',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org/',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj.id);
@@ -4972,13 +5094,15 @@ describe('Content', () => {
         // Create a content item
         RestAPI.Content.createLink(
           contexts.nicolaas.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PUBLIC,
-          'http://www.oaeproject.org/',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org/',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
             assert.ok(contentObj.id);
@@ -5040,13 +5164,15 @@ describe('Content', () => {
         // Create a content item
         RestAPI.Content.createLink(
           contexts.nicolaas.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PUBLIC,
-          'http://www.oaeproject.org/',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org/',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
 
@@ -5133,13 +5259,15 @@ describe('Content', () => {
 
           RestAPI.Content.createLink(
             nico.restContext,
-            'Test Content',
-            'Test content description',
-            PUBLIC,
-            'http://www.google.com',
-            [],
-            [],
-            [],
+            {
+              displayName: 'Test Content',
+              description: 'Test content description',
+              visibility: PUBLIC,
+              link: 'http://www.google.com',
+              managers: [],
+              viewers: [],
+              folders: []
+            },
             (err, contentObj) => {
               assert.ok(!err);
 
@@ -5177,13 +5305,15 @@ describe('Content', () => {
 
             RestAPI.Content.createLink(
               nico.restContext,
-              'Test Content',
-              'Test content description',
-              PUBLIC,
-              'http://www.google.com',
-              [],
-              [],
-              [],
+              {
+                displayName: 'Test Content',
+                description: 'Test content description',
+                visibility: PUBLIC,
+                link: 'http://www.google.com',
+                managers: [],
+                viewers: [],
+                folders: []
+              },
               (err, contentObj) => {
                 assert.ok(!err);
 
@@ -5211,13 +5341,15 @@ describe('Content', () => {
 
         RestAPI.Content.createLink(
           nico.restContext,
-          'Test Content',
-          'Test content description',
-          PUBLIC,
-          'http://www.google.com',
-          [],
-          [bert.user.id],
-          [],
+          {
+            displayName: 'Test Content',
+            description: 'Test content description',
+            visibility: PUBLIC,
+            link: 'http://www.google.com',
+            managers: [],
+            viewers: [bert.user.id],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
 
@@ -5270,13 +5402,15 @@ describe('Content', () => {
         // Create a piece of content with 10 members (including the content creator)
         RestAPI.Content.createLink(
           simon.restContext,
-          'Test Content',
-          'Test content description',
-          PUBLIC,
-          'http://www.oaeproject.org/',
-          [],
-          memberIds,
-          [],
+          {
+            displayName: 'Test Content',
+            description: 'Test content description',
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org/',
+            managers: [],
+            viewers: memberIds,
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
 
@@ -5310,13 +5444,15 @@ describe('Content', () => {
 
         RestAPI.Content.createLink(
           ctx,
-          'Test Content',
-          'Test content description',
-          PUBLIC,
-          'http://www.oaeproject.org/',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content',
+            description: 'Test content description',
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org/',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
 
@@ -5556,13 +5692,15 @@ describe('Content', () => {
       // Create a content item
       RestAPI.Content.createLink(
         contexts.nicolaas.restContext,
-        'Test Content 1',
-        'Test content description 1',
-        privacy,
-        'http://www.oaeproject.org/',
-        [],
-        [],
-        [],
+        {
+          displayName: 'Test Content 1',
+          description: 'Test content description 1',
+          visibility: privacy,
+          link: 'http://www.oaeproject.org/',
+          managers: [],
+          viewers: [],
+          folders: []
+        },
         (err, contentObj) => {
           assert.ok(!err);
           assert.ok(contentObj.id);
@@ -5988,13 +6126,15 @@ describe('Content', () => {
         // Create a content item to share
         RestAPI.Content.createLink(
           actor.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          PRIVATE,
-          'http://www.oaeproject.org/',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            visibility: PRIVATE,
+            link: 'http://www.oaeproject.org/',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 
@@ -6049,13 +6189,15 @@ describe('Content', () => {
       // Anthony creates a content item
       RestAPI.Content.createLink(
         contexts.anthony.restContext,
-        'Test Content 1',
-        'Test content description 1',
-        privacy,
-        'http://www.oaeproject.org/',
-        [],
-        [],
-        [],
+        {
+          displayName: 'Test Content 1',
+          description: 'Test content description 1',
+          visibility: privacy,
+          link: 'http://www.oaeproject.org/',
+          managers: [],
+          viewers: [],
+          folders: []
+        },
         (err, contentObj) => {
           assert.ok(!err);
           assert.ok(contentObj.id);

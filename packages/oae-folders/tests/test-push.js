@@ -24,6 +24,8 @@ import * as TestsUtil from 'oae-tests';
 import { FoldersConstants } from 'oae-folders/lib/constants';
 import * as FoldersTestUtil from 'oae-folders/lib/test/util';
 
+const PUBLIC = 'public';
+
 describe('Folders - Push', () => {
   // Rest contexts that can be used performing rest requests
   let localAdminRestContext = null;
@@ -339,13 +341,15 @@ describe('Folders - Push', () => {
         // Add an item to a folder
         RestAPI.Content.createLink(
           contexts.simon.restContext,
-          'test',
-          'test',
-          'public',
-          'http://www.google.ca',
-          null,
-          null,
-          [folder.id],
+          {
+            displayName: 'test',
+            description: 'test',
+            visibility: PUBLIC,
+            link: 'http://www.google.ca',
+            managers: null,
+            viewers: null,
+            folders: [folder.id]
+          },
           (err, nicosLink) => {
             assert.ok(!err);
           }

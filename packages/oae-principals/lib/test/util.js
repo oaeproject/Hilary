@@ -2361,14 +2361,23 @@ const generateFiles = function(restCtx, privacy, numToCreate, callback, _created
     return callback(null, _created);
   }
 
-  RestAPI.Content.createFile(restCtx, 'name', 'description', privacy, _getPictureStream(), null, null, null, function(
-    err,
-    file
-  ) {
-    assert.ok(!err);
-    _created.push(file);
-    return generateFiles(restCtx, privacy, numToCreate, callback, _created);
-  });
+  RestAPI.Content.createFile(
+    restCtx,
+    {
+      displayName: 'name',
+      description: 'description',
+      visibility: privacy,
+      file: _getPictureStream(),
+      managers: null,
+      viewers: null,
+      folders: null
+    },
+    function(err, file) {
+      assert.ok(!err);
+      _created.push(file);
+      return generateFiles(restCtx, privacy, numToCreate, callback, _created);
+    }
+  );
 };
 
 /**
@@ -2435,14 +2444,23 @@ const generateLinks = function(restCtx, privacy, numToCreate, callback, _created
     return callback(null, _created);
   }
 
-  RestAPI.Content.createLink(restCtx, 'name', 'description', privacy, 'google.com', null, null, null, function(
-    err,
-    link
-  ) {
-    assert.ok(!err);
-    _created.push(link);
-    return generateLinks(restCtx, privacy, numToCreate, callback, _created);
-  });
+  RestAPI.Content.createLink(
+    restCtx,
+    {
+      displayName: 'name',
+      description: 'description',
+      visibility: privacy,
+      link: 'google.com',
+      managers: null,
+      viewers: null,
+      folders: null
+    },
+    function(err, link) {
+      assert.ok(!err);
+      _created.push(link);
+      return generateLinks(restCtx, privacy, numToCreate, callback, _created);
+    }
+  );
 };
 
 /**

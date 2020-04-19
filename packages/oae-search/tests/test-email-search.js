@@ -22,6 +22,8 @@ import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 import * as SearchTestUtil from 'oae-search/lib/test/util';
 
+const PUBLIC = 'public';
+
 describe('Email Search', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user
   let anonymousRestContext = null;
@@ -303,13 +305,15 @@ describe('Email Search', () => {
             // we can ensure they don't come out of the search
             RestAPI.Content.createLink(
               userInfo0.restContext,
-              userInfo0.user.email,
-              userInfo0.user.email,
-              'public',
-              'google.com',
-              [],
-              [],
-              [],
+              {
+                displayName: userInfo0.user.email,
+                description: userInfo0.user.email,
+                visibility: PUBLIC,
+                link: 'google.com',
+                managers: [],
+                viewers: [],
+                folders: []
+              },
               (err, link) => {
                 assert.ok(!err);
                 RestAPI.Group.createGroup(

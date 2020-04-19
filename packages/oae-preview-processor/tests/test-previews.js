@@ -50,6 +50,9 @@ import * as PreviewTestUtil from 'oae-preview-processor/lib/test/util';
 import * as PreviewUtil from 'oae-preview-processor/lib/util';
 import { flush } from 'oae-util/lib/redis';
 
+const PRIVATE = 'private';
+const PUBLIC = 'public';
+
 describe('Preview processor', () => {
   // We fill this variable on tests startup with the configuration
   // as specified in the root config.js/beforeTests file.
@@ -176,13 +179,15 @@ describe('Preview processor', () => {
 
         RestAPI.Content.createFile(
           restCtx,
-          'Test Content 1',
-          'Test content description 1',
-          'private',
-          getImageStream,
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description: 'Test content description 1',
+            PRIVATE,
+            file: getImageStream,
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
 
@@ -321,17 +326,23 @@ describe('Preview processor', () => {
         if (resourceSubType === 'file') {
           RestAPI.Content.createFile(
             restCtx,
-            'Test Content 1',
-            'Test content description 1',
-            'public',
-            stream,
-            [],
-            [],
-            [],
+            {
+              displayName: 'Test Content 1',
+              description: 'Test content description 1',
+              PUBLIC,
+              file: stream,
+              managers: [],
+              viewers: [],
+              folders: []
+            },
             contentCreated
           );
         } else if (resourceSubType === 'link') {
-          RestAPI.Content.createLink(restCtx, link, null, 'private', link, [], [], [], contentCreated);
+          RestAPI.Content.createLink(
+            restCtx,
+            { displayName: link, description: null, PRIVATE, link, managers: [], viewers: [], folders: [] },
+            contentCreated
+          );
         } else if (resourceSubType === 'collabdoc') {
           RestAPI.Content.createCollabDoc(
             restCtx,
@@ -1812,13 +1823,15 @@ describe('Preview processor', () => {
             // PP so the unit test can end within the test timeout time.
             RestAPI.Content.createFile(
               restCtx,
-              'Test Content 1',
-              'Test content description 1',
-              'private',
-              getZipStream,
-              [],
-              [],
-              [],
+              {
+                displayName: 'Test Content 1',
+                description: 'Test content description 1',
+                PRIVATE,
+                file: getZipStream,
+                managers: [],
+                viewers: [],
+                folders: []
+              },
               (err, contentObj) => {
                 assert.ok(!err);
 
@@ -2149,26 +2162,30 @@ describe('Preview processor', () => {
 
                       RestAPI.Content.createFile(
                         user.restContext,
-                        'Test Content',
-                        'Test content description',
-                        'public',
-                        getImageStream,
-                        [],
-                        [],
-                        [],
+                        {
+                          displayName: 'Test Content',
+                          description: 'Test content description',
+                          PUBLIC,
+                          file: getImageStream,
+                          managers: [],
+                          viewers: [],
+                          folders: []
+                        },
                         (err, content) => {
                           assert.ok(!err);
 
                           // Create a link, we'll use it as a sanity check to ensure only file types got reprocessed
                           RestAPI.Content.createLink(
                             user.restContext,
-                            'Google',
-                            'Google',
-                            'public',
-                            'http://www.google.com',
-                            [],
-                            [],
-                            [],
+                            {
+                              displayName: 'Google',
+                              description: 'Google',
+                              PUBLIC,
+                              link: 'http://www.google.com',
+                              managers: [],
+                              viewers: [],
+                              folders: []
+                            },
                             (err, link) => {
                               // Purge everything with a delay to ensure the 2 files have been
                               // submit for processing
@@ -2592,13 +2609,15 @@ describe('Preview processor', () => {
               // Create a file that we can process
               RestAPI.Content.createFile(
                 mrvisser.restContext,
-                'Test Content 1',
-                'Test content description 1',
-                'private',
-                getImageStream,
-                [],
-                [],
-                [],
+                {
+                  displayName: 'Test Content 1',
+                  description: 'Test content description 1',
+                  PRIVATE,
+                  file: getImageStream,
+                  managers: [],
+                  viewers: [],
+                  folders: []
+                },
                 (err, contentObj) => {
                   assert.ok(!err);
 

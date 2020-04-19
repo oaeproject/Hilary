@@ -37,6 +37,10 @@ import * as TestsUtil from 'oae-tests';
 import * as ContentTestUtil from 'oae-content/lib/test/util';
 import * as Etherpad from 'oae-content/lib/internal/etherpad';
 
+const PUBLIC = 'public';
+const PRIVATE = 'private';
+const LOGGED_IN = 'loggedin';
+
 describe('Content Activity', () => {
   // Rest contexts that can be used for performing REST requests
   let anonymousCamRestContext = null;
@@ -218,13 +222,15 @@ describe('Content Activity', () => {
                   // Create a content item with manager group and viewer group as members.
                   RestAPI.Content.createLink(
                     jack.restContext,
-                    'Google',
-                    'Google',
-                    'public',
-                    'http://www.google.ca',
-                    [managerGroup.id],
-                    [viewerGroup.id],
-                    [],
+                    {
+                      displayName: 'Google',
+                      description: 'Google',
+                      visibility: PUBLIC,
+                      link: 'http://www.google.ca',
+                      managers: [managerGroup.id],
+                      viewers: [viewerGroup.id],
+                      folders: []
+                    },
                     (err, link) => {
                       assert.ok(!err);
 
@@ -324,13 +330,15 @@ describe('Content Activity', () => {
         // Create a private content item
         RestAPI.Content.createLink(
           camAdminRestContext,
-          'Google',
-          'Google',
-          'private',
-          'http://www.google.ca',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PRIVATE,
+            link: 'http://www.google.ca',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 
@@ -376,13 +384,15 @@ describe('Content Activity', () => {
         // Create a content item to be commented on
         RestAPI.Content.createLink(
           simong.restContext,
-          'Google',
-          'Google',
-          'public',
-          'http://www.google.ca',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PUBLIC,
+            link: 'http://www.google.ca',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 
@@ -438,13 +448,15 @@ describe('Content Activity', () => {
         // Create a content item to be commented on, bert is a member
         RestAPI.Content.createLink(
           simong.restContext,
-          'Google',
-          'Google',
-          'public',
-          'http://www.google.ca',
-          [],
-          [bert.user.id],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PUBLIC,
+            link: 'http://www.google.ca',
+            managers: [],
+            viewers: [bert.user.id],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 
@@ -522,13 +534,15 @@ describe('Content Activity', () => {
           // Create a content item to be commented on
           RestAPI.Content.createLink(
             simong.restContext,
-            'Google',
-            'Google',
-            'public',
-            'http://www.google.ca',
-            [],
-            [],
-            [],
+            {
+              displayName: 'Google',
+              description: 'Google',
+              visibility: PUBLIC,
+              link: 'http://www.google.ca',
+              managers: [],
+              viewers: [],
+              folders: []
+            },
             (err, link) => {
               assert.ok(!err);
 
@@ -552,7 +566,7 @@ describe('Content Activity', () => {
                       assert.strictEqual(activityStream.items[0].object['oae:id'], mrvisserComment.id);
                       assert.ok(activityStream.items[0].object.author.image);
                       assert.ok(activityStream.items[0].object.author.image.url);
-                      assert.ok(activityStream.items[0].object.author.image.url.indexOf('expired') === -1);
+                      assert.ok(!activityStream.items[0].object.author.image.url.includes('expired'));
                       callback();
                     }
                   );
@@ -845,7 +859,7 @@ describe('Content Activity', () => {
                       assert.ok(revision);
 
                       // Assert the text is in the latest revision
-                      assert.ok(revision.etherpadHtml.indexOf(args.text) > -1);
+                      assert.ok(revision.etherpadHtml.includes(args.text));
                       return callback();
                     }
                   );
@@ -873,13 +887,15 @@ describe('Content Activity', () => {
         const name = TestsUtil.generateTestUserId('file');
         RestAPI.Content.createFile(
           simonCtx,
-          name,
-          'description',
-          'public',
-          getFunctionThatReturnsFileStream('oae-video.png'),
-          [brandenId],
-          [nicoId],
-          [],
+          {
+            displayName: name,
+            description: 'description',
+            visibility: 'public',
+            file: getFunctionThatReturnsFileStream('oae-video.png'),
+            managers: [brandenId],
+            viewers: [nicoId],
+            folders: []
+          },
           (err, content) => {
             assert.ok(!err);
 
@@ -977,13 +993,15 @@ describe('Content Activity', () => {
 
         RestAPI.Content.createLink(
           simon.restContext,
-          'Google',
-          'Google',
-          'public',
-          'http://www.google.ca',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PUBLIC,
+            link: 'http://www.google.ca',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, contentObj) => {
             assert.ok(!err);
 
@@ -1056,13 +1074,15 @@ describe('Content Activity', () => {
 
         RestAPI.Content.createLink(
           simon.restContext,
-          'Google',
-          'Google',
-          'public',
-          'http://www.google.ca',
-          [nico.user.id],
-          [bert.user.id, stuart.user.id],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PUBLIC,
+            link: 'http://www.google.ca',
+            managers: [nico.user.id],
+            viewers: [bert.user.id, stuart.user.id],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 
@@ -1162,7 +1182,7 @@ describe('Content Activity', () => {
         assert.strictEqual(entity.objectType, 'content');
         assert.strictEqual(entity['oae:id'], contentId);
         assert.strictEqual(entity.url, 'http://' + global.oaeTests.tenants.cam.host + '/content/camtest/' + resourceId);
-        assert.ok(entity.id.indexOf(contentId) !== -1);
+        assert.ok(entity.id.includes(contentId));
       };
 
       TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, jack) => {
@@ -1171,13 +1191,15 @@ describe('Content Activity', () => {
         // Generate an activity with the content
         RestAPI.Content.createLink(
           jack.restContext,
-          'Google',
-          'Google',
-          'public',
-          'http://www.google.ca',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PUBLIC,
+            link: 'http://www.google.ca',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 
@@ -1402,13 +1424,15 @@ describe('Content Activity', () => {
         // Generate an activity with the content
         RestAPI.Content.createLink(
           jack.restContext,
-          'Google',
-          'Google',
-          'public',
-          'http://www.google.ca',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PUBLIC,
+            link: 'http://www.google.ca',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 
@@ -1425,7 +1449,7 @@ describe('Content Activity', () => {
                   'Reply Comment A',
                   commentA.created,
                   (err, replyCommentA) => {
-                    if(err) console.log(err)
+                    if (err) console.log(err);
                     assert.ok(!err);
 
                     ActivityTestsUtil.collectAndGetActivityStream(
@@ -1460,7 +1484,7 @@ describe('Content Activity', () => {
                             entity.url,
                             '/content/camtest/' + AuthzUtil.getResourceFromId(comment.messageBoxId).resourceId
                           );
-                          assert.ok(entity.id.indexOf('content/' + link.id + '/messages/' + comment.created) !== -1);
+                          assert.ok(entity.id.includes('content/' + link.id + '/messages/' + comment.created));
                           assert.strictEqual(entity.published, comment.created);
                           assert.strictEqual(entity['oae:messageBoxId'], comment.messageBoxId);
                           assert.strictEqual(entity['oae:threadKey'], comment.threadKey);
@@ -1540,35 +1564,41 @@ describe('Content Activity', () => {
           // Create a public, loggedin and private content item to distribute to followers of the actor user
           RestAPI.Content.createLink(
             publicTenant0.publicUser.restContext,
-            'Google',
-            'Google',
-            'public',
-            'http://www.google.ca',
-            [],
-            [publicTenant1.publicUser.user.id],
-            [],
+            {
+              displayName: 'Google',
+              description: 'Google',
+              visibility: PUBLIC,
+              link: 'http://www.google.ca',
+              managers: [],
+              viewers: [publicTenant1.publicUser.user.id],
+              folders: []
+            },
             (err, publicLink) => {
               assert.ok(!err);
               RestAPI.Content.createLink(
                 publicTenant0.publicUser.restContext,
-                'Google',
-                'Google',
-                'loggedin',
-                'http://www.google.ca',
-                [],
-                [publicTenant1.publicUser.user.id],
-                [],
+                {
+                  displayName: 'Google',
+                  description: 'Google',
+                  visibility: LOGGED_IN,
+                  link: 'http://www.google.ca',
+                  managers: [],
+                  viewers: [publicTenant1.publicUser.user.id],
+                  folders: []
+                },
                 (err, loggedinLink) => {
                   assert.ok(!err);
                   RestAPI.Content.createLink(
                     publicTenant0.publicUser.restContext,
-                    'Google',
-                    'Google',
-                    'private',
-                    'http://www.google.ca',
-                    [],
-                    [publicTenant1.publicUser.user.id],
-                    [],
+                    {
+                      displayName: 'Google',
+                      description: 'Google',
+                      visibility: PRIVATE,
+                      link: 'http://www.google.ca',
+                      managers: [],
+                      viewers: [publicTenant1.publicUser.user.id],
+                      folders: []
+                    },
                     (err, privateLink) => {
                       assert.ok(!err);
 
@@ -1667,13 +1697,15 @@ describe('Content Activity', () => {
         // Generate an activity with the content
         RestAPI.Content.createLink(
           jack.restContext,
-          'Google',
-          'Google',
-          'public',
-          'http://www.google.ca',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PUBLIC,
+            link: 'http://www.google.ca',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 
@@ -1710,13 +1742,15 @@ describe('Content Activity', () => {
 
         RestAPI.Content.createFile(
           jack.restContext,
-          'name',
-          'description',
-          'public',
-          getFunctionThatReturnsFileStream('oae-video.png'),
-          [],
-          [],
-          [],
+          {
+            displayName: 'name',
+            description: 'description',
+            visibility: 'public',
+            file: getFunctionThatReturnsFileStream('oae-video.png'),
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, content) => {
             assert.ok(!err);
 
@@ -1762,13 +1796,15 @@ describe('Content Activity', () => {
 
         RestAPI.Content.createLink(
           camAdminRestContext,
-          'Google',
-          'Google',
-          'public',
-          'http://www.google.ca',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PUBLIC,
+            link: 'http://www.google.ca',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 
@@ -1804,13 +1840,15 @@ describe('Content Activity', () => {
         // Create a link whose member we can promote to manager
         RestAPI.Content.createLink(
           jack.restContext,
-          'Google',
-          'Google',
-          'public',
-          'http://www.google.ca',
-          [],
-          [jane.user.id],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PUBLIC,
+            link: 'http://www.google.ca',
+            managers: [],
+            viewers: [jane.user.id],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 
@@ -1854,13 +1892,15 @@ describe('Content Activity', () => {
         // Create a revisable content item
         RestAPI.Content.createFile(
           jack.restContext,
-          'Test Content 1',
-          'Test content description 1',
-          'private',
-          getFunctionThatReturnsFileStream('oae-video.png'),
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            descritpion: 'Test content description 1',
+            visibility: 'private',
+            file: getFunctionThatReturnsFileStream('oae-video.png'),
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, content) => {
             assert.ok(!err);
             assert.ok(content);
@@ -1906,13 +1946,15 @@ describe('Content Activity', () => {
 
         RestAPI.Content.createLink(
           camAdminRestContext,
-          'Google',
-          'Google',
-          'public',
-          'http://www.google.ca',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PUBLIC,
+            link: 'http://www.google.ca',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 
@@ -1947,13 +1989,15 @@ describe('Content Activity', () => {
 
         RestAPI.Content.createLink(
           camAdminRestContext,
-          'Google',
-          'Google',
-          'public',
-          'http://www.google.ca',
-          [],
-          [jack.user.id],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PUBLIC,
+            link: 'http://www.google.ca',
+            managers: [],
+            viewers: [jack.user.id],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 
@@ -2001,26 +2045,30 @@ describe('Content Activity', () => {
         // Create a google link
         RestAPI.Content.createLink(
           jack.restContext,
-          'Google',
-          'Google',
-          'public',
-          'http://www.google.ca',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PUBLIC,
+            link: 'http://www.google.ca',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, googleLink) => {
             assert.ok(!err);
 
             // Create a Yahoo link
             RestAPI.Content.createLink(
               jack.restContext,
-              'Yahoo!',
-              'Yahoo!',
-              'public',
-              'http://www.yahoo.ca',
-              [],
-              [],
-              [],
+              {
+                displayName: 'Yahoo!',
+                description: 'Yahoo!',
+                visibility: PUBLIC,
+                link: 'http://www.yahoo.ca',
+                managers: [],
+                viewers: [],
+                folders: []
+              },
               (err, yahooLink) => {
                 assert.ok(!err);
 
@@ -2071,13 +2119,15 @@ describe('Content Activity', () => {
         // Create a google link
         RestAPI.Content.createLink(
           jack.restContext,
-          'Google',
-          'Google',
-          'public',
-          'http://www.google.ca',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PUBLIC,
+            link: 'http://www.google.ca',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, googleLink) => {
             assert.ok(!err);
 
@@ -2090,13 +2140,15 @@ describe('Content Activity', () => {
               // Create a Yahoo link
               RestAPI.Content.createLink(
                 jack.restContext,
-                'Yahoo!',
-                'Yahoo!',
-                'public',
-                'http://www.yahoo.ca',
-                [],
-                [],
-                [],
+                {
+                  displayName: 'Yahoo!',
+                  description: 'Yahoo!',
+                  visibility: PUBLIC,
+                  link: 'http://www.yahoo.ca',
+                  managers: [],
+                  viewers: [],
+                  folders: []
+                },
                 (err, yahooLink) => {
                   assert.ok(!err);
 
@@ -2109,13 +2161,15 @@ describe('Content Activity', () => {
                     // Rinse and repeat once to ensure that the aggregates are removed properly as well
                     RestAPI.Content.createLink(
                       jack.restContext,
-                      'Apereo!',
-                      'Apereo!',
-                      'public',
-                      'http://www.apereo.org',
-                      [],
-                      [],
-                      [],
+                      {
+                        displayName: 'Apereo!',
+                        description: 'Apereo!',
+                        visibility: PUBLIC,
+                        link: 'http://www.apereo.org',
+                        managers: [],
+                        viewers: [],
+                        folders: []
+                      },
                       (err, apereoLink) => {
                         assert.ok(!err);
 
@@ -2149,13 +2203,15 @@ describe('Content Activity', () => {
       _setup((simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB, groupA, groupB) => {
         RestAPI.Content.createLink(
           simong.restContext,
-          'Apereo!',
-          'Apereo!',
-          'public',
-          'http://www.apereo.org',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Apereo!',
+            description: 'Apereo!',
+            visibility: PUBLIC,
+            link: 'http://www.apereo.org',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 
@@ -2244,13 +2300,15 @@ describe('Content Activity', () => {
       _setup((simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB, groupA, groupB) => {
         RestAPI.Content.createLink(
           simong.restContext,
-          'Apereo!',
-          'Apereo!',
-          'public',
-          'http://www.apereo.org',
-          [bert.user.id],
-          [],
-          [],
+          {
+            displayName: 'Apereo!',
+            description: 'Apereo!',
+            visibility: PUBLIC,
+            link: 'http://www.apereo.org',
+            managers: [bert.user.id],
+            viewers: [],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 
@@ -2344,13 +2402,15 @@ describe('Content Activity', () => {
       _setup((simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB, groupA, groupB) => {
         RestAPI.Content.createLink(
           simong.restContext,
-          'Apereo!',
-          'Apereo!',
-          'public',
-          'http://www.apereo.org',
-          [groupA.group.id],
-          [],
-          [],
+          {
+            displayName: 'Apereo!',
+            description: 'Apereo!',
+            visibility: PUBLIC,
+            link: 'http://www.apereo.org',
+            managers: [groupA.group.id],
+            viewers: [],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 
@@ -2442,13 +2502,15 @@ describe('Content Activity', () => {
       _setup((simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB, groupA, groupB) => {
         RestAPI.Content.createLink(
           simong.restContext,
-          'Apereo!',
-          'Apereo!',
-          'public',
-          'http://www.apereo.org',
-          [bert.user.id, groupA.group.id],
-          [],
-          [],
+          {
+            displayName: 'Apereo!',
+            description: 'Apereo!',
+            visibility: PUBLIC,
+            link: 'http://www.apereo.org',
+            managers: [bert.user.id, groupA.group.id],
+            viewers: [],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 
@@ -2559,13 +2621,15 @@ describe('Content Activity', () => {
         // Create a google link
         RestAPI.Content.createLink(
           jack.restContext,
-          'Google',
-          'Google',
-          'public',
-          'http://www.google.ca',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PUBLIC,
+            link: 'http://www.google.ca',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, googleLink) => {
             assert.ok(!err);
 
@@ -2614,13 +2678,15 @@ describe('Content Activity', () => {
         // Create a google link
         RestAPI.Content.createLink(
           jack.restContext,
-          'Google',
-          'Google',
-          'public',
-          'http://www.google.ca',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PUBLIC,
+            link: 'http://www.google.ca',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, googleLink) => {
             assert.ok(!err);
 
@@ -2631,13 +2697,15 @@ describe('Content Activity', () => {
               // Add something to the activity feed that happened later than the previous update
               RestAPI.Content.createLink(
                 jack.restContext,
-                'Yahoo!',
-                'Yahoo!',
-                'public',
-                'http://www.yahoo.ca',
-                [],
-                [],
-                [],
+                {
+                  displayName: 'Yahoo!',
+                  description: 'Yahoo!',
+                  visibility: PUBLIC,
+                  link: 'http://www.yahoo.ca',
+                  managers: [],
+                  viewers: [],
+                  folders: []
+                },
                 (err, yahooLink) => {
                   assert.ok(!err);
 
@@ -2677,13 +2745,15 @@ describe('Content Activity', () => {
                         // Send a new activity into the feed so it is the most recent
                         RestAPI.Content.createLink(
                           jack.restContext,
-                          'Apereo',
-                          'Apereo',
-                          'public',
-                          'http://www.apereo.org',
-                          [],
-                          [],
-                          [],
+                          {
+                            displayName: 'Apereo',
+                            description: 'Apereo',
+                            visibility: PUBLIC,
+                            link: 'http://www.apereo.org',
+                            managers: [],
+                            viewers: [],
+                            folders: []
+                          },
                           (err, apereoLink) => {
                             assert.ok(!err);
 
@@ -2774,13 +2844,15 @@ describe('Content Activity', () => {
         // Create a google link
         RestAPI.Content.createLink(
           jack.restContext,
-          'Google',
-          'Google',
-          'public',
-          'http://www.google.ca',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PUBLIC,
+            link: 'http://www.google.ca',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, googleLink) => {
             assert.ok(!err);
 
@@ -2791,13 +2863,15 @@ describe('Content Activity', () => {
               // Add something to the activity feed that happened later than the previous update
               RestAPI.Content.createLink(
                 jack.restContext,
-                'Yahoo!',
-                'Yahoo!',
-                'public',
-                'http://www.yahoo.ca',
-                [],
-                [],
-                [],
+                {
+                  displayName: 'Yahoo!',
+                  description: 'Yahoo!',
+                  visibility: PUBLIC,
+                  link: 'http://www.yahoo.ca',
+                  managers: [],
+                  viewers: [],
+                  folders: []
+                },
                 (err, yahooLink) => {
                   assert.ok(!err);
 
@@ -2837,13 +2911,15 @@ describe('Content Activity', () => {
                         // Send a new activity into the feed so it is the most recent
                         RestAPI.Content.createLink(
                           jack.restContext,
-                          'Apereo',
-                          'Apereo',
-                          'public',
-                          'http://www.apereo.org',
-                          [],
-                          [],
-                          [],
+                          {
+                            displayName: 'Apereo',
+                            description: 'Apereo',
+                            visibility: PUBLIC,
+                            link: 'http://www.apereo.org',
+                            managers: [],
+                            viewers: [],
+                            folders: []
+                          },
                           (err, apereoLink) => {
                             assert.ok(!err);
 
@@ -2933,13 +3009,15 @@ describe('Content Activity', () => {
         // Create a google link
         RestAPI.Content.createLink(
           jack.restContext,
-          'Google',
-          'Google',
-          'public',
-          'http://www.google.ca',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PUBLIC,
+            link: 'http://www.google.ca',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 
@@ -3029,13 +3107,15 @@ describe('Content Activity', () => {
         // Create a google link
         RestAPI.Content.createLink(
           jack.restContext,
-          'Google',
-          'Google',
-          'public',
-          'http://www.google.ca',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PUBLIC,
+            link: 'http://www.google.ca',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 
@@ -3053,13 +3133,15 @@ describe('Content Activity', () => {
                 // Create some noise in the feed to ensure that the second share content will jump to the top
                 RestAPI.Content.createLink(
                   jack.restContext,
-                  'Yahoo',
-                  'Yahoo',
-                  'public',
-                  'http://www.google.ca',
-                  [],
-                  [],
-                  [],
+                  {
+                    displayName: 'Yahoo',
+                    description: 'Yahoo',
+                    visibility: PUBLIC,
+                    link: 'http://www.google.ca',
+                    managers: [],
+                    viewers: [],
+                    folders: []
+                  },
                   (err, yahooLink) => {
                     assert.ok(!err);
 
@@ -3109,13 +3191,15 @@ describe('Content Activity', () => {
                             // Create some noise in the feed to ensure that the third share content will jump to the top
                             RestAPI.Content.createLink(
                               jack.restContext,
-                              'Apereo',
-                              'Apereo',
-                              'public',
-                              'http://www.apereo.org',
-                              [],
-                              [],
-                              [],
+                              {
+                                displayName: 'Apereo',
+                                description: 'Apereo',
+                                visibility: PUBLIC,
+                                link: 'http://www.apereo.org',
+                                managers: [],
+                                viewers: [],
+                                folders: []
+                              },
                               (err, apereoLink) => {
                                 assert.ok(!err);
 
@@ -3181,25 +3265,29 @@ describe('Content Activity', () => {
         // Create a google link and yahoo link to be shared around
         RestAPI.Content.createLink(
           jack.restContext,
-          'Google',
-          'Google',
-          'public',
-          'http://www.google.ca',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PUBLIC,
+            link: 'http://www.google.ca',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, googleLink) => {
             assert.ok(!err);
 
             RestAPI.Content.createLink(
               jack.restContext,
-              'Yahoo',
-              'Yahoo',
-              'public',
-              'http://www.yahoo.ca',
-              [],
-              [],
-              [],
+              {
+                displayName: 'Yahoo',
+                description: 'Yahoo',
+                visibility: PUBLIC,
+                link: 'http://www.yahoo.ca',
+                managers: [],
+                viewers: [],
+                folders: []
+              },
               (err, yahooLink) => {
                 assert.ok(!err);
 
@@ -3254,25 +3342,29 @@ describe('Content Activity', () => {
         // Create a google link and yahoo link to be shared around
         RestAPI.Content.createLink(
           jack.restContext,
-          'Google',
-          'Google',
-          'public',
-          'http://www.google.ca',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PUBLIC,
+            link: 'http://www.google.ca',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, googleLink) => {
             assert.ok(!err);
 
             RestAPI.Content.createLink(
               jack.restContext,
-              'Yahoo',
-              'Yahoo',
-              'public',
-              'http://www.yahoo.ca',
-              [],
-              [],
-              [],
+              {
+                displayName: 'Yahoo',
+                description: 'Yahoo',
+                visibility: PUBLIC,
+                link: 'http://www.yahoo.ca',
+                managers: [],
+                viewers: [],
+                folders: []
+              },
               (err, yahooLink) => {
                 assert.ok(!err);
 
@@ -3337,25 +3429,29 @@ describe('Content Activity', () => {
         // Create a google link and yahoo link to be shared around
         RestAPI.Content.createLink(
           jack.restContext,
-          'Google',
-          'Google',
-          'public',
-          'http://www.google.ca',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PUBLIC,
+            link: 'http://www.google.ca',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, googleLink) => {
             assert.ok(!err);
 
             RestAPI.Content.createLink(
               jack.restContext,
-              'Yahoo',
-              'Yahoo',
-              'public',
-              'http://www.yahoo.ca',
-              [],
-              [],
-              [],
+              {
+                displayName: 'Yahoo',
+                description: 'Yahoo',
+                visibility: PUBLIC,
+                link: 'http://www.yahoo.ca',
+                managers: [],
+                viewers: [],
+                folders: []
+              },
               (err, yahooLink) => {
                 assert.ok(!err);
 
@@ -3415,25 +3511,29 @@ describe('Content Activity', () => {
         // Create a google link and yahoo link to be shared around
         RestAPI.Content.createLink(
           jack.restContext,
-          'Google',
-          'Google',
-          'public',
-          'http://www.google.ca',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PUBLIC,
+            link: 'http://www.google.ca',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, googleLink) => {
             assert.ok(!err);
 
             RestAPI.Content.createLink(
               jack.restContext,
-              'Yahoo',
-              'Yahoo',
-              'public',
-              'http://www.yahoo.ca',
-              [],
-              [],
-              [],
+              {
+                displayName: 'Yahoo',
+                description: 'Yahoo',
+                visibility: PUBLIC,
+                link: 'http://www.yahoo.ca',
+                managers: [],
+                viewers: [],
+                folders: []
+              },
               (err, yahooLink) => {
                 assert.ok(!err);
 
@@ -3514,13 +3614,15 @@ describe('Content Activity', () => {
         PrincipalsTestUtil.assertUpdateUserSucceeds(simong.restContext, simong.user.id, simongUpdate, () => {
           RestAPI.Content.createLink(
             mrvisser.restContext,
-            'Google',
-            'Google',
-            'public',
-            'http://www.google.ca',
-            [],
-            [],
-            [],
+            {
+              displayName: 'Google',
+              description: 'Google',
+              visibility: PUBLIC,
+              link: 'http://www.google.ca',
+              managers: [],
+              viewers: [],
+              folders: []
+            },
             (err, link) => {
               assert.ok(!err);
 
@@ -3609,13 +3711,15 @@ describe('Content Activity', () => {
           // Create the link, sharing it with mrvisser during the creation step. We will ensure he gets an email about it
           RestAPI.Content.createLink(
             simong.restContext,
-            'Google',
-            'Google',
-            'public',
-            'http://www.google.ca',
-            [],
-            [mrvisser.user.id],
-            [],
+            {
+              displayName: 'Google',
+              description: 'Google',
+              visibility: PUBLIC,
+              link: 'http://www.google.ca',
+              managers: [],
+              viewers: [mrvisser.user.id],
+              folders: []
+            },
             (err, link) => {
               assert.ok(!err);
 
@@ -3667,13 +3771,15 @@ describe('Content Activity', () => {
           // Create the link, then share it with mrvisser. We will ensure that mrvisser gets the email about the share
           RestAPI.Content.createLink(
             simong.restContext,
-            'Google',
-            'Google',
-            'public',
-            'http://www.google.ca',
-            [],
-            [],
-            [],
+            {
+              displayName: 'Google',
+              description: 'Google',
+              visibility: PUBLIC,
+              link: 'http://www.google.ca',
+              managers: [],
+              viewers: [],
+              folders: []
+            },
             (err, link) => {
               assert.ok(!err);
 

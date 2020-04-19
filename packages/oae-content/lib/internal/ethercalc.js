@@ -15,22 +15,50 @@
 
 import url from 'url';
 import EthercalcClient from 'ethercalc-client';
-
-import _ from 'underscore';
 import cheerio from 'cheerio';
-
 import { logger } from 'oae-logger';
 
 import * as ContentDAO from './dao';
+import {
+  curry,
+  startsWith,
+  endsWith,
+  or,
+  and,
+  slice,
+  map,
+  head,
+  split,
+  test,
+  trim,
+  __,
+  gt,
+  equals,
+  length,
+  match,
+  compose,
+  not,
+  ifElse
+} from 'ramda';
 
 const log = logger('ethercalc');
 
 let ethercalcConfig = null;
 let ethercalcServers = null;
 
+const ENGLISH = 'en';
+const DEFAULT_SNAPSHOT = '';
 const SOCIAL_CALC_FORMAT_BEGIN_LINE = 'socialcalc:version:1.0';
 const SOCIAL_CALC_FORMAT_END_LINE = '--SocialCalcSpreadsheetControlSave--';
 const TABLE_ELEMENT = 'table';
+
+// Auxiliary functions
+const isDefined = Boolean;
+const isNotDefined = compose(not, isDefined);
+const greaterThanZero = gt(__, 0);
+const equalsOne = equals(1);
+const returnTrue = () => true;
+const returnFalse = () => false;
 
 /**
  * Refresh the runtime ethercalc configuration (host, port, etc...) with the one provided. More
@@ -39,28 +67,24 @@ const TABLE_ELEMENT = 'table';
  *
  * @param  {Object}  _ethercalcConfig    The ethercalc config from config.js
  */
-const refreshConfiguration = function(_ethercalcConfig) {
+const refreshConfiguration = _ethercalcConfig => {
   ethercalcConfig = _ethercalcConfig;
-  ethercalcServers = _ethercalcConfig.map(eachConfig => {
+  ethercalcServers = map(eachConfig => {
     return {
       config: eachConfig,
       client: new EthercalcClient(eachConfig.host, eachConfig.port, eachConfig.protocol, eachConfig.timeout)
     };
-  });
+  }, _ethercalcConfig);
 };
 
-const _pickARandomServer = () => {
-  return ethercalcServers[Math.floor(Math.random() * ethercalcServers.length)];
-};
+const _pickARandomServer = () => ethercalcServers[Math.floor(Math.random() * ethercalcServers.length)];
 
 /**
  * Get the Ethercalc configuration.
  *
  * @return {Object} The Ethercalc configuration.
  */
-const getConfig = function() {
-  return ethercalcConfig;
-};
+const getConfig = () => ethercalcConfig;
 
 /**
  * Creates a new spreadsheet via the Ethercalc API.
@@ -70,15 +94,16 @@ const getConfig = function() {
  * @param  {Object}     callback.err                    An error that occurred, if any
  * @param  {Object}     callback.snapshot               A snapshot containing data for new Ethercalc room
  */
-const createRoom = async function(content, callback) {
+const createRoom = async (content, callback) => {
   const someEthercalcServer = _pickARandomServer();
   const { contentId } = content;
   let roomId = null;
   log().trace({ contentId }, 'Creating Ethercalc room');
+
   try {
     const data = await someEthercalcServer.client.createRoom();
     // Ethercalc returns the relative path so strip out starting /
-    roomId = data.slice(1);
+    roomId = slice(1, Infinity, data);
     log().info({ contentId, ethercalcRoomId: roomId }, 'Created Ethercalc room');
     return callback(null, roomId);
   } catch (error) {
@@ -97,9 +122,10 @@ const createRoom = async function(content, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const deleteRoom = async function(roomId, callback) {
+const deleteRoom = async (roomId, callback) => {
   const someEthercalcServer = _pickARandomServer();
   log().trace({ roomId, ethercalc: someEthercalcServer.config.host }, 'Deleting Ethercalc room');
+
   try {
     const deleted = await someEthercalcServer.client.deleteRoom(roomId);
     if (deleted) {
@@ -126,13 +152,13 @@ const deleteRoom = async function(roomId, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @param  {String}     callback.html   The HTML for this room
  */
-const getHTML = async function(roomId, callback) {
+const getHTML = async (roomId, callback) => {
   const someEthercalcServer = _pickARandomServer();
   log().trace({ roomId, ethercalc: someEthercalcServer.config.host }, 'Getting Ethercalc room as HTML');
 
   try {
     const html = await someEthercalcServer.client.getHTML(roomId);
-    if (!_isHtmlDocument(html)) {
+    if (not(_isHtmlDocument(html))) {
       log().error(
         { roomId, ethercalc: someEthercalcServer.config.host },
         'Ethercalc sheet contents are not valid HTML'
@@ -158,15 +184,13 @@ const getHTML = async function(roomId, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @param  {String}     callback.html   The JSON for this room
  */
-const getJSON = async function(roomId, callback) {
+const getJSON = async (roomId, callback) => {
   const someEthercalcServer = _pickARandomServer();
   log().trace({ roomId, ethercalc: someEthercalcServer.config.host }, 'Getting Ethercalc room as JSON');
 
   try {
     const json = await someEthercalcServer.client.getJSON(roomId);
-    if (json) {
-      return callback(null, json);
-    }
+    if (isDefined(json)) return callback(null, json);
 
     log().error({ roomId, ethercalc: someEthercalcServer.config.host }, 'Ethercalc sheet contents are not valid JSON');
     return callback({ code: 500, msg: 'Ethercalc sheet contents are not valid JSON' });
@@ -187,13 +211,13 @@ const getJSON = async function(roomId, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @param  {String}     callback.data   This room in socialcalc format
  */
-const getRoom = async function(roomId, callback) {
+const getRoom = async (roomId, callback) => {
   const someEthercalcServer = _pickARandomServer();
   log().trace({ roomId, ethercalc: someEthercalcServer.config.host }, 'Getting Ethercalc room in socialcalc format');
 
   try {
     const data = await someEthercalcServer.client.getRoom(roomId);
-    if (!_isSCDocument(data)) {
+    if (not(_isSCDocument(data))) {
       log().error(
         { roomId, ethercalc: someEthercalcServer.config.host },
         'Ethercalc sheet contents are not in correct socialcalc format'
@@ -220,7 +244,7 @@ const getRoom = async function(roomId, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const setSheetContents = async function(roomId, snapshot, callback) {
+const setSheetContents = async (roomId, snapshot, callback) => {
   const someEthercalcServer = _pickARandomServer();
   log().trace({ roomId, snapshot, ethercalc: someEthercalcServer.config.host }, 'Setting Ethercalc contents');
 
@@ -246,16 +270,16 @@ const setSheetContents = async function(roomId, snapshot, callback) {
  * @param  {Object}     callback.err            An error that occurred, if any
  * @param  {String}     callback.url            The URL that can be used to embed the room
  */
-const joinRoom = function(ctx, contentObj, callback) {
+const joinRoom = (ctx, contentObj, callback) => {
   const user = ctx.user();
-  if (!user) {
+  if (isNotDefined(user)) {
     return callback({ code: 401, msg: 'Anonymous users are not allowed to join collaborative spreadsheets' });
   }
 
   log().trace(`Joining Ethercalc room ${contentObj.ethercalcRoomId} as user ${user}`);
 
   // Get the language for the current user.
-  const language = user.locale ? _.first(user.locale.split('_')) : 'en';
+  const language = isDefined(user.locale) ? head(split('_', user.locale)) : ENGLISH;
   const url = getRoomUrl(contentObj, user.id, language);
 
   return callback(null, { url });
@@ -273,7 +297,7 @@ const joinRoom = function(ctx, contentObj, callback) {
  * @return {String}                                 The URL to the room that can be used to embed in a page
  */
 // eslint-disable-next-line no-unused-vars
-const getRoomUrl = function(contentObj, userId, language) {
+const getRoomUrl = (contentObj, userId, language) => {
   const randomServerIndex = Math.floor(Math.random() * ethercalcServers.length);
   return url.format({
     pathname: `/ethercalc/${randomServerIndex}/${contentObj.ethercalcRoomId}`,
@@ -290,24 +314,24 @@ const getRoomUrl = function(contentObj, userId, language) {
  * @param  {String}     content             The content of the ethercalc spreadsheet
  * @return {Boolean}                        Whether or not the content is considered empty
  */
-const isContentEmpty = function(content) {
-  if (!content) {
-    return true;
-  }
+const isContentEmpty = content => {
+  const FIRST_CELL = '#cell_A1';
+  const findCells = match(/cell_[\w][\d]/g);
+  const lookForCellValues = test(/\bcell:\w\d/g);
 
-  if (_isHtmlDocument(content)) {
-    // Empty sheets only have a single cell
-    if (content.match(/cell_[\w][\d]/g).length === 1) {
-      // Make sure that cell is empty
-      const $ = cheerio.load(content);
-      return $('#cell_A1').text();
-    }
+  const loadFirstCellContents = content =>
+    cheerio
+      .load(content)(FIRST_CELL)
+      .text();
 
-    return false;
-  }
+  const equalsDefault = equals(DEFAULT_SNAPSHOT);
+  const checkIfFirstCellIsEmpty = compose(equalsDefault, trim, loadFirstCellContents);
+  const hasSingleCell = content => compose(equalsOne, length, findCells)(content);
 
-  // Check for existing cell values in social calc format. Cells are in format: `cell:A1:t:test`
-  return content.test(/\bcell:\w\d/g);
+  const isFirstCellEmpty = ifElse(hasSingleCell, checkIfFirstCellIsEmpty, returnFalse);
+  const checkIfContentIsEmpty = ifElse(_isHtmlDocument, isFirstCellEmpty, lookForCellValues);
+
+  return ifElse(isNotDefined, returnTrue, checkIfContentIsEmpty)(content);
 };
 
 /**
@@ -317,18 +341,13 @@ const isContentEmpty = function(content) {
  * @param  {String}     other       Content of another ethercalc document
  * @return {Boolean}                Whether or not the content is equivalent to eachother
  */
-const isContentEqual = function(one, other) {
-  if (one === other) {
-    return true;
-  }
+const isContentEqual = (one, other) => {
+  if (equals(one, other)) return true;
+  if (or(isNotDefined(one), isNotDefined(other))) return false;
 
-  if (!one || !other) {
-    return false;
-  }
-
-  const $one = cheerio.load(one);
-  const $other = cheerio.load(other);
-  return $one(TABLE_ELEMENT).html() === $other(TABLE_ELEMENT).html();
+  const oneContent = cheerio.load(one);
+  const otherContent = cheerio.load(other);
+  return equals(oneContent(TABLE_ELEMENT).html(), otherContent(TABLE_ELEMENT).html());
 };
 
 /**
@@ -339,12 +358,10 @@ const isContentEqual = function(one, other) {
  * @param  {Object}     callback.err            An error that occurred, if any
  * @api private
  */
-const setEditedBy = function(data, callback) {
-  if (data.contentId && data.userId) {
-    ContentDAO.Ethercalc.setEditedBy(data.contentId, data.userId, function(err) {
-      if (err) {
-        return callback(err);
-      }
+const setEditedBy = (data, callback) => {
+  if (and(isDefined(data.contentId), isDefined(data.userId))) {
+    ContentDAO.Ethercalc.setEditedBy(data.contentId, data.userId, err => {
+      if (err) return callback(err);
 
       return callback(null);
     });
@@ -358,13 +375,11 @@ const setEditedBy = function(data, callback) {
  * @return {Boolean}                Whether or not the content is a valid HTML spreadsheet
  * @api private
  */
-const _isHtmlDocument = function(content) {
-  if (!content) {
-    return false;
-  }
+const _isHtmlDocument = content => {
+  if (isNotDefined(content)) return false;
 
   const $ = cheerio.load(content);
-  return $(TABLE_ELEMENT).length > 0;
+  return compose(greaterThanZero, length, $)(TABLE_ELEMENT);
 };
 
 /**
@@ -375,15 +390,21 @@ const _isHtmlDocument = function(content) {
  * @api private
  */
 const _isSCDocument = function(content) {
-  if (!content) {
-    return false;
-  }
+  if (isNotDefined(content)) return false;
 
-  content = content.trim();
+  content = trim(content);
 
   // FIXME This isn't ideal, consider replacing with regexp which is also not ideal
-  return content.startsWith(SOCIAL_CALC_FORMAT_BEGIN_LINE) && content.endsWith(SOCIAL_CALC_FORMAT_END_LINE);
+  const contentStartsWith = curry(startsWith(__, content));
+  const contentEndsWith = curry(endsWith(__, content));
+  return and(contentStartsWith(SOCIAL_CALC_FORMAT_BEGIN_LINE), contentEndsWith(SOCIAL_CALC_FORMAT_END_LINE));
 };
+
+/**
+ * @function getDefaultSnapshot
+ * @return {String} Returns the constant that defines the initial spreadsheet content of the first cell
+ */
+const getDefaultSnapshot = () => DEFAULT_SNAPSHOT;
 
 export {
   refreshConfiguration,
@@ -398,5 +419,6 @@ export {
   getRoomUrl,
   isContentEmpty,
   isContentEqual,
-  setEditedBy
+  setEditedBy,
+  getDefaultSnapshot
 };

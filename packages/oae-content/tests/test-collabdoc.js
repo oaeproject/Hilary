@@ -25,6 +25,8 @@ import * as TestsUtil from 'oae-tests';
 import * as ContentTestUtil from 'oae-content/lib/test/util';
 import * as Etherpad from 'oae-content/lib/internal/etherpad';
 
+const PUBLIC = 'public';
+
 describe('Collaborative documents', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user
   let anonymousRestContext = null;
@@ -73,13 +75,15 @@ describe('Collaborative documents', () => {
       // Check that we can't join a content item that's not collaborative
       RestAPI.Content.createLink(
         ctx,
-        'Test Content',
-        'Test description',
-        'public',
-        'http://www.oaeproject.org/',
-        [],
-        [],
-        [],
+        {
+          displayName: 'Test Content',
+          description: 'Test description',
+          visibility: PUBLIC,
+          link: 'http://www.oaeproject.org/',
+          managers: [],
+          viewers: [],
+          folders: []
+        },
         (err, link) => {
           assert.ok(!err);
 

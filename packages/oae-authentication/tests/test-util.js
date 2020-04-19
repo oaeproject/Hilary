@@ -30,7 +30,12 @@ describe('Authentication - util', () => {
         initial: true
       };
       const profileParameterName = 'displayName';
-      AuthenticationUtil.setProfileParameter(profileParameters, profileParameterName, template, data);
+      AuthenticationUtil.setProfileParameter(
+        profileParameters,
+        profileParameterName,
+        template,
+        data
+      );
 
       // Assert the displayName was added
       assert.strictEqual(profileParameters.displayName, 'John Doe');

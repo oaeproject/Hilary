@@ -226,7 +226,7 @@ OAE.tenantRouter.on('post', '/api/content/create', (req, res) => {
  * @param  {String}         [visibility]            The visibility of the content item. One of `public`, `loggedin`, `private`
  * @param  {String}         [link]                  The URL when creating a content item of resourceSubType `link`
  * @param  {File}           [uploadedFile]          The file object when creating a content item of resourceSubType `file`
- * @param  {String[]}       folderIds               The ids of folders where the content item should be added to
+ * @param  {String[]}       folders               The ids of folders where the content item should be added to
  * @param  {Object}         additionalMembers       Object where the keys represent principal ids that need to be added to the content upon creation and the values represent the role that principal will have. Possible values are "viewer" and "manager", as well as "editor" for collabdocs or collabsheets
  * @param  {Function}       callback                Standard callback function
  * @param  {Object}         callback.err            An error object, if any
@@ -242,19 +242,21 @@ const _createContent = function(
   link,
   uploadedFile,
   additionalMembers,
-  folderIds,
+  folders,
   callback
 ) {
   // Link creation
   if (isResourceALink(resourceSubType)) {
     return ContentAPI.createLink(
       ctx,
-      displayName,
-      description,
-      visibility,
-      link,
-      additionalMembers,
-      folderIds,
+      {
+        displayName,
+        description,
+        visibility,
+        link,
+        additionalMembers,
+        folders
+      },
       callback
     );
 
@@ -264,12 +266,7 @@ const _createContent = function(
   if (isResourceAFile(resourceSubType)) {
     return ContentAPI.createFile(
       ctx,
-      displayName,
-      description,
-      visibility,
-      uploadedFile,
-      additionalMembers,
-      folderIds,
+      { displayName, description, visibility, file: uploadedFile, additionalMembers, folders },
       callback
     );
 
@@ -277,15 +274,7 @@ const _createContent = function(
   }
 
   if (isResourceACollabDoc(resourceSubType)) {
-    return ContentAPI.createCollabDoc(
-      ctx,
-      displayName,
-      description,
-      visibility,
-      additionalMembers,
-      folderIds,
-      callback
-    );
+    return ContentAPI.createCollabDoc(ctx, displayName, description, visibility, additionalMembers, folders, callback);
 
     // Not a recognized file type
   }
@@ -298,7 +287,7 @@ const _createContent = function(
       description,
       visibility,
       additionalMembers,
-      folderIds,
+      folders,
       callback
     );
   }

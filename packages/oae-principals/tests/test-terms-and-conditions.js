@@ -21,6 +21,8 @@ import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 import { RestContext } from 'oae-rest/lib/model';
 
+const PUBLIC = 'public';
+
 describe('Terms and Conditions', () => {
   // Rest context that can be used every time we need to make a request as a global admin
   let globalAdminRestContext = null;
@@ -172,13 +174,15 @@ describe('Terms and Conditions', () => {
         // When the user tries to *do* anything, he needs to accept the Terms and Conditions
         RestAPI.Content.createLink(
           mrvisser.restContext,
-          'Yahoo',
-          'Yahoo',
-          'public',
-          'http://uk.yahoo.com',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Yahoo',
+            description: 'Yahoo',
+            PUBLIC,
+            link: 'http://uk.yahoo.com',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, link) => {
             assert.ok(err);
             assert.strictEqual(err.code, 419);
@@ -204,13 +208,15 @@ describe('Terms and Conditions', () => {
                     // Verify that it is now possible to perform POST requests
                     RestAPI.Content.createLink(
                       mrvisser.restContext,
-                      'Yahoo',
-                      'Yahoo',
-                      'public',
-                      'http://uk.yahoo.com',
-                      [],
-                      [],
-                      [],
+                      {
+                        displayName: 'Yahoo',
+                        description: 'Yahoo',
+                        PUBLIC,
+                        link: 'http://uk.yahoo.com',
+                        managers: [],
+                        viewers: [],
+                        folders: []
+                      },
                       (err, createdLink) => {
                         assert.ok(!err);
                         RestAPI.Content.getLibrary(mrvisser.restContext, mrvisser.user.id, null, 10, (err, library) => {
@@ -226,13 +232,15 @@ describe('Terms and Conditions', () => {
 
                               RestAPI.Content.createLink(
                                 mrvisser.restContext,
-                                'Yahoo',
-                                'Yahoo',
-                                'public',
-                                'http://uk.yahoo.com',
-                                [],
-                                [],
-                                [],
+                                {
+                                  displayName: 'Yahoo',
+                                  description: 'Yahoo',
+                                  visibility: PUBLIC,
+                                  link: 'http://uk.yahoo.com',
+                                  managers: [],
+                                  viewers: [],
+                                  folders: []
+                                },
                                 (err, link) => {
                                   assert.ok(err);
                                   assert.strictEqual(err.code, 419);
@@ -258,13 +266,15 @@ describe('Terms and Conditions', () => {
                                           // Verify that the user is now able to perform POST requests
                                           RestAPI.Content.createLink(
                                             mrvisser.restContext,
-                                            'Yahoo',
-                                            'Yahoo',
-                                            'public',
-                                            'http://uk.yahoo.com',
-                                            [],
-                                            [],
-                                            [],
+                                            {
+                                              displayName: 'Yahoo',
+                                              description: 'Yahoo',
+                                              visibility: PUBLIC,
+                                              link: 'http://uk.yahoo.com',
+                                              managers: [],
+                                              viewers: [],
+                                              folders: []
+                                            },
                                             (err, link) => {
                                               assert.ok(!err);
                                               RestAPI.Content.getLibrary(
@@ -350,13 +360,15 @@ describe('Terms and Conditions', () => {
             // Verify that mrvisser is able to perform POST requests without having accepted the Terms and Conditions
             RestAPI.Content.createLink(
               mrvisser.restContext,
-              'Yahoo',
-              'Yahoo',
-              'public',
-              'http://uk.yahoo.com',
-              [],
-              [],
-              [],
+              {
+                displayName: 'Yahoo',
+                description: 'Yahoo',
+                visibility: PUBLIC,
+                link: 'http://uk.yahoo.com',
+                managers: [],
+                viewers: [],
+                folders: []
+              },
               (err, link) => {
                 assert.ok(!err);
                 RestAPI.Content.getLibrary(mrvisser.restContext, mrvisser.user.id, null, 10, (err, library) => {
@@ -381,13 +393,15 @@ describe('Terms and Conditions', () => {
                           assert.ok(data.needsToAcceptTC);
                           RestAPI.Content.createLink(
                             mrvisser.restContext,
-                            'Yahoo',
-                            'Yahoo',
-                            'public',
-                            'http://uk.yahoo.com',
-                            [],
-                            [],
-                            [],
+                            {
+                              displayName: 'Yahoo',
+                              description: 'Yahoo',
+                              visibility: PUBLIC,
+                              link: 'http://uk.yahoo.com',
+                              managers: [],
+                              viewers: [],
+                              folders: []
+                            },
                             (err, link) => {
                               assert.ok(err);
                               assert.strictEqual(err.code, 419);

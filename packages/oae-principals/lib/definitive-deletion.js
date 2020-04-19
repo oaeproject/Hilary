@@ -49,7 +49,7 @@ const DISCUSSION = 'discussion';
 const MEETING = 'meeting';
 const GROUP = 'group';
 
-const PUBLIC_VISIBILITY = 'public';
+const PUBLIC = 'public';
 const DELETE = 'delete';
 
 const RESOURCE_TYPES = [CONTENT, FOLDER, DISCUSSION, MEETING, GROUP];
@@ -76,7 +76,7 @@ const fetchOrCloneFromUser = (ctx, user, callback) => {
     // Persist the user object
     const userOpts = {
       tenant: { alias: user.tenant.alias },
-      visibility: PUBLIC_VISIBILITY,
+      visibility: PUBLIC,
       emailPreference: 'never',
       locale: ctx.locale(),
       acceptedTC: null,

@@ -12,7 +12,18 @@ aliases:
     run:
       name: Install system dependencies
       command: |
-        apk add --update --no-cache curl git openssh-client docker py-pip python-dev libffi-dev openssl-dev gcc libc-dev make
+        apk add --update --no-cache \
+          curl \
+          git \
+          openssh-client \
+          docker \
+          py-pip \
+          python-dev \
+          libffi-dev \
+          openssl-dev \
+          gcc \
+          libc-dev \
+          make
   - &update_config
     run:
       name: Adjusting Hilary configuration for tests to run
@@ -23,8 +34,6 @@ aliases:
         printf "\nconfig.redis.host = 'oae-redis';" >> config.js
         printf "\nconfig.search.hosts[0].host = 'oae-elasticsearch';" >> config.js
         printf "\nconfig.mq.host = 'oae-redis';" >> config.js
-        printf "\nconfig.etherpad.hosts[0].host = 'oae-etherpad';" >> config.js
-        printf "\nconfig.ethercalc[0].host = 'oae-ethercalc';" >> config.js
         printf "\nconfig.previews.enabled = true;" >> config.js
         printf "\nconfig.email.debug = false;" >> config.js
         printf "\nconfig.email.transport = 'sendmail';" >> config.js
@@ -46,12 +55,23 @@ aliases:
     run:
       name: Run tests sequentially and upload coverage
       command: |
-        docker-compose run --rm oae-hilary "yarn run test-with-coverage"
+        docker-compose run --rm oae-hilary "\
+          yarn run migrate; \
+          cp ep-settings.json etherpad/settings.json; \
+          yarn run etherpad; \
+          export REDIS_HOST="oae-redis" \
+          yarn run ethercalc; \
+          yarn run test-with-coverage"
   - &run_parallel_tests
     run:
       name: Run tests in parallel
       command: |
-        docker-compose run --rm oae-hilary "yarn run test-module $(circleci tests glob 'packages/oae-*/tests' | circleci tests split | tr '\n' ' ')"
+        docker-compose run --rm oae-hilary "\
+          cp ep-settings.json etherpad/settings.json; \
+          yarn run migrate; \
+          yarn run etherpad; \
+          yarn run ethercalc; \
+          yarn run test-module $(circleci tests glob 'packages/oae-*/tests' | circleci tests split | tr '\n' ' ')"
   - &run_linting
     run:
       name: Run linting test
@@ -61,7 +81,9 @@ aliases:
     run:
       name: Install Hilary dependencies
       command: |
-        docker-compose run --rm oae-hilary 'cd 3akai-ux && npx lerna bootstrap'
+        docker-compose run --rm oae-hilary 'npm run prepare-3akai'
+        docker-compose run --rm oae-hilary 'npm run prepare-etherpad'
+        docker-compose run --rm oae-hilary 'npm run prepare-ethercalc'
         docker-compose run --rm oae-hilary 'npx lerna bootstrap'
   - &copy_code
     run:
@@ -75,12 +97,12 @@ aliases:
   - &create_containers
     run:
       name: Create the containers
-      command: docker-compose up --no-start --build oae-cassandra oae-redis oae-elasticsearch oae-hilary oae-ethercalc
+      command: docker-compose up --no-start --build oae-cassandra oae-redis oae-elasticsearch oae-hilary
   - &launch_containers
     run:
       name: Start the containers
       command: |
-        docker-compose up -d oae-cassandra oae-redis oae-elasticsearch oae-etherpad oae-ethercalc
+        docker-compose up -d oae-cassandra oae-redis oae-elasticsearch
   - &install_docker_compose
     run:
       name: Install docker-compose

@@ -26,6 +26,8 @@ import { FoldersConstants } from 'oae-folders/lib/constants';
 import * as FoldersDAO from 'oae-folders/lib/internal/dao';
 import * as FoldersTestUtil from 'oae-folders/lib/test/util';
 
+const PUBLIC = 'public';
+
 describe('Folders - Activity', () => {
   let camAdminRestContext = null;
 
@@ -1202,24 +1204,28 @@ describe('Folders - Activity', () => {
           // Stephen creates 2 files
           RestAPI.Content.createLink(
             stephen.restContext,
-            'test',
-            'test',
-            'public',
-            'http://www.google.ca',
-            null,
-            null,
-            [],
+            {
+              displayName: 'test',
+              description: 'test',
+              visibility: PUBLIC,
+              link: 'http://www.google.ca',
+              managers: null,
+              viewers: null,
+              folders: []
+            },
             (err, link1) => {
               assert.ok(!err);
               RestAPI.Content.createLink(
                 stephen.restContext,
-                'test',
-                'test',
-                'public',
-                'http://www.google.ca',
-                null,
-                null,
-                [],
+                {
+                  displayName: 'test',
+                  description: 'test',
+                  visibility: PUBLIC,
+                  link: 'http://www.google.ca',
+                  managers: null,
+                  viewers: null,
+                  folders: []
+                },
                 (err, link2) => {
                   assert.ok(!err);
 
@@ -1350,24 +1356,28 @@ describe('Folders - Activity', () => {
               // Stephen creates 2 files
               RestAPI.Content.createLink(
                 stephen.restContext,
-                'test',
-                'test',
-                'public',
-                'http://www.google.ca',
-                null,
-                null,
-                [],
+                {
+                  displayName: 'test',
+                  description: 'test',
+                  visibility: PUBLIC,
+                  link: 'http://www.google.ca',
+                  managers: null,
+                  viewers: null,
+                  folders: []
+                },
                 (err, link1) => {
                   assert.ok(!err);
                   RestAPI.Content.createLink(
                     stephen.restContext,
-                    'test',
-                    'test',
-                    'public',
-                    'http://www.google.ca',
-                    null,
-                    null,
-                    [],
+                    {
+                      displayName: 'test',
+                      description: 'test',
+                      visibility: PUBLIC,
+                      link: 'http://www.google.ca',
+                      managers: null,
+                      viewers: null,
+                      folders: []
+                    },
                     (err, link2) => {
                       assert.ok(!err);
 
@@ -1488,13 +1498,15 @@ describe('Folders - Activity', () => {
         folder => {
           RestAPI.Content.createLink(
             simong.restContext,
-            'test',
-            'test',
-            'public',
-            'http://www.google.ca',
-            null,
-            null,
-            [folder.id],
+            {
+              displayName: 'test',
+              description: 'test',
+              visibility: PUBLIC,
+              link: 'http://www.google.ca',
+              managers: null,
+              viewers: null,
+              folders: [folder.id]
+            },
             (err, link1) => {
               assert.ok(!err);
 
@@ -1557,13 +1569,15 @@ describe('Folders - Activity', () => {
                 folder2 => {
                   RestAPI.Content.createLink(
                     simong.restContext,
-                    'test',
-                    'test',
-                    'public',
-                    'http://www.google.ca',
-                    null,
-                    null,
-                    [folder1.id, folder2.id],
+                    {
+                      displayName: 'test',
+                      description: 'test',
+                      visibility: PUBLIC,
+                      link: 'http://www.google.ca',
+                      managers: null,
+                      viewers: null,
+                      folders: [folder1.id, folder2.id]
+                    },
                     (err, link) => {
                       assert.ok(!err);
 

@@ -28,6 +28,8 @@ import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests/lib/util';
 import * as FollowingTestsUtil from 'oae-following/lib/test/util';
 
+const PUBLIC = 'public';
+
 describe('Following Activity', () => {
   let camAdminRestContext = null;
   let gtAdminRestContext = null;
@@ -187,13 +189,15 @@ describe('Following Activity', () => {
               // Create a content item with the followed user and make sure the follower gets it
               RestAPI.Content.createLink(
                 followed.restContext,
-                'Im being followed',
-                null,
-                'public',
-                'http://www.google.ca',
-                [],
-                [],
-                [],
+                {
+                  displayName: 'Im being followed',
+                  description: null,
+                  visibility: PUBLIC,
+                  link: 'http://www.google.ca',
+                  managers: [],
+                  viewers: [],
+                  folders: []
+                },
                 (err, link) => {
                   assert.ok(!err);
 
@@ -293,24 +297,28 @@ describe('Following Activity', () => {
                 // Create 2 content items, one the followed user will share, one the followed user will have shared with them
                 RestAPI.Content.createLink(
                   followed.restContext,
-                  'test content 0',
-                  null,
-                  'public',
-                  'http://www.google.ca',
-                  [],
-                  [],
-                  [],
+                  {
+                    displayName: 'test content 0',
+                    description: null,
+                    visibility: PUBLIC,
+                    link: 'http://www.google.ca',
+                    managers: [],
+                    viewers: [],
+                    folders: []
+                  },
                   (err, link0) => {
                     assert.ok(!err);
                     RestAPI.Content.createLink(
                       nico.restContext,
-                      'test content 1',
-                      null,
-                      'public',
-                      'http://www.yahoo.ca',
-                      [],
-                      [],
-                      [],
+                      {
+                        displayName: 'test content 1',
+                        description: null,
+                        visibility: PUBLIC,
+                        link: 'http://www.yahoo.ca',
+                        managers: [],
+                        viewers: [],
+                        folders: []
+                      },
                       (err, link1) => {
                         assert.ok(!err);
 
@@ -536,13 +544,15 @@ describe('Following Activity', () => {
             // changed to loggedin
             RestAPI.Content.createLink(
               camUser.restContext,
-              'Google',
-              'Google',
-              'public',
-              'http://www.google.ca',
-              [],
-              [],
-              [],
+              {
+                displayName: 'Google',
+                description: 'Google',
+                visibility: PUBLIC,
+                link: 'http://www.google.ca',
+                managers: [],
+                viewers: [],
+                folders: []
+              },
               (err, link) => {
                 assert.ok(!err);
 
@@ -581,13 +591,15 @@ describe('Following Activity', () => {
         // privacy wasn't changed to private
         RestAPI.Content.createLink(
           followed.restContext,
-          'Google',
-          'Google',
-          'public',
-          'http://www.google.ca',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PUBLIC,
+            link: 'http://www.google.ca',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 

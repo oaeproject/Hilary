@@ -22,6 +22,9 @@ import * as ContentDAO from 'oae-content/lib/internal/dao';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 
+const PUBLIC = 'public';
+const PRIVATE = 'private';
+
 describe('Content DAO', () => {
   // Rest contexts that will be used for requests
   let anonymousRestContext = null;
@@ -62,13 +65,15 @@ describe('Content DAO', () => {
       // Create the content item we will iterate over
       RestAPI.Content.createLink(
         mrvisserRestCtx,
-        contentName,
-        contentName,
-        'public',
-        'http://google.ca',
-        null,
-        null,
-        [],
+        {
+          displayName: contentName,
+          description: contentName,
+          visibility: PUBLIC,
+          link: 'http://google.ca',
+          managers: null,
+          viewers: null,
+          folders: []
+        },
         (err, link) => {
           assert.ok(!err);
 
@@ -150,13 +155,15 @@ describe('Content DAO', () => {
       const mrvisser = _.values(users)[0];
       RestAPI.Content.createFile(
         mrvisser.restContext,
-        'Test Content 1',
-        'Test content description 1',
-        'private',
-        getStream,
-        [],
-        [],
-        [],
+        {
+          displayName: 'Test Content 1',
+          description: 'Test content description 1',
+          visibility: PRIVATE,
+          file: getStream,
+          managers: [],
+          viewers: [],
+          folders: []
+        },
         (err, contentObj) => {
           assert.ok(!err);
           assert.ok(contentObj);

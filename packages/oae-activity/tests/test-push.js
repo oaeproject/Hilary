@@ -21,6 +21,8 @@ import * as TestsUtil from 'oae-tests';
 
 import * as ActivityTestUtil from 'oae-activity/lib/test/util';
 
+const PUBLIC = 'public';
+
 describe('Activity push', () => {
   // Rest context that can be used every time we need to make a request as a tenant admin
   let camAdminRestContext = null;
@@ -400,26 +402,30 @@ describe('Activity push', () => {
 
           RestAPI.Content.createLink(
             mrvisser.restContext,
-            'Yahoo',
-            'Yahoo',
-            'public',
-            'http://www.yahoo.ca',
-            [],
-            [],
-            [],
+            {
+              displayName: 'Yahoo',
+              description: 'Yahoo',
+              visibility: PUBLIC,
+              link: 'http://www.yahoo.ca',
+              managers: [],
+              viewers: [],
+              folders: []
+            },
             (err, yahooLink) => {
               assert.ok(!err);
               RestAPI.Content.getContent(mrvisser.restContext, yahooLink.id, (err, yahooLink) => {
                 assert.ok(!err);
                 RestAPI.Content.createLink(
                   mrvisser.restContext,
-                  'Google',
-                  'Google',
-                  'public',
-                  'http://www.google.ca',
-                  [],
-                  [],
-                  [],
+                  {
+                    displayName: 'Google',
+                    description: 'Google',
+                    visibility: PUBLIC,
+                    link: 'http://www.google.ca',
+                    managers: [],
+                    viewers: [],
+                    folders: []
+                  },
                   (err, googleLink) => {
                     assert.ok(!err);
                     RestAPI.Content.getContent(
@@ -535,13 +541,15 @@ describe('Activity push', () => {
                 // Do something that ends up in the `activity`  activitystream
                 RestAPI.Content.createLink(
                   mrvisser.restContext,
-                  'Yahoo',
-                  'Yahoo',
-                  'public',
-                  'http://www.yahoo.ca',
-                  [],
-                  [],
-                  [],
+                  {
+                    displayName: 'Yahoo',
+                    description: 'Yahoo',
+                    visibility: PUBLIC,
+                    link: 'http://www.yahoo.ca',
+                    managers: [],
+                    viewers: [],
+                    folders: []
+                  },
                   (err, link) => {
                     assert.ok(!err);
                   }
@@ -580,13 +588,15 @@ describe('Activity push', () => {
                     // Do something that ends up in the `activity`  activitystream
                     RestAPI.Content.createLink(
                       mrvisser.restContext,
-                      'Yahoo',
-                      'Yahoo',
-                      'public',
-                      'http://www.yahoo.ca',
-                      [],
-                      [],
-                      [],
+                      {
+                        displayName: 'Yahoo',
+                        description: 'Yahoo',
+                        visibility: PUBLIC,
+                        link: 'http://www.yahoo.ca',
+                        managers: [],
+                        viewers: [],
+                        folders: []
+                      },
                       (err, link) => {
                         assert.ok(!err);
                       }
@@ -1068,13 +1078,15 @@ describe('Activity push', () => {
                                             assert.ok(!err);
                                             RestAPI.Content.createLink(
                                               simong.restContext,
-                                              'Test link',
-                                              'Test link',
-                                              'public',
-                                              'https://google.com',
-                                              [],
-                                              [mrvisser.user.id],
-                                              [],
+                                              {
+                                                displayName: 'Test link',
+                                                description: 'Test link',
+                                                visibility: PUBLIC,
+                                                link: 'https://google.com',
+                                                managers: [],
+                                                viewers: [mrvisser.user.id],
+                                                folders: []
+                                              },
                                               (err, discussion) => {
                                                 assert.ok(!err);
                                                 ActivityTestUtil.collectAndGetNotificationStream(

@@ -23,6 +23,10 @@ import * as RestAPI from 'oae-rest';
 import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
 import * as TestsUtil from 'oae-tests';
 
+const PUBLIC = 'public';
+const PRIVATE = 'private';
+const LOGGED_IN = 'loggedin';
+
 describe('Content Libraries', () => {
   let camAnonymousRestCtx = null;
   let camAdminRestCtx = null;
@@ -49,39 +53,45 @@ describe('Content Libraries', () => {
       const items = [];
       RestAPI.Content.createLink(
         nicolaas.restContext,
-        'Test Content',
-        'Test content description',
-        'public',
-        'http://www.oaeproject.org/',
-        [],
-        [],
-        [],
+        {
+          displayName: 'Test Content',
+          description: 'Test content description',
+          visibility: PUBLIC,
+          link: 'http://www.oaeproject.org/',
+          managers: [],
+          viewers: [],
+          folders: []
+        },
         (err, contentObj) => {
           assert.ok(!err);
           items.push(contentObj.id);
 
           RestAPI.Content.createLink(
             nicolaas.restContext,
-            'Test Content',
-            'Test content description',
-            'public',
-            'http://www.oaeproject.org/',
-            [],
-            [],
-            [],
+            {
+              displayName: 'Test Content',
+              description: 'Test content description',
+              visibility: PUBLIC,
+              link: 'http://www.oaeproject.org/',
+              managers: [],
+              viewers: [],
+              folders: []
+            },
             (err, contentObj) => {
               assert.ok(!err);
               items.push(contentObj.id);
 
               RestAPI.Content.createLink(
                 nicolaas.restContext,
-                'Test Content',
-                'Test content description',
-                'public',
-                'http://www.oaeproject.org/',
-                [],
-                [],
-                [],
+                {
+                  displayName: 'Test Content',
+                  description: 'Test content description',
+                  visibility: PUBLIC,
+                  link: 'http://www.oaeproject.org/',
+                  managers: [],
+                  viewers: [],
+                  folders: []
+                },
                 (err, contentObj) => {
                   assert.ok(!err);
                   items.push(contentObj.id);
@@ -156,13 +166,15 @@ describe('Content Libraries', () => {
 
       RestAPI.Content.createLink(
         simon.restContext,
-        'Test Content',
-        'Test content description',
-        'public',
-        'http://www.oaeproject.org/',
-        [],
-        [],
-        [],
+        {
+          displayName: 'Test Content',
+          description: 'Test content description',
+          visibility: PUBLIC,
+          link: 'http://www.oaeproject.org/',
+          managers: [],
+          viewers: [],
+          folders: []
+        },
         (err, contentObj) => {
           assert.ok(!err);
 
@@ -202,13 +214,15 @@ describe('Content Libraries', () => {
 
       RestAPI.Content.createLink(
         nicolaas.restContext,
-        'Test Content',
-        'Test content description',
-        'public',
-        'http://www.oaeproject.org/',
-        [],
-        [],
-        [],
+        {
+          displayName: 'Test Content',
+          description: 'Test content description',
+          visibility: PUBLIC,
+          link: 'http://www.oaeproject.org/',
+          managers: [],
+          viewers: [],
+          folders: []
+        },
         (err, contentObj) => {
           assert.ok(!err);
 
@@ -238,13 +252,15 @@ describe('Content Libraries', () => {
 
       RestAPI.Content.createLink(
         nicolaas.restContext,
-        'Test Content',
-        'Test content description',
-        'public',
-        'http://www.oaeproject.org/',
-        [],
-        [],
-        [],
+        {
+          displayName: 'Test Content',
+          description: 'Test content description',
+          visibility: PUBLIC,
+          link: 'http://www.oaeproject.org/',
+          managers: [],
+          viewers: [],
+          folders: []
+        },
         (err, contentObj) => {
           assert.ok(!err);
 
@@ -285,13 +301,15 @@ describe('Content Libraries', () => {
 
       RestAPI.Content.createLink(
         nicolaas.restContext,
-        'Test Content',
-        'Test content description',
-        'public',
-        'http://www.oaeproject.org/',
-        [],
-        [],
-        [],
+        {
+          displayName: 'Test Content',
+          description: 'Test content description',
+          visibility: PUBLIC,
+          link: 'http://www.oaeproject.org/',
+          managers: [],
+          viewers: [],
+          folders: []
+        },
         (err, contentObj) => {
           assert.ok(!err);
 
@@ -335,13 +353,15 @@ describe('Content Libraries', () => {
 
             RestAPI.Content.createLink(
               userA.restContext,
-              'Test Content',
-              'Test content description',
-              'public',
-              'http://www.oaeproject.org/',
-              [],
-              [userB.user.id],
-              [],
+              {
+                displayName: 'Test Content',
+                description: 'Test content description',
+                visibility: PUBLIC,
+                link: 'http://www.oaeproject.org/',
+                managers: [],
+                viewers: [userB.user.id],
+                folders: []
+              },
               (err, contentObj) => {
                 assert.ok(!err);
 
@@ -391,13 +411,15 @@ describe('Content Libraries', () => {
 
       RestAPI.Content.createLink(
         nicolaas.restContext,
-        'Test Content',
-        'Test content description',
-        'public',
-        'http://www.oaeproject.org/',
-        [],
-        [],
-        [],
+        {
+          displayName: 'Test Content',
+          description: 'Test content description',
+          visibility: PUBLIC,
+          link: 'http://www.oaeproject.org/',
+          managers: [],
+          viewers: [],
+          folders: []
+        },
         (err, contentObj) => {
           assert.ok(!err);
 
@@ -443,13 +465,15 @@ describe('Content Libraries', () => {
             // Bert shares some content with the top group
             RestAPI.Content.createLink(
               bert.restContext,
-              'Test Content',
-              'Test content description',
-              'public',
-              'http://www.google.com/',
-              [],
-              [grandParent.group.id],
-              [],
+              {
+                displayName: 'Test Content',
+                description: 'Test content description',
+                visibility: PUBLIC,
+                link: 'http://www.google.com/',
+                managers: [],
+                viewers: [grandParent.group.id],
+                folders: []
+              },
               (err, contentObj) => {
                 assert.ok(!err);
 
@@ -545,35 +569,41 @@ describe('Content Libraries', () => {
         // Fill up this user his library with 3 content items.
         RestAPI.Content.createLink(
           user.restContext,
-          'name',
-          'description',
-          'private',
-          'http://www.oaeproject.org',
-          null,
-          null,
-          [],
+          {
+            displayName: 'name',
+            description: 'description',
+            visibility: PRIVATE,
+            link: 'http://www.oaeproject.org',
+            managers: null,
+            viewers: null,
+            folders: []
+          },
           (err, privateContent) => {
             assert.ok(!err);
             RestAPI.Content.createLink(
               user.restContext,
-              'name',
-              'description',
-              'loggedin',
-              'http://www.oaeproject.org',
-              null,
-              null,
-              [],
+              {
+                displayName: 'name',
+                description: 'description',
+                visibility: LOGGED_IN,
+                link: 'http://www.oaeproject.org',
+                managers: null,
+                viewers: null,
+                folders: []
+              },
               (err, loggedinContent) => {
                 assert.ok(!err);
                 RestAPI.Content.createLink(
                   user.restContext,
-                  'name',
-                  'description',
-                  'public',
-                  'http://www.oaeproject.org',
-                  null,
-                  null,
-                  [],
+                  {
+                    displayName: 'name',
+                    description: 'description',
+                    visibility: PUBLIC,
+                    link: 'http://www.oaeproject.org',
+                    managers: null,
+                    viewers: null,
+                    folders: []
+                  },
                   (err, publicContent) => {
                     assert.ok(!err);
                     callback(user, privateContent, loggedinContent, publicContent);
@@ -605,35 +635,41 @@ describe('Content Libraries', () => {
       // Fill up the group library with 3 content items.
       RestAPI.Content.createLink(
         restCtx,
-        'name',
-        'description',
-        'private',
-        'http://www.oaeproject.org',
-        [group.id],
-        null,
-        [],
+        {
+          displayName: 'name',
+          description: 'description',
+          visibility: PRIVATE,
+          link: 'http://www.oaeproject.org',
+          managers: [group.id],
+          viewers: null,
+          folders: []
+        },
         (err, privateContent) => {
           assert.ok(!err);
           RestAPI.Content.createLink(
             restCtx,
-            'name',
-            'description',
-            'loggedin',
-            'http://www.oaeproject.org',
-            [group.id],
-            null,
-            [],
+            {
+              displayName: 'name',
+              description: 'description',
+              visibility: LOGGED_IN,
+              link: 'http://www.oaeproject.org',
+              managers: [group.id],
+              viewers: null,
+              folders: []
+            },
             (err, loggedinContent) => {
               assert.ok(!err);
               RestAPI.Content.createLink(
                 restCtx,
-                'name',
-                'description',
-                'public',
-                'http://www.oaeproject.org',
-                [group.id],
-                null,
-                [],
+                {
+                  displayName: 'name',
+                  description: 'description',
+                  visibility: PUBLIC,
+                  link: 'http://www.oaeproject.org',
+                  managers: [group.id],
+                  viewers: null,
+                  folders: []
+                },
                 (err, publicContent) => {
                   assert.ok(!err);
                   callback(group, privateContent, loggedinContent, publicContent);

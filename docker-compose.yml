@@ -109,19 +109,3 @@ services:
     tty: false
     volumes:
       - ../data/cassandra:/var/lib/cassandra
-  oae-etherpad:
-    container_name: oae-etherpad
-    image: oaeproject/oae-etherpad-docker:latest
-    networks:
-      - my_network
-    ports:
-      - 9001:9001
-    tty: false
-  oae-ethercalc:
-    container_name: oae-ethercalc
-    image: oaeproject/oae-ethercalc-docker:latest
-    networks:
-      - my_network
-    ports:
-      - 8000:8000
-    tty: false

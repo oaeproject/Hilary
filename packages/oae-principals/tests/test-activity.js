@@ -28,6 +28,8 @@ import * as TestsUtil from 'oae-tests';
 
 import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
 
+const PUBLIC = 'public';
+
 describe('Principals Activity', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user
   let anonymousCamRestContext = null;
@@ -693,13 +695,15 @@ describe('Principals Activity', () => {
         // Simon creates a public content item, he's totally a manager as well as mrvisser
         RestAPI.Content.createLink(
           simon.restContext,
-          'Google',
-          'Google',
-          'public',
-          'http://www.google.ca',
-          [mrvisser.user.id],
-          [],
-          [],
+          {
+            displayName: 'Google',
+            description: 'Google',
+            visibility: PUBLIC,
+            link: 'http://www.google.ca',
+            managers: [mrvisser.user.id],
+            viewers: [],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 

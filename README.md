@@ -71,6 +71,8 @@ Also, don't forget the [post-install instructions](https://docs.docker.com/engin
 git clone https://github.com/oaeproject/Hilary.git && cd Hilary
 git submodule init
 git submodule update
+
+# Next step is optional
 cd 3akai-ux && git checkout master # because HEAD is detached after pulling submodules by default
 ```
 
@@ -89,7 +91,6 @@ If you accept the following directory structure, `docker-compose` will work out 
 |-- data
     |-- elasticsearch
     |-- cassandra
-    |-- etherpad
 ```
 
 If you want to use different (local) paths, make sure to change container volumes accordingly on `docker-compose.yml`:
@@ -114,6 +115,7 @@ In order to install dependencies for the frontend and the backend, we need [lern
 
 ```
 # on Hilary folder
+yarn run prepare-etherpad
 lerna bootstrap
 # then the same for 3akai-ux
 cd 3akai-ux && lerna bootstrap
@@ -187,9 +189,9 @@ If the database settings are correct (`config.js`) then the output should resemb
 
 ### Run the server and the containers
 
-Now run `docker-compose up -d oae-cassandra oae-redis oae-rabbitmq oae-elasticsearch oae-etherpad oae-nginx` and then `docker-compose logs -f` to check the logs for all containers.
+Now run `docker-compose up -d oae-cassandra oae-redis oae-elasticsearch oae-nginx` and then `docker-compose logs -f` to check the logs for all containers.
 
-You may then run `yarn run start` locally on the terminal to start the server.
+You may then run `yarn run all` locally on the terminal to start the server, ethercalc and etherpad
 
 ## Setup
 

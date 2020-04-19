@@ -29,6 +29,8 @@ import * as SearchAPI from 'oae-search';
 import * as SearchTestsUtil from 'oae-search/lib/test/util';
 import * as TestsUtil from 'oae-tests';
 
+const PUBLIC = 'public';
+
 describe('Search', () => {
   // REST contexts we can use to do REST requests
   let anonymousRestContext = null;
@@ -116,13 +118,15 @@ describe('Search', () => {
 
           RestAPI.Content.createFile(
             creator.restContext,
-            'Test Content 1',
-            'Test content description 1',
-            'public',
-            stream,
-            [],
-            [],
-            [],
+            {
+              displayName: 'Test Content 1',
+              description: 'Test content description 1',
+              visibility: PUBLIC,
+              file: stream,
+              managers: [],
+              viewers: [],
+              folders: []
+            },
             (err, contentObj) => {
               assert.ok(!err);
 
@@ -158,13 +162,15 @@ describe('Search', () => {
 
         RestAPI.Content.createLink(
           doer.restContext,
-          'test-search index-without-full-content-item',
-          'Test content description 1',
-          'public',
-          'http://www.oaeproject.org/',
-          [],
-          [],
-          [],
+          {
+            displayName: 'test-search index-without-full-content-item',
+            description: 'Test content description 1',
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org/',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 
@@ -238,13 +244,15 @@ describe('Search', () => {
         let description = TestsUtil.generateTestUserId('mimetype-test');
         RestAPI.Content.createLink(
           doer.restContext,
-          'Test Content 1',
-          description,
-          'public',
-          'http://www.oaeproject.org/',
-          [],
-          [],
-          [],
+          {
+            displayName: 'Test Content 1',
+            description,
+            visibility: PUBLIC,
+            link: 'http://www.oaeproject.org/',
+            managers: [],
+            viewers: [],
+            folders: []
+          },
           (err, link) => {
             assert.ok(!err);
 
@@ -264,13 +272,15 @@ describe('Search', () => {
                 description = TestsUtil.generateTestUserId('mimetype-test');
                 RestAPI.Content.createFile(
                   doer.restContext,
-                  'Test Content 2',
-                  description,
-                  'public',
-                  file,
-                  [],
-                  [],
-                  [],
+                  {
+                    displayName: 'Test Content 2',
+                    description,
+                    visiblity: PUBLIC,
+                    file,
+                    managers: [],
+                    viewers: [],
+                    folders: []
+                  },
                   (err, contentObj) => {
                     assert.ok(!err);
                     assert.ok(contentObj);

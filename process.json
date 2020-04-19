@@ -9,8 +9,28 @@
       "instances": 1,
       "exec_mode": "cluster",
       "ignore_watch": ["node_modules", "test", ".git", "files", "*.log", "tmp"]
-      "error_file": "/var/log/Hilary/hilary-err.log",
-      "ignore_watch": ["test", ".git", "files", "*.log", "tmp"]
+    },
+    {
+      "name": "Ethercalc",
+      "script": "app.js",
+      "cwd": "ethercalc",
+      "watch": ["*.js"],
+      "args": "--restart-delay=3000",
+      "node_args": "-r esm",
+      "instances": 1,
+      "exec_mode": "cluster",
+      "ignore_watch": ["node_modules", ".git", "static", "*.log"]
+    },
+    {
+      "name": "Etherpad",
+      "script": "node_modules/ep_etherpad-lite/node/server.js",
+      "cwd": "etherpad",
+      "watch": ["*.js"],
+      "args": "--restart-delay=3000",
+      "node_args": "-r esm",
+      "instances": 1,
+      "exec_mode": "cluster",
+      "ignore_watch": ["node_modules", ".git", "*.log"]
     }
   ]
 }

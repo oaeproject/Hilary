@@ -24,6 +24,9 @@ import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 
 import { ContentConstants } from 'oae-content/lib/constants';
+import { isPrivate } from 'oae-tenants/lib/util';
+
+const PRIVATE = 'private';
 
 describe('Content Push', () => {
   // Rest contexts that can be used performing rest requests
@@ -60,13 +63,15 @@ describe('Content Push', () => {
             // Create a content item and get its full profile so we have a signature that we can use to register for push notifications
             RestAPI.Content.createLink(
               simong.restContext,
-              'content',
-              'A piece of content',
-              'private',
-              'http://www.google.com',
-              [branden.user.id],
-              [],
-              [],
+              {
+                displayName: 'content',
+                description: 'A piece of content',
+                visibility: PRIVATE,
+                link: 'http://www.google.com',
+                managers: [branden.user.id],
+                viewers: [],
+                folders: []
+              },
               (err, contentObj) => {
                 assert.ok(!err);
                 RestAPI.Content.getContent(simong.restContext, contentObj.id, (err, contentObj) => {
@@ -170,13 +175,15 @@ describe('Content Push', () => {
           // Create a piece of content and get the full content profile so we have a signature that we can use to register for push notifications
           RestAPI.Content.createFile(
             contexts.simon.restContext,
-            'A file',
-            'A proper file',
-            'private',
-            getFileStream,
-            [contexts.branden.user.id],
-            [],
-            [],
+            {
+              displayName: 'A file',
+              description: 'A proper file',
+              visibility: PRIVATE,
+              file: getFileStream,
+              managers: [contexts.branden.user.id],
+              viewers: [],
+              folders: []
+            },
             (err, contentObj) => {
               assert.ok(!err);
               RestAPI.Content.getContent(contexts.simon.restContext, contentObj.id, (err, contentObj) => {

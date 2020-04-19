@@ -25,6 +25,10 @@ import * as RestAPI from 'oae-rest';
 import * as RestUtil from 'oae-rest/lib/util';
 import * as SearchTestsUtil from 'oae-search/lib/test/util';
 import * as TestsUtil from 'oae-tests';
+import { isPrivate } from 'oae-tenants/lib/util';
+
+const PUBLIC = 'public';
+const PRIVATE = 'private';
 
 describe('File previews', () => {
   // Rest context that can be used every time we need to make a request as a global admin
@@ -77,7 +81,7 @@ describe('File previews', () => {
 
   beforeEach(done => {
     flush(done);
-  })
+  });
 
   /**
    * Utility method that returns a stream that points to an OAE animation thumbnail.
@@ -118,13 +122,15 @@ describe('File previews', () => {
 
       RestAPI.Content.createFile(
         contexts.nicolaas.restContext,
-        'Test Content 2',
-        'Test content description 2',
-        'private',
-        getFileStream,
-        [],
-        [],
-        [],
+        {
+          displayName: 'Test Content 2',
+          description: 'Test content description 2',
+          visibility: PRIVATE,
+          file: getFileStream,
+          managers: [],
+          viewers: [],
+          folders: []
+        },
         (err, contentObj) => {
           assert.ok(!err);
           assert.ok(contentObj.id);
@@ -328,13 +334,15 @@ describe('File previews', () => {
       const simon = _.values(users)[0];
       RestAPI.Content.createFile(
         simon.restContext,
-        'Test Content 2',
-        'Test content description 2',
-        'private',
-        getFileStream,
-        [],
-        [],
-        [],
+        {
+          displayName: 'Test Content 2',
+          description: 'Test content description 2',
+          visibility: PRIVATE,
+          file: getFileStream,
+          managers: [],
+          viewers: [],
+          folders: []
+        },
         (err, contentObj) => {
           assert.ok(!err);
           assert.ok(contentObj.id);
@@ -379,13 +387,15 @@ describe('File previews', () => {
 
       RestAPI.Content.createFile(
         simon.restContext,
-        'Test Content',
-        'Test content description',
-        'private',
-        getFileStream,
-        [],
-        [],
-        [],
+        {
+          displayName: 'Test Content',
+          description: 'Test content description',
+          visibility: PRIVATE,
+          file: getFileStream,
+          managers: [],
+          viewers: [],
+          folders: []
+        },
         (err, contentObj) => {
           assert.ok(!err);
           assert.ok(contentObj.id);
@@ -486,13 +496,15 @@ describe('File previews', () => {
 
       RestAPI.Content.createFile(
         simon.restContext,
-        'Test Content',
-        'Test content description',
-        'private',
-        getFileStream,
-        [],
-        [],
-        [],
+        {
+          displayName: 'Test Content',
+          description: 'Test content description',
+          visibility: PRIVATE,
+          file: getFileStream,
+          managers: [],
+          viewers: [],
+          folders: []
+        },
         (err, contentObj) => {
           assert.ok(!err);
           assert.ok(contentObj.id);
@@ -626,13 +638,15 @@ describe('File previews', () => {
 
       RestAPI.Content.createLink(
         contexts.nicolaas.restContext,
-        'Test Content 1',
-        'Test content description 1',
-        'public',
-        'http://www.oaeproject.org/',
-        [],
-        [],
-        [],
+        {
+          displayName: 'Test Content 1',
+          description: 'Test content description 1',
+          visibility: PUBLIC,
+          link: 'http://www.oaeproject.org/',
+          managers: [],
+          viewers: [],
+          folders: []
+        },
         (err, contentObj) => {
           assert.ok(!err);
 

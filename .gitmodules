@@ -7,3 +7,9 @@
 [submodule "packages/restjsdoc"]
 	path = packages/restjsdoc
 	url = https://github.com/oaeproject/restjsdoc
+[submodule "ethercalc"]
+	path = ethercalc
+	url = https://github.com/oaeproject/ethercalc
+[submodule "etherpad"]
+	path = etherpad
+	url = https://github.com/oaeproject/etherpad-lite

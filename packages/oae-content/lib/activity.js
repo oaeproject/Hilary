@@ -246,9 +246,9 @@ ContentAPI.emitter.on(ContentConstants.events.EDITED_COLLABDOC, (ctx, contentObj
   ActivityAPI.postActivity(ctx, activitySeed);
 });
 
-/// ////////////////////////////
-// CONTENT-RESTORED-REVISION //
-/// ////////////////////////////
+/**
+ * Content-restored-revision
+ */
 
 ActivityAPI.registerActivityType(ContentConstants.activity.ACTIVITY_CONTENT_RESTORED_REVISION, {
   groupBy: [{ object: true }],

@@ -56,7 +56,7 @@
     "ioredis-ratelimit": "^2.1.0",
     "isomorphic-git": "^1.2.0",
     "jsdom": "^16.2.0",
-    "jszip": "^3.2.1",
+    "jszip": "^3.4.0",
     "juice": "^6.0.0",
     "lerna": "^3.20.2",
     "less": "1.7.5",

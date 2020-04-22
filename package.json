@@ -97,7 +97,7 @@
     "shortid": "^2.2.8",
     "slideshare": "git://github.com/oaeproject/node-slideshare",
     "snyk": "^1.298.0",
-    "sockjs": "^0.3.19",
+    "sockjs": "^0.3.20",
     "sockjs-client": "^1.4.0",
     "strftime": "^0.10.0",
     "temp": "^0.9.0",

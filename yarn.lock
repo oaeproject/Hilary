@@ -1326,12 +1326,7 @@
   resolved "https://registry.yarnpkg.com/@types/minimatch/-/minimatch-3.0.3.tgz#3dca0e3f33b200fc7d1139c0cd96c1268cadfd9d"
   integrity sha512-tHq6qdbT9U1IRSGf14CL0pUlULksvY9OZ+5eEgl1N7t+OA3tGvNpxJCzuKQlsNgCVwbAs670L1vcVQi8j9HjnA==
 
-"@types/node@*", "@types/node@>= 8":
-  version "12.12.7"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-12.12.7.tgz#01e4ea724d9e3bd50d90c11fd5980ba317d8fa11"
-  integrity sha512-E6Zn0rffhgd130zbCbAr/JdXfXkoOUFAKNs/rF8qnafSJ8KYaA/j3oz7dcwal+lYjLA7xvdd5J4wdYpCTlP8+w==
-
-"@types/node@>=8":
+"@types/node@*", "@types/node@>= 8", "@types/node@>=8":
   version "13.9.0"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-13.9.0.tgz#5b6ee7a77faacddd7de719017d0bc12f52f81589"
   integrity sha512-0ARSQootUG1RljH2HncpsY2TJBfGQIKOOi7kxzUY6z54ePu/ZD+wJA8zI2Q6v8rol2qpG/rvqsReco8zNMPvhQ==
@@ -2497,10 +2492,10 @@ caseless@~0.12.0:
   resolved "https://registry.yarnpkg.com/caseless/-/caseless-0.12.0.tgz#1b681c21ff84033c826543090689420d187151dc"
   integrity sha1-G2gcIf+EAzyCZUMJBolCDRhxUdw=
 
-cassandra-driver@^4.4.0:
-  version "4.4.0"
-  resolved "https://registry.yarnpkg.com/cassandra-driver/-/cassandra-driver-4.4.0.tgz#09c65509d017c3ceb48cf01322bf1d95da91c697"
-  integrity sha512-YJdGqNaT8VJi1jJKfxS0z6b4px5dHMsclQ3qmxwmVxrSChn/dqy2EVM4L77wQA7DNbdbt/MLtU8JD9N0r2tA0Q==
+cassandra-driver@^4.5.1:
+  version "4.5.1"
+  resolved "https://registry.yarnpkg.com/cassandra-driver/-/cassandra-driver-4.5.1.tgz#a7b5a06a67d35871d8f5c6609dcaa4da24afb70b"
+  integrity sha512-N5pxCxi9jPJzHuhx7ObClJtePcby8xuSb3mQkik1EE57CWqI7dEAuZZUaM7Flboasbwf/uSmw9oTfuf6sZMq9A==
   dependencies:
     "@types/long" "^4.0.0"
     "@types/node" ">=8"

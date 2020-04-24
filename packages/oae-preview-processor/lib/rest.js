@@ -14,7 +14,7 @@
  */
 
 import request from 'request';
-import { defaultTo, startsWith, forEachObjIndexed } from 'ramda';
+import { compose, nth, split, defaultTo, startsWith, forEachObjIndexed } from 'ramda';
 
 import * as OAE from 'oae-util/lib/oae';
 
@@ -22,6 +22,12 @@ import * as PreviewProcessorAPI from 'oae-preview-processor';
 
 const HTTP_POST = 'post';
 const HTTP_GET = 'get';
+
+// Auxiliary functions
+const isContentFilter = startsWith('content_');
+const isRevisionFilter = startsWith('revision_');
+const defaultToEmptyObject = x => defaultTo({}, x);
+const first = nth(1);
 
 /**
  * @REST postContentReprocessPreviews
@@ -49,16 +55,15 @@ const HTTP_GET = 'get';
 OAE.globalAdminRouter.on(HTTP_POST, '/api/content/reprocessPreviews', (httpRequest, httpResponse) => {
   httpRequest.telemetryUrl = '/api/content/reprocessPreviews';
   const filters = {};
-  const isContentFilter = startsWith('content_');
-  const isRevisionFilter = startsWith('revision_');
 
   forEachObjIndexed((value, name) => {
+    const actualFilterKey = compose(first, split('_'))(name);
     if (isContentFilter(name)) {
-      filters.content = defaultTo({}, filters.content);
-      filters.content[name.slice(8)] = value;
+      filters.content = defaultToEmptyObject(filters.content);
+      filters.content[actualFilterKey] = value;
     } else if (isRevisionFilter(name)) {
-      filters.revision = defaultTo({}, filters.revision);
-      filters.revision[name.slice(9)] = value;
+      filters.revision = defaultToEmptyObject(filters.revision);
+      filters.revision[actualFilterKey] = value;
     }
   }, httpRequest.body);
 

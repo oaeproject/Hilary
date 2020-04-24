@@ -128,7 +128,8 @@
   },
   "scripts": {
     "test": "nyc --reporter=html --reporter=text --reporter=lcov mocha -r esm 'node_modules/oae-tests/runner/before-tests.js' 'node_modules/oae-*/tests/**/*.js'",
-    "test-module": "func() { nyc --reporter=html --reporter=text --reporter=lcov mocha -r esm 'node_modules/oae-tests/runner/before-tests.js' $*; }; func",
+    "test-module": "func() { mocha -r esm 'node_modules/oae-tests/runner/before-tests.js' $*; }; func",
+    "test-module-with-coverage": "func() { nyc --reporter=html --reporter=text --reporter=lcov mocha -r esm 'node_modules/oae-tests/runner/before-tests.js' $*; }; func",
     "test-with-coverage": "npx nyc --reporter=lcov npm test && cat ./coverage/lcov.info | codacy-coverage",
     "migrate": "func() { node -r esm 'migrate.js' '--keyspace' $1 ; }; func",
     "prepare-etherpad": "./prepare-etherpad.sh",
@@ -148,7 +149,10 @@
   },
   "nyc": {
     "include": "packages/**/*",
-    "exclude": ["3akai-ux", "**/domstubs.js "]
+    "exclude": [
+      "3akai-ux",
+      "**/domstubs.js "
+    ]
   },
   "xo": {
     "prettier": true,
@@ -173,13 +177,7 @@
       "no-use-before-define": "off",
       "no-warning-comments": "off",
       "prefer-named-capture-group": "off",
-      "import/no-unresolved": [
-        2,
-        {
-          "commonjs": true,
-          "amd": true
-        }
-      ]
+      "import/no-unresolved": "off"
     },
     "env": [
       "mocha"

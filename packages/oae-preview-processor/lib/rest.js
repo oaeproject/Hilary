@@ -49,12 +49,14 @@ const HTTP_GET = 'get';
 OAE.globalAdminRouter.on(HTTP_POST, '/api/content/reprocessPreviews', (httpRequest, httpResponse) => {
   httpRequest.telemetryUrl = '/api/content/reprocessPreviews';
   const filters = {};
+  const isContentFilter = startsWith('content_');
+  const isRevisionFilter = startsWith('revision_');
 
   forEachObjIndexed((value, name) => {
-    if (startsWith('content_', name)) {
+    if (isContentFilter(name)) {
       filters.content = defaultTo({}, filters.content);
       filters.content[name.slice(8)] = value;
-    } else if (startsWith('revision_', name)) {
+    } else if (isRevisionFilter(name)) {
       filters.revision = defaultTo({}, filters.revision);
       filters.revision[name.slice(9)] = value;
     }

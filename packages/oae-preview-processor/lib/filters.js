@@ -106,8 +106,20 @@ const FilterGenerator = function(filters) {
    * At the same we construct all the functions that are
    * required to do in-app filtering
    */
+  const getFilter = filterValue => curry(contains)(__, toArray(filterValue));
+  const getStatusFilter = filter => {
+    return revision => {
+      if (both(isDefined, statusIsDefined)(revision.previews)) {
+        return filter(revision.previews.status);
+      }
+
+      // If the previews object is missing, something is seriously wrong and we should reprocess it
+      return true;
+    };
+  };
+
   forEachObjIndexed((filterValue, filterKey) => {
-    const filterContains = curry(contains)(__, toArray(filterValue));
+    const filterContains = getFilter(filterValue);
     if (equals(filterKey, resourceSubType.key)) {
       // We'll need the resourceSubType column if we want to run this filter
       columnNames.push(resourceSubType.columnName);
@@ -119,14 +131,7 @@ const FilterGenerator = function(filters) {
       columnNames.push(previewStatusFilter.columnName);
 
       // Construct the filter function
-      contentCheckers.push(content => {
-        if (both(isDefined, statusIsDefined)(content.previews)) {
-          return filterContains(content.previews.status);
-        }
-
-        // If the previews object is missing, something is seriously wrong and we should reprocess it
-        return true;
-      });
+      contentCheckers.push(getStatusFilter(filterContains));
     } else if (equals(filterKey, createdByFilter.key)) {
       contentCheckers.push(content => filterContains(content.createdBy));
     } else if (equals(filterKey, tenantFilter.key)) {
@@ -141,7 +146,7 @@ const FilterGenerator = function(filters) {
 
   // Revisions
   forEachObjIndexed((filterValue, filterKey) => {
-    const filterContains = curry(contains)(__, toArray(filterValue));
+    const filterContains = getFilter(filterValue);
     if (equals(filterKey, 'mime')) {
       needsRevisions = true;
       revisionCheckers.push(revision => {
@@ -152,14 +157,7 @@ const FilterGenerator = function(filters) {
       });
     } else if (equals(filterKey, previewStatusFilter.key)) {
       needsRevisions = true;
-      revisionCheckers.push(revision => {
-        if (both(isDefined, statusIsDefined)(revision.previews)) {
-          return filterContains(revision.previews.status);
-        }
-
-        // If the previews object is missing, something is seriously wrong and we should reprocess it
-        return true;
-      });
+      revisionCheckers.push(getStatusFilter(filterContains));
     } else if (equals(filterKey, createdByFilter.key)) {
       needsRevisions = true;
       revisionCheckers.push(revision => filterContains(revision.createdBy));

@@ -13,12 +13,21 @@
  * permissions and limitations under the License.
  */
 
-import _ from 'underscore';
 import request from 'request';
+import { compose, nth, split, defaultTo, startsWith, forEachObjIndexed } from 'ramda';
 
 import * as OAE from 'oae-util/lib/oae';
 
 import * as PreviewProcessorAPI from 'oae-preview-processor';
+
+const HTTP_POST = 'post';
+const HTTP_GET = 'get';
+
+// Auxiliary functions
+const isContentFilter = startsWith('content_');
+const isRevisionFilter = startsWith('revision_');
+const defaultToEmptyObject = x => defaultTo({}, x);
+const first = nth(1);
 
 /**
  * @REST postContentReprocessPreviews
@@ -42,26 +51,26 @@ import * as PreviewProcessorAPI from 'oae-preview-processor';
  * @HttpResponse                    400                           At least one filter must be specified
  * @HttpResponse                    401                           Must be a global administrator to reprocess previews
  */
-OAE.globalAdminRouter.on('post', '/api/content/reprocessPreviews', (req, res) => {
-  req.telemetryUrl = '/api/content/reprocessPreviews';
+
+OAE.globalAdminRouter.on(HTTP_POST, '/api/content/reprocessPreviews', (httpRequest, httpResponse) => {
+  httpRequest.telemetryUrl = '/api/content/reprocessPreviews';
   const filters = {};
 
-  _.each(req.body, (value, name) => {
-    if (name.indexOf('content_') === 0) {
-      filters.content = filters.content || {};
-      filters.content[name.slice(8)] = value;
-    } else if (name.indexOf('revision_') === 0) {
-      filters.revision = filters.revision || {};
-      filters.revision[name.slice(9)] = value;
+  forEachObjIndexed((value, name) => {
+    const actualFilterKey = compose(first, split('_'))(name);
+    if (isContentFilter(name)) {
+      filters.content = defaultToEmptyObject(filters.content);
+      filters.content[actualFilterKey] = value;
+    } else if (isRevisionFilter(name)) {
+      filters.revision = defaultToEmptyObject(filters.revision);
+      filters.revision[actualFilterKey] = value;
     }
-  });
+  }, httpRequest.body);
 
-  PreviewProcessorAPI.reprocessPreviews(req.ctx, filters, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+  PreviewProcessorAPI.reprocessPreviews(httpRequest.ctx, filters, err => {
+    if (err) return httpResponse.status(err.code).send(err.msg);
 
-    res.status(200).end();
+    httpResponse.status(200).end();
   });
 });
 
@@ -72,14 +81,17 @@ OAE.globalAdminRouter.on('post', '/api/content/reprocessPreviews', (req, res) =>
  * @param  {Response}   The express response
  * @api private
  */
-const _handleReprocessPreview = function(req, res) {
-  PreviewProcessorAPI.reprocessPreview(req.ctx, req.params.contentId, req.params.revisionId, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+const _handleReprocessPreview = function(httpRequest, httpResponse) {
+  PreviewProcessorAPI.reprocessPreview(
+    httpRequest.ctx,
+    httpRequest.params.contentId,
+    httpRequest.params.revisionId,
+    err => {
+      if (err) return httpResponse.status(err.code).send(err.msg);
 
-    res.status(200).end();
-  });
+      httpResponse.status(200).end();
+    }
+  );
 };
 
 /**
@@ -99,11 +111,15 @@ const _handleReprocessPreview = function(req, res) {
  * @HttpResponse                401             You must be admin of the content item's tenant to reprocess its previews
  */
 OAE.globalAdminRouter.on(
-  'post',
+  HTTP_POST,
   '/api/content/:contentId/revision/:revisionId/reprocessPreview',
   _handleReprocessPreview
 );
-OAE.tenantRouter.on('post', '/api/content/:contentId/revision/:revisionId/reprocessPreview', _handleReprocessPreview);
+OAE.tenantRouter.on(
+  HTTP_POST,
+  '/api/content/:contentId/revision/:revisionId/reprocessPreview',
+  _handleReprocessPreview
+);
 
 /**
  * @REST getLongurlExpand
@@ -118,16 +134,16 @@ OAE.tenantRouter.on('post', '/api/content/:contentId/revision/:revisionId/reproc
  * @HttpResponse                200             The long URL
  * @HttpResponse                500             The URL could not be expanded
  */
-OAE.tenantRouter.on('get', '/api/longurl/expand', async (req, res) => {
-  const url = decodeURIComponent(req.query.url);
+OAE.tenantRouter.on(HTTP_GET, '/api/longurl/expand', async (httpRequest, httpResponse) => {
+  const url = decodeURIComponent(httpRequest.query.url);
 
-  request({ url, followRedirect: false }, (err, httpResponse) => {
+  request({ url, followRedirect: false }, (err, redirectResponse) => {
     if (err) return console.error(err);
 
-    const unshortenedUrl = httpResponse.headers.location;
+    const unshortenedUrl = redirectResponse.headers.location;
     const data = {
       'long-url': unshortenedUrl
     };
-    return res.status(200).send(data);
+    return httpResponse.status(200).send(data);
   });
 });
